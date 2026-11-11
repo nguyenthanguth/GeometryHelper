@@ -16,9 +16,9 @@ namespace GeometryHelper.Dwg
         /// The header from R2000 on, one entry per value: where the value came or went with a version, the first version
         /// that has it (<c>1018+</c>) or the first that has it no more (<c>-1018</c>); its bit code; its name. A name
         /// starting with a question mark is a value the specification does not name; one starting with an underscore is a
-        /// handle the reader itself uses.
+        /// handle the reader itself uses. The writer writes the header by the same list.
         /// </summary>
-        private const string Layout =
+        internal const string Layout =
             "1027+ BLL REQUIREDVERSIONS;" +
             "BD ?1;BD ?2;BD ?3;BD ?4;TV ?5;TV ?6;TV ?7;TV ?8;BL ?9;BL ?10;-1018 H _VPORTHEADER;" +
             "B DIMASO;B DIMSHO;B PLINEGEN;B ORTHOMODE;B REGENMODE;B FILLMODE;B QTEXTMODE;B PSLTSCALE;B LIMCHECK;1018+ B ?11;" +

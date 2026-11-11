@@ -356,20 +356,14 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// TU from R2007: a bit short of the count of UTF-16 characters, which takes in a closing zero, then the characters,
-        /// two bytes each, low byte first, and the zero; an empty text is the count 0 alone.
+        /// TU from R2007: a bit short of the count of UTF-16 characters, then the characters, two bytes each, low byte first,
+        /// with no closing zero, as AutoCAD writes them.
         /// </summary>
         public void TextUnicode(string text)
         {
-            if (string.IsNullOrEmpty(text))
-            {
-                BitShort(0);
-                return;
-            }
-
-            BitShort(text.Length + 1);
+            text = text ?? string.Empty;
+            BitShort(text.Length);
             Bytes(Encoding.Unicode.GetBytes(text));
-            RawShort(0);
         }
 
         /// <summary>The text of an XRECORD or of extended data from R2007: a raw short of the count of UTF-16 characters, then the characters, no closing zero.</summary>
@@ -467,12 +461,12 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>Zero bits up to the next whole byte.</summary>
-        public void PadToByte()
+        /// <summary>Bits up to the next whole byte: zeros, or ones where <paramref name="ones"/> is set, as AutoCAD ends an object.</summary>
+        public void PadToByte(bool ones = false)
         {
             while ((_position & 7) != 0)
             {
-                Bit(false);
+                Bit(ones);
             }
         }
 
