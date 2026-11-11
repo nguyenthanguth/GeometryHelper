@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter drew a layer of an external reference the drawing had not changed as the file has it now under
+VISRETAIN 1, and synced it on reload. AutoCAD 2021 does not: with VISRETAINMODE 0, its default, it syncs nothing, and its
+console kept `x|WALL` green (62 3, 1071 0) when x.dwg made WALL blue, reloaded and opened anew alike. The drawing's
+record is now drawn whole. **NEW.** VISRETAIN 0 as AutoCAD 2021 keeps it: what the drawing changed is drawn as it keeps it
+until Reload, which writes the file's properties back with 1071 0 (its reload wrote `x|WALL` red back as the file's
+blue, 62 5), the rest as the file has it; Unload takes the records out, as its console showed. The presenter does not
+write them again when it opens a drawing of VISRETAIN 0.
+
 **NEW.** -LAYER in the presenter takes TRansparency, Plot and Description, asked as AutoCAD 2021 asks them: "Enter
 transparency value (0-90):" (95 refused with "Requires an integer between 0 and 90." and asked again), then "Enter name
 list of layer(s) for transparency 50% <0>:", Enter taking the current layer; "Enter a plotting preference [Plot/No plot]

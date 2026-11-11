@@ -1,15 +1,17 @@
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// What the drawing has changed of a layer of an external reference (<c>grid|WALL</c>), kept as AutoCAD 2021 keeps it
-    /// under VISRETAIN 1: the bits of the 1071 of the layer's extended data of the application
-    /// <c>AcXRefLayerPropertyOverride</c>, each set when the drawing changes that property, the rest read from the drawing
-    /// referenced. AutoCAD 2021, changing one property at a time of <c>b|WALL</c> with -LAYER and writing the drawing out,
-    /// sets 1 for Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64 LWeight, 128 TRansparency and 1024
-    /// Description, and writes 0 for a layer it has not changed.
+    /// The records of the layers of an external reference (<c>grid|WALL</c>) and what the drawing has changed of them, kept
+    /// as AutoCAD 2021 keeps them: the bits of the 1071 of the layer's extended data of the application
+    /// <c>AcXRefLayerPropertyOverride</c>, each set when the drawing changes that property. AutoCAD 2021, changing one
+    /// property at a time of <c>b|WALL</c> with -LAYER and writing the drawing out, sets 1 for Off, 2 Freeze, 4 Lock, 8 Plot,
+    /// 16 and 256 Color, 32 Ltype, 64 LWeight, 128 TRansparency and 1024 Description, and writes 0 for a layer it has not
+    /// changed. Under VISRETAIN 1 the record is kept whole on reload, as VISRETAINMODE 0, AutoCAD's default, syncs nothing;
+    /// under VISRETAIN 0 the file's properties replace it on reload and the bits go back to 0, and unloading takes it out.
     /// </summary>
     internal static class CadXrefLayers
     {
@@ -119,6 +121,18 @@ namespace GeometryHelper.Dxf.Viewer
                         kept.SetDependent(true, true);
                     }
 
+                    // Under VISRETAIN 0 the file's properties replace the drawing's, and nothing stays marked changed, as
+                    // AutoCAD 2021's reload wrote x|WALL red in the drawing back as the file's blue with 1071 0.
+                    if (!host.Visretain)
+                    {
+                        changes |= Copy(host, xref, layer, kept, write) || (Overrides(kept) ?? 0) != 0;
+
+                        if (write)
+                        {
+                            kept.XData = new[] { new DxfTypedValue(1001, Application), new DxfTypedValue(1071, "0") };
+                        }
+                    }
+
                     continue;
                 }
 
@@ -133,11 +147,20 @@ namespace GeometryHelper.Dxf.Viewer
             return changes;
         }
 
-        /// <summary>Flags the layers and linetypes of an external reference 16 alone, as AutoCAD 2021 flags them once it is unloaded; gives whether any was flagged 48.</summary>
+        /// <summary>
+        /// Flags the layers and linetypes of an external reference 16 alone, as AutoCAD 2021 flags them once it is unloaded
+        /// under VISRETAIN 1; under VISRETAIN 0 takes them out, as it took out x|WALL and x|DASHED. Gives whether anything
+        /// changes.
+        /// </summary>
         internal static bool Unresolve(DxfDatabase host, string xref, bool write)
         {
             string prefix = xref + "|";
             bool changes = Resolve(host, xref, false, write);
+
+            if (!host.Visretain)
+            {
+                changes |= Remove(host, prefix, write);
+            }
 
             foreach (DxfLinetypeTableRecord linetype in host.LinetypeTable)
             {
@@ -208,15 +231,91 @@ namespace GeometryHelper.Dxf.Viewer
             made.SetDependent(true, true);
             host.LayerTable.Add(made);
             DxfLayerTableRecord record = host.LayerTable[name];
-
-            // What a drawing of its version holds of the rest, as AutoCAD writes it: lineweights and plotting from R2000,
-            // true colours and transparency from R2004; a drawing older keeps none of them.
-            Try(() => record.LineWeight = layer.LineWeight, layer.LineWeight != DxfLineWeight.ByLineWeightDefault);
-            Try(() => record.IsPlottable = layer.IsPlottable, !layer.IsPlottable);
-            Try(() => record.TrueColor = layer.TrueColor, layer.TrueColor.HasValue);
-            Try(() => record.Transparency = layer.Transparency, !layer.Transparency.IsSolid);
-            Try(() => record.Description = layer.Description, layer.Description.Length > 0);
+            Copy(host, xref, layer, record, true);
             record.XData = new[] { new DxfTypedValue(1001, Application), new DxfTypedValue(1071, "0") };
+        }
+
+        /// <summary>
+        /// Gives the record of a layer of a reference the properties of the layer of the drawing referenced, those that differ
+        /// alone, or says whether any differs (<paramref name="write"/> false). What a drawing of its version holds, as AutoCAD
+        /// writes it: lineweights and plotting from R2000, true colours and transparency from R2004; one older keeps none of them.
+        /// </summary>
+        private static bool Copy(DxfDatabase host, string xref, DxfLayerTableRecord layer, DxfLayerTableRecord record, bool write)
+        {
+            string linetype = layer.LinetypeName ?? "Continuous";
+
+            if (!IsAutoCadsLinetype(linetype))
+            {
+                linetype = host.LinetypeTable.Has(xref + "|" + linetype) ? xref + "|" + linetype : "Continuous";
+            }
+
+            bool differs = false;
+            Change(ref differs, write, record.ColorIndex != layer.ColorIndex, () => record.ColorIndex = layer.ColorIndex);
+            Change(ref differs, write, record.TrueColor != layer.TrueColor, () => record.TrueColor = layer.TrueColor);
+            Change(ref differs, write, !string.Equals(record.LinetypeName, linetype, System.StringComparison.OrdinalIgnoreCase), () => record.LinetypeName = linetype);
+            Change(ref differs, write, record.IsOff != layer.IsOff, () => record.IsOff = layer.IsOff);
+            Change(ref differs, write, record.IsFrozen != layer.IsFrozen, () => record.IsFrozen = layer.IsFrozen);
+            Change(ref differs, write, record.IsLocked != layer.IsLocked, () => record.IsLocked = layer.IsLocked);
+            Change(ref differs, write, record.LineWeight != layer.LineWeight, () => record.LineWeight = layer.LineWeight);
+            Change(ref differs, write, record.IsPlottable != layer.IsPlottable, () => record.IsPlottable = layer.IsPlottable);
+            Change(ref differs, write, record.Transparency != layer.Transparency, () => record.Transparency = layer.Transparency);
+            Change(ref differs, write, record.Description != layer.Description, () => record.Description = layer.Description);
+            return differs;
+        }
+
+        /// <summary>Takes out the layers, then the linetypes, of a name that begins with a prefix; one AutoCAD keeps, as a layer something is on, is flagged 16 instead.</summary>
+        private static bool Remove(DxfDatabase host, string prefix, bool write)
+        {
+            var layers = new List<DxfLayerTableRecord>();
+            var linetypes = new List<DxfLinetypeTableRecord>();
+
+            foreach (DxfLayerTableRecord layer in host.LayerTable)
+            {
+                if (layer.IsDependent && layer.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    layers.Add(layer);
+                }
+            }
+
+            foreach (DxfLinetypeTableRecord linetype in host.LinetypeTable)
+            {
+                if (linetype.IsDependent && linetype.Name.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    linetypes.Add(linetype);
+                }
+            }
+
+            if (write)
+            {
+                foreach (DxfSymbolTableRecord record in layers.Cast<DxfSymbolTableRecord>().Concat(linetypes))
+                {
+                    try
+                    {
+                        record.Erase();
+                    }
+                    catch (System.InvalidOperationException e)
+                    {
+                        GeometryHelperLog.Debug("CadXrefLayers: " + record.Name + " is kept, flagged unresolved: " + e.Message);
+                    }
+                }
+            }
+
+            return layers.Count + linetypes.Count > 0;
+        }
+
+        private static void Change(ref bool differs, bool write, bool different, System.Action set)
+        {
+            if (!different)
+            {
+                return;
+            }
+
+            differs = true;
+
+            if (write)
+            {
+                Try(set, true);
+            }
         }
 
         private static void Try(System.Action set, bool needed)

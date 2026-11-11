@@ -446,12 +446,15 @@ not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's t
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
 an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
 reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
-2021 changes it under VISRETAIN 1: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer
-box or -LAYER, and transparency, plotting and description from -LAYER, each change marked in the 1071 of the record's
+2021 changes it: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer box or -LAYER,
+and transparency, plotting and description from -LAYER, each change marked in the 1071 of the record's
 `AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
-LWeight, 128 TRansparency, 1024 Description). What is marked is drawn as the drawing keeps it, the rest as
-the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
-as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
+LWeight, 128 TRansparency, 1024 Description). Under VISRETAIN 1 the record is drawn whole and kept on reload, as AutoCAD
+2021 keeps it with VISRETAINMODE 0, its default, which syncs nothing: `x|WALL` green in the record stayed green when x.dwg
+made WALL blue, reloaded and opened anew alike. Under VISRETAIN 0 what is marked is drawn as the drawing keeps it and the
+rest as the file has it, and Reload writes the file's properties back with 1071 0, as AutoCAD 2021's reload wrote
+`x|WALL` made red back as the file's blue; Unload takes the records out. The presenter takes VISRETAINMODE as 0; it does
+not write the records again from the file when it opens a drawing of VISRETAIN 0, as AutoCAD does. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
 "Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
 `"grid|X" is an invalid layer name.` (-LAYER New). IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
