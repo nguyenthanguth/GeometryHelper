@@ -318,7 +318,10 @@ whole, into the header and the title as into rows of data;
 `GenerateSeries` carries the numbers on from the source's last, wherever the fill range stands, 10 and 20 to 30 and 40,
 each rounded to the places of the source and the step, to 15 figures (0.1 and 0.2 to 0.3, shown 0.300000; 1, 2 and 4 to
 5.5 and 7), and with `Reverse` back from the source's first, the fill range's last cell next to it, 10 and 20 to -20, -10
-and 0. Options of none of the three change nothing, and a fill range that holds a cell of the source is refused, as
+and 0. Each number is written in the format of the source cell its place repeats, and shown in it, the target's own
+format giving way, as AutoCAD 2021 fills them: 1.5 of `%lu6` goes on to 2.5000 and 3.5000 at LUPREC 4, and 1/2 of `%lu5`
+over 1.5 of `%lu6` to 2 1/2, 3.5000, 4 1/2 and 5.5000; a source of no format still gives six places. Options of none of
+the three change nothing, and a fill range that holds a cell of the source is refused, as
 AutoCAD refuses it; a text is a number only before R2007, and dates are not carried on.
 `SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing

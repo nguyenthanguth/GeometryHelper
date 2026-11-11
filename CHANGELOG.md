@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A number typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a
+cell) is kept as AutoCAD 2021's `SetValue` with `ConvertTextToValue` keeps it, where decimals and fractions stayed text:
+1.5 is a number of the format of the drawing's units (`%lu6`), shown 1.5000 at LUNITS 2 and LUPREC 4; 1e3 one of `%lu1`
+shown 1.0000E+03; 1/2 the number 0.5 of `%lu5` shown 1/2, and 1/3 shown 5/16; 1,5 the point (1, 5, 0) shown 1.0000,
+5.0000, 0.0000. A number typed in a cell of no alignment of its own sets it top right, as AutoCAD does, the whole numbers
+1 and 007 too, which stood where the row's style put them. A number typed over a number keeps the cell's kind and format,
+12 over 1.25 shown 12.0000. 1,500, which AutoCAD reads as 1 500 of thousands, feet and inches, and dates stay text.
+
+**CHANGED.** `DxfTable.Fill` with `GenerateSeries` writes each number in the format of the source cell its place repeats,
+and shows it in it, as AutoCAD 2021 fills a series, where it wrote six places and kept the target's format: 1.5 of
+`%lu6` goes on to 2.5000 and 3.5000 at LUPREC 4, and 1/2 over 1.5 to 2 1/2, 3.5000, 4 1/2 and 5.5000. A source of no
+format still gives 3.500000.
+
+**FIXED.** `DxfTable.SetDataType` turning a text into a number in decimal units rounded as the runtime rounds: on .NET Core
+and .NET 10 2.5 at no places was shown 2 and 0.015 at two 0.01, where AutoCAD 2021 and .NET Framework show 3 and 0.02.
+Both now round half away from nought as the number's 15 figures write it.
+
 **FIXED.** `AddVisibilityParameter` wrote each visibility state listing no parameter, so AutoCAD 2021 read every other
 property of the block as not visible in any state and showed none of its grips: a sign of the states Cross, Tick and
 Blank with a Width kept Width out of Properties and its arrow off the INSERT. Each state now lists the block's other

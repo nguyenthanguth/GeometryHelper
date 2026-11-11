@@ -486,6 +486,138 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Writes a text typed in a cell of R2007 as the value it reads as, as AutoCAD 2021's <c>SetValue(row, col, text)</c>
+        /// with <c>ConvertTextToValue</c> wrote it (D39a, D39b, D39c); false, and nothing written, where the text is not read
+        /// as a value of the cell, which then takes the text. A cell of no kind of value reads a whole number as a whole number
+        /// (12), a decimal as a number of the format of its units (1.5 of <c>%lu6</c>, shown 1.5000 at LUNITS 2 and LUPREC 4),
+        /// a power of ten of <c>%lu1</c> (1e3 shown 1.0000E+03) and a fraction of <c>%lu5</c> (1/2 the number 0.5 shown 1/2,
+        /// 1-1/2 and 1 1/2 shown 1 1/2), the format <c>%lu6</c> where its units are the drawing's (LUNITS), and is given the
+        /// alignment top right where it has none of its own; two or three numbers with commas are a point (1,5 shown 1.0000,
+        /// 5.0000, 0.0000), its alignment left as it is. A cell of a number keeps its format, 12 over 1.25 the number 12 shown
+        /// 12.0000, a cell of a whole number takes the whole number cut towards nought, 1 of 1.5, a cell of a point a point.
+        /// A cell of a text, a block cell, a date, a whole number past 32 bits, thousands with commas (1,500, which AutoCAD
+        /// writes as the whole number 1 500 of <c>%th[\,]</c>), feet and inches and any other text are not read.
+        /// </summary>
+        internal bool SetValueFromText(int row, int col, string text)
+        {
+            CellView cell = CellToWrite(row, col);
+            Typing typed = Typing.Read(text);
+
+            if (typed == null || cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            {
+                return false;
+            }
+
+            DxfDataType kind = KindOf(cell);
+            bool given = kind == DxfDataType.Unknown || kind == DxfDataType.General;
+            DxfDatabase database = IsResident ? Item.File.Database : null;
+            int lunits = database?.Lunits ?? 2;
+            string format;
+
+            if (given)
+            {
+                format =
+                    typed.Units == 0 ? string.Empty
+                    : typed.Units == lunits ? "%lu6"
+                    : "%lu" + typed.Units.ToString(CultureInfo.InvariantCulture);
+            }
+            else if (
+                ((kind == DxfDataType.Long || kind == DxfDataType.Double) && typed.Point == null)
+                || (kind == DxfDataType.Point3d && typed.Point != null)
+            )
+            {
+                format = cell.InValue(300) ?? string.Empty;
+            }
+            else
+            {
+                return false;
+            }
+
+            Written written;
+
+            if (typed.Point != null)
+            {
+                double[] p = typed.Point;
+                written = new Written(
+                    DxfDataType.Point3d,
+                    null,
+                    new[]
+                    {
+                        new KeyValuePair<int, string>(11, AsReal(p[0])),
+                        new KeyValuePair<int, string>(21, AsReal(p[1])),
+                        new KeyValuePair<int, string>(31, AsReal(p[2])),
+                    },
+                    Shown(p[0], format) + ", " + Shown(p[1], format) + ", " + Shown(p[2], format)
+                );
+            }
+            else if (kind == DxfDataType.Long || (given && typed.Units == 0))
+            {
+                written = Whole(Cut(typed.Number));
+            }
+            else
+            {
+                written = new Written(
+                    DxfDataType.Double,
+                    typed.Number,
+                    new[] { new KeyValuePair<int, string>(140, AsReal(typed.Number)) },
+                    Shown(typed.Number, format)
+                );
+            }
+
+            CheckEditable();
+            string field = cell.Head(344);
+            Typed(cell);
+
+            // A number of a cell given its kind stands top right where the cell has no alignment of its own, whatever its row's
+            // (D39b, D39c); a point is left as it is.
+            if (given && typed.Point == null && cell.Override(170, Layout.CellOverrides[170]) == null)
+            {
+                cell.SetOverride(170, ((int)DxfCellAlignment.TopRight).ToString(CultureInfo.InvariantCulture), 91);
+            }
+
+            cell.WriteValue(
+                ((int)written.Kind).ToString(CultureInfo.InvariantCulture),
+                written.Data,
+                written.Text,
+                null,
+                format,
+                true,
+                written.Kind == DxfDataType.Long ? null : "4"
+            );
+            cell.DropField();
+            cell.Groups.Write(Order);
+            EraseFields(new[] { field });
+            return true;
+        }
+
+        /// <summary>
+        /// The text of a number in a format, as AutoCAD 2021 showed it: of <see cref="RealText"/> for none, a decimal of its
+        /// places and feet and inches; of the drawing's units and places (LUNITS, LUPREC) for <c>%lu6</c>, and of the units
+        /// named with the drawing's places for <c>%lu1</c> to <c>%lu5</c> (D39a); of six places of decimals for a format the
+        /// library does not write.
+        /// </summary>
+        private string Shown(double value, string format)
+        {
+            string text = RealText(value, format);
+
+            if (text != null)
+            {
+                return text;
+            }
+
+            Match units = Regex.Match(format, "^%lu([1-6])$");
+
+            if (!units.Success)
+            {
+                return RealText(value, null);
+            }
+
+            DxfDatabase database = IsResident ? Item.File.Database : null;
+            int unit = units.Groups[1].Value[0] - '0';
+            return UnitsText(value, unit == 6 ? database?.Lunits ?? 2 : unit, database?.Luprec ?? 4);
+        }
+
+        /// <summary>
         /// Empties a cell's value, as AutoCAD's <c>ResetValue</c>: from R2007 on a value of none, of the flags 7 and the kind 0
         /// and an empty text, its unit and format kept, the flag of its kind of value (0x40000) taken out, as AutoCAD 2021 wrote
         /// Qty reset (<c>91 0</c>, <c>93 7</c>, <c>90 0</c>, D28e v10) and read it as of no value, where the library wrote an
@@ -1074,9 +1206,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A number shown in a drawing's units (LUNITS) to its places (LUPREC), as AutoCAD 2021 showed a text made a number of
-        /// <c>%lu6</c> or <c>%lu1</c> (D33 t1, t2, t16): of powers of ten 1.0000E+03, decimal 12.0000 and -0.5000, architectural
-        /// as <see cref="Architectural"/>; of the units of engineering and fractions, which the library does not write, as the
-        /// invariant culture writes it.
+        /// <c>%lu6</c> or <c>%lu1</c> (D33 t1, t2, t16) and a number typed (D39a, D39b): of powers of ten 1.0000E+03, decimal
+        /// 12.0000 and -0.5000, rounded half away from nought as its 15 figures write it, 0.015 0.02 at two places on every
+        /// runtime, architectural as <see cref="Architectural"/>, fractional as <see cref="Fractional"/>; of the units of
+        /// engineering, which the library does not write, as the invariant culture writes it.
         /// </summary>
         private static string UnitsText(double value, int units, int places)
         {
@@ -1088,15 +1221,72 @@ namespace GeometryHelper.Dxf
                         CultureInfo.InvariantCulture
                     );
                 case 2:
-                    return value.ToString(
-                        "F" + places.ToString(CultureInfo.InvariantCulture),
-                        CultureInfo.InvariantCulture
-                    );
+                    return Fixed(value, places);
                 case 4:
                     return Architectural(value, Math.Min(places, 9), 0) ?? Numbers.Exact(value + 0.0);
+                case 5:
+                    return Fractional(value, Math.Min(places, 9)) ?? Numbers.Exact(value + 0.0);
                 default:
                     return Numbers.Exact(value + 0.0);
             }
+        }
+
+        /// <summary>
+        /// A number of a count of places of decimals, rounded half away from nought as its 15 significant figures write it, as
+        /// .NET Framework writes it and AutoCAD 2021 showed it (0.015 at two places 0.02, 2.5 at none 3, D39b); .NET Core, which
+        /// rounds the double's exact value, would write 0.01. A number past what a decimal holds as the invariant culture
+        /// writes it.
+        /// </summary>
+        private static string Fixed(double value, int places)
+        {
+            string written = "F" + places.ToString(CultureInfo.InvariantCulture);
+
+            return
+                Math.Abs(value) < 1E27
+                && decimal.TryParse(
+                    value.ToString("G15", CultureInfo.InvariantCulture),
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out decimal figures
+                )
+                ? Math.Round(figures, Math.Min(places, 28), MidpointRounding.AwayFromZero)
+                    .ToString(written, CultureInfo.InvariantCulture)
+                : value.ToString(written, CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A number in fractions, as AutoCAD 2021 showed one of <c>%lu5</c> (D39a, D39b): to the nearest 1/2^N for N places, a
+        /// half away from nought, the fraction reduced, a whole number before it with a space, 1 1/2, 1/2 and -1/2, 1/3 5/16 at
+        /// four places and 1/4 at two, 0.5 1 at none, a minus only where the number rounded is not nought. Null for a number
+        /// past 32 bits.
+        /// </summary>
+        private static string Fractional(double value, int precision)
+        {
+            long parts = 1L << precision;
+            double rounded = Math.Round(Math.Abs(value) * parts, MidpointRounding.AwayFromZero);
+
+            if (rounded / parts > int.MaxValue)
+            {
+                return null;
+            }
+
+            long count = (long)rounded;
+            long whole = count / parts;
+            long fraction = count % parts;
+            long under = parts;
+
+            while (fraction != 0 && fraction % 2 == 0)
+            {
+                fraction /= 2;
+                under /= 2;
+            }
+
+            string sign = count != 0 && value < 0.0 ? "-" : string.Empty;
+            string text =
+                fraction == 0 ? whole.ToString(CultureInfo.InvariantCulture)
+                : whole == 0 ? fraction + "/" + under
+                : whole + " " + fraction + "/" + under;
+            return sign + text;
         }
 
         /// <summary>Refuses a block cell, whose content is its block, not a value of its own.</summary>
@@ -1127,6 +1317,135 @@ namespace GeometryHelper.Dxf
                         + ") holds its text alone, as a file before R2007 writes it, and no value (301 CELL_VALUE) to give a kind, a unit or a format."
                 );
             }
+        }
+
+        /// <summary>
+        /// A text typed in a cell read as AutoCAD 2021's <c>ConvertTextToValue</c> reads it (D39a, D39b, D39c), spaces round it
+        /// left out: a whole number of 32 bits (units nought), a decimal (units 2), a power of ten (units 1), a fraction (units
+        /// 5) or a point of two or three of the first three with commas, the units of its first; null for any other text.
+        /// </summary>
+        private sealed class Typing
+        {
+            private const string Real = @"[+-]?(?:\d+\.?\d*|\.\d+)";
+
+            private const string Tens = Real + @"[eE][+-]?\d+";
+
+            private static readonly Regex WholeForm = new Regex(@"^[+-]?\d+$");
+
+            private static readonly Regex ThousandsForm = new Regex(@"^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d*)?$");
+
+            private static readonly Regex RealForm = new Regex("^" + Real + "$");
+
+            private static readonly Regex TensForm = new Regex("^" + Tens + "$");
+
+            private static readonly Regex FractionForm = new Regex(@"^([+-]?)(?:(\d+)[ -])?(\d+)/(\d+)$");
+
+            private static readonly Regex PointForm = new Regex(
+                "^("
+                    + Tens
+                    + "|"
+                    + Real
+                    + @")\s*,\s*("
+                    + Tens
+                    + "|"
+                    + Real
+                    + @")(?:\s*,\s*("
+                    + Tens
+                    + "|"
+                    + Real
+                    + "))?$"
+            );
+
+            private Typing(double number, int units, double[] point)
+            {
+                Number = number;
+                Units = units;
+                Point = point;
+            }
+
+            /// <summary>The number; nought for a point.</summary>
+            internal double Number { get; }
+
+            /// <summary>The units it is written in, as LUNITS counts them; nought for a whole number.</summary>
+            internal int Units { get; }
+
+            /// <summary>The point's x, y and z, nought where it gives two; null for a number.</summary>
+            internal double[] Point { get; }
+
+            internal static Typing Read(string text)
+            {
+                string typed = text.Trim();
+
+                if (WholeForm.IsMatch(typed))
+                {
+                    return int.TryParse(
+                        typed,
+                        NumberStyles.AllowLeadingSign,
+                        CultureInfo.InvariantCulture,
+                        out int whole
+                    )
+                        ? new Typing(whole, 0, null)
+                        : null;
+                }
+
+                if (ThousandsForm.IsMatch(typed))
+                {
+                    return null;
+                }
+
+                if (RealForm.IsMatch(typed) || TensForm.IsMatch(typed))
+                {
+                    return Finite(typed, out double number)
+                        ? new Typing(number + 0.0, TensForm.IsMatch(typed) ? 1 : 2, null)
+                        : null;
+                }
+
+                Match fraction = FractionForm.Match(typed);
+
+                if (fraction.Success)
+                {
+                    if (
+                        !Finite(fraction.Groups[3].Value, out double over)
+                        || !Finite(fraction.Groups[4].Value, out double under)
+                        || !(under > 0.0)
+                        || !Finite(fraction.Groups[2].Success ? fraction.Groups[2].Value : "0", out double whole)
+                    )
+                    {
+                        return null;
+                    }
+
+                    double value = whole + over / under;
+                    return new Typing(fraction.Groups[1].Value == "-" ? -value : value + 0.0, 5, null);
+                }
+
+                Match point = PointForm.Match(typed);
+
+                if (
+                    !point.Success
+                    || !Finite(point.Groups[1].Value, out double x)
+                    || !Finite(point.Groups[2].Value, out double y)
+                )
+                {
+                    return null;
+                }
+
+                double z = 0.0;
+
+                if (point.Groups[3].Success && !Finite(point.Groups[3].Value, out z))
+                {
+                    return null;
+                }
+
+                return new Typing(
+                    0.0,
+                    TensForm.IsMatch(point.Groups[1].Value) ? 1 : 2,
+                    new[] { x + 0.0, y + 0.0, z + 0.0 }
+                );
+            }
+
+            private static bool Finite(string text, out double value) =>
+                double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && Guard.IsFinite(value);
         }
 
         /// <summary>A value to write: its kind, itself, its groups of data and its text.</summary>
