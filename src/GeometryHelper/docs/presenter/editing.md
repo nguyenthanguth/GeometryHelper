@@ -414,7 +414,16 @@ with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs
 Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
 not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
-an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. IMAGEATTACH
+an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
+reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
+2021 changes it under VISRETAIN 1: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer
+box or -LAYER, each change marked in the 1071 of the record's `AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off,
+2 Freeze, 4 Lock, 16 and 256 Color, 32 Ltype, 64 LWeight). What is marked is drawn as the drawing keeps it, the rest as
+the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
+as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
+"Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
+`"grid|X" is an invalid layer name.` (-LAYER New). The presenter writes no such record when it attaches a file; one
+attached in it has its layers drawn, but not listed. IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by

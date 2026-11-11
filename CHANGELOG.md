@@ -12,6 +12,17 @@ question asked again, and Enter ends it saying nothing, as AutoCAD 2021's consol
 reference draws opens the reference the drawing places, and one whose file is gone is refused as -XREF Reload refuses
 it. The registry has 177 commands.
 
+**FIXED.** A layer of an external reference the drawing keeps a record of (`grid|GRID`, as AutoCAD writes it) is drawn
+as AutoCAD 2021 draws it under VISRETAIN 1: what the drawing changed of it as the drawing keeps it, the rest as the file
+referenced has it now. The presenter drew the record whole, so a layer the file made blue after AutoCAD saved the drawing
+stayed green. AutoCAD, probed in its console with -LAYER on `b|WALL` and the drawing written out, marks each change in
+the 1071 of the record's `AcXRefLayerPropertyOverride`: 1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
+LWeight, 128 TRansparency, 1024 Description, 0 for a layer left as it was. The Layer manager, the layer box and -LAYER
+now change such a layer and mark it so, and a change of it in the drawing draws its INSERT anew, which it did not.
+**CHANGED.** The current layer refuses a layer of an external reference with "Cannot set CLAYER to that value.", and
+-LAYER Set with "Invalid layer name.", as AutoCAD 2021 refuses them; a new layer named with a character AutoCAD refuses,
+`grid|X` among them, is refused with `"grid|X" is an invalid layer name.`
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
