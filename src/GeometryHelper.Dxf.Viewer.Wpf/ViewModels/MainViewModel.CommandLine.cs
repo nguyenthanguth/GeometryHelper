@@ -205,6 +205,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["DIMRADIUS"] = "GhIconRadius",
             ["DIMDIAMETER"] = "GhIconDiameter",
             ["QLEADER"] = "GhIconLeader",
+            ["LEADER"] = "GhIconLeader",
             ["MLEADER"] = "GhIconLeader",
             ["GROUP"] = "GhIconGroup",
             ["UNGROUP"] = "GhIconUngroup",

@@ -91,6 +91,27 @@ namespace GeometryHelper.Dxf.Viewer
                     "\"" + s.Document.Database.Dimstyle + "\""
                 )
             );
+
+            // The multileader style new multileaders take, and their scale: the style's until set, nought for one annotative.
+            registry.AddVariable(
+                CadSystemVariable.Text(
+                    "CMLEADERSTYLE",
+                    true,
+                    s => CadMLeaderStyleEditor.Current(s.Document.Database),
+                    CurrentMLeaderStyle
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "MLEADERSCALE",
+                    true,
+                    CadSystemVariable.RealBound.Finite,
+                    false,
+                    s => s.Document.Database.MLeaderscale,
+                    (c, v) => c.Database.MLeaderscale = v,
+                    check: v => v < 0.0 ? "Cannot set MLEADERSCALE to that value." : null
+                )
+            );
             registry.AddVariable(
                 CadSystemVariable.Number(
                     "TEXTSIZE",
@@ -625,6 +646,23 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// CMLEADERSTYLE: a multileader style of the drawing made current, letters of either case alike, as Set Current makes it,
+        /// one undo step; MLEADERSCALE then the style's scale. A name the drawing has no style of is refused as AutoCAD 2021
+        /// refuses it.
+        /// </summary>
+        private static string CurrentMLeaderStyle(CadCommandContext c, string typed)
+        {
+            if (CadMLeaderStyleEditor.Find(c.Database, typed) == null)
+            {
+                return "Cannot set CMLEADERSTYLE to that value.";
+            }
+
+            c.OpenUndoStep();
+            CadEditResult result = CadMLeaderStyleEditor.SetCurrent(c.Document, typed);
+            return result.Succeeded ? null : result.Message;
         }
 
         /// <summary>CANNOSCALE: a scale of the drawing's list made the annotation scale of model space, one undo step.</summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -331,8 +332,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Makes a style current (CMLEADERSTYLE), as Set Current does. Refused where the drawing has no such style, or cannot
-        /// hold the variable: a drawing with no CLASSES section to list DICTIONARYVAR in.
+        /// Makes a style current (CMLEADERSTYLE), as Set Current does, and gives MLEADERSCALE the style's scale, nought for an
+        /// annotative style, as AutoCAD 2021 does each time the variable is set, to the style already current too: with
+        /// MLEADERSCALE set to 2, a style of scale 5 made current gives 5 again. Refused where the drawing has no such style, or
+        /// cannot hold the variables: a drawing with no CLASSES section to list DICTIONARYVAR in.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The style's name.</param>
@@ -354,17 +357,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             string set = style.Name;
             string old = Current(document.Database);
+            double scale = ScaleOf(style);
+            double oldScale = document.Database.MLeaderscale;
+            var planned = new List<CadEditRecord>();
 
-            if (string.Equals(old, set, StringComparison.Ordinal))
+            if (!string.Equals(old, set, StringComparison.Ordinal))
+            {
+                planned.Add(new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CMLEADERSTYLE", old, set));
+            }
+
+            if (!scale.Equals(oldScale))
+            {
+                planned.Add(
+                    new CadEditRecord(
+                        CadEditRecordKind.SettingChanged,
+                        null,
+                        "MLEADERSCALE",
+                        oldScale.ToString("R", CultureInfo.InvariantCulture),
+                        scale.ToString("R", CultureInfo.InvariantCulture)
+                    )
+                );
+            }
+
+            if (planned.Count == 0)
             {
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
-            CadEditResult result = document.ApplyEdit(
-                "MLEADERSTYLE",
-                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CMLEADERSTYLE", old, set) },
-                s => s.Database.MLeaderstyle = set
-            );
+            CadEditResult result = document.ApplyEdit("MLEADERSTYLE", planned, s =>
+            {
+                if (!string.Equals(s.Database.MLeaderstyle, set, StringComparison.Ordinal))
+                {
+                    s.Database.MLeaderstyle = set;
+                }
+
+                s.Database.MLeaderscale = scale;
+            });
             return result.Succeeded
                 ? result
                 : CadEditResult.Refuse("\"" + set + "\" cannot be made current: " + result.Message);
@@ -607,24 +635,60 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// The MLEADERSCALE a style gives when it is made current, as AutoCAD 2021 sets it: the style's scale, nought for an
+        /// annotative style.
+        /// </summary>
+        internal static double ScaleOf(DxfMLeaderStyle style) =>
+            style.Annotative == DxfAnnotativeStates.True ? 0.0 : style.Scale;
+
+        /// <summary>
+        /// The scale MLEADER gives a new multileader, as AutoCAD 2021 gives it: MLEADERSCALE where it is above nought, whatever
+        /// the style's scale; with nought, one over the scale of the viewport it is drawn through where its style is not
+        /// annotative (2 through a viewport of 1:2), else 1.
+        /// </summary>
+        /// <param name="database">The drawing.</param>
+        /// <param name="style">The style it is drawn in.</param>
+        /// <param name="through">The viewport model space is worked through; null for none.</param>
+        internal static double NewScale(DxfDatabase database, DxfMLeaderStyle style, DxfViewport through)
+        {
+            double set = database.MLeaderscale;
+
+            if (set > 0.0 && !double.IsInfinity(set))
+            {
+                return set;
+            }
+
+            double paper = through == null ? 0.0 : through.CustomScale;
+            return style.Annotative != DxfAnnotativeStates.True && paper > 0.0 && !double.IsInfinity(1.0 / paper)
+                ? 1.0 / paper
+                : 1.0;
+        }
+
+        /// <summary>
         /// Makes a multileader in a style as MLEADER draws one, not yet added: its arrow at a point, its words of the style's
-        /// height times its scale with their landing at another, the landing gap, the dogleg and the arrows the style's; added
+        /// height times the scale with their landing at another, the landing gap, the dogleg and the arrows the style's; added
         /// to the drawing, it is to be given the rest of the style by <see cref="DxfMLeader.SetFromStyle"/>.
         /// </summary>
         /// <param name="style">The style.</param>
+        /// <param name="scale">The scale, above nought.</param>
         /// <param name="arrow">Where the arrow points.</param>
         /// <param name="landing">Where the leader lands.</param>
         /// <param name="words">The words; null or empty for a style of no content.</param>
         /// <returns>The multileader.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the style is null.</exception>
-        internal static DxfMLeader Make(DxfMLeaderStyle style, GeoPoint3 arrow, GeoPoint3 landing, string words)
+        internal static DxfMLeader Make(
+            DxfMLeaderStyle style,
+            double scale,
+            GeoPoint3 arrow,
+            GeoPoint3 landing,
+            string words
+        )
         {
             if (style == null)
             {
                 throw new ArgumentNullException(nameof(style));
             }
 
-            double scale = style.Scale > 0.0 ? style.Scale : 1.0;
             var mleader = new DxfMLeader();
 
             if (scale != 1.0)
@@ -706,6 +770,7 @@ namespace GeometryHelper.Dxf.Viewer
                 string words = settings.ContentType == DxfContentType.MTextContent ? "Default Text" : null;
                 DxfMLeader mleader = Make(
                     style,
+                    style.Scale > 0.0 ? style.Scale : 1.0,
                     new GeoPoint3(0, 0, 0),
                     new GeoPoint3(6.0 * size, 4.0 * size, 0),
                     words

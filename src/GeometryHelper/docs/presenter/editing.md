@@ -150,13 +150,13 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 178 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 180 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, MVIEW, LAYOUT (New, Rename, Set, ?) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
@@ -376,6 +376,32 @@ multileader whose words were set 6 high at 6. MLEADER draws in the current style
 multileader of a style of words and arrows 4 high has words and arrows 4 high. Each change is one undo step. Block
 content is not offered, as MLEADER places words only, and the annotative box is greyed.
 
+MLEADERSCALE is the scale of the multileaders drawn next, as in AutoCAD 2021: making a style current, by Set Current or
+`CMLEADERSTYLE`, gives it the style's scale (nought for an annotative style), even for the style already current; set by
+itself it leaves the style alone, so that with a style of scale 5 current, MLEADERSCALE 2 draws words 4 high at 8 while
+the style keeps 5. Nought draws at 1, or through a viewport of 1:10 at 10; a value below nought says `Cannot set
+MLEADERSCALE to that value.`, and a name of no style at CMLEADERSTYLE `Cannot set CMLEADERSTYLE to that value.`. A scale
+other than the style's is the multileader's own, as AutoCAD writes it. The variable is kept in the drawing's
+DICTIONARYVAR MLEADERSCALE, which AutoCAD 2021 reads (a `$MLEADERSCALE` of the header it ignores), and reads 1 in a drawing
+that has none, whatever its current style's scale.
+
+LEADER (LEAD) asks as AutoCAD 2021 does, on the command line: `Specify leader start point:`, `Specify next point:`, then
+`Specify next point or [Annotation/Format/Undo] <Annotation>:`. Format makes the leader a spline or straight, with an
+arrow or none; Undo takes the last point back. The words are typed line by line at `Enter first line of annotation text
+or <options>:` and `Enter next line of annotation text:`, or Enter gives `Enter an annotation option
+[Tolerance/Copy/Block/None/Mtext] <Mtext>:`: Copy makes an MTEXT of a text or an MTEXT picked, Block places an INSERT as
+INSERT does, None leaves the leader pointing to nothing, and Mtext opens the MTEXT editor; Tolerance, which needs the
+Geometric Tolerance dialog, is refused. The leader is drawn by the current dimension style and DIMSCALE: its MTEXT stands
+DIMGAP past the last point, to the right where the last segment runs right or straight up or down, and a hook DIMASZ
+long runs on to it where that segment is steeper than 15 degrees: a leader from (0, 0) to (10, 10) with DIMASZ 2.5 ends
+(7.5, 10), (10, 10), its words middle-left at (10.625, 10) with DIMGAP 0.625, or bottom-left at (10.625, 10.625) with
+DIMTAD 1, as ISO-25 has it. The dimension variables other than the
+style's are written as the leader's overrides, as AutoCAD writes them: DIMSCALE 2 gives `1070 40, 1040 2` and words twice
+DIMTXT high. QLEADER (LE) draws with the default settings of its Leader Settings dialog, which the presenter does not have
+yet: three points at most, `Specify text width <0.0000>:`, the middle of the words' top line at the end on the right and
+of their bottom line on the left, and DIMGAP and DIMTAD 0 written as overrides on every leader, as AutoCAD 2021 writes
+them. LEADER and QLEADER are each one undo step.
+
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
 Quick Select compares the rows of the Properties panel: of a plan of 312 lines on layer WALLS among others, Line, Layer,
@@ -546,7 +572,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |

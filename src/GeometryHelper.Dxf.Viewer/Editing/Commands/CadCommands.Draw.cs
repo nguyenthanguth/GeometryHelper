@@ -613,6 +613,13 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 arrow = c.Input.Point;
             string style = CadMLeaderStyleEditor.Current(c.Database);
 
+            // The scale MLEADERSCALE gives, the style's own until the variable is set, as AutoCAD 2021 draws in it.
+            double scale = CadMLeaderStyleEditor.NewScale(
+                c.Database,
+                CadMLeaderStyleEditor.Find(c.Database, style),
+                c.Document.ActiveViewport
+            );
+
             // The leader and its landing to the cursor, made as the multileader is but of no words yet, as AutoCAD drags them.
             yield return CadPrompt
                 .ForPoint("Specify leader landing location", arrow)
@@ -623,6 +630,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 c,
                                 CadMLeaderStyleEditor.Make(
                                     CadMLeaderStyleEditor.Find(c.Database, style),
+                                    scale,
                                     P3(arrow),
                                     P3(input.Point),
                                     " "
@@ -646,20 +654,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // Drawn in the current multileader style (CMLEADERSTYLE, else Standard): its text height, landing, arrows and the
-            // rest of its values, as AutoCAD's MLEADER draws one.
+            // rest of its values, as AutoCAD's MLEADER draws one. A scale other than the style's is the multileader's own (its
+            // bit 24), as AutoCAD 2021 writes MLEADERSCALE 2 in a style of scale 5.
             string words = c.Input.Text;
             string name = CadMLeaderStyleEditor.Current(c.Database);
             c.Apply(null, s =>
             {
-                DxfMLeader mleader = CadMLeaderStyleEditor.Make(
-                    CadMLeaderStyleEditor.Find(s.Database, name),
-                    P3(arrow),
-                    P3(landing),
-                    words
-                );
+                DxfMLeaderStyle found = CadMLeaderStyleEditor.Find(s.Database, name);
+                DxfMLeader mleader = CadMLeaderStyleEditor.Make(found, scale, P3(arrow), P3(landing), words);
                 s.Append(c.Space, Current(c, mleader));
                 mleader.MLeaderStyle = name;
                 mleader.SetFromStyle();
+
+                if (!scale.Equals(found.Scale))
+                {
+                    mleader.Scale = scale;
+                }
             });
         }
 
