@@ -216,7 +216,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// The reference of a point snapped perpendicular to a line, an arc, a circle or a segment of a light polyline, or tangent
         /// to an arc, a circle or an arc of a polyline, from another point: its parameter on the object (along a line or a
         /// segment, run on as far as needed, as AutoCAD 2021 wrote 2.25 for a foot past the end; the angle on an arc or a
-        /// circle), its segment, and the reference of the point drawn from; null with no point drawn from, or for another object.
+        /// circle), its segment (for a foot past the end of a segment, the segment whose line runs on through it,
+        /// <see cref="RunOnSegment"/>), and the reference of the point drawn from; null with no point drawn from, or for
+        /// another object.
         /// </summary>
         private static DxfOsnapPointRef Drawn(
             int pointIndex,
@@ -229,6 +231,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var p = new GeoPoint2(at.X, at.Y);
             int marker = MarkerAt(entity, p);
+
+            if (marker == 0 && !tangent && from.HasValue && entity is DxfPolyline polyline)
+            {
+                marker = RunOnSegment(polyline, from.Value, p);
+            }
 
             if (!from.HasValue || !PieceOf(entity, marker, out Piece piece) || (tangent && !piece.IsRound))
             {
@@ -257,13 +264,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// from the point it was drawn from, where it kept one, and a perpendicular stays at its parameter on the object; a
         /// perpendicular on a line or a segment whose parameter runs past either end is the foot from the origin of the world
         /// instead, as AutoCAD 2021 moved a DIMLINEAR whose first point was drawn from (20, 320) square to the line (100, -20) to
-        /// (100, 60), at parameter 4.25: the line moved 20 to the right, the point went to (120, 0).
+        /// (100, 60), at parameter 4.25: the line moved 20 to the right, the point went to (120, 0). Where no object changed
+        /// (<paramref name="unchanged"/>), as when the dimension is tied or edited alone, such a point is where its parameter
+        /// puts it, where it was snapped.
         /// </summary>
         private static GeoPoint3? DrawnAt(
             CadDocument document,
             DxfDimension dimension,
             DxfOsnapPointRef reference,
-            DxfEntity entity
+            DxfEntity entity,
+            bool unchanged
         )
         {
             if (
@@ -305,7 +315,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
             }
-            else if (!piece.IsRound && (reference.NearParameter < 0.0 || reference.NearParameter > 1.0))
+            else if (!unchanged && !piece.IsRound && (reference.NearParameter < 0.0 || reference.NearParameter > 1.0))
             {
                 at = ClosestOn(piece, GeoPoint2.Origin, true);
             }
@@ -473,6 +483,44 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return nearest <= Tolerance.Default.EqualPoint ? best : 0;
+        }
+
+        /// <summary>
+        /// The straight segment of a light polyline whose line, run on past its ends, has the foot of the perpendicular from a
+        /// point at the point given, 1 for the first; of two, the one whose own stretch lies nearer the foot, then the first.
+        /// AutoCAD 2021 tied a foot (150, -400) drawn from (150, -450) square to the first segment of (0, -400)-(100, -400)-...
+        /// to marker 1 at parameter 1.5. Nought where no segment has the foot there.
+        /// </summary>
+        private static int RunOnSegment(DxfPolyline polyline, GeoPoint2 from, GeoPoint2 foot)
+        {
+            int count = polyline.NumberOfVertices;
+            int segments = polyline.Closed ? count : count - 1;
+            double least = Tolerance.Default.EqualPoint;
+            int best = 0;
+            double nearest = double.MaxValue;
+
+            for (int i = 1; i <= segments; i++)
+            {
+                if (
+                    !PieceOf(polyline, i, out Piece piece)
+                    || piece.IsRound
+                    || (piece.B - piece.A).Length <= least
+                    || (ClosestOn(piece, from, true) - foot).Length > least
+                )
+                {
+                    continue;
+                }
+
+                double d = (ClosestOn(piece, foot) - foot).Length;
+
+                if (d < nearest - least)
+                {
+                    nearest = d;
+                    best = i;
+                }
+            }
+
+            return best;
         }
 
         /// <summary>The parameter of a point on a piece: the share of the way along a line, run on; the angle about a round.</summary>
@@ -724,6 +772,84 @@ namespace GeometryHelper.Dxf.Viewer
             };
 
         /// <summary>
+        /// The references of a circle selected for DIMANGULAR, as AutoCAD 2021 writes them: the point picked on it as its
+        /// nearest point at that angle, its center as the vertex, and the second point as a nearest point of the object it was
+        /// snapped to, which AutoCAD 2021 wrote so: on a line or a straight segment of a polyline at the parameter of the point
+        /// on the circle, run on (-0.9197 along (260, 40)-(300, 40) for the end (300, 40) seen from a circle of 25 about
+        /// (200, 0)); on another arc or circle, or a POINT, at nought; with no object snapped, or another, on the circle at its
+        /// angle.
+        /// </summary>
+        internal static DxfOsnapPointRef[] CircleAngle(
+            CadDocument document,
+            DxfCircle circle,
+            GeoPoint2 first,
+            GeoPoint2 second,
+            CadSnapResult secondSnap
+        )
+        {
+            var center = new GeoPoint2(circle.Center.X, circle.Center.Y);
+            DxfEntity snapped =
+                secondSnap?.Handle == null || secondSnap.Kind == CadSnapKind.None
+                    ? null
+                    : document.FindEntity(secondSnap.Handle);
+            var at = new GeoPoint3(second.X, second.Y, circle.Center.Z);
+            DxfOsnapPointRef end = null;
+
+            switch (snapped)
+            {
+                case DxfLine line:
+                    end = new DxfOsnapPointRef(1, DxfOsnapType.Nearest, line.Handle, 0, Along(line, second), at, null);
+                    break;
+                case DxfPolyline polyline:
+                    int marker = MarkerAt(polyline, secondSnap.Point);
+
+                    if (PieceOf(polyline, marker, out Piece piece) && !piece.IsRound)
+                    {
+                        end = new DxfOsnapPointRef(
+                            1,
+                            DxfOsnapType.Nearest,
+                            polyline.Handle,
+                            marker,
+                            ParameterOn(piece, second),
+                            at,
+                            null
+                        );
+                    }
+
+                    break;
+                case DxfArc _:
+                case DxfCircle other when !ReferenceEquals(other, circle):
+                case DxfDBPoint _:
+                    end = new DxfOsnapPointRef(1, DxfOsnapType.Nearest, snapped.Handle, 0, 0.0, at, null);
+                    break;
+            }
+
+            return new[]
+            {
+                new DxfOsnapPointRef(
+                    0,
+                    DxfOsnapType.Nearest,
+                    circle.Handle,
+                    0,
+                    Normal(AngleOf(first, center)),
+                    new GeoPoint3(first.X, first.Y, circle.Center.Z),
+                    null
+                ),
+                end
+                    ?? new DxfOsnapPointRef(
+                        1,
+                        DxfOsnapType.Nearest,
+                        circle.Handle,
+                        0,
+                        Normal(AngleOf(second, center)),
+                        at,
+                        null
+                    ),
+                new DxfOsnapPointRef(2, DxfOsnapType.Center, circle.Handle, 0, 0.0, circle.Center, null),
+            };
+        }
+
+        /// <summary>
         /// Ties a dimension just made to the objects its points were snapped to, as part of the command's step, where the
         /// drawing's DIMASSOC is 2 and a point was snapped to an object followed; nothing otherwise.
         /// </summary>
@@ -816,7 +942,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 string space = document.FindSpace(handle)?.Name;
-                string said = FollowOne(document, dimension, edited.Contains(handle));
+                string said = FollowOne(document, dimension, edited);
 
                 if (said != null)
                 {
@@ -914,7 +1040,7 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (DxfOsnapPointRef reference in references)
             {
                 DxfEntity entity = document.FindEntity(reference.ObjectHandle);
-                GeoPoint3? point = entity == null ? null : Locate(document, dimension, reference, entity);
+                GeoPoint3? point = entity == null ? null : Locate(document, dimension, reference, entity, true);
 
                 if (point.HasValue)
                 {
@@ -926,10 +1052,34 @@ namespace GeometryHelper.Dxf.Viewer
             Place(document, dimension, points, objects);
         }
 
-        /// <summary>Follows one dimension: "Moved" where its points moved, "Untied" where it was untied, null where nothing changed.</summary>
-        private static string FollowOne(CadDocument document, DxfDimension dimension, bool itselfEdited)
+        /// <summary>
+        /// Follows one dimension: "Moved" where its points moved, "Untied" where it was untied, null where nothing changed. A
+        /// reference AutoCAD cannot place again (<see cref="Lost"/>) is dropped once an object of the dimension changed, and the
+        /// second point of an angle of a circle (<see cref="CircleAngle"/>) is placed again only then: AutoCAD 2021 writes it
+        /// where it does not stand, and ties it so without moving it.
+        /// </summary>
+        private static string FollowOne(CadDocument document, DxfDimension dimension, ISet<string> edited)
         {
             IReadOnlyList<DxfOsnapPointRef> references = dimension.DimAssoc.PointReferences;
+            bool itselfEdited = edited.Contains(dimension.Handle);
+            bool objectsEdited = false;
+
+            foreach (DxfOsnapPointRef reference in references)
+            {
+                objectsEdited |=
+                    document.FindEntity(reference.ObjectHandle) == null
+                    || edited.Contains(reference.ObjectHandle)
+                    || (
+                        reference.IntersectionObjectHandle != null
+                        && edited.Contains(reference.IntersectionObjectHandle)
+                    )
+                    || (
+                        reference.LastPointReference?.ObjectHandle != null
+                        && edited.Contains(reference.LastPointReference.ObjectHandle)
+                    );
+            }
+
+            bool circleAngle = IsCircleAngle(dimension);
             var kept = new List<DxfOsnapPointRef>();
             var points = new Dictionary<int, GeoPoint3>();
             var objects = new Dictionary<int, DxfEntity>();
@@ -938,13 +1088,19 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = document.FindEntity(reference.ObjectHandle);
 
-                if (entity == null)
+                if (entity == null || (objectsEdited && Lost(reference, entity)))
                 {
                     continue;
                 }
 
                 kept.Add(reference);
-                GeoPoint3? point = Locate(document, dimension, reference, entity);
+
+                if (!objectsEdited && (Lost(reference, entity) || (circleAngle && reference.PointIndex == 1)))
+                {
+                    continue;
+                }
+
+                GeoPoint3? point = Locate(document, dimension, reference, entity, !objectsEdited);
 
                 if (point.HasValue)
                 {
@@ -976,18 +1132,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// Where a reference's point of a dimension is now: where its two objects cross for an intersection, the lines run on as
         /// far as needed and the crossing nearest the dimension's point taken where there are two (AutoCAD 2021 moved a
         /// DIMLINEAR tied to the crossing of two lines with the crossing when one of them moved); a perpendicular or a tangent
-        /// drawn again (<see cref="DrawnAt"/>); else as <see cref="Evaluate"/>.
+        /// drawn again (<see cref="DrawnAt"/>, where no object changed as <paramref name="unchanged"/> says); else as
+        /// <see cref="Evaluate"/>.
         /// </summary>
         private static GeoPoint3? Locate(
             CadDocument document,
             DxfDimension dimension,
             DxfOsnapPointRef reference,
-            DxfEntity entity
+            DxfEntity entity,
+            bool unchanged
         )
         {
             if (reference.OsnapType == DxfOsnapType.Perpendicular || reference.OsnapType == DxfOsnapType.Tangent)
             {
-                return DrawnAt(document, dimension, reference, entity);
+                return DrawnAt(document, dimension, reference, entity, unchanged);
             }
 
             if (reference.OsnapType != DxfOsnapType.Intersection)
@@ -1401,6 +1559,7 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoVector3 outward = Unit(radial.ChordPoint - radial.Center);
                     radial.Center = center;
                     radial.ChordPoint = center + outward * radius.Value;
+                    KeepWords(radial);
                     break;
                 }
 
@@ -1410,14 +1569,29 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoVector3 outward = Unit(diametric.ChordPoint - diametric.FarChordPoint);
                     diametric.ChordPoint = center + outward * radius.Value;
                     diametric.FarChordPoint = center - outward * radius.Value;
+                    KeepWords(diametric);
                     break;
                 }
 
                 case DxfPoint3AngularDimension angular:
-                    angular.XLine1Point = points.TryGetValue(0, out GeoPoint3 start) ? start : angular.XLine1Point;
-                    angular.XLine2Point = points.TryGetValue(1, out GeoPoint3 end) ? end : angular.XLine2Point;
-                    angular.CenterPoint = points.TryGetValue(2, out GeoPoint3 vertex) ? vertex : angular.CenterPoint;
+                {
+                    GeoPoint3 start = points.TryGetValue(0, out GeoPoint3 a) ? a : angular.XLine1Point;
+                    GeoPoint3 end = points.TryGetValue(1, out GeoPoint3 b) ? b : angular.XLine2Point;
+                    GeoPoint3 vertex = points.TryGetValue(2, out GeoPoint3 v) ? v : angular.CenterPoint;
+                    angular.ArcPoint = ArcKept(
+                        angular.CenterPoint,
+                        angular.XLine1Point,
+                        angular.XLine2Point,
+                        angular.ArcPoint,
+                        vertex,
+                        start,
+                        end
+                    );
+                    angular.XLine1Point = start;
+                    angular.XLine2Point = end;
+                    angular.CenterPoint = vertex;
                     break;
+                }
                 case DxfLineAngularDimension2 two:
                     if (!TwoLinesMoved(two, points))
                     {
@@ -1702,6 +1876,63 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
+        /// <summary>
+        /// Keeps the words of a radius or a diameter where they stand while its circle grows or shrinks, as AutoCAD 2021 keeps
+        /// them, whose radius and diameter keep the place they were put at (group 11 (560.799, 320) for a circle of 40 about
+        /// (500, 300) before and after it was scaled by 1.5).
+        /// </summary>
+        private static void KeepWords(DxfDimension dimension)
+        {
+            if (dimension.UsingDefaultTextPosition)
+            {
+                GeoPoint3 words = dimension.TextPosition;
+                dimension.UsingDefaultTextPosition = false;
+                dimension.TextPosition = words;
+            }
+        }
+
+        /// <summary>
+        /// Where the arc of an angle of three points goes when its points move, as AutoCAD 2021 puts it: as far from the vertex,
+        /// in the angle between the legs where it measured less than half a turn and outside it where it measured more, at the
+        /// same share of the angle (a third, as AutoCAD makes it) counted round from the leg it starts at. AutoCAD 2021 moved the
+        /// arc of the angle of a circle of 25 about (200, 0) from (225, 0) round to (222.36, 11.18), drawn the long way 100 out,
+        /// to (151.573, 77.492) when the circle moved 10 down: a third of 226.55 degrees on from the second leg; and an arc of
+        /// 18 degrees from the second leg to the first stayed inside, now from the first, when the second leg crossed the first.
+        /// An arc on a leg, or of an angle that measured nothing, takes a third of the angle it measures now.
+        /// </summary>
+        private static GeoPoint3 ArcKept(
+            GeoPoint3 vertex,
+            GeoPoint3 first,
+            GeoPoint3 second,
+            GeoPoint3 arc,
+            GeoPoint3 newVertex,
+            GeoPoint3 newFirst,
+            GeoPoint3 newSecond
+        )
+        {
+            double a1 = Math.Atan2(first.Y - vertex.Y, first.X - vertex.X);
+            double a2 = Math.Atan2(second.Y - vertex.Y, second.X - vertex.X);
+            double at = Math.Atan2(arc.Y - vertex.Y, arc.X - vertex.X);
+            double turn = CadGrips.Sweep(a1, a2);
+            bool fromFirst = CadGrips.Sweep(a1, at) <= turn;
+            double sweep = fromFirst ? turn : 2.0 * Math.PI - turn;
+            double least = Tolerance.Default.EqualAngleRad;
+            double share = sweep > least ? Normal(at - (fromFirst ? a1 : a2)) / sweep : 0.0;
+
+            if (share * sweep <= least || (1.0 - share) * sweep <= least)
+            {
+                share = 1.0 / 3.0;
+            }
+
+            double b1 = Math.Atan2(newFirst.Y - newVertex.Y, newFirst.X - newVertex.X);
+            double b2 = Math.Atan2(newSecond.Y - newVertex.Y, newSecond.X - newVertex.X);
+            double newTurn = CadGrips.Sweep(b1, b2);
+            bool fromNewFirst = newTurn < Math.PI == sweep < Math.PI;
+            double angle = fromNewFirst ? b1 + share * newTurn : b2 + share * (2.0 * Math.PI - newTurn);
+            double radius = Distance(arc, vertex);
+            return new GeoPoint3(newVertex.X + radius * Math.Cos(angle), newVertex.Y + radius * Math.Sin(angle), arc.Z);
+        }
+
         /// <summary>Where the lines of the four points of an angle of two lines meet, run on; false where they are parallel or a line has no length.</summary>
         private static bool Vertex(GeoPoint3[] points, out GeoPoint2 vertex)
         {
@@ -1742,6 +1973,67 @@ namespace GeometryHelper.Dxf.Viewer
             return squared <= 0.0
                 ? 0.0
                 : ((point.X - line.StartPoint.X) * way.X + (point.Y - line.StartPoint.Y) * way.Y) / squared;
+        }
+
+        /// <summary>
+        /// Whether a reference is one AutoCAD 2021 cannot place again, and drops when its dimension follows an edit, the point
+        /// staying where it is: a nearest point past the ends of a line or a straight segment of a polyline, or of a POINT, as it
+        /// ties the second point of an angle of a circle (-0.9197 along (260, 40)-(300, 40)).
+        /// </summary>
+        private static bool Lost(DxfOsnapPointRef reference, DxfEntity entity)
+        {
+            if (reference.OsnapType != DxfOsnapType.Nearest)
+            {
+                return false;
+            }
+
+            switch (entity)
+            {
+                case DxfLine line:
+                    return !Within(reference.NearParameter, (line.EndPoint - line.StartPoint).Length);
+                case DxfPolyline polyline:
+                    return PieceOf(polyline, reference.GsMarker, out Piece piece)
+                        && !piece.IsRound
+                        && !Within(reference.NearParameter, (piece.B - piece.A).Length);
+                case DxfDBPoint _:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Whether a dimension is the angle of a circle as <see cref="CircleAngle"/> ties it: an angle of three points whose
+        /// first point is a nearest point of a circle and whose vertex is that circle's center.
+        /// </summary>
+        private static bool IsCircleAngle(DxfDimension dimension)
+        {
+            if (!(dimension is DxfPoint3AngularDimension))
+            {
+                return false;
+            }
+
+            DxfOsnapPointRef first = null;
+            DxfOsnapPointRef vertex = null;
+
+            foreach (DxfOsnapPointRef reference in dimension.DimAssoc.PointReferences)
+            {
+                first = reference.PointIndex == 0 ? reference : first;
+                vertex = reference.PointIndex == 2 ? reference : vertex;
+            }
+
+            return first != null
+                && vertex != null
+                && first.OsnapType == DxfOsnapType.Nearest
+                && vertex.OsnapType == DxfOsnapType.Center
+                && string.Equals(first.ObjectHandle, vertex.ObjectHandle, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Whether a parameter along a line of a length lies between its ends, to the point tolerance.</summary>
+        private static bool Within(double parameter, double length)
+        {
+            double slack = length > 0.0 ? Tolerance.Default.EqualPoint / length : 0.0;
+            return parameter >= -slack && parameter <= 1.0 + slack;
         }
 
         private static GeoPoint3 Lerp(GeoPoint3 a, GeoPoint3 b, double t) =>

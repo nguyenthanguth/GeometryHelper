@@ -525,9 +525,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
 
         /// <summary>
-        /// DIMANGULAR: an arc, two lines or a vertex and two points, then where the arc goes. DIM gives the object it was
-        /// answered with as <paramref name="given"/>, and the second line where one was picked as <paramref name="secondGiven"/>,
-        /// and the command goes on from there.
+        /// DIMANGULAR: an arc, a circle and a second point, two lines or a vertex and two points, then where the arc goes. DIM
+        /// gives the object it was answered with as <paramref name="given"/>, and the second line where one was picked as
+        /// <paramref name="secondGiven"/>, and the command goes on from there.
         /// </summary>
         private static IEnumerable<CadPrompt> DimAngularFrom(CadCommandContext c, DxfEntity given, DxfLine secondGiven)
         {
@@ -567,6 +567,23 @@ namespace GeometryHelper.Dxf.Viewer
                     points[1] = new GeoPoint2(arc.EndPoint.X, arc.EndPoint.Y);
                     tiedArc = arc;
                 }
+                else if (picked is DxfCircle circle && circle.Normal.Z > 0.0)
+                {
+                    // The angle of a circle runs from the point it was picked at, about its center, to a second point, each
+                    // brought onto the circle, as AutoCAD 2021 makes it.
+                    vertex = new GeoPoint2(circle.Center.X, circle.Center.Y);
+                    GeoPoint2 pickedAt = c.Input.IsPickedAt ? c.Input.Point : vertex;
+                    points[0] = OnCircle(vertex, circle.Radius, pickedAt);
+                    yield return CadPrompt.ForPoint("Specify second angle endpoint", vertex);
+
+                    if (!c.Input.IsPoint)
+                    {
+                        yield break;
+                    }
+
+                    points[1] = OnCircle(vertex, circle.Radius, c.Input.Point);
+                    snapped = CadDimAssociation.CircleAngle(c.Document, circle, points[0], points[1], c.Input.Snap);
+                }
                 else if (picked is DxfLine line)
                 {
                     first = line;
@@ -597,7 +614,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    c.Write("Object selected is not an arc or a line.");
+                    c.Write("Object selected is not a line, arc or circle.");
                     yield break;
                 }
             }
@@ -664,6 +681,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
 
+                // The arc goes through the point a third of the way round from where it starts, as far out as the point given, as
+                // AutoCAD 2021 writes it: put at (50, 550) in the right angle at (0, 500), it passes (61.237, 535.355).
+                GeoPoint2 arc =
+                    vertex + new GeoVector2(Math.Cos(from + sweep / 3.0), Math.Sin(from + sweep / 3.0)) * radius;
                 made =
                     first != null
                         ? (DxfDimension)
@@ -672,7 +693,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 first.EndPoint,
                                 second.StartPoint,
                                 second.EndPoint,
-                                P3(location),
+                                P3(arc),
                                 typed ?? string.Empty,
                                 null
                             )
@@ -680,7 +701,7 @@ namespace GeometryHelper.Dxf.Viewer
                             P3(vertex),
                             P3(points[0]),
                             P3(points[1]),
-                            P3(location),
+                            P3(arc),
                             typed ?? string.Empty,
                             null
                         );
@@ -813,6 +834,17 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         private static double Cross(GeoVector2 a, GeoVector2 b) => a.X * b.Y - a.Y * b.X;
+
+        /// <summary>
+        /// A point brought onto a circle along the line from its center, as AutoCAD 2021 takes the points of the angle of a
+        /// circle: (200, 25.2) on the circle of 25 about (200, 0) is (200, 25); the point at angle nought for the center itself.
+        /// </summary>
+        private static GeoPoint2 OnCircle(GeoPoint2 center, double radius, GeoPoint2 point)
+        {
+            GeoVector2 way = point - center;
+            double far = way.Length;
+            return far > 0.0 ? center + way * (radius / far) : center + new GeoVector2(radius, 0.0);
+        }
 
         /// <summary>Where two lines, drawn on as far as needed, meet; false where they are parallel within the tolerance.</summary>
         internal static bool Meet(DxfLine a, DxfLine b, Tolerance tolerance, out GeoPoint2 point)

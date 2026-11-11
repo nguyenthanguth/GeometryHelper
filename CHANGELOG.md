@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** DIMANGULAR in the presenter measures the angle of a circle, as AutoCAD 2021 does: from the point the circle was
+picked at, about its center, to a second point (`Specify second angle endpoint:`), both brought onto the circle, and
+ties it as AutoCAD writes the tie: the first point and the center to the circle, the second as a nearest point of what
+it was snapped to, a line at the parameter of the point on the circle run on, another arc or circle or a POINT at
+nought, with no snap the circle at its angle. A circle of 25 about (200, 0) picked at (225, 0), with the end (300, 40)
+of a line from (260, 40) as the second point, measures 21.8 degrees to (223.212, 9.285), tied at -0.9197 along the
+line. When the objects move, such a point past the end of its line, or on a POINT, is dropped and stays, and one within
+its line goes to its point there, as AutoCAD moves them: the circle moved 10 down, the angle measures 39.72 degrees.
+
+**FIXED.** The PERpendicular snap of the presenter gives the foot on a line or a straight polyline segment run on past
+its end, as AutoCAD 2021's does (from (20, 120) square to (100, -20)-(100, 60), the point (100, 120)), and an
+associative dimension snapped so is tied at that parameter (1.75), a polyline's foot to the segment run on, and follows
+as AutoCAD follows it: the line moved by (20, 7), the origin drawn from a point tied to nothing goes to (120, 0). An arc
+still gives no foot off its run, as AutoCAD gives none.
+
+**FIXED.** The arc of an angular dimension made in the presenter goes through a point a third of the way round from the
+leg it starts at, as far out as the point given, as AutoCAD 2021 writes group 10 (16 for two lines): put at (50, 550) in
+the right angle at (0, 500), it passes (61.237, 535.355), where the point given was kept. An angle of three points whose
+objects move keeps its arc as far out at the same share of the angle, inside the legs where it measured less than half a
+turn and outside where it measured more, as AutoCAD keeps it, where it stayed where it was; and the words of a radius or
+a diameter whose circle is scaled stay where they stood, as AutoCAD keeps group 11, where they moved 0.7. Each
+associative dimension that follows writes groups 11 and 42 anew. 23 associative dimensions of every kind, made and then
+edited by moves, stretches, rotations and scalings in AutoCAD 2021's console and here, were compared in 20 states:
+1 247 of 1 335 points, groups 11 and 42 and ties equal AutoCAD's to 1E-3. The others: a vertex snapped where two lines
+end is tied to the older line (AutoCAD ties the newer), the two lines of an angle are written in the order picked
+(AutoCAD wrote the second first), the words of a radius or a diameter are measured 0.025 to 0.07 apart, and one linear
+dimension line, with both origins as far from it, is kept beyond the other origin.
+
 **NEW.** The External References palette's Bind… shows Bind Xrefs/DGN Underlays (`XrefBindWindow`, `XrefBindViewModel`)
 for the drawings selected, the palette now selecting several with Ctrl or Shift (`SelectedRows`): Bind or Insert, started
 from BINDTYPE, and OK writes the choice back to BINDTYPE and binds them all as -XREF Bind binds them, in one undo step.
