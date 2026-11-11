@@ -1,0 +1,454 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.LeaderSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Leader Settings"
+    Width="520"
+    Height="440"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+
+            <Style x:Key="Check" TargetType="CheckBox" BasedOn="{StaticResource StyleCheck}">
+                <Setter Property="Margin" Value="0,0,0,8" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            </Style>
+
+            <Style x:Key="Radio" TargetType="RadioButton" BasedOn="{StaticResource BlockRadio}">
+                <Setter Property="Margin" Value="0,0,0,8" />
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            </Style>
+
+            <!-- A round button of the Attachment tab, alone in its cell. -->
+            <Style x:Key="Cell" TargetType="RadioButton" BasedOn="{StaticResource BlockRadio}">
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button. -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Leader Settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: why Maximum was refused, then OK and Cancel. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="22,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource GhWarn}"
+                        Text="{Binding Notice}"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- The tabs; Attachment greyed unless the annotation is MText. -->
+            <Border
+                DockPanel.Dock="Top"
+                Padding="16,8,16,8"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="0,0,0,1"
+            >
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Annotation"
+                        IsChecked="{Binding IsAnnotationTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Leader Line &amp; Arrow"
+                        IsChecked="{Binding IsLineTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Attachment"
+                        IsChecked="{Binding IsAttachmentTab, Mode=TwoWay}"
+                        IsEnabled="{Binding IsMText}"
+                    />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <!-- Annotation: the type, the MText options and the reuse. -->
+                <Grid Visibility="{Binding IsAnnotationTab, Converter={StaticResource Shown}}" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <HeaderedContentControl
+                        Grid.RowSpan="3"
+                        Style="{StaticResource BlockGroup}"
+                        Header="Annotation Type"
+                        VerticalAlignment="Top"
+                    >
+                        <StackPanel>
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="MText"
+                                GroupName="Type"
+                                IsChecked="{Binding IsMText, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Copy an Object"
+                                GroupName="Type"
+                                IsChecked="{Binding IsCopyObject, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Tolerance"
+                                GroupName="Type"
+                                IsChecked="{Binding IsTolerance, Mode=OneWay}"
+                                IsEnabled="False"
+                                ToolTip="{Binding ToleranceToolTip}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Block Reference"
+                                GroupName="Type"
+                                IsChecked="{Binding IsBlockReference, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="None"
+                                GroupName="Type"
+                                IsChecked="{Binding IsNoAnnotation, Mode=TwoWay}"
+                                Margin="0"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Grid.Column="2"
+                        Style="{StaticResource BlockGroup}"
+                        Header="MText options"
+                        IsEnabled="{Binding IsMText}"
+                    >
+                        <StackPanel>
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Content="Prompt for width"
+                                IsChecked="{Binding PromptForWidth, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Content="Always left justify"
+                                IsChecked="{Binding AlwaysLeftJustify, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Content="Frame text"
+                                IsChecked="{Binding FrameText, Mode=TwoWay}"
+                                Margin="0"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Grid.Column="2"
+                        Grid.Row="2"
+                        Style="{StaticResource BlockGroup}"
+                        Header="Annotation Reuse"
+                    >
+                        <StackPanel>
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="None"
+                                GroupName="Reuse"
+                                IsChecked="{Binding IsReuseNone, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Reuse Next"
+                                GroupName="Reuse"
+                                IsChecked="{Binding IsReuseNext, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Reuse Current"
+                                GroupName="Reuse"
+                                IsChecked="{Binding IsReuseCurrent, Mode=TwoWay}"
+                                Margin="0"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </Grid>
+
+                <!-- Leader Line & Arrow: straight or spline, the arrowhead, the number of points, the angle constraints. -->
+                <Grid Visibility="{Binding IsLineTab, Converter={StaticResource Shown}}" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Leader Line">
+                        <StackPanel>
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Straight"
+                                GroupName="Line"
+                                IsChecked="{Binding IsStraight, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource Radio}"
+                                Content="Spline"
+                                GroupName="Line"
+                                IsChecked="{Binding IsSpline, Mode=TwoWay}"
+                                Margin="0"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Grid.Column="2"
+                        Style="{StaticResource BlockGroup}"
+                        Header="Arrowhead"
+                        VerticalAlignment="Top"
+                    >
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            ItemsSource="{Binding Arrows}"
+                            SelectedItem="{Binding Arrow, Mode=TwoWay}"
+                            MaxDropDownHeight="268"
+                            AutomationProperties.Name="Arrowhead"
+                        />
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Grid.Row="2" Style="{StaticResource BlockGroup}" Header="Number of Points">
+                        <StackPanel>
+                            <CheckBox
+                                Style="{StaticResource Check}"
+                                Content="No Limit"
+                                IsChecked="{Binding NoLimit, Mode=TwoWay}"
+                            />
+                            <StackPanel Orientation="Horizontal">
+                                <Border
+                                    Width="64"
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    Background="{StaticResource GhInput}"
+                                    IsEnabled="{Binding IsMaximumEnabled}"
+                                >
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right">
+                                            <Button
+                                                Style="{StaticResource GhDialogButton}"
+                                                Content="▲"
+                                                FontSize="7"
+                                                Width="16"
+                                                Height="11"
+                                                Padding="0"
+                                                Click="OnMorePoints"
+                                                AutomationProperties.Name="One more point"
+                                            />
+                                            <Button
+                                                Style="{StaticResource GhDialogButton}"
+                                                Content="▼"
+                                                FontSize="7"
+                                                Width="16"
+                                                Height="11"
+                                                Padding="0"
+                                                Click="OnFewerPoints"
+                                                AutomationProperties.Name="One point fewer"
+                                            />
+                                        </StackPanel>
+                                        <TextBox
+                                            Style="{StaticResource StyleBox}"
+                                            BorderThickness="0"
+                                            FontFamily="{StaticResource GhMonoFont}"
+                                            Text="{Binding MaxPoints, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Maximum number of points"
+                                        />
+                                    </DockPanel>
+                                </Border>
+                                <TextBlock
+                                    Text="Maximum"
+                                    VerticalAlignment="Center"
+                                    Margin="8,0,0,0"
+                                    IsEnabled="{Binding IsMaximumEnabled}"
+                                />
+                            </StackPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Grid.Row="2"
+                        Grid.Column="2"
+                        Style="{StaticResource BlockGroup}"
+                        Header="Angle Constraints"
+                    >
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="104" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="8" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Text="First Segment:"
+                                VerticalAlignment="Center"
+                                Foreground="{StaticResource GhIcon}"
+                            />
+                            <ComboBox
+                                Grid.Column="1"
+                                Style="{StaticResource GhComboBox}"
+                                ItemsSource="{Binding AngleChoices}"
+                                SelectedItem="{Binding FirstSegment, Mode=TwoWay}"
+                                AutomationProperties.Name="First Segment"
+                            />
+                            <TextBlock
+                                Grid.Row="2"
+                                Text="Second Segment:"
+                                VerticalAlignment="Center"
+                                Foreground="{StaticResource GhIcon}"
+                            />
+                            <ComboBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Style="{StaticResource GhComboBox}"
+                                ItemsSource="{Binding AngleChoices}"
+                                SelectedItem="{Binding SecondSegment, Mode=TwoWay}"
+                                AutomationProperties.Name="Second Segment"
+                            />
+                        </Grid>
+                    </HeaderedContentControl>
+                </Grid>
+
+                <!-- Attachment: where the leader meets the text on either side, and Underline bottom line. -->
+                <HeaderedContentControl
+                    Style="{StaticResource BlockGroup}"
+                    Header="Multi-line Text Attachment"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding IsAttachmentTab, Converter={StaticResource Shown}}"
+                >
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Text="Text on left side"
+                                HorizontalAlignment="Center"
+                                Foreground="{StaticResource GhIcon}"
+                            />
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Text on right side"
+                                HorizontalAlignment="Center"
+                                Foreground="{StaticResource GhIcon}"
+                            />
+                        </Grid>
+                        <ItemsControl
+                            ItemsSource="{Binding AttachmentRows}"
+                            IsEnabled="{Binding AreRowsEnabled}"
+                            Focusable="False"
+                        >
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:LeaderAttachmentRowViewModel}">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="110" />
+                                        </Grid.ColumnDefinitions>
+                                        <RadioButton
+                                            Style="{StaticResource Cell}"
+                                            GroupName="Left"
+                                            IsChecked="{Binding IsLeft, Mode=TwoWay}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat='Text on left side: {0}'}"
+                                        />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" HorizontalAlignment="Center" />
+                                        <RadioButton
+                                            Grid.Column="2"
+                                            Style="{StaticResource Cell}"
+                                            GroupName="Right"
+                                            IsChecked="{Binding IsRight, Mode=TwoWay}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat='Text on right side: {0}'}"
+                                        />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <CheckBox
+                            Style="{StaticResource Check}"
+                            Content="Underline bottom line"
+                            IsChecked="{Binding Underline, Mode=TwoWay}"
+                            Margin="0,6,0,0"
+                        />
+                    </StackPanel>
+                </HeaderedContentControl>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

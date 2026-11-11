@@ -1762,6 +1762,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "CLASSICGROUP":
                 case "LAYERSTATE":
                 case "SCALELISTEDIT":
+                case "QLEADER":
                     OnManagerRequested(e);
                     break;
                 case "VIEW":

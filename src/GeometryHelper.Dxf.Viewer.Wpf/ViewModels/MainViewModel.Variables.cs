@@ -191,7 +191,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>POLARMODE set: the snaps follow it and the window keeps it in the settings file, as POLARANG.</summary>
-        private void SetPolarMode(int value)
+        internal void SetPolarMode(int value)
         {
             ApplyPolarMode(value);
             ChangeSettings(s => s.PolarMode = value);
@@ -217,7 +217,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// kept from nought up to a whole turn, written as the drawing writes angles (AUNITS, AUPREC), so that "33.5;-10" is
         /// kept as "34;350" at AUPREC 0; the window keeps it in the settings file, and the snaps hold it while POLARMODE has 4.
         /// </summary>
-        private bool SetPolarAddedAngles(string typed)
+        internal bool SetPolarAddedAngles(string typed)
         {
             DxfDatabase database = _current?.Document.Database;
             int aunits = database?.Aunits ?? 0;

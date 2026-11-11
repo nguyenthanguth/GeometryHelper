@@ -30,6 +30,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>The handle of the INSERT the leader points to; null for none.</summary>
             public string Block { get; set; }
+
+            /// <summary>Whether the words stand with their middle at the leader's end, as a copy of QLEADER's Copy an Object stands.</summary>
+            public bool Middle { get; set; }
+
+            /// <summary>The width QLEADER was given for the words; nought for none.</summary>
+            public double Width { get; set; }
+
+            /// <summary>Whether QLEADER ends with no leader: Esc, or words or a block not given.</summary>
+            public bool Ended { get; set; }
         }
 
         /// <summary>
@@ -198,11 +207,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// QLEADER (LE) with the default settings of its Leader Settings dialog, which the presenter has not yet: "Specify first
-        /// leader point, or [Settings] &lt;Settings&gt;:", two next points at most, "Specify text width &lt;0.0000&gt;:", then
-        /// "Enter first line of annotation text &lt;Mtext&gt;:" and each next line, Enter there giving the MTEXT editor. The words
-        /// stand with the middle of their top line at the leader's end on the right, of their bottom line on the left, and the
-        /// leader overrides DIMGAP and DIMTAD (nought) whatever the style has, as AutoCAD 2021 writes them.
+        /// QLEADER (LE) by the drawing's Leader Settings (<see cref="CadQLeaderSettings"/>), as AutoCAD 2021 draws it: "Specify
+        /// first leader point, or [Settings] &lt;Settings&gt;:", Settings or Enter showing the Leader Settings dialog where the
+        /// window has it; "Specify next point:" up to the Maximum number of points (three by default) or until Enter with No
+        /// Limit, the first and second segments held to their angle constraints; then the annotation of the settings. MText asks
+        /// "Specify text width &lt;0.0000&gt;:" (Prompt for width, not with Always left justify), then "Enter first line of
+        /// annotation text &lt;Mtext&gt;:" and each next line, Enter there giving the MTEXT editor; Copy an Object asks "Select an
+        /// object to copy:"; Block Reference "Enter block name or [?]:" and INSERT's prompts; None and Tolerance end the leader
+        /// with no annotation; Reuse Current copies the annotation kept. The words stand by the Attachment settings (the middle
+        /// of their top line at the leader's end on the right, of their bottom line on the left, by default), and the leader
+        /// overrides DIMGAP and DIMTAD whatever the style has, as AutoCAD 2021 writes them.
         /// </summary>
         private static IEnumerable<CadPrompt> QuickLeader(CadCommandContext c)
         {
@@ -215,29 +229,36 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                if (!c.Input.Is("Settings"))
+                if (!c.Input.Is("Settings") && !c.Input.IsNone)
                 {
                     yield break;
                 }
 
-                c.Write(
-                    "The Leader Settings dialog is not in the presenter yet: QLEADER draws with its default settings."
-                );
+                LeaderSettingsDialog(c);
             }
 
+            CadQLeaderSettings settings = CadQLeaderSettings.Read(c.Database);
             var points = new List<GeoPoint2> { c.Input.Point };
 
-            // Three points at most, AutoCAD's Maximum number of points; Enter ends them sooner.
-            while (points.Count < 3)
+            // The Maximum number of points, the arrow's counted, or with No Limit until Enter; Enter ends them sooner.
+            while (settings.NoLimit || points.Count < settings.MaxPoints)
             {
                 GeoPoint2 last = points[points.Count - 1];
                 yield return CadPrompt.ForPoint("Specify next point", last);
 
                 if (c.Input.IsPoint)
                 {
-                    if ((c.Input.Point - last).Length > c.Session.Tolerance.EqualPoint)
+                    GeoPoint2 held = HeldToAngle(
+                        last,
+                        c.Input.Point,
+                        points.Count == 1 ? settings.FirstSegment
+                            : points.Count == 2 ? settings.SecondSegment
+                            : CadQLeaderAngle.Any
+                    );
+
+                    if ((held - last).Length > c.Session.Tolerance.EqualPoint)
                     {
-                        points.Add(c.Input.Point);
+                        points.Add(held);
                     }
 
                     continue;
@@ -251,14 +272,104 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            // The width is not kept from one leader to the next: AutoCAD 2021 offers nought each time, and takes one below
-            // nought as nought.
-            yield return CadPrompt.ForDistance("Specify text width", points[points.Count - 1], null, Length(0.0));
-            double width = c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : 0.0;
+            var words = new LeaderWords();
 
-            if (!c.Input.IsNone && c.Input.Kind != CadInputKind.Number)
+            foreach (CadPrompt prompt in QuickLeaderWords(c, settings, points, words))
+            {
+                yield return prompt;
+            }
+
+            if (words.Ended)
             {
                 yield break;
+            }
+
+            MakeLeader(
+                c,
+                points,
+                settings.Spline,
+                true,
+                words.Text == null && words.Block == null ? null : words,
+                true,
+                words.Width,
+                settings
+            );
+        }
+
+        /// <summary>
+        /// The annotation of a QLEADER leader, by its settings, into <paramref name="words"/>: <see cref="LeaderWords.Ended"/>
+        /// set where the command ends with no leader (Esc, or an MText or a block not given).
+        /// </summary>
+        private static IEnumerable<CadPrompt> QuickLeaderWords(
+            CadCommandContext c,
+            CadQLeaderSettings settings,
+            List<GeoPoint2> points,
+            LeaderWords words
+        )
+        {
+            // Reuse Current: a copy of the annotation kept, no width or words asked, as AutoCAD 2021 copies it.
+            if (settings.Reuse == CadQLeaderReuse.ReuseCurrent && settings.ReusedHandle != null)
+            {
+                DxfMText kept = CopyOfText(c.Document.FindEntity(settings.ReusedHandle));
+
+                if (kept != null)
+                {
+                    words.Text = kept;
+                    yield break;
+                }
+            }
+
+            switch (settings.Annotation)
+            {
+                case CadQLeaderAnnotation.None:
+                    yield break;
+                case CadQLeaderAnnotation.Tolerance:
+                    c.Write(
+                        "Tolerance needs the Geometric Tolerance dialog, which the presenter has not: the leader has no annotation."
+                    );
+                    yield break;
+                case CadQLeaderAnnotation.CopyObject:
+                    while (true)
+                    {
+                        yield return CadPrompt.ForEntity("Select an object to copy");
+
+                        if (c.Input.Kind != CadInputKind.Selection)
+                        {
+                            words.Ended = true;
+                            yield break;
+                        }
+
+                        DxfMText copy = CopiedText(c);
+
+                        if (copy != null)
+                        {
+                            words.Text = copy;
+                            words.Middle = true;
+                            yield break;
+                        }
+                    }
+                case CadQLeaderAnnotation.BlockReference:
+                    foreach (CadPrompt prompt in LeaderBlock(c, words))
+                    {
+                        yield return prompt;
+                    }
+
+                    words.Ended = words.Block == null;
+                    yield break;
+            }
+
+            // The width is not kept from one leader to the next: AutoCAD 2021 offers nought each time, and takes one below
+            // nought as nought. It asks none with Always left justify.
+            if (settings.PromptForWidth && !settings.AlwaysLeftJustify)
+            {
+                yield return CadPrompt.ForDistance("Specify text width", points[points.Count - 1], null, Length(0.0));
+                words.Width = c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 ? c.Input.Number : 0.0;
+
+                if (!c.Input.IsNone && c.Input.Kind != CadInputKind.Number)
+                {
+                    words.Ended = true;
+                    yield break;
+                }
             }
 
             var lines = new List<string>();
@@ -283,7 +394,76 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (lines.Count > 0)
             {
-                MakeLeader(c, points, false, true, new LeaderWords { Text = LeaderText(c, lines) }, true, width);
+                words.Text = LeaderText(c, lines);
+            }
+            else
+            {
+                words.Ended = true;
+            }
+        }
+
+        /// <summary>
+        /// A point of a QLEADER segment held to an angle constraint, as AutoCAD 2021 holds it: the point picked brought square
+        /// onto the nearest ray from the last point at a multiple of the constraint's angle (level for Horizontal), so that
+        /// (100, 30) from the origin held level is (100, 0), and (50, 100) held to 45 degrees is (75, 75).
+        /// </summary>
+        private static GeoPoint2 HeldToAngle(GeoPoint2 from, GeoPoint2 picked, CadQLeaderAngle angle)
+        {
+            double step = CadQLeaderSettings.Increment(angle);
+            GeoVector2 way = picked - from;
+
+            if (step <= 0.0 || way.Length <= 0.0)
+            {
+                return picked;
+            }
+
+            double direction = Math.Atan2(way.Y, way.X);
+            double held = Math.Round(direction / step, MidpointRounding.AwayFromZero) * step;
+            double along = way.Length * Math.Cos(direction - held);
+            return new GeoPoint2(from.X + along * Math.Cos(held), from.Y + along * Math.Sin(held));
+        }
+
+        /// <summary>
+        /// Settings of QLEADER: the Leader Settings dialog shown over the drawing's settings and DIMLDRBLK, OK writing them as
+        /// one undo step; with no window, a line saying so, QLEADER drawing by the settings the drawing has.
+        /// </summary>
+        private static void LeaderSettingsDialog(CadCommandContext c)
+        {
+            DxfDatabase db = c.Database;
+            var request = new CadQLeaderRequest(
+                c.Document,
+                CadQLeaderSettings.Read(db),
+                CadArrowheads.NameOf(db.Dimldrblk)
+            );
+
+            if (!c.Session.Request("QLEADER", c.Document, request))
+            {
+                c.Write("Leader Settings is shown by the window: QLEADER draws by the settings the drawing has.");
+                return;
+            }
+
+            if (request.Action != CadDialogAction.Ok)
+            {
+                return;
+            }
+
+            CadEditResult result = c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Leader settings", null, "QLEADER") },
+                s =>
+                {
+                    request.Settings.Write(s.Database);
+                    DxfBlockTableRecord arrow = CadArrowheads.Ensure(s.Database, request.Arrow);
+
+                    if (!string.Equals(arrow?.Name, s.Database.Dimldrblk?.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        s.Database.Dimldrblk = arrow;
+                    }
+                }
+            );
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
             }
         }
 
@@ -401,8 +581,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            DxfEntity picked = c.Document.FindEntity(c.Input.Handles[0]);
+            return CopyOfText(c.Document.FindEntity(c.Input.Handles[0]));
+        }
 
+        /// <summary>An MTEXT copying an MTEXT, or the words, height and style of a TEXT; null for any other object or none.</summary>
+        private static DxfMText CopyOfText(DxfEntity picked)
+        {
             if (picked is DxfMText mtext)
             {
                 var copy = new DxfMText { Contents = mtext.Contents, TextHeight = mtext.TextHeight };
@@ -455,8 +639,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Adds the leader and what it points to, one undo step. An MTEXT stands DIMGAP from the last vertex, to the right of it
         /// where the last segment runs right or straight up or down, else to its left; a hook DIMASZ long runs on to it where
         /// that segment of a straight leader is steeper than 15 degrees. LEADER sets the words' middle at the hook (their
-        /// bottom DIMGAP above it with DIMTAD not nought); QLEADER the middle of their top line on the right, of their bottom
-        /// line on the left.
+        /// bottom DIMGAP above it with DIMTAD not nought); QLEADER by its Attachment settings, the middle of their top line on the
+        /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle.
         /// </summary>
         private static void MakeLeader(
             CadCommandContext c,
@@ -465,7 +649,8 @@ namespace GeometryHelper.Dxf.Viewer
             bool arrow,
             LeaderWords words,
             bool quick,
-            double width
+            double width,
+            CadQLeaderSettings settings = null
         )
         {
             DxfDatabase db = c.Database;
@@ -475,6 +660,9 @@ namespace GeometryHelper.Dxf.Viewer
             double gap = db.Dimgap * scale;
             int tad = quick ? 0 : db.Dimtad;
             DxfMText text = words?.Text;
+            settings = settings ?? new CadQLeaderSettings();
+            bool byAttachment = quick && words?.Middle != true;
+            bool leftJustified = false;
 
             GeoPoint2 end = points[points.Count - 1];
             GeoVector2 way = end - points[points.Count - 2];
@@ -488,18 +676,35 @@ namespace GeometryHelper.Dxf.Viewer
                 vertices.Insert(vertices.Count - 1, new GeoPoint2(end.X - side * db.Dimasz * scale, end.Y));
             }
 
-            if (text != null)
+            if (text != null && byAttachment && settings.Underline)
             {
+                // Underline bottom line: the words stand DIMGAP above the leader's end, which runs on under their last line.
+                text.Location = new GeoPoint3(end.X + side * gap, end.Y + gap, 0.0);
+                text.Attachment = left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.BottomLeft;
+            }
+            else if (text != null && byAttachment)
+            {
+                CadQLeaderAttachment row = left ? settings.LeftSide : settings.RightSide;
+                leftJustified = left && settings.AlwaysLeftJustify;
                 double half = text.TextHeight / 2.0;
-                text.Location = quick
-                    ? new GeoPoint3(end.X + side * gap, end.Y + (left ? -half : half), 0.0)
-                    : new GeoPoint3(end.X + side * gap, end.Y + (tad != 0 ? gap : 0.0), 0.0);
+                double rise =
+                    row == CadQLeaderAttachment.MiddleOfTopLine ? half
+                    : row == CadQLeaderAttachment.MiddleOfBottomLine ? -half
+                    : 0.0;
+                text.Location = new GeoPoint3(end.X + side * gap, end.Y + rise, 0.0);
+                text.Attachment = QuickAttachment(row, !left || leftJustified);
+            }
+            else if (text != null)
+            {
+                text.Location = new GeoPoint3(end.X + side * gap, end.Y + (tad != 0 ? gap : 0.0), 0.0);
                 text.Attachment =
-                    quick ? (left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.TopLeft)
-                    : tad != 0 ? (left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.BottomLeft)
+                    tad != 0 ? (left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.BottomLeft)
                     : left ? DxfAttachmentPoint.MiddleRight
                     : DxfAttachmentPoint.MiddleLeft;
+            }
 
+            if (text != null)
+            {
                 if (width > 0.0)
                 {
                     text.Width = width;
@@ -526,7 +731,7 @@ namespace GeometryHelper.Dxf.Viewer
                     leader.DimensionStyleName = style.Name;
                 }
 
-                Override(leader, style, db, scale, quick);
+                Override(leader, style, db, scale, quick, settings);
                 double height = 0.0;
                 double across = 0.0;
 
@@ -537,6 +742,22 @@ namespace GeometryHelper.Dxf.Viewer
                     CadMTextLayout layout = CadMTextEdit.LayoutOf(text);
                     height = layout?.ActualHeight ?? 0.0;
                     across = layout?.ActualWidth ?? 0.0;
+
+                    // Always left justify on the left: the words' left edge set back their width, their right DIMGAP short of the end.
+                    if (leftJustified)
+                    {
+                        GeoPoint3 at = text.Location;
+                        text.Location = new GeoPoint3(at.X - across, at.Y, at.Z);
+                    }
+
+                    // Reuse Next: these words are the ones reused from now on, the settings turned to Reuse Current.
+                    if (quick && settings.Reuse == CadQLeaderReuse.ReuseNext)
+                    {
+                        CadQLeaderSettings kept = settings.Clone();
+                        kept.Reuse = CadQLeaderReuse.ReuseCurrent;
+                        kept.ReusedHandle = text.Handle;
+                        kept.Write(s.Database);
+                    }
                 }
                 else if (block != null)
                 {
@@ -549,16 +770,38 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// The attachment of QLEADER's words by the row of the Attachment tab, on the left column (words on the leader's right,
+        /// or left justified) or the right: the top rows hang from the top, the middle one from the middle, the bottom rows
+        /// stand on the bottom, as AutoCAD 2021 sets them.
+        /// </summary>
+        private static DxfAttachmentPoint QuickAttachment(CadQLeaderAttachment row, bool leftColumn)
+        {
+            switch (row)
+            {
+                case CadQLeaderAttachment.TopOfTopLine:
+                case CadQLeaderAttachment.MiddleOfTopLine:
+                    return leftColumn ? DxfAttachmentPoint.TopLeft : DxfAttachmentPoint.TopRight;
+                case CadQLeaderAttachment.MiddleOfText:
+                    return leftColumn ? DxfAttachmentPoint.MiddleLeft : DxfAttachmentPoint.MiddleRight;
+                default:
+                    return leftColumn ? DxfAttachmentPoint.BottomLeft : DxfAttachmentPoint.BottomRight;
+            }
+        }
+
+        /// <summary>
         /// Writes the current dimension variables the leader is drawn by where they are not its style's, as AutoCAD 2021 writes
         /// them, in the order of their groups: DIMSCALE (40), DIMASZ (41), DIMTAD (77), DIMTXT (140) and DIMGAP (147). QLEADER
-        /// writes DIMGAP and DIMTAD (nought) first whatever the style has, and moves each other than the style's after them.
+        /// writes DIMGAP and DIMTAD first whatever the style has, and moves each other than the style's after them: DIMGAP below
+        /// nought with Frame text, DIMTAD 1 with Underline bottom line, else nought; then DIMLDRBLK (341) where the drawing's is
+        /// not the style's, as AutoCAD 2021 writes <c>1070 341, 1005</c> and the handle of <c>_Dot</c>.
         /// </summary>
         private static void Override(
             DxfLeader leader,
             DxfDimStyleTableRecord style,
             DxfDatabase db,
             double scale,
-            bool quick
+            bool quick,
+            CadQLeaderSettings settings
         )
         {
             if (!quick)
@@ -571,8 +814,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            leader.WriteOverride(147, db.Dimgap, false);
-            leader.WriteOverride(77, 0.0, true);
+            double gap = settings.FrameText ? -db.Dimgap : db.Dimgap;
+            double tad = settings.Underline ? 1.0 : 0.0;
+            leader.WriteOverride(147, gap, false);
+            leader.WriteOverride(77, tad, true);
 
             if (style == null)
             {
@@ -591,7 +836,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (db.Dimtad != style.Dimtad)
             {
-                leader.WriteOverride(77, 0.0, true);
+                leader.WriteOverride(77, tad, true);
             }
 
             if (!db.Dimtxt.Equals(style.Dimtxt))
@@ -601,7 +846,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!db.Dimgap.Equals(style.Dimgap))
             {
-                leader.WriteOverride(147, db.Dimgap, false);
+                leader.WriteOverride(147, gap, false);
+            }
+
+            DxfBlockTableRecord arrow = db.Dimldrblk;
+
+            if (arrow != null && !string.Equals(arrow.Name, style.Dimldrblk?.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                leader.Dimldrblk = arrow;
             }
         }
     }

@@ -34,6 +34,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows Edit Drawing Scales (SCALELISTEDIT); the action it closed with is in its request.</summary>
         public Func<ScaleListEditViewModel, bool> ShowScaleList { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows Leader Settings (QLEADER's Settings); the action it closed with is in its request.</summary>
+        public Func<LeaderSettingsViewModel, bool> ShowLeaderSettings { get; set; }
+
         /// <summary>A request of a manager: its dialog shown where the workspace shows it, the request answered.</summary>
         private void OnManagerRequested(CadUiRequestEventArgs e)
         {
@@ -64,6 +67,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case CadScaleListRequest scales when ShowScaleList != null:
                     e.Handled = ShowScaleList(new ScaleListEditViewModel(scales));
+                    break;
+                case CadQLeaderRequest leader when ShowLeaderSettings != null:
+                    e.Handled = ShowLeaderSettings(new LeaderSettingsViewModel(leader));
                     break;
             }
         }

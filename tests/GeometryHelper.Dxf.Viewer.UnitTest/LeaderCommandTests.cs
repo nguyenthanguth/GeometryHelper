@@ -258,20 +258,5 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(-10 - db.Dimgap, 90 - db.Dimtxt / 2, 0), words.Location);
             AssertReopens(document);
         }
-
-        [Fact]
-        public void QLeaderSettings_SaysTheDialogIsNotThere_AndAsksThePointAgain()
-        {
-            CadDocument document = Metric();
-            CadCommandSession session = Session(document);
-
-            Run(session, "QLEADER", Enter);
-
-            Assert.Equal(
-                "The Leader Settings dialog is not in the presenter yet: QLEADER draws with its default settings.",
-                session.History.Last()
-            );
-            Assert.Equal("Specify first leader point, or [Settings] <Settings>:", session.Prompt.Text);
-        }
     }
 }
