@@ -180,6 +180,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(20.0, matrix[7], 9);
         }
 
+        [Fact]
+        public void WordsRightOfTheLanding_MirroredAcrossALineAtFortyFiveDegrees_AreHeldByTheSameSide_ThePlaneTurnedNotBack()
+        {
+            foreach (bool mirrtext in new[] { false, true })
+            {
+                CadDocument document = Drawn(mirrtext, P(10, 0));
+
+                Mirrored(document, P(0, 0), P(10, 10), out Groups copy);
+
+                // AutoCAD 2021 (mirror-insert GHMI1 ML|one|right|S45, either MIRRTEXT): the mirror turns the plane's x axis
+                // square to itself, not back: the plane's x axis (0, 1, 0), its y axis (-1, 0, 0), the words still held by their
+                // top left (171 of 1), 176 nought, bit 14 not set.
+                Near(new GeoPoint3(0, 1, 0), copy.Point(111));
+                Near(new GeoPoint3(-1, 0, 0), copy.Point(112));
+                Assert.Equal(1, copy.Whole(171));
+                Assert.Equal(0, copy.Own(90) & (1 << 14));
+            }
+        }
+
         private static GeoPoint3 Mirror(GeoPoint3 p, bool level = false) =>
             level ? new GeoPoint3(p.X, 200 - p.Y, p.Z) : new GeoPoint3(200 - p.X, p.Y, p.Z);
 

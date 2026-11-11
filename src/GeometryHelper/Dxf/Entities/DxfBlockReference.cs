@@ -1200,7 +1200,9 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Moves, turns, scales or mirrors the INSERT, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
         /// carries one: its system carried to the one the transformation makes of it, its scale factors stretched as its axes
-        /// are, one turned negative where an axis is mirrored, and its ATTRIBs moved by the same transformation. An annotative
+        /// are, one turned negative where an axis is mirrored, and its ATTRIBs moved by the same transformation. Turned in its
+        /// own plane, its angle is written from nought to a whole turn, as AutoCAD 2021's ROTATE writes it: one turned by -30
+        /// degrees is written 330. An annotative
         /// one's contexts are carried each from its own point, angle and factors, as AutoCAD 2021 carries them: turned 30
         /// degrees about the origin, the valve's context of 1:2 at (-50, 279.776) turned 10 degrees went to (-183.189, 217.293)
         /// turned 40 (check D35b).
@@ -1240,6 +1242,13 @@ namespace GeometryHelper.Dxf
                 out double yStretch
             );
             KeyValuePair<int, string>[] array = ArrayGroups(xStretch, yStretch);
+
+            // Turned in its own plane, its angle is written from nought to a whole turn, as AutoCAD 2021's ROTATE writes it; one
+            // turned out of its plane keeps the angle ezdxf gives it.
+            if (DxfOcsTransform.Cross(normalNow, normal).Length <= 1E-12)
+            {
+                degrees = DxfOcsTransform.WholeTurn(degrees);
+            }
 
             // The contexts of an annotative one are carried each as its record is, from its own point, angle and factors, as
             // AutoCAD 2021 carries them (check D35b); worked out before the record is written, and written after it.
@@ -1305,6 +1314,42 @@ namespace GeometryHelper.Dxf
 
             WriteMoved(contexts);
             Carry(Attributes(), transform);
+        }
+
+        /// <summary>
+        /// Writes the scale factors and angle of an INSERT that MIRROR has mirrored in the drawing's plane, as AutoCAD 2021's
+        /// MIRROR writes them (probed in its console, mirror-insert GHMI1), the block placed as before: its x factor turned the
+        /// other way, its y and z as they were, and its angle that of its mirrored y axis less a quarter turn, from nought to a
+        /// whole turn; each factor of 1 and an angle of nought left out. Its ATTRIBs are left where they are. An annotative one,
+        /// whose contexts hold their own factors and angles, is left as it is.
+        /// </summary>
+        /// <param name="scale">The factors the INSERT had before it was mirrored.</param>
+        /// <param name="degrees">The angle to write, in degrees.</param>
+        internal void FinishMirror(GeoVector3 scale, double degrees)
+        {
+            if (Shown(out _) != null)
+            {
+                return;
+            }
+
+            degrees = DxfOcsTransform.WholeTurn(degrees);
+            SetGroups(
+                Join(
+                    MirroredFactor(41, -scale.X),
+                    MirroredFactor(42, scale.Y),
+                    MirroredFactor(43, scale.Z),
+                    degrees == 0.0
+                        ? (GetString(50) == null ? new KeyValuePair<int, string>[0] : new[] { Out(50) })
+                        : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees)) }
+                )
+            );
+
+            KeyValuePair<int, string>[] MirroredFactor(int code, double value) =>
+                value == 1.0
+                    ? (GetString(code) == null ? new KeyValuePair<int, string>[0] : new[] { Out(code) })
+                    : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
+
+            KeyValuePair<int, string> Out(int code) => new KeyValuePair<int, string>(code, null);
         }
 
         [DxfType("INSERT")]

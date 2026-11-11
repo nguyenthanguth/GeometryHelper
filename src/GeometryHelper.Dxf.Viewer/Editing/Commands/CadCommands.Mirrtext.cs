@@ -101,9 +101,15 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfBlockReference insert:
                     var states = new List<TextState>();
 
+                    // An attribute upside down, its normal down the Z axis, as one of an INSERT already mirrored, keeps it: mirrored in
+                    // its plane as one up the axis is (mirror-insert GHMI1, the INSERT scaled -1 by 1 mirrored across x = 100).
                     foreach (DxfAttributeReference attribute in insert.AttributeCollection)
                     {
-                        states.Add(Flat(attribute.Normal, tolerance) ? TextState.Of(attribute) : null);
+                        states.Add(
+                            Flat(attribute.Normal, tolerance) || Flat(attribute.Normal.Negate(), tolerance)
+                                ? TextState.Of(attribute)
+                                : null
+                        );
                     }
 
                     if (states.TrueForAll(s => s == null))
@@ -123,8 +129,8 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             if (i < states.Count && states[i] != null)
                             {
-                                // Mirrored with its INSERT, its normal turned over: put back up, then in place.
-                                attribute.Normal = new GeoVector3(0.0, 0.0, 1.0);
+                                // Mirrored with its INSERT, its normal turned over: put back, then in place.
+                                attribute.Normal = states[i].Normal;
                                 states[i].Mirrored(attribute, mirror);
                             }
 
@@ -172,6 +178,42 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>
+        /// How MIRROR moves an INSERT, under MIRRTEXT 0 or 1, as AutoCAD 2021 moves one (probed in its console, mirror-insert
+        /// GHMI1): its attributes as <see cref="Readable(CadDocument, DxfEntity, GeoTransform3, Tolerance)"/> or
+        /// <see cref="InPlane"/> leave them, and the INSERT written with its
+        /// x factor turned the other way rather than its y, turned to its mirrored y axis less a quarter turn. One turned nought
+        /// mirrored across a level line is written x factor -1 turned 180 degrees; across an upright, -1 turned nought; one
+        /// scaled 2 by 3, -2 by 3. A MINSERT, and an INSERT whose plane is not the drawing's, is mirrored as it is.
+        /// </summary>
+        private static ReadableMirror InsertMirror(
+            CadDocument document,
+            DxfBlockReference insert,
+            GeoTransform3 mirror,
+            bool mirrtext,
+            Tolerance tolerance
+        )
+        {
+            ReadableMirror attributes = mirrtext
+                ? InPlane(insert, mirror, tolerance)
+                : Readable(document, insert, mirror, tolerance);
+
+            if (insert is DxfMInsertBlock || !Flat(insert.Normal, tolerance))
+            {
+                return attributes;
+            }
+
+            GeoVector3 scale = insert.ScaleFactors;
+            double turn = insert.Rotation;
+            GeoVector3 up = mirror.Transform(new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0.0));
+            double degrees = (Math.Atan2(up.Y, up.X) * (180.0 / Math.PI)) - 90.0;
+            return new ReadableMirror(attributes?.Transform ?? mirror, null, null, then: moved =>
+            {
+                attributes?.Finish(moved);
+                ((DxfBlockReference)moved).FinishMirror(scale, degrees);
+            });
+        }
+
         /// <summary>The turn-over of a TEXT, attribute or definition in its own plane before the mirror; null where its plane is not the drawing's.</summary>
         private static GeoTransform3 TextFlip(
             CadDocument document,
@@ -194,8 +236,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return GeoTransform3.Mirror(new GeoPlane3(Middle(document, text, along), along));
             }
 
+            // Across the middle of the ink of its words, where the display's fonts read their letters, as AutoCAD 2021 turns it
+            // over (mirror-insert GHMI1): "Q1" of arial.ttf 1.5 high, whose Q reaches below the baseline, about a line 0.705 above
+            // it, not 0.75; else across the middle of its height.
             GeoPoint3 at = text.Position;
-            return GeoTransform3.Mirror(new GeoPlane3(at.Add(up.Multiply(text.Height / 2.0)), up));
+            double middle = document.TextInkHeight(text, out double bottom, out double top)
+                ? (bottom + top) / 2.0
+                : text.Height / 2.0;
+            return GeoTransform3.Mirror(new GeoPlane3(at.Add(up.Multiply(middle)), up));
         }
 
         /// <summary>
@@ -375,9 +423,13 @@ namespace GeometryHelper.Dxf.Viewer
             private bool _backward;
             private bool _upsideDown;
 
+            /// <summary>Its normal, up or down the Z axis: (0, 0, 1) for one up, (0, 0, -1) for one down.</summary>
+            public GeoVector3 Normal { get; private set; }
+
             public static TextState Of(DxfDBText text) =>
                 new TextState
                 {
+                    Normal = new GeoVector3(0.0, 0.0, text.Normal.Z > 0.0 ? 1.0 : -1.0),
                     _position = text.Position,
                     _alignment = text.AlignmentPoint,
                     _aligned = !text.IsDefaultAlignment,
@@ -404,18 +456,26 @@ namespace GeometryHelper.Dxf.Viewer
             /// </summary>
             public void Mirrored(DxfDBText text, GeoTransform3 mirror)
             {
-                GeoVector3 up = mirror.Transform(new GeoVector3(-Math.Sin(_rotation), Math.Cos(_rotation), 0.0));
-                Place(text, mirror, Math.Atan2(up.Y, up.X) - (Math.PI / 2.0));
+                GeoVector3 up = new GeoVector3(-Math.Sin(_rotation), Math.Cos(_rotation), 0.0);
+
+                // One down the Z axis is turned in the system of its plane, whose x axis runs against the world's.
+                double flip = Normal.Z > 0.0 ? 1.0 : -1.0;
+                up = mirror.Transform(new GeoVector3(flip * up.X, up.Y, 0.0));
+                Place(text, mirror, Math.Atan2(up.Y, flip * up.X) - (Math.PI / 2.0));
                 text.Oblique = _oblique;
                 text.IsMirroredInX = !_backward;
                 text.IsMirroredInY = _upsideDown;
             }
 
-            /// <summary>Its points carried by a transformation, and its turn, written from nought to a whole turn.</summary>
+            /// <summary>
+            /// Its points carried by a transformation, and its turn, written from nought to a whole turn; one within a hair of
+            /// nought or a whole turn written nought, as AutoCAD 2021 leaves it out.
+            /// </summary>
             private void Place(DxfDBText text, GeoTransform3 transform, double turn)
             {
                 turn %= 2.0 * Math.PI;
-                text.Rotation = turn < 0.0 ? turn + (2.0 * Math.PI) : turn;
+                turn = turn < 0.0 ? turn + (2.0 * Math.PI) : turn;
+                text.Rotation = turn <= 1E-12 || turn >= (2.0 * Math.PI) - 1E-12 ? 0.0 : turn;
                 text.Position = transform.Transform(_position);
 
                 if (_aligned)

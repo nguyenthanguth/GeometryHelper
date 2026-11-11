@@ -445,13 +445,15 @@ namespace GeometryHelper.Dxf.Viewer
             GeoTransform3 mirror = Mirrored(second);
 
             // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest, in their plane. A dimension
-            // stays readable under either, as AutoCAD keeps it; a multileader keeps its plane under either.
+            // stays readable under either, as AutoCAD keeps it; a multileader keeps its plane under either; an INSERT is written
+            // with its x factor turned the other way, as AutoCAD writes it.
             CadDocument document = c.Document;
             Tolerance tolerance = c.Session.Tolerance;
             bool mirrtext = c.Database.Mirrtext;
             Func<DxfEntity, ReadableMirror> readable = entity =>
                 entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
                 : entity is DxfMLeader mleader ? MLeaderMirror(document, mleader, mirror, mirrtext, tolerance)
+                : entity is DxfBlockReference insert ? InsertMirror(document, insert, mirror, mirrtext, tolerance)
                 : mirrtext ? InPlane(entity, mirror, tolerance)
                 : Readable(document, entity, mirror, tolerance);
 

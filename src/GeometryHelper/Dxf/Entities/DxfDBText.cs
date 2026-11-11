@@ -754,9 +754,11 @@ namespace GeometryHelper.Dxf
         /// Moves, turns, scales or mirrors the text, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
         /// carries a text: its points carried through the system of its plane, its rotation turned, its height and width factor
         /// stretched as its upright and its baseline are, its lean changed where the plane is scaled unlike along its two axes,
-        /// its thickness and normal carried. The record is written once. An annotative one's contexts are carried with it, each
-        /// its point, its angle and, for a text not aligned left on its baseline, its second point, as AutoCAD 2021 carries
-        /// them: the context of 1:2 of ATT_DVSUP of its sample, at (-100, 265.33), went to (-90, 270.33) with the INSERT moved
+        /// its thickness and normal carried. Turned in its own plane it is written as AutoCAD 2021's ROTATE writes it: its angle
+        /// from nought to a whole turn, "ABC" turned by -30 degrees written 330; its width and height as they were where it is
+        /// not scaled; its normal left out where it is the drawing's own. The record is written once. An annotative one's
+        /// contexts are carried with it, each its point, its angle and, for a text not aligned left on its baseline, its second
+        /// point, as AutoCAD 2021 carries them: the context of 1:2 of ATT_DVSUP of its sample, at (-100, 265.33), went to (-90, 270.33) with the INSERT moved
         /// by (10, 5) (check D35).
         /// </summary>
         /// <param name="transform">The transformation.</param>
@@ -1960,16 +1962,24 @@ namespace GeometryHelper.Dxf
                 : new KeyValuePair<int, string>[0];
 
         /// <summary>
-        /// The groups that set the normal of the text's part: none where it is the normal read, to the bit; else each group that
-        /// differs from the number the record holds, as one not of unit length, (1, 2, 3), is read made so.
+        /// The groups that set the normal of the text's part: none where it is the normal read, to the bit, a nought below
+        /// nought taken as nought; the groups taken out where it is the drawing's own, (0, 0, 1), as AutoCAD 2021 leaves them
+        /// out; else each group that differs from the number the record holds, as one not of unit length, (1, 2, 3), is read
+        /// made so.
         /// </summary>
         private protected KeyValuePair<int, string>[] TextNormalGroups(GeoVector3 unit)
         {
+            unit = new GeoVector3(unit.X + 0.0, unit.Y + 0.0, unit.Z + 0.0);
             GeoVector3 now = TextNormal();
 
             if (Same(unit.X, now.X) && Same(unit.Y, now.Y) && Same(unit.Z, now.Z))
             {
                 return new KeyValuePair<int, string>[0];
+            }
+
+            if (unit.X == 0.0 && unit.Y == 0.0 && unit.Z == 1.0)
+            {
+                return Join(Pair(210, null), Pair(220, null), Pair(230, null));
             }
 
             TryNumber(210, out double x);
@@ -2015,6 +2025,13 @@ namespace GeometryHelper.Dxf
             GeoPoint3? aligned = TextPoint(11) ?? (OwnDefaultAlignment ? (GeoPoint3?)null : Origin);
             double oldRotation = TextDouble(50, 0.0);
             double newRotation = ocs.TransformDegrees(oldRotation);
+
+            // Turned in its own plane, its angle is written from nought to a whole turn, as AutoCAD 2021's ROTATE writes it; one
+            // turned out of its plane keeps the angle ezdxf gives it.
+            if (DxfOcsTransform.Cross(normal, ocs.NewExtrusion).Length <= 1E-12)
+            {
+                newRotation = DxfOcsTransform.WholeTurn(newRotation);
+            }
             double xScale = ocs.TransformLength(FromDegrees(oldRotation));
             double yScale = ocs.TransformLength(FromDegrees(oldRotation + 90.0));
             double oblique = TextDouble(51, 0.0);
@@ -2026,7 +2043,14 @@ namespace GeometryHelper.Dxf
                 yScale *= Math.Cos(oblique * (Math.PI / 180.0));
             }
 
-            double width = TextDouble(41, 1.0) * (xScale / yScale);
+            // Scaled alike along its two axes, as by a turn or a mirror, its width is left as it is, as AutoCAD 2021 leaves it,
+            // rather than written 0.9999999999999999 of it, and its height too where it is not scaled.
+            if (ocs.ScaleUniform && Math.Abs(yScale - 1.0) <= 1E-12)
+            {
+                yScale = 1.0;
+            }
+
+            double width = ocs.ScaleUniform ? TextDouble(41, 1.0) : TextDouble(41, 1.0) * (xScale / yScale);
             double height = TextDouble(40, 2.5) * yScale;
             double thickness = Thickness;
 
@@ -2041,7 +2065,9 @@ namespace GeometryHelper.Dxf
                     ? AlignmentGroups(ocs.TransformVertex(aligned.Value))
                     : new KeyValuePair<int, string>[0],
                 NumberGroup(40, height, TextDouble(40, 2.5)),
-                NumberGroup(50, newRotation, oldRotation),
+                newRotation == 0.0 && TextValue(50) != null
+                    ? Pair(50, null)
+                    : NumberGroup(50, newRotation, oldRotation),
                 NumberGroup(41, width, TextDouble(41, 1.0)),
                 NumberGroup(51, oblique, TextDouble(51, 0.0)),
                 thickness != 0.0

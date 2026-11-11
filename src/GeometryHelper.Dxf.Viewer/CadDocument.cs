@@ -189,6 +189,10 @@ namespace GeometryHelper.Dxf.Viewer
         internal bool TextInk(DxfDBText text, out double start, out double left, out double right) =>
             _builder.InkOf(text, out start, out left, out right);
 
+        /// <summary>How far below and above its baseline the ink of a text runs, as MIRROR measures it; false where the font's letters are not read.</summary>
+        internal bool TextInkHeight(DxfDBText text, out double bottom, out double top) =>
+            _builder.InkHeightOf(text, out bottom, out top);
+
         // The document that shows each drawing, which the grips and the pieces of an MTEXT ask its layout of: looked up only,
         // and weak, so that a drawing let go lets its document go.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy =

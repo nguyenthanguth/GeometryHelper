@@ -105,6 +105,22 @@ namespace GeometryHelper.Dxf
             return Math.Atan2(turned.Y, turned.X) * (180.0 / Math.PI);
         }
 
+        /// <summary>
+        /// An angle in degrees from nought to a whole turn, as AutoCAD 2021 writes that of a text or INSERT turned in its plane:
+        /// -30 as 330, and one a hair below nought, which a whole turn added makes 360, as nought.
+        /// </summary>
+        internal static double WholeTurn(double degrees)
+        {
+            double turned = degrees % 360.0;
+
+            if (turned < 0.0)
+            {
+                turned += 360.0;
+            }
+
+            return turned >= 360.0 ? 0.0 : turned + 0.0;
+        }
+
         /// <summary>A thickness along the old extrusion, as one along the new.</summary>
         internal double TransformThickness(double thickness) =>
             TransformDirection(new GeoVector3(0.0, 0.0, thickness)).Z;

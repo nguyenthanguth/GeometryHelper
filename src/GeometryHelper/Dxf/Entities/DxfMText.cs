@@ -1795,7 +1795,9 @@ namespace GeometryHelper.Dxf
         /// Moves, turns, scales or mirrors the MTEXT, as AutoCAD's <c>TransformBy</c> does, and as ezdxf's <c>transform()</c>
         /// carries one: its location and direction carried, its angle (50) given up for its direction, its height the stretch of
         /// its upright square to its direction, its width the stretch of its direction, the heights <c>\H</c> of its words scaled
-        /// with it, its normal carried. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
+        /// with it, its normal carried. Turned or mirrored, not scaled, its height and width are left as they were, a direction
+        /// along x is not written where the record gave none, and its normal is left out where it is the drawing's own, as
+        /// AutoCAD 2021 writes them. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
         /// it; one that leans them is refused, an MTEXT having no lean. The height of its box (46) is stretched as its upright
         /// is, in columns or not: scaled by 2 about the origin, the MTEXT in a box 20 high is in one 40 high, as AutoCAD 2021
         /// scales it (check D35c). An annotative one's contexts are carried with it, each
@@ -1861,6 +1863,17 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("The transformation flattens the MTEXT.", nameof(transform));
             }
 
+            // Turned or mirrored, not scaled, its height and width are left as they are, as AutoCAD 2021 leaves them, rather than
+            // written 2.500000000000001 of 2.5.
+            bool unscaled =
+                ocs.ScaleUniform
+                && Math.Abs(transform.Transform(oldDirection.Divide(oldDirection.Length)).Length - 1.0) <= 1E-12;
+
+            if (unscaled)
+            {
+                newHeight = oldHeight;
+            }
+
             var groups = new List<KeyValuePair<int, string>>();
 
             if (!Same(newHeight, oldHeight))
@@ -1870,7 +1883,9 @@ namespace GeometryHelper.Dxf
 
             if (Value(41) != null)
             {
-                double width = transform.Transform(oldDirection.Multiply(WrapWidth / oldDirection.Length)).Length;
+                double width = unscaled
+                    ? WrapWidth
+                    : transform.Transform(oldDirection.Multiply(WrapWidth / oldDirection.Length)).Length;
 
                 if (!Same(width, WrapWidth))
                 {
@@ -1879,7 +1894,23 @@ namespace GeometryHelper.Dxf
             }
 
             groups.AddRange(PointChanges(10, transform.Transform(Point(10, Origin)), Origin));
-            groups.AddRange(PointChanges(11, new GeoPoint3(newDirection.X, newDirection.Y, newDirection.Z), Origin));
+            // A direction along x, where the record gives none and the x axis of its plane is the world's, is left out, as
+            // AutoCAD 2021 leaves it out.
+            GeoVector3 unitDirection = newDirection.Divide(newDirection.Length);
+            GeoVector3 planeX = World(ocs.NewExtrusion, new GeoVector3(1.0, 0.0, 0.0));
+            bool alongX =
+                !HasDirection()
+                && Math.Abs(planeX.X - 1.0) <= 1E-12
+                && Math.Abs(unitDirection.X - planeX.X) <= 1E-12
+                && Math.Abs(unitDirection.Y - planeX.Y) <= 1E-12
+                && Math.Abs(unitDirection.Z - planeX.Z) <= 1E-12;
+
+            if (!alongX)
+            {
+                groups.AddRange(
+                    PointChanges(11, new GeoPoint3(newDirection.X, newDirection.Y, newDirection.Z), Origin)
+                );
+            }
 
             if (Value(50) != null)
             {
@@ -2773,9 +2804,15 @@ namespace GeometryHelper.Dxf
             return Changes(code, new[] { value.X, value.Y, value.Z }, new[] { now.X, now.Y, now.Z });
         }
 
-        /// <summary>The groups that set the normal: none where it is the one read; else each that differs from the number the record holds.</summary>
+        /// <summary>
+        /// The groups that set the normal: none where it is the one read, a nought below nought taken as nought; the groups taken
+        /// out where it is the drawing's own, (0, 0, 1), as AutoCAD 2021 leaves them out; else each that differs from the
+        /// number the record holds.
+        /// </summary>
         private KeyValuePair<int, string>[] NormalChanges(GeoVector3 value)
         {
+            value = new GeoVector3(value.X + 0.0, value.Y + 0.0, value.Z + 0.0);
+
             double length = value.Length;
 
             if (!value.IsValid || !(length > 0.0) || double.IsInfinity(length))
@@ -2792,6 +2829,16 @@ namespace GeometryHelper.Dxf
             if (Same(unit.X, now.X) && Same(unit.Y, now.Y) && Same(unit.Z, now.Z))
             {
                 return new KeyValuePair<int, string>[0];
+            }
+
+            if (unit.X == 0.0 && unit.Y == 0.0 && unit.Z == 1.0)
+            {
+                return new[]
+                {
+                    new KeyValuePair<int, string>(210, null),
+                    new KeyValuePair<int, string>(220, null),
+                    new KeyValuePair<int, string>(230, null),
+                };
             }
 
             TryNumber(210, out double x);

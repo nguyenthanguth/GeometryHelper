@@ -252,6 +252,76 @@ namespace GeometryHelper.UnitTest.Dxf
             Near(1.0, grid.WidthFactor);
         }
 
+        [Fact]
+        public void ATextTurnedInItsPlane_IsWrittenAsAutoCadWritesIt_FromNoughtToAWholeTurn_ItsWidthAndNormalLeftOut()
+        {
+            // AutoCAD 2021's ROTATE about the origin (mirror-insert GHMI1 R1, R4, R6): "ABC" 2.5 high at (10, 5) turned by -30
+            // degrees is written 50 330.0, by 270 50 270.0, with no 41 and no 210; one 0.8 wide turned 30 then 45 keeps 41 0.8.
+            double[][] cases =
+            {
+                new[] { 0.0, 1.0, -30.0, 330.0 },
+                new[] { 0.0, 1.0, 270.0, 270.0 },
+                new[] { 10.0, 1.0, 33.3, 43.3 },
+                new[] { 30.0, 0.8, 45.0, 75.0 },
+                new[] { 350.0, 1.0, 20.0, 10.0 },
+            };
+
+            foreach (double[] c in cases)
+            {
+                var db = new DxfDatabase("AC1027");
+                var text = new DxfDBText();
+                db.ModelSpace.AppendEntity(text);
+                text.TextString = "ABC";
+                text.Height = 2.5;
+                text.Position = new GeoPoint3(10, 5, 0);
+                text.Rotation = c[0] * (Math.PI / 180.0);
+                text.WidthFactor = c[1];
+
+                text.TransformBy(GeoTransform3.RotationZ(c[2] * (Math.PI / 180.0)));
+
+                string record = Records(db.ToText()).Single(r => HandleOf(r) == text.Handle);
+                double written = double.Parse(Group(record, 50), System.Globalization.CultureInfo.InvariantCulture);
+                Assert.InRange(written, 0.0, 360.0 - 1E-9);
+                Assert.Equal(c[3], written, 9);
+                Assert.Equal(c[1] == 1.0 ? null : "0.8", Group(record, 41));
+                Assert.Equal("2.5", Group(record, 40));
+                Assert.Null(Group(record, 210));
+            }
+        }
+
+        [Fact]
+        public void ATextWhoseNormalIsPutBackUp_HasItsNormalLeftOut_AsAutoCadWritesTheDrawingsOwn()
+        {
+            var db = new DxfDatabase("AC1027");
+            var text = new DxfDBText();
+            db.ModelSpace.AppendEntity(text);
+            text.TextString = "ABC";
+            text.Normal = new GeoVector3(0, 0, -1);
+
+            text.Normal = new GeoVector3(0, 0, 1);
+
+            string record = Records(db.ToText()).Single(r => HandleOf(r) == text.Handle);
+            Assert.Null(Group(record, 210));
+            Assert.Null(Group(record, 220));
+            Assert.Null(Group(record, 230));
+        }
+
+        /// <summary>The value of the first group of a code in a record of <see cref="Records"/>, trimmed; null where it has none.</summary>
+        internal static string Group(string record, int code)
+        {
+            string[] lines = record.Split('\n');
+
+            for (int i = 0; i + 1 < lines.Length; i += 2)
+            {
+                if (lines[i].Trim() == code.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    return lines[i + 1].Trim();
+                }
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region Made in code

@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's MIRROR writes an INSERT as AutoCAD 2021's MIRROR writes it: its x factor turned the other way
+rather than its y, turned to its mirrored y axis less a quarter turn (one at (20, 10) mirrored across y = 100 is written
+at (20, 190), x factor -1, turned 180 degrees), its ATTRIBs without a normal of (0, 0, 1) written out. With MIRRTEXT 0 an
+attribute or TEXT turned over across its baseline is turned about the middle of the ink of its words ("Q1" of arial.ttf
+1.5 high about 0.705, not 0.75); with MIRRTEXT 1 the attributes of an INSERT already mirrored keep their normal of
+(0, 0, -1). A multileader mirrored across a line at 45 degrees keeps its words held by the same side, as AutoCAD keeps
+them, where it was taken for one mirrored across an upright.
+
+**FIXED.** `DxfDBText`, `DxfBlockReference` and `DxfMText` turned in their own plane by `TransformBy` (the presenter's
+ROTATE and MIRROR) are written as AutoCAD 2021 writes them: the angle from nought to a whole turn ("ABC" turned by -30
+degrees written 330, not -29.999999999999996), the width factor and height as they were where nothing is scaled (no
+41 0.9999999999999999), no angle of nought, and no normal of (0, 0, 1) written out. A text turned out of its plane keeps
+the angle ezdxf gives it.
+
+**FIXED.** The presenter draws a TEXT with the spaces before and after its words, as AutoCAD justifies it by them: "ABC "
+on the right of its baseline stands a space further left than "ABC".
+
 **NEW.** The presenter's LEADER (LEAD) and QLEADER (LE) on the command line, in AutoCAD 2021's prompts: Format (Spline,
 STraight, Arrow, None), Undo, words typed line by line, and the annotation options Copy, Block, None and Mtext. The
 leader is drawn by the current dimension style and DIMSCALE as AutoCAD 2021 draws it: a hook DIMASZ long where the last
