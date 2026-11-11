@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** -LAYER in the presenter takes TRansparency, Plot and Description, asked as AutoCAD 2021 asks them: "Enter
+transparency value (0-90):" (95 refused with "Requires an integer between 0 and 90." and asked again), then "Enter name
+list of layer(s) for transparency 50% <0>:", Enter taking the current layer; "Enter a plotting preference [Plot/No plot]
+<Plot>:"; "Enter layer description:". On a layer of an external reference each is marked in the 1071 of
+`AcXRefLayerPropertyOverride` as AutoCAD 2021 marked `b|WALL`: 128, 8 and 1024. 50 per cent is the alpha 127. The Layer
+manager has no column for them, and none was added. **NEW.** `CadLayerEditor.SetTransparency`, `SetPlottable` and
+`SetDescription`.
+
 **CHANGED.** The presenter's XATTACH and -XREF Attach and Overlay write into the drawing the records AutoCAD 2021 writes
 for a drawing it attaches, as its -XREF Attach of x.dwg, its layer WALL green on DASHED, wrote them: the linetype
 `x|DASHED` with its dashes and the layer `x|WALL` on it, green, with the file's lineweight, plotting, transparency and

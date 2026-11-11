@@ -117,6 +117,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(0x00FFFF, Line(document).Style.Rgb);
         }
 
+        /// <summary>
+        /// -LAYER TRansparency, Plot and Description, asked as AutoCAD 2021 asks them, each marked on a layer of a reference as
+        /// AutoCAD 2021 marked b|WALL: 128 TRansparency, 8 Plot, 1024 Description; the name list offers the current layer.
+        /// </summary>
+        [Fact]
+        public void TransparencyPlotAndDescription_AreSetByLayer_AndMarkedOnALayerOfAReference()
+        {
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+
+            Run(session, "-LAYER", "TR", "95", "50", "grid|GRID", Enter);
+            Assert.Contains("Enter transparency value (0-90): 95", session.History);
+            Assert.Contains("Requires an integer between 0 and 90.", session.History);
+            Assert.Contains("Enter name list of layer(s) for transparency 50% <0>: grid|GRID", session.History);
+            DxfLayerTableRecord layer = document.Database.LayerTable["grid|GRID"];
+            Assert.Equal(127, layer.Transparency.Alpha);
+            Assert.Equal("128", Bits(document));
+
+            Run(session, "-LAYER", "P", "N", "grid|GRID", Enter);
+            Assert.Contains("Enter a plotting preference [Plot/No plot] <Plot>: N", session.History);
+            Assert.Contains("Enter layer name(s) for this plot preference <0>: grid|GRID", session.History);
+            Assert.False(document.Database.LayerTable["grid|GRID"].IsPlottable);
+            Assert.Equal("136", Bits(document));
+
+            Run(session, "-LAYER", "D", "Grid lines", "grid|GRID", Enter);
+            Assert.Contains("Enter layer description: Grid lines", session.History);
+            Assert.Equal("Grid lines", document.Database.LayerTable["grid|GRID"].Description);
+            Assert.Equal("1160", Bits(document));
+
+            // Enter takes the current layer, 0, which is the drawing's own and marked nothing.
+            Run(session, "-LAYER", "TR", "20", Enter, Enter);
+            Assert.Equal(204, document.Database.LayerTable["0"].Transparency.Alpha);
+            Assert.Null(document.Database.LayerTable["0"].GetXDataForApplication("AcXRefLayerPropertyOverride"));
+        }
+
         [Fact]
         public void TheNameAndTheCurrentLayer_AreRefusedInAutoCadsWords()
         {
