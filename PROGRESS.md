@@ -98,9 +98,12 @@ the ones wanted.
       Extend for arc ends in a fuzz join (S)
 - [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
-- [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
-      SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
-      through the core's API, not only MVIEW (S)
+- [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
+      one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
+      manager; New VP Freeze on viewports made through the core's API (S)
+- [ ] Layouts follow-ups: the SCALELISTEDIT dialog and Rename in the Layer manager (need design); wheel and middle-button
+      views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
+      mode drawing the white paper (S)
 - [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
