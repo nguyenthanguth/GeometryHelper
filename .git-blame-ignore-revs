@@ -1,0 +1,5 @@
+# Commits that only reformat code; git blame skips them:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Format the whole repo with CSharpier and keep every text file UTF-8 without a BOM
+6cda75a46ca3f19682b8490c431258b5e29f5a23
