@@ -140,8 +140,10 @@ the ones wanted.
         R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
   - [x] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L); the ACI palette made AutoCAD 2021's
         (197 of 255 indexes were wrong)
-  - [ ] W4 (running) Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
-        layouts; proxies kept as they are (L)
+  - [x] W4 Every entity and object: VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, IMAGE, WIPEOUT, MLINE, tables to
+        R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
+  - [ ] W4b: tables from R2010 (TABLECONTENT, CELLSTYLEMAP), ACDSDATA, SAB to SAT for R2004-R2010, SHAPE names, MATERIAL,
+        VISUALSTYLE, RASTERVARIABLES/WIPEOUTVARIABLES, OLE2FRAME, proxies, dynamic block data (L)
   - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
   - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
