@@ -317,7 +317,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     true,
                     new[]
                     {
-                        Entry("Drawing", IconOpen, "Open a DXF file (OPEN, Ctrl+O)", () =>
+                        Entry("Drawing", IconOpen, "Open a DWG or DXF file (OPEN, Ctrl+O)", () =>
                             model.OpenCommand.Execute(null)
                         ),
                     }
@@ -342,7 +342,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Entry(
                             "Drawing",
                             IconDxf,
-                            "Save the drawing as a DXF file, choosing its version (R12 to 2018) (SAVEAS)",
+                            "Save the drawing as a DWG of AutoCAD 2018 or as its DXF (SAVEAS)",
                             Start("SAVEAS"),
                             open
                         ),

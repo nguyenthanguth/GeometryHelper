@@ -116,14 +116,64 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// XATTACH (XA) and IMAGEATTACH (IAT): the window's attach dialog; OK attaches the file chosen, asking on the command
-        /// line what is to be specified on screen. With no window, the file's name typed and every placing asked.
+        /// line what is to be specified on screen. With no window, the file's name typed and every placing asked. With FILEDIA
+        /// 0, the file's name is asked on the command line instead of the window's file dialog, "Enter name of file to
+        /// attach:" or "Enter image file name to attach:", and the dialog shown with it; a file not found is said and no dialog
+        /// shown.
         /// </summary>
         private static IEnumerable<CadPrompt> Attach(CadCommandContext c, CadAttachKind kind)
         {
             var request = new CadAttachRequest(c.Document, kind);
 
+            if (!c.Session.FileDialogs)
+            {
+                bool xref = kind == CadAttachKind.Xref;
+                yield return CadPrompt.ForString(
+                    xref ? "Enter name of file to attach" : "Enter image file name to attach"
+                );
+                string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (typed.Length == 0)
+                {
+                    yield break;
+                }
+
+                string name = NameBefore(ref typed);
+                request.FileName = FileOf(c, typed, xref ? ".dxf" : ".png");
+
+                if (name != null)
+                {
+                    request.Name = name;
+                }
+
+                if (request.Error != null)
+                {
+                    c.Write(request.Error);
+                    yield break;
+                }
+            }
+
             if (!c.Session.Request(kind == CadAttachKind.Xref ? "XATTACH" : "IMAGEATTACH", c.Document, request))
             {
+                // With no window, the file typed already for FILEDIA 0 is placed as the typed commands place it.
+                if (request.FileName != null)
+                {
+                    request.SpecifyScaleOnScreen = true;
+                    request.SpecifyRotationOnScreen = true;
+                    request.UniformScale = kind != CadAttachKind.Xref;
+
+                    foreach (
+                        CadPrompt prompt in kind == CadAttachKind.Xref
+                            ? PlaceXref(c, request)
+                            : PlaceImage(c, request, true)
+                    )
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
                 foreach (CadPrompt prompt in kind == CadAttachKind.Xref ? AttachTyped(c, false) : ImageAttachTyped(c))
                 {
                     yield return prompt;

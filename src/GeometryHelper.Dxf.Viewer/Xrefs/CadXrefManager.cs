@@ -629,12 +629,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private void OnFileChanged(object sender, FileSystemEventArgs e)
         {
-            string extension = Path.GetExtension(e.FullPath);
-
-            if (
-                string.Equals(extension, ".dxf", StringComparison.OrdinalIgnoreCase)
-                || CadImageFile.IsPicture(e.FullPath)
-            )
+            if (CadDrawingFile.IsDrawingName(e.FullPath) || CadImageFile.IsPicture(e.FullPath))
             {
                 FilesChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -667,7 +662,7 @@ namespace GeometryHelper.Dxf.Viewer
                 var info = new FileInfo(fullPath);
                 WriteTime = info.LastWriteTimeUtc;
                 Length = info.Length;
-                Database = DxfDatabase.Open(fullPath);
+                Database = CadDrawingFile.Open(fullPath);
                 GeometryHelperLog.Info("CadXrefManager: read the external reference " + fullPath + ".");
             }
             catch (Exception exception)

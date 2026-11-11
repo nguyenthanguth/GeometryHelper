@@ -511,10 +511,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .ToList();
             Tiles = new ObservableCollection<BlockTileViewModel>();
             Refill();
+
+            // A file the request names already, as Browse… asked on the command line with FILEDIA 0 names it, is shown at once.
+            if (request.FileName != null)
+            {
+                OpenOther(request.FileName);
+            }
         }
 
         /// <summary>Gets the request.</summary>
         public CadInsertRequest Request { get; }
+
+        /// <summary>
+        /// Gets whether Browse… closes the palette for the file to be asked on the command line, as with FILEDIA 0, rather than
+        /// showing the file dialog: the window then sets <see cref="CadInsertRequest.Action"/> to
+        /// <see cref="CadDialogAction.Browse"/>.
+        /// </summary>
+        public bool BrowsesOnCommandLine => !Request.FileDialogs;
 
         /// <summary>Gets the tabs: Current drawing, Recent and Other drawing.</summary>
         public IReadOnlyList<string> Tabs { get; } = new[] { "Current drawing", "Recent", "Other drawing" };
@@ -571,11 +584,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets the DXF file of the Other drawing tab; null before one is chosen.</summary>
+        /// <summary>Gets the DWG or DXF file of the Other drawing tab; null before one is chosen.</summary>
         public string OtherFile => _otherFile;
 
         /// <summary>Lists the blocks of another drawing's file on the Other drawing tab, the whole file first as a block of its name.</summary>
-        /// <param name="path">The path of the DXF file.</param>
+        /// <param name="path">The path of the DWG or DXF file.</param>
         /// <returns>False, nothing changed, where the file cannot be read.</returns>
         public bool OpenOther(string path)
         {
@@ -583,7 +596,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                other = DxfDatabase.Open(path);
+                other = CadDrawingFile.Open(path);
             }
             catch (Exception exception)
                 when (exception is IOException
@@ -792,6 +805,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the request.</summary>
         public CadWriteBlockRequest Request { get; }
+
+        /// <summary>
+        /// Gets whether the file box's Browse… closes the dialog for the file to be asked on the command line, as with FILEDIA 0,
+        /// rather than showing the file dialog: the window then closes it with <see cref="CadDialogAction.Browse"/>.
+        /// </summary>
+        public bool BrowsesOnCommandLine => !Request.FileDialogs;
 
         /// <summary>Gets the blocks of the drawing the Block box offers.</summary>
         public IReadOnlyList<string> Blocks { get; }

@@ -15,13 +15,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Opens what can be recovered of a file that could not be read as it is, as a document "plan.dxf (recovered)" of no file
         /// of its own, so that saving it asks where and never writes over the damaged file; the command line says why the file
         /// could not be read, how many repairs were made, and the report. A file that cannot be read at all, locked or gone, is
-        /// only said.
+        /// only said, and so is a DWG, which is no DXF to repair: "Cannot open plan.dwg:" and the DWG reader's words, as that
+        /// a DWG of AC1014 (R14) is not read.
         /// </summary>
         private bool OpenRecovered(string full, Exception why)
         {
             string name = Path.GetFileName(full);
 
-            if (why is IOException || why is UnauthorizedAccessException)
+            if (why is IOException || why is UnauthorizedAccessException || IsDwgFile(full))
             {
                 Say("Cannot open " + name + ": " + why.Message);
                 return false;
@@ -68,6 +69,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return true;
+        }
+
+        /// <summary>Whether a file is a DWG by its first bytes; false where it cannot be read.</summary>
+        private static bool IsDwgFile(string full)
+        {
+            try
+            {
+                return CadDrawingFile.IsDwg(full);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return false;
+            }
         }
 
         /// <summary>Shows the drawing RECOVER opened, as a document of its own in the list.</summary>

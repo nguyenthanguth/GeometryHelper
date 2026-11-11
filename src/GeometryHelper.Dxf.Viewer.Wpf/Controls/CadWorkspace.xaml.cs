@@ -163,7 +163,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the canvas, so that a host can draw it at once (<see cref="CadCanvas.RenderNow"/>) before a screenshot.</summary>
         public CadCanvas DrawingCanvas => CanvasView;
 
-        /// <summary>Shows the Open dialog for DXF files and opens the one chosen.</summary>
+        /// <summary>Shows the Select File dialog for drawings, DWG first as AutoCAD's, and opens the one chosen.</summary>
         public void ShowOpenDialog()
         {
             if (_model == null)
@@ -171,11 +171,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var dialog = new OpenFileDialog
-            {
-                Filter = "DXF drawings (*.dxf)|*.dxf|All files (*.*)|*.*",
-                Title = "Open a DXF",
-            };
+            var dialog = new OpenFileDialog { Filter = CadDrawingFile.OpenFilter, Title = "Select File" };
 
             if (_model.Document?.FileName != null && Path.IsPathRooted(_model.Document.FileName))
             {
@@ -188,31 +184,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Shows the Save As dialog and saves the drawing to the file chosen.</summary>
+        /// <summary>
+        /// Shows the Save Drawing As dialog of <see cref="MainViewModel.CreateSaveAsJob"/>, AutoCAD 2018 Drawing (*.dwg) and the
+        /// drawing's DXF, and saves the drawing to the file chosen.
+        /// </summary>
         public void ShowSaveAsDialog()
         {
-            if (_model?.Document == null)
+            CadExportJob job = _model?.Document == null ? null : _model.CreateSaveAsJob();
+
+            if (job == null)
             {
                 return;
             }
 
-            var dialog = new SaveFileDialog
-            {
-                Filter = "DXF drawings (*.dxf)|*.dxf",
-                Title = "Save the drawing as",
-                FileName = _model.Document.Title.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase)
-                    ? _model.Document.Title
-                    : _model.Document.Title + ".dxf",
-            };
+            AskExportFile(job);
 
-            if (_model.Document.FileName != null && Path.IsPathRooted(_model.Document.FileName))
+            if (job.FileName != null)
             {
-                dialog.InitialDirectory = Path.GetDirectoryName(_model.Document.FileName);
-            }
-
-            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
-            {
-                _model.SaveAs(dialog.FileName);
+                _model.SaveAs(job.FileName);
             }
         }
 
@@ -515,7 +504,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (_model != null && e.Data.GetData(DataFormats.FileDrop) is string[] files)
             {
-                foreach (string file in files.Where(f => f.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase)))
+                foreach (string file in files.Where(CadDrawingFile.IsDrawingName))
                 {
                     _model.Open(file);
                 }

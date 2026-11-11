@@ -143,11 +143,18 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>.</summary>
-        internal static byte[] ToDwg(string text, string version)
+        internal static byte[] ToDwg(string text, string version) => ToDwg(text, version, out _);
+
+        /// <summary>
+        /// The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>, with the types of record
+        /// left out, each with how many, in ordinal order of the type.
+        /// </summary>
+        internal static byte[] ToDwg(string text, string version, out IDictionary<string, int> leftOut)
         {
             string named = Check(version);
             DwgDrawing drawing = DwgDrawing.Parse(text);
             byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer);
+            leftOut = writer.LeftOut;
             int left = 0;
 
             if (writer.LeftOut.Count > 0)

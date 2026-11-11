@@ -145,7 +145,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Title = "Select New Path",
                 Filter = row.IsImage
                     ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
-                    : "Drawing Exchange Format (*.dxf)|*.dxf",
+                    : CadDrawingFile.OpenFilter,
                 FileName = row.Reference.FoundAt ?? string.Empty,
             };
 

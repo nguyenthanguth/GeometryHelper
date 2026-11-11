@@ -62,9 +62,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
+            // FILEDIA 0: the palette closes for INSERT to ask the drawing on the command line, and opens again with it.
+            if (Model.BrowsesOnCommandLine)
+            {
+                Model.Request.Action = CadDialogAction.Browse;
+                DialogResult = false;
+                return;
+            }
+
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Filter = "Drawing files (*.dxf)|*.dxf|All files (*.*)|*.*",
+                Filter = CadDrawingFile.OpenFilter,
                 Title = "Select Drawing File",
             };
 

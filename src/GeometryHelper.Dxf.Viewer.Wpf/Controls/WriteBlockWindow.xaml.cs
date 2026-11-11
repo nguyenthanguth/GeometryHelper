@@ -48,9 +48,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnBrowse(object sender, RoutedEventArgs e)
         {
+            // FILEDIA 0: the dialog closes for WBLOCK to ask the file on the command line, and opens again with it.
+            if (Model.BrowsesOnCommandLine)
+            {
+                CloseWith(CadDialogAction.Browse);
+                return;
+            }
+
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Filter = "Drawing files (*.dxf)|*.dxf",
+                Filter = CadExportJob.Dwg + "|*.dwg|DXF (*.dxf)|*.dxf",
+                FilterIndex = (Model.FileName ?? string.Empty).EndsWith(".dwg", StringComparison.OrdinalIgnoreCase)
+                    ? 1
+                    : 2,
                 Title = "Browse for Drawing File",
                 FileName = Path.GetFileName(Model.FileName ?? string.Empty),
                 InitialDirectory = Path.GetDirectoryName(Model.FileName ?? string.Empty),

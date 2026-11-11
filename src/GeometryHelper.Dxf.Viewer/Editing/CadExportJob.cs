@@ -5,10 +5,10 @@ using System.Linq;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// The file EXPORT or -EXPORT asks the window for (<see cref="CadUiRequestEventArgs.Export"/>): the title of the file
-    /// dialog, the types it lists, the type and the file offered. The window shows a standard Save dialog of those types and
-    /// sets <see cref="FileName"/> and <see cref="FileType"/> to what was chosen, or <see cref="FileName"/> to null where it
-    /// was cancelled.
+    /// The file EXPORT or -EXPORT asks the window for (<see cref="CadUiRequestEventArgs.Export"/>), or SAVEAS shows its Save
+    /// Drawing As dialog for: the title of the file dialog, the types it lists, the type and the file offered. The window
+    /// shows a standard Save dialog of those types and sets <see cref="FileName"/> and <see cref="FileType"/> to what was
+    /// chosen, or <see cref="FileName"/> to null where it was cancelled.
     /// </summary>
     public sealed class CadExportJob
     {
@@ -17,6 +17,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The one type of -EXPORT's file of format Pdf.</summary>
         public const string Pdf = "PDF (*.pdf)";
+
+        /// <summary>The DWG type of Save As, the one the DWG writer writes, listed first as AutoCAD 2021 lists it.</summary>
+        public const string Dwg = "AutoCAD 2018 Drawing (*.dwg)";
 
         /// <summary>
         /// Gets the types of AutoCAD 2021's Export Data dialog, as its help lists them for EXPORT: 3D DWF, 3D DWFx, ACIS,

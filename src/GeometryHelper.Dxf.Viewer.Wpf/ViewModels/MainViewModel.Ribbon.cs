@@ -443,7 +443,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Array.Empty<CadPrompt>();
         }
 
-        /// <summary>SAVEAS: the window's Save As dialog; with no window, or FILEDIA 0, "Save drawing as &lt;file&gt;:" asked on the command line, as AutoCAD asks it with FILEDIA 0.</summary>
+        /// <summary>
+        /// SAVEAS: the window's Save As dialog; with no window, or FILEDIA 0, "Save drawing as &lt;file&gt;:" asked on the command
+        /// line, as AutoCAD asks it with FILEDIA 0, a name typed with no extension given the offered one's: .dwg for a drawing
+        /// opened from a DWG, which is saved as a DWG.
+        /// </summary>
         private IEnumerable<CadPrompt> SaveAsBody(CadCommandContext c)
         {
             if (SaveAsRequested != null && c.Session.FileDialogs)
@@ -454,8 +458,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             string offered = c.Document.FileName ?? c.Document.Title;
             yield return CadPrompt.ForString("Save drawing as", offered);
+            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
             string path =
-                c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim() : offered;
+                typed.Length == 0 ? offered
+                : System.IO.Path.HasExtension(typed) ? typed
+                : typed + System.IO.Path.GetExtension(offered);
             _afterCommand = () => SaveAs(path);
         }
 
