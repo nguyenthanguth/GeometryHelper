@@ -242,9 +242,54 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var builder = new DisplayBuilder(from, c.Document);
             var entities = new List<DxfEntity>(from.ModelSpace);
+
+            // Each object is drawn once where it is, and its items moved to the cursor after: a Clipboard of 24 000 items
+            // took 34 ms a move drawn anew. An object with an item that cannot be moved so, as a text, is drawn anew each time.
+            IReadOnlyList<DisplayItem2>[] drawn = null;
             return new CadPreview(c.Session, null, null, null, false)
             {
-                _drawn = input => builder.BuildLoose(entities, move(input)),
+                _drawn = input =>
+                {
+                    Affine2 m = move(input);
+
+                    if (m.A != 1.0 || m.B != 0.0 || m.C != 0.0 || m.D != 1.0)
+                    {
+                        return builder.BuildLoose(entities, m);
+                    }
+
+                    if (drawn == null)
+                    {
+                        drawn = new IReadOnlyList<DisplayItem2>[entities.Count];
+
+                        for (int i = 0; i < entities.Count; i++)
+                        {
+                            drawn[i] = builder.BuildLoose(new[] { entities[i] });
+                        }
+                    }
+
+                    var items = new List<DisplayItem2>();
+
+                    for (int i = 0; i < entities.Count; i++)
+                    {
+                        int start = items.Count;
+
+                        foreach (DisplayItem2 item in drawn[i])
+                        {
+                            DisplayItem2 moved = item.Moved(m.E, m.F);
+
+                            if (moved == null)
+                            {
+                                items.RemoveRange(start, items.Count - start);
+                                items.AddRange(builder.BuildLoose(new[] { entities[i] }, m));
+                                break;
+                            }
+
+                            items.Add(moved);
+                        }
+                    }
+
+                    return items;
+                },
             };
         }
 

@@ -21,6 +21,31 @@ presenter drew at 1 and wrote DIMSCALE 0. In model space DIMSCALE 0 draws at 1.
 Multileader Style dialog show each arrowhead with its picture, as AutoCAD 2021's lists and Leader Settings show them, a
 user arrow drawn from its block.
 
+**FIXED.** More of the presenter's angles follow ANGBASE and ANGDIR as AutoCAD 2021's do, each checked in accoreconsole
+with ANGBASE 90 and ANGDIR 1. DIMEDIT's obliquing angle is a direction: 30 slants the extension lines of a level
+dimension 60 degrees from the X axis, where it slanted them 30. The Properties palette writes and takes the text rotation
+of a dimension and the start and end angles of an ellipse counted so: an elliptical arc from 30 to 120 degrees reads 60
+and 330, as AutoCAD's LIST writes it. MEASUREGEOM's Angle writes 30 degrees between two lines as 60, as AutoCAD writes it.
+The obliquing angle of -STYLE stays as typed, as AutoCAD keeps it.
+
+**NEW.** The angle override of AutoCAD 2021: `<30` typed at a prompt for a point that has a base point writes "Angle
+Override: 30", asks the point again and holds it on the line at 30 degrees from the base point, counted as the angle of
+`@100<30` is, `<<30` from east counter-clockwise. A distance typed then runs along it, and the window holds the cursor on
+it over the grid, ortho and polar; a point typed and an object snap still win, as AutoCAD's help has it. From (0, 200),
+`<30` and 100 end the line at (86.6, 250). New: `CadCommandSession.AngleOverride` and `ObjectSnap.AngleOverride`.
+
+**FIXED.** ATTSYNC by Select refuses a block with no attribute definitions before asking whether to sync it, saying "This
+block has no attribute definitions." and asking for another block, as Autodesk's help describes; it asked "ATTSYNC block
+PLAIN? [Yes/No]" first and then ended. -ARRAY reads a distance between rows typed in the drawing's units, so `2'` in an
+architectural drawing puts the rows 24 apart; it took plain numbers only, as the distance between columns did not.
+
+**FIXED.** A disabled button of a presenter dialog is dimmed once: its words were muted and then drawn at 45 per cent as
+well, about a quarter of their strength. They are now drawn at 45 per cent, as every flat button of the theme.
+
+**CHANGED.** The paste preview draws the Clipboard's objects once and moves them with the cursor, a text drawn anew: a
+Clipboard of 24 000 items, a tenth of them texts, previews in 16 to 22 ms a move where it took 34, and one of 2 400 in
+under 1 ms where it took 2.7. What is drawn is the same.
+
 **NEW.** A distance or an angle the presenter asks with no base point takes two points, as AutoCAD 2021's command line
 does: a point typed or picked at "Enter new value for POLARDIST <0.0000>:" asks "Specify second point:", its rubber band
 from the first, and 0,0 then 3,4 sets POLARDIST to 5; SNAPANG 0,0 then 1,1 sets 45. Every such prompt takes them, SETVAR

@@ -2668,7 +2668,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// &lt;Yes&gt;:", then every INSERT of it brought in line with its attribute definitions, as AutoCAD's: one attribute for
         /// each definition not constant, in the block's order, its value kept where the INSERT had the tag; those of tags the
         /// block no longer defines removed; each placed and styled from its definition as the INSERT places it. "?" lists the
-        /// blocks with attributes. One undo step.
+        /// blocks with attributes. A block picked that has no attribute definitions is refused, "This block has no attribute
+        /// definitions.", and another asked for. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeSync(CadCommandContext c)
         {
@@ -2731,6 +2732,14 @@ namespace GeometryHelper.Dxf.Viewer
                             && picked.BlockTableRecord != null
                         )
                         {
+                            // A block with no attribute definitions is refused and another asked for, as Autodesk's help
+                            // for Select has it, before the question of syncing.
+                            if (!picked.BlockTableRecord.OfType<DxfAttributeDefinition>().Any())
+                            {
+                                c.Write("This block has no attribute definitions.");
+                                continue;
+                            }
+
                             name = picked.BlockTableRecord.Name;
                             break;
                         }

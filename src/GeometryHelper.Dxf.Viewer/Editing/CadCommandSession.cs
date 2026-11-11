@@ -201,6 +201,16 @@ namespace GeometryHelper.Dxf.Viewer
         public GeoPoint2 LastPoint { get; internal set; } = GeoPoint2.Origin;
 
         /// <summary>
+        /// Gets the direction an angle override typed at the prompt holds the next point to, in radians counter-clockwise from
+        /// the world's X axis; null where none was typed. &lt;30 typed at a prompt for a point that has a base point, as LINE's
+        /// next point, is AutoCAD's angle override: "Angle Override: 30" is written, the prompt is asked again, and a distance
+        /// typed then runs along the line at 30 degrees, counted as the angle of @100&lt;30 is, from ANGBASE and clockwise with
+        /// ANGDIR 1; &lt;&lt;30 counts it from east, counter-clockwise. A point typed is taken as typed. The window holds the
+        /// cursor on it through <see cref="ObjectSnap.AngleOverride"/>. It ends with the prompt's answer.
+        /// </summary>
+        public double? AngleOverride { get; private set; }
+
+        /// <summary>
         /// Gets the user coordinate system the prompts work in, the document's <see cref="CadUcsManager.Working"/>: a point typed
         /// as <c>x,y</c>, <c>@dx,dy</c> or <c>@distance&lt;angle</c> is in it, one typed after a <c>*</c> in the world's, and an
         /// angle given is measured from its X axis. Points given to the commands are world points all the same: in a system
@@ -543,6 +553,11 @@ namespace GeometryHelper.Dxf.Viewer
                         ? InvalidSelection(echo)
                         : Invalid("*Invalid selection*", echo);
                 case CadPromptKind.Point:
+                    if (TryAngleOverride(typed, echo))
+                    {
+                        return true;
+                    }
+
                     if (TryNeeded(typed, out GeoPoint2 needed))
                     {
                         return Answer(new CadInput(CadInputKind.Point, needed, 0.0, typed, null), echo, needed);
@@ -558,10 +573,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (measured != null && TryLength(typed, out double along))
                     {
-                        // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
+                        // Direct distance entry: the distance along the rubber band, from the base point towards the cursor;
+                        // with an angle override along it, on the side of the base point the cursor is.
                         GeoPoint2 from = measured.Value;
-                        GeoVector2 toward = Cursor.HasValue
-                            ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
+                        GeoVector2 toward =
+                            AngleOverride.HasValue ? Overridden(from)
+                            : Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
                             : new GeoVector2(1.0, 0.0);
                         double length = toward.Length;
                         GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
@@ -1112,6 +1129,8 @@ namespace GeometryHelper.Dxf.Viewer
                 LastPoint = point.Value;
             }
 
+            AngleOverride = null;
+
             // The prompt of a point modifier (Base point:, First point of mid:) takes the answer in place of the command.
             if (_modifiers.Count > 0)
             {
@@ -1206,6 +1225,7 @@ namespace GeometryHelper.Dxf.Viewer
             _context = null;
             Current = null;
             Prompt = null;
+            AngleOverride = null;
             _modifiers.Clear();
             _trackPoints.Clear();
             DropSecondPoint();
@@ -1370,6 +1390,45 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// &lt;30 typed at a prompt for a point with a base point: AutoCAD's angle override (<see cref="AngleOverride"/>), the
+        /// angle read as that of a polar point, written back as the drawing counts it, "Specify next point or [Undo]: &lt;30
+        /// Angle Override: 30", and the prompt asked again. False for any other text, and at a prompt with no base point.
+        /// </summary>
+        private bool TryAngleOverride(string typed, string echo)
+        {
+            if (
+                Prompt.BasePoint == null
+                || _modifiers.Count > 0
+                || !typed.StartsWith("<", StringComparison.Ordinal)
+                || !TryAngle(typed.Substring(1), null, out double angle)
+            )
+            {
+                return false;
+            }
+
+            AngleOverride = Ucs.AngleToWorld(angle);
+
+            if (echo != null)
+            {
+                DxfDatabase database = Document.Database;
+                Write(echo + " Angle Override: " + CadUnits.Angle(CountAngle(angle), database.Aunits, database.Auprec));
+            }
+
+            Changed();
+            return true;
+        }
+
+        /// <summary>
+        /// The way a distance typed runs from a base point under the angle override: along it, or back along it where the
+        /// cursor is behind the base point, as the cursor is held on the whole line.
+        /// </summary>
+        private GeoVector2 Overridden(GeoPoint2 from)
+        {
+            var along = new GeoVector2(Math.Cos(AngleOverride.Value), Math.Sin(AngleOverride.Value));
+            return Cursor.HasValue && (Cursor.Value - from).DotProduct(along) < 0.0 ? -along : along;
         }
 
         /// <summary>

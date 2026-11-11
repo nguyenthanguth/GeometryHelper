@@ -185,15 +185,11 @@ the ones wanted.
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
-- [ ] Previews follow-ups 2: a look by eye in the running app (rounds 2 and 3); -ARRAY row distance by two points; TEXT
-      Align box; -ARRAY unit cell as a rectangle only, if AutoCAD shows only that (check); paste preview speed on a large
-      clipboard; `ALL` selecting nothing on a minimal hand-written DXF (cause unknown) (S)
+- [ ] Previews follow-ups 2: a look by eye in the running app; -ARRAY unit cell previewed as a rectangle only as AutoCAD's corner prompt (an existing preview test shows the copies: decide); text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
-- [ ] Managers follow-ups 3: ANGBASE/ANGDIR still raw
-      in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
-      ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
-      accoreconsole); GhDialogButton dimmed twice when disabled (S)
+- [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
+- [ ] Angle follow-ups: ATTSYNC "extended data" (unclear: XData kept on re-made attributes, or Select on a dynamic block naming its *U block); the angle override in the DYN angle field; LIST for dimensions and ellipses with counted angles (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual

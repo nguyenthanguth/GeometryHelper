@@ -321,6 +321,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether the cursor is held on a polar angle from the base point when it comes near one (POLAR, F10).</summary>
         public bool Polar { get; set; }
 
+        /// <summary>
+        /// Gets or sets the direction an angle override typed at the prompt holds the cursor to, in radians counter-clockwise
+        /// from the world's X axis, as <see cref="CadCommandSession.AngleOverride"/> gives it; null, as until set, for none.
+        /// The cursor is held on the line through the base point at that angle, either side of it, over the grid, ortho and
+        /// polar, and an object snap still wins, as AutoCAD 2021's help has it. With 30 degrees from the origin, the cursor at
+        /// (100, 0) is held at (75, 43.3).
+        /// </summary>
+        public double? AngleOverride { get; set; }
+
         /// <summary>Gets or sets the polar increment in radians; a quarter turn until set.</summary>
         public double PolarAngle { get; set; }
 
@@ -475,6 +484,17 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     return found;
                 }
+            }
+
+            // An angle override holds the cursor on its line through the base point, over the grid, ortho and polar.
+            if (AngleOverride.HasValue && basePoint.HasValue)
+            {
+                var along = new GeoVector2(Math.Cos(AngleOverride.Value), Math.Sin(AngleOverride.Value));
+                return new CadSnapResult(
+                    CadSnapKind.None,
+                    basePoint.Value + along * (cursor - basePoint.Value).DotProduct(along),
+                    null
+                );
             }
 
             // The grid, ortho and polar work in the user coordinate system, the point taken back to the world's at the end.

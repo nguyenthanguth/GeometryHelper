@@ -205,7 +205,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Write("Angle = " + Degrees(c, angle) + "°");
+            // Written as a direction of that many degrees is, counted by ANGBASE and ANGDIR, as AutoCAD 2021 writes it: 30
+            // degrees as 60 where angles are counted from north, clockwise.
+            c.Write("Angle = " + Degrees(c, c.Session.CountAngle(angle)) + "°");
         }
 
         private static GeoPoint2 FarEnd(DxfLine line, GeoPoint2 from)

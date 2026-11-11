@@ -459,8 +459,10 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Major radius", () => Length(ellipse.MajorRadius)),
                         Row("Minor radius", () => Length(ellipse.MinorRadius)),
                         Row("Radius ratio", () => Length(ellipse.RadiusRatio)),
-                        Row("Start angle", () => f.Plain(ellipse.StartAngle)),
-                        Row("End angle", () => f.Plain(ellipse.EndAngle)),
+                        // From the major axis, written as AutoCAD 2021's LIST writes them: as directions counted by
+                        // ANGBASE and ANGDIR, 30 and 120 as 60 and 330 with angles counted from north, clockwise.
+                        Row("Start angle", () => f.Angle(ellipse.StartAngle)),
+                        Row("End angle", () => f.Angle(ellipse.EndAngle)),
                         Row("Area", () => Length(ellipse.Area), true)
                     );
                     break;
