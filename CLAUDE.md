@@ -93,6 +93,10 @@ done
   benchmarks/GeometryHelper.Benchmarks -- --profile full`. It exits 1 when a result differs by a bit from the signature
   approved for it in `benchmarks/baselines/`, and writes its timings to `artifacts/benchmarks/`.
 - Report what happened. A suite skipped or a test failing is said plainly, with the output.
+- Before a commit, check the formatting of the changed files: `sh tools/csharpier/check-changed.sh` (against `main`;
+  pass another base as its argument). It checks only the `.cs`, `.csproj` and `.xml` files in `git diff` and new
+  untracked ones, with the repo's CSharpier (`dotnet-tools.json`, `.csharpierrc.json`); run `dotnet tool restore` once
+  on a new machine.
 
 ### Tests
 
@@ -123,6 +127,10 @@ done
 ### Code and docs
 
 - LF line endings everywhere (`.gitattributes`). Write new files with LF.
+- C# is formatted by CSharpier, width 120 (`.csharpierrc.json`). The repo is not formatted all at once: a file is
+  formatted when someone edits it. A hook in `.claude/settings.json` formats each `.cs`, `.csproj` or `.xml` file Claude
+  writes, and VS Code's CSharpier extension formats on save. "Match the style around you" means CSharpier's style in a
+  touched file.
 - Every public member carries XML documentation. The API reference is generated from it, and the `-warnaserror` build
   fails without it (CS1591).
 - Prose in XML docs, guides and the changelog is plain English with measured examples: "a box 100 by 200 by 300 with
