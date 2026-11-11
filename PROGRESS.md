@@ -247,9 +247,10 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
       palette (list and tree); a changed referenced file said on the command line
-- [ ] Xrefs follow-ups (running, non-UI): XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
-      core flags setter); the change balloon in the status bar (needs design); Transparency, Plot and Description editors
-      for xref layers; VISRETAIN 0; check the palette's "Nested"/"Orphaned" words against Autodesk's help (S)
+- [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,
+      Plot and Description; VISRETAIN 1 and 0 as AutoCAD; "Needs Reloading" as the 2021 help (S)
+- [ ] Xrefs follow-ups: Bind (AutoCAD renames to `x$0$NAME`; ours refuses); the change balloon in the status bar (needs
+      design) (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
