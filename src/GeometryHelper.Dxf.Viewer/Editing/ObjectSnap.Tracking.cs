@@ -408,6 +408,10 @@ namespace GeometryHelper.Dxf.Viewer
             double trackIncrement = polar && TracksPolarAngles ? increment : Math.PI / 2.0;
             int trackLines = Math.Min(MostTrackingLines, (int)Math.Floor((2.0 * Math.PI - 1E-9) / trackIncrement) + 1);
 
+            // The additional angles (POLARMODE 4) run with the polar ones; the polar lines from the base point are counted from
+            // the last segment (POLARMODE 1), those from the points acquired from the X axis.
+            List<double> trackRays = Rays(trackLines, trackIncrement, 0.0, polar && TracksPolarAngles);
+
             foreach (CadAcquiredPoint acquired in _acquired)
             {
                 if (acquired.Direction.HasValue)
@@ -458,9 +462,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Tracking)
                 {
-                    for (int k = 0; k < trackLines; k++)
+                    foreach (double angle in trackRays)
                     {
-                        double angle = k * trackIncrement;
                         GeoVector2 direction = _ucs.ToWorld(new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
                         paths.Add(
                             new TrackPath(acquired.Point, direction, CadSnapKind.Tracking, acquired.Handle, acquired)
@@ -472,9 +475,8 @@ namespace GeometryHelper.Dxf.Viewer
             // The polar lines from the base point cross the others, as AutoCAD's polar and tracking lines do.
             if (polar && basePoint.HasValue && Tracking)
             {
-                for (int k = 0; k < lines; k++)
+                foreach (double angle in Rays(lines, increment, RelativeTurn() ?? 0.0, true))
                 {
-                    double angle = k * increment;
                     GeoVector2 direction = _ucs.ToWorld(new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
                     paths.Add(new TrackPath(basePoint.Value, direction, CadSnapKind.Polar, null, null));
                 }

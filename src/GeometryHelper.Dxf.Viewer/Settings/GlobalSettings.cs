@@ -109,6 +109,7 @@ namespace GeometryHelper.Dxf.Viewer
         private int _aperturePixels = 10;
         private double _polarAngle = 90.0;
         private int _polarMode;
+        private string _polarAddedAngles = string.Empty;
         private double _wheelZoomFactor = 1.2;
         private string _preset = "Assembly";
         private string _sheetSize = "A2";
@@ -276,13 +277,31 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets or sets the bits of AutoCAD's POLARMODE, 0 to 15: 1 polar angles measured from the last segment, 2 object snap
         /// tracking on every polar angle (else level and upright alone), 4 additional polar angles, 8 points acquired only with
-        /// Shift held; 0 by default, as AutoCAD's. The presenter follows 2 and 8 and keeps 1 and 4.
+        /// Shift held; 0 by default, as AutoCAD's.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public int PolarMode
         {
             get => _polarMode;
             set => _polarMode = (int)Range(value, 0, 15, nameof(PolarMode));
+        }
+
+        /// <summary>
+        /// Gets or sets the additional polar angles, as AutoCAD's POLARADDANG: up to ten angles parted by semicolons, a number
+        /// in degrees or an angle with its own mark, "10;33.5;50g", as <see cref="CadUnits.TryAngles"/> reads them; empty, as by
+        /// default, for none. They are held while POLARMODE has its bit 4.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the value is not such a list.</exception>
+        public string PolarAddedAngles
+        {
+            get => _polarAddedAngles;
+            set =>
+                _polarAddedAngles = CadUnits.TryAngles(value, 0, out _)
+                    ? value
+                    : throw new ArgumentException(
+                        "The additional polar angles are up to ten angles parted by semicolons: " + value + ".",
+                        nameof(value)
+                    );
         }
 
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
@@ -819,6 +838,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("aperturePixels", _aperturePixels);
             w.Value("polarAngle", _polarAngle);
             w.Value("polarMode", _polarMode);
+            w.Value("polarAddedAngles", _polarAddedAngles);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
             w.Value("selectByDragging", SelectByDragging);
             w.Value("dynamicInput", DynamicInput);
@@ -1049,6 +1069,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
                 Number("canvas", "polarAngle", v => _s.PolarAngle = v);
                 Number("canvas", "polarMode", v => _s.PolarMode = Whole(v));
+                Text("canvas", "polarAddedAngles", v => _s.PolarAddedAngles = v);
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
                 Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
                 Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);

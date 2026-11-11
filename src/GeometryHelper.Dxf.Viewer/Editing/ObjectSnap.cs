@@ -250,6 +250,8 @@ namespace GeometryHelper.Dxf.Viewer
         // The snaps of the point being worked out: the override, else the modes while snaps are on.
         private CadSnapModes _active;
 
+        private IReadOnlyList<double> _additionalPolarAngles = Array.Empty<double>();
+
         /// <summary>Makes the snaps of AutoCAD's default: endpoint, midpoint, centre, quadrant and intersection, on.</summary>
         /// <param name="tolerance">The tolerance of the comparisons: whether lines are parallel, whether a point lies on an arc's sweep.</param>
         public ObjectSnap(Tolerance tolerance)
@@ -309,6 +311,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// at (100, 0), the cursor at (130, 30.4) is held on the line at 45 degrees only while it is on.
         /// </summary>
         public bool TracksPolarAngles { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the polar angles are counted from the last segment drawn (<see cref="LastSegment"/>), as
+        /// AutoCAD's POLARMODE 1 (Relative to last segment): off until set, when they are counted from the X axis of the UCS,
+        /// as they are where no segment has been drawn. With a polar angle of 90 and the last line drawn at 30 degrees, the
+        /// cursor is held at 30, 120, 210 and 300 degrees from the base point.
+        /// </summary>
+        public bool PolarFromLastSegment { get; set; }
+
+        /// <summary>
+        /// Gets or sets the direction of the last segment drawn, the way a line or the end of an arc ran, which the polar angles
+        /// are counted from while <see cref="PolarFromLastSegment"/> is on; null, as until set, for none.
+        /// </summary>
+        public GeoVector2? LastSegment { get; set; }
+
+        /// <summary>
+        /// Gets or sets the additional polar angles, in radians from the X axis of the UCS, as AutoCAD's POLARADDANG while
+        /// POLARMODE 4 is set: each held as it is beside the multiples of <see cref="PolarAngle"/>, but not its own multiples,
+        /// and counted from the last segment too while <see cref="PolarFromLastSegment"/> is on; none until set. With a polar
+        /// angle of 90 and 33 added, the cursor is held at 33 degrees from the base point, but not at 66.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
+        public IReadOnlyList<double> AdditionalPolarAngles
+        {
+            get => _additionalPolarAngles;
+            set => _additionalPolarAngles = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         /// <summary>
         /// Gets or sets whether a point is acquired for tracking only while Shift is held as the cursor rests on it, as AutoCAD's
@@ -428,6 +457,12 @@ namespace GeometryHelper.Dxf.Viewer
                     double along = length * Math.Cos(angle - held);
                     double off = Math.Abs(length * Math.Sin(angle - held));
 
+                    // POLARMODE 1 and 4: the angles counted from the last segment, and the additional angles, the nearest kept.
+                    if (RelativeTurn().HasValue || AdditionalPolarAngles.Count > 0)
+                    {
+                        NearestPolar(angle, length, ref held, ref along, ref off);
+                    }
+
                     // The cursor is held on the polar ray only when it comes within the aperture of it, as AutoCAD tracks it.
                     if (length > 0.0 && off <= aperture)
                     {
@@ -438,6 +473,73 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return new CadSnapResult(kind, ucs.ToWorld(point), null);
+        }
+
+        /// <summary>
+        /// The angle, in the UCS, the polar angles are counted from while <see cref="PolarFromLastSegment"/> is on: that of the
+        /// last segment drawn; null where it is off or no segment has been drawn, when they are counted from the X axis.
+        /// </summary>
+        private double? RelativeTurn()
+        {
+            if (!PolarFromLastSegment || !LastSegment.HasValue)
+            {
+                return null;
+            }
+
+            GeoVector2 way = _ucs.ToUcs(LastSegment.Value);
+            return way.Length > Tolerance.EqualVector ? Math.Atan2(way.Y, way.X) : (double?)null;
+        }
+
+        /// <summary>
+        /// The polar ray nearest the cursor's angle from the base point, among the multiples of the increment counted from the
+        /// last segment (<see cref="RelativeTurn"/>) and the additional angles (<see cref="AdditionalPolarAngles"/>): the angle
+        /// held, how far along it the cursor lies and how far off it. An additional angle is taken only where the cursor lies
+        /// ahead along it and nearer it than to any multiple; the first in the list where two lie as near.
+        /// </summary>
+        private void NearestPolar(double angle, double length, ref double held, ref double along, ref double off)
+        {
+            double turn = RelativeTurn() ?? 0.0;
+            held = turn + Math.Round((angle - turn) / PolarAngle, MidpointRounding.AwayFromZero) * PolarAngle;
+            along = length * Math.Cos(angle - held);
+            off = Math.Abs(length * Math.Sin(angle - held));
+
+            foreach (double added in _additionalPolarAngles)
+            {
+                double ray = turn + added;
+                double ahead = length * Math.Cos(angle - ray);
+                double aside = Math.Abs(length * Math.Sin(angle - ray));
+
+                if (ahead > 0.0 && aside < off)
+                {
+                    held = ray;
+                    along = ahead;
+                    off = aside;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The directions, in the UCS, of tracking or polar rays: the multiples of the increment counted from a turn, then each
+        /// additional angle (<see cref="AdditionalPolarAngles"/>) where they are asked for.
+        /// </summary>
+        private List<double> Rays(int lines, double increment, double turn, bool added)
+        {
+            var rays = new List<double>(lines + (added ? _additionalPolarAngles.Count : 0));
+
+            for (int k = 0; k < lines; k++)
+            {
+                rays.Add(turn + k * increment);
+            }
+
+            if (added)
+            {
+                foreach (double angle in _additionalPolarAngles)
+                {
+                    rays.Add(turn + angle);
+                }
+            }
+
+            return rays;
         }
 
         private CadSnapResult ObjectSnapAt(

@@ -106,7 +106,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.Execute("MID");
             model.ClickAt(new GeoPoint2(2001, 3000.5), 2.0);
             Assert.Equal("(need YZ):", model.Prompt);
-            model.Execute("750,0");
+            // A point, whose Y is taken, as AutoCAD 2021 takes it at "(need YZ):".
+            model.Execute("0,750");
 
             DxfDBPoint point = model.Document.ModelSpace.Block.OfType<DxfDBPoint>().Single();
             Assert.Equal(2000.0, point.Position.X, 12);

@@ -1560,6 +1560,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Snap.Override = null;
             Snap.ClearAcquired();
 
+            // POLARMODE 1 counts the polar angles from the last segment drawn, a line of the LINE running among them.
+            Snap.LastSegment = _current.Session.LastSegment;
+
             foreach (GeoPoint2 tracked in _current.Session.TemporaryTrackPoints)
             {
                 Snap.AcquireTrackPoint(tracked);
