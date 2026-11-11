@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** ZOOM Previous in the presenter goes back through a list of its own for each viewport of a layout, for the
+paper of each layout and for model space, 20 views each, as AutoCAD 2021 keeps them. It went back through one list of
+every view the drawing's ZOOM and PAN had left, whichever viewport or space they changed, and a viewport's views were kept
+as boxes. AutoCAD's console, after 12 zooms in one viewport, answers "No previous view saved." in another, and after a
+zoom there gives the first its 12 back in order; zoomed 30 times, a viewport gives 20 back, then "No previous view
+saved."; the paper's list is apart.
+
 **CHANGED.** The wheel's rolls and the middle button's drags in a viewport worked through are one undo step together in
 the presenter, as AutoCAD 2021 combines consecutive real-time zooms and pans by default (UNDO Control Combine: UNDOCTL is
 61 in its console, its 16 set). A roll or a drag held still long enough for the view to be drawn again made a step of

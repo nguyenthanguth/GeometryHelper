@@ -405,7 +405,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (view != null)
             {
-                c.Session.Views.Add(view.VisibleBox);
+                c.Session.Views.Add(c.Document.CurrentSpace, view.VisibleBox);
                 view.ZoomTo(c.Document.GetDisplay(c.Space).Bounds.Union(c.Space.PaperBounds));
             }
         }

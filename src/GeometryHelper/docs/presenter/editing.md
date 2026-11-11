@@ -661,8 +661,12 @@ The wheel, the middle button and ZOOM and PAN change the viewport's view, not th
 step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
 button's drags made one after another are one step together, however often the view is drawn again between them, as
 AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control Combine, UNDOCTL 61 holding its 16);
-`SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
-viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
+`SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM Previous goes
+back through views of the viewport worked through alone, as AutoCAD keeps a list for each viewport, for the paper of each
+layout and for model space: a viewport never zoomed answers "No previous view saved." while another has views to go back
+to. Each list keeps the last 20 views typed ZOOM and PAN left, as AutoCAD 2021's console, zoomed 30 times, gives 20 back.
+ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewport 100 high shows 5 000 of model space,
+1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
 view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list
 opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the standard
