@@ -202,6 +202,10 @@ namespace GeometryHelper.Core
         /// touches the arc at that end of the segment; and the arc of radius 50 about (0, 50.0002) starting 0.0045
         /// radians past its bottom, at (0.2249992, 0.0007062), touches the segment along the x axis below that start,
         /// though its circle passes the segment where the arc does not reach.
+        /// <para>
+        /// A segment or an arc with a coordinate or an angle that is not a finite number meets nothing, and the answer is
+        /// false: the arc from (200, 0) to (NaN, 0) threw "A radius has to be a number".
+        /// </para>
         /// </remarks>
         public static bool TryIntersectWith(
             GeoArc2 arc,
@@ -210,6 +214,18 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (
+                !line.IsValid
+                || !arc.Center.IsValid
+                || !Guard.IsFinite(arc.Radius)
+                || !Guard.IsFinite(arc.StartAngle)
+                || !Guard.IsFinite(arc.SweptAngle)
+            )
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
+
             return TryIntersectWith(arc, line, out intersections, tolerance, true);
         }
 

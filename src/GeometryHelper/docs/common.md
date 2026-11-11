@@ -130,6 +130,13 @@ new GeoPoint3(double.NaN, 0, 0).IsValid; // false
 default(GeoPoint3).IsValid;            // true: the origin is a point like any other
 ```
 
+A point with a coordinate of NaN or infinity is not refused by its constructor, and nor is a segment between two of them.
+The `Try` methods of a segment answer false for one, and for a shape given with it that holds one, rather than true with
+points of NaN: the segment from (NaN, 0) to (0, 100) meets the one from the origin to (0, 100) nowhere, where it was given
+a point of NaN, and so for its crossings with a ray, a line, a circle, an arc, a chain, a loop, a face, a rectangle and a
+triangle, for `TrySplitAtDistance`, `TryExtendTo` a point and `TryTrimExtendToCorner`. A loop with a vertex or a bulge of
+NaN no longer throws from `TryIntersectWith` of a segment.
+
 ## Angle
 
 An angle stored in radians and readable as either unit. There is deliberately no public constructor

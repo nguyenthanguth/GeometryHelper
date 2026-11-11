@@ -552,7 +552,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box) => Intersection3.GetIntersections(this, box);
 
         /// <summary>
@@ -566,7 +565,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box, Tolerance tolerance) =>
             Intersection3.GetIntersections(this, box, tolerance);
 
@@ -582,7 +580,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(this, box, out intersections);
 
@@ -599,7 +596,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(this, box, out intersections, tolerance);
     }

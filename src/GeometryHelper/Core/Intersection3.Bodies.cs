@@ -390,6 +390,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// triangle with corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoObb3 box) =>
@@ -401,10 +402,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// triangle with corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance) =>
-            GetIntersections(triangle, BodyOf(box), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(triangle, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a triangle and the surface of an oriented box cross, using the default tolerance.
@@ -443,8 +445,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the triangle with
         /// corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoAabb3 box) =>
             GetIntersections(triangle, box, Tolerance.Global);
 
@@ -454,10 +456,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the triangle with
         /// corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance) =>
-            GetIntersections(triangle, box.ToObb().ToSolid(), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(triangle, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a triangle and the surface of an axis-aligned box cross, using the default tolerance.
@@ -494,6 +496,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// square 200 by 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoObb3 box) =>
@@ -505,10 +508,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// square 200 by 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance) =>
-            GetIntersections(polygon, BodyOf(box), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(polygon, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a polygon and the surface of an oriented box cross, using the default tolerance.
@@ -547,9 +551,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the square 200 by
         /// 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoAabb3 box) =>
             GetIntersections(polygon, box, Tolerance.Global);
 
@@ -559,11 +563,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the square 200 by
         /// 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance) =>
-            GetIntersections(polygon, box.ToObb().ToSolid(), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(polygon, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a polygon and the surface of an axis-aligned box cross, using the default tolerance.
@@ -604,6 +608,7 @@ namespace GeometryHelper.Core
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50)
         /// with a hole 150 by 150 in its middle, around a box 100 by 100 by 100 with a corner at the origin, crosses
         /// nothing.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoObb3 box) =>
@@ -616,10 +621,11 @@ namespace GeometryHelper.Core
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50)
         /// with a hole 150 by 150 in its middle, around a box 100 by 100 by 100 with a corner at the origin, crosses
         /// nothing.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoObb3 box, Tolerance tolerance) =>
-            GetIntersections(face, BodyOf(box), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(face, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where the material of a face and the surface of an oriented box cross, using the default
@@ -662,9 +668,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with
         /// a hole 150 by 150 in its middle, around the box from the origin to (100, 100, 100), crosses nothing.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoAabb3 box) =>
             GetIntersections(face, box, Tolerance.Global);
 
@@ -675,11 +681,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with
         /// a hole 150 by 150 in its middle, around the box from the origin to (100, 100, 100), crosses nothing.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoAabb3 box, Tolerance tolerance) =>
-            GetIntersections(face, box.ToObb().ToSolid(), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(face, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where the material of a face and the surface of an axis-aligned box cross, using the default
@@ -721,6 +727,7 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <see cref="GeoObb3.ToSolid"/>:
         /// the plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoObb3 box) =>
@@ -732,10 +739,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <see cref="GeoObb3.ToSolid"/>:
         /// the plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance) =>
-            GetIntersections(plane, BodyOf(box), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(plane, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a plane cuts the edges of an oriented box, using the default tolerance.
@@ -786,8 +794,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <c>ToObb().ToSolid()</c>: the
         /// plane z = 50 cuts the four upright edges of the box from the origin to (100, 100, 100), at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoAabb3 box) =>
             GetIntersections(plane, box, Tolerance.Global);
 
@@ -797,10 +805,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <c>ToObb().ToSolid()</c>: the
         /// plane z = 50 cuts the four upright edges of the box from the origin to (100, 100, 100), at height 50.
+        /// A box empty or flat on some axis has no body: it is crossed nowhere, and the answer is empty.
         /// </remarks>
-        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance) =>
-            GetIntersections(plane, box.ToObb().ToSolid(), tolerance);
+            Faced(box, out GeoSolid3 body) ? GetIntersections(plane, body, tolerance) : new GeoPoint3[0];
 
         /// <summary>
         /// Tries to find where a plane cuts the edges of an axis-aligned box, using the default tolerance.

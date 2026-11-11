@@ -226,8 +226,17 @@ namespace GeometryHelper.Geometry
         /// <param name="intersections">The places they meet when the method returns true; empty otherwise.</param>
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        /// <remarks>
+        /// A segment or a rectangle with a number that is not finite meets nothing, and the answer is false.
+        /// </remarks>
         public bool TryIntersectWith(GeoLine2 line, out GeoPoint2[] intersections, Tolerance tolerance)
         {
+            if (!line.IsValid || !IsValid)
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
+
             intersections = GetIntersections(line, tolerance);
 
             return intersections.Length > 0;

@@ -800,7 +800,7 @@ namespace GeometryHelper.Core
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
 
-            RequirePositive(radius, nameof(radius));
+            Guard.Positive(radius, nameof(radius), "A radius has to be a positive number.");
 
             return Reshape(polyline, Everywhere(radius, polyline.EdgeCount), 0.0, 0.0, tolerance);
         }
@@ -833,7 +833,7 @@ namespace GeometryHelper.Core
             if (polygon == null)
                 throw new ArgumentNullException(nameof(polygon));
 
-            RequirePositive(radius, nameof(radius));
+            Guard.Positive(radius, nameof(radius), "A radius has to be a positive number.");
 
             return Reshape(polygon, Everywhere(radius, polygon.EdgeCount), 0.0, 0.0, tolerance);
         }
@@ -1399,7 +1399,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            RequirePositive(radius, nameof(radius));
+            Guard.Positive(radius, nameof(radius), "A radius has to be a positive number.");
 
             result = polyline;
 
@@ -1480,7 +1480,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            RequirePositive(radius, nameof(radius));
+            Guard.Positive(radius, nameof(radius), "A radius has to be a positive number.");
 
             result = polygon;
 

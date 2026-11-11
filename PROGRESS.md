@@ -246,9 +246,8 @@ the ones wanted.
       24 angle cases; angles whose arc runs through their points (float side choice) (M)
 - [x] Spline intersections against tiny or huge circles, arcs, ellipses no longer hang (21 cases, now 0.04-4.5 ms;
       ordinary spline intersections 1.89 -> 1.51 s, bit-identical)
-- [ ] Try audit follow-ups: GetIntersections and GeoObb3.GetFaces/ToSolid still throw on
-      flat boxes; Corner2/3.TryFilletAt say "chamfer distance" for a bad radius; NaN input passes through as NaN
-      points on true (S-M)
+- [x] Try audit follow-ups: GetIntersections on flat/empty boxes, NaN/infinite input false in the segment Try members, fillet radius message
+- [ ] Try audit follow-ups 2: CollidesWith (22) and DistanceTo (30) against a flat GeoObb3/GeoAabb3 still throw (DECIDED by the maintainer 2026-11-11: read the flat box as its rectangle and answer as usual); GetFaces/ToSolid of a flat box throw as documented (a TryGetFaces would need the maintainer); non-Try GetIntersections with NaN shapes; Corner3.RequirePositive lets +infinity through; the NaN fuzz over other types' Try members; 1E300 overflow in TryExtendTo/TryTrimTo(GeoCircle2) parked (metre-irrelevant) (S-M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and
