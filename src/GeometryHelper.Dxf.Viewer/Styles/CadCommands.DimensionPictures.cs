@@ -17,8 +17,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
         /// linear, aligned, ordinate, radius, jogged radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
         /// jog of DIMJOGLINE with it. The entities of the block
-        /// are erased and the new picture appended, broken again where the dimension keeps DIMBREAK's breaks (BREAKDATA). False,
-        /// and nothing changed, for another kind or a block not its own.
+        /// are erased and the new picture appended, broken again where the dimension keeps DIMBREAK's breaks (BREAKDATA), and the
+        /// middle of the words at their default place and the measurement written into the dimension (groups 11 and 42), as
+        /// AutoCAD writes them with the block it draws. False, and nothing changed, for another kind or a block not its own.
         /// </summary>
         internal static bool Redraw(DxfDimension dimension)
         {
@@ -53,12 +54,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             BreakAgain(dimension);
+            Recorded(dimension, picture);
             return true;
         }
 
         /// <summary>
         /// The picture of a dimension of the drawing from its points, as its command made it; null for a kind the commands do
-        /// not make. The words are the measurement as the dimension writes it, put in place of the &lt;&gt; of its own text.
+        /// not make. The words are the measurement as the dimension writes it, put in place of the &lt;&gt; of its own text,
+        /// dressed as its variables say (DIMTFILL's mask, DIMTXTDIRECTION; see <see cref="Dressed"/>).
         /// </summary>
         private static List<DxfEntity> Picture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight)
         {
@@ -111,6 +114,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            Dressed(style, picture);
             return picture;
         }
 
@@ -229,7 +233,8 @@ namespace GeometryHelper.Dxf.Viewer
                 words,
                 placed,
                 jog,
-                jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0
+                jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0,
+                dimension.TextRotation != 0.0 ? Turned(dimension.TextRotation) : (double?)null
             );
         }
 

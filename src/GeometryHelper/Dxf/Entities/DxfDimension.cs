@@ -152,6 +152,16 @@ namespace GeometryHelper.Dxf
         public abstract double Measurement { get; }
 
         /// <summary>
+        /// Writes the measurement the block was drawn for (group 42), as AutoCAD writes it with the block it draws: 100 for a
+        /// rotated dimension of 100 along x.
+        /// </summary>
+        internal void WriteMeasurement(double value)
+        {
+            Guard.Finite(value, nameof(value), "A measurement has to be a finite number.");
+            Write(g => g.Set(42, Numbers.Exact(value + 0.0), g.Base, BaseOrder));
+        }
+
+        /// <summary>
         /// Gets or sets the text the dimension writes (group 1), as AutoCAD's <c>DimensionText</c>: empty or <c>&lt;&gt;</c> for the
         /// measurement, <c>&lt;&gt; TYP</c> for the measurement and TYP after it, a single space for none; each escape of four
         /// digits read as the letter it stands for, as AutoCAD 2021 reads it, <c>&lt;&gt; \U+0110</c> giving &lt;&gt; Đ; empty

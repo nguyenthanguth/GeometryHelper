@@ -386,7 +386,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// A coordinate of the middle of the words (group 11): set, the words moved there along one axis and the dimension no
-        /// longer at its default place, as AutoCAD's palette moves them.
+        /// longer at its default place, as AutoCAD's palette moves them, by DIMTMOVE as DIMTEDIT moves them (see
+        /// <see cref="CadCommands.MoveWords"/>): under 0 a linear dimension's line moves to run through the point, as AutoCAD 2021
+        /// moves it, and an angular one's arc. With ISO-25's sizes, words of DIMTAD 1 at 50, 21.875, above a line at 20, set
+        /// to X 30 keep their Y, so the line moves up to 21.875 and the words stand above it again; under 1 and 2 the line
+        /// stays. A radius's or a diameter's words keep the point typed.
         /// </summary>
         private static DimensionRow Position(string label, bool x) =>
             new DimensionRow(
@@ -401,7 +405,16 @@ namespace GeometryHelper.Dxf.Viewer
                         (d, v) =>
                         {
                             GeoPoint3 at = d.TextPosition;
-                            d.TextPosition = x ? new GeoPoint3(v, at.Y, at.Z) : new GeoPoint3(at.X, v, at.Z);
+
+                            // A radius's or a diameter's words keep the point typed, as AutoCAD's palette keeps it.
+                            if (d is DxfRadialDimension || d is DxfDiametricDimension)
+                            {
+                                d.TextPosition = x ? new GeoPoint3(v, at.Y, at.Z) : new GeoPoint3(at.X, v, at.Z);
+                            }
+                            else
+                            {
+                                CadCommands.MoveWords(d, x ? new GeoPoint2(v, at.Y) : new GeoPoint2(at.X, v));
+                            }
                         },
                         out w,
                         label

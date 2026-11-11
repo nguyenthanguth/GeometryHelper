@@ -23,7 +23,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> DimAligned(CadCommandContext c) => DimLine(c, true);
 
         /// <summary>
-        /// DIMLINEAR and DIMALIGNED: two origins (or a line selected), then where the line goes. DIM gives the first origin it
+        /// DIMLINEAR and DIMALIGNED: two origins (or a line selected), then where the line goes, with AutoCAD 2021's options:
+        /// Mtext and Text ask for the words, Angle turns them, and DIMLINEAR's Horizontal, Vertical and Rotated set the angle
+        /// of the line, Rotated 30 measuring 0,0 to 100,0 as 86.6025. DIM gives the first origin it
         /// was answered with as <paramref name="first"/>, and the last point before it as <paramref name="lastBefore"/>, and the
         /// command goes on from there. A perpendicular or a tangent snapped at the first origin is drawn from the last point given
         /// before it, as AutoCAD 2021 draws it, and tied with that point as its last point.
@@ -97,27 +99,44 @@ namespace GeometryHelper.Dxf.Viewer
 
             string text = null;
             double? fixedAngle = null;
+            double? textAngle = null;
 
             while (true)
             {
-                string[] keywords = aligned ? new[] { "Text" } : new[] { "Text", "Horizontal", "Vertical" };
+                // AutoCAD 2021's options: [Mtext/Text/Angle/Horizontal/Vertical/Rotated], DIMALIGNED's [Mtext/Text/Angle].
+                string[] keywords = aligned
+                    ? new[] { "Mtext", "Text", "Angle" }
+                    : new[] { "Mtext", "Text", "Angle", "Horizontal", "Vertical", "Rotated" };
                 string words = text;
                 double? fixedTo = fixedAngle;
+                double? turned = textAngle;
                 yield return CadPrompt
                     .ForPoint("Specify dimension line location", p2, keywords)
                     .Previewing(
                         DimPreview(c, input =>
-                            LinearMade(c, style, aligned, p1, p2, input.Point, words, fixedTo, null, out _, out _)
+                            LinearMade(c, style, aligned, p1, p2, input.Point, words, fixedTo, turned, out _, out _)
                         )
                     );
 
-                if (c.Input.Is("Text"))
+                if (c.Input.Is("Mtext") || c.Input.Is("Text"))
                 {
                     yield return CadPrompt.ForString("Enter dimension text", "<>");
 
                     if (c.Input.Kind == CadInputKind.Text)
                     {
                         text = c.Input.Text;
+                    }
+
+                    continue;
+                }
+
+                if (c.Input.Is("Angle"))
+                {
+                    yield return CadPrompt.ForAngle("Specify angle of dimension text");
+
+                    if (c.Input.Kind == CadInputKind.Number)
+                    {
+                        textAngle = TextAngle(c, c.Input.Number);
                     }
 
                     continue;
@@ -135,6 +154,14 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                if (c.Input.Is("Rotated"))
+                {
+                    // The angle of the line in the UCS, 0 on Enter, as AutoCAD 2021 asks it.
+                    yield return CadPrompt.ForAngle("Specify angle of dimension line", null, null, Number(0.0));
+                    fixedAngle = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 0.0;
+                    continue;
+                }
+
                 break;
             }
 
@@ -145,7 +172,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadDimAssociation.Tie(
                 c,
-                MakeLinear(c, style, aligned, p1, p2, c.Input.Point, text, fixedAngle, null),
+                MakeLinear(c, style, aligned, p1, p2, c.Input.Point, text, fixedAngle, textAngle),
                 tied
             );
         }
@@ -233,7 +260,11 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), text ?? string.Empty, null);
             words = Words(style, made, measured, text, string.Empty);
             double textHeight = TextHeight(c, style);
-            return WithTextAngle(made, Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words), textAngle);
+            return WithTextAngle(
+                made,
+                Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words, turned: textAngle),
+                textAngle
+            );
         }
 
         /// <summary>
@@ -246,6 +277,7 @@ namespace GeometryHelper.Dxf.Viewer
                 !string.IsNullOrEmpty(c.Session.DimLayer) && c.Database.LayerTable.Has(c.Session.DimLayer)
                     ? c.Session.DimLayer
                     : c.Database.Clayer;
+            DxfDimStyleTableRecord style = DimStyle(c);
             return CadPreview.Making(c, input =>
             {
                 List<DxfEntity> parts = picture(input);
@@ -253,6 +285,11 @@ namespace GeometryHelper.Dxf.Viewer
                 if (parts == null)
                 {
                     return null;
+                }
+
+                if (style != null)
+                {
+                    Dressed(style, parts);
                 }
 
                 foreach (DxfEntity part in parts)
@@ -928,7 +965,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <remarks>
         /// <paramref name="placed"/> is the text's point of words put somewhere by hand (DIMTEDIT), which the words stand by as
         /// the style's DIMTMOVE says (see <see cref="PlaceMoved"/>); they are not moved outside. <paramref name="jog"/> is the
-        /// point of a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high.
+        /// point of a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high. <paramref name="turned"/> is the
+        /// angle the words were turned to (DIMLINEAR's Angle, DIMEDIT Rotate), in radians from the x axis; null for none.
         /// </remarks>
         internal static List<DxfEntity> Linear(
             DxfDimStyleTableRecord style,
@@ -941,7 +979,8 @@ namespace GeometryHelper.Dxf.Viewer
             string words,
             GeoPoint2? placed = null,
             GeoPoint2? jog = null,
-            double jogHeight = 0.0
+            double jogHeight = 0.0,
+            double? turned = null
         )
         {
             Sizes(
@@ -981,7 +1020,8 @@ namespace GeometryHelper.Dxf.Viewer
                 gap,
                 arrow,
                 beyond,
-                placed
+                placed,
+                turned
             );
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
@@ -1132,7 +1172,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// the words where the arrowheads fit, else the arrowheads; words outside stand past the second extension line (the
         /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing. DIMTVP with
         /// DIMTAD 0 lifts the words by that many times their height, off the line as DIMTAD 1 puts them from 0.7 up; a DIMGAP
-        /// below nought, the box round the words, keeps words above the line clear of it by the gap again.
+        /// below nought, the box round the words, keeps words above the line clear of it by the gap again. Words turned to an
+        /// angle of their own (<paramref name="wordsAngle"/>, DIMLINEAR's Angle) stand centred on the line whatever DIMTAD says,
+        /// the line broken where their turned box and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65
+        /// each side of its middle.
         /// </summary>
         /// <remarks>
         /// With arrowheads of 2.5 and DIMGAP 0.625, a dimension of 100 has its words "100", 5.3 wide, in the middle; of 5, its
@@ -1154,7 +1197,8 @@ namespace GeometryHelper.Dxf.Viewer
             double gap,
             double arrow,
             double beyond,
-            GeoPoint2? placed
+            GeoPoint2? placed,
+            double? wordsAngle
         )
         {
             var layout = new LinearLayout { Angle = angle };
@@ -1176,9 +1220,12 @@ namespace GeometryHelper.Dxf.Viewer
             bool ticks =
                 CadArrowheads.TakesNoRoom(ArrowOf(style, DxfDimArrowFlag.FirstArrow))
                 && CadArrowheads.TakesNoRoom(ArrowOf(style, DxfDimArrowFlag.SecondArrow));
-            double inside = style.Dimtih ? 0.0 : angle;
+            double inside = wordsAngle ?? (style.Dimtih ? 0.0 : angle);
             bool level = Parallel(inside, angle);
-            bool centred = tad == 0 || (!level && (tad == 1 || tad == 4));
+
+            // Words turned to an angle of their own stand centred on the line whatever DIMTAD says, the line broken about their
+            // turned box, as AutoCAD 2021 draws them: turned 45 or 30, along the line or across it alike.
+            bool centred = tad == 0 || wordsAngle.HasValue || (!level && (tad == 1 || tad == 4));
             double half = Chord(width, height, gap, inside - angle);
             double needText = centred ? 2.0 * half : width;
             double needArrows = ticks ? 0.0 : 2.0 * arrow + gap;
@@ -1282,7 +1329,8 @@ namespace GeometryHelper.Dxf.Viewer
                     gap,
                     arrow,
                     tad == 0,
-                    offLine
+                    offLine,
+                    style.Dimtxtdirection
                 );
                 return layout;
             }
@@ -1452,7 +1500,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// the middle of the line to a gap short of the point, three for DIMTAD 0, and a landing on away from the middle, under
         /// words above it (as wide as they are and a gap each side) or two gaps up to words on it, the words starting at the
         /// point. "100" moved 10 above the line 10 left of its middle has a leader to 0.625 short of the point and a landing
-        /// 6.53 long, the words above it.
+        /// 6.53 long, the words above it. Words read from right to left (<paramref name="backward"/>, DIMTXTDIRECTION) stand on
+        /// the other side of the point there, as AutoCAD 2021 puts them.
         /// </summary>
         private static void PlaceMoved(
             LinearLayout layout,
@@ -1469,7 +1518,8 @@ namespace GeometryHelper.Dxf.Viewer
             double gap,
             double arrow,
             bool onLine,
-            double offLine
+            double offLine,
+            bool backward
         )
         {
             double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
@@ -1511,7 +1561,8 @@ namespace GeometryHelper.Dxf.Viewer
                 layout.Outside.Add(
                     new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + away * (onLine ? 2.0 * gap : width + 2.0 * gap))
                 );
-                layout.At = at + away * (width / 2.0) + above * offLine;
+                // Words read from right to left (DIMTXTDIRECTION) stand on the other side of the point, as AutoCAD 2021 puts them.
+                layout.At = at + (backward ? -away : away) * (width / 2.0) + above * offLine;
                 return;
             }
 
@@ -1793,6 +1844,79 @@ namespace GeometryHelper.Dxf.Viewer
             return text;
         }
 
+        /// <summary>
+        /// Dresses the words of a picture as the dimension's variables say, as AutoCAD 2021 writes them into its block: DIMTFILL's
+        /// mask behind them, the MTEXT's background 1.25 times their height, of the drawing's background for 1 (written as the
+        /// index 9 and 200,200,200, as AutoCAD writes it) and of DIMTFILLCLR for 2 (by layer where it is by layer or by block);
+        /// and under DIMTXTDIRECTION the words turned half round, as a dimension reading from right to left has them, a level
+        /// one's at 180 degrees and an upright one's at 270, where they stand unchanged.
+        /// </summary>
+        internal static void Dressed(DxfDimStyleTableRecord style, List<DxfEntity> picture)
+        {
+            int fill = style.Dimtfill;
+            DxfColor colour = fill == 2 ? style.Dimtfillclr : null;
+            bool backward = style.Dimtxtdirection;
+
+            foreach (DxfEntity entity in picture)
+            {
+                if (!(entity is DxfMText words))
+                {
+                    continue;
+                }
+
+                if (backward)
+                {
+                    words.Rotation = Turned(words.Rotation + Math.PI);
+                }
+
+                if (fill != 1 && fill != 2)
+                {
+                    continue;
+                }
+
+                words.BackgroundFill = true;
+                words.BackgroundScaleFactor = 1.25;
+
+                if (fill == 1)
+                {
+                    words.UseBackgroundColor = true;
+                    words.BackgroundFillColor = DxfColor.OfRgb(0xC8C8C8, null, 9);
+                }
+                else if (colour != null && colour.IsByAci)
+                {
+                    words.BackgroundFillColor = colour;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes into a dimension the middle of its words (group 11), where they stand at their default place, and its
+        /// measurement (42), as AutoCAD 2021 writes them with the block it draws: a DIMLINEAR of 0,0 to 100,0 with its line 20
+        /// above and DIMTAD 0 has 50,20 and 100. A dimension whose words were put somewhere keeps their point.
+        /// </summary>
+        private static void Recorded(DxfDimension dimension, List<DxfEntity> picture)
+        {
+            if (dimension.UsingDefaultTextPosition)
+            {
+                foreach (DxfEntity entity in picture)
+                {
+                    if (entity is DxfMText words)
+                    {
+                        dimension.TextPosition = words.Location;
+                        dimension.UsingDefaultTextPosition = true;
+                        break;
+                    }
+                }
+            }
+
+            double measured = dimension.Measurement;
+
+            if (!double.IsNaN(measured) && !double.IsInfinity(measured))
+            {
+                dimension.WriteMeasurement(measured);
+            }
+        }
+
         private static DxfEntity Definition(GeoPoint2 at) => new DxfDBPoint(P3(at)) { Layer = "Defpoints" };
 
         private static T Picture<T>(T entity)
@@ -1832,6 +1956,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadSpace space = c.Space;
             string layer = c.Session.DimLayer;
             double dimscale = Dimscale(c);
+            Dressed(style, picture);
             return c.Apply(null, s =>
             {
                 var block = new DxfBlockTableRecord { Name = "*D" };
@@ -1865,6 +1990,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // The current DIMSCALE other than the style's is an override too, as AutoCAD writes the one typed at the prompt.
                 dimension.Dimscale = dimscale;
+                Recorded(dimension, picture);
                 s.Added(space, dimension);
             });
         }

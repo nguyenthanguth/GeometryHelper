@@ -85,14 +85,15 @@ the ones wanted.
 
 - [x] MIRRTEXT for tables and dimensions (MIRROR keeps a dimension in the plane, as AutoCAD)
 - [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
-- [ ] MIRROR follow-ups: INSERT mirrored as AutoCAD (41 = -1, not 42) and ATTRIBs without explicit 210; DxfDBText.TransformBy writing 41 0.9999999999999999 and negative 50 (ROTATE?); TEXT spaces trimmed by the display; MTEXT under MIRRTEXT 1; 45-degree mirror line for multileaders; multi-line multileader text; DIMLINEAR groups 11/42 and Mtext/Angle/Rotated (task dim-pictures); core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
+- [ ] MIRROR follow-ups: INSERT mirrored as AutoCAD (41 = -1, not 42) and ATTRIBs without explicit 210; DxfDBText.TransformBy writing 41 0.9999999999999999 and negative 50 (ROTATE?); TEXT spaces trimmed by the display; MTEXT under MIRRTEXT 1; 45-degree mirror line for multileaders; multi-line multileader text; core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [x] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Follow-ups of dim-props: DIMTFILL mask and DIMTXTDIRECTION not drawn in the pictures; ordinate with a jog under DIMFXLON; MATCHPROP gradient not confirmed in AutoCAD (MATCHPROP fails in accoreconsole); Plot Style box shows ByLayer/ByColor, not the name; DIMSCALE on the default break size unprobed; Text position X/Y with DIMTMOVE 0; the wording Left-to-Right/Not stacked unconfirmed; flaky PluginManagerTests.TheCommandsGoToEveryRegistryAttachedAndUnloadingTakesThemAway (1 fail in 4 runs under load) (S)
+- [x] Dimension pictures: DIMTFILL mask, DIMTXTDIRECTION, ordinate jog under DIMFXLON, Text position under DIMTMOVE 0, DIMLINEAR Mtext/Angle/Rotated and groups 11/42, flaky Plugins tests (folders deleted by a parallel run)
+- [ ] Dimension follow-ups: DIMSCALE on DIMBREAK's default gap (accoreconsole draws no Auto breaks: needs AutoCAD with graphics); radius words via the palette under DIMTMOVE 0 (AutoCAD: words at the point and a hook); DIMTFILLCLR ByBlock written 256 (core refuses ByBlock); right-to-left words in the DIMTMOVE 1 fit path; DIMLINEAR Text prompt default <100.0000> (ours <<>>); MATCHPROP gradient unconfirmed; Plot Style box name; Left-to-Right/Not stacked wording (S)
 - [x] Variables: POLARMODE, ATTDIA, FILEDIA, CMDDIA, AUTOSNAP's bits; new dimensions follow DIMSCALE; the polar angle in
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
