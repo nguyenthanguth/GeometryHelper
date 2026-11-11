@@ -73,7 +73,7 @@
       href: dxf/rules.md
     - name: Reading and writing shapes
       href: dxf/reader.md
-    - name: Reading DWG files
+    - name: Reading and writing DWG files
       href: dxf/dwg.md
     - name: "Editing a DXF drawing, step by step"
       href: dxf-editing-example.md

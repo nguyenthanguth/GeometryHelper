@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgWriter.Write` writes a DWG file of AutoCAD 2018 (AC1032), the library's own code as the reader is: a
+`DxfDatabase` with every record it holds, or the shapes of a `DxfDocument`, to a path or a stream. The drawing is written
+as its DXF and each record put into the object of the DWG that says the same, with the drawing's handles: the header
+variables, the classes, the tables, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE,
+POLYLINE with its vertices, the meshes, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs of one line, SOLID, TRACE, 3DFACE,
+DIMENSION, VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, and DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE,
+IMAGEDEF, DBCOLOR and the small objects of a new drawing, in the compressed container of pages AutoCAD 2004 and later write, every check sum in
+place, the same bytes for the same drawing. A type not written yet (MATERIAL, VISUALSTYLE, MULTILEADER, ACAD_TABLE, REGION,
+3DSOLID among them) is left out, every handle to it written as 0, and counted in one Warn line. Nineteen test drawings,
+each as AutoCAD 2021 wrote its DXF, written as DWG: AutoCAD 2021 opens each and AUDIT finds 0 errors, its own DXF of
+each is the source but the types left out, and `DwgReader` reads each back to the source records. A drawing of a few
+hundred records takes 0.1 s and some 10 KB, where AutoCAD's own file is 13 to 17 KB, and 100 000 lines 1.1 s. See
+[Reading and writing DWG files](src/GeometryHelper/docs/dxf/dwg.md).
+
 **FIXED.** A [`DxfViewport`](xref:GeometryHelper.Dxf.DxfViewport) made in code and appended to a layout has the layers
 frozen in new viewports (`ViewportVisibilityDefault`, New VP Freeze) frozen in it at once, as AutoCAD 2021's
 `AppendEntity` freezes them: its API, given layer GHB so marked, made a viewport with [GHB] frozen at birth, and left the
