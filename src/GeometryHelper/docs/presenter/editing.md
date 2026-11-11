@@ -568,7 +568,12 @@ prompts; Tolerance shows the Geometric Tolerance dialog after the points and put
 None ends the leader with no annotation, and so do Tolerance's Cancel and an empty dialog; Reuse Next keeps the next
 words or frame, the settings then turned to Reuse Current, which copies them to each later leader with nothing asked,
 and copies an INSERT or a TOLERANCE kept to the leader's end as Copy does. In a turned UCS QLEADER raises its words up
-the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. A leader arrow other
+the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. Its angle
+constraints are held there as AutoCAD 2021 holds them, the way the point was picked read along the UCS's axes but the
+point laid off along the world's: in a UCS turned 30 degrees, the UCS's (310, 503) from its (300, 500) held level is 10
+along the world's X, and its (305, 510) held to 45 degrees is (7.5, 7.5) on in the world. A leader to words, a frame or a
+block made in a UCS other than the world's writes the UCS's X as its horizontal direction (group 211, (0.866, 0.5, 0)
+in a UCS turned 30 degrees), one of no annotation the world's X. A leader arrow other
 than the style's is written as the leader's DIMLDRBLK override, `1070 341, 1005` and the handle of `_Dot`. The
 Arrowhead list of Leader Settings shows each arrowhead with its picture, drawn as a leader draws it, and ends with
 `User Arrow...`, which opens AutoCAD's Select Custom Arrow Block over the dialog, Leader Settings dimmed and blocked
@@ -583,7 +588,9 @@ it was. LEADER and QLEADER are each one undo step.
 
 TOLERANCE (TOL) shows the Geometric Tolerance dialog, every box empty, then asks `Enter tolerance location:`, the frame
 following the cursor by its insertion point until the point is picked; it is put along the X axis of the UCS in the
-current layer and dimension style, one undo step. The dialog has two rows of a symbol (the Sym box opens the Symbol
+current layer and dimension style, each current dimension variable other than the style's written as an override, as
+dimensions and leaders write them (DIMTXT 5 typed over ISO-25 gives `1070 140, 1040 5` and rows 10 high), one undo step.
+The dialog has two rows of a symbol (the Sym box opens the Symbol
 dialog of the fourteen symbols and the blank), two tolerances (the box before a value toggles the diameter sign, the box
 after it opens the Material Condition dialog of M, L, S and the blank) and three datums (a letter and its material
 condition), then the height of a projected zone with its P and the datum identifier; OK writes them as AutoCAD writes a
@@ -593,12 +600,21 @@ empty, makes no frame; with no window the command line says so. A frame is drawn
 in its console): every row twice DIMTXT times DIMSCALE high whatever DIMGAP, the insertion point the middle of the left
 side of the first row, each next row under the one before on that side with its own width, each cell as wide as its
 ink and DIMTXT, a cell of nothing taking no room. The words are measured in the dimension style's text style and the
-gdt symbols take the room AutoCAD's gdt font gives them, drawn with the presenter's own strokes (board GdtGlyphs), so
-that `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296 wide, as in AutoCAD, and a cell mixing a symbol and words,
-as `{\Fgdt;n}0.1{\Fgdt;m}`, comes within 0.005 of it. Lines are in DIMCLRD, words and symbols in DIMCLRT. Selected, a
-frame shows one grip, at its insertion point; MOVE, COPY, ROTATE and SCALE move it as AutoCAD does (SCALE writes DIMTXT
-and DIMGAP scaled as overrides), and MIRROR keeps it readable under MIRRTEXT 0, its normal kept, and turns it over under
-MIRRTEXT 1.
+gdt symbols take the room AutoCAD's gdt font gives them, 2/21 of the height either side of most, 1.5/21 of the diameter
+and 2.25/21 right of the runouts, drawn with the presenter's own strokes (board GdtGlyphs); words inked past their pen,
+as Arial's A and f, set what follows on from their ink. `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296 wide and
+`{\Fgdt;n}0.1{\Fgdt;m}` 1.009563, as in AutoCAD. Lines are in DIMCLRD, words and symbols in DIMCLRT. The snaps End and
+Mid take the corners and the middles of the sides of each row's rectangle alone, none of the walls between cells or of
+the symbols, and Insertion the frame's insertion point, as AutoCAD 2021 gives them. Selected, a frame shows one grip, at
+its insertion point; MOVE, COPY, ROTATE and SCALE move it as AutoCAD does (SCALE writes DIMTXT and DIMGAP scaled as
+overrides), and MIRROR keeps it readable under MIRRTEXT 0, its normal kept, and turns it over under MIRRTEXT 1. EXPLODE
+refuses one with `Cannot explode TOLERANCE`, as AutoCAD 2021 does. TEXTEDIT (DDEDIT) and a double click open the
+Geometric Tolerance dialog filled from the frame's words, its rows, height with its P and datum identifier read back
+from group 1, and OK writes the words it ends with, one undo step. Properties shows a frame's Dim style (Misc), Dim
+line color (Lines & Arrows), Text color and Text height (Text), each variable as the frame reads it, and writes a value
+typed as an override of its style, as a dimension's rows are written. A frame on a leader to the left is set back the
+width of its widest row, and the leader holds that width and the height of all its rows (groups 40 and 41), as AutoCAD
+2021 writes them.
 
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).

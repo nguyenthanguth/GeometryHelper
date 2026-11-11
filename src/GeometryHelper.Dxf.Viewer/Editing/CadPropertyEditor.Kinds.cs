@@ -198,6 +198,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return Hatch(db, label, text, hatch, number, v, out write, out error);
                 case DxfDimension dimension:
                     return Dimension(db, label, text, dimension, out write, out error);
+                case DxfTolerance _:
+                    return FrameRow(db, label, text, number, v, out write, out error);
                 case DxfMText mtext:
                     return MText(db, label, text, mtext, number, v, out write, out error);
                 case DxfMLeader _:
@@ -472,6 +474,59 @@ namespace GeometryHelper.Dxf.Viewer
 
             error = null;
             return false;
+        }
+
+        /// <summary>
+        /// A row of a TOLERANCE: its dimension style, or one of its variables written as an override of it, as AutoCAD's
+        /// palette writes it: Dim line color DIMCLRD, Text color DIMCLRT, Text height DIMTXT.
+        /// </summary>
+        private static bool FrameRow(
+            DxfDatabase db,
+            string label,
+            string text,
+            bool number,
+            double v,
+            out Action<DxfEntity> write,
+            out string error
+        )
+        {
+            write = null;
+            error = null;
+
+            switch (label)
+            {
+                case "Dim style":
+                {
+                    string name = text.Length > 0 && db.DimStyleTable.Has(text) ? db.DimStyleTable[text].Name : null;
+                    write = e => ((DxfTolerance)e).DimensionStyleName = name;
+                    error = name != null ? null : "Dimension style \"" + text + "\" not found.";
+                    return true;
+                }
+
+                case "Dim line color":
+                case "Text color":
+                {
+                    error = ParseColor(text, out DxfColor color);
+                    string variable = label == "Text color" ? "Dimclrt" : "Dimclrd";
+                    write = e => OverrideFrame((DxfTolerance)e, variable, color);
+                    return true;
+                }
+
+                case "Text height":
+                    write = e => OverrideFrame((DxfTolerance)e, "Dimtxt", v);
+                    error = number && v > 0.0 ? null : "Text height is a number above nought.";
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Writes a variable of a frame as an override of its style, where it is not what the frame reads already.</summary>
+        private static void OverrideFrame(DxfTolerance frame, string name, object value)
+        {
+            DxfDimStyleTableRecord data = frame.GetDimstyleData();
+            data.Keep(DxfDimVariable.Named(name), value);
+            frame.SetDimstyleData(data);
         }
 
         private static bool MText(

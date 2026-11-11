@@ -1075,13 +1075,30 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return;
                 case DxfTolerance tolerance:
-                    // A feature control frame is drawn by its lines, symbols and words, laid out in the drawing's fonts.
-                    foreach (DxfEntity part in CadToleranceFrame.Of(tolerance, LayoutOf).Parts)
+                {
+                    // A feature control frame is drawn by its lines, symbols and words, laid out in the drawing's fonts; the snaps
+                    // End and Mid take the rectangles of its rows alone, and Insertion its point, as AutoCAD 2021 gives them.
+                    CadToleranceFrame laid = CadToleranceFrame.Of(tolerance, LayoutOf);
+
+                    for (int i = 0; i < laid.Parts.Count; i++)
                     {
-                        Draw(part, frame, list, handle);
+                        int before = list.Count;
+                        Draw(laid.Parts[i], frame, list, handle);
+
+                        for (int k = before; i >= laid.OutlineCount && k < list.Count; k++)
+                        {
+                            list.Items[k].IsFrameInside = true;
+                        }
+                    }
+
+                    if (frame.RootHandle == null && forcedHandle == null)
+                    {
+                        GeoPoint3 at = tolerance.Location;
+                        list.AddInsertionPoint(handle, frame.Matrix.X(at.X, at.Y), frame.Matrix.Y(at.X, at.Y));
                     }
 
                     return;
+                }
                 case DxfTable table:
                 {
                     // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned

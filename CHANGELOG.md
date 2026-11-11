@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfTolerance.GeometricExtents` is the box of the frame's rows as AutoCAD 2021 gives it, where the drawing's
+`FontSearchPath` measures its words: each row twice the text height high, each cell its ink and the text height wide,
+`{\Fgdt;j}%%v0.1` at (0, 0, 0) in a style of Arial 0.18 high from (0, -0.18, 0) to (0.92296, 0.18, 0), as AutoCAD
+gives it to the millionth; a frame of symbols alone needs no font. It had no extents before.
+
+**FIXED.** A cell of a feature control frame mixing gdt symbols and words was drawn up to 0.0043 too wide at DIMTXT
+0.18: the diameter sign has 1.5/21 of the text height either side, not 2/21, and the circular and total runouts 2.25/21
+on their right, and words inked past their pen (Arial's A and f) set what follows on from their ink, as AutoCAD 2021
+lays them out. `{\Fgdt;j}%%v{\Fgdt;n}0.1{\Fgdt;m}%%vA%%vB%%vC` in Arial is 2.462701 wide, as in AutoCAD.
+
+**NEW.** TOLERANCE, and the frames of LEADER and QLEADER, write each current dimension variable other than the style's
+as an override, as dimensions and leaders write them: DIMTXT 5 typed over ISO-25 gives `1070 140, 1040 5` and rows 10
+high, where the frame was drawn by its style alone. TEXTEDIT (DDEDIT) and a double click on a frame open the Geometric
+Tolerance dialog filled from its words, and OK writes them, one undo step. Properties shows a frame's Dim style, Dim
+line color, Text color and Text height and writes them as overrides. The snaps End and Mid take the rectangles of a
+frame's rows alone, not its walls or symbols, and Insertion its point; EXPLODE says `Cannot explode TOLERANCE`, as
+AutoCAD 2021 does.
+
+**FIXED.** A frame on a leader to the left is set back the width of its widest row, not its first, and the leader writes
+that width and the height of all the rows as groups 40 and 41: a frame of rows 0.553 and 1.271 wide stands 1.271 left of
+the end and the leader holds 0.72 high, as AutoCAD 2021 writes it. QLEADER's angle constraints in a turned UCS read the
+way the point was picked along the UCS and lay it off along the world, as AutoCAD 2021 does, and a leader to words, a
+frame or a block made in a UCS writes the UCS's X as group 211, (0.866, 0.5, 0) in one turned 30 degrees, where it wrote
+the world's.
+
 **FIXED.** A new `DxfDatabase` holds the dimension style its header names: ISO-25, current and equal to the header in
 every variable, beside Standard, as AutoCAD 2021's acadiso.dwt saved as each version from R2000 to R2018 has them, where
 the header named ISO-25 and the drawing held Standard alone, off the header in 20 variables (arrowheads 0.18 long against

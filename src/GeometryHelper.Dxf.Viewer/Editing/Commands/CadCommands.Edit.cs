@@ -506,6 +506,13 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                // A feature control frame is refused by name, as AutoCAD 2021's EXPLODE refuses it (probe GHTQ1).
+                if (entity is DxfTolerance)
+                {
+                    c.Write("Cannot explode TOLERANCE");
+                    continue;
+                }
+
                 try
                 {
                     // An MTEXT breaks into its TEXTs where the picture draws them; one in no drawing as the library breaks it.

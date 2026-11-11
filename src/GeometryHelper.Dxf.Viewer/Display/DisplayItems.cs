@@ -54,6 +54,12 @@ namespace GeometryHelper.Dxf.Viewer
         public abstract DisplayBox Bounds { get; }
 
         /// <summary>
+        /// Gets or sets whether the item is a wall, a symbol or words of a feature control frame, which give the snaps no End,
+        /// Mid, Center or Quadrant: AutoCAD 2021 gives a frame's End and Mid on the rectangles of its rows alone (probe GHTQ2).
+        /// </summary>
+        internal bool IsFrameInside { get; set; }
+
+        /// <summary>
         /// A copy of the item moved along X and Y, as the entity it came from would be drawn moved so; null for an item that
         /// is drawn anew rather than moved, as a text or an image.
         /// </summary>

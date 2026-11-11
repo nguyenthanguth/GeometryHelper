@@ -1094,19 +1094,21 @@ namespace GeometryHelper.Dxf
         /// Writes what AutoCAD 2021's LEADER and QLEADER write of a leader they make that no public member sets: whether a hook
         /// runs on to the words (75), its group 74 (1 where the words stand to the left of the last vertex, and on a leader of no
         /// annotation, as AutoCAD 2021 writes it), the height and width of the words (40 and 41, as their MTEXT measures them;
-        /// nought for none) and the horizontal direction (211), the world's X.
+        /// nought for none) and the horizontal direction (211): the X axis of the UCS for a leader to words, a frame or a block
+        /// made in a UCS other than the world's, else the world's X.
         /// </summary>
         /// <param name="hook">Whether a hook runs on to the words.</param>
         /// <param name="flag74">AutoCAD's group 74.</param>
         /// <param name="height">The height of the words.</param>
         /// <param name="width">The width of the words.</param>
-        internal void SetMade(bool hook, bool flag74, double height, double width)
+        /// <param name="horizontal">The horizontal direction, of unit length.</param>
+        internal void SetMade(bool hook, bool flag74, double height, double width, GeoVector3 horizontal)
         {
             SetInt(74, flag74 ? 1 : 0, -1);
             SetInt(75, hook ? 1 : 0, -1);
             SetDouble(40, height, double.NaN);
             SetDouble(41, width, double.NaN);
-            SetPoint(211, new GeoPoint3(1.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0));
+            SetPoint(211, new GeoPoint3(horizontal.X, horizontal.Y, horizontal.Z), new GeoPoint3(0.0, 0.0, 0.0));
         }
 
         #endregion

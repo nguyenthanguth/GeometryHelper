@@ -288,7 +288,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.IsPoint)
                 {
-                    GeoPoint2 held = HeldToAngle(last, c.Input.Point, angle);
+                    GeoPoint2 held = HeldToAngle(last, c.Input.Point, angle, c.Session.Ucs);
 
                     if ((held - last).Length > c.Session.Tolerance.EqualPoint)
                     {
@@ -435,12 +435,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// A point of a QLEADER segment held to an angle constraint, as AutoCAD 2021 holds it: the point picked brought square
         /// onto the nearest ray from the last point at a multiple of the constraint's angle (level for Horizontal), so that
-        /// (100, 30) from the origin held level is (100, 0), and (50, 100) held to 45 degrees is (75, 75).
+        /// (100, 30) from the origin held level is (100, 0), and (50, 100) held to 45 degrees is (75, 75). In a UCS other than
+        /// the world's AutoCAD 2021 holds the way the point was picked along the UCS's axes but lays the point off along the
+        /// world's (probe GHTQ1): in a UCS turned 30 degrees, the UCS's (310, 503) from its (300, 500) held level is 10 along
+        /// the world's X, and its (305, 510) from (300, 500) held to 45 degrees is (7.5, 7.5) on in the world.
         /// </summary>
-        private static GeoPoint2 HeldToAngle(GeoPoint2 from, GeoPoint2 picked, CadQLeaderAngle angle)
+        private static GeoPoint2 HeldToAngle(GeoPoint2 from, GeoPoint2 picked, CadQLeaderAngle angle, CadUcs ucs)
         {
             double step = CadQLeaderSettings.Increment(angle);
-            GeoVector2 way = picked - from;
+            GeoVector2 way = ucs.ToUcs(picked - from);
 
             if (step <= 0.0 || way.Length <= 0.0)
             {
@@ -471,7 +474,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 last = points[points.Count - 1];
             return CadPreview.Making(c, input =>
             {
-                GeoPoint2 at = HeldToAngle(last, input.Point, angle);
+                GeoPoint2 at = HeldToAngle(last, input.Point, angle, c.Session.Ucs);
 
                 if ((at - last).Length <= c.Session.Tolerance.EqualPoint)
                 {
@@ -790,7 +793,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle. Words typed take
         /// DIMCLRT where it is not BYBLOCK. A copy of an INSERT stands at the end with no hook. A feature control frame, from
         /// the Geometric Tolerance dialog or copied, runs along the UCS's X with its insertion point at the end on the right,
-        /// set back its first row's width on the left, the leader said to have a hook where its last segment is steeper than
+        /// set back its width (its widest row's) on the left, the leader said to have a hook where its last segment is steeper than
         /// 15 degrees but given no vertex of it, as AutoCAD 2021 writes one (probe GHTOL4: <c>{\Fgdt;j}%%v0.1</c> at DIMTXT
         /// 0.18 copied to a leader ending at (90, 105) stands at (89.07704, 105)). In a UCS other than the world's,
         /// as AutoCAD 2021 draws it, the last segment is measured along the UCS's axes, the hook gets no vertex of its own, and
@@ -970,7 +973,8 @@ namespace GeometryHelper.Dxf.Viewer
                         frameText != null
                             ? AddFeatureFrame(c, s, space, frameText, P3(end), new GeoVector3(xAxis.X, xAxis.Y, 0.0))
                             : FrameCopyAtEnd(s, space, (DxfTolerance)s.Document.FindEntity(copied), P3(end), xAxis);
-                    double width = FrameWidth(s.Document, frame);
+                    CadToleranceFrame laid = FrameLaidOut(s.Document, frame);
+                    double width = laid.Width;
 
                     // On the left the frame is set back its width, so that its right side meets the leader's end.
                     if (left)
@@ -979,9 +983,10 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     leader.Annotation = frame;
-                    DxfDimStyleTableRecord data = frame.GetDimstyleData();
+
+                    // Groups 40 and 41: the frame's width and the height of its rows, 0.72 for two rows 0.18 high (GHTQ1).
                     height = width;
-                    across = 2.0 * data.Dimtxt * (data.Dimscale > 0.0 ? data.Dimscale : 1.0);
+                    across = laid.Height;
 
                     // Reuse Next: this frame is the one reused from now on, the settings turned to Reuse Current.
                     if (quick && settings.Reuse == CadQLeaderReuse.ReuseNext)
@@ -993,13 +998,16 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                // AutoCAD 2021 writes 74 of 1 on a leader of no annotation too; to a frame, its width as group 40 and its
-                // row's height as 41.
+                // AutoCAD 2021 writes 74 of 1 on a leader of no annotation too; to a frame, its width as group 40 and the
+                // height of its rows as 41; and to an annotation, the X axis of the UCS as its horizontal direction (211;
+                // probes GHTQ1 and GHTQ2: (0.866, 0.5, 0) in a UCS turned 30 degrees), the world's X to none.
+                bool annotated = text != null || framed || block != null || copied != null;
                 leader.SetMade(
                     hook || (framed && steep),
                     text != null || framed ? left : block == null && copied == null,
                     height,
-                    across
+                    across,
+                    annotated ? new GeoVector3(xAxis.X, xAxis.Y, 0.0) : new GeoVector3(1.0, 0.0, 0.0)
                 );
             });
         }
