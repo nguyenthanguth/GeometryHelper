@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -141,7 +143,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.OpenDocument(document, "plate.dxf");
             int asked = 0;
             bool? answer = null;
-            model.AskKeepMTextChanges = () =>
+            model.AskKeepMTextChanges = _ =>
             {
                 asked++;
                 return answer;
@@ -161,6 +163,175 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.IsMTextEditorShown);
             Assert.Equal("PLATE", ((DxfMText)document.FindEntity(mtext.Handle)).Contents);
             Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void EscInTheEditBoxOfAText_KeepsTheOldWords()
+        {
+            var model = new MainViewModel();
+            var text = new DxfDBText { Position = new GeoPoint3(10, 20, 0), Height = 5, TextString = "ROOM 1" };
+            CadDocument document = Drawing("rooms.dxf", text);
+            model.OpenDocument(document, "rooms.dxf");
+
+            Assert.True(model.EditTextAt(text.Handle));
+            // The box's Esc, whatever was typed in it ("ROOM 2" not yet entered).
+            model.CancelInPlace();
+
+            Assert.False(model.IsTextEditShown);
+            Assert.Equal("ROOM 1", ((DxfDBText)document.FindEntity(text.Handle)).TextString);
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void EscInTheMTextEditorWithNothingChanged_ClosesWithoutAsking()
+        {
+            var model = new MainViewModel();
+            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+            CadDocument document = Drawing("plate.dxf", mtext);
+            model.OpenDocument(document, "plate.dxf");
+            int asked = 0;
+            model.AskKeepMTextChanges = _ =>
+            {
+                asked++;
+                return true;
+            };
+
+            Assert.True(model.EditTextAt(mtext.Handle));
+            model.EscapeTextEditor();
+
+            Assert.Equal(0, asked);
+            Assert.False(model.IsMTextEditorShown);
+            Assert.Equal("PLATE", ((DxfMText)document.FindEntity(mtext.Handle)).Contents);
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void EscInTheMTextEditorWithChanges_YesSavesThemAndCloses()
+        {
+            var model = new MainViewModel();
+            var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+            CadDocument document = Drawing("plate.dxf", mtext);
+            model.OpenDocument(document, "plate.dxf");
+            int asked = 0;
+            model.AskKeepMTextChanges = _ =>
+            {
+                asked++;
+                return true;
+            };
+
+            Assert.True(model.EditTextAt(mtext.Handle));
+            model.TextEditor.Editor.MoveTo(5);
+            model.TextEditor.Editor.Type(" 10");
+            model.EscapeTextEditor();
+
+            Assert.Equal(1, asked);
+            Assert.False(model.IsMTextEditorShown);
+            Assert.Equal("PLATE 10", ((DxfMText)document.FindEntity(mtext.Handle)).Contents);
+            Assert.True(document.CanUndo);
+            Assert.Equal("Ask", model.Settings.MTextUnsavedChanges);
+        }
+
+        [Fact]
+        public void AlwaysPerformMyCurrentChoice_KeepsTheNoInGlobalSettings_AndTheNextEscDropsWithoutAsking()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel { SettingsPath = Path.Combine(folder.FullPath, "settings.json") };
+                var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+                CadDocument document = Drawing("plate.dxf", mtext);
+                model.OpenDocument(document, "plate.dxf");
+                int asked = 0;
+                model.AskKeepMTextChanges = question =>
+                {
+                    asked++;
+                    question.AlwaysPerform = true;
+                    return false;
+                };
+
+                Assert.True(model.EditTextAt(mtext.Handle));
+                model.TextEditor.Editor.MoveTo(5);
+                model.TextEditor.Editor.Type(" 10");
+                model.EscapeTextEditor();
+
+                Assert.Equal(1, asked);
+                Assert.Equal("No", model.Settings.MTextUnsavedChanges);
+                Assert.Equal("No", GlobalSettings.Load(model.SettingsPath).MTextUnsavedChanges);
+
+                model.Escape();
+                Assert.True(model.EditTextAt(mtext.Handle));
+                model.TextEditor.Editor.MoveTo(5);
+                model.TextEditor.Editor.Type(" 20");
+                model.EscapeTextEditor();
+
+                Assert.Equal(1, asked);
+                Assert.False(model.IsMTextEditorShown);
+                Assert.Equal("PLATE", ((DxfMText)document.FindEntity(mtext.Handle)).Contents);
+                Assert.False(document.CanUndo);
+            }
+        }
+
+        [Fact]
+        public void ARememberedYes_SavesWithoutAsking_AndACancelIsNeverRemembered()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel { SettingsPath = Path.Combine(folder.FullPath, "settings.json") };
+                var mtext = new DxfMText { Location = new GeoPoint3(0, 0, 0), TextHeight = 2.5, Contents = "PLATE" };
+                CadDocument document = Drawing("plate.dxf", mtext);
+                model.OpenDocument(document, "plate.dxf");
+                int asked = 0;
+                bool? answer = null;
+                model.AskKeepMTextChanges = question =>
+                {
+                    asked++;
+                    question.AlwaysPerform = true;
+                    return answer;
+                };
+
+                Assert.True(model.EditTextAt(mtext.Handle));
+                model.TextEditor.Editor.MoveTo(5);
+                model.TextEditor.Editor.Type(" 10");
+                model.EscapeTextEditor();
+
+                Assert.Equal(1, asked);
+                Assert.True(model.IsMTextEditorShown);
+                Assert.Equal("Ask", model.Settings.MTextUnsavedChanges);
+                Assert.False(File.Exists(model.SettingsPath));
+
+                var settings = model.Settings.Clone();
+                settings.MTextUnsavedChanges = "Yes";
+                model.ApplySettings(settings);
+                model.EscapeTextEditor();
+
+                Assert.Equal(1, asked);
+                Assert.False(model.IsMTextEditorShown);
+                Assert.Equal("PLATE 10", ((DxfMText)document.FindEntity(mtext.Handle)).Contents);
+            }
+        }
+
+        [Fact]
+        public void TheRememberedChoice_IsSavedAndReadBack_AndHiddenMessagesSetsItBackToAsk()
+        {
+            using (var folder = new TestFolder())
+            {
+                string path = Path.Combine(folder.FullPath, "settings.json");
+                Assert.Equal("Ask", new GlobalSettings().MTextUnsavedChanges);
+                new GlobalSettings { MTextUnsavedChanges = "yes" }.Save(path);
+                Assert.Equal("Yes", GlobalSettings.Load(path).MTextUnsavedChanges);
+                Assert.Throws<ArgumentException>(() => new GlobalSettings { MTextUnsavedChanges = "Cancel" });
+
+                var model = new MainViewModel { SettingsPath = path };
+                model.ApplySettings(GlobalSettings.Load(path));
+                GlobalSettingsViewModel dialog = model.CreateGlobalSettings("Text and fonts");
+                GlobalSettingRow row = dialog.Row("Text and fonts", "Esc in the MTEXT editor with changes");
+                Assert.Equal("Yes, save the changes", row.Value);
+
+                row.Value = "Ask";
+                Assert.True(dialog.Ok());
+
+                Assert.Equal("Ask", model.Settings.MTextUnsavedChanges);
+                Assert.Equal("Ask", GlobalSettings.Load(path).MTextUnsavedChanges);
+            }
         }
 
         [Fact]

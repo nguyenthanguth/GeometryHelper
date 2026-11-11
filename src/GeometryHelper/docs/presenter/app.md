@@ -36,7 +36,7 @@ The nine categories are those of the Global settings dialog, and of the JSON.
 | Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |
-| Text and fonts | the fonts, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | UI font Inter, drawing font Arial, text 2.5, titles 5, width factor 0.8 |
+| Text and fonts | the fonts, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height; what Esc in the MTEXT editor with changes does (Hidden messages) | UI font Inter, drawing font Arial, text 2.5, titles 5, width factor 0.8, Esc asks |
 | Data sources | whether the sources of a model are asked for changes, and how often | on, every 30 seconds (5 to 3 600) |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave, backups, the layout of an export | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups, `LayoutAndViewports` |
@@ -295,7 +295,7 @@ it cannot read. Both apps take these options:
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
 | `--recent "a.dxf\|*b.dxf"` | fills Recent Documents, the first the newest, a file written with `*` pinned |
 
-The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
+The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Changes); `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
 `plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,

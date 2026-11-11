@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Esc in the presenter's MTEXT editor with changes asks as AutoCAD 2021 asks: Multiline Text - Unsaved
+Changes, "Do you want to save your text changes?", with Yes, No and Cancel and Always perform my current choice, in the
+place of the presenter's own "Save changes to MText?". Yes writes the changes and closes the editor, No drops them, Cancel
+goes back to editing, and with nothing changed Esc closes with no question. A Yes or No given with the box ticked is kept
+in Global settings as `MTextUnsavedChanges` ("Ask", "Yes" or "No"), as AutoCAD keeps it among its hidden messages, and
+Text and fonts › Hidden messages sets it back to Ask; Cancel is never kept. `MainViewModel.AskKeepMTextChanges` now takes
+the question, an `MTextUnsavedChangesViewModel`, and `CadQuestionWindow.AskKeepMTextChanges` is gone. The screenshot mode
+draws the dialog with `--dialog mtext-unsaved`. Esc in the edit box of a single-line text already kept the old words, as
+AutoCAD does, and a test now holds it.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension

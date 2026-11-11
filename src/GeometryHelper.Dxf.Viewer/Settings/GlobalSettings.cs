@@ -75,6 +75,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The DXF export layouts, as Drawing defaults names them: layout and viewports, or the sheet in model space (D10).</summary>
         public static readonly IReadOnlyList<string> ExportLayouts = new[] { "LayoutAndViewports", "SheetInModelSpace" };
 
+        /// <summary>
+        /// What a message hidden by its Always perform my current choice does instead of asking: Ask shows it, Yes and No give
+        /// that answer at once, as AutoCAD's Hidden Message Settings keep them.
+        /// </summary>
+        public static readonly IReadOnlyList<string> HiddenMessageChoices = new[] { "Ask", "Yes", "No" };
+
         /// <summary>The presets of a new drawing.</summary>
         public static readonly IReadOnlyList<string> Presets = new[] { "Part", "Assembly", "General" };
 
@@ -122,6 +128,7 @@ namespace GeometryHelper.Dxf.Viewer
         private int _autosaveMinutes = 10;
         private int _backupsKept = 3;
         private string _exportLayout = "LayoutAndViewports";
+        private string _mtextUnsavedChanges = "Ask";
         private List<GlobalLayer> _layers = DefaultLayers();
         private SortedDictionary<string, string> _aliases = Copy(CadShortcuts.Default.Aliases);
         private SortedDictionary<string, string> _keys = Copy(CadShortcuts.Default.Keys);
@@ -436,6 +443,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether the folder is opened after an export: off by default.</summary>
         public bool OpenAfterExport { get; set; }
 
+        // ---- Hidden messages
+
+        /// <summary>
+        /// Gets or sets what Esc in the MTEXT editor with changes does, one of <see cref="HiddenMessageChoices"/>: Ask, the
+        /// default, shows Multiline Text - Unsaved Changes; Yes saves the changes and No drops them with no question, as
+        /// AutoCAD remembers the answer given with Always perform my current choice ticked. Cancel is never remembered.
+        /// Setting it back to Ask, or Global settings' Reset to defaults, shows the question again.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the value is not one of <see cref="HiddenMessageChoices"/>.</exception>
+        public string MTextUnsavedChanges { get => _mtextUnsavedChanges; set => _mtextUnsavedChanges = OneOf(value, HiddenMessageChoices, nameof(MTextUnsavedChanges)); }
+
         /// <summary>
         /// Sets the aliases and keys: each alias and key to a command's name, letters of either case the same. A key given to
         /// two commands is kept, and said by <see cref="ShortcutConflicts"/>.
@@ -627,6 +645,9 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("titleTextHeight", _titleTextHeight);
             w.Value("widthFactor", _widthFactor);
             w.Close();
+            w.Open("hiddenMessages");
+            w.Value("mtextUnsavedChanges", _mtextUnsavedChanges);
+            w.Close();
             w.Open("fonts");
             w.OpenList("searchFolders");
 
@@ -803,6 +824,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("text", "textHeight", v => _s.TextHeight = v);
                 Number("text", "titleTextHeight", v => _s.TitleTextHeight = v);
                 Number("text", "widthFactor", v => _s.WidthFactor = v);
+                Text("hiddenMessages", "mtextUnsavedChanges", v => _s.MTextUnsavedChanges = v);
                 Text("fonts", "replacement", v => _s.ReplacementFont = v);
                 Text("fonts", "fontMap", v => _s.FontMapFile = v);
                 Flag("fonts", "showMissingShxDialog", v => _s.ShowMissingShxDialog = v);
