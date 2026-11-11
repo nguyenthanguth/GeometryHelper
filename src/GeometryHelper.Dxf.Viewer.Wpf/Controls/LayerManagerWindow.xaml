@@ -247,6 +247,7 @@
                         </Grid>
                         <ListBox
                             x:Name="Table"
+                            PreviewKeyDown="OnTableKey"
                             ItemsSource="{Binding Rows}"
                             SelectedItem="{Binding SelectedRow}"
                             SelectionMode="Extended"
@@ -333,8 +334,8 @@
                                     <MenuItem
                                         Style="{StaticResource GhMenuItem}"
                                         Header="Rename Layer"
-                                        IsEnabled="False"
-                                        ToolTip="Not built yet"
+                                        InputGestureText="F2"
+                                        Command="{Binding RenameCommand}"
                                     />
                                     <Separator Style="{StaticResource GhMenuSeparator}" />
                                     <MenuItem
@@ -406,11 +407,27 @@
                                             Text="{Binding CurrentMark}"
                                             Foreground="{StaticResource GhOk}"
                                         />
+                                        <!-- The name, edited in place by F2, a slow second click, a double click or Rename Layer. -->
                                         <TextBlock
                                             Grid.Column="1"
                                             Style="{StaticResource Cell}"
                                             Text="{Binding Name}"
                                             FontWeight="SemiBold"
+                                            Visibility="{Binding IsRenaming, Converter={StaticResource Hidden}}"
+                                            MouseLeftButtonDown="OnNameDown"
+                                        />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Margin="4,2"
+                                            Padding="2,1"
+                                            Style="{StaticResource GhTextBox}"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                            Visibility="{Binding IsRenaming, Converter={StaticResource Shown}}"
+                                            IsVisibleChanged="OnNameBoxShown"
+                                            PreviewKeyDown="OnNameBoxKey"
+                                            LostKeyboardFocus="OnNameBoxLeft"
+                                            AutomationProperties.Name="New name of the layer"
                                         />
                                         <CheckBox
                                             Grid.Column="2"

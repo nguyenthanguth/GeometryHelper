@@ -200,7 +200,8 @@ layer an entity is on, those appended in code among them. The first `IsUsed` rea
 answers hold until the drawing is edited: 400 layers of a drawing of 300 000 lines take 0.08 seconds. Setting the `Name` of
 a layer renames it with every reference to it: the layer steel renamed Steel_S355 has every entity of it, in model space,
 paper space and the blocks, its vertices and attributes among them, on Steel_S355, a layer named in extended data (1003) too,
-and `$CLAYER` where it was the current one; layer 0 and Defpoints keep their names. `Erase()` takes a layer out where nothing
+and `$CLAYER` where it was the current one; layer 0 keeps its name, and Defpoints is renamed as AutoCAD 2021's -RENAME
+renames it. `Erase()` takes a layer out where nothing
 is on it, nothing points at it and it is not 0, Defpoints or the current layer, the table's count lowered by one. The
 LAYER_INDEX and LAYER_FILTER objects a drawing may keep are left as they are.
 

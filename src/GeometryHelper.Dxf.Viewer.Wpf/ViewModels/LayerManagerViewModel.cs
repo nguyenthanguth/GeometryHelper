@@ -61,6 +61,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly Action<string> _say;
         private readonly DelegateCommand _setCurrent;
         private readonly DelegateCommand _delete;
+        private readonly DelegateCommand _rename;
         private string _searchText = string.Empty;
         private LayerRowViewModel _selected;
         private string _summary = string.Empty;
@@ -77,6 +78,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SetCurrentCommand = _setCurrent;
             _delete = new DelegateCommand(_ => Delete(), _ => _selected != null);
             DeleteCommand = _delete;
+            _rename = new DelegateCommand(_ => BeginRename(), _ => CanRename(_selected));
+            RenameCommand = _rename;
             Document.Changed += OnChanged;
             Document.ActiveViewportChanged += OnActiveViewportChanged;
             Refresh();
@@ -114,6 +117,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _setCurrent.RaiseCanExecuteChanged();
                     _delete.RaiseCanExecuteChanged();
+                    _rename.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -176,6 +180,106 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Deletes the chosen layer, as AutoCAD deletes one nothing uses.</summary>
         /// <returns>Whether it was deleted; why not is said on the command line.</returns>
         public bool Delete() => _selected != null && Done(CadLayerEditor.Delete(Document, _selected.Name));
+
+        /// <summary>Gets the command of Rename Layer and F2: the name cell of the chosen layer opened, greyed for layer 0 and a layer of an xref.</summary>
+        public ICommand RenameCommand { get; }
+
+        /// <summary>
+        /// Gets or sets how the window shows why a rename is refused, as AutoCAD's Layer manager shows a message: given the
+        /// message, "Cannot rename layer "0"."; null to say it on the command line.
+        /// </summary>
+        public Action<string> ShowMessage { get; set; }
+
+        /// <summary>Gets whether a layer's name can be edited: not layer 0, not a layer of an xref; Defpoints can, as AutoCAD renames it.</summary>
+        /// <param name="row">The row.</param>
+        /// <returns>True when it can.</returns>
+        public bool CanRename(LayerRowViewModel row) => row != null && row.Name != "0" && !IsXrefLayer(row.Name);
+
+        /// <summary>
+        /// Opens the name cell of a layer, as F2, a slow second click on the chosen name, a double click on it or Rename Layer
+        /// open it, the whole name chosen. Layer 0 and a layer of an xref are refused at once, the message shown and the cell
+        /// left shut: <c>Cannot rename layer "0".</c>
+        /// </summary>
+        /// <param name="row">The row; null for the chosen one.</param>
+        /// <returns>Whether the cell was opened.</returns>
+        public bool BeginRename(LayerRowViewModel row = null)
+        {
+            row = row ?? _selected;
+
+            if (row == null)
+            {
+                return false;
+            }
+
+            if (row.Name == "0")
+            {
+                Tell("Cannot rename layer \"0\".");
+                return false;
+            }
+
+            if (IsXrefLayer(row.Name))
+            {
+                Tell(
+                    "Layer \""
+                        + row.Name
+                        + "\" belongs to an external reference: it is renamed in its own drawing, or once the reference is bound."
+                );
+                return false;
+            }
+
+            foreach (LayerRowViewModel other in Rows.Where(r => r.IsRenaming && r != row))
+            {
+                other.IsRenaming = false;
+            }
+
+            SelectedRow = row;
+            row.EditName = row.Name;
+            row.IsRenaming = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Enter or a click elsewhere in a name cell: the layer renamed to the name typed, the spaces around it taken off, one
+        /// undo step. A name already used, letters of either case the same, or one a layer name cannot hold is refused in
+        /// AutoCAD 2021's words (<c>A layer named "DIM" already exists.</c>, <c>Invalid layer name.</c>), the cell left open
+        /// with the name typed; the name the layer has shuts the cell with nothing changed.
+        /// </summary>
+        /// <param name="row">The row being renamed.</param>
+        /// <returns>Whether the cell was shut: the layer renamed, or its name left as it was.</returns>
+        public bool CommitRename(LayerRowViewModel row)
+        {
+            if (row == null || !row.IsRenaming)
+            {
+                return false;
+            }
+
+            string wanted = (row.EditName ?? string.Empty).Trim();
+            string old = row.Name;
+            CadEditResult result = CadLayerEditor.Rename(Document, old, wanted);
+
+            if (!result.Succeeded)
+            {
+                Tell(result.Message);
+                return false;
+            }
+
+            row.IsRenaming = false;
+            Refresh();
+            SelectedRow = Rows.FirstOrDefault(r => string.Equals(r.Name, wanted, StringComparison.Ordinal))
+                ?? SelectedRow;
+            return true;
+        }
+
+        /// <summary>Esc in a name cell: the cell shut, the old name kept.</summary>
+        /// <param name="row">The row being renamed.</param>
+        public void CancelRename(LayerRowViewModel row)
+        {
+            if (row != null)
+            {
+                row.IsRenaming = false;
+                row.EditName = row.Name;
+            }
+        }
 
         /// <summary>Makes the chosen layer current.</summary>
         public void SetCurrent()
@@ -262,6 +366,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(SelectedRow));
             _setCurrent.RaiseCanExecuteChanged();
             _delete.RaiseCanExecuteChanged();
+            _rename.RaiseCanExecuteChanged();
             int frozen = layers.Count(l => l.IsFrozen);
             int locked = layers.Count(l => l.IsLocked);
             Summary =
@@ -283,6 +388,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             index >= 1 && index <= 7 ? ColorNames[index - 1] : "Color " + index.ToString(CultureInfo.InvariantCulture);
 
         internal void Say(string line) => _say(line);
+
+        private void Tell(string message)
+        {
+            if (ShowMessage != null)
+            {
+                ShowMessage(message);
+            }
+            else
+            {
+                _say(message);
+            }
+        }
+
+        private bool IsXrefLayer(string name) =>
+            Document.Database.LayerTable.Has(name) && Document.Database.LayerTable[name].IsDependent;
 
         /// <summary>Shows Select Color for a row and gives its layer the colour chosen, one undo step; nothing on Cancel.</summary>
         internal void ChooseColor(LayerRowViewModel row)
@@ -345,6 +465,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly CadLayerInfo _layer;
         private readonly int _colorIndex;
         private readonly DxfLineWeight _weight;
+        private bool _isRenaming;
+        private string _editName = string.Empty;
 
         internal LayerRowViewModel(
             LayerManagerViewModel owner,
@@ -367,6 +489,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the name.</summary>
         public string Name => _layer.Name;
+
+        /// <summary>Gets or sets whether the name cell is open for a new name, as F2 opens it.</summary>
+        public bool IsRenaming
+        {
+            get => _isRenaming;
+            set => Set(ref _isRenaming, value);
+        }
+
+        /// <summary>Gets or sets the name typed in the open name cell.</summary>
+        public string EditName
+        {
+            get => _editName;
+            set => Set(ref _editName, value ?? string.Empty);
+        }
 
         /// <summary>Gets the command of the linetype cell: AutoCAD's Select Linetype dialog, through <see cref="LayerManagerViewModel.PickLinetype"/>.</summary>
         public ICommand ChooseLinetypeCommand { get; }

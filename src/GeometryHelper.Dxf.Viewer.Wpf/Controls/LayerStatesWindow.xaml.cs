@@ -6,8 +6,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// AutoCAD's Layer States Manager, which LAYERSTATE shows: the states, the restore options, the buttons that change them
-    /// and Layer properties to restore. New… and Rename ask a name with <see cref="StyleNameWindow"/>, Import… and Export…
-    /// a .las file. Its logic is <see cref="LayerStatesViewModel"/>.
+    /// and Layer properties to restore. New… shows <see cref="NewLayerStateWindow"/> (a name and a description), asking
+    /// before it replaces a state; Edit… shows <see cref="EditLayerStateWindow"/>; Rename asks a name with
+    /// <see cref="StyleNameWindow"/>, Import… and Export… a .las file. Its logic is <see cref="LayerStatesViewModel"/>.
     /// </summary>
     public partial class LayerStatesWindow : Window
     {
@@ -21,6 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DataContext = model;
             model.AskName = (title, offered) =>
                 StyleNameWindow.Ask(this, new StyleNameViewModel(title, offered, n => false));
+            model.AskNewState = dialog => NewLayerStateWindow.Ask(this, dialog);
+            model.ConfirmReplace = name => CadQuestionWindow.AskReplaceLayerState(this, name);
+            model.ShowEditState = dialog => EditLayerStateWindow.Show(this, dialog);
             model.AskImportFile = () =>
             {
                 var dialog = new Microsoft.Win32.OpenFileDialog

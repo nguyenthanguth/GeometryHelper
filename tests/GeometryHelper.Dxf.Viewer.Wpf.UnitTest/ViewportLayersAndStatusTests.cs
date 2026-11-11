@@ -215,7 +215,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     model.SelectSpace(Layout1(model));
                     model.Document.EnterViewport(viewport);
 
-                    // Custom... runs -SCALELISTEDIT, as AutoCAD's opens the drawing's scales: a scale added there is in the list.
+                    // Custom... runs SCALELISTEDIT, as AutoCAD's opens the drawing's scales; with no window to show Edit Drawing
+                    // Scales it asks -SCALELISTEDIT's prompts: a scale added there is in the list.
                     model.ScaleMenu().Single(i => i.Header == "Custom...").Command.Execute(null);
                     model.Execute("A");
                     Assert.Contains(model.History, l =>

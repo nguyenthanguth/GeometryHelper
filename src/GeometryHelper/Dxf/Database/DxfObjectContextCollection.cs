@@ -236,6 +236,42 @@ namespace GeometryHelper.Dxf
             list.Remove(list.NameAt(DxfDBObject.OfObject(scale.Item)));
         }
 
+        /// <summary>
+        /// Moves a scale to another place in the list, as Move Up and Move Down of AutoCAD's Edit Drawing Scales: its entry of
+        /// ACAD_SCALELIST moved among the others, its SCALE, its handle and its entry's name kept, so that what points at it still
+        /// does. 1:50 moved to 0 is listed first.
+        /// </summary>
+        /// <param name="contextName">The name of the scale, letters of either case the same.</param>
+        /// <param name="index">Its new place, nought for the first; past the last puts it last.</param>
+        /// <exception cref="KeyNotFoundException">Thrown when the list has no scale of the name.</exception>
+        internal void MoveContext(string contextName, int index)
+        {
+            DxfAnnotationScale scale = Find(_database, contextName)
+                ?? throw new KeyNotFoundException(
+                    "The drawing's list of scales has no scale named " + contextName + "."
+                );
+            DxfDBDictionary list = List(false);
+            string key = list.NameAt(DxfDBObject.OfObject(scale.Item));
+
+            // The place among the entries: the list may hold entries that are no SCALE, which the scales skip.
+            List<DxfAnnotationScale> scales = Scales(_database);
+            int target = Math.Max(0, Math.Min(index, scales.Count - 1));
+            string over = list.NameAt(DxfDBObject.OfObject(scales[target].Item));
+            int place = 0;
+
+            foreach (DxfDBDictionaryEntry entry in list)
+            {
+                if (string.Equals(entry.Key, over, StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                place++;
+            }
+
+            list.MoveEntry(key, place);
+        }
+
         /// <summary>Gets an enumerator over the scales of the list, each a <see cref="DxfAnnotationScale"/>, in the order of the dictionary ACAD_SCALELIST.</summary>
         /// <returns>The enumerator.</returns>
         public IEnumerator<DxfObjectContext> GetEnumerator()

@@ -389,15 +389,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, INPUTSEARCHDELAY (Delay Time… of the command
-        /// line's Input Settings), the six toggles of the status bar, DYN the last, and DSETTINGS with AutoCAD's aliases DS and OS.
+        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
+        /// (the command line's Input Search Options), the six toggles of the status bar, DYN the last, and DSETTINGS with
+        /// AutoCAD's aliases DS and OS.
         /// </summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("NEW", NewBody));
             registry.Add(new CadCommand("SAVEAS", SaveAsBody));
             registry.Add(new CadCommand("PROPERTIESCLOSE", PropertiesCloseBody));
-            registry.Add(new CadCommand("INPUTSEARCHDELAY", DelayTimeBody));
+            registry.Add(new CadCommand("INPUTSEARCHOPTIONS", InputSearchOptionsBody));
+            registry.Add(new CadCommand("-INPUTSEARCHOPTIONS", InputSearchOptionsTyped));
 
             foreach (string name in new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OSNAP", "DYN" })
             {

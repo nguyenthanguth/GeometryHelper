@@ -191,8 +191,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets the items of the scale list the status bar opens. In a layout, as AutoCAD 2021's: Scale to fit, the scales of the
-        /// drawing's list (the standard 1:1 to 100:1 where it has none), and Custom..., which runs -SCALELISTEDIT to edit that
-        /// list; the viewport's own ticked, every item grey while its display is locked.
+        /// drawing's list (the standard 1:1 to 100:1 where it has none), and Custom..., which runs SCALELISTEDIT to edit that
+        /// list in Edit Drawing Scales; the viewport's own ticked, every item grey while its display is locked.
         /// On the Model tab, the scales of the drawing's list, CANNOSCALE ticked.
         /// </summary>
         /// <returns>The items; empty where no scale is shown.</returns>
@@ -256,9 +256,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.Add(
                 new CadMenuItemViewModel(
                     "Custom...",
-                    () => StartCommand("-SCALELISTEDIT"),
+                    () => StartCommand("SCALELISTEDIT"),
                     open,
-                    "Edits the drawing's list of scales on the command line, as -SCALELISTEDIT (the Edit Drawing Scales dialog is not built)",
+                    "Edits the drawing's list of scales in Edit Drawing Scales, as SCALELISTEDIT",
                     false
                 )
             );

@@ -154,7 +154,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -415,7 +415,15 @@ a colour, linetype, lineweight or transparency of the state that is not the laye
 that is the layer's own takes the override off), a layer the state has off or frozen is frozen in the viewport and one
 it has on and thawed is thawed there, and with "Turn off layers not found in layer state" the layers the state does not
 name are frozen there too. Locking, plotting, the freeze in new viewports and the current layer have no form of one
-viewport and stay as they are. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
+viewport and stay as they are. New… shows New Layer State to Save, its name (the drawing's states offered in its list)
+and an optional Description, which the manager's Description column shows; a name the drawing has is asked about first,
+and Yes replaces that state with the layers as they stand and the new description, the properties it restores kept.
+Edit… shows Edit Layer State over the state chosen: the layers it saved, by name, each with On, Freeze, Lock, Plot, Color
+(Select Color), Linetype (Select Linetype), Lineweight, Transparency (0 to 90), Plot Style (greyed) and New VP Freeze,
+changed in the state only; a layer that differs from the drawing's, in a property the state restores, is marked ●, one the
+drawing no longer has ○ (kept, passed over on restore); Add layers offers the drawing's layers the state does not name,
+Remove layers takes out those chosen, and Layer properties to restore greys the column of a property unticked. OK writes
+the state as an edit of LAYERSTATE's one undo step, the drawing's layers left as they are. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
 the VIEW table (`db.ViewTable`), its layer snapshot the hidden state ACAD_VIEWS_ and its name, restored with it; Edit
 Boundaries and Define window ask two corners and bring the dialog back, Cancel takes the run back. UNITS shows Drawing Units
 and its Direction Control, writing LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE on OK as one step; typed
@@ -748,16 +756,26 @@ ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewpo
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
 view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list
 opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the scales
-of the drawing's list (ACAD_SCALELIST; the standard ones where it has none), and Custom..., which runs -SCALELISTEDIT to
-edit that list on the command line (the Edit Drawing Scales dialog is not built). VPSCALE writes `PS:MS == 1:20` and asks
+of the drawing's list (ACAD_SCALELIST; the standard ones where it has none), and Custom..., which runs SCALELISTEDIT.
+SCALELISTEDIT shows AutoCAD 2021's Edit Drawing Scales: the drawing's list in its order, Add… and Edit… (Add Scale and
+Edit Scale: Name appearing in scale list, Paper units = Drawing units), Move Up, Move Down, Delete and Reset, and the
+scale chosen under the list, `1 paper unit = 50 drawing units`. Delete is greyed for a scale the drawing keeps (the unit
+scale, the current annotation scale, one an object points at); Edit Scale greys the units of a scale an object points at,
+as AutoCAD's help says; a name another scale has is refused. Reset asks first, then deletes every scale the drawing does
+not keep and adds the default ones it lacks. OK writes the list as it stands as one undo step: the scales taken out
+deleted, the ones renamed or given other units changed, the new ones added, each in its place (Move Up and Move Down
+move the entry of ACAD_SCALELIST, the SCALE and its handle kept); Cancel writes nothing. With no window to show the
+dialog, SCALELISTEDIT asks -SCALELISTEDIT's prompts. VPSCALE writes `PS:MS == 1:20` and asks
 a new scale, as 1:37.5. -SCALELISTEDIT asks as AutoCAD 2021's console does, word for word: `Enter option
 [?/Add/Delete/Reset/Exit] <Add>:`; ? lists each scale with its paper and drawing units and the scale they give; Add asks
 `Enter name for new scale:` and `Enter scale ratio:` (1:3 or 2.5:1; anything else answers `Invalid entry. Expects a ratio
 entered in the following format: "1:1"`), and for a name the list has asks `GH already exists.  Redefine scale?`; Delete
 takes one scale (`GH scale deleted.`, `Scale NOSUCH not found.`) or `*` every one in no use, and keeps the unit scale, the
 current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`); Reset, after
-`Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the standard 1:1 to 100:1. The
-command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
+`Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the default list after the
+ones kept: the metric 1:1 to 100:1, or, where the header's MEASUREMENT is 0 (imperial), the 16 imperial scales
+`1/128" = 1'-0"` (0.0078125 to 12) to `1'-0" = 1'-0"`, as AutoCAD 2021's console resets them (a drawing with no MEASUREMENT
+takes the metric list). The command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
 alone there, having no profile's default list. Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
 its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
@@ -879,6 +897,14 @@ Layer manager and the LAYER command make, each one undo step, refused where Auto
 | `SetCurrent`, `SetOn`, `SetFrozen`, `SetLocked` | the flags | a frozen layer is set current: `Cannot set a frozen layer current.` |
 | `SetColor`, `SetLinetype`, `SetLineWeight` | the look | |
 | `Delete` | the layer | objects are on it: `Layer "Steel" cannot be deleted: objects are on it.` |
+| `Rename(document, name, newName)` | the name, with every object on the layer; the spaces around it taken off, letters of another case taken | layer 0: `Cannot rename layer "0".`; a name used, either case: `A layer named "DIM" already exists.`; an empty name, a character a name cannot hold (&lt; &gt; / \ " : ; ? * \| , = and the backquote) or a layer of an xref: `Invalid layer name.` |
+
+The Layer manager renames a layer in place: F2, a slow second click on the chosen name, a double click on it, or Rename
+Layer (F2) of its right-click menu opens the name cell with the whole name chosen; Enter or a click elsewhere keeps the
+name typed, as one undo step, Esc keeps the old one. Layer 0 and a layer of an xref are refused at once, the cell left
+shut and the message shown (Rename Layer is greyed for them); a name used or one with a character a name cannot hold is
+refused on Enter, the message shown and the cell left open with the name typed. The messages are AutoCAD 2021's -RENAME
+ones, checked in its console; Defpoints is renamed, as -RENAME and entmod rename it there.
 
 A layer turned off or frozen takes its entities out of the display lists; a locked layer keeps them drawn but out of any
 selection a command gathers. `IsLocked(database, name)` asks.
@@ -892,8 +918,7 @@ layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7`
 (a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
 "New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
 viewport or all; and "Isolate Selected Layers", which turns off every layer but those chosen, the current one too where it
-is not chosen, one undo step, as AutoCAD's help describes the item ("Rename Layer" stays grey: renaming in the list needs a
-name cell that can be typed in, which waits for a design). [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+is not chosen, one undo step, as AutoCAD's help describes the item. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
 one undo step:
 
 | Call | Does |

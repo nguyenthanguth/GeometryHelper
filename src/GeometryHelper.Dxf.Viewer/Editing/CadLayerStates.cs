@@ -273,7 +273,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A layer's transparency as a state writes it: nought for solid, else 0x020000TT.</summary>
-        private static int TransparencyValue(DxfTransparency transparency) =>
+        internal static int TransparencyValue(DxfTransparency transparency) =>
             transparency.IsSolid || !transparency.IsByAlpha ? 0 : 0x02000000 | transparency.Alpha;
 
         /// <summary>The layers of a state, each its name in the drawing (or as the state names it, where the drawing has no such layer) and its groups.</summary>
@@ -362,7 +362,7 @@ namespace GeometryHelper.Dxf.Viewer
                 );
         }
 
-        private static DxfColor ColorOf(List<DxfTypedValue> groups)
+        internal static DxfColor ColorOf(List<DxfTypedValue> groups)
         {
             int rgb = Whole(groups, 92);
 
@@ -378,7 +378,7 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
-        private static string LinetypeOf(DxfDatabase database, List<DxfTypedValue> groups)
+        internal static string LinetypeOf(DxfDatabase database, List<DxfTypedValue> groups)
         {
             foreach (DxfTypedValue group in groups)
             {

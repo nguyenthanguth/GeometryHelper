@@ -191,6 +191,34 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void AScaleMoved_ChangesOnlyTheOrderOfACAD_SCALELIST_ItsSCALEAndEntryNameKept()
+        {
+            string text = Listed();
+            DxfDatabase db = DxfDatabase.Parse(text);
+            DxfObjectContextCollection scales = Scales(db);
+
+            // 1:100 up to the top, as Move Up twice; then 1:1 down one, as Move Down.
+            scales.MoveContext("1:100", 0);
+            Assert.Equal(new[] { "1:100", "1:1", "1:50" }, scales.Select(s => s.Name));
+            scales.MoveContext("1:1", 2);
+            Assert.Equal(new[] { "1:100", "1:50", "1:1" }, scales.Select(s => s.Name));
+
+            string saved = db.ToText();
+            OnlyTheseChanged(text, saved, "14");
+            Assert.EndsWith(
+                "  3\nA2\n350\nF2\n  3\nA1\n350\nF1\n  3\nA0\n350\nF0\n",
+                Record(saved, "14"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(new[] { "1:100", "1:50", "1:1" }, Scales(DxfDatabase.Parse(saved)).Select(s => s.Name));
+
+            // A place past the last puts it last; one it has is nothing.
+            scales.MoveContext("1:100", 9);
+            Assert.Equal(new[] { "1:50", "1:1", "1:100" }, scales.Select(s => s.Name));
+            Assert.Throws<KeyNotFoundException>(() => scales.MoveContext("1:20", 0));
+        }
+
+        [Fact]
         public void AScaleAutoCADKeeps_IsNotTakenOut_TheUnitScaleTheCurrentScaleAndOneInUse()
         {
             DxfDatabase db = DxfDatabase.Parse(AnnotativeMText());

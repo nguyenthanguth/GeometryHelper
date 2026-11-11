@@ -6,7 +6,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
     /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG, POLARMODE and POLARADDANG, PICKBOX and
-    /// APERTURE of Global settings, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
+    /// APERTURE of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's Input Search Options,
+    /// and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
     /// there.
     /// </summary>
@@ -58,6 +59,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     50,
                     () => _settings.AperturePixels,
                     v => ChangeSettings(s => s.AperturePixels = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "INPUTSEARCHDELAY",
+                    100,
+                    10000,
+                    () => _settings.AutoCompleteDelay,
+                    v => ChangeSettings(s => s.AutoCompleteDelay = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "INPUTSEARCHOPTIONFLAGS",
+                    0,
+                    31,
+                    () => _settings.InputSearchFlags,
+                    v => ChangeSettings(s => s.InputSearchFlags = v)
                 )
             );
             registry.AddVariable(

@@ -38,9 +38,16 @@ namespace GeometryHelper.Dxf.Viewer
                 ReadLayerStates(c, request);
                 return said;
             };
+            request.Editing = edit =>
+            {
+                string said = WriteLayerStateEdit(c, edit);
+                ReadLayerStates(c, request);
+                return said;
+            };
 
             bool asked = c.Session.Request("LAYERSTATE", c.Document, request);
             request.Changing = null;
+            request.Editing = null;
 
             if (!asked)
             {
@@ -118,6 +125,20 @@ namespace GeometryHelper.Dxf.Viewer
                     SaveLayerState(c, name, (texts.Length > 1 ? texts[1] : null) ?? string.Empty, CadLayerStates.All);
                     request.Selected = name;
                     return null;
+                case "Replace":
+                    string replaced = CadLayerStates.NameOf(c.Database, (texts[0] ?? string.Empty).Trim());
+
+                    if (replaced == null)
+                    {
+                        return "Unknown layer state name.";
+                    }
+
+                    int kept =
+                        CadLayerStates.MaskOf(CadLayerStates.Find(c.Database, replaced).Data)
+                        & ~CadLayerStates.LastRestored;
+                    SaveLayerState(c, replaced, (texts.Length > 1 ? texts[1] : null) ?? string.Empty, kept);
+                    request.Selected = replaced;
+                    return null;
                 case "Import":
                     return ImportLayerStates(c, texts[0], out List<string> read)
                         ?? Chosen(request, read.LastOrDefault());
@@ -192,6 +213,38 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     return ExportLayerState(c, chosen, texts[0]);
             }
+        }
+
+        /// <summary>
+        /// OK of Edit Layer State: the state's layers and the properties it restores written as the dialog left them, an edit of
+        /// the command's step; nothing where they are as the state has them. The drawing's layers are left alone.
+        /// </summary>
+        private static string WriteLayerStateEdit(CadCommandContext c, CadLayerStateEdit edit)
+        {
+            DxfXrecord record = CadLayerStates.Find(c.Database, edit.Name);
+
+            if (record == null)
+            {
+                return "Unknown layer state name.";
+            }
+
+            List<DxfTypedValue> data = edit.Data(record);
+
+            if (
+                data.Count == record.Data.Count
+                && data.Zip(record.Data, (a, b) => a.TypeCode == b.TypeCode && a.Value == b.Value).All(same => same)
+            )
+            {
+                return null;
+            }
+
+            string name = edit.Name;
+            c.OpenUndoStep();
+            c.Apply(
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Edit layer state", name, name) },
+                s => CadLayerStates.Find(s.Database, name).Data = data
+            );
+            return null;
         }
 
         private static string Chosen(CadLayerStatesRequest request, string name)

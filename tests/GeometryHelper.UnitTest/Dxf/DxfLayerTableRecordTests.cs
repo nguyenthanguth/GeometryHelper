@@ -157,7 +157,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ALayerIsNotRenamed_ToAnotherLayersName_NorIsLayer0OrDefpoints()
+        public void ALayerIsNotRenamed_ToAnotherLayersName_NorIsLayer0()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
             string text = db.ToText();
@@ -165,12 +165,25 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => db.LayerTable["steel"].Name = "DEFPOINTS");
             Assert.Throws<ArgumentException>(() => db.LayerTable["steel"].Name = "a:b");
             Assert.Throws<InvalidOperationException>(() => db.LayerTable["0"].Name = "zero");
-            Assert.Throws<InvalidOperationException>(() => db.LayerTable["Defpoints"].Name = "points");
             Assert.Equal(text, db.ToText());
 
             // Letters of another case, as AutoCAD lets a layer be renamed.
             db.LayerTable["steel"].Name = "STEEL";
             Assert.Equal("STEEL", ByHandle<DxfLine>(DxfDatabase.Parse(db.ToText()), "3E").Layer);
+        }
+
+        [Fact]
+        public void Defpoints_IsRenamed_AsAutoCadsRenameAndEntmodRenameIt()
+        {
+            // AutoCAD 2021's console: -RENAME LAyer Defpoints DP2 renames it, and entmod of its 2 to DP3 too; layer 0 is
+            // refused ("Cannot rename layer "0".").
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+
+            db.LayerTable["Defpoints"].Name = "Points";
+
+            DxfDatabase read = DxfDatabase.Parse(db.ToText());
+            Assert.True(read.LayerTable.Has("Points"));
+            Assert.False(read.LayerTable.Has("Defpoints"));
         }
 
         [Fact]

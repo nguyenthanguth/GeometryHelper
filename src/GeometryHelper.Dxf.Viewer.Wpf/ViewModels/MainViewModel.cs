@@ -1760,6 +1760,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PURGEITEM":
                 case "CLASSICGROUP":
                 case "LAYERSTATE":
+                case "SCALELISTEDIT":
                     OnManagerRequested(e);
                     break;
                 case "VIEW":

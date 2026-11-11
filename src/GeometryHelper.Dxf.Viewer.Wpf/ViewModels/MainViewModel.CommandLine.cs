@@ -336,8 +336,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The menu of a right click on the command line: Recent Commands, Input Settings (AutoComplete, AutoCorrect, Search
-        /// System Variables, Search Content, Mid-string Search, Delay Time…), Copy, Copy History, Paste, Paste To
-        /// CmdLine and Options….
+        /// System Variables, Search Content, Mid-string Search, Delay Time…, which asks INPUTSEARCHDELAY, and Input Search
+        /// Options…), Copy, Copy History, Paste, Paste To CmdLine and Options….
         /// </summary>
         /// <param name="selectedText">The text selected in the command line, which Copy copies; null or empty for none.</param>
         /// <returns>The items.</returns>
@@ -380,6 +380,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     () => StartCommand("INPUTSEARCHDELAY"),
                     _current != null,
                     _current == null ? "Needs a drawing open: the delay is asked on the command line." : null
+                ),
+                new CadMenuItemViewModel(
+                    "Input Search Options…",
+                    () => StartCommand("INPUTSEARCHOPTIONS"),
+                    _current != null,
+                    _current == null ? "Needs a drawing open: INPUTSEARCHOPTIONS is a command." : null
                 ),
             };
 
@@ -500,33 +506,132 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>INPUTSEARCHDELAY, Delay Time… of Input Settings: "Enter the delay time in milliseconds &lt;300&gt;:", 100 to 10 000.</summary>
-        private IEnumerable<CadPrompt> DelayTimeBody(CadCommandContext c)
+        /// <summary>
+        /// Gets or sets how the workspace shows Input Search Options (INPUTSEARCHOPTIONS), so that a test drives it with none:
+        /// true for OK, which writes its settings. With none set, the command asks -INPUTSEARCHOPTIONS's prompts.
+        /// </summary>
+        public Func<InputSearchOptionsViewModel, bool> ShowInputSearchOptions { get; set; }
+
+        /// <summary>INPUTSEARCHOPTIONS: Input Search Options shown, its settings kept on OK; with no window, -INPUTSEARCHOPTIONS.</summary>
+        private IEnumerable<CadPrompt> InputSearchOptionsBody(CadCommandContext c)
         {
+            if (ShowInputSearchOptions == null)
+            {
+                foreach (CadPrompt prompt in InputSearchOptionsTyped(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            var dialog = new InputSearchOptionsViewModel(_settings);
+
+            if (ShowInputSearchOptions(dialog))
+            {
+                ChangeSettings(dialog.WriteInto);
+            }
+        }
+
+        /// <summary>
+        /// -INPUTSEARCHOPTIONS, word for word as AutoCAD 2021's console asks it: the current settings, then "Enter an input
+        /// search Option [autoComplete/autocoRrect/System variables/conTent/Midstring/Delay]:" until Enter, each switch asked
+        /// Yes or No ("Automatically complete a command as you type? [Yes/No] &lt;Yes&gt;:"), and Delay in seconds, "Specify
+        /// the delay time in seconds &lt;0.30&gt;:": above 10 refused with "Invalid. Maximum delay is 10 seconds" and asked
+        /// again, below 0.1 left as it was, as AutoCAD leaves it.
+        /// </summary>
+        private IEnumerable<CadPrompt> InputSearchOptionsTyped(CadCommandContext c)
+        {
+            string[] options = { "autoComplete", "autocoRrect", "System variables", "conTent", "Midstring", "Delay" };
+            string Yes(bool on) => on ? "Y" : "N";
+
             while (true)
             {
-                yield return CadPrompt.ForInteger(
-                    "Enter the delay time in milliseconds",
-                    null,
-                    _settings.AutoCompleteDelay.ToString(CultureInfo.InvariantCulture)
+                c.Write(
+                    "Current settings: AutoComplete = "
+                        + Yes(_settings.AutoComplete)
+                        + ", AutoCorrect = "
+                        + Yes(_settings.AutoCorrect)
+                        + ", System variable = "
+                        + Yes(_settings.SearchSystemVariables)
+                        + ", Content = "
+                        + Yes(_settings.SearchContent)
+                        + ", Midstring = "
+                        + Yes(_settings.MidStringSearch)
+                        + ", Delay="
+                        + Seconds(_settings.AutoCompleteDelay)
                 );
+                yield return CadPrompt.ForKeyword("Enter an input search Option", options);
 
-                if (c.Input.Kind != CadInputKind.Number)
+                if (c.Input.Kind != CadInputKind.Keyword)
                 {
                     yield break;
                 }
 
-                if (c.Input.Number < 100 || c.Input.Number > 10000)
+                string option = c.Input.Text;
+
+                if (option == "Delay")
                 {
-                    c.Write("Requires an integer between 100 and 10000.");
+                    while (true)
+                    {
+                        yield return CadPrompt.ForDistance(
+                            "Specify the delay time in seconds",
+                            null,
+                            null,
+                            Seconds(_settings.AutoCompleteDelay)
+                        );
+
+                        if (c.Input.Kind != CadInputKind.Number || double.IsNaN(c.Input.Number))
+                        {
+                            break;
+                        }
+
+                        if (c.Input.Number > 10.0)
+                        {
+                            c.Write("Invalid. Maximum delay is 10 seconds");
+                            continue;
+                        }
+
+                        if (c.Input.Number >= 0.1)
+                        {
+                            int milliseconds = (int)Math.Round(c.Input.Number * 1000.0);
+                            ChangeSettings(s => s.AutoCompleteDelay = milliseconds);
+                        }
+
+                        break;
+                    }
+
                     continue;
                 }
 
-                int value = (int)c.Input.Number;
-                ChangeSettings(s => s.AutoCompleteDelay = value);
-                yield break;
+                int bit =
+                    option == "autoComplete" ? 1
+                    : option == "autocoRrect" ? 2
+                    : option == "System variables" ? 4
+                    : option == "conTent" ? 8
+                    : 16;
+                string question =
+                    bit == 1 ? "Automatically complete a command as you type?"
+                    : bit == 2 ? "Automatically correct a mistake as you type?"
+                    : bit == 4 ? "Search system variables as you type?"
+                    : bit == 8 ? "Search content in the drawing as you type?"
+                    : "Enable mid-string search?";
+                bool on = (_settings.InputSearchFlags & bit) != 0;
+                yield return CadPrompt.ForKeyword(question, new[] { "Yes", "No" }, on ? "Yes" : "No");
+
+                if (c.Input.Is("Yes") || c.Input.Is("No"))
+                {
+                    bool wanted = c.Input.Is("Yes");
+                    ChangeSettings(s =>
+                        s.InputSearchFlags = wanted ? s.InputSearchFlags | bit : s.InputSearchFlags & ~bit
+                    );
+                }
             }
         }
+
+        /// <summary>A delay in milliseconds as -INPUTSEARCHOPTIONS writes it, in seconds to two decimals: 300 is 0.30.</summary>
+        private static string Seconds(int milliseconds) =>
+            (milliseconds / 1000.0).ToString("0.00", CultureInfo.InvariantCulture);
 
         /// <summary>The rows of the list for a name typed, as <see cref="ShowSuggestions"/> orders them.</summary>
         private List<CommandSuggestionViewModel> Suggest(CadCommandRegistry registry, string typed)
@@ -632,12 +737,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 );
             }
 
+            // Alphabetically of Input Search Options: no count of uses, every name by its letters. Separate commands and
+            // system variables: the variables kept for a group of their own at the end.
+            bool alphabetical = _settings.SortAlphabetically;
+            bool apart = _settings.SeparateSystemVariables;
+            List<Candidate> named = apart ? candidates.Where(c => !c.IsVariable).ToList() : candidates;
+
             // Then the names that begin with the letters: commands and synonyms by use, then by name; then the variables.
             foreach (
-                Candidate candidate in candidates
+                Candidate candidate in named
                     .Where(c => c.Name.StartsWith(key, StringComparison.Ordinal))
                     .OrderBy(c => c.IsVariable)
-                    .ThenByDescending(c => Uses(c.Command))
+                    .ThenByDescending(c => alphabetical ? 0 : Uses(c.Command))
                     .ThenBy(c => c.Name, StringComparer.Ordinal)
             )
             {
@@ -647,16 +758,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Then, below a rule, the names with the letters inside: by use, by where the letters stand, by name.
             if (_settings.MidStringSearch)
             {
+                AddInside(named);
+            }
+
+            // The variables apart, below a rule: those that begin with the letters, then those with them inside.
+            if (apart)
+            {
+                List<Candidate> variables = candidates.Where(c => c.IsVariable).ToList();
+                bool rule = rows.Count > 0;
+                int before = rows.Count;
+
+                foreach (
+                    Candidate candidate in variables
+                        .Where(c => c.Name.StartsWith(key, StringComparison.Ordinal))
+                        .OrderBy(c => c.Name, StringComparer.Ordinal)
+                )
+                {
+                    Add(candidate, 0, null, rule && rows.Count == before);
+                }
+
+                if (_settings.MidStringSearch)
+                {
+                    AddInside(variables);
+                }
+            }
+
+            return rows;
+
+            void AddInside(List<Candidate> from)
+            {
                 bool first = true;
 
                 foreach (
-                    Candidate candidate in candidates
-                        .Where(c =>
+                    Candidate candidate in from.Where(c =>
                             c.Name.IndexOf(key, 1, StringComparison.Ordinal) > 0
                             && !c.Name.StartsWith(key, StringComparison.Ordinal)
                         )
-                        .OrderByDescending(c => Uses(c.Command))
-                        .ThenBy(c => c.Name.IndexOf(key, StringComparison.Ordinal))
+                        .OrderByDescending(c => alphabetical ? 0 : Uses(c.Command))
+                        .ThenBy(c => alphabetical ? 0 : c.Name.IndexOf(key, StringComparison.Ordinal))
                         .ThenBy(c => c.Name, StringComparer.Ordinal)
                 )
                 {
@@ -674,13 +813,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                 }
             }
-
-            return rows;
         }
 
         /// <summary>
         /// The rows of Search Content for a name typed: the blocks, layers, hatch patterns, text styles and dimension styles of
-        /// the drawing, in that order, as AutoCAD 2021's Content Type list has them. In each kind, the names that begin with
+        /// the drawing, in the order of <see cref="GlobalSettings.ContentTypes"/> (AutoCAD 2021's Content Type list), a kind not
+        /// searched left out. In each kind, the names that begin with
         /// the letters, then, with Mid-string Search, those with the letters inside, each by name; a kind's keyword typed
         /// (BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or STYLE, DIMSTYLE) lists every name of the kind.
         /// </summary>
@@ -725,7 +863,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
             };
 
-            foreach (ContentKind kind in kinds)
+            // In the order of Input Search Options' Content type list, the kinds not searched left out; Visual Style, of which
+            // the app's drawings have none, finds nothing.
+            var ordered = _settings
+                .ContentTypes.Where(t => t.IsSearched)
+                .Select(t => kinds.FirstOrDefault(k => k.Name == t.Name))
+                .Where(k => k != null)
+                .ToList();
+
+            foreach (ContentKind kind in ordered)
             {
                 bool every = kind.Keywords.Contains(key);
                 IEnumerable<string> names = kind

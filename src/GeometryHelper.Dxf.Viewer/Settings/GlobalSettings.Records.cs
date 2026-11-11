@@ -74,8 +74,39 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets how many times the misspelling was followed by the command.</summary>
         public int Count { get; }
 
-        /// <summary>Gets whether it has happened often enough to be offered.</summary>
+        /// <summary>
+        /// Gets whether it has happened often enough to be offered at the default of <see cref="GlobalSettings.AutoCorrectAfter"/>
+        /// times; the settings offer it after their own <see cref="GlobalSettings.AutoCorrectMistypes"/>.
+        /// </summary>
         public bool IsRemembered => Count >= GlobalSettings.AutoCorrectAfter;
+    }
+
+    /// <summary>A kind of named object of Search Content, as the Content type list of Input Search Options has it: its name and whether it is searched.</summary>
+    public sealed class GlobalContentType
+    {
+        /// <summary>Makes a kind of the list.</summary>
+        /// <param name="name">The name, one of <see cref="GlobalSettings.ContentTypeNames"/>: Block, Layer, Hatch, Visual Style, Text Style or Dim Style.</param>
+        /// <param name="isSearched">Whether Search Content lists the drawing's objects of the kind.</param>
+        /// <exception cref="ArgumentException">Thrown when the name is not one of the six.</exception>
+        public GlobalContentType(string name, bool isSearched)
+        {
+            Name = GlobalSettings.ContentTypeNames.Contains(name)
+                ? name
+                : throw new ArgumentException(
+                    "The content types are " + string.Join(", ", GlobalSettings.ContentTypeNames) + ".",
+                    nameof(name)
+                );
+            IsSearched = isSearched;
+        }
+
+        /// <summary>Gets the name, as Layer.</summary>
+        public string Name { get; }
+
+        /// <summary>Gets whether Search Content lists the kind.</summary>
+        public bool IsSearched { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => Name + (IsSearched ? string.Empty : " (not searched)");
     }
 
     /// <summary>
@@ -94,6 +125,10 @@ namespace GeometryHelper.Dxf.Viewer
         private const int PendingCorrectionsKept = 100;
 
         private int _autoCompleteDelay = 300;
+        private int _autoCorrectMistypes = AutoCorrectAfter;
+        private GlobalContentType[] _contentTypes = ContentTypeNames
+            .Select(n => new GlobalContentType(n, true))
+            .ToArray();
         private SortedDictionary<string, int> _uses = new SortedDictionary<string, int>(
             StringComparer.OrdinalIgnoreCase
         );
@@ -121,6 +156,103 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets whether the list holds names with the letters inside them, below those that begin with them: on by default.</summary>
         public bool MidStringSearch { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the list puts the commands that begin with the letters in the order of their names, as AutoCAD
+        /// 2021's Alphabetically of Input Search Options; false by default, According to frequency of usage, the commands used
+        /// most first.
+        /// </summary>
+        public bool SortAlphabetically { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the system variables are listed apart, below every command, under a rule of their own, as
+        /// AutoCAD 2021's Separate commands and system variables of Input Search Options: off by default.
+        /// </summary>
+        public bool SeparateSystemVariables { get; set; }
+
+        /// <summary>
+        /// Gets or sets after how many mistypes followed by one command AutoCorrect offers it, as Remember corrections after
+        /// <c>n</c> mistypes of AutoCAD 2021's Input Search Options: 3 by default (<see cref="AutoCorrectAfter"/>), 2 to 10.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int AutoCorrectMistypes
+        {
+            get => _autoCorrectMistypes;
+            set => _autoCorrectMistypes = (int)Range(value, 2, 10, nameof(AutoCorrectMistypes));
+        }
+
+        /// <summary>
+        /// Gets or sets the kinds of named objects Search Content lists, in the order it lists them, each with whether it is
+        /// searched, as the Content type list of AutoCAD 2021's Input Search Options: Block, Layer, Hatch, Visual Style, Text
+        /// Style and Dim Style, every one searched, by default. The drawings of the app have no visual styles, so that Visual
+        /// Style finds nothing.
+        /// </summary>
+        /// <value>Set, the six kinds of <see cref="ContentTypeNames"/>, each once, in any order.</value>
+        /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the value set is not the six kinds, each once.</exception>
+        public IReadOnlyList<GlobalContentType> ContentTypes
+        {
+            get => _contentTypes;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                GlobalContentType[] given = value.ToArray();
+
+                if (
+                    given.Length != ContentTypeNames.Count
+                    || given.Any(t => t == null)
+                    || !ContentTypeNames.All(n => given.Count(t => t.Name == n) == 1)
+                )
+                {
+                    throw new ArgumentException(
+                        "The content types are " + string.Join(", ", ContentTypeNames) + ", each once.",
+                        nameof(value)
+                    );
+                }
+
+                _contentTypes = given;
+            }
+        }
+
+        /// <summary>The kinds of named objects of Search Content, in AutoCAD 2021's order: Block, Layer, Hatch, Visual Style, Text Style, Dim Style.</summary>
+        public static readonly IReadOnlyList<string> ContentTypeNames = new[]
+        {
+            "Block",
+            "Layer",
+            "Hatch",
+            "Visual Style",
+            "Text Style",
+            "Dim Style",
+        };
+
+        /// <summary>
+        /// Gets or sets AutoCAD's INPUTSEARCHOPTIONFLAGS, 0 to 31, the switches of Input Search Options as one number: 1
+        /// AutoComplete, 2 AutoCorrect, 4 Search system variables, 8 Search content, 16 Mid-string search; 31, every one on,
+        /// by default, as AutoCAD 2021's console reads it.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int InputSearchFlags
+        {
+            get =>
+                (AutoComplete ? 1 : 0)
+                | (AutoCorrect ? 2 : 0)
+                | (SearchSystemVariables ? 4 : 0)
+                | (SearchContent ? 8 : 0)
+                | (MidStringSearch ? 16 : 0);
+            set
+            {
+                int flags = (int)Range(value, 0, 31, nameof(InputSearchFlags));
+                AutoComplete = (flags & 1) != 0;
+                AutoCorrect = (flags & 2) != 0;
+                SearchSystemVariables = (flags & 4) != 0;
+                SearchContent = (flags & 8) != 0;
+                MidStringSearch = (flags & 16) != 0;
+            }
+        }
 
         /// <summary>
         /// Gets or sets how long the command line waits after a key before it lists what matches, in milliseconds, 100 to
@@ -258,17 +390,17 @@ namespace GeometryHelper.Dxf.Viewer
                     old.Command,
                     old.Count == int.MaxValue ? old.Count : old.Count + 1
                 );
-                return _corrections[index].IsRemembered;
+                return _corrections[index].Count >= _autoCorrectMistypes;
             }
 
             _corrections.Add(noted);
 
-            while (_corrections.Count(c => !c.IsRemembered) > PendingCorrectionsKept)
+            while (_corrections.Count(c => c.Count < _autoCorrectMistypes) > PendingCorrectionsKept)
             {
-                _corrections.RemoveAt(_corrections.FindIndex(c => !c.IsRemembered));
+                _corrections.RemoveAt(_corrections.FindIndex(c => c.Count < _autoCorrectMistypes));
             }
 
-            return noted.IsRemembered;
+            return noted.Count >= _autoCorrectMistypes;
         }
 
         /// <summary>Gets the command remembered for a misspelling; where several are, the one that followed it most, then the first by name.</summary>
@@ -278,7 +410,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             string key = (typed ?? string.Empty).Trim().ToUpperInvariant();
             return _corrections
-                .Where(c => c.IsRemembered && c.Typed == key)
+                .Where(c => c.Count >= _autoCorrectMistypes && c.Typed == key)
                 .OrderByDescending(c => c.Count)
                 .ThenBy(c => c.Command, StringComparer.Ordinal)
                 .Select(c => c.Command)
@@ -402,7 +534,21 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("searchContent", SearchContent);
             w.Value("midStringSearch", MidStringSearch);
             w.Value("delayMilliseconds", _autoCompleteDelay);
+            w.Value("sortAlphabetically", SortAlphabetically);
+            w.Value("separateSystemVariables", SeparateSystemVariables);
+            w.Value("autoCorrectMistypes", _autoCorrectMistypes);
             w.Close();
+            w.OpenList("contentTypes");
+
+            foreach (GlobalContentType type in _contentTypes)
+            {
+                w.Open(null);
+                w.Value("name", type.Name);
+                w.Value("search", type.IsSearched);
+                w.Close();
+            }
+
+            w.CloseList();
             w.Open("commandUses");
 
             foreach (KeyValuePair<string, int> use in _uses)
@@ -545,6 +691,33 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             OrderRecent();
+
+            // The content types of Input Search Options: the list read whole, or left at its default with a Warn.
+            XElement contentTypes = root.Element("contentTypes");
+
+            if (contentTypes != null)
+            {
+                try
+                {
+                    ContentTypes = contentTypes
+                        .Elements()
+                        .Select(item => new GlobalContentType(
+                            item.Element("name")?.Value,
+                            !string.Equals(item.Element("search")?.Value, "false", StringComparison.OrdinalIgnoreCase)
+                        ))
+                        .ToList();
+                }
+                catch (ArgumentException exception)
+                {
+                    GeometryHelperLog.Warn(
+                        "GlobalSettings: the content types of "
+                            + path
+                            + " are not valid ("
+                            + exception.Message.Split('\n')[0].Trim()
+                            + "); the default is kept."
+                    );
+                }
+            }
 
             foreach (XElement item in root.Element("recentCommands")?.Elements() ?? Enumerable.Empty<XElement>())
             {

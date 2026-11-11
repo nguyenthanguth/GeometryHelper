@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -236,6 +237,70 @@ namespace GeometryHelper.Dxf.Viewer
                 Write(s.Database.LayerTable[layerName], CadXrefLayers.Color, l => l.Color = color)
             );
         }
+
+        /// <summary>
+        /// Renames a layer with every object on it, as the Layer manager's name cell and AutoCAD 2021's -RENAME do: the new
+        /// name with the spaces around it taken off, so that "  T2  " names it T2, and letters of another case taken
+        /// (TEXT to text). Refused in AutoCAD 2021's words: layer 0, <c>Cannot rename layer "0".</c>; a name already used,
+        /// letters of either case the same, <c>A layer named "DIM" already exists.</c>; an empty name, one with a character a
+        /// layer name cannot hold (&lt; &gt; / \ " : ; ? * | , = `) and a layer of an external reference,
+        /// <c>Invalid layer name.</c> Defpoints is renamed, as AutoCAD renames it.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="newName">The new name.</param>
+        /// <returns>What came of it; the name it has already is done with nothing written.</returns>
+        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        {
+            DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
+
+            if (layer == null)
+            {
+                return refused;
+            }
+
+            string layerName = layer.Name;
+
+            if (layerName == "0")
+            {
+                return Refuse("Cannot rename layer \"0\".");
+            }
+
+            string wanted = (newName ?? string.Empty).Trim();
+
+            if (layer.IsDependent || !IsLayerName(wanted))
+            {
+                return Refuse("Invalid layer name.");
+            }
+
+            if (string.Equals(wanted, layerName, StringComparison.Ordinal))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            if (
+                !string.Equals(wanted, layerName, StringComparison.OrdinalIgnoreCase)
+                && document.Database.LayerTable.Has(wanted)
+            )
+            {
+                return Refuse("A layer named \"" + document.Database.LayerTable[wanted].Name + "\" already exists.");
+            }
+
+            return document.ApplyEdit(
+                "LAYER",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename layer", layerName, wanted) },
+                s => s.Database.LayerTable[layerName].Name = wanted
+            );
+        }
+
+        /// <summary>Whether a name is one AutoCAD takes for a layer: not empty, none of &lt; &gt; / \ " : ; ? * | , = ` in it, nor a control character.</summary>
+        /// <param name="name">The name, the spaces around it taken off.</param>
+        /// <returns>True when it is.</returns>
+        internal static bool IsLayerName(string name) =>
+            !string.IsNullOrEmpty(name)
+            && name.IndexOfAny(InvalidNameCharacters) < 0
+            && name.IndexOf(',') < 0
+            && !name.Any(char.IsControl);
 
         /// <summary>
         /// Deletes a layer, as the Layer manager deletes one: only a layer nothing uses. Refused, with the reason, for layer 0,
