@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The External References palette of the presenter said "Needs reloading" where AutoCAD 2021's help of the
+palette's List View says "Needs Reloading". Its other words were checked against that page and stand: Loaded, Unloaded,
+Not Found, Unresolved, Orphaned and Unreferenced for the status, the current drawing listed first, and the types of a
+drawing attachments or overlays. The page says nothing of a type of a nested reference, so Nested is kept.
+
 **FIXED.** The presenter drew a layer of an external reference the drawing had not changed as the file has it now under
 VISRETAIN 1, and synced it on reload. AutoCAD 2021 does not: with VISRETAINMODE 0, its default, it syncs nothing, and its
 console kept `x|WALL` green (62 3, 1071 0) when x.dwg made WALL blue, reloaded and opened anew alike. The drawing's

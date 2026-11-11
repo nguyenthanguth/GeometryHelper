@@ -35,7 +35,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Shows the palette over a window, left open beside it: the one open already is brought to the front and listed
-        /// again. The drawing's files are watched while it is open, so that one changed on disk shows Needs reloading.
+        /// again. The drawing's files are watched while it is open, so that one changed on disk shows Needs Reloading.
         /// </summary>
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="mainModel">The window's view model, whose drawing shown it lists.</param>

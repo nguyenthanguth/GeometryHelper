@@ -428,7 +428,7 @@ the folder of the drawing that names it, then the file's name there, in the draw
 A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `D:\Plans\plans\host.dxf` is saved as
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
 and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
-with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs reloading once its file changed on disk.
+with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs Reloading once its file changed on disk.
 Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
 under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is

@@ -95,7 +95,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the row is an image.</summary>
         public bool IsImage => Reference != null && Reference.IsImage;
 
-        /// <summary>Gets the colour of the status: green Loaded, red Not Found, amber Unloaded, Needs reloading and Orphaned, the text's otherwise.</summary>
+        /// <summary>Gets the colour of the status: green Loaded, red Not Found, amber Unloaded, Needs Reloading and Orphaned, the text's otherwise.</summary>
         public Brush StatusBrush
         {
             get

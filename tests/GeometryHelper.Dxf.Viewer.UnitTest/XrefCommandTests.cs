@@ -366,7 +366,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Grid(more: d => d.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 50.0)));
             File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(1));
 
-            Assert.Equal(CadReferenceStatus.NeedsReloading, Assert.Single(document.Xrefs.GetReferences()).Status);
+            CadExternalReference changed = Assert.Single(document.Xrefs.GetReferences());
+            Assert.Equal(CadReferenceStatus.NeedsReloading, changed.Status);
+
+            // The words of AutoCAD 2021's help of the palette's List View: "Needs Reloading", "Not Found".
+            Assert.Equal("Needs Reloading", changed.StatusText);
             Assert.Single(Items<DisplayArc2>(document));
 
             Run(session, "-XREF", "R", "grid");
