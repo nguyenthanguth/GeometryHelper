@@ -44,6 +44,82 @@ POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs, PLINE from (0, 10
 makes it a LWPOLYLINE of its handle again. RECTANG and REVCLOUD make LWPOLYLINEs at 0 too, as AutoCAD's do. AutoCAD names
 the first PEDITACCEPT; it has no PEACCEPT.
 
+**FIXED.** A [`DxfViewport`](xref:GeometryHelper.Dxf.DxfViewport) made in code and appended to a layout has the layers
+frozen in new viewports (`ViewportVisibilityDefault`, New VP Freeze) frozen in it at once, as AutoCAD 2021's
+`AppendEntity` freezes them: its API, given layer GHB so marked, made a viewport with [GHB] frozen at birth, and left the
+layout's own viewport 1 with none. Only the presenter's MVIEW froze them before. A copy keeps its original's.
+
+**NEW.** "Isolate Selected Layers" in the shortcut menu of the presenter's Layer Properties Manager turns off every layer
+but those chosen, one undo step: of the layers 0, WALLS and COLUMNS, COLUMNS chosen leaves 0 and WALLS off. The item was
+grey. "Rename Layer" stays grey, since renaming in the list needs a name cell that can be typed in, which waits for a
+design.
+
+**NEW.** -SCALELISTEDIT in the presenter edits the drawing's list of scales (ACAD_SCALELIST), its prompts and answers
+word for word as AutoCAD 2021's console gives them: ? lists the scales with their units, Add asks a name and a ratio and
+redefines a scale of that name when told Yes, Delete takes out one scale or `*` every one in no use and says "Scale 1:1 is
+referenced so it cannot be deleted." for one AutoCAD keeps, Reset puts back the standard 1:1 to 100:1, Exit ends; the
+command is one undo step. The status bar's scale list in a layout offers the drawing's list, as AutoCAD's does, and its
+Custom... runs -SCALELISTEDIT in place of VPSCALE. The Edit Drawing Scales dialog of SCALELISTEDIT waits for a design.
+[`DxfObjectContextCollection.CanRemoveContext`](xref:GeometryHelper.Dxf.DxfObjectContextCollection.CanRemoveContext(System.String))
+says whether `RemoveContext` would take a scale out.
+
+**CHANGED.** ZOOM Previous in the presenter goes back through a list of its own for each viewport of a layout, for the
+paper of each layout and for model space, 20 views each, as AutoCAD 2021 keeps them. It went back through one list of
+every view the drawing's ZOOM and PAN had left, whichever viewport or space they changed, and a viewport's views were kept
+as boxes. AutoCAD's console, after 12 zooms in one viewport, answers "No previous view saved." in another, and after a
+zoom there gives the first its 12 back in order; zoomed 30 times, a viewport gives 20 back, then "No previous view
+saved."; the paper's list is apart.
+
+**CHANGED.** The wheel's rolls and the middle button's drags in a viewport worked through are one undo step together in
+the presenter, as AutoCAD 2021 combines consecutive real-time zooms and pans by default (UNDO Control Combine: UNDOCTL is
+61 in its console, its 16 set). A roll or a drag held still long enough for the view to be drawn again made a step of
+its own, so one drag could leave several. ZOOM and PAN typed stay a step each, as AutoCAD's console undoes ZOOM 2X, ZOOM
+2X and -PAN one U each. `CadDocument.SetViewportView` takes `realTime` to join a change to the real-time one before it.
+
+**FIXED.** A layout viewport whose view is twisted, or looks at a target off the origin, is drawn in the presenter where
+AutoCAD 2021 draws it, and a twisted one can be worked through. The presenter turned the view the wrong way and took the
+view's centre as a point of model space, where AutoCAD keeps it about the target and turned by the twist: AutoCAD's
+console, asked TRANS from the world to the view and on to the paper in a viewport 120 by 80 about (100, 100) at 1:5, its
+view about (100, 50) twisted 30 degrees, puts (100, 0) at (97.320, 100) on the paper, and in one about (250, 100) looking
+at (10, 20) puts the origin at (248, 96); the presenter now does too. MSPACE and a double click enter a twisted viewport,
+which they refused: the canvas's view in model units turns with it (`CadView.Twist`), so picks, snaps, boxes, the
+crosshair and the UCS icon follow the turn, PAN moves by the model distance given and ZOOM Window fits the box turned.
+`CadViewports.ToView` and `FromView` give the view's coordinates of a point and back.
+
+**NEW.** The presenter's window says on a drawing's command line when a file one of its external references was read
+from changes on disk, where AutoCAD 2021 shows a balloon over its status bar (XREFNOTIFY 2): "External Reference Files
+Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette." Each change is
+said once, and again only after the reference was reloaded and its file changed anew. The files were watched only while
+the External References palette was open, to refresh it. **NEW.** `MainViewModel.WatchReferenceFiles`, which the
+workspace sets.
+
+**NEW.** The External References palette of the presenter lists nested external references as AutoCAD 2021's does: a
+reference the drawing places is followed by those its drawing attaches, of the type Nested in the list view, under their
+parent and of their own type in the tree view, each level 16 pixels further in. A nested reference whose parent is
+unloaded, not found or unresolved stands Orphaned; nested overlays are left out, as AutoCAD loads none. The record
+AutoCAD writes in the host for a nested reference (`c` beside `b`, which no INSERT of the host places, as its console
+showed for a host attaching `b.dwg` that attaches `c.dwg`) was listed as Unreferenced; it is listed under its parent alone.
+**NEW.** `CadExternalReference.Depth`, `ParentName`, `IsNested` and `CadReferenceStatus.Orphaned`; `--dialog xref` and
+`xref-tree` draw the palette in screenshot mode. **FIXED.** The palette's names were drawn in the system's black on its
+dark rows; they are drawn in the text colour.
+
+**NEW.** XOPEN in the presenter opens the drawing of an external reference picked in a tab of its own, as AutoCAD 2021
+opens it in a window of its own. It asks "Select Xref:"; a line picked is answered "Object is not an Xref" and the
+question asked again, and Enter ends it saying nothing, as AutoCAD 2021's console answers them. A pick on what a nested
+reference draws opens the reference the drawing places, and one whose file is gone is refused as -XREF Reload refuses
+it. The registry has 177 commands.
+
+**FIXED.** A layer of an external reference the drawing keeps a record of (`grid|GRID`, as AutoCAD writes it) is drawn
+as AutoCAD 2021 draws it under VISRETAIN 1: what the drawing changed of it as the drawing keeps it, the rest as the file
+referenced has it now. The presenter drew the record whole, so a layer the file made blue after AutoCAD saved the drawing
+stayed green. AutoCAD, probed in its console with -LAYER on `b|WALL` and the drawing written out, marks each change in
+the 1071 of the record's `AcXRefLayerPropertyOverride`: 1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
+LWeight, 128 TRansparency, 1024 Description, 0 for a layer left as it was. The Layer manager, the layer box and -LAYER
+now change such a layer and mark it so, and a change of it in the drawing draws its INSERT anew, which it did not.
+**CHANGED.** The current layer refuses a layer of an external reference with "Cannot set CLAYER to that value.", and
+-LAYER Set with "Invalid layer name.", as AutoCAD 2021 refuses them; a new layer named with a character AutoCAD refuses,
+`grid|X` among them, is refused with `"grid|X" is an invalid layer name.`
+
 **NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
 and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
 vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new

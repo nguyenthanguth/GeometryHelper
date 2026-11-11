@@ -475,6 +475,9 @@ namespace GeometryHelper.Dxf
             block.AppendEntity(viewport);
             viewport.MakeSheetViewport();
 
+            // The sheet's viewport freezes none of the layers new viewports freeze, as AutoCAD 2021 leaves its own.
+            viewport.ThawAllLayersInViewport();
+
             // The first VIEWPORT of a layout is the one AutoCAD and BricsCAD take for its sheet: those the layout has are moved
             // after the viewport 1, in their order and with their handles, and each stacked on (68 of 1 or more) moves up one.
             foreach (DxfViewport other in others)

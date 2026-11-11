@@ -17,11 +17,112 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // The image frame box's items, IMAGEFRAME 0, 1 and 2, in AutoCAD 2021's words.
         private static readonly string[] ImageFrameNames = { "Hide Frames", "Display and Plot Frames", "Display but Not Plot Frames" };
 
+        // The drawings whose referenced files are followed, and the references of each announced as changed: looked up only.
+        private readonly Dictionary<CadDocument, EventHandler> _referenceWatchers = new Dictionary<CadDocument, EventHandler>();
+        private readonly Dictionary<CadDocument, HashSet<string>> _announcedReferences = new Dictionary<CadDocument, HashSet<string>>();
+        private bool _watchReferenceFiles;
+
         /// <summary>Gets or sets how the workspace shows the External References palette, beside the window and left open.</summary>
         public Action<ExternalReferencesViewModel> ShowExternalReferences { get; set; }
 
         /// <summary>Gets or sets how the workspace shows the attach dialog; the action it closed with is in its request.</summary>
         public Func<AttachReferenceViewModel, bool> ShowAttachReference { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the files the open drawings' external references were read from are watched, so that one
+        /// changed on disk is announced on the command line of its drawing, as AutoCAD 2021's status bar announces it (XREFNOTIFY
+        /// 2): "External Reference Files Have Changed: grid needs reloading." once for each change, until it is reloaded. Off
+        /// until set, as in a test; the workspace sets it.
+        /// </summary>
+        public bool WatchReferenceFiles
+        {
+            get => _watchReferenceFiles;
+            set
+            {
+                _watchReferenceFiles = value;
+
+                foreach (CadDocument document in _referenceWatchers.Keys.ToList())
+                {
+                    document.Xrefs.WatchFiles = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Says on the command line of a drawing which of its external references changed on disk since they were read and since
+        /// they were last announced, in one line: "External Reference Files Have Changed: grid needs reloading. Reload it with
+        /// -XREF Reload or in the External References palette." A reference reloaded since is announced again when its file
+        /// next changes. The watcher of <see cref="WatchReferenceFiles"/> calls it on the window's thread.
+        /// </summary>
+        internal void AnnounceChangedReferences(CadDocument document)
+        {
+            KnownFile file = _files.Values.FirstOrDefault(f => f.Document == document);
+
+            if (file?.Session == null)
+            {
+                return;
+            }
+
+            if (!_announcedReferences.TryGetValue(document, out HashSet<string> announced))
+            {
+                announced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _announcedReferences[document] = announced;
+            }
+
+            var changed = new List<string>();
+            var stale = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (CadExternalReference reference in document.Xrefs.GetReferences())
+            {
+                if (!reference.IsImage && reference.Status == CadReferenceStatus.NeedsReloading)
+                {
+                    stale.Add(reference.Name);
+
+                    if (announced.Add(reference.Name))
+                    {
+                        changed.Add(reference.Name);
+                    }
+                }
+            }
+
+            announced.IntersectWith(stale);
+
+            if (changed.Count == 0)
+            {
+                return;
+            }
+
+            bool one = changed.Count == 1;
+            file.Session.Write("External Reference Files Have Changed: " + string.Join(", ", changed) + (one ? " needs" : " need") + " reloading. Reload "
+                + (one ? "it" : "them") + " with -XREF Reload or in the External References palette.");
+
+            if (file == _current)
+            {
+                SyncHistory();
+            }
+        }
+
+        /// <summary>Follows the files a drawing's external references were read from, while <see cref="WatchReferenceFiles"/> is set.</summary>
+        private void WatchReferences(CadDocument document)
+        {
+            System.Windows.Threading.Dispatcher dispatcher = System.Windows.Application.Current?.Dispatcher ?? System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            EventHandler handler = (sender, e) => dispatcher.BeginInvoke(new Action(() => AnnounceChangedReferences(document)));
+            _referenceWatchers[document] = handler;
+            document.Xrefs.FilesChanged += handler;
+            document.Xrefs.WatchFiles = _watchReferenceFiles;
+        }
+
+        /// <summary>Stops following the files of a drawing closed.</summary>
+        private void StopWatchingReferences(CadDocument document)
+        {
+            if (_referenceWatchers.TryGetValue(document, out EventHandler handler))
+            {
+                document.Xrefs.FilesChanged -= handler;
+                _referenceWatchers.Remove(document);
+            }
+
+            _announcedReferences.Remove(document);
+        }
 
         /// <summary>
         /// Starts a command and answers its prompts with the texts given, each as typed and Enter pressed, an empty one as Enter
@@ -96,7 +197,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>A request of the external reference commands: the palette or an attach dialog shown where the workspace shows them.</summary>
+        /// <summary>
+        /// A request of the external reference commands: the palette or an attach dialog shown where the workspace shows them,
+        /// or the drawing XOPEN picked opened in a tab of its own, as <see cref="Open(string)"/> opens a file.
+        /// </summary>
         private void OnXrefRequested(CadUiRequestEventArgs e)
         {
             switch (e.Name)
@@ -106,6 +210,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         ShowExternalReferences(new ExternalReferencesViewModel(this));
                         e.Handled = true;
+                    }
+
+                    break;
+                case "XOPEN":
+                    if (e.Payload is string path)
+                    {
+                        e.Handled = Open(path);
                     }
 
                     break;

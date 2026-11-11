@@ -186,23 +186,14 @@
                                         <ColumnDefinition Width="58" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Margin="8,4">
-                                        <Border x:Name="Indent" Width="0" />
+                                        <Border x:Name="Indent" Width="{Binding Indent}" />
                                         <Path Data="{Binding Icon}" Stroke="{Binding IconBrush}" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
-                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource GhText}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" Margin="8,4" />
                                     <TextBlock Grid.Column="2" Text="{Binding SizeText}" Foreground="{StaticResource GhTextMuted}" Margin="8,4" />
                                     <TextBlock Grid.Column="3" Text="{Binding TypeName}" Foreground="{StaticResource GhTextMuted}" Margin="8,4" />
                                 </Grid>
-                                <DataTemplate.Triggers>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding DataContext.IsTreeView, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True" />
-                                            <Condition Binding="{Binding IsCurrent}" Value="False" />
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter TargetName="Indent" Property="Width" Value="16" />
-                                    </MultiDataTrigger>
-                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -247,7 +238,7 @@
             </Border>
 
             <StackPanel Margin="12,10" TextElement.Foreground="{StaticResource GhTextMuted}">
-                <TextBlock TextWrapping="Wrap" Margin="0,0,0,4" Text="Status: Loaded, Unloaded, Not Found, Unreferenced, Needs reloading (the file changed on disk: Reload reads it again)." />
+                <TextBlock TextWrapping="Wrap" Margin="0,0,0,4" Text="Status: Loaded, Unloaded, Not Found, Unreferenced, Orphaned (its parent is not shown), Needs reloading (the file changed on disk: Reload reads it again)." />
                 <TextBlock TextWrapping="Wrap" Text="Right-click a row: Open, Attach…, Unload, Reload, Detach. Bind… is greyed: binding a DXF xref into the drawing is to confirm." />
             </StackPanel>
         </DockPanel>

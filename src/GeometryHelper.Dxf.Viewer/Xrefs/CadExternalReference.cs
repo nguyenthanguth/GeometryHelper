@@ -22,6 +22,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Its file changed on disk since it was read: Reload reads it again.</summary>
         NeedsReloading,
+
+        /// <summary>A nested reference whose parent is unloaded, not found or unresolved, so that it is not shown.</summary>
+        Orphaned,
     }
 
     /// <summary>How the path of an external reference or an image is written, as AutoCAD's Path type names it.</summary>
@@ -43,9 +46,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadExternalReference
     {
-        internal CadExternalReference(string name, bool isImage, bool isOverlay, string savedPath, string foundAt, CadReferenceStatus status)
+        internal CadExternalReference(string name, bool isImage, bool isOverlay, string savedPath, string foundAt, CadReferenceStatus status, string parentName = null, int depth = 0)
         {
             Name = name;
+            ParentName = parentName;
+            Depth = depth;
             IsImage = isImage;
             IsOverlay = isOverlay;
             SavedPath = savedPath ?? string.Empty;
@@ -76,6 +81,18 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether it is an image rather than an external reference.</summary>
         public bool IsImage { get; }
+
+        /// <summary>
+        /// Gets the name of the external reference whose drawing places it, for a nested reference; null for one the drawing
+        /// places itself, or an image.
+        /// </summary>
+        public string ParentName { get; }
+
+        /// <summary>Gets how deep it is nested: 0 for one the drawing places, 1 for one placed by such a reference's drawing, and on.</summary>
+        public int Depth { get; }
+
+        /// <summary>Gets whether it is a nested reference: one the drawing of another reference places.</summary>
+        public bool IsNested => Depth > 0;
 
         /// <summary>Gets whether an external reference is overlaid rather than attached.</summary>
         public bool IsOverlay { get; }
@@ -123,7 +140,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Gets the status in the palette's words: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, Needs reloading.</summary>
+        /// <summary>Gets the status in the palette's words: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, Needs reloading, Orphaned.</summary>
         public string StatusText
         {
             get

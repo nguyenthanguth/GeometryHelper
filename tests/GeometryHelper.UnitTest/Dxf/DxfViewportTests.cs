@@ -375,6 +375,27 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void AViewportMadeInCode_FreezesTheLayersNewViewportsFreeze_AndTheSheetsViewportNone()
+        {
+            // AutoCAD 2021, layer GHB given ViewportVisibilityDefault: a viewport appended by its API had [GHB] frozen at birth,
+            // and the layout's own viewport 1 none (plugin GhVpl1).
+            var db = new DxfDatabase("AC1027");
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "GHA" });
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "GHB", ViewportVisibilityDefault = true });
+            DxfLayout layout = db.Layouts.Single(l => l.LayoutName == "Layout1");
+
+            DxfViewport sheet = layout.Initialize();
+            var viewport = new DxfViewport { CenterPoint = new GeoPoint3(100, 100, 0), Width = 100, Height = 80, ViewHeight = 80 };
+            layout.BlockTableRecord.AppendEntity(viewport);
+            viewport.On = true;
+
+            Assert.Empty(sheet.GetFrozenLayers());
+            Assert.Equal(new[] { "GHB" }, viewport.GetFrozenLayers().Select(l => l.Name));
+            DxfDatabase again = DxfDatabase.Parse(db.ToText());
+            Assert.Equal(new[] { "GHB" }, again.Layouts.Single(l => l.LayoutName == "Layout1").GetViewports().Single(v => v.Number == 2).GetFrozenLayers().Select(l => l.Name));
+        }
+
+        [Fact]
         public void AViewportAppended_TakesTheFirstFreeNumber_AndOneTurnedOnBeforeStacksAboveTheOthers()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfObjectsEzdxfDrawings.R2018);

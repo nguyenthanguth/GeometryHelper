@@ -94,13 +94,16 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
-- [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
+- [ ] PEDIT (running): PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
-- [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
+- [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
-- [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
-      SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
-      through the core's API, not only MVIEW (S)
+- [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
+      one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
+      manager; New VP Freeze on viewports made through the core's API (S)
+- [ ] Layouts follow-ups: the SCALELISTEDIT dialog and Rename in the Layer manager (need design); wheel and middle-button
+      views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
+      mode drawing the white paper (S)
 - [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
@@ -237,7 +240,11 @@ the ones wanted.
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
-- [ ] Xrefs (running): XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
+- [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
+      palette (list and tree); a changed referenced file said on the command line
+- [ ] Xrefs follow-ups (running, non-UI): XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
+      core flags setter); the change balloon in the status bar (needs design); Transparency, Plot and Description editors
+      for xref layers; VISRETAIN 0; check the palette's "Nested"/"Orphaned" words against Autodesk's help (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
