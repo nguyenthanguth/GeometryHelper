@@ -223,6 +223,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Gets or sets what Columns › Resize and Rows › Resize of the cells' right-click menu ask of the canvas: the drag of a
+        /// grip of the cells selected, 1 their right edge and 2 their bottom edge, started as though the grip had been clicked.
+        /// The window gives it to <see cref="CadCanvas.DragCellGrip"/>; null for none, when the items do nothing.
+        /// </summary>
+        public Action<int> CellGripDragRequested { get; set; }
+
+        /// <summary>
         /// Ends a drag of a table's grip let go or clicked again: made, one undo step, a refusal said on the command line; after
         /// an autofill the source and the cells filled are the cells selected.
         /// </summary>

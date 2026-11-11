@@ -182,7 +182,12 @@ namespace GeometryHelper.Dxf.Viewer
             return new DxfCellRange(top, left, bottom, right);
         }
 
-        /// <summary>Writes the text of a cell, as typing in it does; the same text changes nothing.</summary>
+        /// <summary>
+        /// Writes the text of a cell, as typing in it does; the same text changes nothing. A whole number typed, spaces round it
+        /// left out, is kept as a whole number unless the cell is made to hold text, as AutoCAD 2021 reads a text it parses into
+        /// a value: 1 is the number 1 and 007 the number 7, so that the autofill grip dragged from it counts 2, 3, 4; b1, 1.5 and
+        /// 12mm stay text.
+        /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The table's handle.</param>
         /// <param name="row">The row, from nought.</param>
@@ -215,11 +220,27 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
+            // A whole number, as AutoCAD 2021's SetValue of a text with ConvertTextToValue made 1 and 007 the numbers 1 and 7
+            // and left a cell made to hold text with its text.
+            int number = 0;
+            bool whole =
+                table.DataType(row, column) != DxfDataType.String
+                && int.TryParse(
+                    text,
+                    NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture,
+                    out number
+                );
+
             return Edit(document, handle, "Cell " + CellName(row, column), old, text, t =>
             {
                 if (text.Length == 0)
                 {
                     t.ResetValue(row, column);
+                }
+                else if (whole)
+                {
+                    t.SetValue(row, column, number);
                 }
                 else
                 {

@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Columns › Resize and Rows › Resize, on the right-click menu of a table's cells, start the drag of
+the selection's right (or bottom) line as though its edge grip had been clicked: the line follows the cursor, and a
+click, Enter or a size typed makes it, one undo step (`CadCanvas.DragCellGrip`, `MainViewModel.CellGripDragRequested`).
+A row's line dragged with dynamic input on shows the field of its height left of the table, as a column's shows its
+width over it, and takes a height typed.
+
+**CHANGED.** The drags of a table's grips follow the object snaps, ORTHO and polar tracking from the grip, as the other
+grip drags do: with Endpoint on, a column's line dragged near the end of a line at 53 makes the column 53 wide, and with
+ORTHO the corner's stretch grip dragged right and a little down stretches the width alone. A perpendicular from the grip
+to the table's own edge it stands on, which would hold the line where it was, is not taken.
+
+**CHANGED.** A whole number typed in a table's cell (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is kept
+as a number, as AutoCAD 2021 reads a text it parses: 1 is the number 1 and 007 the number 7, so that the autofill grip
+dragged from a typed 1 gives 2, 3 and 4 where it copied the 1. b1, 1.5, 12mm and a number in a cell made to hold text
+stay text.
+
+**FIXED.** With dynamic input, the width field of a column dragged in a table whose rows flow up ran from the new line
+the wrong way, over the next column; it runs over the column dragged, below the table, where its first row is.
+
 **FIXED.** `GetIntersections` of a triangle, a polygon, a face or a plane with a box flat on some axis, `GeoObb3` or
 `GeoAabb3`, or with an empty `GeoAabb3`, threw "A box with a zero size on some axis has no faces to build" or "An empty
 bounding box has no shape to convert"; it gives no points, as `TryIntersectWith` answers false: the plane x = 20 and the

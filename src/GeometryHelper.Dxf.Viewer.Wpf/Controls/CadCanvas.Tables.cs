@@ -40,6 +40,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private CadTableDrag _tableDrag;
         private Point? _tableDragPress;
+        private GeoPoint2? _tableDragBase;
         private string _tableTyped = string.Empty;
         private Point? _cellPress;
         private GeoPoint2 _cellAnchor;
@@ -152,6 +153,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
+        /// <summary>
+        /// Starts the drag of a grip of the cells selected as though it had been clicked, as Columns › Resize and Rows › Resize
+        /// start it: 1 the right edge grip, 2 the bottom one, and the others as <see cref="CellGripPressed"/> numbers them. The
+        /// line follows the cursor; a click, Enter or a size typed makes it, Esc drops it.
+        /// </summary>
+        /// <param name="grip">The grip, 0 to 4.</param>
+        /// <returns>Whether a drag started: false where no cells are selected, a command runs, or a drag is under way.</returns>
+        public bool DragCellGrip(int grip)
+        {
+            if (_tableDrag != null || IsRunning || CellGripPressed == null || !(CellGripBase(grip) is GeoPoint2 at))
+            {
+                return false;
+            }
+
+            CadTableDrag drag = CellGripPressed(grip);
+
+            if (drag == null)
+            {
+                return false;
+            }
+
+            _tableDrag = drag;
+            _tableDragPress = null;
+            _tableDragBase = at;
+            _tableTyped = string.Empty;
+            InvalidateVisual();
+            return true;
+        }
+
         /// <summary>A press of a mouse button that a table's grips or a drag of one take: true where it is taken.</summary>
         private bool TableMouseDown(MouseButton button, Point p)
         {
@@ -183,10 +213,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             int cellGrip = CellGripAt(p);
             CadTableDrag drag = null;
+            GeoPoint2? at = null;
 
             if (cellGrip >= 0 && CellGripPressed != null)
             {
                 drag = CellGripPressed(cellGrip);
+                at = CellGripBase(cellGrip);
             }
             else if (
                 _hotGrip >= 0
@@ -212,6 +244,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
                 {
                     drag = CadTableDrag.FromGrip(Document, _grips[_hotGrip].Handle, _grips[_hotGrip].Grip.Index);
+                    at = _grips[_hotGrip].Grip.Point;
                 }
             }
 
@@ -222,6 +255,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _tableDrag = drag;
             _tableDragPress = p;
+            _tableDragBase = at;
             _tableTyped = string.Empty;
             CaptureMouse();
             UpdateTableDrag(p);
@@ -353,19 +387,77 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Drops a drag of a table's grip or across cells, as Esc does: nothing changed.</summary>
         private void CancelTableGesture()
         {
+            if (_tableDrag != null)
+            {
+                // The snap the drag followed goes with it.
+                _snapped = null;
+            }
+
             _tableDrag = null;
             _tableDragPress = null;
+            _tableDragBase = null;
             _tableTyped = string.Empty;
             _cellPress = null;
             _cellDragging = false;
         }
 
+        /// <summary>
+        /// The drag follows the cursor as the other grip drags do: snapped from the grip's point by the object snaps, ORTHO and
+        /// polar tracking, as they are on.
+        /// </summary>
         private void UpdateTableDrag(Point p)
         {
-            if (_tableDrag != null)
+            if (_tableDrag == null)
             {
-                _tableDrag.Update(DrawingAt(p), (Keyboard.Modifiers & ModifierKeys.Control) != 0);
+                return;
             }
+
+            GeoPoint2 cursor = DrawingAt(p);
+            CadView view = WorkView;
+            _snapped = null;
+
+            if (_tableDragBase.HasValue && view != null && Document != null && WorkSpace != null)
+            {
+                double aperture = AperturePixels * PixelScale / view.PixelsPerUnit;
+                _snapped = CadPicking.Snap(Document, WorkSpace, Snap, cursor, aperture, _tableDragBase);
+
+                // A perpendicular from the grip to a line through it, as the table's own edge the grip stands on, is the grip
+                // itself, which would hold the line where it was: not taken.
+                if (
+                    _snapped != null
+                    && _snapped.Kind == CadSnapKind.Perpendicular
+                    && _snapped.Point.DistanceTo(_tableDragBase.Value) <= Snap.Tolerance.EqualPoint
+                )
+                {
+                    _snapped = null;
+                }
+
+                cursor = BandEnd(cursor);
+            }
+
+            _tableDrag.Update(cursor, (Keyboard.Modifiers & ModifierKeys.Control) != 0);
+        }
+
+        /// <summary>The point a grip of the cells selected stands at, in the drawing: the middle of its edge, or the corner of the autofill grip; null for none.</summary>
+        private GeoPoint2? CellGripBase(int grip)
+        {
+            GeoPoint2[][] outline = CellOutline?.Invoke();
+
+            if (outline == null || outline.Length < 1 || outline[0].Length < 4 || grip < 0 || grip > 4)
+            {
+                return null;
+            }
+
+            GeoPoint2[] range = outline[0];
+
+            if (grip == 4)
+            {
+                return range[2];
+            }
+
+            GeoPoint2 a = range[grip],
+                b = range[(grip + 1) % 4];
+            return new GeoPoint2((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0);
         }
 
         /// <summary>Makes the drag of a table's grip, through the window, and ends it.</summary>
@@ -652,6 +744,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
             }
 
+            // The snap the drag follows: its marker, and polar tracking's path from the grip.
+            if (_snapped != null)
+            {
+                DrawTracking(dc, view, scale, _tableDragBase);
+
+                if (Snap == null || Snap.ShowsMarker)
+                {
+                    DrawMarker(dc, _snapped, ToScreen(view, _snapped.Point, scale));
+                }
+            }
+
             // The grip dragged, hot, at the cursor.
             if (cursor.HasValue)
             {
@@ -668,15 +771,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
+            DxfTable table = Document.FindEntity(drag.Handle) as DxfTable;
             bool field =
                 DynamicInput
-                && drag.Kind == CadTableDragKind.ColumnLine
+                && (drag.Kind == CadTableDragKind.ColumnLine || drag.Kind == CadTableDragKind.RowLine)
                 && drag.Line != null
-                && Document.FindEntity(drag.Handle) is DxfTable;
+                && table != null;
 
             if (field)
             {
-                DrawWidthField(dc, view, scale, drag, dip);
+                DrawSizeField(dc, view, scale, drag, table, dip);
             }
             else if (drag.Tip != null && cursor.HasValue)
             {
@@ -742,26 +846,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// With dynamic input on, the width of a column dragged: a dimension 30 pixels over the table from the column's left line
-        /// to the new line, ticked at 45 degrees, and on it the field that shows the width, or what is typed.
+        /// With dynamic input on, the width of a column (or the height of a row) dragged: a dimension 30 pixels over (or left
+        /// of) the table from the column's left (the row's top) line to the new line, ticked at 45 degrees, and on it the field
+        /// that shows the size, or what is typed. Over is the side of the table's first row, below the table where its rows
+        /// flow up.
         /// </summary>
-        private void DrawWidthField(DrawingContext dc, CadView view, double scale, CadTableDrag drag, double dip)
+        private void DrawSizeField(
+            DrawingContext dc,
+            CadView view,
+            double scale,
+            CadTableDrag drag,
+            DxfTable table,
+            double dip
+        )
         {
-            int column = drag.Changing;
+            bool columns = drag.Kind == CadTableDragKind.ColumnLine;
+            double size = (columns ? drag.Widths : drag.Heights)[drag.Changing];
             Point top = ToScreen(view, drag.Line[0], scale);
             Point bottom = ToScreen(view, drag.Line[1], scale);
             Vector down = bottom - top;
 
-            if (down.Length < 1.0)
+            // The way the line goes as its column (or row) grows, on the screen: along the table's columns (or its rows).
+            GeoPoint2[] first = CadTableEditor.Corners(table, new DxfCellRange(0, 0, 0, 0));
+            Vector along = ToScreen(view, columns ? first[1] : first[3], scale) - ToScreen(view, first[0], scale);
+
+            if (down.Length < 1.0 || along.Length < 1E-9)
             {
                 return;
             }
 
             down /= down.Length;
-            var along = new Vector(down.Y, -down.X);
-            double width = drag.Widths[column] * view.PixelsPerUnit / scale;
+            along /= along.Length;
+            double width = size * view.PixelsPerUnit / scale;
 
-            // The way along the table: from the column's left line to its right one, the new line at one end of it.
+            // The way along the table: from the column's left (the row's top) line to its other, the new line at one end of it.
             Point right = drag.IsFirstEdge ? top - down * 30.0 + along * width : top - down * 30.0;
             Point left = right - along * width;
             dc.DrawLine(DimensionPen, left, right);
@@ -777,11 +895,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string shown =
                 _tableTyped.Length > 0
                     ? _tableTyped
-                    : drag.Widths[column]
-                        .ToString(
-                            "F" + Math.Max(0, Math.Min(8, Document.Database.Luprec)),
-                            CultureInfo.InvariantCulture
-                        );
+                    : size.ToString(
+                        "F" + Math.Max(0, Math.Min(8, Document.Database.Luprec)),
+                        CultureInfo.InvariantCulture
+                    );
             var text = new FormattedText(
                 shown,
                 CultureInfo.InvariantCulture,
