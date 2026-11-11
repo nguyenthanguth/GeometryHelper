@@ -57,11 +57,23 @@ and draws again only the entities its step touched. On a drawing of 1 000 000 en
 display take about 0.4 s where they took about 2.2 s, once the drawing has been read ahead (about 2 s after the step). An
 undo asked sooner waits for a reading already begun, or reads the bytes itself as before, and takes about 1.5 s where it
 took 2.6 s. The drawing it gives is the one read from the bytes before, byte for byte. Up to three such drawings are held
-besides the one shown, each about 330 MB at that size, and an edit made while one is read shares the processor with it.
+besides the one shown, each about 520 MB at that size once read and indexed.
 
-After an undo or a redo `Database` is a new [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase) read from those bytes. The
-circle that `FindEntity(handle)` gave before the undo is not the object it gives after, so keep handles, not entities, across
-a step. The [`CadSpace`](xref:GeometryHelper.Dxf.Viewer.CadSpace) objects stay and are pointed at the new drawing.
+The drawing an undo leaves is the one a redo goes back to, and the drawing a redo leaves the one the next undo goes back to.
+Where it was itself read from the bytes of its step and nothing has written into it since, it is not read again: the worker
+saves it, sets it against the bytes, and takes it as it is where the two are the same byte for byte. So undo after undo
+reads one drawing ahead, not two: at 1 000 000 entities a run of undos and redos allocates about 35 GB where it allocated
+47, and a redo 3 s after an undo takes about 0.3 s under .NET Framework 4.8 where its drawing was not yet read and it took
+1.6 to 1.9 s. The drawings held when nothing is being read are as before, one each side of the one shown. An edit stops
+the readings still running and they read again after it: an ERASE of 10 000 objects of a drawing of 100 000 straight
+after an undo takes about 185 ms under .NET 10 where it took 220 (110 once the readings are done). The Block Editor's Save
+Block and its changes discarded on closing read ahead the drawing the next undo goes to, as any step does; the first undo
+after them, with finding an entity, takes about 1 ms where it read the drawing then and took 300.
+
+After an undo or a redo `Database` is a [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase) read from those bytes: a new
+one, or the one an undo or a redo left where it goes back to it unchanged. The circle that `FindEntity(handle)` gave before
+the undo is not the object it gives after, so keep handles, not entities, across a step. The
+[`CadSpace`](xref:GeometryHelper.Dxf.Viewer.CadSpace) objects stay and are pointed at the new drawing.
 
 `Save()` writes to the file the drawing was opened from, `SaveAs(path)` to another, which it is then known by. A drawing
 opened from a stream or given in memory has no file: `HasFile` is false and `Save()` throws until `SaveAs` gives it one.

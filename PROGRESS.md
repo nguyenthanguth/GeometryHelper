@@ -233,9 +233,8 @@ the ones wanted.
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [x] Speed: undo without reloading the whole drawing at 1 000 000 entities: read-ahead of the next undo and redo drawings (0.4 s where 2.2 s, once read ahead), states packed in 4 MB pieces; no core fork
-- [ ] Speed follow-ups: undo read-ahead costs about 0.5 GB more peak at 1M entities; an edit made while a read-ahead runs
-      shares the CPU (100k ERASE right after an undo 98 -> 269 ms); the first undo after BSAVE reads inline; per-entity
-      allocation in the core parser (`ParsedOf` pair lists) is the next cost of layer on/off (S)
+- [x] Speed follow-ups: edits stop read-aheads, the drawing left reused (1M: 47 to 35 GB allocated, redo 1.6 s to 0.3 s), first undo after BSAVE/discard read ahead, marker bytes compared
+- [ ] Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit: decide); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

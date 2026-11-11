@@ -152,6 +152,13 @@ namespace GeometryHelper.Dxf
         public static DxfDatabase Open(Stream stream) => new DxfDatabase(DxfFile.Open(stream));
 
         /// <summary>
+        /// Opens a DXF file from bytes the drawing then holds as its own, not copied, read as <see cref="Open(Stream)"/> reads a
+        /// stream of them: for bytes made for the drawing alone, as the presenter unpacks a drawing kept for undo, so that a
+        /// drawing of 73 MB is not held twice while it is read. The bytes are not to be changed after.
+        /// </summary>
+        internal static DxfDatabase Open(byte[] bytes, int length) => new DxfDatabase(DxfFile.Open(bytes, length));
+
+        /// <summary>
         /// Opens a DXF file from its text, as <see cref="ToText"/> or <see cref="DxfWriter.ToString"/> gives it.
         /// </summary>
         /// <param name="text">The text of the file.</param>

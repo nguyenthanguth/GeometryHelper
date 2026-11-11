@@ -28,14 +28,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// edits.
     /// </para>
     /// <para>
-    /// After an undo or a redo <see cref="Database"/> is a new <see cref="DxfDatabase"/> read from those bytes, so an entity is
+    /// After an undo or a redo <see cref="Database"/> is a <see cref="DxfDatabase"/> read from those bytes: a new one, or the
+    /// one an undo or a redo left where it goes back to it and nothing has written into it since it was read, so an entity is
     /// held by its handle, not by the object, across them; the spaces are the same <see cref="CadSpace"/> objects, pointed at
     /// the new drawing.
     /// </para>
     /// <para>
     /// After every step, undo and redo, a worker thread reads ahead the drawings the next undo and the next redo go to, from
     /// those same bytes, and walks their entities once, so that an undo finds its drawing read and only the entities its step
-    /// touched are drawn again. An undo asked before its drawing is read waits for it.
+    /// touched are drawn again. An undo asked before its drawing is read waits for it. An edit stops the readings still
+    /// running, so that it does not share the processor with them, and the drawings wanted after it are read then.
     /// </para>
     /// </remarks>
     public sealed partial class CadDocument
@@ -57,6 +59,10 @@ namespace GeometryHelper.Dxf.Viewer
         private ReadAhead _readUndo;
         private ReadAhead _readRedo;
         private Task _reading = Task.FromResult(0);
+
+        // The step of the undo list the drawing shown was read from by an undo or a redo, nothing written into it since; else null.
+        private KeptState _shownState;
+
         private ICadEditGate _gate;
         private ICadEditGate _ownerGate;
 
@@ -207,6 +213,9 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                 }
             }
+
+            _shownState = null;
+            StopReading();
 
             // The edits of entities whose owner records its own (a mark moved, a dimension's text overridden) go to the owner
             // first, joining this edit's undo step; the owner's own writes, made while it applies, are not handed over again.
@@ -610,6 +619,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Commit(name, records);
             }
+            else
+            {
+                ReadAround();
+            }
         }
 
         /// <summary>
@@ -645,6 +658,8 @@ namespace GeometryHelper.Dxf.Viewer
                     )
                 );
             }
+
+            ReadAround();
         }
 
         /// <summary>
@@ -752,6 +767,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string full = Path.GetFullPath(path);
+            _shownState = null;
             _ucs?.WriteTo(Database);
             LeftOutOfDwg = CadDrawingFile.Save(Database, full);
             _ucs?.Saved();
@@ -866,6 +882,10 @@ namespace GeometryHelper.Dxf.Viewer
                 _groupFailed = true;
                 _groupRecords.Clear();
             }
+            else
+            {
+                ReadAround();
+            }
 
             Changed?.Invoke(
                 this,
@@ -913,10 +933,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Reads the drawing back as it stood at a step of the undo list, for an undo or a redo: the drawing read ahead for
         /// it where there is one (see <see cref="ReadAround"/>), waited for where it is being read; else, its reading not begun,
-        /// read now from its bytes. Then the neighbours of the new place in the list are read ahead.
+        /// read now from its bytes. Then the neighbours of the new place in the list are read ahead, the drawing left among
+        /// them taken as it is where nothing has written into it since it was read (see <see cref="ReadAround"/>).
         /// </summary>
         private void Reload(KeptState state, IReadOnlyList<CadEditRecord> records)
         {
+            DxfDatabase left = Database;
+            KeptState leftState = _shownState;
             ReadAhead taken = null;
 
             if (_readUndo != null && _readUndo.State == state)
@@ -940,7 +963,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Reload(state.Bytes, records);
             }
 
-            ReadAround();
+            _shownState = state;
+            ReadAround(left, leftState);
         }
 
         /// <summary>
@@ -950,13 +974,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// the other, the undo's first; one no longer wanted when its turn comes is not read, and one read and no longer
         /// wanted is let go, so that at most three drawings are held besides the one shown.
         /// </summary>
-        private void ReadAround()
+        /// <remarks>
+        /// The drawing an undo or a redo leaves (<paramref name="left"/>) is the one the next redo or undo goes back to. Where it
+        /// was itself read from the bytes of that step (<paramref name="leftState"/>) and nothing has written into it since, it
+        /// is not read again: the worker saves it and sets it against the bytes, and takes it as it is where the two are the
+        /// same byte for byte, else reads the bytes. So an undo after an undo reads one drawing ahead, not two, and lets go
+        /// one drawing fewer: at 1 000 000 entities a drawing read and indexed holds about 520 MB, and a run of undos and redos
+        /// allocates about 35 GB where it allocated 47.
+        /// </remarks>
+        private void ReadAround(DxfDatabase left = null, KeptState leftState = null)
         {
             KeptState undo = _position > UndoFloor && _position <= _states.Count ? _states[_position - 1] : null;
             KeptState redo = _position + 1 < _states.Count ? _states[_position + 1] : null;
             ReadAhead[] older = { _readUndo, _readRedo };
-            _readUndo = Matching(older, undo) ?? (undo == null ? null : StartReading(undo));
-            _readRedo = Matching(older, redo) ?? (redo == null ? null : StartReading(redo));
+            _readUndo = Matching(older, undo)
+                ?? (undo == null ? null : StartReading(undo, undo == leftState ? left : null));
+            _readRedo = Matching(older, redo)
+                ?? (redo == null ? null : StartReading(redo, redo == leftState ? left : null));
 
             foreach (ReadAhead read in older)
             {
@@ -964,6 +998,33 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     read.Drop();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Stops the readings ahead still running when an edit is to be written, so that the edit has the processor to itself:
+        /// an ERASE of 10 000 objects in a drawing of 100 000 straight after an undo took about 220 ms beside them, 110 alone.
+        /// A drawing read already is kept. Once the edit is made, or taken back, <see cref="ReadAround"/> reads again what is
+        /// wanted then. A zoom or a pan that joins the step before it (<see cref="Commit"/>) leaves them running, as it keeps
+        /// the drawing they read.
+        /// </summary>
+        private void StopReading()
+        {
+            if (_realTime)
+            {
+                return;
+            }
+
+            if (_readUndo != null && !_readUndo.IsDone)
+            {
+                _readUndo.Drop();
+                _readUndo = null;
+            }
+
+            if (_readRedo != null && !_readRedo.IsDone)
+            {
+                _readRedo.Drop();
+                _readRedo = null;
             }
         }
 
@@ -980,9 +1041,9 @@ namespace GeometryHelper.Dxf.Viewer
             return null;
         }
 
-        private ReadAhead StartReading(KeptState state)
+        private ReadAhead StartReading(KeptState state, DxfDatabase left)
         {
-            var read = new ReadAhead(state);
+            var read = new ReadAhead(state, _byHandle?.Count ?? 0, left);
             _reading = _reading.ContinueWith(
                 _ => read.Run(),
                 CancellationToken.None,
@@ -999,9 +1060,17 @@ namespace GeometryHelper.Dxf.Viewer
             private volatile bool _dropped;
             private volatile bool _begun;
 
-            public ReadAhead(KeptState state)
+            // The index of the drawing shown when the reading was asked, its tables sized so.
+            private readonly int _size;
+
+            // The drawing an undo or a redo left, read from these bytes and written to by nothing since; null for none.
+            private DxfDatabase _left;
+
+            public ReadAhead(KeptState state, int size, DxfDatabase left)
             {
                 State = state;
+                _size = size;
+                _left = left;
             }
 
             public KeptState State { get; }
@@ -1014,6 +1083,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>Gets whether the reading has begun on the worker thread.</summary>
             public bool Begun => _begun;
+
+            /// <summary>Gets whether the reading has ended, the drawing read or not.</summary>
+            public bool IsDone => _done.Task.IsCompleted;
 
             /// <summary>
             /// Reads the drawing and indexes its handles in the spaces' tab order, unless it was dropped first; one dropped
@@ -1029,7 +1101,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     _begun = true;
-                    DxfDatabase database = DxfDatabase.Open(State.Bytes.Unpack());
+                    DxfDatabase left = _left;
+                    _left = null;
+                    byte[] bytes = State.Bytes.Unpack();
+
+                    if (_dropped)
+                    {
+                        return;
+                    }
+
+                    DxfDatabase database = SavesAs(left, bytes) ? left : DxfDatabase.Open(bytes, bytes.Length);
+                    left = null;
 
                     if (_dropped)
                     {
@@ -1048,7 +1130,8 @@ namespace GeometryHelper.Dxf.Viewer
                             blocks,
                             out Dictionary<string, DxfEntity> byHandle,
                             out Dictionary<string, DxfBlockTableRecord> blockByHandle,
-                            () => _dropped
+                            () => _dropped,
+                            _size
                         )
                     )
                     {
@@ -1075,7 +1158,40 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             /// <summary>Lets the drawing go: not read if its turn has not come.</summary>
-            public void Drop() => _dropped = true;
+            public void Drop()
+            {
+                _dropped = true;
+                _left = null;
+            }
+
+            /// <summary>Whether a drawing saves to the very bytes given, length and every byte; false for none.</summary>
+            private static bool SavesAs(DxfDatabase drawing, byte[] bytes)
+            {
+                if (drawing == null)
+                {
+                    return false;
+                }
+
+                var saved = new MemoryStream(bytes.Length);
+                drawing.Save(saved);
+
+                if (saved.Length != bytes.Length)
+                {
+                    return false;
+                }
+
+                byte[] buffer = saved.GetBuffer();
+
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    if (buffer[i] != bytes[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
 
             /// <summary>Waits for the drawing where it is being read; false where it did not read, to be read again now.</summary>
             public bool Wait()
@@ -1091,7 +1207,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private void Reload(PackedDrawing state, IReadOnlyList<CadEditRecord> records)
         {
-            Rebind(DxfDatabase.Open(state.Unpack()), records);
+            byte[] bytes = state.Unpack();
+            Rebind(DxfDatabase.Open(bytes, bytes.Length), records);
         }
 
         /// <summary>
@@ -1186,6 +1303,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var drop = new HashSet<CadSpace>(records == null ? AllSpaces : new List<CadSpace>());
             DisplayBuilder older = _builder;
+            _shownState = null;
             Database = database;
             _builder = new DisplayBuilder(database, this);
             ShowDatabase(database);
@@ -1524,8 +1642,8 @@ namespace GeometryHelper.Dxf.Viewer
             return new PackedDrawing(pieces, length);
         }
 
-        /// <summary>The bytes packed, as a stream at its start.</summary>
-        internal MemoryStream Unpack()
+        /// <summary>The bytes packed, in an array of their length, which the drawing read from them holds as its own.</summary>
+        internal byte[] Unpack()
         {
             var raw = new byte[_length];
 
@@ -1550,7 +1668,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             });
 
-            return new MemoryStream(raw, 0, _length, false, true);
+            return raw;
         }
     }
 

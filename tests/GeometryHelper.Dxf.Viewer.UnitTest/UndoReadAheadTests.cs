@@ -171,5 +171,130 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.NotNull(document.FindEntity(handles[2]));
         }
+
+        /// <summary>
+        /// Edits made straight after an undo or a redo, while the drawings around are still read ahead: one made, one that fails
+        /// and one in a command cancelled. Each stops the readings ahead and the next undo or redo reads what it needs again,
+        /// so every undo and redo after them gives back the drawing of its step, byte for byte.
+        /// </summary>
+        [Fact]
+        public void EditsMadeStraightAfterAnUndoOrARedo_LeaveEveryUndoAndRedoItsDrawing()
+        {
+            CadDocument document = Drawing(out _);
+            string[] handles = Handles(document, 0, 60);
+            byte[] start = Saved(document);
+
+            CadEditResult Move(string handle) =>
+                document.ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s =>
+                    s.Document.FindEntity(handle).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+                );
+
+            Assert.True(Move(handles[0]).Succeeded);
+            byte[] first = Saved(document);
+            Assert.True(Move(handles[1]).Succeeded);
+
+            // An ERASE straight after an undo, the step undone forgotten.
+            Assert.True(document.Undo());
+            string[] erased = handles.Skip(10).ToArray();
+            Assert.True(
+                document
+                    .ApplyEdit(
+                        "ERASE",
+                        erased.Select(h => new CadEditRecord(CadEditRecordKind.Erased, h)).ToArray(),
+                        s =>
+                        {
+                            foreach (string handle in erased)
+                            {
+                                s.Document.FindEntity(handle).Erase();
+                            }
+                        }
+                    )
+                    .Succeeded
+            );
+            byte[] erasedAll = Saved(document);
+            Assert.True(document.Undo());
+            Assert.True(first.SequenceEqual(Saved(document)));
+            Assert.True(document.Redo());
+            Assert.True(erasedAll.SequenceEqual(Saved(document)));
+
+            // An edit that fails straight after an undo is taken back; undo and redo go on as before.
+            Assert.True(document.Undo());
+            CadEditResult failed = document.ApplyEdit(
+                "MOVE",
+                new[] { new CadEditRecord(CadEditRecordKind.Transformed, handles[2]) },
+                s =>
+                {
+                    s.Document.FindEntity(handles[2]).TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)));
+                    throw new System.InvalidOperationException("taken back");
+                }
+            );
+            Assert.False(failed.Succeeded);
+            Assert.True(first.SequenceEqual(Saved(document)));
+            Assert.True(document.Undo());
+            Assert.True(start.SequenceEqual(Saved(document)));
+            Assert.True(document.Redo());
+            Assert.True(first.SequenceEqual(Saved(document)));
+
+            // A command's edits straight after a redo, cancelled.
+            Assert.True(document.Redo());
+            document.BeginGroup("MOVE");
+            Assert.True(Move(handles[3]).Succeeded);
+            document.CancelGroup();
+            Assert.True(erasedAll.SequenceEqual(Saved(document)));
+            Assert.True(document.Undo());
+            Assert.True(first.SequenceEqual(Saved(document)));
+            Assert.True(document.Undo());
+            Assert.True(start.SequenceEqual(Saved(document)));
+            Assert.False(document.CanUndo);
+        }
+
+        /// <summary>
+        /// Undo and redo back and forth, some at once and some after the drawings around are read, with layers added to the
+        /// drawing shown outside any edit, as a host may: the drawing an undo or a redo leaves is taken back as it is only where
+        /// it still saves as its step, so every undo and redo gives back the drawing of its step, byte for byte, and none of
+        /// the layers added outside an edit.
+        /// </summary>
+        [Fact]
+        public void UndoAndRedoBackAndForth_GiveTheDrawingOfEachStep_ThoughTheDrawingLeftWasWrittenInto()
+        {
+            CadDocument document = Drawing(out _);
+            string[] handles = Handles(document, 0, 4);
+            var saved = new List<byte[]> { Saved(document) };
+
+            foreach (string handle in handles)
+            {
+                Assert.True(
+                    document
+                        .ApplyEdit("MOVE", new[] { new CadEditRecord(CadEditRecordKind.Transformed, handle) }, s =>
+                            s.Document.FindEntity(handle)
+                                .TransformBy(GeoTransform3.Translation(new GeoVector3(5, 0, 0)))
+                        )
+                        .Succeeded
+                );
+                saved.Add(Saved(document));
+            }
+
+            int at = saved.Count - 1;
+            var random = new System.Random(5);
+
+            for (int i = 0; i < 60; i++)
+            {
+                bool undo = at == saved.Count - 1 || (at > 0 && random.Next(2) == 0);
+                Assert.True(undo ? document.Undo() : document.Redo());
+                at += undo ? -1 : 1;
+                Assert.True(saved[at].SequenceEqual(Saved(document)), "after step " + i + " to " + at);
+
+                switch (random.Next(4))
+                {
+                    case 0:
+                        System.Threading.Thread.Sleep(300);
+                        break;
+                    case 1:
+                        document.Database.LayerTable.Add(new DxfLayerTableRecord { Name = "Host" + i });
+                        System.Threading.Thread.Sleep(300);
+                        break;
+                }
+            }
+        }
     }
 }
