@@ -225,6 +225,37 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ANestedReference_IsListedUnderItsParent_OrphanedWhileItIsUnloaded_AndAutoCadsRecordOfItIsNotUnreferenced()
+        {
+            Grid("column");
+            Grid("survey");
+            string plan = Grid("plan", d =>
+            {
+                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 5000, 0), d.AttachXref("column.dxf", "column")));
+                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 9000, 0), d.OverlayXref("survey.dxf", "survey")));
+            });
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+            Run(session, "-XREF", "A", plan, P(0, 0), Enter, Enter, Enter);
+
+            // AutoCAD keeps a record of the nested reference in the drawing, which no INSERT of the drawing places.
+            document.Database.AttachXref("..\\xref\\column.dxf", "column");
+
+            IReadOnlyList<CadExternalReference> rows = document.Xrefs.GetReferences();
+            Assert.Equal(new[] { "plan Loaded", "column Loaded" }, rows.Select(r => r.ToString()).ToArray());
+            Assert.Equal(new[] { 0, 1 }, rows.Select(r => r.Depth).ToArray());
+            Assert.Equal("plan", rows[1].ParentName);
+            Assert.True(rows[1].IsNested);
+            Assert.Equal(Path.Combine(_folder, "xref", "column.dxf"), rows[1].FoundAt);
+
+            Run(session, "-XREF", "U", "plan");
+            Assert.Equal(new[] { "plan Unloaded", "column Orphaned" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+            Run(session, "-XREF", "R", "plan");
+            File.Delete(Path.Combine(_folder, "xref", "column.dxf"));
+            Assert.Equal(new[] { "plan Loaded", "column Not Found" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+        }
+
+        [Fact]
         public void ADrawingThatReferencesItself_IsDrawnOnce()
         {
             string loop = Path.Combine(_folder, "xref", "loop.dxf");

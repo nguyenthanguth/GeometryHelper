@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The External References palette of the presenter lists nested external references as AutoCAD 2021's does: a
+reference the drawing places is followed by those its drawing attaches, of the type Nested in the list view, under their
+parent and of their own type in the tree view, each level 16 pixels further in. A nested reference whose parent is
+unloaded, not found or unresolved stands Orphaned; nested overlays are left out, as AutoCAD loads none. The record
+AutoCAD writes in the host for a nested reference (`c` beside `b`, which no INSERT of the host places, as its console
+showed for a host attaching `b.dwg` that attaches `c.dwg`) was listed as Unreferenced; it is listed under its parent alone.
+**NEW.** `CadExternalReference.Depth`, `ParentName`, `IsNested` and `CadReferenceStatus.Orphaned`; `--dialog xref` and
+`xref-tree` draw the palette in screenshot mode. **FIXED.** The palette's names were drawn in the system's black on its
+dark rows; they are drawn in the text colour.
+
 **NEW.** XOPEN in the presenter opens the drawing of an external reference picked in a tab of its own, as AutoCAD 2021
 opens it in a window of its own. It asks "Select Xref:"; a line picked is answered "Object is not an Xref" and the
 question asked again, and Enter ends it saying nothing, as AutoCAD 2021's console answers them. A pick on what a nested

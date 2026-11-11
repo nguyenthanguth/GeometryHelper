@@ -78,7 +78,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets the external references of the drawing, then its images, each in ordinal order of its name, letters of either
         /// case alike first, with where it stands: an external reference no INSERT places is Unreferenced, one whose file is not
-        /// found Not Found, and so on. An external reference not yet read is read here.
+        /// found Not Found, and so on. An external reference not yet read is read here. Each one the drawing places is followed
+        /// by the references its drawing attaches, nested, as the palette's tree shows them (<see cref="CadExternalReference.Depth"/>,
+        /// <see cref="CadExternalReference.ParentName"/>), each in the order of its name; a nested overlay is not, as AutoCAD
+        /// shows none. A nested reference whose parent is unloaded, not found or unresolved is Orphaned. The record AutoCAD
+        /// keeps in the drawing of a nested reference, which no INSERT of the drawing places, is listed under its parent alone,
+        /// not as an Unreferenced reference of its own.
         /// </summary>
         /// <returns>The rows of the palette.</returns>
         public IReadOnlyList<CadExternalReference> GetReferences()
@@ -96,11 +101,37 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             blocks.Sort((a, b) => ByName(a.Name, b.Name));
+            var rows = new List<KeyValuePair<CadExternalReference, List<CadExternalReference>>>();
+            var nestedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (DxfBlockTableRecord block in blocks)
             {
                 string found = Locate(block.PathName, _document.DrawingFolder);
-                references.Add(new CadExternalReference(block.Name, false, block.IsFromOverlayReference, block.PathName, found, StatusOf(block, found)));
+                var row = new CadExternalReference(block.Name, false, block.IsFromOverlayReference, block.PathName, found, StatusOf(block, found));
+                var nested = new List<CadExternalReference>();
+
+                if (row.Status != CadReferenceStatus.Unreferenced && found != null)
+                {
+                    AddNested(nested, block.Name, found, row.Status, 1, new List<string> { found });
+                }
+
+                foreach (CadExternalReference child in nested)
+                {
+                    nestedNames.Add(child.Name);
+                }
+
+                rows.Add(new KeyValuePair<CadExternalReference, List<CadExternalReference>>(row, nested));
+            }
+
+            foreach (KeyValuePair<CadExternalReference, List<CadExternalReference>> row in rows)
+            {
+                if (row.Key.Status == CadReferenceStatus.Unreferenced && nestedNames.Contains(row.Key.Name))
+                {
+                    continue;
+                }
+
+                references.Add(row.Key);
+                references.AddRange(row.Value);
             }
 
             var images = new List<KeyValuePair<string, DxfRasterImageDef>>();
@@ -353,6 +384,53 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return content;
+        }
+
+        /// <summary>
+        /// The references the drawing of a file attaches, each followed by its own, depth first: Orphaned under a parent not
+        /// shown, else as its file is found and read. A file already on the way down is not followed again.
+        /// </summary>
+        private void AddNested(List<CadExternalReference> rows, string parent, string parentFile, CadReferenceStatus parentStatus, int depth, List<string> chain)
+        {
+            DxfDatabase database = Read(parentFile).Database;
+
+            if (database == null)
+            {
+                return;
+            }
+
+            bool shown = parentStatus == CadReferenceStatus.Loaded || parentStatus == CadReferenceStatus.NeedsReloading;
+            string folder = Path.GetDirectoryName(parentFile);
+            var blocks = new List<DxfBlockTableRecord>();
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                if (block.IsFromExternalReference && !block.IsLayout && !block.IsFromOverlayReference && block.GetBlockReferences(true).Count > 0)
+                {
+                    blocks.Add(block);
+                }
+            }
+
+            blocks.Sort((a, b) => ByName(a.Name, b.Name));
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                string found = Locate(block.PathName, folder);
+                CadXrefContent content = found == null ? null : Read(found);
+                CadReferenceStatus status = !shown ? CadReferenceStatus.Orphaned
+                    : found == null ? CadReferenceStatus.NotFound
+                    : content.Database == null ? CadReferenceStatus.Unresolved
+                    : content.HasChanged ? CadReferenceStatus.NeedsReloading
+                    : CadReferenceStatus.Loaded;
+                rows.Add(new CadExternalReference(block.Name, false, false, block.PathName, found, status, parent, depth));
+
+                if (found != null && content.Database != null && !chain.Contains(found, StringComparer.OrdinalIgnoreCase))
+                {
+                    chain.Add(found);
+                    AddNested(rows, block.Name, found, status, depth + 1, chain);
+                    chain.RemoveAt(chain.Count - 1);
+                }
+            }
         }
 
         private CadReferenceStatus StatusOf(DxfBlockTableRecord block, string found)

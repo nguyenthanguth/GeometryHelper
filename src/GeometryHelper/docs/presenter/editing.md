@@ -411,6 +411,11 @@ A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
 and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
 with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs reloading once its file changed on disk.
+Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
+leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
+under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
+Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path.
 Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
 not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
