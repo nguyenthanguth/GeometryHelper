@@ -343,7 +343,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "LA");
-            Assert.Equal("Enter an option [Set/New/ON/OFF/Freeze/Thaw/LOck/Unlock/stAte]:", session.PromptText);
+            Assert.Equal("Enter an option [Set/New/ON/OFF/TRansparency/Plot/Freeze/Thaw/LOck/Unlock/stAte/Description]:", session.PromptText);
             Run(session, "N", "Walls, Doors", "S", "Walls", "OFF", "Steel", "F", "Walls", "LO", "Doors", Enter);
 
             Assert.Equal("Walls", document.Database.Clayer);

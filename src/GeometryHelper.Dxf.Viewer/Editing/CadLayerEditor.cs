@@ -299,6 +299,79 @@ namespace GeometryHelper.Dxf.Viewer
             return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.LineWeight, l => l.LineWeight = lineWeight));
         }
 
+        /// <summary>
+        /// Gives a layer a transparency of 0 to 90 per cent, as -LAYER TRansparency does: 50 is written as the alpha 127, as
+        /// AutoCAD keeps it, and 0 as solid; one of an external reference marked 128, as AutoCAD 2021 marks it.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="percent">The transparency, from 0 to 90.</param>
+        /// <returns>What came of it; refused outside 0 to 90, and failed in a drawing older than AutoCAD 2004, which has none.</returns>
+        public static CadEditResult SetTransparency(CadDocument document, string name, int percent)
+        {
+            DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
+
+            if (layer == null)
+            {
+                return refused;
+            }
+
+            if (percent < 0 || percent > 90)
+            {
+                return Refuse("Transparency is from 0 to 90.");
+            }
+
+            var transparency = new DxfTransparency((byte)Math.Floor(255.0 * (100 - percent) / 100.0));
+            string layerName = layer.Name;
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Transparency of " + layerName, layer.Transparency.ToString(), transparency.ToString());
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Transparency, l => l.Transparency = transparency));
+        }
+
+        /// <summary>Sets whether a layer is plotted, as -LAYER Plot does; one of an external reference marked 8, as AutoCAD 2021 marks it.</summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="plotted">Whether it is to be plotted.</param>
+        /// <returns>What came of it; failed when a drawing older than AutoCAD 2000 is to leave a layer out of plotting.</returns>
+        public static CadEditResult SetPlottable(CadDocument document, string name, bool plotted)
+        {
+            DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
+
+            if (layer == null)
+            {
+                return refused;
+            }
+
+            string layerName = layer.Name;
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Plot " + layerName, layer.IsPlottable ? "Yes" : "No", plotted ? "Yes" : "No");
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Plot, l => l.IsPlottable = plotted));
+        }
+
+        /// <summary>Gives a layer a description, as -LAYER Description does; one of an external reference marked 1024, as AutoCAD 2021 marks it.</summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The layer's name.</param>
+        /// <param name="description">The description, on one line; empty takes it out.</param>
+        /// <returns>What came of it; refused for a description of several lines.</returns>
+        public static CadEditResult SetDescription(CadDocument document, string name, string description)
+        {
+            DxfLayerTableRecord layer = Find(document, name, out CadEditResult refused);
+
+            if (layer == null)
+            {
+                return refused;
+            }
+
+            string text = description ?? string.Empty;
+
+            if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)
+            {
+                return Refuse("A description is one line.");
+            }
+
+            string layerName = layer.Name;
+            var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Description of " + layerName, layer.Description, text);
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Description, l => l.Description = text));
+        }
+
         private static CadEditResult Set(CadDocument document, DxfLayerTableRecord layer, string what, bool old, bool value, int overrideBits, Action<DxfLayerTableRecord> write)
         {
             string layerName = layer.Name;

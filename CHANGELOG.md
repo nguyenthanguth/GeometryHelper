@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The External References palette of the presenter said "Needs reloading" where AutoCAD 2021's help of the
+palette's List View says "Needs Reloading". Its other words were checked against that page and stand: Loaded, Unloaded,
+Not Found, Unresolved, Orphaned and Unreferenced for the status, the current drawing listed first, and the types of a
+drawing attachments or overlays. The page says nothing of a type of a nested reference, so Nested is kept.
+
+**FIXED.** The presenter drew a layer of an external reference the drawing had not changed as the file has it now under
+VISRETAIN 1, and synced it on reload. AutoCAD 2021 does not: with VISRETAINMODE 0, its default, it syncs nothing, and its
+console kept `x|WALL` green (62 3, 1071 0) when x.dwg made WALL blue, reloaded and opened anew alike. The drawing's
+record is now drawn whole. **NEW.** VISRETAIN 0 as AutoCAD 2021 keeps it: what the drawing changed is drawn as it keeps it
+until Reload, which writes the file's properties back with 1071 0 (its reload wrote `x|WALL` red back as the file's
+blue, 62 5), the rest as the file has it; Unload takes the records out, as its console showed. The presenter does not
+write them again when it opens a drawing of VISRETAIN 0.
+
+**NEW.** -LAYER in the presenter takes TRansparency, Plot and Description, asked as AutoCAD 2021 asks them: "Enter
+transparency value (0-90):" (95 refused with "Requires an integer between 0 and 90." and asked again), then "Enter name
+list of layer(s) for transparency 50% <0>:", Enter taking the current layer; "Enter a plotting preference [Plot/No plot]
+<Plot>:"; "Enter layer description:". On a layer of an external reference each is marked in the 1071 of
+`AcXRefLayerPropertyOverride` as AutoCAD 2021 marked `b|WALL`: 128, 8 and 1024. 50 per cent is the alpha 127. The Layer
+manager has no column for them, and none was added. **NEW.** `CadLayerEditor.SetTransparency`, `SetPlottable` and
+`SetDescription`.
+
+**CHANGED.** The presenter's XATTACH and -XREF Attach and Overlay write into the drawing the records AutoCAD 2021 writes
+for a drawing it attaches, as its -XREF Attach of x.dwg, its layer WALL green on DASHED, wrote them: the linetype
+`x|DASHED` with its dashes and the layer `x|WALL` on it, green, with the file's lineweight, plotting, transparency and
+description and `1001 AcXRefLayerPropertyOverride, 1071 0`, each flagged 48 (dependent, resolved), and the block of the
+reference 36. Nothing of the file was written before, so a drawing saved by the presenter listed no layer of a reference
+in the Layer manager until AutoCAD had saved it. Unload flags them 16 and the block 4, Reload 48 and 36 again with the
+records of layers the file has gained, a record the drawing has keeping what it has; each is an undo step where anything
+changes, and Detach takes them out. **NEW.** `DxfLayerTableRecord.SetDependent` and `DxfLinetypeTableRecord.SetDependent`
+mark a record of an external reference (flags 16 and 32), so that its table takes a name with a | in it.
+
 **NEW.** `DwgWriter.Write` writes a DWG file of AutoCAD 2018 (AC1032), the library's own code as the reader is: a
 `DxfDatabase` with every record it holds, or the shapes of a `DxfDocument`, to a path or a stream. The drawing is written
 as its DXF and each record put into the object of the DWG that says the same, with the drawing's handles: the header

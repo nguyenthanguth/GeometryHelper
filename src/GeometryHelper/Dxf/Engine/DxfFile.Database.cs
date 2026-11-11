@@ -5350,16 +5350,16 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Adds an LTYPE record of a linetype made in code: its name, description, the alignment A, its count of dashes, the
+        /// Adds an LTYPE record of a linetype made in code: its name, flags, description, the alignment A, its count of dashes, the
         /// length of its pattern, then the groups of its dashes as given, each its 49, its 74 from R13 on and those of its shape
         /// or text; null where the file has no linetype table.
         /// </summary>
-        internal DxfItem AddLinetype(string name, string description, double length, int count, IList<KeyValuePair<int, string>> dashes)
+        internal DxfItem AddLinetype(string name, int flags, string description, double length, int count, IList<KeyValuePair<int, string>> dashes)
         {
             return AddTableRecord("LTYPE", "AcDbLinetypeTableRecord", b =>
             {
                 b.Group(2, name);
-                b.Group(70, "0");
+                b.Group(70, flags.ToString(CultureInfo.InvariantCulture));
                 b.Group(3, description);
                 b.Group(72, "65");
                 b.Group(73, count.ToString(CultureInfo.InvariantCulture));

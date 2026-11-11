@@ -75,7 +75,14 @@ namespace GeometryHelper.Dxf
 
             if (!IsAnonymousName(name))
             {
-                CheckName(name, nameof(value));
+                if (value.IsMadeDependent)
+                {
+                    CheckDependentName(name, nameof(value));
+                }
+                else
+                {
+                    CheckName(name, nameof(value));
+                }
 
                 if (Has(name))
                 {
@@ -121,6 +128,23 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A name AutoCAD takes: not empty, no space at either end, no control character and none of &lt;&gt;/":;?*|=`.</summary>
+        /// <summary>
+        /// Refuses a name of a record an external reference brings that is not one AutoCAD writes: the name of the reference
+        /// and the record's own, each one AutoCAD takes, with a | between, as <c>grid|WALL</c>.
+        /// </summary>
+        internal static void CheckDependentName(string name, string parameter)
+        {
+            int bar = name.IndexOf('|');
+
+            if (bar <= 0 || bar == name.Length - 1)
+            {
+                throw new ArgumentException("A record of an external reference is named after it, the reference's name and the record's with a | between: '" + name + "' is not one.", parameter);
+            }
+
+            CheckName(name.Substring(0, bar), parameter);
+            CheckName(name.Substring(bar + 1), parameter);
+        }
+
         internal static void CheckName(string name, string parameter)
         {
             if (name.Length == 0 || name.Trim().Length != name.Length)
@@ -210,8 +234,42 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the external reference the record comes from was resolved (flag 32 of group 70), as AutoCAD's <c>IsResolved</c>.</summary>
         public bool IsResolved => (Flags & 32) != 0;
 
-        /// <summary>The flags of the record (group 70); nought for one made in code.</summary>
-        private protected virtual int Flags => Item == null ? 0 : FlagsOf(Item);
+        /// <summary>The flags of the record (group 70); for one made in code, the flags 16 and 32 it was given alone.</summary>
+        private protected virtual int Flags => Item == null ? MadeDependence : FlagsOf(Item);
+
+        /// <summary>The flags 16 and 32 a record made in code was given by <c>SetDependent</c>, written when it is added.</summary>
+        private protected int MadeDependence { get; set; }
+
+        /// <summary>Whether a record made in code was given flag 16, so that its table takes a name with a | in it.</summary>
+        internal bool IsMadeDependent => Item == null && (MadeDependence & 16) != 0;
+
+        /// <summary>
+        /// The flags 16 and 32 of a record of an external reference, checked as <c>SetDependent</c> of a layer and of a
+        /// linetype says: resolved only where dependent, dependent exactly where the name has a | in it, and not erased.
+        /// </summary>
+        private protected int Dependence(bool dependent, bool resolved)
+        {
+            if (resolved && !dependent)
+            {
+                throw new ArgumentException("A record is resolved only where it comes from an external reference.", nameof(resolved));
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The record " + Name + " is erased, and is not changed.");
+            }
+
+            string name = Name;
+
+            if (name != null && dependent != (name.IndexOf('|') >= 0))
+            {
+                throw new ArgumentException(dependent
+                    ? "The record " + name + " is not named after an external reference, as grid|WALL, and is not made one of it."
+                    : "The record " + name + " is named after an external reference, and stays one of it.", nameof(dependent));
+            }
+
+            return (dependent ? 16 : 0) | (resolved ? 32 : 0);
+        }
 
         /// <summary>The whole number of the first group 70 of the own part of a record; nought where it has none.</summary>
         private protected static int FlagsOf(DxfItem item)

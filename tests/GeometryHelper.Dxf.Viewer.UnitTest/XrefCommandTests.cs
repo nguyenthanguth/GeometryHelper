@@ -11,8 +11,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     /// <summary>
     /// External references of C18b: a DXF attached or overlaid by XATTACH and -XREF, shown as its drawing's model space under
-    /// the INSERT with its layers named after it, never written into the drawing, followed when nested, unloaded, reloaded,
-    /// its path changed and detached in AutoCAD 2021's words, each change of the drawing one undo step.
+    /// the INSERT with its layers named after it, their records written as AutoCAD 2021 writes them and its entities not,
+    /// followed when nested, unloaded, reloaded, its path changed and detached in AutoCAD 2021's words, each change of the
+    /// drawing one undo step.
     /// </summary>
     public class XrefCommandTests : IDisposable
     {
@@ -123,11 +124,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Path.GetFullPath(grid), row.FoundAt);
             Assert.Equal(CadPathType.Relative, row.PathType);
 
-            // Nothing of the drawing referenced is written into this one.
+            // Of the drawing referenced, the records AutoCAD 2021 writes: its layer GRID as grid|GRID, flagged 48 (dependent,
+            // resolved), its own properties and nothing changed of them (1071 0); its block flagged 36, loaded. Layer 0 and the
+            // entities are not written.
             string saved = document.Database.ToText();
             Assert.DoesNotContain("\n  2\nGRID\n", saved, StringComparison.Ordinal);
             Assert.DoesNotContain("\n  8\nGRID\n", saved, StringComparison.Ordinal);
-            Assert.DoesNotContain("grid|", saved, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("grid|0", saved, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("  2\ngrid|GRID\n 70\n48\n 62\n7\n  6\nContinuous\n", saved, StringComparison.Ordinal);
+            DxfLayerTableRecord layer = document.Database.LayerTable["grid|GRID"];
+            Assert.True(layer.IsResolved);
+            Assert.Equal("0", layer.GetXDataForApplication("AcXRefLayerPropertyOverride")[1].Value.Trim());
+            Assert.True(block.IsResolved);
+            Assert.Contains("  2\ngrid\n 70\n36\n", saved, StringComparison.Ordinal);
             Assert.Single(All<DxfLine>(document.ModelSpace));
 
             Assert.Equal("XATTACH", document.NextUndo.Name);
@@ -170,27 +179,78 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("\"grid\" is unloaded.", session.History);
             Assert.Equal(CadReferenceStatus.Unloaded, Assert.Single(document.Xrefs.GetReferences()).Status);
             Assert.Empty(Items<DisplayArc2>(document));
+            Assert.False(document.Database.LayerTable["grid|GRID"].IsResolved);
+            Assert.True(document.Database.LayerTable["grid|GRID"].IsDependent);
+            Assert.False(document.Database.BlockTable["grid"].IsResolved);
 
             Run(session, "-XREF", "R", "grid");
             Assert.Contains("Reload Xref \"grid\": ..\\xref\\grid.dxf", session.History);
             Assert.Equal(CadReferenceStatus.Loaded, Assert.Single(document.Xrefs.GetReferences()).Status);
             Assert.Single(Items<DisplayArc2>(document));
+            Assert.True(document.Database.LayerTable["grid|GRID"].IsResolved);
 
             Run(session, "-XREF", "B", "grid");
             Assert.Contains("Bind is not offered: a DXF external reference is shown, never written into the drawing.", session.History);
 
             Run(session, "-XREF", "D", "grid");
             Assert.False(document.Database.BlockTable.Has("grid"));
+            Assert.False(document.Database.LayerTable.Has("grid|GRID"));
             Assert.Empty(All<DxfBlockReference>(document.ModelSpace));
             Assert.Empty(document.Xrefs.GetReferences());
 
-            // Attach, two path types, detach: four steps back to the drawing as it was.
-            for (int i = 0; i < 4; i++)
+            // Attach, two path types, unload and reload (the flags of grid|GRID and of the block, 16 and 48 again), detach: six
+            // steps back to the drawing as it was.
+            for (int i = 0; i < 6; i++)
             {
                 Assert.True(document.Undo());
             }
 
             Assert.Equal(start, document.Database.ToText());
+        }
+
+        /// <summary>
+        /// As AutoCAD 2021's -XREF Attach of x.dwg wrote it, its layer WALL green on DASHED: the linetype x|DASHED with its
+        /// dashes and the layer x|WALL on it, each flagged 48, the layer with the properties and description of the file's and
+        /// 1071 0 of AcXRefLayerPropertyOverride; a layer the drawing has already keeps what it has.
+        /// </summary>
+        [Fact]
+        public void TheTypedAttach_WritesTheLinetypesAndLayersOfTheDrawing_AsAutoCadWritesThem()
+        {
+            string grid = Grid("x", d =>
+            {
+                var dashed = new DxfLinetypeTableRecord { Name = "DASHED", AsciiDescription = "Dashed __ __", NumDashes = 2 };
+                dashed.SetDashLengthAt(0, 0.5);
+                dashed.SetDashLengthAt(1, -0.25);
+                d.LinetypeTable.Add(dashed);
+                d.LayerTable.Add(new DxfLayerTableRecord { Name = "WALL", ColorIndex = 3, LinetypeName = "DASHED", LineWeight = DxfLineWeight.LineWeight050, IsPlottable = false });
+                d.LayerTable["WALL"].Description = "walls";
+            });
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+
+            Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
+
+            string saved = document.Database.ToText();
+            Assert.Contains("  2\nx|DASHED\n 70\n48\n  3\nDashed __ __\n", saved, StringComparison.Ordinal);
+            DxfLinetypeTableRecord linetype = document.Database.LinetypeTable["x|DASHED"];
+            Assert.Equal(2, linetype.NumDashes);
+            Assert.Equal(-0.25, linetype.DashLengthAt(1));
+            Assert.Equal(0.75, linetype.PatternLength);
+            DxfLayerTableRecord wall = document.Database.LayerTable["x|WALL"];
+            Assert.True(wall.IsDependent);
+            Assert.True(wall.IsResolved);
+            Assert.Equal(3, wall.ColorIndex);
+            Assert.Equal("x|DASHED", wall.LinetypeName);
+            Assert.Equal(DxfLineWeight.LineWeight050, wall.LineWeight);
+            Assert.False(wall.IsPlottable);
+            Assert.Equal("walls", wall.Description);
+            Assert.Equal("0", wall.GetXDataForApplication("AcXRefLayerPropertyOverride")[1].Value.Trim());
+            Assert.Equal(7, document.Database.LayerTable["x|GRID"].ColorIndex);
+
+            // Reloaded, the records the drawing has keep what it gave them.
+            Assert.True(CadLayerEditor.SetColor(document, "x|WALL", 1).Succeeded);
+            Run(session, "-XREF", "R", "x");
+            Assert.Equal(1, document.Database.LayerTable["x|WALL"].ColorIndex);
         }
 
         [Fact]
@@ -306,7 +366,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Grid(more: d => d.ModelSpace.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 50.0)));
             File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(1));
 
-            Assert.Equal(CadReferenceStatus.NeedsReloading, Assert.Single(document.Xrefs.GetReferences()).Status);
+            CadExternalReference changed = Assert.Single(document.Xrefs.GetReferences());
+            Assert.Equal(CadReferenceStatus.NeedsReloading, changed.Status);
+
+            // The words of AutoCAD 2021's help of the palette's List View: "Needs Reloading", "Not Found".
+            Assert.Equal("Needs Reloading", changed.StatusText);
             Assert.Single(Items<DisplayArc2>(document));
 
             Run(session, "-XREF", "R", "grid");

@@ -228,5 +228,56 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => db.BlockTable["BOLT"].PathName = "bolt.dxf");
             Assert.Equal(before, db.ToText());
         }
+
+        /// <summary>
+        /// The records AutoCAD 2021 writes into a drawing for a drawing it attaches, as its DXFOUT wrote them for x.dwg: the
+        /// linetype <c>x|DASHED</c> and the layer <c>x|WALL</c> on it, each flagged 48 (dependent, resolved), and 16 once the
+        /// reference is unloaded; detached, they go with it.
+        /// </summary>
+        [Fact]
+        public void TheLayersAndLinetypesOfAnAttachedDrawing_AreWrittenFlaggedFortyEight_AndSixteenOnceUnresolved()
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            DxfBlockTableRecord x = db.AttachXref(".\\x.dwg", "x");
+            var dashed = new DxfLinetypeTableRecord { Name = "x|DASHED", AsciiDescription = "Dashed __ __ __", NumDashes = 2 };
+            dashed.SetDashLengthAt(0, 0.5);
+            dashed.SetDashLengthAt(1, -0.25);
+            dashed.SetDependent(true, true);
+            db.LinetypeTable.Add(dashed);
+            var wall = new DxfLayerTableRecord { Name = "x|WALL", ColorIndex = 3, LinetypeName = "x|DASHED" };
+            wall.SetDependent(true, true);
+            db.LayerTable.Add(wall);
+
+            Assert.True(wall.IsDependent);
+            Assert.True(wall.IsResolved);
+            string saved = db.ToText();
+            Assert.Contains("  2\nx|DASHED\n 70\n48\n  3\nDashed __ __ __\n", saved, StringComparison.Ordinal);
+            Assert.Contains("  2\nx|WALL\n 70\n48\n 62\n3\n  6\nx|DASHED\n", saved, StringComparison.Ordinal);
+            DxfDatabase read = DxfDatabase.Parse(saved);
+            Assert.True(read.LayerTable["x|WALL"].IsResolved);
+            Assert.True(read.LinetypeTable["x|DASHED"].IsDependent);
+
+            // Unloaded: 16 alone, as AutoCAD 2021 wrote them.
+            wall.SetDependent(true, false);
+            dashed.SetDependent(true, false);
+            Assert.False(wall.IsResolved);
+            Assert.Contains("  2\nx|WALL\n 70\n16\n", db.ToText(), StringComparison.Ordinal);
+            Assert.Contains("  2\nx|DASHED\n 70\n16\n", db.ToText(), StringComparison.Ordinal);
+
+            // A name and marks that disagree are refused, and so is a name with a | of a record not marked.
+            var plain = new DxfLayerTableRecord { Name = "STEEL" };
+            Assert.Throws<ArgumentException>(() => plain.SetDependent(true, true));
+            Assert.Throws<ArgumentException>(() => wall.SetDependent(false, false));
+            Assert.Throws<ArgumentException>(() => wall.SetDependent(false, true));
+            Assert.Throws<ArgumentException>(() => db.LayerTable.Add(new DxfLayerTableRecord { Name = "x|NOTE" }));
+            var bare = new DxfLayerTableRecord { Name = "|NOTE" };
+            bare.SetDependent(true, true);
+            Assert.Throws<ArgumentException>(() => db.LayerTable.Add(bare));
+
+            db.DetachXref(x);
+            Assert.False(db.LayerTable.Has("x|WALL"));
+            Assert.False(db.LinetypeTable.Has("x|DASHED"));
+            Assert.Throws<InvalidOperationException>(() => wall.SetDependent(true, true));
+        }
     }
 }

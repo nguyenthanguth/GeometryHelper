@@ -3963,6 +3963,25 @@ namespace GeometryHelper.Dxf
         /// <summary>The flags of the block's BLOCK (group 70); nought for model and paper space with none.</summary>
         private protected override int Flags => _block?.Head == null || _file == null ? 0 : FlagsOf(_block.Head);
 
+        /// <summary>
+        /// Flags the block of an external reference resolved or not (32 of its BLOCK's 70), as AutoCAD 2021 writes 36 for a
+        /// drawing attached and loaded and 4 once it is unloaded; any other block is left as it is.
+        /// </summary>
+        internal void SetXrefResolved(bool resolved)
+        {
+            if (!IsFromExternalReference || _block?.Head == null || _file == null || IsErased)
+            {
+                return;
+            }
+
+            int flags = resolved ? Flags | 32 : Flags & ~32;
+
+            if (flags != Flags)
+            {
+                _file.SetValues(_block.Head, new[] { new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)) }, BlockOrder, false);
+            }
+        }
+
         /// <summary>Whether a name is that of model space, as AutoCAD (<c>*Model_Space</c>) or ezdxf's files of R12 (<c>$Model_Space</c>) spell it.</summary>
         internal static bool IsModelName(string name) => string.Equals(name, ModelSpace, StringComparison.OrdinalIgnoreCase) || string.Equals(name, "$Model_Space", StringComparison.OrdinalIgnoreCase);
 

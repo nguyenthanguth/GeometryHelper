@@ -158,7 +158,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
-| layers | -LAYER (Set, New, ON, OFF, Freeze, Thaw, LOck, Unlock, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
+| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
@@ -443,13 +443,17 @@ switches cycling between 0 and 2, as in AutoCAD.
 
 XATTACH and -XREF Attach or Overlay attach a DXF as an external reference: a block flagged 4 (12 overlaid) naming the
 file, and an INSERT of it, one undo step. The presenter reads the file and draws its model space under the INSERT, its
-layers named after the reference (`grid|GRID`) and its layer 0 taking the INSERT's; nothing of it is written into the
-drawing. Its own attachments are followed, its overlays not. The file is looked for as AutoCAD looks: the path saved, from
+layers named after the reference (`grid|GRID`) and its layer 0 taking the INSERT's. Of the file, the drawing takes the
+records AutoCAD 2021 writes for it, as its -XREF Attach of x.dwg wrote them: for each linetype but ByBlock, ByLayer and
+Continuous, `x|DASHED` with its description and dashes; for each layer but 0, `x|WALL` with its colour, linetype
+(`x|DASHED`), lineweight, on, frozen, locked, plotted, transparency and description, and `1001
+AcXRefLayerPropertyOverride, 1071 0`; each flagged 48 (dependent, resolved), and its block 36. Its entities are not
+written. Its own attachments are followed, its overlays not. The file is looked for as AutoCAD looks: the path saved, from
 the folder of the drawing that names it, then the file's name there, in the drawing's folder and in the support folders.
 A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `D:\Plans\plans\host.dxf` is saved as
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
 and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
-with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs reloading once its file changed on disk.
+with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs Reloading once its file changed on disk.
 Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
 under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
@@ -459,19 +463,25 @@ watches the folders of the files read; one changed on disk is said once on its d
 2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
 -XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file
 changed anew.
-Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
+Unload flags the reference's layers and linetypes 16 and its block 4, as AutoCAD 2021 writes them unloaded, and Reload
+flags them 48 and 36 again and writes those of layers and linetypes the file has gained, each an undo step where anything
+changes; a record the drawing has keeps what it has. Detach takes them out with the block. No DXF says a reference is
+unloaded. One
 not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
 an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
 reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
-2021 changes it under VISRETAIN 1: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer
-box or -LAYER, each change marked in the 1071 of the record's `AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off,
-2 Freeze, 4 Lock, 16 and 256 Color, 32 Ltype, 64 LWeight). What is marked is drawn as the drawing keeps it, the rest as
-the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
-as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
+2021 changes it: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer box or -LAYER,
+and transparency, plotting and description from -LAYER, each change marked in the 1071 of the record's
+`AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
+LWeight, 128 TRansparency, 1024 Description). Under VISRETAIN 1 the record is drawn whole and kept on reload, as AutoCAD
+2021 keeps it with VISRETAINMODE 0, its default, which syncs nothing: `x|WALL` green in the record stayed green when x.dwg
+made WALL blue, reloaded and opened anew alike. Under VISRETAIN 0 what is marked is drawn as the drawing keeps it and the
+rest as the file has it, and Reload writes the file's properties back with 1071 0, as AutoCAD 2021's reload wrote
+`x|WALL` made red back as the file's blue; Unload takes the records out. The presenter takes VISRETAINMODE as 0; it does
+not write the records again from the file when it opens a drawing of VISRETAIN 0, as AutoCAD does. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
 "Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
-`"grid|X" is an invalid layer name.` (-LAYER New). The presenter writes no such record when it attaches a file; one
-attached in it has its layers drawn, but not listed. IMAGEATTACH
+`"grid|X" is an invalid layer name.` (-LAYER New). IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by

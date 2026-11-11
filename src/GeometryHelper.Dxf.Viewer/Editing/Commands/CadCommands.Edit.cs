@@ -562,12 +562,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// -LAYER: AutoCAD's options on the command line, stAte among them, until Enter. A layer of an external reference
-        /// (<c>grid|WALL</c>) is switched on and off, frozen, thawed, locked and unlocked, as AutoCAD 2021's -LAYER does, and
-        /// Set refuses it in AutoCAD 2021's words: "Invalid layer name.".
+        /// (<c>grid|WALL</c>) is switched on and off, given a transparency, plotted or not, frozen, thawed, locked, unlocked
+        /// and described, as AutoCAD 2021's -LAYER does, and Set refuses it in AutoCAD 2021's words: "Invalid layer name.".
+        /// TRansparency and Plot ask their value first and offer the current layer, as AutoCAD 2021 asks "Enter transparency
+        /// value (0-90):", then "Enter name list of layer(s) for transparency 50% &lt;0&gt;:".
         /// </summary>
         private static IEnumerable<CadPrompt> LayerTyped(CadCommandContext c)
         {
-            string[] options = { "Set", "New", "ON", "OFF", "Freeze", "Thaw", "LOck", "Unlock", "stAte" };
+            string[] options = { "Set", "New", "ON", "OFF", "TRansparency", "Plot", "Freeze", "Thaw", "LOck", "Unlock", "stAte", "Description" };
             c.Write("Current layer:  \"" + c.Database.Clayer + "\"");
 
             while (true)
@@ -592,28 +594,76 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                int percent = 0;
+                bool plotted = true;
+                string description = null;
+
+                if (option == "TRansparency")
+                {
+                    while (true)
+                    {
+                        yield return CadPrompt.ForInteger("Enter transparency value (0-90)");
+
+                        if (c.Input.Kind != CadInputKind.Number || (c.Input.Number >= 0 && c.Input.Number <= 90 && c.Input.Number == Math.Floor(c.Input.Number)))
+                        {
+                            break;
+                        }
+
+                        c.Write("Requires an integer between 0 and 90.");
+                    }
+
+                    if (c.Input.Kind != CadInputKind.Number)
+                    {
+                        continue;
+                    }
+
+                    percent = (int)c.Input.Number;
+                }
+                else if (option == "Plot")
+                {
+                    yield return CadPrompt.ForKeyword("Enter a plotting preference", new[] { "Plot", "No plot" }, "Plot");
+                    plotted = !c.Input.Is("No plot");
+                }
+                else if (option == "Description")
+                {
+                    yield return CadPrompt.ForString("Enter layer description");
+
+                    if (c.Input.Kind != CadInputKind.Text)
+                    {
+                        continue;
+                    }
+
+                    description = c.Input.Text;
+                }
+
+                string current = null;
+
                 switch (option)
                 {
                     case "Set": ask = "Enter layer name to make current"; break;
                     case "New": ask = "Enter name list for new layer(s)"; break;
                     case "ON": ask = "Enter name list of layer(s) to turn On"; break;
                     case "OFF": ask = "Enter name list of layer(s) to turn Off"; break;
+                    case "TRansparency": ask = "Enter name list of layer(s) for transparency " + percent.ToString(CultureInfo.InvariantCulture) + "%"; current = c.Database.Clayer; break;
+                    case "Plot": ask = "Enter layer name(s) for this plot preference"; current = c.Database.Clayer; break;
                     case "Freeze": ask = "Enter name list of layer(s) to freeze"; break;
                     case "Thaw": ask = "Enter name list of layer(s) to thaw"; break;
                     case "LOck": ask = "Enter name list of layer(s) to lock"; break;
+                    case "Description": ask = "Enter name list of layer(s) to apply description"; break;
                     default: ask = "Enter name list of layer(s) to unlock"; break;
                 }
 
-                yield return CadPrompt.ForString(ask);
+                yield return CadPrompt.ForString(ask, current);
+                string names = c.Input.Kind == CadInputKind.Text ? c.Input.Text : c.Input.IsNone ? current : null;
 
-                if (c.Input.Kind != CadInputKind.Text)
+                if (names == null)
                 {
                     continue;
                 }
 
                 c.OpenUndoStep();
 
-                foreach (string piece in c.Input.Text.Split(','))
+                foreach (string piece in names.Split(','))
                 {
                     string name = piece.Trim();
 
@@ -637,6 +687,9 @@ namespace GeometryHelper.Dxf.Viewer
                         case "Freeze": result = CadLayerEditor.SetFrozen(c.Document, name, true); break;
                         case "Thaw": result = CadLayerEditor.SetFrozen(c.Document, name, false); break;
                         case "LOck": result = CadLayerEditor.SetLocked(c.Document, name, true); break;
+                        case "TRansparency": result = CadLayerEditor.SetTransparency(c.Document, name, percent); break;
+                        case "Plot": result = CadLayerEditor.SetPlottable(c.Document, name, plotted); break;
+                        case "Description": result = CadLayerEditor.SetDescription(c.Document, name, description); break;
                         default: result = CadLayerEditor.SetLocked(c.Document, name, false); break;
                     }
 

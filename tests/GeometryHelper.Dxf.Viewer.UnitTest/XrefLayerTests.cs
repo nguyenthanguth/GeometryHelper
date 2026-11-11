@@ -9,10 +9,10 @@ using static GeometryHelper.Dxf.Viewer.UnitTest.EditingDrawings;
 namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     /// <summary>
-    /// The layers of an external reference (<c>grid|GRID</c>) a drawing keeps, as AutoCAD 2021 keeps them under VISRETAIN 1:
-    /// on, frozen, locked, colour, linetype and lineweight changed in the drawing and kept there, each change marked in the
-    /// bits of <c>AcXRefLayerPropertyOverride</c>, the rest read from the drawing referenced; the name and the current layer
-    /// refused in AutoCAD 2021's words.
+    /// The layers of an external reference (<c>grid|GRID</c>) a drawing keeps, as AutoCAD 2021 keeps them: on, frozen,
+    /// locked, colour, linetype and lineweight changed in the drawing and kept there, each change marked in the bits of
+    /// <c>AcXRefLayerPropertyOverride</c>; under VISRETAIN 1 the record kept whole on reload, under VISRETAIN 0 the file's
+    /// taking its place; the name and the current layer refused in AutoCAD 2021's words.
     /// </summary>
     public class XrefLayerTests : IDisposable
     {
@@ -78,17 +78,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static string Bits(CadDocument document)
             => document.Database.LayerTable["grid|GRID"].GetXDataForApplication("AcXRefLayerPropertyOverride")[1].Value.Trim();
 
+        /// <summary>
+        /// Under VISRETAIN 1 the drawing's record gives every property, as AutoCAD 2021 kept x|WALL green (62 3, 1071 0) when
+        /// x.dwg made WALL blue and the reference was reloaded, and again when the drawing was opened anew: VISRETAINMODE 0,
+        /// its default, syncs nothing on reload.
+        /// </summary>
         [Fact]
-        public void ALayerNotChanged_IsDrawnAsTheFileReferencedHasItNow_AndOneChangedAsTheDrawingKeepsIt()
+        public void UnderVisretainOne_TheDrawingsRecordIsDrawn_ThoughTheFileChangesALayerItLeftAsItWas()
         {
             CadDocument document = Host();
             CadCommandSession session = Session(document);
             Assert.Equal(0x00FF00, Line(document).Style.Rgb);
 
-            // The file made blue: the drawing changed nothing of the layer, which is drawn blue once reloaded.
+            // The file made blue: the drawing changed nothing of the layer, and keeps it green once reloaded.
             Grid(5);
             Run(session, "-XREF", "R", "grid");
-            Assert.Equal(0x0000FF, Line(document).Style.Rgb);
+            Assert.Equal(0x00FF00, Line(document).Style.Rgb);
+            Assert.Equal(3, document.Database.LayerTable["grid|GRID"].ColorIndex);
+            Assert.Equal("0", Bits(document));
 
             // Made red in the drawing, one undo step marked 16 and 256 as AutoCAD 2021 marks it, and kept red when the file is made cyan.
             Assert.True(CadLayerEditor.SetColor(document, "grid|GRID", 1).Succeeded);
@@ -107,14 +114,85 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadLayerEditor.SetLineWeight(document, "grid|GRID", DxfLineWeight.LineWeight050).Succeeded);
             Assert.Equal("343", Bits(document));
 
-            // The changes are the drawing's: each undone, the colour last, back to the file's cyan.
+            // The changes are the drawing's: each undone, the colour last, back to the record's green.
             while (document.NextUndo != null && document.NextUndo.Name != "-XREF")
             {
                 Assert.True(document.Undo());
             }
 
             Assert.Equal("0", Bits(document));
+            Assert.Equal(0x00FF00, Line(document).Style.Rgb);
+        }
+
+        /// <summary>
+        /// Under VISRETAIN 0, as AutoCAD 2021 did with it set in the drawing: x|WALL made red there is drawn red and marked
+        /// 272 until the reference is reloaded, which writes the file's blue back (62 5) with 1071 0; a layer not changed is
+        /// drawn as the file has it; unloading takes the records out, and reloading writes them again.
+        /// </summary>
+        [Fact]
+        public void UnderVisretainZero_AReloadTakesTheFilesLayer_AndAnUnloadTakesTheRecordsOut()
+        {
+            CadDocument document = Host();
+            document.Database.Visretain = false;
+            document.Regen();
+            CadCommandSession session = Session(document);
+            Assert.Equal(0x00FF00, Line(document).Style.Rgb);
+
+            Assert.True(CadLayerEditor.SetColor(document, "grid|GRID", 1).Succeeded);
+            Assert.Equal("272", Bits(document));
+            Assert.Equal(0xFF0000, Line(document).Style.Rgb);
+
+            // The file made blue and reloaded: the drawing's red goes, the record is the file's again.
+            Grid(5);
+            Run(session, "-XREF", "R", "grid");
+            Assert.Equal(0x0000FF, Line(document).Style.Rgb);
+            Assert.Equal(5, document.Database.LayerTable["grid|GRID"].ColorIndex);
+            Assert.Equal("0", Bits(document));
+            Assert.Equal("-XREF", document.NextUndo.Name);
+
+            // Unloaded, the records go; reloaded, they come back as the file has them.
+            Run(session, "-XREF", "U", "grid");
+            Assert.False(document.Database.LayerTable.Has("grid|GRID"));
+            Grid(4);
+            Run(session, "-XREF", "R", "grid");
+            Assert.Equal(4, document.Database.LayerTable["grid|GRID"].ColorIndex);
+            Assert.True(document.Database.LayerTable["grid|GRID"].IsResolved);
             Assert.Equal(0x00FFFF, Line(document).Style.Rgb);
+        }
+
+        /// <summary>
+        /// -LAYER TRansparency, Plot and Description, asked as AutoCAD 2021 asks them, each marked on a layer of a reference as
+        /// AutoCAD 2021 marked b|WALL: 128 TRansparency, 8 Plot, 1024 Description; the name list offers the current layer.
+        /// </summary>
+        [Fact]
+        public void TransparencyPlotAndDescription_AreSetByLayer_AndMarkedOnALayerOfAReference()
+        {
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+
+            Run(session, "-LAYER", "TR", "95", "50", "grid|GRID", Enter);
+            Assert.Contains("Enter transparency value (0-90): 95", session.History);
+            Assert.Contains("Requires an integer between 0 and 90.", session.History);
+            Assert.Contains("Enter name list of layer(s) for transparency 50% <0>: grid|GRID", session.History);
+            DxfLayerTableRecord layer = document.Database.LayerTable["grid|GRID"];
+            Assert.Equal(127, layer.Transparency.Alpha);
+            Assert.Equal("128", Bits(document));
+
+            Run(session, "-LAYER", "P", "N", "grid|GRID", Enter);
+            Assert.Contains("Enter a plotting preference [Plot/No plot] <Plot>: N", session.History);
+            Assert.Contains("Enter layer name(s) for this plot preference <0>: grid|GRID", session.History);
+            Assert.False(document.Database.LayerTable["grid|GRID"].IsPlottable);
+            Assert.Equal("136", Bits(document));
+
+            Run(session, "-LAYER", "D", "Grid lines", "grid|GRID", Enter);
+            Assert.Contains("Enter layer description: Grid lines", session.History);
+            Assert.Equal("Grid lines", document.Database.LayerTable["grid|GRID"].Description);
+            Assert.Equal("1160", Bits(document));
+
+            // Enter takes the current layer, 0, which is the drawing's own and marked nothing.
+            Run(session, "-LAYER", "TR", "20", Enter, Enter);
+            Assert.Equal(204, document.Database.LayerTable["0"].Transparency.Alpha);
+            Assert.Null(document.Database.LayerTable["0"].GetXDataForApplication("AcXRefLayerPropertyOverride"));
         }
 
         [Fact]

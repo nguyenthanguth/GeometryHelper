@@ -80,6 +80,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Whether the frames of images are drawn (IMAGEFRAME 1 or 2), as AutoCAD 2021 draws them until set off.</summary>
         private readonly bool _imageFrames = true;
 
+        /// <summary>The document's VISRETAIN: whether the records of the layers of its references give every property (1), or only those changed since they were last read (0).</summary>
+        private readonly bool _visretain;
+
         public DisplayBuilder(DxfDatabase database, CadDocument document = null)
             : this(database, document, null, null, null)
         {
@@ -94,6 +97,16 @@ namespace GeometryHelper.Dxf.Viewer
             _prefix = prefix;
             _folder = folder;
             double scale = 1.0;
+
+            // VISRETAIN of the document's drawing, which every drawing it references is shown under.
+            try
+            {
+                _visretain = host == null ? database.Visretain : host._visretain;
+            }
+            catch (Exception)
+            {
+                _visretain = true;
+            }
 
             try
             {
@@ -147,10 +160,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The layer of a name as it is drawn: the drawing's own; in a drawing referenced, a record of the drawing that shows
-        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own. A record
-        /// that keeps which properties the drawing changed, as AutoCAD 2021 keeps them under VISRETAIN 1, gives those alone, the
-        /// rest read from the drawing referenced (<see cref="CadXrefLayers"/>): GRID|WALLS made red there and green in the file
-        /// referenced is drawn red, and once the file is made blue, still red; left as it was, it is drawn blue.
+        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own. Under
+        /// VISRETAIN 1 the record gives every property, as AutoCAD 2021 keeps it with VISRETAINMODE 0, its default, which syncs
+        /// none on reload: GRID|WALLS green in the record stays green when the file makes WALLS blue. Under VISRETAIN 0 it gives
+        /// only those the drawing changed since the file was last read, marked in its <see cref="CadXrefLayers"/> bits, the
+        /// rest read from the file: GRID|WALLS made red in the drawing is drawn red, and left as it was, as the file has it.
         /// </summary>
         private LayerState LayerNamed(string name)
         {
@@ -160,14 +174,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (shown != null)
                 {
-                    if (shown.Overrides == null || !_layers.TryGetValue(name, out LayerState own))
+                    if (_visretain || !shown.Record.IsDependent || !_layers.TryGetValue(name, out LayerState own))
                     {
                         return shown;
                     }
 
                     if (!_merged.TryGetValue(name, out LayerState merged))
                     {
-                        merged = new LayerState(shown, own, shown.Overrides.Value);
+                        merged = new LayerState(shown, own, shown.Overrides ?? 0);
                         _merged[name] = merged;
                     }
 

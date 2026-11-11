@@ -238,7 +238,7 @@
             </Border>
 
             <StackPanel Margin="12,10" TextElement.Foreground="{StaticResource GhTextMuted}">
-                <TextBlock TextWrapping="Wrap" Margin="0,0,0,4" Text="Status: Loaded, Unloaded, Not Found, Unreferenced, Orphaned (its parent is not shown), Needs reloading (the file changed on disk: Reload reads it again)." />
+                <TextBlock TextWrapping="Wrap" Margin="0,0,0,4" Text="Status: Loaded, Unloaded, Not Found, Unreferenced, Orphaned (its parent is not shown), Needs Reloading (the file changed on disk: Reload reads it again)." />
                 <TextBlock TextWrapping="Wrap" Text="Right-click a row: Open, Attach…, Unload, Reload, Detach. Bind… is greyed: binding a DXF xref into the drawing is to confirm." />
             </StackPanel>
         </DockPanel>

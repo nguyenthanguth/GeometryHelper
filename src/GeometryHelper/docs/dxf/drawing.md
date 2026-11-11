@@ -404,7 +404,11 @@ folder of the drawing's `Filename`, `Resolved` where AutoCAD saved it resolved (
 is unloaded. `db.DetachXref(block)` erases its INSERTs, the records it brought, those named `COLUMN|...` in the layer,
 linetype, text style, dimension style and block tables, and its block. `block.PathName = @"..\xref\column.dxf"` gives
 it a new path, written in its BLOCK's group 1 as AutoCAD's -XREF Path writes it; a block that is no external reference
-refuses one. The library reads no drawing referenced; the presenter does, and shows it
+refuses one. The records an external reference brings are written as AutoCAD 2021 writes them, a layer or a linetype
+marked by `SetDependent(dependent, resolved)` before it is added, so that its table takes a name with a |: `new
+DxfLayerTableRecord { Name = "x|WALL", ColorIndex = 3 }` marked `SetDependent(true, true)` is written `2 x|WALL, 70 48`,
+and marked `SetDependent(true, false)` once the reference is unloaded, 16. AutoCAD's DXFOUT writes no text style,
+dimension style or block of a reference, only its layers and linetypes. The library reads no drawing referenced; the presenter does, and shows it
 ([Editing in the presenter](../presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
 DXF it keeps, saying "Unable to load".
 

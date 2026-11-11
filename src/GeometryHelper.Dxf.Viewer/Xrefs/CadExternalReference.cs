@@ -140,7 +140,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Gets the status in the palette's words: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, Needs reloading, Orphaned.</summary>
+        /// <summary>Gets the status in the words of AutoCAD 2021's help of the palette: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, Needs Reloading, Orphaned.</summary>
         public string StatusText
         {
             get
@@ -150,7 +150,7 @@ namespace GeometryHelper.Dxf.Viewer
                     case CadReferenceStatus.NotFound:
                         return "Not Found";
                     case CadReferenceStatus.NeedsReloading:
-                        return "Needs reloading";
+                        return "Needs Reloading";
                     default:
                         return Status.ToString();
                 }

@@ -12,7 +12,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// The commands of external references and images, in AutoCAD 2021's words: XATTACH and IMAGEATTACH (the attach dialogs,
     /// their typed forms with no window), XREF, EXTERNALREFERENCES and IMAGE (the palette), -XREF and -IMAGE, XOPEN, IMAGECLIP,
     /// IMAGEFRAME and TRANSPARENCY. Each change of the drawing is one undo step; unloading and reloading change what is shown,
-    /// not the drawing, and are not.
+    /// and the drawing only by the flags and records of the layers and linetypes of the reference
+    /// (<see cref="CadXrefLayers.Bring"/>), a step where they change.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -173,6 +174,15 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         c.Write("Xref \"" + block.Name + "\": " + block.PathName);
                         c.Document.Xrefs.SetUnloaded(block.Name, true);
+                        string unloaded = block.Name;
+
+                        // Its layers and linetypes flagged 16, no longer resolved, as AutoCAD 2021 flags them.
+                        if (CadXrefLayers.Unresolve(c.Database, unloaded, false))
+                        {
+                            c.OpenUndoStep();
+                            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Unload xref", null, unloaded) }, s => CadXrefLayers.Unresolve(s.Database, unloaded, true));
+                        }
+
                         c.Write("\"" + block.Name + "\" is unloaded.");
                     }
 
@@ -287,7 +297,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>-XREF Reload: the file found again and read anew, in AutoCAD 2021's words.</summary>
+        /// <summary>
+        /// -XREF Reload: the file found again and read anew, in AutoCAD 2021's words; its layers and linetypes the drawing has
+        /// not yet written, and those it has flagged resolved again, as <see cref="CadXrefLayers.Bring"/> says.
+        /// </summary>
         private static void ReloadXref(CadCommandContext c, DxfBlockTableRecord block)
         {
             c.Write("Reload Xref \"" + block.Name + "\": " + block.PathName);
@@ -302,7 +315,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             xrefs.Forget(found);
-            c.Write(xrefs.Read(found).Database == null ? "Error: Unable to load " + found + "." : "\"" + block.Name + "\" loaded.");
+            DxfDatabase referenced = xrefs.Read(found).Database;
+            c.Write(referenced == null ? "Error: Unable to load " + found + "." : "\"" + block.Name + "\" loaded.");
+            string name = block.Name;
+
+            if (referenced != null && CadXrefLayers.Bring(c.Database, name, referenced, false))
+            {
+                c.OpenUndoStep();
+                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Reload xref", null, name) }, s => CadXrefLayers.Bring(s.Database, name, referenced, true));
+            }
         }
 
         /// <summary>Draws every space again after an external reference or image was unloaded or reloaded, which changes no record.</summary>
@@ -521,9 +542,17 @@ namespace GeometryHelper.Dxf.Viewer
             string saved = request.SavedPath;
             bool overlay = request.IsOverlay;
             CadSpace space = c.Space;
+            DxfDatabase referenced = request.FileName == null ? null : c.Document.Xrefs.Read(request.FileName).Database;
             c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, overlay ? "Overlay xref" : "Attach xref", null, name) }, s =>
             {
                 DxfBlockTableRecord block = s.Database.BlockTable.Has(name) ? s.Database.BlockTable[name] : overlay ? s.Database.OverlayXref(saved, name) : s.Database.AttachXref(saved, name);
+
+                // The layers and linetypes of the drawing attached, written as AutoCAD 2021 writes them.
+                if (referenced != null)
+                {
+                    CadXrefLayers.Bring(s.Database, name, referenced, true);
+                }
+
                 var insert = new DxfBlockReference(point, block);
                 s.Append(space, Current(c, insert));
                 insert.ScaleFactors = new GeoVector3(scale.X * factor, scale.Y * factor, scale.Z * factor);
