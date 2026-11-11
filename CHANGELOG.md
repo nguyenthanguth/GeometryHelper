@@ -22,6 +22,30 @@ same bit for bit.
 **FIXED.** A fillet radius that is not a positive number, given to `TryFilletAt` or `Fillet` of a chain or a loop, flat or
 in space, was refused with "A chamfer distance must be a positive number."; it is refused as a radius.
 
+**NEW.** `DxfDatabase.BindXref(block, referenced, insertBind)` binds an external reference as AutoCAD's `BindXrefs`: its
+block becomes an ordinary one about the base point of its drawing, holding a copy of that drawing's model space, the
+records it draws by brought under the reference's name (`GRID$0$WALL`, `GRID$1$WALL` where `GRID$0$WALL` is taken), or
+merged by name when inserted; the records the reference brought (`GRID|WALL`) are renamed in their places, with what the
+drawing set on them. The presenter's -XREF Bind binds by BINDTYPE (0 Bind, 1 Insert, new and kept by the session) as
+AutoCAD 2021 does, the references the drawing places with it, in AutoCAD's words for one unloaded, not found or nested
+("Duplicate Block "TAG" ignored." when inserting); it refused Bind. The palette's Bind… stays greyed.
+
+**NEW.** `DxfRasterVariables.GetRasterVariables(db)` makes the variables of images of a drawing with none, as AutoCAD 2021
+makes them when IMAGEFRAME is first changed (frames shown, pictures finely, 72 the unit of the drawing: 1 for millimetres,
+5 for inches). The presenter's IMAGEFRAME, typed or from the frame box, now sets a drawing with no image yet, which it
+refused; the value it has already makes nothing, as in AutoCAD.
+
+**NEW.** `DxfMLeaderStyle.Block`, `BlockColor`, `BlockScale` and `BlockConnectionType` are set as well as read. The
+presenter's Modify Multileader Style dialog offers Block content (Source block, one of the drawing's blocks, Attachment,
+Color, Scale), and MLEADER in a style of a block asks its attributes ("Enter attribute values", "Enter tag number
+<TAGNUMBER>:") and places it past the dogleg as AutoCAD 2021 does: a circle of radius 5 landed at (20, 10) with a dogleg of
+0.36 at (25.36, 10). MLEADER in a style of no content draws the leader alone, asking no text. In a drawing of R2007 or
+later with no multileader style MLEADER makes Standard current first (AutoCAD's imperial values in an imperial drawing),
+where it refused. Scale multileaders to layout and Specify scale are greyed while Annotative is ticked.
+
+**FIXED.** IMAGEFRAME 2 is written as frames shown and not plotted (RASTERVARIABLES 70 of 3), as AutoCAD 2021 writes it; the
+presenter wrote 2, the setting AutoCAD's API names `ImageFrameBelow`.
+
 **NEW.** The presenter's Quick Select (QSELECT) has AutoCAD's Select objects button at the right of Apply to: it hides the
 dialog while `Select objects:` asks on the command line, and the dialog comes back over the objects picked, Apply to:
 Current selection, so a line of DOORS and a text picked offer Multiple, Line and Text. It is greyed while Exclude or

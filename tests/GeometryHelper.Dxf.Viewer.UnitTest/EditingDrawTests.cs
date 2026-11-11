@@ -311,9 +311,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void MLeaderInADrawingOfNoMultileaderStyle_SaysSoAndDrawsNothing()
+        public void MLeaderInADrawingOfR2000_WhichHoldsNoMultileader_SaysSoAndDrawsNothing()
         {
-            CadDocument document = Blank();
+            CadDocument document = CadDocument.From(new DxfDatabase("AC1015"), "r2000.dxf");
             CadCommandSession session = Run(Session(document), "MLD");
 
             Assert.False(session.IsRunning);

@@ -61,8 +61,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the scale of the multileaders; 0 for Scale multileaders to layout.</summary>
         public double Scale { get; set; } = 1.0;
 
-        /// <summary>Gets or sets what the leaders point to: words or nothing; a block is not offered.</summary>
+        /// <summary>Gets or sets what the leaders point to: words, a block (<see cref="BlockName"/>) or nothing.</summary>
         public DxfContentType ContentType { get; set; } = DxfContentType.MTextContent;
+
+        /// <summary>Gets or sets the name of the block the leaders point to, one of the drawing's; empty for none.</summary>
+        public string BlockName { get; set; } = string.Empty;
+
+        /// <summary>Gets or sets where the leaders meet the block: its box (Center extents) or its insertion point.</summary>
+        public DxfBlockConnectionType BlockConnection { get; set; } = DxfBlockConnectionType.ConnectExtents;
+
+        /// <summary>Gets or sets the colour of the block.</summary>
+        public DxfColor BlockColor { get; set; } = DxfColor.ByBlock;
+
+        /// <summary>Gets or sets the scale of the block, the same each way.</summary>
+        public double BlockScale { get; set; } = 1.0;
 
         /// <summary>Gets or sets the default text; empty for none.</summary>
         public string DefaultText { get; set; } = string.Empty;
@@ -138,6 +150,10 @@ namespace GeometryHelper.Dxf.Viewer
                 Annotative = style.Annotative == DxfAnnotativeStates.True,
                 Scale = style.Scale,
                 ContentType = style.ContentType,
+                BlockName = style.Block?.Name ?? string.Empty,
+                BlockConnection = style.BlockConnectionType,
+                BlockColor = style.BlockColor,
+                BlockScale = style.BlockScale.X,
                 DefaultText = style.DefaultMText?.Contents ?? string.Empty,
                 TextStyle = style.TextStyle?.Name ?? "Standard",
                 TextAngle = style.TextAngleType,
@@ -180,6 +196,14 @@ namespace GeometryHelper.Dxf.Viewer
             && Annotative == other.Annotative
             && Scale.Equals(other.Scale)
             && ContentType == other.ContentType
+            && string.Equals(
+                BlockName ?? string.Empty,
+                other.BlockName ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase
+            )
+            && BlockConnection == other.BlockConnection
+            && SameColor(BlockColor, other.BlockColor)
+            && BlockScale.Equals(other.BlockScale)
             && string.Equals(DefaultText ?? string.Empty, other.DefaultText ?? string.Empty, StringComparison.Ordinal)
             && string.Equals(TextStyle, other.TextStyle, StringComparison.OrdinalIgnoreCase)
             && TextAngle == other.TextAngle
@@ -635,6 +659,31 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Makes the multileader style Standard and makes it current, for MLEADER in a drawing with no style to draw in, as
+        /// AutoCAD 2021's drawing always has one: the presenter's metric Standard in a metric drawing (MEASUREMENT 1), and in
+        /// an imperial one AutoCAD's own, text and arrows 0.18, landing 0.36, gap 0.09 and break 0.125, as AutoCAD 2021 gives a
+        /// drawing read with no style.
+        /// </summary>
+        internal static void MakeStandard(DxfDatabase database)
+        {
+            var settings = new CadMLeaderStyleSettings();
+
+            if (database.Measurement == DxfMeasurementValue.English)
+            {
+                settings.ArrowSize = 0.18;
+                settings.BreakSize = 0.125;
+                settings.LandingDistance = 0.36;
+                settings.TextHeight = 0.18;
+                settings.LandingGap = 0.09;
+            }
+
+            var style = new DxfMLeaderStyle();
+            Dictionary(database).SetAt("Standard", style);
+            Write(database, style, settings);
+            database.MLeaderstyle = "Standard";
+        }
+
+        /// <summary>
         /// The MLEADERSCALE a style gives when it is made current, as AutoCAD 2021 sets it: the style's scale, nought for an
         /// annotative style.
         /// </summary>
@@ -710,8 +759,84 @@ namespace GeometryHelper.Dxf.Viewer
                 };
             }
 
-            mleader.AddLeaderLine(arrow);
+            if (!string.IsNullOrEmpty(words))
+            {
+                mleader.AddLeaderLine(arrow);
+                return mleader;
+            }
+
+            // A style of a block is given its leader once the block is placed (PlaceBlock). One of no content is landed at the
+            // landing, its dogleg away from the arrow, as AutoCAD 2021's MLEADER lands it (probe xref-bind: leader 10 at the
+            // landing, 11 along +x for a landing on the right).
+            if (style.ContentType != DxfContentType.BlockContent || style.Block == null)
+            {
+                int line = mleader.AddLeaderLine(landing);
+                mleader.AddFirstVertex(line, arrow);
+                mleader.SetDogleg(
+                    mleader.GetLeaderIndex(line),
+                    new GeoVector3(landing.X >= arrow.X ? 1.0 : -1.0, 0.0, 0.0)
+                );
+            }
+
             return mleader;
+        }
+
+        /// <summary>
+        /// Places the block of a multileader of block content, appended, as AutoCAD 2021's MLEADER places it, and gives it its
+        /// leader from the arrow: the block's box, scaled, met on its side towards the arrow at the end of the dogleg from the
+        /// landing, its middle on the landing's line; the circle of radius 5 of TAG, landed at (20, 10, 0) with a dogleg of 0.36
+        /// from an arrow at the origin, is placed at (25.36, 10, 0), as AutoCAD 2021 placed it.
+        /// </summary>
+        internal static void PlaceBlock(
+            DxfMLeader mleader,
+            DxfBlockTableRecord block,
+            GeoPoint3 arrow,
+            GeoPoint3 landing
+        )
+        {
+            mleader.BlockContent = block;
+            double side = landing.X >= arrow.X ? 1.0 : -1.0;
+            double scale = mleader.BlockScale.X * mleader.Scale;
+            double dogleg = mleader.DoglegLength * mleader.Scale;
+            double minX = 0.0;
+            double maxX = 0.0;
+            double minY = 0.0;
+            double maxY = 0.0;
+            bool boxed = false;
+
+            foreach (DxfEntity entity in block)
+            {
+                GeoAabb3 box;
+
+                try
+                {
+                    box = entity.GeometricExtents;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
+
+                // The attribute definitions are not drawn: the values the multileader gives them are.
+                if (entity is DxfAttributeDefinition)
+                {
+                    continue;
+                }
+
+                minX = boxed ? Math.Min(minX, box.Min.X) : box.Min.X;
+                maxX = boxed ? Math.Max(maxX, box.Max.X) : box.Max.X;
+                minY = boxed ? Math.Min(minY, box.Min.Y) : box.Min.Y;
+                maxY = boxed ? Math.Max(maxY, box.Max.Y) : box.Max.Y;
+                boxed = true;
+            }
+
+            double meet = side > 0.0 ? minX : maxX;
+            mleader.BlockPosition = new GeoPoint3(
+                landing.X + side * dogleg - scale * meet,
+                landing.Y - scale * (minY + maxY) / 2.0,
+                landing.Z
+            );
+            mleader.AddLeaderLine(arrow);
         }
 
         /// <summary>Adds the presenter's metric Standard where the drawing has no multileader style of that name; within an edit.</summary>
@@ -763,6 +888,25 @@ namespace GeometryHelper.Dxf.Viewer
                 CadMLeaderStyleSettings shown = settings.Clone();
                 shown.TextStyle = "Standard";
                 shown.LeaderLinetype = "ByBlock";
+
+                // The block of a style of block content copied in, to be drawn at the landing.
+                if (
+                    shown.ContentType == DxfContentType.BlockContent
+                    && source != null
+                    && !string.IsNullOrEmpty(shown.BlockName)
+                    && source.BlockTable.Has(shown.BlockName)
+                )
+                {
+                    DxfBlockTableRecord from = source.BlockTable[shown.BlockName];
+                    var copy = new DxfBlockTableRecord { Name = from.Name, Origin = from.Origin };
+                    database.BlockTable.Add(copy);
+                    source.WblockCloneObjects(new List<DxfEntity>(from), copy);
+                }
+                else
+                {
+                    shown.BlockName = string.Empty;
+                }
+
                 Write(database, style, shown);
 
                 double size =
@@ -776,7 +920,20 @@ namespace GeometryHelper.Dxf.Viewer
                     words
                 );
                 database.ModelSpace.AppendEntity(mleader);
+
+                DxfBlockTableRecord shownBlock = style.ContentType == DxfContentType.BlockContent ? style.Block : null;
+
+                if (shownBlock != null)
+                {
+                    mleader.BlockContent = shownBlock;
+                }
+
                 mleader.SetFromStyle();
+
+                if (shownBlock != null)
+                {
+                    PlaceBlock(mleader, shownBlock, new GeoPoint3(0, 0, 0), new GeoPoint3(6.0 * size, 4.0 * size, 0));
+                }
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException)
             {
@@ -822,6 +979,19 @@ namespace GeometryHelper.Dxf.Viewer
             if (!database.LinetypeTable.Has(settings.LeaderLinetype ?? string.Empty))
             {
                 return "The drawing has no linetype \"" + settings.LeaderLinetype + "\".";
+            }
+
+            if (settings.ContentType == DxfContentType.BlockContent)
+            {
+                if (!string.IsNullOrEmpty(settings.BlockName) && !database.BlockTable.Has(settings.BlockName))
+                {
+                    return "The drawing has no block \"" + settings.BlockName + "\".";
+                }
+
+                if (!(settings.BlockScale > 0.0) || double.IsInfinity(settings.BlockScale))
+                {
+                    return "The scale of the block must be a number above nought.";
+                }
             }
 
             return null;
@@ -941,8 +1111,17 @@ namespace GeometryHelper.Dxf.Viewer
             style.EnableDogleg = settings.SetLandingDistance;
             style.DoglegLength = settings.LandingDistance;
             style.Scale = settings.Scale;
-            style.ContentType =
-                settings.ContentType == DxfContentType.BlockContent ? style.ContentType : settings.ContentType;
+            style.ContentType = settings.ContentType;
+
+            // The block's values written for a style of block content alone, as the dialog shows them for it alone; a style of
+            // block content naming no block, as one read, keeps what it has.
+            if (settings.ContentType == DxfContentType.BlockContent && !string.IsNullOrEmpty(settings.BlockName))
+            {
+                style.Block = database.BlockTable[settings.BlockName];
+                style.BlockConnectionType = settings.BlockConnection;
+                style.BlockColor = settings.BlockColor ?? DxfColor.ByBlock;
+                style.BlockScale = new GeoVector3(settings.BlockScale, settings.BlockScale, settings.BlockScale);
+            }
             style.DefaultMText = string.IsNullOrEmpty(settings.DefaultText)
                 ? null
                 : new DxfMText { Contents = settings.DefaultText };

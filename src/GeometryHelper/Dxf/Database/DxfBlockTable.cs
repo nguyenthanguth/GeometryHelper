@@ -4870,6 +4870,25 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Makes the block of an external reference an ordinary block, as AutoCAD 2021's bind leaves it: flags 4, 8, 16 and 32
+        /// of its BLOCK cleared, its path (1) kept, as AutoCAD keeps it.
+        /// </summary>
+        internal void MakeBound()
+        {
+            int flags = Flags & ~(4 | 8 | 16 | 32);
+
+            if (flags != Flags)
+            {
+                _file.SetValues(
+                    _block.Head,
+                    new[] { new KeyValuePair<int, string>(70, flags.ToString(CultureInfo.InvariantCulture)) },
+                    BlockOrder,
+                    false
+                );
+            }
+        }
+
         /// <summary>Whether a name is that of model space, as AutoCAD (<c>*Model_Space</c>) or ezdxf's files of R12 (<c>$Model_Space</c>) spell it.</summary>
         internal static bool IsModelName(string name) =>
             string.Equals(name, ModelSpace, StringComparison.OrdinalIgnoreCase)

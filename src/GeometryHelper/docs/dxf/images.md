@@ -29,7 +29,9 @@ The library reads no pixel. It places, moves and clips an image as its record sa
 the file writes it. The presenter draws the picture by its pixels and attaches PNG, JPEG and BMP pictures at AutoCAD's
 size ([Editing in the presenter](../presenter/editing.md)). The drawing's RASTERVARIABLES, its settings for images, are a
 [`DxfRasterVariables`](xref:GeometryHelper.Dxf.DxfRasterVariables) (the entry ACAD_IMAGE_VARS of the named object dictionary); an image's definition is `image.ImageDef`, under its name in
-`DxfRasterImageDef.GetImageDictionary(db)`.
+`DxfRasterImageDef.GetImageDictionary(db)`. `DxfRasterVariables.GetRasterVariables(db)` gives a drawing with no image yet
+its variables, as AutoCAD 2021 makes them when IMAGEFRAME is first changed: frames shown, pictures finely, and the unit of
+the drawing as RASTERVARIABLES numbers it, 1 for a drawing of millimetres, 3 of metres, 5 of inches.
 
 ### Where an image stands
 

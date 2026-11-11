@@ -415,6 +415,17 @@ dimension style or block of a reference, only its layers and linetypes. The libr
 ([Editing in the presenter](../presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
 DXF it keeps, saying "Unable to load".
 
+`db.BindXref(block, referenced, false)` binds an external reference, given the drawing it references, as AutoCAD's
+`BindXrefs`: its block becomes an ordinary one, its origin the base point of that drawing and its path kept, holding a
+copy of that drawing's model space, and the records its entities draw by come with them, each under the reference's
+name, `$0$` and its own, as AutoCAD 2021's -XREF Bind names them: a line on WALL of a drawing bound as GRID is on
+`GRID$0$WALL`, or `GRID$1$WALL` where the drawing has `GRID$0$WALL` already. Layer 0, Defpoints, ByBlock, ByLayer and
+Continuous are the drawing's own. The records the reference brought, `GRID|WALL` and the like, take the new names in their
+places, with what the drawing set on them: `GRID|WALL` made red here becomes the red `GRID$0$WALL`. Given true, the
+records keep their own names and are merged by name, the drawing's own kept, as `Insert` merges them: `GRID|WALL` becomes
+`WALL`, or is taken out where the drawing has a WALL. An external reference the drawing places comes as one, to be bound in
+its turn; one it overlays is left out. The drawing given is left as it is.
+
 ### Linetypes from a file
 
 `db.LoadLineTypeFile("GAS_LINE", "acad.lin")` adds a linetype of a file of linetypes as AutoCAD loads one: its description and

@@ -118,7 +118,7 @@ the ones wanted.
 - [ ] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
-- [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
+- [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
@@ -264,9 +264,9 @@ the ones wanted.
       palette (list and tree); a changed referenced file said on the command line
 - [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,
       Plot and Description; VISRETAIN 1 and 0 as AutoCAD; "Needs Reloading" as the 2021 help (S)
-- [ ] Xrefs follow-ups: Bind (AutoCAD renames to `x$0$NAME`; ours refuses); the change balloon in the status bar (needs
+- [ ] Xrefs follow-ups: -XREF Bind done (Bind and Insert types); the palette's Bind... needs the Bind Xrefs dialog (design first); AUDIT of a saved bound drawing and its DWG save; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
       design) (S)
-- [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
+- [x] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [x] Managers: PURGE previews of table and multileader styles (the managers had them; Groups kind was done); BATTMAN asks before dropping changes, constants do not move
 - [ ] Managers follow-ups 4: ATTDIA Cancel and Object Grouping Cancel unverifiable headless (ours: defaults placed, changes taken back); BATTMAN counts model space only where AutoCAD counts the current space; Quick Select's Append should look at the whole drawing (S)
 - [x] Selection: QSELECT's "select objects" button

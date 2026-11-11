@@ -212,7 +212,43 @@ namespace GeometryHelper.Dxf
             }
 
             var entities = new List<DxfEntity>(dataBase.ModelSpace);
-            DxfBlockTableRecord block;
+            DxfBlockTableRecord block = CopyIntoBlock(dataBase, entities, blockName, null, () =>
+            {
+                var made = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
+
+                if (File.Supports(1021))
+                {
+                    made.Units = dataBase.Insunits;
+                }
+
+                BlockTable.Add(made);
+                return made;
+            });
+            GeometryHelperLog.Info(
+                "DxfDatabase: a drawing of "
+                    + entities.Count.ToString(CultureInfo.InvariantCulture)
+                    + " entities was made the block "
+                    + blockName
+                    + "."
+            );
+            return block;
+        }
+
+        /// <summary>
+        /// Copies entities of another drawing's model space into a block of this one, as <see cref="Insert(string, DxfDatabase,
+        /// bool)"/> copies them: each checked first, as <see cref="CheckCopies"/> checks them; then what is to be done once they
+        /// are found good (<paramref name="checkedFirst"/>); the tables and named blocks merged; the block got
+        /// (<paramref name="block"/>) and the entities copied into it. Gives the block.
+        /// </summary>
+        private DxfBlockTableRecord CopyIntoBlock(
+            DxfDatabase dataBase,
+            List<DxfEntity> entities,
+            string blockName,
+            Action checkedFirst,
+            Func<DxfBlockTableRecord> block
+        )
+        {
+            DxfBlockTableRecord made;
             var copied = new DxfFile.InsertCopies();
             File.HoldTableNames();
             bool keeping = false;
@@ -221,17 +257,11 @@ namespace GeometryHelper.Dxf
             {
                 File.CopiesDangling = true;
                 keeping = File.KeepAnonymousNames(dataBase.File, CheckCopies(dataBase, entities, blockName));
+                checkedFirst?.Invoke();
                 File.Copies = copied;
                 MergeTables(dataBase);
-                block = new DxfBlockTableRecord { Name = blockName, Origin = dataBase.Insbase };
-
-                if (File.Supports(1021))
-                {
-                    block.Units = dataBase.Insunits;
-                }
-
-                BlockTable.Add(block);
-                dataBase.WblockCloneObjects(entities, block);
+                made = block();
+                dataBase.WblockCloneObjects(entities, made);
             }
             finally
             {
@@ -247,14 +277,7 @@ namespace GeometryHelper.Dxf
             }
 
             File.CopyDynamicBlocks(dataBase.File, copied);
-            GeometryHelperLog.Info(
-                "DxfDatabase: a drawing of "
-                    + entities.Count.ToString(CultureInfo.InvariantCulture)
-                    + " entities was made the block "
-                    + blockName
-                    + "."
-            );
-            return block;
+            return made;
         }
 
         /// <summary>Refuses a drawing to insert that is none, or this one.</summary>

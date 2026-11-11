@@ -2954,6 +2954,15 @@ namespace GeometryHelper.Dxf
         {
             AddClass("IMAGEDEF", "AcDbRasterImageDef", 0, "ISM", 1);
             CountClass("IMAGEDEF");
+            ImageVariables(0);
+        }
+
+        /// <summary>
+        /// The variables of images (ACAD_IMAGE_VARS) made where the drawing has none: frames shown (70 of 1), pictures finely
+        /// (71 of 1), the unit given (72), its class listed and counted. Nothing where the drawing has them or no dictionary.
+        /// </summary>
+        internal void ImageVariables(int units)
+        {
             DxfDBDictionary root = Database?.NamedObjectsDictionary;
 
             if (root != null && !root.Contains("ACAD_IMAGE_VARS"))
@@ -2964,7 +2973,7 @@ namespace GeometryHelper.Dxf
                     b.Group(90, "0");
                     b.Group(70, "1");
                     b.Group(71, "1");
-                    b.Group(72, "0");
+                    b.Group(72, units.ToString(CultureInfo.InvariantCulture));
                 });
                 AddClass("RASTERVARIABLES", "AcDbRasterVariables", 0, "ISM", 1);
                 CountClass("RASTERVARIABLES");

@@ -191,7 +191,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Gets or sets the image frame box's choice, the name of the drawing's IMAGEFRAME: Hide Frames (0), Display and Plot
         /// Frames (1, also where the drawing has no image yet) or Display but Not Plot Frames (2). Set, IMAGEFRAME is run with
-        /// its value, one undo step; a drawing with no image refuses it as IMAGEFRAME does, and the box keeps 1.
+        /// its value, one undo step; a drawing with no image yet is given its variables of images, as AutoCAD 2021 gives them.
         /// </summary>
         public string CurrentImageFrame
         {
@@ -220,8 +220,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     database?.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true
                         ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables
                         : null;
-                int value = variables == null ? 1 : (int)variables.ImageFrame;
-                return value < 0 || value > 2 ? 1 : value;
+                DxfFrameSetting frame = variables == null ? DxfFrameSetting.ImageFrameAbove : variables.ImageFrame;
+
+                // IMAGEFRAME 2 is kept as frames shown and not plotted (3), as AutoCAD 2021 writes it.
+                return frame == DxfFrameSetting.ImageFrameOff ? 0
+                    : frame == DxfFrameSetting.ImageFrameOnNoPlot ? 2
+                    : 1;
             }
         }
 
