@@ -444,15 +444,15 @@ namespace GeometryHelper.Dxf.Viewer
             yield return CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No");
             GeoTransform3 mirror = Mirrored(second);
 
-            // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest.
-            Func<DxfEntity, ReadableMirror> readable = null;
-
-            if (!c.Database.Mirrtext)
-            {
-                CadDocument document = c.Document;
-                Tolerance tolerance = c.Session.Tolerance;
-                readable = entity => Readable(document, entity, mirror, tolerance);
-            }
+            // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest. A dimension stays readable
+            // under either, as AutoCAD keeps it.
+            CadDocument document = c.Document;
+            Tolerance tolerance = c.Session.Tolerance;
+            bool mirrtext = c.Database.Mirrtext;
+            Func<DxfEntity, ReadableMirror> readable = entity =>
+                entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
+                : mirrtext ? null
+                : Readable(document, entity, mirror, tolerance);
 
             Transform(
                 c,

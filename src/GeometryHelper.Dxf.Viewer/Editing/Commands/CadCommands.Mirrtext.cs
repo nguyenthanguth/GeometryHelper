@@ -51,6 +51,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// How MIRROR moves a dimension, under MIRRTEXT 0 or 1, as AutoCAD 2021 moves one (probed in its console): its points
+        /// mirrored, its plane kept the drawing's rather than turned over, and its picture drawn anew, so that its words read
+        /// as before. A linear dimension along x mirrored across an upright then runs at 180 degrees, its normal still (0, 0, 1).
+        /// Null for one whose plane is not the drawing's, which is mirrored as it is.
+        /// </summary>
+        private static ReadableMirror ReadableDimension(
+            DxfDimension dimension,
+            GeoTransform3 mirror,
+            Tolerance tolerance
+        ) => Flat(dimension.Normal, tolerance) ? new ReadableMirror(mirror, null, null, true) : null;
+
         /// <summary>The turn-over of a TEXT, attribute or definition in its own plane before the mirror; null where its plane is not the drawing's.</summary>
         private static GeoTransform3 TextFlip(
             CadDocument document,
@@ -170,24 +182,36 @@ namespace GeometryHelper.Dxf.Viewer
         {
             private readonly DxfAttachmentPoint? _attachment;
             private readonly List<GeoTransform3> _attributes;
+            private readonly bool _upright;
 
             public ReadableMirror(
                 GeoTransform3 transform,
                 DxfAttachmentPoint? attachment,
-                List<GeoTransform3> attributes
+                List<GeoTransform3> attributes,
+                bool upright = false
             )
             {
                 Transform = transform;
                 _attachment = attachment;
                 _attributes = attributes;
+                _upright = upright;
             }
 
             /// <summary>The transformation the object is moved by.</summary>
             public GeoTransform3 Transform { get; }
 
-            /// <summary>Finishes the object once moved: an MTEXT's attachment set, an INSERT's attributes turned over in turn.</summary>
+            /// <summary>
+            /// Finishes the object once moved: an MTEXT's attachment set, an INSERT's attributes turned over in turn, a
+            /// dimension's plane put back to the drawing's and its picture drawn anew.
+            /// </summary>
             public void Finish(DxfEntity moved)
             {
+                if (_upright && moved is DxfDimension dimension)
+                {
+                    dimension.Normal = new GeoVector3(0.0, 0.0, 1.0);
+                    Redraw(dimension);
+                }
+
                 if (_attachment.HasValue && moved is DxfMText text)
                 {
                     text.Attachment = _attachment.Value;

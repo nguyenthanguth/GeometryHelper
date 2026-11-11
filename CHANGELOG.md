@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's drawing commands checked entity by entity against AutoCAD 2021 drawing the same picks.
+PLINE keeps the last arc's bulge on its end vertex; a first arc and ARC Enter go on from the last polyline drawn, and
+Undo moves that point back; Width after Halfwidth offers the ending width. Angle defaults are written to AUPREC (40.587
+is offered as 41), and TEXT under ANGDIR 1 stores 330, not -30. MTEXT with a rotation measures its box along it: corners
+30 across and 20 down at 30 degrees make a box 15.98 wide; line spacing carries to the next MTEXT until Height or Style
+is chosen. MIRROR keeps a dimension in the drawing's plane and readable under either MIRRTEXT.
+
 **NEW.** The presenter's Properties rows of a dimension add Ext line fixed and its length, Fill color, Fractional type,
 Text position X and Y and Text view direction, written as overrides; extension lines follow DIMFXLON as AutoCAD 2021
 draws them. MATCHPROP copies the plot style in a drawing of named plot styles (`CadMatchProperties.PlotStyle`) and a

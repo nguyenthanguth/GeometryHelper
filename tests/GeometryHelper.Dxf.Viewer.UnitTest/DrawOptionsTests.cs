@@ -337,7 +337,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfMText text = All<DxfMText>(document.ModelSpace).Single();
             Assert.Equal(DxfAttachmentPoint.MiddleCenter, text.Attachment);
             Near(new GeoPoint3(50, 50, 0), text.Location, 1E-9);
-            Assert.Equal(100.0, text.Width, 9);
+
+            // The box measured along the rotation, as AutoCAD 2021 measures it: 100 cos 10 - 100 sin 10 across.
+            Assert.Equal(100.0 * (Math.Cos(Math.PI / 18.0) - Math.Sin(Math.PI / 18.0)), text.Width, 9);
             Assert.Equal(DxfLineSpacingStyle.Exactly, text.LineSpacingStyle);
             Assert.Equal(1.5, text.LineSpacingFactor, 12);
             Assert.Equal(10.0, text.Rotation * 180.0 / Math.PI, 9);

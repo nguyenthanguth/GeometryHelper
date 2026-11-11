@@ -789,7 +789,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!polyline.Closed && PeditType(polyline) == DxfPoly2dType.SimplePoly)
                 {
-                    chains.Add(new PeditChain(handle, polyline, PeditFrame(polyline)));
+                    // The bulge PLINE leaves on the last vertex of one ended in arc mode draws nothing and is not joined, as
+                    // AutoCAD 2021 joins two such arcs with a last bulge of nought.
+                    List<PeditPoint> frame = PeditFrame(polyline);
+
+                    if (frame.Count > 0)
+                    {
+                        frame[frame.Count - 1].Bulge = 0.0;
+                    }
+
+                    chains.Add(new PeditChain(handle, polyline, frame));
                 }
             }
 

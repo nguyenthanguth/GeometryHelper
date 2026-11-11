@@ -796,9 +796,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// A direction as the default of a prompt for one, in degrees counted as the drawing counts angles: from ANGBASE,
-        /// clockwise with ANGDIR 1, so that a text along east is offered as 90 where angles are counted from north.
+        /// clockwise with ANGDIR 1, so that a text along east is offered as 90 where angles are counted from north; to the
+        /// places of AUPREC, as AutoCAD 2021 offers 40.587 degrees as 41 under its default of none, which it takes too where
+        /// the header gives no AUPREC (the library reads 2 there).
         /// </summary>
-        private static string Counted(CadCommandContext c, double direction) =>
-            Number(c.Session.CountAngle(direction) * 180.0 / Math.PI);
+        private static string Counted(CadCommandContext c, double direction)
+        {
+            int places = c.Database.GetHeader("$AUPREC") == null ? 0 : Math.Max(0, Math.Min(8, c.Database.Auprec));
+            double degrees = Math.Round(c.Session.CountAngle(direction) * 180.0 / Math.PI, places);
+            return (degrees == 0.0 ? 0.0 : degrees).ToString("F" + places, CultureInfo.InvariantCulture);
+        }
     }
 }

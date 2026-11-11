@@ -83,10 +83,11 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md); copy here
 the ones wanted.
 
-- [ ] MIRRTEXT for multileaders, tables and dimension text overrides; text box measured with real fonts (S)
+- [x] MIRRTEXT for tables and dimensions (MIRROR keeps a dimension in the plane, as AutoCAD)
+- [ ] MIRRTEXT follow-ups: MLEADER under MIRROR (AutoCAD keeps +Z, base 167.33 vs ours 182, groups 171/176/297/90 differ); TEXT box from the font's ink box (AutoCAD 193.333 vs ours 195.5 for "ABC" 2.5 in txt.shx); MIRRTEXT 1 TEXT as flag 71 = 2 with +Z, not -Z; DIMLINEAR groups 11 and 42 and its Mtext/Angle/Rotated options; core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
-- [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
+- [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [x] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)

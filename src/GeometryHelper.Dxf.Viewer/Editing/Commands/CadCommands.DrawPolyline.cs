@@ -27,10 +27,20 @@ namespace GeometryHelper.Dxf.Viewer
             c.Write("Current line-width is " + Length(plinewid));
             var points = new List<GeoPoint2> { c.Input.Point };
 
-            // The way the polyline leaves its last vertex, which an arc segment drawn next starts along.
-            var tangents = new List<GeoVector2> { new GeoVector2(1.0, 0.0) };
+            // The way the polyline leaves its last vertex, which an arc segment drawn next starts along: at the first vertex the
+            // way the line, arc or polyline drawn last left its end, as AutoCAD 2021 starts a first arc segment along it.
+            var tangents = new List<GeoVector2>
+            {
+                c.Remembered("draw.last", 0.0) == 0.0
+                    ? new GeoVector2(1.0, 0.0)
+                    : new GeoVector2(c.Remembered("draw.last.dx", 1.0), c.Remembered("draw.last.dy", 0.0)),
+            };
             string handle = null;
             bool arcs = false;
+
+            // The bulge of the arc segment drawn last, which AutoCAD 2021 leaves on the polyline's last vertex too until Line,
+            // Undo or a line segment takes it off: a polyline ended in arc mode keeps it there.
+            double trailing = 0.0;
 
             while (true)
             {
@@ -103,6 +113,18 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Is("Line"))
                 {
                     arcs = false;
+
+                    // The bulge an arc segment left on the last vertex goes, as AutoCAD 2021 clears it at Line.
+                    if (handle != null && trailing != 0.0)
+                    {
+                        string growing = handle;
+                        int at = points.Count - 1;
+                        c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, growing) }, s =>
+                            PlineChange(s, growing, p => p.SetBulgeAt(at, 0.0))
+                        );
+                        trailing = 0.0;
+                    }
+
                     continue;
                 }
 
@@ -145,6 +167,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     points.RemoveAt(points.Count - 1);
                     tangents.RemoveAt(tangents.Count - 1);
+                    trailing = 0.0;
+
+                    // The segment left last is the one drawn last, as AutoCAD 2021 goes on from it.
+                    if (points.Count >= 2)
+                    {
+                        RememberLast(c, points[points.Count - 1], tangents[tangents.Count - 1]);
+                    }
+
                     continue;
                 }
 
@@ -255,13 +285,15 @@ namespace GeometryHelper.Dxf.Viewer
                             }
                             else
                             {
-                                p.AddVertexAt(at + 1, next, 0.0, w1, w1);
+                                p.AddVertexAt(at + 1, next, bulge, w1, w1);
                             }
                         })
                     );
                 }
 
                 widths[0] = w1;
+                trailing = bulge;
+                RememberLast(c, next, leaving);
 
                 if (close)
                 {
@@ -275,8 +307,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The polyline of one segment PLINE draws from a vertex to the next, as the first segment is made and every segment
-        /// is previewed: an arc of the sweep where it is not nought, the widths at its two ends. Null where the two lie at
-        /// one point.
+        /// is previewed: an arc of the sweep where it is not nought, its bulge on the end vertex too as AutoCAD 2021 leaves it,
+        /// the widths at its two ends. Null where the two lie at one point.
         /// </summary>
         private static DxfPolyline PlineSegment(
             CadCommandContext c,
@@ -293,7 +325,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             var made = new DxfPolyline();
             made.AddVertexAt(0, from, Math.Tan(sweep / 4.0), widths[0], widths[1]);
-            made.AddVertexAt(1, next, 0.0, widths[1], widths[1]);
+            made.AddVertexAt(1, next, Math.Tan(sweep / 4.0), widths[1], widths[1]);
             return Current(c, made);
         }
 
@@ -338,14 +370,15 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Width or Halfwidth: the starting width offered as the width the next segment would start at, the ending one as the
-        /// starting one given; PLINEWID takes the ending width, as AutoCAD keeps it for the next polyline.
+        /// Width or Halfwidth: the starting width offered as the ending width last given, as AutoCAD 2021 offers 4 after
+        /// half-widths of 1 and 2 with no segment between, the ending one as the starting one given; PLINEWID takes the ending
+        /// width, as AutoCAD keeps it for the next polyline.
         /// </summary>
         private static IEnumerable<CadPrompt> AskWidths(CadCommandContext c, bool half, GeoPoint2 from, double[] widths)
         {
             double scale = half ? 0.5 : 1.0;
             string word = half ? "half-width" : "width";
-            double current = widths[0];
+            double current = widths[1];
             yield return CadPrompt.ForDistance("Specify starting " + word, from, null, Length(current * scale));
 
             if (c.Input.Kind == CadInputKind.Number)
