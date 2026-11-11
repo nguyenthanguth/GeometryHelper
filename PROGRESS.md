@@ -239,7 +239,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
       palette (list and tree); a changed referenced file said on the command line
-- [ ] Xrefs follow-ups: XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
+- [ ] Xrefs follow-ups (running, non-UI): XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
       core flags setter); the change balloon in the status bar (needs design); Transparency, Plot and Description editors
       for xref layers; VISRETAIN 0; check the palette's "Nested"/"Orphaned" words against Autodesk's help (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
