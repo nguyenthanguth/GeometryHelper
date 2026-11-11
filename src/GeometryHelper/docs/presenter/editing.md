@@ -334,9 +334,14 @@ REVCLOUD draws a cloud round a rectangle (Rectangular, the type it starts with),
 a LWPOLYLINE of arcs of 110 degrees (bulge 0.52056705) bulging out, their vertices an arc length apart along the path, the
 corners not kept; a last arc shorter than half an arc length is taken into the one before. A circle of radius 20 at an arc
 length of 5 is the 25 vertices AutoCAD 2021 makes, to 8 places, and the outline 60 by 40 at 7 is 29, from (0, 0) to
-(0, 4). The arc lengths are kept between runs divided by DIMSCALE and used times it, as AutoCAD keeps them; the maximum is
-no more than three times the minimum. Calligraphy widens each arc from nought to a tenth of the longest arc, and Modify
-redraws the side of a closed cloud picked along a new path. A metric drawing starts at 15.
+(0, 4). Arc length asks AutoCAD 2021's one approximate length, `Specify approximate length of arc <15.0000>:`, kept by
+the session as REVCLOUDAPPROXARCLEN and not scaled by DIMSCALE, as in 2021, which has no REVCLOUDSCALEMODE. At
+REVCLOUDARCVARIANCE 1, as AutoCAD starts, each arc is drawn between two thirds of it and four thirds, and the first prompt
+says so, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6; at 0 each arc is the length, as the clouds above
+were checked. REVCLOUDCREATEMODE sets the type it starts with. Calligraphy widens each arc from nought to a tenth of the
+longest arc, and Modify redraws the side of a closed cloud picked along a new path. A drawing whose REVCLOUDAPPROXARCLEN
+is nought starts at 15 in millimetres and 0.5 in inches; AutoCAD 2021 sizes its first cloud by a share of the view's
+diagonal that its help does not give, so that start is not AutoCAD's.
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
@@ -511,7 +516,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

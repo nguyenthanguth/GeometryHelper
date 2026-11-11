@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** REVCLOUD's Arc length in the presenter asks AutoCAD 2021's one approximate length, `Specify approximate
+length of arc <15.0000>:`, in the place of a minimum and a maximum, and SETVAR sets REVCLOUDAPPROXARCLEN,
+REVCLOUDARCVARIANCE and REVCLOUDCREATEMODE, kept by the session. At REVCLOUDARCVARIANCE 1, as AutoCAD starts, each arc is
+drawn between two thirds of the length and four thirds, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6;
+at 0 each is the length, which draws the clouds checked against AutoCAD's console before. The length is no longer scaled
+by DIMSCALE, as AutoCAD 2021 does not scale it: 2021 has no REVCLOUDSCALEMODE, which later releases added to scale it
+again. AutoCAD 2021 sizes the first cloud of a drawing by a share of the view's diagonal its help does not give; the
+presenter still starts at 15 in millimetres and 0.5 in inches. AutoCAD's console runs only the REVCLOUD of earlier
+releases, so this follows AutoCAD 2021's help and variables, read in its console.
+
 **NEW.** PEDIT in the presenter edits a 3D polyline with AutoCAD 2021's options for one, checked in its console: Close and
 Open, Join, Edit vertex (Next, Previous, Break, Insert, Move, Regen, Straighten), Spline curve, Decurve, Reverse and Undo,
 in AutoCAD's words. Spline curve of the 3DPOLY (0, 0, 0), (100, 0, 10), (100, 100, 20), (0, 100, 30) stores the 13
