@@ -52,6 +52,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MLEADERSTYLE", MLeaderStyleDialog));
             registry.Add(new CadCommand("LEADER", Leader));
             registry.Add(new CadCommand("QLEADER", QuickLeader));
+            registry.Add(new CadCommand("TOLERANCE", FeatureControlFrame));
             registry.Add(new CadCommand("MVIEW", MView));
             registry.Add(new CadCommand("MSPACE", ModelSpaceThrough));
             registry.Add(new CadCommand("PSPACE", PaperSpace));

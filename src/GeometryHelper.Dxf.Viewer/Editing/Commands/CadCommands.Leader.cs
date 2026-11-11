@@ -8,9 +8,9 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// LEADER and QLEADER, on the command line in AutoCAD 2021's words: a LEADER drawn by the current dimension style through
-    /// the points picked, pointing to an MTEXT, a copy of a text, an INSERT or nothing. The arrow, the hook and the words are
-    /// the style's sizes times DIMSCALE, the current dimension variables other than the style's written as the leader's
-    /// overrides, as AutoCAD writes them: DIMSCALE 2 with the style's 1 gives <c>1070 40, 1040 2</c> and words twice as high.
+    /// the points picked, pointing to an MTEXT, a copy of a text, an INSERT, a feature control frame or nothing. The arrow,
+    /// the hook and the words are the style's sizes times DIMSCALE, the current dimension variables other than the style's
+    /// written as the leader's overrides, as AutoCAD writes them: DIMSCALE 2 with the style's 1 gives <c>1070 40, 1040 2</c> and words twice as high.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -32,8 +32,11 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The handle of the INSERT the leader points to; null for none.</summary>
             public string Block { get; set; }
 
-            /// <summary>The handle of an INSERT whose copy the leader points to, as Copy and Reuse Current copy one; null for none.</summary>
+            /// <summary>The handle of an INSERT or a TOLERANCE whose copy the leader points to, as Copy and Reuse Current copy one; null for none.</summary>
             public string Copy { get; set; }
+
+            /// <summary>The words of a new feature control frame the leader points to, from the Geometric Tolerance dialog; null for none.</summary>
+            public string Frame { get; set; }
 
             /// <summary>Whether <see cref="Text"/> holds words typed, which take DIMCLRT where it is not BYBLOCK; false for a copy.</summary>
             public bool Typed { get; set; }
@@ -156,12 +159,25 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
+                // Tolerance: the Geometric Tolerance dialog, its frame at the leader's end; Cancel or an empty dialog leaves the
+                // leader with no annotation. With no window to show it, the option is asked again.
                 if (c.Input.Is("Tolerance"))
                 {
-                    c.Write(
-                        "Tolerance needs the Geometric Tolerance dialog, which the presenter has not: choose another option."
+                    if (!ToleranceDialog(c, out string framed))
+                    {
+                        continue;
+                    }
+
+                    MakeLeader(
+                        c,
+                        points,
+                        spline,
+                        arrow,
+                        framed == null ? null : new LeaderWords { Frame = framed },
+                        false,
+                        0.0
                     );
-                    continue;
+                    yield break;
                 }
 
                 if (c.Input.Is("Copy"))
@@ -230,8 +246,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Limit, the first and second segments held to their angle constraints; then the annotation of the settings. MText asks
         /// "Specify text width &lt;0.0000&gt;:" (Prompt for width, not with Always left justify), then "Enter first line of
         /// annotation text &lt;Mtext&gt;:" and each next line, Enter there giving the MTEXT editor; Copy an Object asks "Select an
-        /// object to copy:"; Block Reference "Enter block name or [?]:" and INSERT's prompts; None and Tolerance end the leader
-        /// with no annotation; Reuse Current copies the annotation kept. The words stand by the Attachment settings (the middle
+        /// object to copy:"; Block Reference "Enter block name or [?]:" and INSERT's prompts; Tolerance the Geometric Tolerance
+        /// dialog, its frame put at the leader's end; None ends the leader with no annotation, and so do Tolerance's Cancel and
+        /// an empty dialog; Reuse Current copies the annotation kept. The words stand by the Attachment settings (the middle
         /// of their top line at the leader's end on the right, of their bottom line on the left, by default), and the leader
         /// overrides DIMGAP and DIMTAD whatever the style has, as AutoCAD 2021 writes them.
         /// </summary>
@@ -306,7 +323,7 @@ namespace GeometryHelper.Dxf.Viewer
                 points,
                 settings.Spline,
                 true,
-                words.Text == null && words.Block == null && words.Copy == null ? null : words,
+                words.Text == null && words.Block == null && words.Copy == null && words.Frame == null ? null : words,
                 true,
                 words.Width,
                 settings
@@ -339,9 +356,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadQLeaderAnnotation.None:
                     yield break;
                 case CadQLeaderAnnotation.Tolerance:
-                    c.Write(
-                        "Tolerance needs the Geometric Tolerance dialog, which the presenter has not: the leader has no annotation."
-                    );
+                    // The Geometric Tolerance dialog; Cancel or an empty dialog leaves the leader with no annotation.
+                    ToleranceDialog(c, out string framed);
+                    words.Frame = framed;
                     yield break;
                 case CadQLeaderAnnotation.CopyObject:
                     while (true)
@@ -689,14 +706,17 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// An object a leader copies, as AutoCAD 2021's Copy and Reuse Current copy it: an MTEXT or a TEXT as the MTEXT of
-        /// <see cref="CopyOfText"/>, an INSERT by its handle, its copy made with the leader; false, nothing taken, for any
-        /// other object (a TOLERANCE among them, which the library cannot move) or none.
+        /// <see cref="CopyOfText"/>, an INSERT or a TOLERANCE by its handle, its copy made with the leader; false, nothing
+        /// taken, for any other object or none.
         /// </summary>
         private static bool Took(DxfEntity picked, LeaderWords words)
         {
-            if (picked is DxfBlockReference insert && !(picked is DxfMInsertBlock) && !insert.IsErased)
+            if (
+                ((picked is DxfBlockReference && !(picked is DxfMInsertBlock)) || picked is DxfTolerance)
+                && !picked.IsErased
+            )
             {
-                words.Copy = insert.Handle;
+                words.Copy = picked.Handle;
                 return true;
             }
 
@@ -768,7 +788,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// that segment of a straight leader is steeper than 15 degrees. LEADER sets the words' middle at the hook (their
         /// bottom DIMGAP above it with DIMTAD not nought); QLEADER by its Attachment settings, the middle of their top line on the
         /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle. Words typed take
-        /// DIMCLRT where it is not BYBLOCK. A copy of an INSERT stands at the end with no hook. In a UCS other than the world's,
+        /// DIMCLRT where it is not BYBLOCK. A copy of an INSERT stands at the end with no hook. A feature control frame, from
+        /// the Geometric Tolerance dialog or copied, runs along the UCS's X with its insertion point at the end on the right,
+        /// set back its first row's width on the left, the leader said to have a hook where its last segment is steeper than
+        /// 15 degrees but given no vertex of it, as AutoCAD 2021 writes one (probe GHTOL4: <c>{\Fgdt;j}%%v0.1</c> at DIMTXT
+        /// 0.18 copied to a leader ending at (90, 105) stands at (89.07704, 105)). In a UCS other than the world's,
         /// as AutoCAD 2021 draws it, the last segment is measured along the UCS's axes, the hook gets no vertex of its own, and
         /// the words run along its X, DIMGAP along it from the end: up its Y for LEADER's DIMTAD, up the world's Y for QLEADER.
         /// </summary>
@@ -802,7 +826,12 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 along = world ? way : ucs.ToUcs(way);
             bool left = along.X < -c.Session.Tolerance.EqualPoint;
             double side = left ? -1.0 : 1.0;
-            bool hook = text != null && !spline && Math.Abs(along.Y) > LeaderHookSlope * Math.Abs(along.X);
+            bool steep = !spline && Math.Abs(along.Y) > LeaderHookSlope * Math.Abs(along.X);
+            bool hook = text != null && steep;
+
+            // A frame, new or copied, takes the hook with no vertex of its own, as AutoCAD 2021 writes a leader to one.
+            bool framed =
+                words?.Frame != null || (words?.Copy != null && c.Document.FindEntity(words.Copy) is DxfTolerance);
             var vertices = new List<GeoPoint2>(points);
 
             // AutoCAD 2021 adds the hook's own vertex in the world alone: in any other UCS, a moved one too, the leader keeps
@@ -871,6 +900,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadSpace space = c.Space;
             string block = words?.Block;
             string copied = words?.Copy;
+            string frameText = words?.Frame;
             bool typed = words?.Typed == true;
             c.Apply(null, s =>
             {
@@ -935,9 +965,43 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     leader.Annotation = CopyAtEnd(s, space, source, P3(end), ucs.Angle);
                 }
+                else if (framed)
+                {
+                    DxfTolerance frame =
+                        frameText != null
+                            ? AddFeatureFrame(c, s, space, frameText, P3(end), new GeoVector3(xAxis.X, xAxis.Y, 0.0))
+                            : FrameCopyAtEnd(s, space, (DxfTolerance)s.Document.FindEntity(copied), P3(end), xAxis);
+                    double width = FrameWidth(s.Document, frame);
 
-                // AutoCAD 2021 writes 74 of 1 on a leader of no annotation too.
-                leader.SetMade(hook, text != null ? left : block == null && copied == null, height, across);
+                    // On the left the frame is set back its width, so that its right side meets the leader's end.
+                    if (left)
+                    {
+                        frame.Location = P3(end).Add(new GeoVector3(xAxis.X, xAxis.Y, 0.0).Multiply(-width));
+                    }
+
+                    leader.Annotation = frame;
+                    DxfDimStyleTableRecord data = frame.GetDimstyleData();
+                    height = width;
+                    across = 2.0 * data.Dimtxt * (data.Dimscale > 0.0 ? data.Dimscale : 1.0);
+
+                    // Reuse Next: this frame is the one reused from now on, the settings turned to Reuse Current.
+                    if (quick && settings.Reuse == CadQLeaderReuse.ReuseNext)
+                    {
+                        CadQLeaderSettings kept = settings.Clone();
+                        kept.Reuse = CadQLeaderReuse.ReuseCurrent;
+                        kept.ReusedHandle = frame.Handle;
+                        kept.Write(s.Database);
+                    }
+                }
+
+                // AutoCAD 2021 writes 74 of 1 on a leader of no annotation too; to a frame, its width as group 40 and its
+                // row's height as 41.
+                leader.SetMade(
+                    hook || (framed && steep),
+                    text != null || framed ? left : block == null && copied == null,
+                    height,
+                    across
+                );
             });
         }
 

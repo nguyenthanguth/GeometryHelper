@@ -333,7 +333,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "QLEADER", P(0, 0), P(50, 50), P(100, 50));
             DxfLeader leader = Assert.Single(All<DxfLeader>(document.ModelSpace));
             Assert.Equal(DxfAnnotationType.NoAnnotation, leader.AnnoType);
-            Assert.Contains(session.History, line => line.StartsWith("Tolerance needs the Geometric Tolerance dialog"));
+            Assert.Contains(session.History, line => line.StartsWith("Geometric Tolerance is shown by the window"));
         }
 
         [Fact]

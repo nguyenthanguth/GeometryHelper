@@ -187,7 +187,7 @@ namespace GeometryHelper.UnitTest.Dwg
             // A leader of three points annotated by an MTEXT and a spline leader of four; two frames.
             List<DxfLeader> leaders = database.ModelSpace.OfType<DxfLeader>().ToList();
             Assert.Equal(new[] { 3, 4 }, leaders.Select(l => l.NumVertices));
-            Assert.Equal(2, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "TOLERANCE"));
+            Assert.Equal(2, database.ModelSpace.OfType<DxfTolerance>().Count());
 
             // Two multileaders of text and one of the block GhTag under the style GhBlock.
             List<DxfMLeader> multileaders = database.ModelSpace.OfType<DxfMLeader>().ToList();

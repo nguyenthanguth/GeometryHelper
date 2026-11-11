@@ -1,0 +1,117 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.GdtMaterialWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Material Condition"
+    Width="226"
+    Height="112"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="Manual"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Choice" TargetType="Button">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Margin" Value="0,0,6,0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                x:Name="Box"
+                                Background="{StaticResource GhInput}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="1"
+                                CornerRadius="2"
+                            >
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsChosen}" Value="True">
+                                    <Setter TargetName="Box" Property="Background" Value="#1F4E79" />
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    <Setter TargetName="Box" Property="BorderThickness" Value="2" />
+                                </DataTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnClose"
+                        ToolTip="Close, the condition left as it was"
+                    />
+                    <TextBlock
+                        Text="Material Condition"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- M, L and S, then the blank. -->
+            <ItemsControl
+                x:Name="Choices"
+                Margin="16,12,0,0"
+                VerticalAlignment="Top"
+                AutomationProperties.Name="Material conditions"
+            >
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Width="200" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button
+                            Style="{StaticResource Choice}"
+                            Tag="{Binding}"
+                            Click="OnPick"
+                            ToolTip="{Binding Label}"
+                            AutomationProperties.Name="{Binding Label}"
+                        >
+                            <local:GdtGlyphView Width="28" Height="28" Glyph="{Binding Glyph}" />
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+    </Border>
+</Window>

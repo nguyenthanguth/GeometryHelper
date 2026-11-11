@@ -53,7 +53,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 dialog.UserArrowBlock = "NOPE";
                 Assert.False(dialog.KeepUserArrow());
                 Assert.True(dialog.IsChoosingUserArrow);
-                Assert.Equal("The drawing has no block NOPE.", dialog.Notice);
+                Assert.Equal("The drawing has no block NOPE.", dialog.UserArrowMessage);
+                Assert.True(dialog.IsUserArrowNotFound);
+                Assert.Equal(string.Empty, dialog.Notice);
 
                 // Letters of either case name the block; it becomes the arrow and joins the list before User Arrow...
                 dialog.UserArrowBlock = "tick";
@@ -93,15 +95,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void UserArrow_InADrawingOfNoBlock_SaysSo_AndAsksNothing()
+        public void UserArrow_InADrawingOfNoBlock_OpensTheDialogEmpty_SaysSo_AndOkIsGreyed()
         {
+            // Board QLeaderUserArrowNoBlocks: the dialog opens, its list empty and greyed, OK greyed, the line saying why.
             var model = new MainViewModel();
             Assert.True(model.Open(_folder.Write("blank.dxf", new DxfDatabase("AC1027"))));
             model.ShowLeaderSettings = dialog =>
             {
                 dialog.Arrow = LeaderSettingsViewModel.UserArrowEntry;
+                Assert.True(dialog.IsChoosingUserArrow);
+                Assert.False(dialog.HasUserArrowBlocks);
+                Assert.Equal(string.Empty, dialog.UserArrowBlock);
+                Assert.False(dialog.CanKeepUserArrow);
+                Assert.Equal(
+                    "The drawing has no block to use as an arrow. Make one with BLOCK first, or Cancel.",
+                    dialog.UserArrowMessage
+                );
+                Assert.False(dialog.IsUserArrowNotFound);
+                Assert.Equal("Closed filled", dialog.Arrow);
+
+                // Cancel closes it, the arrow as it was.
+                dialog.DropUserArrow();
                 Assert.False(dialog.IsChoosingUserArrow);
-                Assert.Equal("The drawing has no block to use as an arrow.", dialog.Notice);
+                Assert.Equal(string.Empty, dialog.UserArrowMessage);
                 Assert.Equal("Closed filled", dialog.Arrow);
                 dialog.Cancel();
                 return true;

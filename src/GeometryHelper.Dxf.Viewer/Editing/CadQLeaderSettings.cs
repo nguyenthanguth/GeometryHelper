@@ -11,10 +11,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>An MTEXT of the lines typed: "Enter first line of annotation text &lt;Mtext&gt;:".</summary>
         MText = 0,
 
-        /// <summary>A copy of an MTEXT, a TEXT or an INSERT picked: "Select an object to copy:".</summary>
+        /// <summary>A copy of an MTEXT, a TEXT, a TOLERANCE or an INSERT picked: "Select an object to copy:".</summary>
         CopyObject = 1,
 
-        /// <summary>A geometric tolerance, which needs AutoCAD's Geometric Tolerance dialog: the presenter draws no annotation.</summary>
+        /// <summary>A feature control frame from the Geometric Tolerance dialog, shown after the points; none where it is cancelled or left empty.</summary>
         Tolerance = 2,
 
         /// <summary>An INSERT placed as INSERT places one: "Enter block name or [?]:".</summary>

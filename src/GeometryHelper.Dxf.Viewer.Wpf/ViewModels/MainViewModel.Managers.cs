@@ -5,8 +5,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The managers of the drawing, each shown through a function the workspace sets, so that a test drives them with none:
     /// the Block Attribute Manager (BATTMAN), Edit Attributes (INSERT with ATTDIA 1), Purge (PURGE) and the question before
-    /// each object it purges, and Object Grouping (CLASSICGROUP). With none set, each command asks its typed form or says it
-    /// has none.
+    /// each object it purges, Object Grouping (CLASSICGROUP), Leader Settings (QLEADER) and Geometric Tolerance (TOLERANCE).
+    /// With none set, each command asks its typed form or says it has none.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -36,6 +36,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets how the workspace shows Leader Settings (QLEADER's Settings); the action it closed with is in its request.</summary>
         public Func<LeaderSettingsViewModel, bool> ShowLeaderSettings { get; set; }
+
+        /// <summary>Gets or sets how the workspace shows Geometric Tolerance (TOLERANCE, and the Tolerance of LEADER and QLEADER); the action it closed with is in its request.</summary>
+        public Func<GeometricToleranceViewModel, bool> ShowGeometricTolerance { get; set; }
 
         /// <summary>A request of a manager: its dialog shown where the workspace shows it, the request answered.</summary>
         private void OnManagerRequested(CadUiRequestEventArgs e)
@@ -70,6 +73,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case CadQLeaderRequest leader when ShowLeaderSettings != null:
                     e.Handled = ShowLeaderSettings(new LeaderSettingsViewModel(leader));
+                    break;
+                case CadToleranceRequest tolerance when ShowGeometricTolerance != null:
+                    e.Handled = ShowGeometricTolerance(new GeometricToleranceViewModel(tolerance));
                     break;
             }
         }

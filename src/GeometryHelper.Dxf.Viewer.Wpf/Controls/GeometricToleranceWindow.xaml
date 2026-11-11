@@ -1,0 +1,420 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.GeometricToleranceWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Geometric Tolerance"
+    Width="680"
+    Height="360"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+
+            <!-- A black box: a button that shows a symbol, opens a picker or toggles a sign. -->
+            <Style x:Key="GlyphBox" TargetType="Button">
+                <Setter Property="Width" Value="26" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                x:Name="Box"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2"
+                            >
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="Value" TargetType="TextBox" BasedOn="{StaticResource BlockNumber}">
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="Margin" Value="4,0" />
+            </Style>
+
+            <Style x:Key="Column" TargetType="HeaderedContentControl" BasedOn="{StaticResource BlockGroup}">
+                <Setter Property="Margin" Value="0,0,8,0" />
+            </Style>
+
+            <Style x:Key="Rows" TargetType="ItemsControl">
+                <Setter Property="ItemsPanel">
+                    <Setter.Value>
+                        <ItemsPanelTemplate>
+                            <StackPanel />
+                        </ItemsPanelTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close, same as Cancel"
+                    />
+                    <TextBlock
+                        Text="Geometric Tolerance"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: where the frame's sizes come from, then OK and Cancel. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="22,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="Text height DIMTXT and colours of the current dimension style."
+                    />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <!-- The columns of the two rows: Sym, Tolerance 1 and 2, Datum 1 to 3. -->
+                <StackPanel Orientation="Horizontal">
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Sym">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button
+                                        Style="{StaticResource GlyphBox}"
+                                        Margin="0,0,0,8"
+                                        Tag="{Binding}"
+                                        Click="OnSymbol"
+                                        ToolTip="{Binding SymbolGlyph.Name}"
+                                        AutomationProperties.Name="Sym: opens Symbol"
+                                    >
+                                        <local:GdtGlyphView Width="18" Height="18" Glyph="{Binding SymbolGlyph}" />
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Tolerance 1">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Margin="0,0,0,8"
+                                        DataContext="{Binding Tolerance1}"
+                                    >
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnDiameter"
+                                            AutomationProperties.Name="Tolerance 1: diameter"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="16"
+                                                Height="16"
+                                                Thickness="1.8"
+                                                Glyph="{Binding DiameterGlyph}"
+                                                Visibility="{Binding Diameter, Converter={StaticResource Shown}}"
+                                            />
+                                        </Button>
+                                        <TextBox
+                                            Style="{StaticResource Value}"
+                                            Width="56"
+                                            Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Tolerance 1: value"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnMaterial"
+                                            AutomationProperties.Name="Tolerance 1: material condition"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="18"
+                                                Height="18"
+                                                Glyph="{Binding MaterialGlyph}"
+                                            />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Tolerance 2">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Margin="0,0,0,8"
+                                        DataContext="{Binding Tolerance2}"
+                                    >
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnDiameter"
+                                            AutomationProperties.Name="Tolerance 2: diameter"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="16"
+                                                Height="16"
+                                                Thickness="1.8"
+                                                Glyph="{Binding DiameterGlyph}"
+                                                Visibility="{Binding Diameter, Converter={StaticResource Shown}}"
+                                            />
+                                        </Button>
+                                        <TextBox
+                                            Style="{StaticResource Value}"
+                                            Width="56"
+                                            Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Tolerance 2: value"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnMaterial"
+                                            AutomationProperties.Name="Tolerance 2: material condition"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="18"
+                                                Height="18"
+                                                Glyph="{Binding MaterialGlyph}"
+                                            />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Datum 1">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Margin="0,0,0,8"
+                                        DataContext="{Binding Datums[0]}"
+                                    >
+                                        <TextBox
+                                            Style="{StaticResource Value}"
+                                            Width="40"
+                                            Margin="0,0,4,0"
+                                            Text="{Binding Letter, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Datum 1: reference letter"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnMaterial"
+                                            AutomationProperties.Name="Datum 1: material condition"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="18"
+                                                Height="18"
+                                                Glyph="{Binding MaterialGlyph}"
+                                            />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Datum 2">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Margin="0,0,0,8"
+                                        DataContext="{Binding Datums[1]}"
+                                    >
+                                        <TextBox
+                                            Style="{StaticResource Value}"
+                                            Width="40"
+                                            Margin="0,0,4,0"
+                                            Text="{Binding Letter, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Datum 2: reference letter"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnMaterial"
+                                            AutomationProperties.Name="Datum 2: material condition"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="18"
+                                                Height="18"
+                                                Glyph="{Binding MaterialGlyph}"
+                                            />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource Column}" Header="Datum 3" Margin="0">
+                        <ItemsControl Style="{StaticResource Rows}" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Margin="0,0,0,8"
+                                        DataContext="{Binding Datums[2]}"
+                                    >
+                                        <TextBox
+                                            Style="{StaticResource Value}"
+                                            Width="40"
+                                            Margin="0,0,4,0"
+                                            Text="{Binding Letter, UpdateSourceTrigger=PropertyChanged}"
+                                            AutomationProperties.Name="Datum 3: reference letter"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GlyphBox}"
+                                            Tag="{Binding}"
+                                            Click="OnMaterial"
+                                            AutomationProperties.Name="Datum 3: material condition"
+                                        >
+                                            <local:GdtGlyphView
+                                                Width="18"
+                                                Height="18"
+                                                Glyph="{Binding MaterialGlyph}"
+                                            />
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </HeaderedContentControl>
+                </StackPanel>
+
+                <!-- Height and its projected zone, and the datum identifier. -->
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="26" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Height:" Foreground="#C9D1DB" VerticalAlignment="Center" />
+                    <TextBox
+                        Grid.Column="1"
+                        Style="{StaticResource Value}"
+                        Margin="0"
+                        Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Height"
+                    />
+                    <TextBlock
+                        Grid.Column="3"
+                        Text="Projected Tolerance Zone:"
+                        Foreground="#C9D1DB"
+                        VerticalAlignment="Center"
+                    />
+                    <Button
+                        Grid.Column="4"
+                        Style="{StaticResource GlyphBox}"
+                        Click="OnProjectedZone"
+                        AutomationProperties.Name="Projected Tolerance Zone"
+                    >
+                        <local:GdtGlyphView
+                            Width="18"
+                            Height="18"
+                            Glyph="{Binding ProjectedZoneGlyph}"
+                            Visibility="{Binding ProjectedZone, Converter={StaticResource Shown}}"
+                        />
+                    </Button>
+                    <TextBlock
+                        Grid.Row="1"
+                        Text="Datum Identifier:"
+                        Foreground="#C9D1DB"
+                        VerticalAlignment="Center"
+                        Margin="0,8,0,0"
+                    />
+                    <TextBox
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Style="{StaticResource Value}"
+                        Margin="0,8,0,0"
+                        Text="{Binding DatumIdentifier, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="Datum Identifier"
+                    />
+                </Grid>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

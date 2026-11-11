@@ -1,0 +1,199 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.SelectArrowBlockWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Select Custom Arrow Block"
+    Width="340"
+    Height="168"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close, same as Cancel"
+                    />
+                    <TextBlock
+                        Text="Select Custom Arrow Block"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <!-- Footer: OK, greyed while the box is empty, and Cancel. -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="22,5"
+                        Margin="0,0,8,0"
+                        Click="OnOk"
+                        IsDefault="True"
+                        IsEnabled="{Binding CanKeepUserArrow}"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <TextBlock Text="Select from Drawing Blocks:" Foreground="#C9D1DB" Margin="0,0,0,6" />
+                <!-- The name typed, and the drawing's blocks A to Z under the chevron; the border orange where OK found none. -->
+                <Border Height="24" CornerRadius="2" BorderThickness="1" Background="{StaticResource GhInput}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=Open}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsUserArrowNotFound}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#F26B3A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <ToggleButton
+                            x:Name="Open"
+                            DockPanel.Dock="Right"
+                            Width="22"
+                            BorderThickness="1,0,0,0"
+                            BorderBrush="{StaticResource GhBorder}"
+                            Background="Transparent"
+                            IsEnabled="{Binding HasUserArrowBlocks}"
+                            AutomationProperties.Name="Show the drawing's blocks"
+                        >
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                    >
+                                        <Path
+                                            x:Name="Chevron"
+                                            Width="10"
+                                            Height="10"
+                                            Stretch="Uniform"
+                                            Data="M6 9l6 6 6-6"
+                                            Stroke="#C9D1DB"
+                                            StrokeThickness="1.4"
+                                            StrokeStartLineCap="Round"
+                                            StrokeEndLineCap="Round"
+                                        />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Chevron" Property="Stroke" Value="#6B7480" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <Grid>
+                            <TextBox
+                                x:Name="Typed"
+                                Style="{StaticResource GhTextBox}"
+                                Padding="4,0"
+                                Text="{Binding UserArrowBlock, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding HasUserArrowBlocks}"
+                                AutomationProperties.Name="Select from Drawing Blocks"
+                            />
+                            <TextBlock
+                                Text="(no blocks)"
+                                Foreground="{StaticResource GhTextMuted}"
+                                Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                IsHitTestVisible="False"
+                                Visibility="{Binding HasUserArrowBlocks, Converter={StaticResource Hidden}}"
+                            />
+                        </Grid>
+                    </DockPanel>
+                </Border>
+                <Popup
+                    PlacementTarget="{Binding ElementName=Typed}"
+                    Placement="Bottom"
+                    StaysOpen="False"
+                    AllowsTransparency="True"
+                    IsOpen="{Binding IsChecked, ElementName=Open, Mode=TwoWay}"
+                >
+                    <Border
+                        Width="306"
+                        MaxHeight="160"
+                        Background="{StaticResource GhInput}"
+                        BorderBrush="{StaticResource GhAccent}"
+                        BorderThickness="1"
+                        CornerRadius="2"
+                    >
+                        <ListBox
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{StaticResource GhText}"
+                            ItemsSource="{Binding UserArrowBlocks}"
+                            SelectedItem="{Binding UserArrowBlock, Mode=OneWay}"
+                            MouseLeftButtonUp="OnBlockPicked"
+                            AutomationProperties.Name="Drawing blocks"
+                        />
+                    </Border>
+                </Popup>
+                <TextBlock Margin="0,6,0,0" MinHeight="32" TextWrapping="Wrap" Text="{Binding UserArrowMessage}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUserArrowNotFound}" Value="True">
+                                    <Setter Property="Foreground" Value="#F26B3A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

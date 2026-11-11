@@ -123,6 +123,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["MLS"] = "MLEADERSTYLE",
                     ["LEAD"] = "LEADER",
                     ["LE"] = "QLEADER",
+                    ["TOL"] = "TOLERANCE",
                     ["MV"] = "MVIEW",
                     ["MS"] = "MSPACE",
                     ["PS"] = "PSPACE",

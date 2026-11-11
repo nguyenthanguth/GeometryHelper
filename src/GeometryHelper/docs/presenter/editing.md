@@ -188,7 +188,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, MVIEW, LAYOUT (New, Rename, Set, ?) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
@@ -514,10 +514,14 @@ arrow or none; Undo takes the last point back. The words are typed line by line 
 or <options>:` and `Enter next line of annotation text:`, or Enter gives `Enter an annotation option
 [Tolerance/Copy/Block/None/Mtext] <Mtext>:`: Copy makes an MTEXT of a text or an MTEXT picked, or copies an INSERT picked
 to the leader's end, its scale kept and turned to the X axis of the UCS, with no hook (an INSERT at (500, 500) scaled 1.5
-by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by 2.5 and turned 0, as AutoCAD 2021 copies it); a TOLERANCE,
-which the library cannot move, is passed over and the option asked again. Block places an INSERT as INSERT does, None
-leaves the leader pointing to nothing, and Mtext opens the MTEXT editor; Tolerance, which needs the Geometric Tolerance
-dialog, is refused. While the points are picked the leader is previewed at the cursor, its arrowhead and its line or
+by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by 2.5 and turned 0, as AutoCAD 2021 copies it); a TOLERANCE
+is copied there along the UCS's X, its insertion point on the end where the leader runs right and set back its first
+row's width where it runs left, so that its right side meets the end: `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial copied
+to a leader ending at (90, 105) stands at (89.07704, 105), as AutoCAD 2021 puts it, and a leader steeper than 15 degrees
+is marked as hooked with no vertex of the hook's own. Block places an INSERT as INSERT does, None leaves the leader
+pointing to nothing, and Mtext opens the MTEXT editor; Tolerance shows the Geometric Tolerance dialog and puts its frame
+at the leader's end as Copy puts a copied one, Cancel or an empty dialog leaving the leader pointing to nothing (with no
+window to show the dialog, the option is asked again). While the points are picked the leader is previewed at the cursor, its arrowhead and its line or
 spline as the leader made there draws them. The leader is drawn by the current dimension style and DIMSCALE: its MTEXT stands
 DIMGAP past the last point, to the right where the last segment runs right or straight up or down, and a hook DIMASZ
 long runs on to it where that segment is steeper than 15 degrees: a leader from (0, 0) to (10, 10) with DIMASZ 2.5 ends
@@ -546,16 +550,42 @@ line writes DIMTAD 1 and stands them DIMGAP above it; Frame text writes DIMGAP b
 width and sets the words' right edge DIMGAP short of an end on their right; a segment held to an angle takes the point
 square onto the nearest ray, (100, 30) held level from the origin being (100, 0), and the preview at the cursor runs to
 the point held, so that the cursor at (100, 30) previews the segment to (100, 0); Copy an Object stands the copy of words
-by its middle and copies an INSERT as LEADER's Copy does; Block Reference asks the block and INSERT's prompts; None and
-Tolerance (which needs the Geometric Tolerance dialog, greyed in Leader Settings) end the leader with no annotation;
-Reuse Next keeps the next words, the settings then turned to Reuse Current, which copies them to each later leader with
-nothing asked, and copies an INSERT kept to the leader's end as Copy does. In a turned UCS QLEADER raises its words up
+by its middle and copies an INSERT or a TOLERANCE as LEADER's Copy does; Block Reference asks the block and INSERT's
+prompts; Tolerance shows the Geometric Tolerance dialog after the points and puts its frame at the end as LEADER does;
+None ends the leader with no annotation, and so do Tolerance's Cancel and an empty dialog; Reuse Next keeps the next
+words or frame, the settings then turned to Reuse Current, which copies them to each later leader with nothing asked,
+and copies an INSERT or a TOLERANCE kept to the leader's end as Copy does. In a turned UCS QLEADER raises its words up
 the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. A leader arrow other
 than the style's is written as the leader's DIMLDRBLK override, `1070 341, 1005` and the handle of `_Dot`. The
 Arrowhead list of Leader Settings shows each arrowhead with its picture, drawn as a leader draws it, and ends with
-`User Arrow...`, which lists the drawing's blocks (all but layouts, anonymous blocks and external references) as
-AutoCAD's Select Custom Arrow Block does: the one chosen becomes the arrow, written on OK as DIMLDRBLK and as group 3 of
-the settings. LEADER and QLEADER are each one undo step.
+`User Arrow...`, which opens AutoCAD's Select Custom Arrow Block over the dialog, Leader Settings dimmed and blocked
+until it closes: an editable list of the drawing's blocks (all but layouts, anonymous blocks and external references),
+A to Z whatever their case, the block in use as the arrow chosen when it opens, else the user arrow kept, else the first.
+OK takes a name typed in either case: the block becomes the arrow, joins the list just above `User Arrow...` and is
+written on OK of Leader Settings as DIMLDRBLK and as group 3 of the settings; a name the drawing has not leaves the
+dialog open, its box framed orange and the line under it saying `The drawing has no block TAGX.`. In a drawing of no
+block the dialog still opens, its list greyed, OK greyed while its box is empty, and the line says `The drawing has no
+block to use as an arrow. Make one with BLOCK first, or Cancel.`; Cancel, Esc and the close button leave the arrow as
+it was. LEADER and QLEADER are each one undo step.
+
+TOLERANCE (TOL) shows the Geometric Tolerance dialog, every box empty, then asks `Enter tolerance location:`, the frame
+following the cursor by its insertion point until the point is picked; it is put along the X axis of the UCS in the
+current layer and dimension style, one undo step. The dialog has two rows of a symbol (the Sym box opens the Symbol
+dialog of the fourteen symbols and the blank), two tolerances (the box before a value toggles the diameter sign, the box
+after it opens the Material Condition dialog of M, L, S and the blank) and three datums (a letter and its material
+condition), then the height of a projected zone with its P and the datum identifier; OK writes them as AutoCAD writes a
+TOLERANCE's group 1, a row of nothing left out, a cell left empty kept between its neighbours: the position of a diameter
+0.1 at MMC to the datums A, B and C is `{\Fgdt;j}%%v{\Fgdt;n}0.1{\Fgdt;m}%%v%%vA%%vB%%vC`. Cancel, or OK with every box
+empty, makes no frame; with no window the command line says so. A frame is drawn as AutoCAD 2021 lays one out (measured
+in its console): every row twice DIMTXT times DIMSCALE high whatever DIMGAP, the insertion point the middle of the left
+side of the first row, each next row under the one before on that side with its own width, each cell as wide as its
+ink and DIMTXT, a cell of nothing taking no room. The words are measured in the dimension style's text style and the
+gdt symbols take the room AutoCAD's gdt font gives them, drawn with the presenter's own strokes (board GdtGlyphs), so
+that `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296 wide, as in AutoCAD, and a cell mixing a symbol and words,
+as `{\Fgdt;n}0.1{\Fgdt;m}`, comes within 0.005 of it. Lines are in DIMCLRD, words and symbols in DIMCLRT. Selected, a
+frame shows one grip, at its insertion point; MOVE, COPY, ROTATE and SCALE move it as AutoCAD does (SCALE writes DIMTXT
+and DIMGAP scaled as overrides), and MIRROR keeps it readable under MIRRTEXT 0, its normal kept, and turns it over under
+MIRRTEXT 1.
 
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
