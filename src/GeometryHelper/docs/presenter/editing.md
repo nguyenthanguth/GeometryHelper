@@ -237,7 +237,8 @@ an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCA
 33.435, and -30 for a level one as 330. DIMBREAK keeps its breaks as AutoCAD 2021 keeps them, a BREAKDATA under
 ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object that crosses the dimension, naming
 it (the object naming the BREAKDATA among its reactors), Manual the two points picked and the line they break (0 and 1
-the extension lines, 3 the dimension line); Remove takes it out. A dimension drawn anew, by DIMEDIT, a change of its
+the extension lines, 3 the dimension line); Remove takes it out. Where the style keeps no break size, a break is 0.125
+wide, or 3.75 in a drawing of MEASUREMENT 1, times DIMSCALE, as AutoCAD 2021 breaks it. A dimension drawn anew, by DIMEDIT, a change of its
 style or a grip, is broken again where it keeps breaks, whether DIMBREAK here or AutoCAD broke it, and AutoCAD 2021 opening
 the drawing breaks it again from what the presenter kept: a dimension broken here by hand from (20, -130) to (30, -130),
 given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
@@ -821,7 +822,7 @@ The other kinds have AutoCAD 2021's rows too, each set the same way:
 | Polyline | Current vertex, Vertex X and Y, Start and End segment width, Global width, Elevation, Closed, Linetype generation | Vertices, Length, Area |
 | Ellipse | Center X, Y and Z, Major radius, Minor radius, Radius ratio, Start and End angle | Area |
 | Hatch | Type, Pattern name, Angle, Scale, Spacing, Double, Origin X and Y, Elevation, Island detection, Background color | Associative, Area |
-| Dimension | Dim style; the Lines & Arrows, Text, Fit and Primary Units rows of the Dimension Style dialog's variables; Text override | Measurement |
+| Dimension | Dim style; the Lines & Arrows, Text, Fit and Primary Units rows of the Dimension Style dialog's variables; Text override; Ext line fixed and Ext line fixed length (DIMFXLON, DIMFXL), Fill color, Fractional type, Text position X and Y, Text view direction | Measurement |
 | MTEXT | Contents, Style, Justify, Direction, Text height, Rotation, Line space factor, distance and style, Defined width, Columns, Position | |
 | Block reference | Position, Scale X, Y and Z, Rotation, each attribute by its tag, the Custom rows of a dynamic block | Name (a dynamic block's own for its anonymous copy) |
 | Viewport | Center, Height, Width, On, Display locked, Standard scale, Custom scale | Clipped, Visual style |
@@ -832,7 +833,10 @@ Current vertex steps through a polyline's vertices and is no step of undo
 (30, 0) (30, 20) (0, 20), vertex 3 shows Vertex X 30.0000 and Vertex Y 20.0000, and Vertex Y typed as 25 moves that corner
 alone. A row of a dimension is written as an override of its variable, the style left as it is, and the dimension drawn
 again: Precision 0.000 with Suppress trailing zeros No and Dim suffix " TYP" turns a dimension of 300 under ISO-25 into
-"300.000 TYP". Arrow 1 makes the arrows separate (DIMSAH), the other end keeping the arrow it showed. A Major radius of 40
+"300.000 TYP". Arrow 1 makes the arrows separate (DIMSAH), the other end keeping the arrow it showed. Ext line fixed On
+with a length of 10 draws, for points 30 from the dimension line, extension lines that start 10 short of it, as AutoCAD
+2021 draws them. Angle, Scale or Pattern name of a hatch keeps its origin, as AutoCAD keeps it: ANSI31 at (2, 0) turned
+to 30 degrees still starts at (2, 0). A Major radius of 40
 scales an ellipse of radii 20 and 10 whole, to 40 and 20; a Minor radius above the major is refused. A Height or Width of a
 viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow.Choices))
 is a drop-down in the window, and the Contents row of one MTEXT offers its MTEXT editor.
@@ -849,15 +853,16 @@ the dynamic block's name, not that of the anonymous block the INSERT places.
 ## MATCHPROP
 
 MATCHPROP (MA) asks for the source object, says the settings it copies ("Current active settings: Color Layer Ltype
-Ltscale Lineweight Transparency Thickness Dim Text Hatch Polyline Viewport Table Multileader") and asks "Select
+Ltscale Lineweight Transparency Thickness PlotStyle Dim Text Hatch Polyline Viewport Table Multileader") and asks "Select
 destination object(s) or [Settings]:". Settings shows the Property Settings dialog, whose check boxes are
 [`CadCommandSession.MatchProperties`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.MatchProperties), every one until
 changed: with Layer alone checked, a red line matched to a line on Steel goes to Steel and stays red. The special
 properties are copied between objects of one kind: a dimension's style and its overrides (drawn again), a text's or an
 MTEXT's text style and height (and a text's oblique angle and width factor onto a text), a hatch's pattern, angle and scale
-or spacing and double, a polyline's linetype generation and its width where the source has one width all along, a
-viewport's scale, display lock and frozen layers, a table's table style and a multileader's style. Plot style, Material,
-Shadow display and Center object are greyed.
+or spacing and double, or its gradient (name, angle, shift, tint and colours), the destination keeping its origin, a polyline's linetype generation and its width where the source has one width all along, a
+viewport's scale, display lock and frozen layers, a table's table style and a multileader's style. Material, Shadow display
+and Center object are greyed; Plot style is copied in a drawing of named plot styles and greyed where plot styles follow
+the colour.
 
 ## Layers
 

@@ -987,7 +987,8 @@ namespace GeometryHelper.Dxf.Viewer
             int side = 0;
 
             // A point on the dimension line has its extension line too, from DIMEXO to DIMEXE past it, the way the other one runs
-            // (square to the line where neither runs any way), as AutoCAD 2021 draws it.
+            // (square to the line where neither runs any way), as AutoCAD 2021 draws it; under DIMFXLON each starts DIMFXL short of
+            // the dimension line (see ExtensionStart).
             GeoVector2 normal = new GeoVector2(-along.Y, along.X);
             GeoVector2 other =
                 (q1 - p1).Length > 1E-12 ? (q1 - p1) / (q1 - p1).Length
@@ -1005,13 +1006,15 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoVector2 up = pair.Value - pair.Key;
                 double length = up.Length;
 
-                if (length + beyond > offset && !suppressed[side])
+                double start = ExtensionStart(style, scale, offset, length);
+
+                if (length + beyond > start && !suppressed[side])
                 {
                     GeoVector2 unit = length > 1E-12 ? up / length : other;
                     double longer = layout.OverExtension == side + 1 ? layout.Longer : 0.0;
                     picture.Add(
                         Lined(
-                            new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * (beyond + longer))),
+                            new DxfLine(P3(pair.Key + unit * start), P3(pair.Value + unit * (beyond + longer))),
                             style.Dimclre,
                             style.Dimlwe
                         )
@@ -1615,6 +1618,19 @@ namespace GeometryHelper.Dxf.Viewer
             offset = style.Dimexo * scale;
             beyond = style.Dimexe * scale;
         }
+
+        /// <summary>
+        /// Where an extension line starts, as a distance along it from the point it is drawn from, the dimension line or arc
+        /// <paramref name="length"/> away: DIMEXO off the point; under DIMFXLON, DIMFXL by the scale short of the dimension line,
+        /// though no nearer the point than DIMEXO, nor than the dimension line where that is nearer still, as AutoCAD 2021 draws
+        /// it. Points 50 below the line, DIMFXL 10 and DIMEXO 0.625 start at 40; DIMFXL 49.5 at 0.625; DIMFXL 49 at 1.
+        /// </summary>
+        private static double ExtensionStart(
+            DxfDimStyleTableRecord style,
+            double scale,
+            double offset,
+            double length
+        ) => style.DimfxlenOn ? Math.Max(length - style.Dimfxlen * scale, Math.Min(offset, length)) : offset;
 
         /// <summary>A closed filled arrowhead with its tip at a point, pointing a way, a third as wide as long, as AutoCAD's.</summary>
         private static DxfEntity Arrowhead(GeoPoint2 tip, GeoVector2 way, double size)

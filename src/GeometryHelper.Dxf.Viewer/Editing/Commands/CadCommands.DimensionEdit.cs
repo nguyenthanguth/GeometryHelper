@@ -256,9 +256,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// DIMBREAK: breaks the extension lines and the dimension line of a dimension where other objects cross them, a gap of
-        /// the break size wide (DIMBREAK, from the style's extended data, else one and a half arrowheads); Auto at every line,
-        /// polyline, circle and arc of the space, or at the objects picked one by one; Manual between two points; Remove takes
-        /// the breaks out. Multiple breaks or restores several at once.
+        /// the break size wide (DIMBREAK, from the style's extended data, else 0.125, or 3.75 in a metric drawing, as
+        /// AutoCAD); Auto at every line, polyline, circle and arc of the space, or at the objects picked one by one; Manual
+        /// between two points; Remove takes the breaks out. Multiple breaks or restores several at once.
         /// </summary>
         /// <remarks>
         /// The break is drawn into the dimension's picture and kept as AutoCAD 2021 keeps it, a BREAKDATA under ACAD_BREAKDATA in
@@ -1095,12 +1095,16 @@ namespace GeometryHelper.Dxf.Viewer
             return crossed;
         }
 
-        /// <summary>The break size of a dimension: DIMBREAK from its style's extended data (ACAD_DSTYLE_DIMBREAK), else 1.5 arrowheads, by DIMSCALE.</summary>
+        /// <summary>
+        /// The break size of a dimension: DIMBREAK from its style's extended data (ACAD_DSTYLE_DIMBREAK), else AutoCAD 2021's
+        /// default, 0.125 in a drawing of MEASUREMENT 0 and 3.75 in one of 1, whatever the arrowheads, a header without
+        /// MEASUREMENT read as 0 as AutoCAD reads it; by DIMSCALE.
+        /// </summary>
         private static double BreakSize(DxfDimension dimension)
         {
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
             double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
-            double size = 1.5 * data.Dimasz;
+            double size = DefaultBreakSize(dimension.Item?.File.Database);
 
             try
             {
@@ -1129,11 +1133,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception)
             {
-                size = 1.5 * data.Dimasz;
+                size = DefaultBreakSize(dimension.Item?.File.Database);
             }
 
             return size * scale;
         }
+
+        /// <summary>The break size AutoCAD 2021 takes where a style has none: 3.75 where the header's MEASUREMENT is 1, else 0.125.</summary>
+        private static double DefaultBreakSize(DxfDatabase database) =>
+            database?.GetHeader("$MEASUREMENT") != null && database.Measurement == DxfMeasurementValue.Metric
+                ? 3.75
+                : 0.125;
 
         /// <summary>Where along a segment, from its start, the objects cross it, in order.</summary>
         private static List<double> Crossings(GeoPoint2 a, GeoPoint2 b, List<DxfEntity> cutters)

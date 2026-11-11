@@ -88,8 +88,9 @@ the ones wanted.
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
-- [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
+- [x] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
+- [ ] Follow-ups of dim-props: DIMTFILL mask and DIMTXTDIRECTION not drawn in the pictures; ordinate with a jog under DIMFXLON; MATCHPROP gradient not confirmed in AutoCAD (MATCHPROP fails in accoreconsole); Plot Style box shows ByLayer/ByColor, not the name; DIMSCALE on the default break size unprobed; Text position X/Y with DIMTMOVE 0; the wording Left-to-Right/Not stacked unconfirmed; flaky PluginManagerTests.TheCommandsGoToEveryRegistryAttachedAndUnloadingTakesThemAway (1 fail in 4 runs under load) (S)
 - [x] Variables: POLARMODE, ATTDIA, FILEDIA, CMDDIA, AUTOSNAP's bits; new dimensions follow DIMSCALE; the polar angle in
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
@@ -268,7 +269,7 @@ the ones wanted.
       again on redraw; AUDIT 0 in AutoCAD
 - [x] The oblique angle of a dimension is measured from the dimension line, as AutoCAD (presenter and core's doc fixed)
 - [x] Picking: the object on top wins anywhere in the pickbox (SORTENTS bit 1), else the one drawn first, as AutoCAD
-- [ ] DIMBREAK's automatic gap of a new imperial drawing: AutoCAD 0.125 (its default), the presenter 1.5 x DIMASZ (S). DECIDED (maintainer 2026-11-11): follow AutoCAD (task dim-props)
+- [x] DIMBREAK's automatic gap of a new imperial drawing: AutoCAD 0.125 (its default), the presenter 1.5 x DIMASZ (S). DECIDED (maintainer 2026-11-11): follow AutoCAD (task dim-props)
 
 ## Part B: model drawings
 

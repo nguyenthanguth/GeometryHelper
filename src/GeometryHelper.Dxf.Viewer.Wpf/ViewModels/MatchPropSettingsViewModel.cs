@@ -9,6 +9,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>One check box of the Property Settings dialog: its words, the source's value beside it, whether it is checked, and whether it can be.</summary>
     public sealed class MatchPropOptionViewModel : ObservableObject
     {
+        private readonly bool _enabled;
         private bool _isChecked;
 
         internal MatchPropOptionViewModel(
@@ -16,13 +17,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadMatchProperties property,
             bool isChecked,
             string value = null,
-            int? swatchRgb = null
+            int? swatchRgb = null,
+            bool enabled = true
         )
         {
             Name = name;
             Property = property;
             Value = value ?? string.Empty;
             SwatchRgb = swatchRgb;
+            _enabled = enabled;
             _isChecked = isChecked && property != CadMatchProperties.None;
         }
 
@@ -38,10 +41,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the swatch of the Color box as 0xRRGGBB: the source's colour, white for ByLayer and ByBlock; null for the other boxes.</summary>
         public int? SwatchRgb { get; }
 
-        /// <summary>Gets whether it can be checked: false for Plot style, Material, Shadow display and Center object.</summary>
-        public bool IsEnabled => Property != CadMatchProperties.None;
+        /// <summary>
+        /// Gets whether it can be checked: false for Material, Shadow display and Center object, and for Plot style in a drawing
+        /// whose plot styles are colour-dependent.
+        /// </summary>
+        public bool IsEnabled => _enabled && Property != CadMatchProperties.None;
 
-        /// <summary>Gets or sets whether it is checked; a greyed one stays clear.</summary>
+        /// <summary>Gets or sets whether it is checked; a greyed one keeps the tick the settings gave it, as AutoCAD keeps it.</summary>
         public bool IsChecked
         {
             get => _isChecked;
@@ -54,9 +60,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Scale, Lineweight, Transparency, Thickness, Plot Style), each with the source's value beside it, and the Special
     /// Properties (Dimension, Text, Hatch, Polyline, Viewport, Table, Material, Shadow display, Multileader, Center object), each
     /// checked as the command's settings have it; the source named under them and the prompt that asked for the dialog at the
-    /// foot. Plot style, Material, Shadow display and Center object are greyed: the library has no setter of an object's plot
-    /// style, and the other three are of 3D and of centre marks, which are not built. OK gives the settings checked
-    /// (<see cref="Result"/>).
+    /// foot. Material, Shadow display and Center object are greyed, being of 3D and of centre marks, which are not built; Plot
+    /// style is greyed in a drawing whose plot styles are colour-dependent, as AutoCAD greys it, and keeps its tick there. OK
+    /// gives the settings checked (<see cref="Result"/>).
     /// </summary>
     public sealed class MatchPropSettingsViewModel
     {
@@ -76,14 +82,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DxfEntity entity = document == null || source == null ? null : document.FindEntity(source);
             Dictionary<string, string> values = Values(document, entity, out string kind);
 
-            MatchPropOptionViewModel Box(string name, CadMatchProperties property, int? swatch = null) =>
+            MatchPropOptionViewModel Box(
+                string name,
+                CadMatchProperties property,
+                int? swatch = null,
+                bool enabled = true
+            ) =>
                 new MatchPropOptionViewModel(
                     name,
                     property,
                     (settings & property) != 0,
                     values.TryGetValue(name, out string value) ? value : null,
-                    swatch
+                    swatch,
+                    enabled
                 );
+            bool named = document != null && !document.Database.PlotStyleMode;
 
             Basic = new[]
             {
@@ -94,7 +107,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Box("Lineweight", CadMatchProperties.Lineweight),
                 Box("Transparency", CadMatchProperties.Transparency),
                 Box("Thickness", CadMatchProperties.Thickness),
-                Box("Plot Style", CadMatchProperties.None),
+                Box("Plot Style", CadMatchProperties.PlotStyle, null, named),
             };
 
             Special = new[]

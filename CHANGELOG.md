@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Properties rows of a dimension add Ext line fixed and its length, Fill color, Fractional type,
+Text position X and Y and Text view direction, written as overrides; extension lines follow DIMFXLON as AutoCAD 2021
+draws them. MATCHPROP copies the plot style in a drawing of named plot styles (`CadMatchProperties.PlotStyle`) and a
+hatch's gradient.
+
+**FIXED.** A hatch's origin is kept through Angle, Scale, Pattern name and MATCHPROP. DIMBREAK's gap where the style
+keeps no size is AutoCAD's 0.125, or 3.75 in a metric drawing, not 1.5 arrowheads.
+
 **FIXED.** Point modifiers of the presenter checked against AutoCAD 2021: TK's `Next point  (Press ENTER to end
 tracking):` and its upright tie, (100, 0) towards (130, 30) reaching (100, 30); `40,3` at `(need YZ):` gives Y 3, not
 40; Enter and text at FROM, M2P, TT, TK and filter prompts answered as AutoCAD answers them; TT and TK no longer nest in

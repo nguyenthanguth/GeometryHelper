@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -35,6 +36,8 @@ namespace GeometryHelper.Dxf.Viewer
             "Fractional",
             "Windows desktop",
         };
+        private static readonly string[] FractionChoices = { "Horizontal", "Diagonal", "Not stacked" };
+        private static readonly string[] ViewDirectionChoices = { "Left-to-Right", "Right-to-Left" };
 
         /// <summary>Reads a dimension's row as text.</summary>
         internal delegate string DimensionRead(DxfDimension dimension, Func<double, string> angle);
@@ -115,6 +118,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Colour("Lines & Arrows", "Dim line color", d => d.Dimclrd, (d, v) => d.Dimclrd = v),
                 Linetype("Lines & Arrows", "Dim line linetype", d => d.Dimltype, (d, v) => d.Dimltype = v),
                 Distance("Lines & Arrows", "Dim line ext", d => d.Dimdle, (d, v) => d.Dimdle = v),
+                Switch("Lines & Arrows", "Ext line fixed", d => d.DimfxlenOn, (d, v) => d.DimfxlenOn = v),
+                Distance("Lines & Arrows", "Ext line fixed length", d => d.Dimfxlen, (d, v) => d.Dimfxlen = v),
                 Linetype("Lines & Arrows", "Ext line 1 linetype", d => d.Dimltex1, (d, v) => d.Dimltex1 = v),
                 Linetype("Lines & Arrows", "Ext line 2 linetype", d => d.Dimltex2, (d, v) => d.Dimltex2 = v),
                 Switch("Lines & Arrows", "Ext line 1", d => !d.Dimse1, (d, v) => d.Dimse1 = !v),
@@ -122,6 +127,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Colour("Lines & Arrows", "Ext line color", d => d.Dimclre, (d, v) => d.Dimclre = v),
                 Distance("Lines & Arrows", "Ext line ext", d => d.Dimexe, (d, v) => d.Dimexe = v),
                 Distance("Lines & Arrows", "Ext line offset", d => d.Dimexo, (d, v) => d.Dimexo = v),
+                new DimensionRow("Text", "Fill color", (d, a) => FillText(d), ParseFill),
+                Choice("Text", "Fractional type", FractionChoices, 0, d => d.Dimfrac, (d, v) => d.Dimfrac = v),
                 Colour("Text", "Text color", d => d.Dimclrt, (d, v) => d.Dimclrt = v),
                 new DimensionRow(
                     "Text",
@@ -142,12 +149,28 @@ namespace GeometryHelper.Dxf.Viewer
                 Choice("Text", "Text pos vert", VerticalChoices, 0, d => d.Dimtad, (d, v) => d.Dimtad = v),
                 new DimensionRow("Text", "Text style", (d, a) => d.TextStyle?.Name ?? "Standard", ParseTextStyle),
                 Switch("Text", "Text inside align", d => d.Dimtih, (d, v) => d.Dimtih = v),
+                Position("Text position X", true),
+                Position("Text position Y", false),
                 new DimensionRow(
                     "Text",
                     "Text rotation",
                     (d, a) => a(d.TextRotation),
                     (DxfDatabase db, string t, out Action<DxfDimension> w) =>
                         Real(t, false, false, (d, v) => d.TextRotation = Turn(v), out w, "Text rotation")
+                ),
+                new DimensionRow(
+                    "Text",
+                    "Text view direction",
+                    (d, a) => ViewDirectionChoices[d.Dimtxtdirection ? 1 : 0],
+                    (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                    {
+                        int index = Array.FindIndex(ViewDirectionChoices, x =>
+                            string.Equals(x, t, StringComparison.OrdinalIgnoreCase)
+                        );
+                        w = d => d.Dimtxtdirection = index == 1;
+                        return index >= 0 ? null : "Text view direction is Left-to-Right or Right-to-Left.";
+                    },
+                    ViewDirectionChoices
                 ),
                 new DimensionRow(
                     "Text",
@@ -360,6 +383,60 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
             );
+
+        /// <summary>
+        /// A coordinate of the middle of the words (group 11): set, the words moved there along one axis and the dimension no
+        /// longer at its default place, as AutoCAD's palette moves them.
+        /// </summary>
+        private static DimensionRow Position(string label, bool x) =>
+            new DimensionRow(
+                "Text",
+                label,
+                (d, a) => Length(x ? d.TextPosition.X : d.TextPosition.Y),
+                (DxfDatabase db, string t, out Action<DxfDimension> w) =>
+                    Real(
+                        t,
+                        false,
+                        false,
+                        (d, v) =>
+                        {
+                            GeoPoint3 at = d.TextPosition;
+                            d.TextPosition = x ? new GeoPoint3(v, at.Y, at.Z) : new GeoPoint3(at.X, v, at.Z);
+                        },
+                        out w,
+                        label
+                    )
+            );
+
+        /// <summary>The fill behind the words, as the palette writes it: None (DIMTFILL 0), Background (1), or the colour of DIMTFILLCLR (2).</summary>
+        private static string FillText(DxfDimension dimension) =>
+            dimension.Dimtfill == 1 ? "Background"
+            : dimension.Dimtfill == 2 ? ColorText(dimension.Dimtfillclr)
+            : "None";
+
+        /// <summary>A fill typed into the palette: None and Background set DIMTFILL alone; a colour sets DIMTFILL 2 and DIMTFILLCLR.</summary>
+        private static string ParseFill(DxfDatabase db, string text, out Action<DxfDimension> write)
+        {
+            if (string.Equals(text, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                write = d => d.Dimtfill = 0;
+                return null;
+            }
+
+            if (string.Equals(text, "Background", StringComparison.OrdinalIgnoreCase))
+            {
+                write = d => d.Dimtfill = 1;
+                return null;
+            }
+
+            string error = CadPropertyEditor.ParseColor(text, out DxfColor color);
+            write = d =>
+            {
+                d.Dimtfill = 2;
+                d.Dimtfillclr = color;
+            };
+            return error;
+        }
 
         private static string Real(
             string text,
