@@ -34,6 +34,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Apply: the command writes the values and shows the dialog again, as the Enhanced Attribute Editor's Apply.</summary>
         Apply,
+
+        /// <summary>
+        /// Browse… with FILEDIA 0: the command asks the file on the command line instead of the file dialog, then shows the
+        /// dialog again with it.
+        /// </summary>
+        Browse,
     }
 
     /// <summary>What the block dialogs check and list as the block commands do: the names AutoCAD takes and the blocks a user names.</summary>
@@ -162,8 +168,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the name of the block chosen; for a file, a block of it, or empty to insert the whole file as one block.</summary>
         public string Name { get; set; } = string.Empty;
 
-        /// <summary>Gets or sets the DXF file the block comes from (Other drawing); null for a block of the drawing.</summary>
+        /// <summary>
+        /// Gets or sets the drawing file, a DWG or a DXF, the block comes from (Other drawing); null for a block of the drawing.
+        /// Set when the palette opens, as after Browse… asked on the command line, the palette shows that file's blocks.
+        /// </summary>
         public string FileName { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether Browse… shows the window's file dialog, as FILEDIA 1 has it; false, as with FILEDIA 0, the palette
+        /// closes with <see cref="CadDialogAction.Browse"/> for the file to be asked on the command line. True until set.
+        /// </summary>
+        public bool FileDialogs { get; set; } = true;
 
         /// <summary>Gets or sets whether the insertion point is asked on the command line; true until set.</summary>
         public bool SpecifyPointOnScreen { get; set; } = true;
@@ -227,8 +242,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets what becomes of the objects; Retain until set, as AutoCAD's dialog opens.</summary>
         public CadBlockObjectAction ObjectAction { get; set; } = CadBlockObjectAction.Retain;
 
-        /// <summary>Gets or sets the path of the DXF file written.</summary>
+        /// <summary>Gets or sets the path of the file written: a DWG of AutoCAD 2018 where it ends in .dwg, else a DXF.</summary>
         public string FileName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets whether the file box's Browse… shows the window's file dialog, as FILEDIA 1 has it; false, as with FILEDIA
+        /// 0, the dialog closes with <see cref="CadDialogAction.Browse"/> for the file to be asked on the command line. True until
+        /// set.
+        /// </summary>
+        public bool FileDialogs { get; set; } = true;
 
         /// <summary>Gets or sets the unit of the new drawing ($INSUNITS); the drawing's own until set.</summary>
         public DxfUnits Units { get; set; }

@@ -16,6 +16,23 @@ the settings file); `CadUnits.TryAngles`, `CadSystemVariable.Text(name, get, tak
 `ObjectSnap.PolarFromLastSegment`/`LastSegment`/`AdditionalPolarAngles`, `CadCommandSession.LastSegment`,
 `GlobalSettings.PolarAddedAngles`.
 
+**NEW.** The presenter opens and saves DWG as AutoCAD 2021 does. Ctrl+O shows Select File with Drawing (*.dwg) first and
+DXF (*.dxf) after it, a DWG dropped on the window opens, and the file list lists the DWGs of the folder; a file is read as
+a DWG of AutoCAD 2000 to 2018 by `DwgReader` where its first bytes say so, and one of a version not read, R14 among them,
+is said on the command line, not opened as a recovered DXF. Save As shows Save Drawing As with AutoCAD 2018 Drawing
+(*.dwg) first and the DXF of the drawing's own version after it, the type of its file chosen first, and QSAVE of a
+drawing opened from a DWG writes it back as a DWG of AutoCAD 2018 (`DwgWriter`); what that writer does not write yet is
+said after the save, "Left out of the DWG, not written yet: RASTERVARIABLES 1." A DWG is attached as an external
+reference (XATTACH, -XREF, the palette) and inserted (INSERT, -INSERT, the Blocks palette) as a DXF is, and WBLOCK writes
+a DWG where the file ends in .dwg. **NEW.** FILEDIA 0 asks on the command line for the file QSAVE of a drawing with no
+file ("Save drawing as <Drawing1.dxf>:"), XATTACH ("Enter name of file to attach:", then the Attach External Reference
+dialog with it), IMAGEATTACH, and the Browse… of the Blocks palette and the Write Block dialog would ask a file dialog
+for; a name typed at "Save drawing as" with no extension takes the offered one's. **NEW.** `CadDrawingFile` (`OpenFilter`,
+`IsDrawingName`, `IsDwg`, `Open`), `CadDocument.LeftOutOfDwg`, `MainViewModel.CreateSaveAsJob`, `CadExportJob.Dwg`,
+`CadDialogAction.Browse`, `CadInsertRequest.FileDialogs`, `CadWriteBlockRequest.FileDialogs` and `BrowsesOnCommandLine` of
+the Blocks palette and Write Block view models. **CHANGED.** `CadDocument.Open` reads a DWG, and `CadDocument.SaveAs`
+writes a DWG for a name ending in .dwg, where both read and wrote DXF only.
+
 **FIXED.** The External References palette of the presenter said "Needs reloading" where AutoCAD 2021's help of the
 palette's List View says "Needs Reloading". Its other words were checked against that page and stand: Loaded, Unloaded,
 Not Found, Unresolved, Orphaned and Unreferenced for the status, the current drawing listed first, and the types of a

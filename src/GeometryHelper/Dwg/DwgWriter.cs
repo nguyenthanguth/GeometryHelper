@@ -18,9 +18,9 @@ namespace GeometryHelper.Dwg
     /// and the objects. Written are the tables and their records, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE,
     /// RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and polyface mesh, TEXT, MTEXT,
     /// ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION, VIEWPORT, HATCH,
-    /// LEADER, TOLERANCE and MLINE, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR and the small
-    /// ones a new drawing holds. A record of another type, MATERIAL, VISUALSTYLE, MULTILEADER, IMAGE and 3DSOLID among them,
-    /// is left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one Warn line of
+    /// LEADER, TOLERANCE, MLINE, IMAGE and WIPEOUT, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE,
+    /// DBCOLOR, IMAGEDEF and the small ones a new drawing holds. A record of another type, MATERIAL, VISUALSTYLE,
+    /// MULTILEADER, RASTERVARIABLES and 3DSOLID among them, is left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one Warn line of
     /// <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
@@ -143,11 +143,18 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>.</summary>
-        internal static byte[] ToDwg(string text, string version)
+        internal static byte[] ToDwg(string text, string version) => ToDwg(text, version, out _);
+
+        /// <summary>
+        /// The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>, with the types of record
+        /// left out, each with how many, in ordinal order of the type.
+        /// </summary>
+        internal static byte[] ToDwg(string text, string version, out IDictionary<string, int> leftOut)
         {
             string named = Check(version);
             DwgDrawing drawing = DwgDrawing.Parse(text);
             byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer);
+            leftOut = writer.LeftOut;
             int left = 0;
 
             if (writer.LeftOut.Count > 0)

@@ -84,7 +84,7 @@ The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawin
 the ones wanted.
 
 - [ ] MIRRTEXT for multileaders, tables and dimension text overrides; text box measured with real fonts (S)
-- [ ] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
+- [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
@@ -92,8 +92,9 @@ the ones wanted.
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
 - [x] Variables: POLARMODE, ATTDIA, FILEDIA, CMDDIA, AUTOSNAP's bits; new dimensions follow DIMSCALE; the polar angle in
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
-- [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
-      and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
+- [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
+      and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S): MLEADER does not follow it in AutoCAD either
+- [ ] Follow-ups of aids-vars: MLEADERSCALE (AutoCAD rules measured: style scale, override, reset on CMLEADERSTYLE); LEADER/QLEADER commands; Relative/Absolute and the additional angles in Drafting Settings (needs design); refusal message for a modifier picked from the menu where it may not nest (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
@@ -155,7 +156,8 @@ the ones wanted.
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [ ] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE, ACIS entities (AcDs store), multiline attributes; prove
         AC1018/1024/1027; R2000 and R2007 containers if wanted (L)
-  - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
+  - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
+  - [ ] W6 follow-ups: AUDIT in AutoCAD of a DWG saved after edits; Save As listing every DXF version (needs a DXF version converter); a new drawing defaulting to DWG as AutoCAD; autosave copy of plan.dwg and plan.dxf colliding (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
@@ -215,7 +217,7 @@ the ones wanted.
       shares the CPU (100k ERASE right after an undo 98 -> 269 ms); the first undo after BSAVE reads inline; per-entity
       allocation in the core parser (`ParsedOf` pair lists) is the next cost of layer on/off (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
-- [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
+- [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
 - [x] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
@@ -266,7 +268,7 @@ the ones wanted.
       again on redraw; AUDIT 0 in AutoCAD
 - [x] The oblique angle of a dimension is measured from the dimension line, as AutoCAD (presenter and core's doc fixed)
 - [x] Picking: the object on top wins anywhere in the pickbox (SORTENTS bit 1), else the one drawn first, as AutoCAD
-- [ ] DIMBREAK's automatic gap of a new imperial drawing: AutoCAD 0.125 (its default), the presenter 1.5 x DIMASZ (S)
+- [ ] DIMBREAK's automatic gap of a new imperial drawing: AutoCAD 0.125 (its default), the presenter 1.5 x DIMASZ (S). DECIDED (maintainer 2026-11-11): follow AutoCAD (task dim-props)
 
 ## Part B: model drawings
 

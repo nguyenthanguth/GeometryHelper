@@ -95,6 +95,36 @@ between the reading and the drawing, as before. A drawing of 1 000 000 entities 
 frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
 the drawing before `Open` returns, as before.
 
+## DWG files
+
+The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the library's own
+[DWG reader](../dxf/dwg.md), and saves one as a DWG of AutoCAD 2018, the version AutoCAD 2021 saves in.
+
+- Ctrl+O shows Select File, its types Drawing (*.dwg) first, then DXF (*.dxf), as AutoCAD 2021's; a DWG or DXF dropped on
+  the window opens; the file list lists the DWG and DXF files of the folder. A file is read as a DWG where its first bytes
+  say so ("AC1032" of AutoCAD 2018), whatever its name; a DWG of a version not read, R14 among them, is said on the command
+  line, "Cannot open old.dwg: The DWG version AC1014 (R14) is not read yet; …", and not opened as a recovered DXF.
+- Save As (Ctrl+Shift+S, SAVEAS) shows Save Drawing As with AutoCAD 2018 Drawing (*.dwg) first and the DXF of the
+  drawing's own version after it, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for a new drawing; the type of the drawing's file is
+  chosen first. A name ending in .dwg is written as a DWG, any other as a DXF; the DXF is written in the drawing's own
+  version, since the presenter does not convert a drawing to another. Save (Ctrl+S, QSAVE) of a drawing opened from a DWG
+  writes it back as a DWG.
+- What the DWG writer does not write yet is left out of the file and said after "Saved plan.dwg.": "Left out of the DWG,
+  not written yet: RASTERVARIABLES 1." (`CadDocument.LeftOutOfDwg` holds it). Saved as a DXF, nothing is left out.
+- A DWG is attached by XATTACH, -XREF and the External References palette, and inserted by INSERT, -INSERT and the Blocks
+  palette's Other drawing, as a DXF is; WBLOCK writes a DWG where the file named ends in .dwg.
+- Autosave keeps its copies of a DWG as DXF files beside it: `plan.autosave1.dxf` for `plan.dwg`.
+
+With FILEDIA 0 a command asks on the command line for the file it would show a file dialog for, as AutoCAD 2021 asks:
+
+| Command | Asks | Then |
+|---|---|---|
+| QSAVE of a drawing with no file, SAVEAS | Save drawing as &lt;Drawing1.dxf&gt;: | saves there; a name with no extension takes the offered one's, .dwg for a drawing opened from a DWG |
+| XATTACH | Enter name of file to attach: | the Attach External Reference dialog shown with the file; a file not found said, no dialog |
+| IMAGEATTACH | Enter image file name to attach: | the Attach Image dialog shown with the picture |
+| INSERT, the Blocks palette's Browse… | Enter name of drawing file: | the palette shown again on Other drawing with that drawing's blocks |
+| WBLOCK, the Write Block dialog's Browse… | Enter name of output file: | the dialog shown again with that file |
+
 ## Closing a drawing
 
 A drawing is closed by CLOSE on the command line or the x on its row in the file list. A command cannot close its own
@@ -121,7 +151,7 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 | Esc | closes the AutoComplete list; then cancels the command; then clears the selection |
 | Space, Enter | runs the row chosen of the AutoComplete list; else ends a command or a prompt; Enter alone runs the last command again |
 | Up, Down | move the row chosen of the AutoComplete list; with the list closed, recall what was typed before |
-| Ctrl+O | opens a DXF |
+| Ctrl+O | opens a DWG or DXF (see [DWG files](#dwg-files)) |
 | Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
 | Ctrl+N | asks a host for a new drawing from a model; where no host makes them, as in GeometryHelper DXF, makes a new drawing (NEW) |

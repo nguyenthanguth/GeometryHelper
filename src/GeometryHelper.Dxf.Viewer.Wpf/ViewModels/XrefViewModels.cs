@@ -416,7 +416,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return picture;
                 }
 
-                return CadStylePreview.Drawing(DxfDatabase.Open(path), fonts, width, height);
+                return CadStylePreview.Drawing(CadDrawingFile.Open(path), fonts, width, height);
             }
             catch (Exception exception)
             {
@@ -550,13 +550,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string FilesNote =>
             IsImage
                 ? "Files of type: PNG (*.png), JPEG (*.jpg, *.jpeg), Bitmap (*.bmp). TIFF, GIF, PDF and the other raster types of AutoCAD are not offered."
-                : "Files of type: Drawing Exchange Format (*.dxf). DWG is not offered: the presenter reads DXF only, so an xref is a DXF file.";
+                : "Files of type: Drawing (*.dwg), of AutoCAD 2000 to 2018, and Drawing Exchange Format (*.dxf).";
 
-        /// <summary>Gets the filter of the Browse dialog.</summary>
+        /// <summary>Gets the filter of the Browse dialog: for a drawing, DWG first as AutoCAD's, then DXF.</summary>
         public string BrowseFilter =>
             IsImage
                 ? "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|PNG (*.png)|*.png|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|Bitmap (*.bmp)|*.bmp"
-                : "Drawing Exchange Format (*.dxf)|*.dxf";
+                : CadDrawingFile.OpenFilter;
 
         /// <summary>Gets or sets the full path of the file chosen; set, the dialog reads it and shows what it found.</summary>
         public string FileName

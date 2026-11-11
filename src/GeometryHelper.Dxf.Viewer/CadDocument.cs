@@ -256,10 +256,14 @@ namespace GeometryHelper.Dxf.Viewer
             return layouts;
         }
 
-        /// <summary>Opens a DXF file.</summary>
+        /// <summary>
+        /// Opens a DWG or DXF file: a DWG of AutoCAD 2000 to 2018 read by <see cref="GeometryHelper.Dwg.DwgReader"/>, as
+        /// <see cref="CadDrawingFile.Open"/> reads it, so that <see cref="Save"/> writes it back as a DWG of AutoCAD 2018.
+        /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <returns>The document.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read; the message names it.</exception>
         public static CadDocument Open(string path)
         {
             if (path == null)
@@ -267,7 +271,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return new CadDocument(WithHandles(DxfDatabase.Open(path)), Path.GetFullPath(path)) { _hasPath = true };
+            return new CadDocument(WithHandles(CadDrawingFile.Open(path)), Path.GetFullPath(path)) { _hasPath = true };
         }
 
         /// <summary>Opens a DXF from a stream.</summary>

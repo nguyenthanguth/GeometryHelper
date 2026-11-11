@@ -732,7 +732,10 @@ namespace GeometryHelper.Dxf.Viewer
             SaveAs(FileName);
         }
 
-        /// <summary>Saves the drawing to a file, which it is then known by.</summary>
+        /// <summary>
+        /// Saves the drawing to a file, which it is then known by: a DWG of AutoCAD 2018 where its name ends in .dwg, what the
+        /// DWG writer does not write yet left out and said in <see cref="LeftOutOfDwg"/>; else a DXF.
+        /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
@@ -750,7 +753,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             string full = Path.GetFullPath(path);
             _ucs?.WriteTo(Database);
-            Database.Save(full);
+            LeftOutOfDwg = CadDrawingFile.Save(Database, full);
             _ucs?.Saved();
             FileName = full;
             _hasPath = true;
@@ -767,6 +770,13 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
         }
+
+        /// <summary>
+        /// Gets what the last save as a DWG left out of the file, the types of record the DWG writer does not write yet, each
+        /// with how many, in ordinal order: "IMAGE 1" for a drawing with one picture attached. Empty where nothing was, or the
+        /// drawing was last saved as a DXF or not at all.
+        /// </summary>
+        public string LeftOutOfDwg { get; private set; } = string.Empty;
 
         /// <summary>Drops every display list and pick index, so that each space is drawn again from the drawing, as REGEN does.</summary>
         public void Regen()

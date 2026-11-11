@@ -348,7 +348,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => SetFilter(false, false, false);
         }
 
-        /// <summary>Gets or sets whether the list shows the DXF files only (the chip DXF), not those an extension describes.</summary>
+        /// <summary>Gets or sets whether the list shows the drawing files only, DWG and DXF (the chip DXF), not those an extension describes.</summary>
         public bool FilterDxf
         {
             get => _dxfOnly;
@@ -372,7 +372,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the text of the chip All, with the number of files: "All 3".</summary>
         public string AllChipText => "All " + Count(Listed().Count());
 
-        /// <summary>Gets the text of the chip DXF, with the number of DXF files no extension describes: "DXF 3".</summary>
+        /// <summary>Gets the text of the chip DXF, with the number of DWG and DXF files no extension describes: "DXF 3".</summary>
         public string DxfChipText => "DXF " + Count(Listed().Count(f => f.IsDxf && f.Info(_extensions) == null));
 
         /// <summary>Gets whether an extension is added that names its files, so that its chips show.</summary>
@@ -616,8 +616,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand MatchLayerCommand { get; }
 
         /// <summary>
-        /// Opens a DXF file, or shows it again where it is open already: opened from it, or shown under a key of its own and
-        /// saved to it, as an extension's drawing just made is. It lists the other DXF files of its folder. A file that
+        /// Opens a DWG or DXF file, or shows it again where it is open already: opened from it, or shown under a key of its own
+        /// and saved to it, as an extension's drawing just made is. A DWG is read as <see cref="CadDocument.Open(string)"/>
+        /// reads it and saved back as a DWG. It lists the other DWG and DXF files of its folder. A file that
         /// cannot be read leaves the drawing shown as it was and says why on the command line. Each extension is told of the
         /// document before it is shown (<see cref="CadWorkspaceExtension.DocumentOpened"/>). Where
         /// <see cref="OpensInBackground"/> is set, a file not open yet is opened as <see cref="OpenAsync"/> opens it.
@@ -1250,8 +1251,76 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Say("Saved " + full + ".");
+
+            if (_current.Document.LeftOutOfDwg.Length > 0)
+            {
+                Say("Left out of the DWG, not written yet: " + _current.Document.LeftOutOfDwg + ".");
+            }
+
             RaiseModified();
             return true;
+        }
+
+        /// <summary>
+        /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the types
+        /// <see cref="CadExportJob.Dwg"/> and the DXF of the drawing's own version, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for
+        /// one of AC1027; the type of the drawing's file chosen first, DWG for a drawing opened from a DWG, and its name with
+        /// that type's extension in its folder. The window shows its dialog and hands the file chosen to <see cref="SaveAs"/>,
+        /// which writes a DWG where the name ends in .dwg. Null with no drawing.
+        /// </summary>
+        /// <returns>The file asked for; null with no drawing.</returns>
+        public CadExportJob CreateSaveAsJob()
+        {
+            if (_current == null)
+            {
+                return null;
+            }
+
+            CadDocument document = _current.Document;
+            string dxf = DxfTypeOf(document.Database.Version);
+            bool dwg = (document.FileName ?? document.Title).EndsWith(".dwg", StringComparison.OrdinalIgnoreCase);
+            string name = document.Title;
+
+            if (CadDrawingFile.IsDrawingName(name))
+            {
+                name = name.Substring(0, name.Length - 4);
+            }
+
+            name += dwg ? ".dwg" : ".dxf";
+            string folder =
+                document.HasFile && System.IO.Path.IsPathRooted(document.FileName)
+                    ? System.IO.Path.GetDirectoryName(document.FileName)
+                    : null;
+            return new CadExportJob(
+                "Save Drawing As",
+                new[] { CadExportJob.Dwg, dxf },
+                dwg ? CadExportJob.Dwg : dxf,
+                folder == null ? name : System.IO.Path.Combine(folder, name)
+            );
+        }
+
+        /// <summary>The DXF type of Save As of a version, as AutoCAD 2021 lists it: "AutoCAD 2018 DXF (*.dxf)" for AC1032; "DXF (*.dxf)" for one it lists not.</summary>
+        private static string DxfTypeOf(string version)
+        {
+            switch ((version ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "AC1032":
+                    return "AutoCAD 2018 DXF (*.dxf)";
+                case "AC1027":
+                    return "AutoCAD 2013/LT2013 DXF (*.dxf)";
+                case "AC1024":
+                    return "AutoCAD 2010/LT2010 DXF (*.dxf)";
+                case "AC1021":
+                    return "AutoCAD 2007/LT2007 DXF (*.dxf)";
+                case "AC1018":
+                    return "AutoCAD 2004/LT2004 DXF (*.dxf)";
+                case "AC1015":
+                    return "AutoCAD 2000/LT2000 DXF (*.dxf)";
+                case "AC1009":
+                    return "AutoCAD R12/LT2 DXF (*.dxf)";
+                default:
+                    return "DXF (*.dxf)";
+            }
         }
 
         /// <summary>Makes the view model of the Layer manager over the drawing shown; null with none. Dispose it when the dialog closes.</summary>
@@ -1639,7 +1708,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Handled = true;
                     break;
                 case "QSAVE":
-                    if (SaveAsRequested != null)
+                    if (e.Payload is string typed)
+                    {
+                        // FILEDIA 0: the file typed at "Save drawing as", saved once the command has ended, as SAVEAS saves it.
+                        _afterCommand = () => SaveAs(typed);
+                        e.Handled = true;
+                    }
+                    else if (SaveAsRequested != null)
                     {
                         SaveAsRequested(this, EventArgs.Empty);
                         e.Handled = true;
@@ -1878,7 +1953,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                found = Directory.GetFiles(folder, "*.dxf");
+                found = Directory.GetFiles(folder, "*.dxf").Concat(Directory.GetFiles(folder, "*.dwg")).ToArray();
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
@@ -2254,7 +2329,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            public bool IsDxf => Name.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase) || Document != null;
+            public bool IsDxf => CadDrawingFile.IsDrawingName(Name) || Document != null;
 
             public CadDocument Document { get; set; }
 

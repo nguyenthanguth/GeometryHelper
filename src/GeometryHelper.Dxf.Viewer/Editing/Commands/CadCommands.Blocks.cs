@@ -530,20 +530,50 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// INSERT (I): the window's Blocks palette; the block chosen is placed with its insertion options, each asked on the
         /// command line where it is to be specified on screen, again and again with Repeat Placement. With no window,
-        /// -INSERT's prompts.
+        /// -INSERT's prompts. With FILEDIA 0 the palette's Browse… asks "Enter name of drawing file:" on the command line, a
+        /// name with no extension given .dxf, and shows the palette again with that drawing's blocks.
         /// </summary>
         private static IEnumerable<CadPrompt> Insert(CadCommandContext c)
         {
-            var request = new CadInsertRequest(c.Document);
+            var request = new CadInsertRequest(c.Document) { FileDialogs = c.Session.FileDialogs };
 
-            if (!c.Session.Request("INSERT", c.Document, request))
+            while (true)
             {
-                foreach (CadPrompt prompt in InsertTyped(c))
+                request.Action = CadDialogAction.Cancel;
+
+                if (!c.Session.Request("INSERT", c.Document, request))
                 {
-                    yield return prompt;
+                    foreach (CadPrompt prompt in InsertTyped(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
                 }
 
-                yield break;
+                if (request.Action != CadDialogAction.Browse)
+                {
+                    break;
+                }
+
+                yield return CadPrompt.ForString("Enter name of drawing file");
+                string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (typed.Length == 0)
+                {
+                    continue;
+                }
+
+                string file = Path.HasExtension(typed) ? typed : typed + ".dxf";
+
+                if (File.Exists(file))
+                {
+                    request.FileName = Path.GetFullPath(file);
+                }
+                else
+                {
+                    c.Write("\"" + file + "\" cannot be found.");
+                }
             }
 
             if (request.Action != CadDialogAction.Ok)
@@ -595,8 +625,8 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// -INSERT (-I): "Enter block name or [?] &lt;last&gt;:", a block of the drawing or a DXF file (a path, or name=path to give
-        /// the block a name of its own), a * before it to explode it; then the insertion point, scale and rotation asked.
+        /// -INSERT (-I): "Enter block name or [?] &lt;last&gt;:", a block of the drawing or a DWG or DXF file (a path, or name=path to
+        /// give the block a name of its own), a * before it to explode it; then the insertion point, scale and rotation asked.
         /// </summary>
         private static IEnumerable<CadPrompt> InsertTyped(CadCommandContext c)
         {
@@ -636,10 +666,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (
                 !c.Database.BlockTable.Has(typed)
-                && (
-                    typed.EndsWith(".dxf", StringComparison.OrdinalIgnoreCase)
-                    || typed.IndexOfAny(new[] { '\\', '/' }) >= 0
-                )
+                && (CadDrawingFile.IsDrawingName(typed) || typed.IndexOfAny(new[] { '\\', '/' }) >= 0)
             )
             {
                 file = typed;
@@ -838,7 +865,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             try
             {
-                return DxfDatabase.Open(file);
+                return CadDrawingFile.Open(file);
             }
             catch (Exception exception)
                 when (exception is IOException
@@ -1308,11 +1335,16 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// WBLOCK (W): the window's Write Block dialog, shown again after each Pick point or Select objects; OK writes the
-        /// new drawing. With no window, -WBLOCK's prompts.
+        /// new drawing. With no window, -WBLOCK's prompts. With FILEDIA 0 the dialog's Browse… asks "Enter name of output
+        /// file:" on the command line, a name with no extension given .dxf, and shows the dialog again with it.
         /// </summary>
         private static IEnumerable<CadPrompt> WriteBlock(CadCommandContext c)
         {
-            var request = new CadWriteBlockRequest(c.Document) { Objects = Unlocked(c, c.PreSelected) };
+            var request = new CadWriteBlockRequest(c.Document)
+            {
+                Objects = Unlocked(c, c.PreSelected),
+                FileDialogs = c.Session.FileDialogs,
+            };
             c.ClearsSelection = c.PreSelected.Count > 0;
 
             while (true)
@@ -1342,6 +1374,16 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield return CadPrompt.ForSelection();
                     request.Objects = Unlocked(c, c.Input.Handles);
+                }
+                else if (request.Action == CadDialogAction.Browse)
+                {
+                    yield return CadPrompt.ForString("Enter name of output file");
+                    string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                    if (typed.Length > 0)
+                    {
+                        request.FileName = Path.HasExtension(typed) ? typed : typed + ".dxf";
+                    }
                 }
                 else if (request.Action == CadDialogAction.Ok)
                 {
@@ -1418,7 +1460,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Writes the new drawing a request describes, from the presenter's metric template: the objects with the base point
         /// at its origin, a block with its origin there, or the whole of model space as it is; then, for objects, what becomes of
-        /// them, as one edit of this drawing. The file is written first and stays, as AutoCAD's.
+        /// them, as one edit of this drawing. The file is written first and stays, as AutoCAD's: a DWG of AutoCAD 2018 where
+        /// its name ends in .dwg, what the DWG writer does not write yet said on the command line, else a DXF.
         /// </summary>
         internal static void WriteBlockFile(CadCommandContext c, CadWriteBlockRequest request)
         {
@@ -1432,6 +1475,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             List<DxfEntity> entities;
             GeoVector3 shift;
+            string leftOut;
             DxfDatabase target = CadTemplate.CreateMetric();
             DxfUnits units = request.Units;
 
@@ -1490,7 +1534,7 @@ namespace GeometryHelper.Dxf.Viewer
                 target.Insunits = units;
                 string full = Path.GetFullPath(path);
                 Directory.CreateDirectory(Path.GetDirectoryName(full));
-                target.Save(full);
+                leftOut = CadDrawingFile.Save(target, full);
                 GeometryHelperLog.Info(
                     "CadCommands: WBLOCK wrote "
                         + entities.Count.ToString(CultureInfo.InvariantCulture)
@@ -1510,6 +1554,11 @@ namespace GeometryHelper.Dxf.Viewer
                 GeometryHelperLog.Warn("CadCommands: WBLOCK did not write " + path + ".", exception);
                 c.Write("Cannot write " + path + ": " + exception.Message);
                 return;
+            }
+
+            if (leftOut.Length > 0)
+            {
+                c.Write("Left out of the DWG, not written yet: " + leftOut + ".");
             }
 
             if (request.Source != CadWriteBlockSource.Objects || request.ObjectAction == CadBlockObjectAction.Retain)
