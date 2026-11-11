@@ -361,16 +361,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < 2 && !radial; i++)
             {
-                // Along the bisector, from DIMEXO off the arc measured to DIMEXE past the dimension's arc.
+                // Along the bisector, from DIMEXO off the arc measured (DIMFXL short of the dimension's arc under DIMFXLON) to DIMEXE
+                // past the dimension's arc.
                 GeoVector2 run = tips[i] - ends[i];
                 double length = run.Length;
                 GeoVector2 way = length > 1E-12 ? run / length : bisector;
+                double first = ExtensionStart(style, dimscale > 0.0 ? dimscale : 1.0, offset, length);
 
-                if (!suppressed[i] && length + beyond > offset)
+                if (!suppressed[i] && length + beyond > first)
                 {
                     picture.Add(
                         Lined(
-                            new DxfLine(P3(ends[i] + way * offset), P3(tips[i] + way * beyond)),
+                            new DxfLine(P3(ends[i] + way * first), P3(tips[i] + way * beyond)),
                             style.Dimclre,
                             style.Dimlwe
                         )

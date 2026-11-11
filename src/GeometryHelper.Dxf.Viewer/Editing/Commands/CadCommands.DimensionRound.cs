@@ -649,25 +649,31 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // From DIMEXO off the object to DIMEXE past the arc, wherever that is any length, as a linear dimension's: an arc
                 // 20.3 from the vertex through points 20 out has its extension lines from 20.625 to 21.55, as AutoCAD 2021 draws.
+                // Under DIMFXLON they start DIMFXL short of the arc, as a linear dimension's do.
                 if (radius >= far[i])
                 {
-                    if (radius + beyond > far[i] + offset)
+                    double start = far[i] + ExtensionStart(style, scale, offset, radius - far[i]);
+
+                    if (radius + beyond > start)
                     {
                         picture.Add(
                             Lined(
-                                new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))),
+                                new DxfLine(P3(vertex + ray * start), P3(vertex + ray * (radius + beyond))),
                                 style.Dimclre,
                                 style.Dimlwe
                             )
                         );
                     }
                 }
-                else if (radius < near[i] && radius - beyond < near[i] - offset)
+                else if (
+                    radius < near[i]
+                    && radius - beyond < near[i] - ExtensionStart(style, scale, offset, near[i] - radius)
+                )
                 {
                     picture.Add(
                         Lined(
                             new DxfLine(
-                                P3(vertex + ray * (near[i] - offset)),
+                                P3(vertex + ray * (near[i] - ExtensionStart(style, scale, offset, near[i] - radius))),
                                 P3(vertex + ray * Math.Max(0.0, radius - beyond))
                             ),
                             style.Dimclre,

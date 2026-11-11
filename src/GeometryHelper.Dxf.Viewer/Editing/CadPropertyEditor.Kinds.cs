@@ -270,25 +270,27 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (!string.Equals(h.PatternName, text, StringComparison.OrdinalIgnoreCase))
                         {
-                            h.SetHatchPattern(
-                                h.PatternType == DxfHatchPatternType.UserDefined
-                                && !string.Equals(text, "_USER", StringComparison.OrdinalIgnoreCase)
-                                    ? DxfHatchPatternType.PreDefined
-                                    : h.PatternType,
-                                text
+                            KeepOrigin(h, () =>
+                                h.SetHatchPattern(
+                                    h.PatternType == DxfHatchPatternType.UserDefined
+                                    && !string.Equals(text, "_USER", StringComparison.OrdinalIgnoreCase)
+                                        ? DxfHatchPatternType.PreDefined
+                                        : h.PatternType,
+                                    text
+                                )
                             );
                         }
                     };
                     return true;
                 case "Angle":
-                    write = e => ((DxfHatch)e).PatternAngle = Direction(db, v);
+                    write = e => KeepOrigin((DxfHatch)e, () => ((DxfHatch)e).PatternAngle = Direction(db, v));
                     error =
                         solid ? "A solid fill has no angle."
                         : number ? null
                         : label + " is a number.";
                     return true;
                 case "Scale":
-                    write = e => ((DxfHatch)e).PatternScale = v;
+                    write = e => KeepOrigin((DxfHatch)e, () => ((DxfHatch)e).PatternScale = v);
                     error =
                         solid || user ? "A solid fill and a pattern made by the user have no scale."
                         : number && v > 0.0 ? null
@@ -329,34 +331,14 @@ namespace GeometryHelper.Dxf.Viewer
                     write = e =>
                     {
                         var h = (DxfHatch)e;
-                        int count = h.NumberOfPatternDefinitions;
 
-                        if (count == 0)
+                        if (h.NumberOfPatternDefinitions == 0)
                         {
                             return;
                         }
 
                         DxfPatternDefinition first = h.GetPatternDefinitionAt(0);
-                        double dx = x ? v - first.BaseX : 0.0;
-                        double dy = x ? 0.0 : v - first.BaseY;
-                        var moved = new List<DxfPatternDefinition>();
-
-                        for (int i = 0; i < count; i++)
-                        {
-                            DxfPatternDefinition line = h.GetPatternDefinitionAt(i);
-                            moved.Add(
-                                new DxfPatternDefinition(
-                                    line.Angle,
-                                    line.BaseX + dx,
-                                    line.BaseY + dy,
-                                    line.OffsetX,
-                                    line.OffsetY,
-                                    line.GetDashes()
-                                )
-                            );
-                        }
-
-                        h.SetPatternDefinitions(moved);
+                        MoveLines(h, x ? v - first.BaseX : 0.0, x ? 0.0 : v - first.BaseY);
                     };
                     return true;
                 }
@@ -388,6 +370,61 @@ namespace GeometryHelper.Dxf.Viewer
 
             error = null;
             return false;
+        }
+
+        /// <summary>
+        /// A change of a hatch's pattern, angle or scale that keeps its origin, the base point of its first line, where it was,
+        /// as AutoCAD keeps a hatch's origin through them: the new lines, which the library turns and scales about the origin of
+        /// the plane, moved back so that the first starts there. ANSI31 at (2, 0) turned to 30 degrees still starts at (2, 0). A
+        /// solid fill, a pattern made by the user, whose lines follow its spacing, and a pattern of no lines have none to keep.
+        /// </summary>
+        internal static void KeepOrigin(DxfHatch hatch, Action change)
+        {
+            bool kept = HasOrigin(hatch);
+            DxfPatternDefinition was = kept ? hatch.GetPatternDefinitionAt(0) : default;
+            change();
+
+            if (!kept || !HasOrigin(hatch))
+            {
+                return;
+            }
+
+            DxfPatternDefinition first = hatch.GetPatternDefinitionAt(0);
+            double dx = was.BaseX - first.BaseX;
+            double dy = was.BaseY - first.BaseY;
+
+            if (Math.Abs(dx) > Tolerance.Default.EqualPoint || Math.Abs(dy) > Tolerance.Default.EqualPoint)
+            {
+                MoveLines(hatch, dx, dy);
+            }
+        }
+
+        private static bool HasOrigin(DxfHatch hatch) =>
+            !hatch.IsSolidFill
+            && hatch.PatternType != DxfHatchPatternType.UserDefined
+            && hatch.NumberOfPatternDefinitions > 0;
+
+        /// <summary>Moves every line of a hatch's pattern by as much along each axis.</summary>
+        private static void MoveLines(DxfHatch hatch, double dx, double dy)
+        {
+            var moved = new List<DxfPatternDefinition>();
+
+            for (int i = 0; i < hatch.NumberOfPatternDefinitions; i++)
+            {
+                DxfPatternDefinition line = hatch.GetPatternDefinitionAt(i);
+                moved.Add(
+                    new DxfPatternDefinition(
+                        line.Angle,
+                        line.BaseX + dx,
+                        line.BaseY + dy,
+                        line.OffsetX,
+                        line.OffsetY,
+                        line.GetDashes()
+                    )
+                );
+            }
+
+            hatch.SetPatternDefinitions(moved);
         }
 
         /// <summary>A row of a dimension, written as an override of its variable and the dimension drawn again (see <see cref="Override"/> for a picture it shares).</summary>

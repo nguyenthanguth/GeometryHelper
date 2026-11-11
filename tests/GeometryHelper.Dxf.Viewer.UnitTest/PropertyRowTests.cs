@@ -515,6 +515,190 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void TheExtensionLineFillFractionDirectionAndTextPositionRowsOfADimension_AreWrittenAsOverrides()
+        {
+            CadDocument document = Kinds();
+            string handle = Handle<DxfRotatedDimension>(document);
+            string style = Entity<DxfRotatedDimension>(document, handle).DimensionStyleName;
+            Assert.Equal("Off", Shown(document, handle, "Ext line fixed"));
+            Assert.Equal("1.0000", Shown(document, handle, "Ext line fixed length"));
+            Assert.Equal("None", Shown(document, handle, "Fill color"));
+            Assert.Equal("Horizontal", Shown(document, handle, "Fractional type"));
+            Assert.Equal("Left-to-Right", Shown(document, handle, "Text view direction"));
+
+            Set(document, handle, "Ext line fixed", "On");
+            Set(document, handle, "Ext line fixed length", "10");
+            Set(document, handle, "Fill color", "Background");
+            Assert.Equal(1, Entity<DxfRotatedDimension>(document, handle).Dimtfill);
+            Set(document, handle, "Fill color", "Red");
+            Set(document, handle, "Fractional type", "Diagonal");
+            Set(document, handle, "Text view direction", "Right-to-Left");
+
+            var dimension = Entity<DxfRotatedDimension>(document, handle);
+            Assert.True(dimension.DimfxlenOn);
+            Assert.Equal(10.0, dimension.Dimfxlen);
+            Assert.Equal(2, dimension.Dimtfill);
+            Assert.Equal(1, dimension.Dimtfillclr.ColorIndex);
+            Assert.Equal(1, dimension.Dimfrac);
+            Assert.True(dimension.Dimtxtdirection);
+            Assert.Equal("Red", Shown(document, handle, "Fill color"));
+            Assert.Equal("Diagonal", Shown(document, handle, "Fractional type"));
+            Assert.Equal("Right-to-Left", Shown(document, handle, "Text view direction"));
+            DxfDimStyleTableRecord record = document.Database.DimStyleTable[style];
+            Assert.False(record.DimfxlenOn);
+            Assert.Equal(0, record.Dimtfill);
+            Assert.Equal(0, record.Dimfrac);
+            Assert.False(record.Dimtxtdirection);
+
+            // Points 30 from the line at y -80, fixed at 10: each extension line from y -70 to DIMEXE past the line, as AutoCAD
+            // 2021 draws it.
+            double beyond = dimension.GetDimstyleData().Dimexe;
+            List<DxfLine> upright = dimension
+                .DimBlock.OfType<DxfLine>()
+                .Where(l => !l.IsErased && l.Layer != "Defpoints" && Math.Abs(l.StartPoint.X - l.EndPoint.X) < 1E-9)
+                .OrderBy(l => l.StartPoint.X)
+                .ToList();
+            Assert.Equal(2, upright.Count);
+            Assert.All(upright, l =>
+            {
+                Assert.Equal(-70.0, Math.Max(l.StartPoint.Y, l.EndPoint.Y), 9);
+                Assert.Equal(-80.0 - beyond, Math.Min(l.StartPoint.Y, l.EndPoint.Y), 9);
+            });
+
+            Set(document, handle, "Text position X", "120");
+            Set(document, handle, "Text position Y", "-95");
+            dimension = Entity<DxfRotatedDimension>(document, handle);
+            Assert.Equal(120.0, dimension.TextPosition.X, 9);
+            Assert.Equal(-95.0, dimension.TextPosition.Y, 9);
+            Assert.False(dimension.UsingDefaultTextPosition);
+            Assert.Equal("120.0000", Shown(document, handle, "Text position X"));
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void AHatchsOrigin_IsKeptThroughItsAngleAndScale_AsAutoCadKeepsIt()
+        {
+            CadDocument document = Kinds();
+            string handle = Handle<DxfHatch>(document);
+            Set(document, handle, "Type", "Predefined");
+            Set(document, handle, "Pattern name", "ANSI31");
+
+            // ANSI31's line, as the drawing has no pattern files to give it. AutoCAD 2021 turns ANSI31 at (2, 0) to 30 degrees
+            // with its line, at 75 degrees, still through (2, 0), and scales it by 2 about (2, 0) too.
+            var hatch = Entity<DxfHatch>(document, handle);
+            hatch.SetPatternDefinitions(
+                new[] { new DxfPatternDefinition(Math.PI / 4, 0, 0, -2.245, 2.245, Array.Empty<double>()) }
+            );
+            Set(document, handle, "Origin X", "2");
+            Set(document, handle, "Angle", "30");
+
+            hatch = Entity<DxfHatch>(document, handle);
+            Assert.Equal(75.0, hatch.GetPatternDefinitionAt(0).Angle * 180 / Math.PI, 9);
+            Assert.Equal("2.0000", Shown(document, handle, "Origin X"));
+            Assert.Equal("0.0000", Shown(document, handle, "Origin Y"));
+
+            Set(document, handle, "Scale", "2");
+            Assert.Equal("2.0000", Shown(document, handle, "Origin X"));
+            Assert.Equal("0.0000", Shown(document, handle, "Origin Y"));
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void MatchPropGivesAHatchTheSourcesGradient_AndAPatternCopiedKeepsTheDestinationsOrigin()
+        {
+            CadDocument document = Kinds();
+            CadCommandSession session = Session(document);
+            string source = Handle<DxfHatch>(document);
+            Run(session, "COPY", new[] { source }, Enter, P(0, 0), P(0, 300), Enter);
+            Run(session, "COPY", new[] { source }, Enter, P(0, 0), P(0, 600), Enter);
+            Run(session, "COPY", new[] { source }, Enter, P(0, 0), P(0, 900), Enter);
+            List<DxfHatch> hatches = All<DxfHatch>(document.ModelSpace);
+            string fill = hatches[1].Handle;
+            string other = hatches[2].Handle;
+            string third = hatches[3].Handle;
+
+            var gradient = Entity<DxfHatch>(document, source);
+            gradient.SetGradient(DxfGradientPatternType.PreDefinedGradient, "CYLINDER");
+            gradient.GradientAngle = Math.PI / 6;
+            gradient.GradientShift = 0.25f;
+            gradient.SetGradientColors(
+                new[]
+                {
+                    new DxfGradientColor(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), 0f),
+                    new DxfGradientColor(DxfColor.FromColorIndex(DxfColorMethod.ByAci, 5), 1f),
+                }
+            );
+            Run(session, "MA", new[] { source }, new[] { fill }, Enter);
+
+            var filled = Entity<DxfHatch>(document, fill);
+            Assert.True(filled.IsGradient);
+            Assert.Equal("CYLINDER", filled.GradientName);
+            Assert.Equal(Math.PI / 6, filled.GradientAngle, 9);
+            Assert.Equal(0.25f, filled.GradientShift);
+            Assert.Equal(new[] { 1, 5 }, filled.GetGradientColors().Select(c => (int)c.Color.ColorIndex).ToArray());
+
+            // A pattern at an angle copied onto ANSI31 moved to (2, 0): its line turned there, through (2, 0) still.
+            foreach (string handle in new[] { third, other })
+            {
+                Set(document, handle, "Type", "Predefined");
+                Set(document, handle, "Pattern name", "ANSI31");
+                Entity<DxfHatch>(document, handle)
+                    .SetPatternDefinitions(
+                        new[] { new DxfPatternDefinition(Math.PI / 4, 0, 0, -2.245, 2.245, Array.Empty<double>()) }
+                    );
+            }
+
+            Set(document, other, "Origin X", "2");
+            Set(document, third, "Angle", "30");
+            Run(session, "MA", new[] { third }, new[] { other }, Enter);
+
+            var turned = Entity<DxfHatch>(document, other);
+            Assert.Equal(Math.PI / 6, turned.PatternAngle, 9);
+            Assert.Equal(2.0, turned.GetPatternDefinitionAt(0).BaseX, 9);
+            Assert.Equal(0.0, turned.GetPatternDefinitionAt(0).BaseY, 9);
+            AssertReopens(document);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void MatchPropCopiesThePlotStyle_InADrawingOfNamedPlotStyles_AndNotInOneWhosePlotStylesFollowTheColour(
+            bool named
+        )
+        {
+            var db = new DxfDatabase("AC1027");
+            db.SetHeader("$PSTYLEMODE", new DxfTypedValue(290, named ? "0" : "1"));
+            var source = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+            var target = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+            db.ModelSpace.AppendEntity(source);
+            db.ModelSpace.AppendEntity(target);
+            string style = db.PlotStyleNameDictionary.First().Value.Handle;
+
+            // The source given the plot style of the dictionary's first entry, after its look, where AutoCAD writes it.
+            string text = db.ToText();
+            int at = text.IndexOf(
+                "100\nAcDbLine\n",
+                text.IndexOf("\n  5\n" + source.Handle + "\n", StringComparison.Ordinal),
+                StringComparison.Ordinal
+            );
+            CadDocument document = CadDocument.From(
+                DxfDatabase.Parse(text.Insert(at, "390\n" + style + "\n")),
+                "plot.dxf"
+            );
+
+            Run(Session(document), "MA", new[] { source.Handle }, new[] { target.Handle }, Enter);
+
+            string written = document.Database.ToText();
+            int start = written.IndexOf("\n  5\n" + target.Handle + "\n", StringComparison.Ordinal);
+            string common = written.Substring(
+                start,
+                written.IndexOf("100\nAcDbLine\n", start, StringComparison.Ordinal) - start
+            );
+            Assert.Equal(named, common.EndsWith("390\n" + style + "\n", StringComparison.Ordinal));
+            AssertReopens(document);
+        }
+
+        [Fact]
         public void MatchPropCopiesAViewportsScaleLockAndFrozenLayers()
         {
             CadDocument document = LayoutTests.TwoViewports();

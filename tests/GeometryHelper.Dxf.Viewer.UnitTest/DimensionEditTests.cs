@@ -386,7 +386,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "L", P(50, -50), P(50, -10), Enter);
             DxfRotatedDimension dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
             string handle = dimension.Handle;
-            double size = 1.5 * Style(dimension).Dimasz * Scale(Style(dimension));
+            // AutoCAD's break size where the style gives none, in a drawing without MEASUREMENT, read as imperial.
+            double size = 0.125 * Scale(Style(dimension));
             string start = document.Database.ToText();
 
             Run(session, "DIMBREAK");
@@ -429,6 +430,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
 
             Assert.Equal(start, document.Database.ToText());
+        }
+
+        [Theory]
+        [InlineData(null, 0.125)]
+        [InlineData(0, 0.125)]
+        [InlineData(1, 3.75)]
+        public void DimBreak_WhereTheStyleGivesNoBreakSize_GapsAsAutoCad_ByTheDrawingsMeasurement(
+            int? measurement,
+            double size
+        )
+        {
+            // AutoCAD 2021, probed in its console: a style with no ACAD_DSTYLE_DIMBREAK, of DIMASZ 0.18 or 2.5, is broken 0.125
+            // wide in a drawing of MEASUREMENT 0 and 3.75 wide in one of 1; a header without MEASUREMENT is read as 0.
+            CadDocument document = WithDimension(out CadCommandSession session);
+
+            if (measurement.HasValue)
+            {
+                document.Database.SetHeader(
+                    "$MEASUREMENT",
+                    new DxfTypedValue(70, measurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                );
+            }
+
+            Run(session, "L", P(50, -50), P(50, -10), Enter);
+            string handle = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Handle;
+
+            Run(session, "DIMBREAK", new[] { handle }, Enter);
+
+            List<DxfLine> onLine = PictureLines(Entity<DxfRotatedDimension>(document, handle))
+                .Where(l => Math.Abs(l.StartPoint.Y + 30) < 1E-9 && Math.Abs(l.EndPoint.Y + 30) < 1E-9)
+                .OrderBy(l => Math.Min(l.StartPoint.X, l.EndPoint.X))
+                .ToList();
+            Assert.Equal(2, onLine.Count);
+            Assert.Equal(50 - size / 2, Math.Max(onLine[0].StartPoint.X, onLine[0].EndPoint.X), 9);
+            Assert.Equal(50 + size / 2, Math.Min(onLine[1].StartPoint.X, onLine[1].EndPoint.X), 9);
         }
 
         [Fact]

@@ -7,8 +7,9 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The properties MATCHPROP copies from its source, as the check boxes of AutoCAD's Property Settings dialog: the basic
-    /// ones of every object and the special ones of an object of the source's kind. Plot style, Material, Shadow display and
-    /// Center object are not among them: the dialog shows them greyed.
+    /// ones of every object and the special ones of an object of the source's kind. Material, Shadow display and Center
+    /// object are not among them: the dialog shows them greyed, and Plot style too in a drawing whose plot styles are
+    /// colour-dependent.
     /// </summary>
     [Flags]
     public enum CadMatchProperties
@@ -58,6 +59,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A multileader's multileader style.</summary>
         Multileader = 8192,
 
+        /// <summary>The plot style, in a drawing of named plot styles: the source's, or ByLayer where it names none.</summary>
+        PlotStyle = 16384,
+
         /// <summary>Every property above, as AutoCAD checks them all until they are changed.</summary>
         All =
             Color
@@ -67,6 +71,7 @@ namespace GeometryHelper.Dxf.Viewer
             | Lineweight
             | Transparency
             | Thickness
+            | PlotStyle
             | Dimension
             | Text
             | Hatch
@@ -89,6 +94,7 @@ namespace GeometryHelper.Dxf.Viewer
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Lineweight, "Lineweight"),
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Transparency, "Transparency"),
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Thickness, "Thickness"),
+            new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.PlotStyle, "PlotStyle"),
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Dimension, "Dim"),
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Text, "Text"),
             new KeyValuePair<CadMatchProperties, string>(CadMatchProperties.Hatch, "Hatch"),
@@ -158,6 +164,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // A drawing whose plot styles are colour-dependent gives its objects none: the box is greyed there.
+            if ((which & CadMatchProperties.PlotStyle) != 0 && !db.PlotStyleMode)
+            {
+                PlotStyle(from, to);
+            }
+
             if (
                 (which & CadMatchProperties.Dimension) != 0
                 && from is DxfDimension dimension
@@ -215,6 +227,21 @@ namespace GeometryHelper.Dxf.Viewer
             )
             {
                 leader.MLeaderStyle = mleader.MLeaderStyle;
+            }
+        }
+
+        /// <summary>
+        /// The plot style of one object given to another of the same drawing: the handle of its entry of the dictionary of plot
+        /// style names (group 390), taken out where the source has none (ByLayer).
+        /// </summary>
+        private static void PlotStyle(DxfEntity from, DxfEntity to)
+        {
+            DxfFile file = to.Item.File;
+            string value = from.Item.File.CommonValueOf(from.Item, 390)?.Trim();
+
+            if (!string.Equals(value, file.CommonValueOf(to.Item, 390)?.Trim(), StringComparison.Ordinal))
+            {
+                file.SetCommon(to.Item, 390, value);
             }
         }
 
@@ -278,31 +305,55 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The pattern, its angle and scale, or the spacing and double of one made by the user; a gradient is not copied.</summary>
+        /// <summary>
+        /// The pattern, its angle and scale, or the spacing and double of one made by the user, the destination keeping its
+        /// origin, as AutoCAD's MATCHPROP leaves the origin to HATCH's Inherit Properties; or the gradient, its name, angle,
+        /// shift, tint and colours.
+        /// </summary>
         private static void Hatch(DxfHatch from, DxfHatch to)
         {
             if (from.IsGradient)
             {
+                Gradient(from, to);
                 return;
             }
 
-            to.SetHatchPattern(from.PatternType, from.PatternName);
-
-            if (from.IsSolidFill)
+            CadPropertyEditor.KeepOrigin(to, () =>
             {
-                return;
-            }
+                to.SetHatchPattern(from.PatternType, from.PatternName);
 
-            to.PatternAngle = from.PatternAngle;
+                if (from.IsSolidFill)
+                {
+                    return;
+                }
 
-            if (from.PatternType == DxfHatchPatternType.UserDefined)
+                to.PatternAngle = from.PatternAngle;
+
+                if (from.PatternType == DxfHatchPatternType.UserDefined)
+                {
+                    to.PatternSpace = from.PatternSpace;
+                    to.PatternDouble = from.PatternDouble;
+                }
+                else
+                {
+                    to.PatternScale = from.PatternScale;
+                }
+            });
+        }
+
+        /// <summary>A gradient given to a hatch, a pattern or another gradient, as the source has it.</summary>
+        private static void Gradient(DxfHatch from, DxfHatch to)
+        {
+            to.SetGradient(from.GradientType, from.GradientName);
+            to.GradientAngle = from.GradientAngle;
+            to.GradientShift = from.GradientShift;
+            to.GradientOneColorMode = from.GradientOneColorMode;
+            to.ShadeTintValue = from.ShadeTintValue;
+            DxfGradientColor[] colours = from.GetGradientColors();
+
+            if (colours.Length == 1 || colours.Length == 2)
             {
-                to.PatternSpace = from.PatternSpace;
-                to.PatternDouble = from.PatternDouble;
-            }
-            else
-            {
-                to.PatternScale = from.PatternScale;
+                to.SetGradientColors(colours);
             }
         }
 

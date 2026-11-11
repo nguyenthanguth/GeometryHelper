@@ -905,8 +905,12 @@ namespace GeometryHelper.Dxf
                 return body + 1;
             }
 
-            // A transparency (440) goes after all of the look, the name of a colour book (430) among it.
-            int rank = code == 39 || code == 440 ? LookOrder.Length : Array.IndexOf(LookOrder, code);
+            // A transparency (440) goes after all of the look, the name of a colour book (430) among it; a plot style (390) after
+            // the transparency, as AutoCAD writes them.
+            int rank =
+                code == 39 || code == 440 ? LookOrder.Length
+                : code == 390 ? LookOrder.Length + 1
+                : Array.IndexOf(LookOrder, code);
             int end = body >= 0 ? body : data;
             int after = -1;
             int lead = 1;
@@ -930,7 +934,9 @@ namespace GeometryHelper.Dxf
                 }
 
                 int order =
-                    code == 440 && pair.Code == 430 ? LookOrder.Length - 1 : Array.IndexOf(LookOrder, pair.Code);
+                    (code == 440 || code == 390) && pair.Code == 430 ? LookOrder.Length - 1
+                    : code == 390 && pair.Code == 440 ? LookOrder.Length
+                    : Array.IndexOf(LookOrder, pair.Code);
 
                 if (order >= 0 && order < rank)
                 {

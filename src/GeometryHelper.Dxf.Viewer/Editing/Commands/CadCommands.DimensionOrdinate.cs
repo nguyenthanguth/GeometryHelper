@@ -292,7 +292,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (Math.Abs(aside) <= 1E-9)
             {
-                picture.Add(Lined(new DxfLine(P3(feature + way * offset), P3(last)), style.Dimclre, style.Dimlwe));
+                // Under DIMFXLON the line runs DIMFXL back from its end at the words, as AutoCAD 2021 draws it.
+                double start = ExtensionStart(style, scale, offset, (last - feature).Length);
+                picture.Add(Lined(new DxfLine(P3(feature + way * start), P3(last)), style.Dimclre, style.Dimlwe));
             }
             else
             {
