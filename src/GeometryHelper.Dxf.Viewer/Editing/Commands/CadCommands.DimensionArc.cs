@@ -57,6 +57,10 @@ namespace GeometryHelper.Dxf.Viewer
             bool leader = false;
             bool partial = false;
 
+            // The angles of the dimension's first and second points: the arc's start and end, or the points of a part in the
+            // order they were given.
+            double[] ends = { start, start + sweep };
+
             while (true)
             {
                 var keywords = new List<string> { "Mtext", "Text", "Angle", "Partial" };
@@ -125,6 +129,7 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
+                    ends = new[] { start + a, start + b };
                     start += Math.Min(a, b);
                     sweep = Math.Abs(a - b);
                     partial = true;
@@ -139,21 +144,44 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            MakeArcLength(c, style, center, radius, start, sweep, c.Input.Point, text, textAngle, partial, leader);
+            string handle = MakeArcLength(
+                c,
+                style,
+                center,
+                radius,
+                start,
+                sweep,
+                ends,
+                c.Input.Point,
+                text,
+                textAngle,
+                partial,
+                leader
+            );
+
+            // Tied to the arc, the ends of its length and its centre, as AutoCAD 2021 ties an arc length dimension.
+            if (handle != null && c.Document.FindEntity(handle) is DxfArcDimension made)
+            {
+                CadDimAssociation.Tie(c, handle, CadDimAssociation.ArcLengthEnds(arc, made));
+            }
         }
 
         /// <summary>
         /// Makes an arc length dimension of an arc about a centre from an angle through a sweep, its own arc through a point; its
         /// words given or the measurement, turned where <paramref name="textAngle"/> says. A point outside the sector of the
-        /// sweep dimensions the rest of the circle, as AutoCAD 2021 does.
+        /// sweep dimensions the rest of the circle, as AutoCAD 2021 does. Its first and second points stand at the angles of
+        /// <paramref name="ends"/> whichever part is measured, as AutoCAD 2021 writes them: the arc's start and end for the rest
+        /// of its circle too, and a part's points in the order they were given. Returns the dimension's handle, null where none
+        /// was made.
         /// </summary>
-        private static void MakeArcLength(
+        private static string MakeArcLength(
             CadCommandContext c,
             DxfDimStyleTableRecord style,
             GeoPoint2 center,
             double radius,
             double start,
             double sweep,
+            double[] ends,
             GeoPoint2 location,
             string text,
             double? textAngle,
@@ -171,16 +199,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             double distance = Math.Max((location - center).Length, 1E-9);
             ArcLengthPlace(center, radius, start, sweep, distance, out GeoPoint2 arcPoint);
-            GeoPoint2 first = center + Heading(start) * radius;
-            GeoPoint2 second = center + Heading(start + sweep) * radius;
+            GeoPoint2 first = center + Heading(ends[0]) * radius;
+            GeoPoint2 second = center + Heading(ends[1]) * radius;
 
             // As AutoCAD 2021 writes one: the angles of the ends as its parameters (40, 41) and its ends as the leader's points
             // (16, 17), whether partial or with a leader or not.
             var made = new DxfArcDimension(P3(center), P3(first), P3(second), P3(arcPoint), text ?? string.Empty, null)
             {
                 IsPartial = partial,
-                ArcStartParam = Turned(start),
-                ArcEndParam = Turned(start + sweep),
+                ArcStartParam = Turned(ends[0]),
+                ArcEndParam = Turned(ends[1]),
                 Leader1Point = P3(first),
                 Leader2Point = P3(second),
             };
@@ -207,7 +235,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (picture == null)
             {
                 c.Write("*Invalid* The arc has no length there.");
-                return;
+                return null;
             }
 
             made.HasLeader = led;
@@ -226,7 +254,7 @@ namespace GeometryHelper.Dxf.Viewer
                 made.TextRotation = textAngle.Value;
             }
 
-            AddedHandle(Place(c, style, textHeight, made, picture));
+            return AddedHandle(Place(c, style, textHeight, made, picture));
         }
 
         /// <summary>
@@ -429,38 +457,50 @@ namespace GeometryHelper.Dxf.Viewer
             return picture;
         }
 
-        /// <summary>The picture of an arc length dimension of the drawing from its points; null where they give no arc.</summary>
-        private static List<DxfEntity> ArcLengthPicture(
+        /// <summary>
+        /// The arc an arc length dimension of the drawing measures and how far out it was put, from its points: the radius, the
+        /// sweep from the first point to the second on the side of the arc point (else from the second to the first, as
+        /// <paramref name="rest"/> says), and the distance its arc point was put at; false where the points give no arc.
+        /// </summary>
+        private static bool ArcLengthSector(
             DxfArcDimension dimension,
-            DxfDimStyleTableRecord style,
-            double textHeight
+            out double radius,
+            out double start,
+            out double sweep,
+            out double distance,
+            out bool rest
         )
         {
             GeoPoint2 center = P2(dimension.CenterPoint);
             GeoPoint2 first = P2(dimension.XLine1Point);
             GeoPoint2 second = P2(dimension.XLine2Point);
             GeoPoint2 arcPoint = P2(dimension.ArcPoint);
-            double radius = (first - center).Length;
+            radius = (first - center).Length;
+            start = 0.0;
+            sweep = 0.0;
+            distance = 0.0;
+            rest = false;
 
             if (radius <= 1E-12 || (arcPoint - center).Length <= 1E-12)
             {
-                return null;
+                return false;
             }
 
             // The sweep from the first point to the second on the side of the arc point, else from the second to the first.
-            double start = Math.Atan2(first.Y - center.Y, first.X - center.X);
-            double sweep = Turned(Math.Atan2(second.Y - center.Y, second.X - center.X) - start);
+            start = Math.Atan2(first.Y - center.Y, first.X - center.X);
+            sweep = Turned(Math.Atan2(second.Y - center.Y, second.X - center.X) - start);
             sweep = sweep <= 1E-12 ? 2.0 * Math.PI : sweep;
 
             if (Turned(Math.Atan2(arcPoint.Y - center.Y, arcPoint.X - center.X) - start) > sweep)
             {
                 start += sweep;
                 sweep = 2.0 * Math.PI - sweep;
+                rest = true;
             }
 
             // The distance the dimension was put at: its arc's radius, or, for one moved in along the bisector, the arc's radius
             // and how far it was moved in.
-            double distance = (arcPoint - center).Length;
+            distance = (arcPoint - center).Length;
 
             if (sweep < RadialFrom && distance < radius)
             {
@@ -469,6 +509,68 @@ namespace GeometryHelper.Dxf.Viewer
                 double along = Dot(d, bisector);
                 double disc = along * along - Dot(d, d) + radius * radius;
                 distance = radius + along - Math.Sqrt(Math.Max(0.0, disc));
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Where the arc point of an arc length dimension goes when the ends of its length and its centre move to the points
+        /// given, as AutoCAD 2021 moves it with the arc it is tied to: put as far out as it was, a third of the way along the
+        /// arc measured as the command puts it, the same side of the ends (<see cref="ArcLengthPlace"/>). The arc of 50 about
+        /// (1500, -2000) from 0 to 120 degrees dimensioned 80 out keeps its arc point (1561.284, -1948.577) when the arc is
+        /// scaled by 1.5 about its centre; the arc point as it is where the points give no arc.
+        /// </summary>
+        internal static GeoPoint3 ArcLengthPointAt(
+            DxfArcDimension dimension,
+            GeoPoint3 center,
+            GeoPoint3 first,
+            GeoPoint3 second
+        )
+        {
+            GeoPoint2 c = P2(center);
+            double radius = (P2(first) - c).Length;
+
+            if (!ArcLengthSector(dimension, out _, out _, out _, out double distance, out bool rest) || radius <= 1E-12)
+            {
+                return dimension.ArcPoint;
+            }
+
+            double start = Math.Atan2(first.Y - center.Y, first.X - center.X);
+            double sweep = Turned(Math.Atan2(second.Y - center.Y, second.X - center.X) - start);
+            sweep = sweep <= 1E-12 ? 2.0 * Math.PI : sweep;
+
+            if (rest)
+            {
+                start += sweep;
+                sweep = 2.0 * Math.PI - sweep;
+            }
+
+            ArcLengthPlace(c, radius, start, sweep, distance, out GeoPoint2 arcPoint);
+            return new GeoPoint3(arcPoint.X, arcPoint.Y, dimension.ArcPoint.Z);
+        }
+
+        /// <summary>The picture of an arc length dimension of the drawing from its points; null where they give no arc.</summary>
+        private static List<DxfEntity> ArcLengthPicture(
+            DxfArcDimension dimension,
+            DxfDimStyleTableRecord style,
+            double textHeight
+        )
+        {
+            GeoPoint2 center = P2(dimension.CenterPoint);
+
+            if (
+                !ArcLengthSector(
+                    dimension,
+                    out double radius,
+                    out double start,
+                    out double sweep,
+                    out double distance,
+                    out _
+                )
+            )
+            {
+                return null;
             }
 
             int symbol;

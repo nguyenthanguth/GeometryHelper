@@ -6,6 +6,36 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Associative dimensions in the presenter tie and follow as AutoCAD 2021 does where they did not. An end
+snapped where several lines, arcs or polylines meet is tied to the one drawn last, wherever the cursor stood: the corner
+(0, 0) of a line to (100, 0) and a line drawn after it up to (0, 100) is the start of the second. DIMANGULAR of two lines
+writes the line selected second as its first (groups 13 and 14). A linear dimension whose origin moves keeps its line as
+far from the origin it lay nearer to, but where that would put it nearer the other origin, as far from that one: origins
+(0, 0) and (60, 40) with the line between them at y = 20, the first moved to (0, 5), put the line at y = 60, where it
+went to 25; and of two origins as far from a line between them, the one the line lies across from counts as the
+nearer. The words of a radius or a diameter whose circle is scaled keep their end on the leader's side, "R9.0000"
+becoming "R13.5000" moving group 11 0.07 away from the leader, where it stayed. Three points of an angle along one ray
+measure nothing, the arc's point on the ray as far out as the point given, where they measured the whole turn; and the
+second point of an angle of a circle snapped on an arc of a polyline is tied to that segment at nought, as AutoCAD ties
+it. 107 dimensions made and edited in AutoCAD 2021's console were made and edited alike here, 262 states of a dimension
+in all: 238 equal AutoCAD's in every point, group 11 and 42 and tie to 1E-4, 118 before. Of the others, AutoCAD
+writes flag 128 on every radius and diameter it makes; puts the arc of a part of an arc's length, or of an arc under 90
+degrees, up to 0.43 from where ours goes, and that of an angle too small for its words two thirds of the way round, not
+a third; measures the whole turn for three points along a ray at 120 degrees one rounding apart; and dimensions an arc of
+a polyline with DIMARC, which the presenter does not.
+
+**NEW.** DIMARC in the presenter ties an arc length dimension to its arc, as AutoCAD 2021 does: the ends of the length
+as the arc's start and end (a Partial length's as nearest points of the arc at their angles) and the arc's center. It
+follows the arc moved, turned, scaled or lengthened, its arc as far out and a third of the way along, its words in the
+middle: the arc of 50 from 0 to 120 degrees dimensioned 80 out and lengthened by 10 at its end measures 114.72, its arc
+point at (57.72, 55.39) from the center. Its first and second points are the arc's start and end also where it measures
+the rest of the circle, and a part's points in the order given, as AutoCAD writes them (groups 13, 14, 40 and 41); they
+were the ends of the length measured, in the order the arc runs.
+
+**FIXED.** The words of an angular dimension too wide for its arc, put level past its first ray, run out the way the arc
+runs on there, left or right, as AutoCAD 2021 puts them: those of an angle of 3 degrees from -5 degrees go to the left
+of the arc run down, where they went right, and those of one from 100 degrees to the right.
+
 **FIXED.** `AddVisibilityParameter` wrote each visibility state listing no parameter, so AutoCAD 2021 read every other
 property of the block as not visible in any state and showed none of its grips: a sign of the states Cross, Tick and
 Blank with a Width kept Width out of Properties and its arrow off the INSERT. Each state now lists the block's other
@@ -54,10 +84,10 @@ turn and outside where it measured more, as AutoCAD keeps it, where it stayed wh
 a diameter whose circle is scaled stay where they stood, as AutoCAD keeps group 11, where they moved 0.7. Each
 associative dimension that follows writes groups 11 and 42 anew. 23 associative dimensions of every kind, made and then
 edited by moves, stretches, rotations and scalings in AutoCAD 2021's console and here, were compared in 20 states:
-1 247 of 1 335 points, groups 11 and 42 and ties equal AutoCAD's to 1E-3. The others: a vertex snapped where two lines
-end is tied to the older line (AutoCAD ties the newer), the two lines of an angle are written in the order picked
-(AutoCAD wrote the second first), the words of a radius or a diameter are measured 0.025 to 0.07 apart, and one linear
-dimension line, with both origins as far from it, is kept beyond the other origin.
+1 247 of 1 335 points, groups 11 and 42 and ties equal AutoCAD's to 1E-3. The others (an end where two lines meet, the
+order of an angle's two lines, the words of a radius or a diameter grown by a digit, one linear dimension line) are set
+right by the entry on ends where objects meet above; the words were measured 0.025 to 0.07 apart only because that
+comparison drew them in txt, where AutoCAD's template has Standard in arial.ttf.
 
 **NEW.** The External References palette's Bind… shows Bind Xrefs/DGN Underlays (`XrefBindWindow`, `XrefBindViewModel`)
 for the drawings selected, the palette now selecting several with Ctrl or Shift (`SelectedRows`): Bind or Insert, started

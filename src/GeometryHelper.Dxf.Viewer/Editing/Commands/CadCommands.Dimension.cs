@@ -604,7 +604,10 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    second = other;
+                    // The line selected second is the dimension's first (groups 13 and 14), as AutoCAD 2021 writes it whichever
+                    // way the lines run, whichever was drawn first and wherever the arc goes.
+                    first = other;
+                    second = line;
 
                     if (!Meet(first, second, c.Session.Tolerance, out vertex))
                     {
@@ -661,6 +664,22 @@ namespace GeometryHelper.Dxf.Viewer
             List<DxfEntity> AngularMade(GeoPoint2 location, string typed, out DxfDimension made, out string words)
             {
                 double radius = (location - vertex).Length;
+                double a1 = Math.Atan2(points[0].Y - vertex.Y, points[0].X - vertex.X);
+
+                // Two points along one ray measure nothing wherever the arc is put, its point on the ray as far out as the point
+                // given, as AutoCAD 2021 makes it: of (100, 0) and (200, 0) about (0, 0) put at (-150, 20), (151.328, 0).
+                bool oneRay =
+                    first == null
+                    && tiedArc == null
+                    && OneRay(a1, Math.Atan2(points[1].Y - vertex.Y, points[1].X - vertex.X))
+                    && (points[0] - vertex).Length > c.Session.Tolerance.EqualPoint
+                    && (points[1] - vertex).Length > c.Session.Tolerance.EqualPoint;
+
+                if (oneRay)
+                {
+                    location = vertex + new GeoVector2(Math.Cos(a1), Math.Sin(a1)) * radius;
+                }
+
                 AngularSector(
                     first,
                     second,
@@ -676,7 +695,10 @@ namespace GeometryHelper.Dxf.Viewer
                 made = null;
                 words = null;
 
-                if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0 || radius <= c.Session.Tolerance.EqualPoint)
+                if (
+                    (!oneRay && sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0)
+                    || radius <= c.Session.Tolerance.EqualPoint
+                )
                 {
                     return null;
                 }
@@ -815,6 +837,19 @@ namespace GeometryHelper.Dxf.Viewer
                 double a1 = Math.Atan2(points[0].Y - vertex.Y, points[0].X - vertex.X);
                 double a2 = Math.Atan2(points[1].Y - vertex.Y, points[1].X - vertex.X);
                 double turn = CadGrips.Sweep(a1, a2);
+
+                // Two points along one ray from the vertex with the arc on it measure nothing, the arc a point of the ray, as
+                // AutoCAD 2021 measures them; with the arc off the ray they measure the whole turn.
+                if (OneRay(a1, a2) && OneRay(a1, towards))
+                {
+                    from = a1;
+                    sweep = 0.0;
+                    rays[0] = rays[1] = new GeoVector2(Math.Cos(a1), Math.Sin(a1));
+                    near[0] = far[0] = (points[0] - vertex).Length;
+                    near[1] = far[1] = (points[1] - vertex).Length;
+                    return;
+                }
+
                 bool inside = CadGrips.Sweep(a1, towards) <= turn;
                 from = inside ? a1 : a2;
                 sweep = inside ? turn : 2.0 * Math.PI - turn;
@@ -825,6 +860,14 @@ namespace GeometryHelper.Dxf.Viewer
                 near[0] = far[0] = (p0 - vertex).Length;
                 near[1] = far[1] = (p1 - vertex).Length;
             }
+        }
+
+        /// <summary>Whether two angles are of one ray, a thousandth of the default angle tolerance apart at most.</summary>
+        private static bool OneRay(double a, double b)
+        {
+            double turn = CadGrips.Sweep(a, b);
+            double least = Tolerance.Default.EqualAngleRad / 1000.0;
+            return turn <= least || turn >= 2.0 * Math.PI - least;
         }
 
         private static GeoVector2 Along(DxfLine line)

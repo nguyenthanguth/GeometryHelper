@@ -934,9 +934,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (style.Dimtoh)
                 {
-                    // Level words run out on the side the arc faces there.
+                    // Level words run out the way the arc runs on there, left or right, as AutoCAD 2021 puts those of an angle
+                    // whose first ray points at -5 degrees to the left, and at 100 degrees to the right.
                     textAngle = 0.0;
-                    double flat = Heading(end).X < -1E-9 ? -1.0 : 1.0;
+                    double flat = way.X < -1E-9 ? -1.0 : 1.0;
                     var x = new GeoVector2(flat, 0.0);
                     double upSide =
                         tad == 4 ? -1.0
