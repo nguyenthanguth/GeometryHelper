@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's DIMLINEAR has AutoCAD 2021's Mtext, Angle and Rotated options, and DIMALIGNED Mtext and Angle:
+0,0 to 100,0 rotated 30 measures 86.6025, and words turned by Angle stand centred on the line, which is broken about their
+turned box. DIMTFILL draws its mask behind a dimension's words (the MTEXT's background, 1.25 times their height) and
+DIMTXTDIRECTION turns them half round, as AutoCAD 2021 writes them into the dimension's block.
+
+**FIXED.** Dimensions made in the presenter write the middle of their words (group 11) and their measurement (42), where
+DIMLINEAR wrote 0,0,0 and none. Text position X and Y of the Properties palette move a linear dimension's line through
+the words under DIMTMOVE 0, as AutoCAD 2021 moves it. A jogged ordinate under DIMFXLON starts its leader DIMFXL before
+the jog, not at DIMEXO.
+
 **FIXED.** The presenter's drawing commands checked entity by entity against AutoCAD 2021 drawing the same picks.
 PLINE keeps the last arc's bulge on its end vertex; a first arc and ARC Enter go on from the last polyline drawn, and
 Undo moves that point back; Width after Halfwidth offers the ending width. Angle defaults are written to AUPREC (40.587

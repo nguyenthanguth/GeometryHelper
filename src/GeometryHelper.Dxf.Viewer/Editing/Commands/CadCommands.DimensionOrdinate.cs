@@ -238,7 +238,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The picture of an ordinate dimension, as AutoCAD 2021 draws it: the leader from DIMEXO off the point square to the axis
         /// measured, a jog to the side of its end two arrowheads before it and a last leg of two arrowheads to its end (one
-        /// straight line where its end is in line with the point), and the words past the end along the leader, DIMGAP off it,
+        /// straight line where its end is in line with the point; under DIMFXLON the first leg, or the one line, DIMFXL long up to
+        /// the jog or the end), and the words past the end along the leader, DIMGAP off it,
         /// turned along it, an X datum's a quarter turn more; where DIMTAD is not 0 the leader runs on under them and they stand
         /// beside it by DIMGAP and half their height (below it for 4).
         /// </summary>
@@ -298,12 +299,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
+                // Under DIMFXLON the first leg runs DIMFXL back from the jog, no nearer the point than DIMEXO, as AutoCAD 2021
+                // draws it: the jog at 939.28 and DIMFXL 10 start it at 929.28, DIMFXL 50 at DIMEXO off the point.
+                double from = ExtensionStart(style, scale, offset, first);
                 picture.Add(
-                    Lined(
-                        new DxfLine(P3(feature + way * offset), P3(feature + way * first)),
-                        style.Dimclre,
-                        style.Dimlwe
-                    )
+                    Lined(new DxfLine(P3(feature + way * from), P3(feature + way * first)), style.Dimclre, style.Dimlwe)
                 );
                 picture.Add(Lined(new DxfLine(P3(feature + way * first), P3(jogged)), style.Dimclre, style.Dimlwe));
                 picture.Add(Lined(new DxfLine(P3(jogged), P3(last)), style.Dimclre, style.Dimlwe));

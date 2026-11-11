@@ -164,7 +164,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
@@ -194,6 +194,17 @@ the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at th
 DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
 top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
 DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line.
+
+DIMLINEAR asks `Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:` and DIMALIGNED
+`[Mtext/Text/Angle]`, as AutoCAD 2021: Mtext and Text ask for the words, Angle turns them (`Specify angle of dimension
+text:`), and Rotated sets the line's angle (`Specify angle of dimension line <0>:`): 0,0 to 100,0 rotated 30 measures
+86.6025. Words turned by Angle stand centred on the line whatever DIMTAD says, the line broken where their turned box
+and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65 each side of the middle. Every dimension
+made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block.
+DIMTFILL draws a mask behind the words, the MTEXT's background 1.25 times their height, of the drawing's background for 1
+and of DIMTFILLCLR for 2; DIMTXTDIRECTION, words read from right to left, turns them half round where they stand, a
+level dimension's to 180 degrees and an upright one's to 270, as AutoCAD 2021 writes them into its block; under DIMTMOVE
+1 a leader's words stand on the other side of their point.
 
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
@@ -229,6 +240,8 @@ points of the arc, and Leader, offered past 90 degrees, draws a leader from the 
 in the sector the arc does not sweep dimensions the rest of its circle. DIMORDINATE
 (DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
+Under DIMFXLON its first leg runs DIMFXL up to the jog, no nearer the point than DIMEXO: a jog at 30 and DIMFXL 10 start
+it at 20.
 DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.
 DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD keeps it (ACAD_DSTYLE_DIMJAG_POSITION) and
 drawn 1.5 times the height of the words; Remove takes it out. DIMEDIT Oblique slants the extension lines of a linear or
@@ -835,7 +848,10 @@ alone. A row of a dimension is written as an override of its variable, the style
 again: Precision 0.000 with Suppress trailing zeros No and Dim suffix " TYP" turns a dimension of 300 under ISO-25 into
 "300.000 TYP". Arrow 1 makes the arrows separate (DIMSAH), the other end keeping the arrow it showed. Ext line fixed On
 with a length of 10 draws, for points 30 from the dimension line, extension lines that start 10 short of it, as AutoCAD
-2021 draws them. Angle, Scale or Pattern name of a hatch keeps its origin, as AutoCAD keeps it: ANSI31 at (2, 0) turned
+2021 draws them. Text position X and Y move the words as DIMTEDIT moves them: under DIMTMOVE 0 a linear dimension's line
+moves to run through the point, as AutoCAD 2021 moves it, so words of DIMTAD 1 at 50, 21.875 above a line at 20 set to X
+30 keep the Y, the line moves up to 21.875 and the words stand above it again; under 1 and 2 the line stays. Angle, Scale
+or Pattern name of a hatch keeps its origin, as AutoCAD keeps it: ANSI31 at (2, 0) turned
 to 30 degrees still starts at (2, 0). A Major radius of 40
 scales an ellipse of radii 20 and 10 whole, to 40 and 20; a Minor radius above the major is refused. A Height or Width of a
 viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow.Choices))

@@ -24,16 +24,35 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
         public PluginFiles()
         {
             string all = Path.Combine(Path.GetTempPath(), "gk-plugin-tests");
+            Root = Path.Combine(all, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(all);
+
+            // The folder's lock beside it, made before it and held until the end (gone with the process that holds it): a run
+            // of the tests in another process (another worktree, or the runner of .NET 8) takes a folder with its lock held for
+            // one in use and leaves it, where it once deleted the files of a test still running.
+            _busy = new FileStream(
+                Root + LockSuffix,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                1,
+                FileOptions.DeleteOnClose
+            );
+            Directory.CreateDirectory(Root);
 
             // What runs before left: .NET Framework holds the copies it loaded until the process ends.
-            foreach (string left in Directory.Exists(all) ? Directory.GetDirectories(all) : new string[0])
+            foreach (string left in Directory.GetDirectories(all))
             {
-                Delete(left);
+                if (!File.Exists(left + LockSuffix))
+                {
+                    Delete(left);
+                }
             }
-
-            Root = Path.Combine(all, Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(Root);
         }
+
+        private const string LockSuffix = ".lock";
+
+        private readonly FileStream _busy;
 
         public string Root { get; }
 
@@ -121,7 +140,11 @@ namespace GeometryHelper.Dxf.Viewer.Plugins.UnitTest
             + api
             + "\", \"commands\": [ \"NUMCIRCLES\", \"FAILNOW\" ], \"icon\": \"icon.png\" }";
 
-        public void Dispose() => Delete(Root);
+        public void Dispose()
+        {
+            _busy.Dispose();
+            Delete(Root);
+        }
 
         private static void Delete(string folder)
         {
