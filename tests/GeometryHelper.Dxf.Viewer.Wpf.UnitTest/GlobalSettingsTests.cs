@@ -61,6 +61,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Paper = 0xF0F0F0,
                 Selection = 0xD29922,
                 PickboxPixels = 7,
+                GripDynamicColor = 30,
                 WheelZoomFactor = 1.5,
                 Snaps = CadSnapModes.Endpoint | CadSnapModes.Nearest,
                 DefaultPreset = "Part",
@@ -86,6 +87,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(settings.ToJson(), read.ToJson());
             Assert.Equal(0x212830, read.CanvasBackground);
+            Assert.Equal(30, read.GripDynamicColor);
             Assert.Equal(CadSnapModes.Endpoint | CadSnapModes.Nearest, read.Snaps);
             Assert.Equal("12.345,678", read.FormatNumber(12345.678, 3));
             Assert.Equal("ZOOM", read.Aliases["zz"]);

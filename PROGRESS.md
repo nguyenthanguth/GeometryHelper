@@ -138,8 +138,8 @@ the ones wanted.
       -PURGE too), Object Grouping (CLASSICGROUP), to the v110 boards
 - [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
-- [ ] Dynamic blocks: the core's AddVisibilityParameter lists no parameter in any state (AutoCAD then hides them); XY
-      corner and block-table grips; a live preview while a custom grip is dragged; GRIPDYNCOLOR (S)
+- [x] Dynamic blocks: visibility states list every parameter, XY corner and block-table grips, live preview of custom grip drags, GRIPDYNCOLOR
+- [ ] Dynamic block follow-ups: XY/linear base point moved by a corner drag (AutoCAD reads Width 80, ours 100; core evaluator); insertion grip last as AutoCAD; block-table grip menu and glyph against AutoCAD's screen; a linear parameter's base grip; the Design artifact's custom grip colour (#19B5F0) to AutoCAD's 140 (#00BFFF) (S)
 
 ### To do
 

@@ -214,7 +214,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Clicks a custom grip of a dynamic INSERT, as AutoCAD does: a flip grip flips the block (its state 0 to 1, 1 to 0), one
-        /// undo step. A grip of another kind is refused: a visibility or a lookup grip lists its values
+        /// undo step. A grip of another kind is refused: a visibility, a lookup or a block table grip lists its values
         /// (<see cref="ValuesOf"/>), the others are dragged.
         /// </summary>
         /// <param name="document">The document.</param>
@@ -254,8 +254,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Gets what a visibility or a lookup grip lists when clicked, as AutoCAD's list at the grip: the values allowed, in
-        /// the parameter's order, and the one the INSERT shows, ticked.
+        /// Gets what a visibility, a lookup or a block table grip lists when clicked, as AutoCAD's list at the grip: the values
+        /// allowed, in the parameter's order, and the one the INSERT shows, ticked; of a block table its rows, each its cells
+        /// parted by commas, a number to 4 places, as "100.0000, 50.0000", the row the INSERT shows ticked, none where it shows
+        /// none.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the INSERT.</param>
@@ -289,6 +291,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return Array.Empty<string>();
             }
 
+            if (grip.Custom.GripType == DxfDynamicBlockGripType.BlockTable)
+            {
+                return RowsOf((DxfBlockReference)document.FindEntity(handle), property, out current);
+            }
+
             current = property.Value as string;
             var values = new List<string>();
 
@@ -304,8 +311,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Chooses a value of the list of a visibility or a lookup grip, as AutoCAD's list at the grip: the state shown, or the
-        /// lookup's row, every value it looks up set with it. One undo step.
+        /// Chooses a value of the list of a visibility, a lookup or a block table grip, as AutoCAD's list at the grip: the state
+        /// shown, the lookup's row, every value it looks up set with it, or the table's row, Block Table1 set to its index and
+        /// every column with it. One undo step.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the INSERT.</param>
@@ -332,50 +340,144 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse("The grip lists no value " + value + ".");
             }
 
-            string name = CadGrips.Of(document.FindEntity(handle))[gripIndex].Custom.PropertyNames[0];
-            return Apply(document, handle, "Grip " + gripIndex, current, value, i => Set(i, name, value));
+            DxfDynamicBlockGrip custom = CadGrips.Of(document.FindEntity(handle))[gripIndex].Custom;
+            string name = custom.PropertyNames[0];
+            object set = value;
+
+            if (custom.GripType == DxfDynamicBlockGripType.BlockTable)
+            {
+                short row = 0;
+
+                while (values[row] != value)
+                {
+                    row++;
+                }
+
+                set = row;
+            }
+
+            return Apply(document, handle, "Grip " + gripIndex, current, value, i => Set(i, name, set));
+        }
+
+        /// <summary>
+        /// The rows of the block properties table of an INSERT's dynamic block as the list at its grip names them: the cells of
+        /// each, a number to 4 places as the palette writes a distance, parted by commas; the row the INSERT shows, by Block
+        /// Table1, as the current one, none where it shows no row (-1). A table of Width and Height of the rows 100 by 50 and
+        /// 200 by 80 lists "100.0000, 50.0000" and "200.0000, 80.0000".
+        /// </summary>
+        private static IReadOnlyList<string> RowsOf(
+            DxfBlockReference insert,
+            DxfDynamicBlockReferenceProperty property,
+            out string current
+        )
+        {
+            current = null;
+            DxfBlockPropertiesTable table = insert.DynamicBlockTableRecord.BlockPropertiesTable;
+
+            if (table == null)
+            {
+                return Array.Empty<string>();
+            }
+
+            var rows = new List<string>();
+
+            foreach (DxfBlockPropertiesTableRow row in table.Rows)
+            {
+                var cells = new List<string>();
+
+                foreach (object cell in row.Values)
+                {
+                    cells.Add(
+                        cell is double number
+                            ? number.ToString("0.0000", CultureInfo.InvariantCulture)
+                            : Convert.ToString(cell, CultureInfo.InvariantCulture)
+                    );
+                }
+
+                rows.Add(string.Join(", ", cells));
+            }
+
+            if (property.Value is short shown && shown >= 0 && shown < rows.Count)
+            {
+                current = rows[shown];
+            }
+
+            return rows;
         }
 
         /// <summary>
         /// Drags a custom grip of a dynamic INSERT to a point, as AutoCAD's: a linear grip sets the distance from the base point
         /// along its parameter, a rotation grip turns its angle by the turn about the base point from the grip to the point, a
         /// point grip sets its position, a polar grip its distance and angle from the base point, an XY grip its distances along
-        /// x and y; worked in the block's own coordinates and taken to the value set by the library. A flip grip dragged flips
-        /// the block, as a click does; a visibility or a lookup grip is refused. One undo step.
+        /// x and y (<see cref="Plan"/>); worked in the block's own coordinates and taken to the value set by the library. A flip
+        /// grip dragged flips the block, as a click does; a visibility, a lookup or a block table grip is refused. One undo step.
         /// </summary>
         internal static CadEditResult Drag(CadDocument document, string handle, CadGrip grip, GeoPoint2 to)
         {
-            var insert = (DxfBlockReference)document.FindEntity(handle);
-            DxfDynamicBlockGrip custom = grip.Custom;
-            string property = "Grip " + grip.Index;
-            string was = CadCommands.Values(grip.Point.X, grip.Point.Y);
-            string went = CadCommands.Values(to.X, to.Y);
-
             switch (grip.Kind)
             {
                 case CadGripKind.CustomFlip:
                     return Click(document, handle, grip.Index);
                 case CadGripKind.CustomList:
                     return CadEditResult.Refuse("Click the grip to choose from its list.");
-                case CadGripKind.CustomLinear:
+            }
+
+            Action<DxfBlockReference> write = Plan(
+                (DxfBlockReference)document.FindEntity(handle),
+                grip,
+                to,
+                out string refused
+            );
+
+            return write == null
+                ? CadEditResult.Refuse(refused)
+                : Apply(
+                    document,
+                    handle,
+                    "Grip " + grip.Index,
+                    CadCommands.Values(grip.Point.X, grip.Point.Y),
+                    CadCommands.Values(to.X, to.Y),
+                    write
+                );
+        }
+
+        /// <summary>
+        /// What a custom grip dragged to a point sets of an INSERT, as <see cref="Drag"/> says, the INSERT the grip was read of
+        /// or a copy of it in its place: null, with the reason, where the point gives no value. A corner of an XY parameter
+        /// sets the distance of the axis it takes from the end point alone: the corner of base x and end y dragged by (20, 10)
+        /// on a rectangle 100 by 50 sets a Height of 60 and keeps the Width. AutoCAD 2021 moved the base point's x with it and
+        /// read a Width of 80, the block drawn as the library draws it, as no action of its follows the base point (plugin
+        /// GhDb1); the library works a block out from its own base points.
+        /// </summary>
+        internal static Action<DxfBlockReference> Plan(
+            DxfBlockReference insert,
+            CadGrip grip,
+            GeoPoint2 to,
+            out string refused
+        )
+        {
+            DxfDynamicBlockGrip custom = grip.Custom;
+            refused = null;
+
+            if (grip.Kind == CadGripKind.CustomLinear)
+            {
+                double distance =
+                    (to.X - custom.BasePoint.X) * custom.Direction.X + (to.Y - custom.BasePoint.Y) * custom.Direction.Y;
+
+                if (!(distance > Tolerance.Default.EqualPoint))
                 {
-                    double distance =
-                        (to.X - custom.BasePoint.X) * custom.Direction.X
-                        + (to.Y - custom.BasePoint.Y) * custom.Direction.Y;
-
-                    if (!(distance > Tolerance.Default.EqualPoint))
-                    {
-                        return CadEditResult.Refuse("The distance must be above nought.");
-                    }
-
-                    return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], distance));
+                    refused = "The distance must be above nought.";
+                    return null;
                 }
+
+                return i => Set(i, custom.PropertyNames[0], distance);
             }
 
             // The rest are worked in the block's own coordinates: the INSERT may be turned, mirrored or scaled.
             if (!insert.BlockTransform.TryGetInverse(out GeoTransform3 inverse, Tolerance.Default))
             {
-                return CadEditResult.Refuse("The block reference cannot be worked back to its block's coordinates.");
+                refused = "The block reference cannot be worked back to its block's coordinates.";
+                return null;
             }
 
             GeoVector3 factors = insert.ScaleFactors;
@@ -386,26 +488,40 @@ namespace GeometryHelper.Dxf.Viewer
             switch (custom.GripType)
             {
                 case DxfDynamicBlockGripType.Point:
-                    return Apply(document, handle, property, was, went, i =>
+                    return i =>
                     {
                         Set(i, custom.PropertyNames[0], local.X * scale);
                         Set(i, custom.PropertyNames[1], local.Y * scale);
-                    });
+                    };
                 case DxfDynamicBlockGripType.XY:
                 {
+                    // A corner takes x or y from the base point, which it leaves: the end grip sets both.
+                    GeoPoint3 at = inverse.Transform(custom.Position);
+                    bool setsX = !(Math.Abs(at.X - origin.X) <= Tolerance.Default.EqualPoint);
+                    bool setsY = !(Math.Abs(at.Y - origin.Y) <= Tolerance.Default.EqualPoint);
                     double x = Math.Abs(local.X - origin.X) * scale,
                         y = Math.Abs(local.Y - origin.Y) * scale;
 
-                    if (!(x > Tolerance.Default.EqualPoint) || !(y > Tolerance.Default.EqualPoint))
+                    if (
+                        (setsX && !(x > Tolerance.Default.EqualPoint)) || (setsY && !(y > Tolerance.Default.EqualPoint))
+                    )
                     {
-                        return CadEditResult.Refuse("The distances must be above nought.");
+                        refused = "The distances must be above nought.";
+                        return null;
                     }
 
-                    return Apply(document, handle, property, was, went, i =>
+                    return i =>
                     {
-                        Set(i, custom.PropertyNames[0], x);
-                        Set(i, custom.PropertyNames[1], y);
-                    });
+                        if (setsX)
+                        {
+                            Set(i, custom.PropertyNames[0], x);
+                        }
+
+                        if (setsY)
+                        {
+                            Set(i, custom.PropertyNames[1], y);
+                        }
+                    };
                 }
 
                 case DxfDynamicBlockGripType.Polar:
@@ -416,18 +532,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!(distance > Tolerance.Default.EqualPoint))
                     {
-                        return CadEditResult.Refuse("The distance must be above nought.");
+                        refused = "The distance must be above nought.";
+                        return null;
                     }
 
                     double angle = Turn(Math.Atan2(dy, dx));
-                    return Apply(document, handle, property, was, went, i =>
+                    return i =>
                     {
                         Set(i, custom.PropertyNames[0], distance);
                         Set(i, custom.PropertyNames[1], angle);
-                    });
+                    };
                 }
 
-                default:
+                case DxfDynamicBlockGripType.Rotation:
                 {
                     // A rotation: the angle it has, turned by the turn from the grip to the point about the base point.
                     GeoPoint3 from = inverse.Transform(custom.Position);
@@ -437,15 +554,20 @@ namespace GeometryHelper.Dxf.Viewer
                         || !(Find(insert, custom.PropertyNames[0])?.Value is double now)
                     )
                     {
-                        return CadEditResult.Refuse("The point must be off the base point of the rotation.");
+                        refused = "The point must be off the base point of the rotation.";
+                        return null;
                     }
 
                     double turned =
                         Math.Atan2(local.Y - origin.Y, local.X - origin.X)
                         - Math.Atan2(from.Y - origin.Y, from.X - origin.X);
                     double angle = Turn(now + turned);
-                    return Apply(document, handle, property, was, went, i => Set(i, custom.PropertyNames[0], angle));
+                    return i => Set(i, custom.PropertyNames[0], angle);
                 }
+
+                default:
+                    refused = "The grip is not dragged.";
+                    return null;
             }
         }
 
@@ -486,6 +608,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadGripKind.CustomFlip;
                 case DxfDynamicBlockGripType.Visibility:
                 case DxfDynamicBlockGripType.Lookup:
+                case DxfDynamicBlockGripType.BlockTable:
                     return CadGripKind.CustomList;
                 default:
                     return CadGripKind.CustomPoint;

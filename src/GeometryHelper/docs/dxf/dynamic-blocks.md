@@ -237,30 +237,35 @@ either case the same, and one the parameter has not is refused (`ArgumentExcepti
 2021 saved the visibility parameter of ACadSharp's sample: the parameter at the location with the governed entities and
 each state with the entities shown in it, its grip and the grip's two location components, four nodes and three edges of
 the evaluation graph, number for number. A block takes one visibility parameter, as AutoCAD's Block Editor gives it one, and
-may take linear parameters besides: its INSERTs keep the state and the distances together. Writing the parameter takes a
-fifth of a millisecond.
+may take linear parameters besides: its INSERTs keep the state and the distances together. Every state lists the block's
+other parameters, their grips and its actions, those added before the visibility parameter and those added after it, as
+AutoCAD's Block Editor lists them in each state of its Door sample: a Width of SIGN is shown, with its grip, in Cross, Tick
+and Blank alike. AutoCAD 2021 read a state that lists none as hiding them (Width not visible in any state, its grip not
+shown), as the library wrote them up to 13.11.0 (probe GhDb1). Writing the parameter takes a fifth of a millisecond.
 
 ## Grips, reset and the states of a block
 
 `GetDynamicGrips` gives the custom grips AutoCAD shows on a dynamic INSERT selected, where the INSERT's values put them,
 in the coordinates of the file: of each linear, polar, XY, rotation and horizontal, vertical or radial constraint
-parameter the grip at its end, of each flip, point, visibility and lookup parameter its grip, in the order of the grips in
-the block's graph. Each `DxfDynamicBlockGrip` gives its `GripType`, its `Position`, the `BasePoint` its parameter measures
+parameter the grip at its end, of an XY parameter the grips at its two other corners after it (base x with end y, end x
+with base y), of each flip, point, visibility and lookup parameter and of a block properties table its grip, in the order
+of the grips in the block's graph. Each `DxfDynamicBlockGrip` gives its `GripType`, its `Position`, the `BasePoint` its parameter measures
 from, the `Direction` an arrow points (along a linear parameter, across a flip's line, to the other side while flipped)
 and the `PropertyNames` it sets. A grip stands where the block puts it, moved as the point it follows moved: Width set to
 200 on an INSERT of the panel above at (1 000, 500) turned a quarter turn has its grip at (1 000, 700), its base point
 (1 000, 500) and its direction (0, 1). On AutoCAD 2021's Architectural and Annotation samples every custom grip
 `GetGripPoints` gave came out at its point and in its order (probe GhDyn1), Door Size of the Door at (750, 0), Hinge at
-(375, -312.5) and Opening Angle at (-125, 375), the grip of a block properties table apart, which is not given; nor are a
-linear parameter's base grip and an XY parameter's corner grips, as a value set moves the end alone.
+(375, -312.5) and Opening Angle at (-125, 375). A rectangle 100 by 50 of an XY parameter from (0, 0) to (100, 50) inserted
+at (1 000, 500) gives its grips at (1 100, 550), (1 000, 550) and (1 100, 500), and a block properties table at (0, -20)
+its grip at (1 000, 480), of the type `BlockTable`, as AutoCAD 2021 gave them (probe GhDb1). A linear or an XY
+parameter's base grip is not given, as a value set moves the end alone; AutoCAD 2021 showed none of an XY parameter.
 
 A block of a visibility parameter shows a parameter, its grip and its property in the states that list it, as AutoCAD's
 Block Editor lists them: `VisibleInCurrentVisibilityState` is false for the others, and their grips are not given, as
 AutoCAD 2021 showed no grip of the Angle of its Toilet sample in the state Elongated (Front). `Show` is the parameter's Show
 properties, false for Stud Height of AutoCAD's Stud sample; AutoCAD's Properties palette lists a property where both are
 true. `StateNames` gives the names of a flip's two states, Not flipped and Flipped, or Left and Right for Hinge of the
-Door sample. The library's own visibility parameter lists no other parameter in its states, so AutoCAD reads every other
-property of such a block as not visible and shows none of its grips.
+Door sample.
 
 `ResetBlock` puts every value of the INSERT back to the block's own, as AutoCAD's `ResetBlock` and RESETBLOCK: the INSERT
 places the dynamic block again and its AcDbBlockRepresentation goes, the extension dictionary kept, as AutoCAD 2021 left

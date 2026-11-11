@@ -808,10 +808,12 @@ namespace GeometryHelper.Dxf
         /// (<see cref="IsDynamicBlock"/>).
         /// </summary>
         /// <returns>
-        /// The grips, each where the INSERT places it: of a linear, a polar or an XY parameter the grip at its end, of a rotation
-        /// parameter the grip at its end, of a flip parameter its grip, of a point, a visibility or a lookup parameter its grip,
-        /// where the parameter lists such a grip and gives a property that is not read only. The base grip of a linear, a polar
-        /// or an XY parameter and the corner grips of an XY one are not given, as a value set moves the end alone.
+        /// The grips, each where the INSERT places it: of a linear or a polar parameter the grip at its end, of an XY parameter
+        /// the grip at its end and then those at its two other corners (base x with end y, end x with base y), of a rotation
+        /// parameter the grip at its end, of a flip parameter its grip, of a point, a visibility or a lookup parameter and of a
+        /// block properties table its grip, where the parameter lists such a grip and gives a property that is not read only.
+        /// The base grip of a linear, a polar or an XY parameter is not given, as a value set moves the end alone; AutoCAD 2021
+        /// showed none of an XY parameter (plugin GhDb1).
         /// </returns>
         /// <remarks>
         /// <para>
@@ -824,7 +826,9 @@ namespace GeometryHelper.Dxf
         /// The door of AutoCAD 2021's Door - Metric sample at (0, 0) gives Door Size at (750, 0), Wall Thickness at (0, -100),
         /// Hinge at (375, -312.5), Swing at (375, -150) and Opening Angle at (-125, 375), as AutoCAD gave them (plugin GhDyn1);
         /// a rectangle of a Width from (0, 0) to (100, 0) set to 200 on an INSERT at (1 000, 500) gives Width at (1 200, 500),
-        /// its base point (1 000, 500) and its direction (1, 0).
+        /// its base point (1 000, 500) and its direction (1, 0). A rectangle 100 by 50 of an XY parameter from (0, 0) to (100,
+        /// 50) inserted at (1 000, 500) gives its grips at (1 100, 550), (1 000, 550) and (1 100, 500), as AutoCAD 2021 gave
+        /// them (plugin GhDb1).
         /// </para>
         /// </remarks>
         public IReadOnlyList<DxfDynamicBlockGrip> GetDynamicGrips() =>

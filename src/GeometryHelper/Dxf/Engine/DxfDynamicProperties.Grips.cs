@@ -10,9 +10,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The custom grips of an INSERT of a dynamic block, as <see cref="DxfBlockReference.GetDynamicGrips"/> gives them, in
         /// the order of the grips' nodes in the graph, as AutoCAD 2021 gave them: of each linear, polar, XY, rotation, horizontal,
-        /// vertical or radial constraint parameter the grip at its end, of a flip parameter its grip, of a point, a visibility or
-        /// a lookup parameter its grip, each where the parameter lists one, gives a property that is not read only, and the
-        /// visibility state the INSERT shows lists the parameter and the grip where the block has a visibility parameter. A grip
+        /// vertical or radial constraint parameter the grip at its end, and of an XY parameter its two other corners, of a flip
+        /// parameter its grip, of a point, a visibility or a lookup parameter and of a block properties table its grip, each
+        /// where the parameter lists one, gives a property that is not read only, and the visibility state the INSERT shows
+        /// lists the parameter and the grip where the block has a visibility parameter. A grip
         /// stands where the block puts it (1010 of its AcDbBlockGrip), moved as the point it follows moved from the block's own to
         /// where the INSERT saved it: the end point of a parameter of two points, the base point of a flip parameter (mirrored
         /// about the line while flipped), the position of a parameter of one point. None for a block of no graph.
@@ -80,6 +81,7 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> cache = saved.TryGetValue(id, out DxfXrecord record) ? record.Data : null;
                 DxfDynamicBlockGripType type;
                 int slot;
+                int corners = 0; // the corner slots after the end of an XY parameter
 
                 switch (node.Type)
                 {
@@ -97,6 +99,7 @@ namespace GeometryHelper.Dxf
                     case "BLOCKXYPARAMETER":
                         type = DxfDynamicBlockGripType.XY;
                         slot = 1;
+                        corners = 2;
                         break;
                     case "BLOCKROTATIONPARAMETER":
                         type = DxfDynamicBlockGripType.Rotation;
@@ -118,50 +121,59 @@ namespace GeometryHelper.Dxf
                         type = DxfDynamicBlockGripType.Lookup;
                         slot = -1;
                         break;
+                    case "BLOCKPROPERTIESTABLE":
+                        type = DxfDynamicBlockGripType.BlockTable;
+                        slot = -1;
+                        break;
                     default:
                         continue;
                 }
 
                 // The grip of a parameter of one point is its 93; of two points the 91 of the slot: the base grip, the end grip,
-                // and two corners of an XY parameter.
+                // and two corners of an XY parameter, base x with end y and end x with base y, whose grips AutoCAD 2021 showed
+                // after the end's, and not the base grip (plugin GhDb1).
                 List<DxfTypedValue> slots = Section(groups, "AcDbBlock2PtParameter").FindAll(g => g.TypeCode == 91);
-                string gripId = (
-                    slot < 0 ? Text(Section(groups, "AcDbBlock1PtParameter"), 93)
-                    : slot < slots.Count ? slots[slot].Value
-                    : null
-                )?.Trim();
 
-                if (
-                    string.IsNullOrEmpty(gripId)
-                    || gripId == "0"
-                    || !byId.TryGetValue(gripId, out int at)
-                    || !nodes[at].Type.EndsWith("GRIP", StringComparison.Ordinal)
-                )
+                for (int s = slot; s <= slot + corners; s++)
                 {
-                    continue;
-                }
+                    string gripId = (
+                        s < 0 ? Text(Section(groups, "AcDbBlock1PtParameter"), 93)
+                        : s < slots.Count ? slots[s].Value
+                        : null
+                    )?.Trim();
 
-                DxfItem gripNode = nodes[at];
+                    if (
+                        string.IsNullOrEmpty(gripId)
+                        || gripId == "0"
+                        || !byId.TryGetValue(gripId, out int at)
+                        || !nodes[at].Type.EndsWith("GRIP", StringComparison.Ordinal)
+                    )
+                    {
+                        continue;
+                    }
 
-                // A parameter, or a grip, the visibility state shown does not list is hidden with it, as AutoCAD 2021 showed no
-                // grip of the Angle of its Toilet sample in the state Elongated (Front) (plugin GhDyn1).
-                if (
-                    shown != null
-                    && node.Type != "BLOCKVISIBILITYPARAMETER"
-                    && (!shown.Contains(node.Handle) || !shown.Contains(gripNode.Handle))
-                )
-                {
-                    continue;
-                }
+                    DxfItem gripNode = nodes[at];
 
-                DxfDynamicBlockGrip grip =
-                    slot < 0
-                        ? OnePointGrip(type, groups, cache, gripNode, own, placed)
-                        : TwoPointGrip(type, groups, cache, gripNode, own, placed);
+                    // A parameter, or a grip, the visibility state shown does not list is hidden with it, as AutoCAD 2021 showed
+                    // no grip of the Angle of its Toilet sample in the state Elongated (Front) (plugin GhDyn1).
+                    if (
+                        shown != null
+                        && node.Type != "BLOCKVISIBILITYPARAMETER"
+                        && (!shown.Contains(node.Handle) || !shown.Contains(gripNode.Handle))
+                    )
+                    {
+                        continue;
+                    }
 
-                if (grip != null)
-                {
-                    found.Add(new KeyValuePair<int, DxfDynamicBlockGrip>(at, grip));
+                    DxfDynamicBlockGrip grip =
+                        s < 0
+                            ? OnePointGrip(type, groups, cache, gripNode, own, placed)
+                            : TwoPointGrip(type, s, groups, cache, gripNode, own, placed);
+
+                    if (grip != null)
+                    {
+                        found.Add(new KeyValuePair<int, DxfDynamicBlockGrip>(at, grip));
+                    }
                 }
             }
 
@@ -198,10 +210,13 @@ namespace GeometryHelper.Dxf
         /// The grip of a parameter of two points: moved by the end point's change, its direction the orientation its linear
         /// grip keeps (140 to 142 of AcDbBlockLinearGrip, along x of a horizontal constraint parameter, along y of a vertical
         /// one), else from the base point to the end; a flip's moved by the base point's change, mirrored about its line while
-        /// flipped. Null where the grip's position or the parameter's points cannot be read.
+        /// flipped; a corner of an XY parameter (its slot 2, base x with end y, or 3, end x with base y) moved along each axis
+        /// by the change of the point it takes that axis from. Null where the grip's position or the parameter's points cannot
+        /// be read.
         /// </summary>
         private static DxfDynamicBlockGrip TwoPointGrip(
             DxfDynamicBlockGripType type,
+            int slot,
             IReadOnlyList<DxfTypedValue> groups,
             IReadOnlyList<DxfTypedValue> cache,
             DxfItem gripNode,
@@ -255,6 +270,17 @@ namespace GeometryHelper.Dxf
                     );
                     direction = new GeoVector3(-direction.X, -direction.Y, 0.0);
                 }
+            }
+            else if (slot >= 2)
+            {
+                double[] alongX = slot == 2 ? new[] { from[0], fromOwn[0] } : new[] { to[0], toOwn[0] };
+                double[] alongY = slot == 2 ? new[] { to[1], toOwn[1] } : new[] { from[1], fromOwn[1] };
+                position = new GeoPoint3(
+                    at[0] + alongX[0] - alongX[1],
+                    at[1] + alongY[0] - alongY[1],
+                    at[2] + to[2] - toOwn[2]
+                );
+                direction = new GeoVector3(0.0, 0.0, 0.0);
             }
             else
             {
@@ -331,8 +357,8 @@ namespace GeometryHelper.Dxf
         /// The handles of what the visibility state the INSERT shows lists as shown (each 333 after the state's 303 of
         /// AcDbBlockVisibilityParameter: parameters, their grips and actions), with the visibility parameter and its grip; null
         /// where the block has no visibility parameter, every parameter shown then. The state is the one the INSERT saved, else
-        /// the parameter's first, as <see cref="Visibility"/> reads it. The library's own blocks list none, and AutoCAD 2021 read
-        /// every other property of them as not visible in the state, and showed none of their grips (plugin GhDyn1).
+        /// the parameter's first, as <see cref="Visibility"/> reads it. A state that lists none hides every other property and
+        /// grip: AutoCAD 2021 read them so of the library's blocks before it listed them (plugin GhDyn1).
         /// </summary>
         private static HashSet<string> ShownInState(List<DxfItem> nodes, Dictionary<string, DxfXrecord> saved)
         {

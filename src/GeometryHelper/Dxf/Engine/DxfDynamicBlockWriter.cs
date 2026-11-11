@@ -1306,7 +1306,8 @@ namespace GeometryHelper.Dxf
         /// Writes a visibility parameter with its grip and the grip's two location components: four nodes, and the three edges
         /// AutoCAD writes for them (the grip to the parameter, the parameter to each component), as AutoCAD 2021 saved the
         /// visibility parameter of ACadSharp's sample. The entities the states name are governed, in the order of the block;
-        /// each of them not shown in the first state is made invisible, as AutoCAD keeps the block in that state.
+        /// each of them not shown in the first state is made invisible, as AutoCAD keeps the block in that state. Each state is
+        /// written listing no parameter, and the graph written lists every one of the block's in it (Graph.ListInStates).
         /// </summary>
         internal static void AddVisibility(
             DxfBlockTableRecord block,
@@ -1708,6 +1709,7 @@ namespace GeometryHelper.Dxf
             private readonly List<int[]> _edges = new List<int[]>(); // flags, kind, from index, to index, index of its pair
             private readonly HashSet<string> _names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             private int _last;
+            private int _read; // how many nodes the record held when read
 
             private Graph(DxfFile file, DxfItem item)
             {
@@ -1933,6 +1935,8 @@ namespace GeometryHelper.Dxf
                     at += 8;
                 }
 
+                _read = _nodes.Count;
+
                 while (at + 9 < groups.Count && groups[at].TypeCode == 92)
                 {
                     _edges.Add(
@@ -2014,7 +2018,89 @@ namespace GeometryHelper.Dxf
                 }
 
                 File.ReplaceTail(_item, from, written);
+                ListInStates();
             }
+
+            /// <summary>
+            /// Lists in each state of the block's visibility parameter (the 333s after its 95) the parameters, their grips and the
+            /// actions added since the record was read, after those it lists; every one of the graph where the visibility
+            /// parameter is new. AutoCAD 2021 saved each state of its Door sample so: every parameter but the visibility parameter
+            /// and the base point, every grip but the visibility grip and every action, in the order of the nodes; a state that
+            /// lists none hides them, AutoCAD reading their properties as not visible in it and showing none of their grips
+            /// (plugin GhDb1). A node a state lists already is not listed again; a state that leaves out a node read is left so.
+            /// </summary>
+            private void ListInStates()
+            {
+                int v = _handles.FindIndex(h => File.ObjectItem(h)?.Type == "BLOCKVISIBILITYPARAMETER");
+
+                if (v < 0)
+                {
+                    return;
+                }
+
+                var added = new List<string>();
+
+                for (int i = v >= _read ? 0 : _read; i < _handles.Count; i++)
+                {
+                    if (Listed(File.ObjectItem(_handles[i])?.Type))
+                    {
+                        added.Add(_handles[i]);
+                    }
+                }
+
+                DxfItem visibility = File.ObjectItem(_handles[v]);
+                List<DxfTypedValue> groups = File.TailOf(visibility, 0);
+                int at = groups.FindIndex(g => g.TypeCode == 100 && g.Value?.Trim() == "AcDbBlockVisibilityParameter");
+
+                if (added.Count == 0 || at < 0)
+                {
+                    return;
+                }
+
+                var written = new List<KeyValuePair<int, string>>();
+                bool state = false;
+
+                for (int i = at; i < groups.Count; i++)
+                {
+                    DxfTypedValue group = groups[i];
+                    state |= group.TypeCode == 303;
+
+                    if (!state || group.TypeCode != 95)
+                    {
+                        written.Add(Pair(group.TypeCode, group.Value));
+                        continue;
+                    }
+
+                    var shown = new List<string>();
+
+                    while (i + 1 < groups.Count && groups[i + 1].TypeCode == 333)
+                    {
+                        shown.Add(groups[++i].Value?.Trim());
+                    }
+
+                    added.ForEach(h =>
+                    {
+                        if (!shown.Exists(s => string.Equals(s, h, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            shown.Add(h);
+                        }
+                    });
+
+                    written.Add(Pair(95, Int(shown.Count)));
+                    shown.ForEach(h => written.Add(Pair(333, h)));
+                }
+
+                File.ReplaceTail(visibility, at, written);
+            }
+
+            /// <summary>Whether a state of a visibility parameter lists a node of a type: a parameter but the visibility parameter and the base point, a grip but the visibility grip, an action.</summary>
+            private static bool Listed(string type) =>
+                type != null
+                && type.StartsWith("BLOCK", StringComparison.Ordinal)
+                && type != "BLOCKGRIPLOCATIONCOMPONENT"
+                && type != "BLOCKVISIBILITYPARAMETER"
+                && type != "BLOCKVISIBILITYGRIP"
+                && type != "BLOCKBASEPOINTPARAMETER";
 
             /// <summary>The indices of the edges whose end of a place (2 from, 3 to) is a node, in the order of the edges.</summary>
             private List<int> Edges(int end, int node)

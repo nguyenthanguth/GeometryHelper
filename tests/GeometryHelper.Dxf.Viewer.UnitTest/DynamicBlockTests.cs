@@ -20,7 +20,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// A drawing of R2018 with the block GH_PANEL, a rectangle 100 by 50 whose Width from (0, 0) to (100, 0), a list of 100,
         /// 150 and 200, stretches its right edge, and an INSERT of it at (1 000, 500) on layer Doors.
         /// </summary>
-        private static CadDocument Panel(out string handle)
+        private static CadDocument Panel(
+            out string handle,
+            Action<DxfBlockTableRecord, DxfBlockLinearParameter> more = null
+        )
         {
             var db = new DxfDatabase("AC1032");
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "Doors" });
@@ -48,6 +51,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 DxfBlockParameterValueSet.List(new[] { 100.0, 150, 200 })
             );
             block.AddStretchAction(width, new GeoPoint2(90, -10), new GeoPoint2(110, 60), lines.Take(3));
+            more?.Invoke(block, width);
             var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block) { Layer = "Doors" };
             db.ModelSpace.AppendEntity(insert);
             handle = insert.Handle;
@@ -389,6 +393,161 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Empty(document.BlockEditor.VisibilityStates);
             Assert.Null(document.BlockEditor.VisibilityState);
             Assert.False(document.SetBlockEditorVisibilityState("Cross").Succeeded);
+        }
+
+        /// <summary>
+        /// A drawing with the block GH_PLATE, a rectangle 100 by 50 whose XY parameter Width and Height from (0, 0) to (100, 50)
+        /// stretches its right and top edges at the far corner, inserted at (1 000, 500).
+        /// </summary>
+        private static CadDocument Plate(out string handle)
+        {
+            var db = new DxfDatabase("AC1032");
+            var block = new DxfBlockTableRecord { Name = "GH_PLATE", Origin = new GeoPoint3(0, 0, 0) };
+            db.BlockTable.Add(block);
+            var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
+            var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+            block.AppendEntity(right);
+            block.AppendEntity(top);
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "Width",
+                null,
+                "Height",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 0)
+            );
+            block.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new DxfEntity[] { right, top });
+            var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block);
+            db.ModelSpace.AppendEntity(insert);
+            handle = insert.Handle;
+            return CadDocument.From(db, "plate.dxf");
+        }
+
+        [Fact]
+        public void AnXYParameter_ShowsItsEndAndItsTwoOtherCorners_AsAutoCadDoes()
+        {
+            CadDocument document = Plate(out string handle);
+
+            IReadOnlyList<CadGrip> grips = CadGrips.Of(Insert(document, handle));
+
+            // AutoCAD 2021 gave (1 100, 550), (1 000, 550) and (1 100, 500) after the insertion point (plugin GhDb1).
+            Assert.Equal(
+                new[]
+                {
+                    CadGripKind.Insertion,
+                    CadGripKind.CustomPoint,
+                    CadGripKind.CustomPoint,
+                    CadGripKind.CustomPoint,
+                },
+                grips.Select(g => g.Kind)
+            );
+            Near(P(1100, 550), grips[1].Point);
+            Near(P(1000, 550), grips[2].Point);
+            Near(P(1100, 500), grips[3].Point);
+        }
+
+        [Fact]
+        public void AnXYCornerDragged_SetsTheDistanceOfTheAxisItTakesFromTheEnd_AndDrawsTheBlockAsAutoCadDrewIt()
+        {
+            // AutoCAD 2021 moved each grip by (20, 10): the end set Width 120 and Height 60; base x with end y Height 60, the
+            // base point's x moved with it (Width 80) and nothing drawn moved along x; end x with base y Width 120, the base
+            // point's y moved (Height 40) and nothing drawn moved along y (plugin GhDb1). The library keeps the base point.
+            CadDocument document = Plate(out string handle);
+            Assert.True(document.GripDrag(handle, 1, P(1120, 560)).Succeeded);
+            Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
+
+            document = Plate(out handle);
+            Assert.True(document.GripDrag(handle, 2, P(1020, 560)).Succeeded);
+            Assert.Equal(100.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
+            Near(P(1000, 560), CadGrips.Of(Insert(document, handle))[2].Point);
+
+            document = Plate(out handle);
+            Assert.True(document.GripDrag(handle, 3, P(1120, 510)).Succeeded);
+            Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(50.0, (double)ValueOf(document, handle, "Height"), 9);
+            Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(0, 50, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(120, 50, 0), Tight)
+            );
+
+            // A corner dragged onto the base point's line along the axis it sets is refused.
+            Assert.False(document.GripDrag(handle, 3, P(1000, 530)).Succeeded);
+        }
+
+        [Fact]
+        public void ABlockTableGrip_ListsTheRows_AndARowChosenSetsTheTable()
+        {
+            CadDocument document = Panel(out string handle, (block, width) =>
+                block.AddBlockPropertiesTable(
+                    new GeoPoint3(0, -20, 0),
+                    new[] { DxfBlockPropertiesTableColumn.Distance(width) },
+                    new[] { new DxfBlockPropertiesTableRow(100.0), new DxfBlockPropertiesTableRow(200.0) }
+                )
+            );
+
+            CadGrip grip = CadGrips.Of(Insert(document, handle))[2];
+            Assert.Equal(CadGripKind.CustomList, grip.Kind);
+            Assert.Equal(DxfDynamicBlockGripType.BlockTable, grip.Custom.GripType);
+            Near(P(1000, 480), grip.Point);
+
+            IReadOnlyList<string> rows = CadDynamicBlocks.ValuesOf(document, handle, 2, out string current);
+            Assert.Equal(new[] { "100.0000", "200.0000" }, rows);
+            Assert.Equal("100.0000", current);
+
+            Assert.True(CadDynamicBlocks.Choose(document, handle, 2, "200.0000").Succeeded);
+
+            Assert.Equal((short)1, ValueOf(document, handle, "Block Table1"));
+            Assert.Equal(200.0, (double)ValueOf(document, handle, "Width"), 9);
+            CadDynamicBlocks.ValuesOf(document, handle, 2, out current);
+            Assert.Equal("200.0000", current);
+            Assert.Equal("GRIP", document.NextUndo.Name);
+            Assert.False(document.GripDrag(handle, 2, P(1000, 400)).Succeeded);
+        }
+
+        [Fact]
+        public void ACustomGripDragged_PreviewsTheBlockWorkedOutAtTheCursor_TheDrawingLeftAsItWas()
+        {
+            CadDocument document = Panel(out string handle);
+            document.Selection.Set(new[] { handle });
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            string before = document.Database.ToText();
+
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            CadPreview preview = session.Prompt.Preview;
+            Assert.NotNull(preview);
+            Assert.True(preview.ShowsBand);
+
+            // At (1 180, 530) the Width goes to 200, the nearest of its list, and the right edge is drawn at x 1 200.
+            List<string> shapes = PreviewTests.Shapes(preview.Items(P(1180, 530)));
+            Assert.Contains(shapes, s => s.Contains("1200.000000 500.000000 1200.000000 550.000000"));
+            Assert.DoesNotContain(shapes, s => s.Contains("1100.000000 500.000000 1100.000000 550.000000"));
+            Assert.Empty(preview.Items(P(900, 500)));
+            Assert.Equal(before, document.Database.ToText());
+            Assert.False(document.CanUndo);
+
+            Run(session, P(1180, 530));
+            Assert.Equal(200.0, (double)ValueOf(document, handle, "Width"), 9);
+        }
+
+        [Fact]
+        public void AFlipOrAListGripHot_OrTwoGrips_PreviewNothingOfTheBlock()
+        {
+            CadDocument document = Sign(out string handle);
+            CadCommandSession session = Session(document);
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            Assert.Null(session.Prompt.Preview);
+
+            document = Panel(out handle);
+            session = Session(document);
+            Assert.True(
+                session.StartGripEdit(
+                    new[] { new KeyValuePair<string, int>(handle, 0), new KeyValuePair<string, int>(handle, 1) }
+                )
+            );
+            Assert.Null(session.Prompt.Preview);
         }
 
         /// <summary>The handles the space shown draws, each once, in their order.</summary>

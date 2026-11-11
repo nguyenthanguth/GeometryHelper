@@ -13,7 +13,10 @@ namespace GeometryHelper.Dxf
         /// <summary>The end of a polar parameter: dragged anywhere, it sets the distance and the angle. AutoCAD draws a square.</summary>
         Polar,
 
-        /// <summary>The end of an XY parameter: dragged anywhere, it sets the distances along x and along y. AutoCAD draws a square.</summary>
+        /// <summary>
+        /// The end of an XY parameter, or one of its two corners that take x from one of its points and y from the other:
+        /// dragged anywhere, it sets the distances along x and along y. AutoCAD draws a square.
+        /// </summary>
         XY,
 
         /// <summary>A point parameter: dragged anywhere, it sets the position's x and y. AutoCAD draws a square.</summary>
@@ -30,6 +33,13 @@ namespace GeometryHelper.Dxf
 
         /// <summary>A lookup parameter: clicked, it lists the rows. AutoCAD draws a triangle pointing down.</summary>
         Lookup,
+
+        /// <summary>
+        /// A block properties table, at its location: clicked, it lists the table's rows, and the one chosen sets the property
+        /// Block Table1 to its index. AutoCAD 2021 gave the grip of a table at (0, -20) of a block inserted at (1 000, 500) at
+        /// (1 000, 480), and moving it changed nothing (plugin GhDb1).
+        /// </summary>
+        BlockTable,
     }
 
     /// <summary>
@@ -69,8 +79,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the point the parameter measures from, in the coordinates of the file: the base point of a linear, a polar, an
-        /// XY or a rotation parameter, the start of a flip parameter's reflection line, the grip's own position for a point, a
-        /// visibility or a lookup parameter.
+        /// XY (for each of its three grips) or a rotation parameter, the start of a flip parameter's reflection line, the grip's own
+        /// position for a point, a visibility or a lookup parameter and a block properties table.
         /// </summary>
         public GeoPoint3 BasePoint { get; }
 
@@ -83,8 +93,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the names of the properties the grip sets, as <see cref="DxfDynamicBlockReferenceProperty.PropertyName"/> gives
-        /// them: one for a linear, a rotation, a flip, a visibility or a lookup parameter; the distance and then the angle of a
-        /// polar one; the x and then the y of an XY or a point one.
+        /// them: one for a linear, a rotation, a flip, a visibility or a lookup parameter and a block properties table (Block
+        /// Table1); the distance and then the angle of a polar one; the x and then the y of a point one and of each grip of an XY
+        /// one.
         /// </summary>
         public IReadOnlyList<string> PropertyNames => Array.AsReadOnly(_names);
 

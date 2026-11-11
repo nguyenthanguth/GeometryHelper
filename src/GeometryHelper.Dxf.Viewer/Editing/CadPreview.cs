@@ -17,6 +17,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly IReadOnlyList<DisplayItem2> NoItems = Array.Empty<DisplayItem2>();
         private static readonly IReadOnlyList<Affine2> NoMoves = Array.Empty<Affine2>();
 
+        // A tolerance of nought: the same cursor to the bit draws the copy made for it.
+        private static readonly Tolerance Exactly = new Tolerance(0.0, 0.0);
+
         private readonly CadCommandSession _session;
         private readonly Func<CadInput, IEnumerable<DxfEntity>> _make;
         private readonly Func<CadInput, IReadOnlyList<Affine2>> _moves;
@@ -242,6 +245,55 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadPreview(c.Session, null, null, null, false)
             {
                 _drawn = input => builder.BuildLoose(entities, move(input)),
+            };
+        }
+
+        /// <summary>
+        /// A preview of an entity of the drawing as an edit at the cursor would leave it: a copy of it, with its block and
+        /// layer, in a drawing of its own, made anew from the drawing at each point, the edit made on the copy and the copy
+        /// drawn by that drawing's layers and styles; nothing where the edit says false. A dynamic block's grip dragged so
+        /// shows the block worked out at the cursor, as AutoCAD 2021 redraws it while the grip moves. The last point's
+        /// drawing is kept, so that a canvas drawn again with the cursor still makes no copy.
+        /// </summary>
+        internal static CadPreview Reshaping(CadCommandContext c, string handle, Func<DxfEntity, GeoPoint2, bool> edit)
+        {
+            GeoPoint2? last = null;
+            IReadOnlyList<DisplayItem2> drawn = NoItems;
+            return new CadPreview(c.Session, null, null, null, true)
+            {
+                _drawn = input =>
+                {
+                    if (last.HasValue && last.Value.IsEqualTo(input.Point, Exactly))
+                    {
+                        return drawn;
+                    }
+
+                    last = input.Point;
+                    drawn = NoItems;
+                    CadDocument document = c.Document;
+                    DxfEntity entity = document.FindEntity(handle);
+
+                    if (entity == null)
+                    {
+                        return drawn;
+                    }
+
+                    var copy = new DxfDatabase(document.Database.Version);
+                    document.Database.WblockCloneObjects(new[] { entity }, copy.ModelSpace);
+                    DxfEntity made = null;
+
+                    foreach (DxfEntity e in copy.ModelSpace)
+                    {
+                        made = e;
+                    }
+
+                    if (made != null && edit(made, input.Point))
+                    {
+                        drawn = new DisplayBuilder(copy, document).BuildLoose(new[] { made });
+                    }
+
+                    return drawn;
+                },
             };
         }
 

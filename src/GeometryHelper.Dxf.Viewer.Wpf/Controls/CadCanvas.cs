@@ -259,8 +259,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
 
-        // A dynamic block's custom grips, in AutoCAD's dynamic grip colour (GRIPDYNCOLOR) and edged dark, as the design draws them.
-        private static readonly Brush CustomGripBrush = Solid(0x19B5F0);
+        // A dynamic block's custom grips, in AutoCAD's dynamic grip colour (GRIPDYNCOLOR, CanvasOptions.CustomGripColor) and
+        // edged dark, as the design draws them.
         private static readonly Pen CustomGripEdge = Frozen(new Pen(Solid(0x0B1220), 0.8));
         private static readonly Brush GripTipFill = Solid(0x262B33);
         private static readonly Pen GripTipEdge = Frozen(new Pen(Solid(0x3A414C), 1.0));
@@ -341,6 +341,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private double _crosshairPercent;
         private int _gripRgb = 0x3D9BFF;
         private Brush _gripBrush = DefaultGripBrush;
+        private int _customGripRgb = -1;
+        private Brush _customGripBrush;
         private CadSnapResult _snapped;
         private DispatcherTimer _rest;
         private GeoPoint2? _restAt;
@@ -740,6 +742,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 return _gripBrush;
+            }
+        }
+
+        /// <summary>The brush of a dynamic block's custom grips, in the colour of <see cref="CanvasOptions.CustomGripColor"/>.</summary>
+        private Brush CustomGripBrush
+        {
+            get
+            {
+                if (_customGripRgb != Options.CustomGripColor)
+                {
+                    _customGripRgb = Options.CustomGripColor;
+                    _customGripBrush = Solid(_customGripRgb);
+                }
+
+                return _customGripBrush;
             }
         }
 

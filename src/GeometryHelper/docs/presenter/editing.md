@@ -705,7 +705,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -721,7 +721,10 @@ adding to it, at `Select objects:` and on the canvas: a click on line A, then on
 and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its default without asking; ATTDIA 1, 0 by
 default, makes it ask them in the Edit Attributes dialog where there is a window. DYNMODE keeps -3 to
 3, negative while DYN is off, so that F12 brings the same value back; the one box of dynamic input shows both pointer and
-dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
+dimensional input whichever of 1 to 3 is set. GRIPDYNCOLOR, the colour of a dynamic block's custom grips, takes an
+index of AutoCAD's colours from 1 to 255, 140 (#00BFFF) by default as AutoCAD 2021 starts; AutoCAD keeps it in the
+registry and writes none into a drawing (probe GhDb1), and the window keeps it in the settings file
+(`"gripDynamicColor": 140`). The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
 the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`, and POLARMODE too: its 2 runs
 the lines of object snap tracking on every polar angle (0, AutoCAD's default, runs them level and upright alone), and its 8
 acquires a point only with Shift held; its 1 counts the polar angles from the last segment drawn, a line or the end of
@@ -852,7 +855,7 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
 | angular DIMENSION | the vertex and the two line points (an angle between two lines: the ends of both lines), the arc, the words | a point measures anew; the arc runs through the point |
 | ordinate DIMENSION | the feature, the leader's end | moves that point |
-| dynamic INSERT | the insertion point, then its custom grips | a linear arrow sets the distance along its parameter, a rotation circle the angle about its base, a point, polar or XY square its values; a flip arrow clicked flips; a visibility or lookup triangle clicked lists its values |
+| dynamic INSERT | the insertion point, then its custom grips | a linear arrow sets the distance along its parameter, a rotation circle the angle about its base, a point, polar or XY square its values (an XY corner the one of its axes the end gives); a flip arrow clicked flips; a visibility, lookup or block table triangle clicked lists its values |
 | anything else | none | |
 
 The plate's line has `End 0 (0, 0)`, `End 1 (100, 0)` and `Middle 2 (50, 0)`; dragging grip 1 to (120, 0) leaves its end at
@@ -879,12 +882,20 @@ the bar of each stack, all in the MTEXT's text style, layer and colour. A run in
 A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
 ([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a
 custom kind (`CustomLinear`, `CustomPoint`, `CustomRotation`, `CustomFlip`, `CustomList`) carrying the core grip in
-`Custom`; the window draws them in the dynamic grip colour, of AutoCAD's shapes. A grip dragged, by `GripDrag` or by
-the STRETCH of a grip edit, asks a value worked out in the block's own coordinates, which the library takes to the
-parameter's value set and works the block out with, into an anonymous block still named by the dynamic block: the panel of
-a Width of 100, 150 or 200 at (1 000, 500) dragged by its arrow to (1 180, 530) is 200 wide, one undo step `GRIP`. A flip
-grip clicked flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility or
-lookup grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`). The right-click menu of a
+`Custom`; the window draws them in the dynamic grip colour, GRIPDYNCOLOR, of AutoCAD's shapes. A grip dragged, by
+`GripDrag` or by the STRETCH of a grip edit, asks a value worked out in the block's own coordinates, which the library
+takes to the parameter's value set and works the block out with, into an anonymous block still named by the dynamic block:
+the panel of a Width of 100, 150 or 200 at (1 000, 500) dragged by its arrow to (1 180, 530) is 200 wide, one undo step
+`GRIP`. While one custom grip is dragged, the STRETCH prompt previews the block worked out at the cursor, as AutoCAD
+2021 redraws it: a copy of the INSERT in a drawing of its own, the drawing itself left as it is until the point is picked.
+An XY parameter shows three grips, as AutoCAD does: its end sets Width and Height; the corner of base x and end y sets the
+Height alone, and the corner of end x and base y the Width alone. AutoCAD moves the parameter's base point along the other
+axis, reading a Width of 80 where the presenter keeps 100 for the first corner of a rectangle 100 by 50 dragged by (20,
+10), and draws the block as the presenter does where no action follows the base point (probe GhDb1). A flip grip clicked
+flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility, lookup or
+block table grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`): a block table
+lists its rows, each its cells parted by commas, "100.0000" and "200.0000" for a table of Width, and the row chosen sets
+Block Table1 to its index and Width with it. The right-click menu of a
 selection holding a dynamic block offers Reset Block, which runs RESETBLOCK. AutoCAD 2021 read every value the presenter set
 so on the library's dynamic samples as the library reads it (96 values, 61 grip edits and 6 resets), and AUDIT found no
 error.

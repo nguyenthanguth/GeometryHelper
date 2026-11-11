@@ -105,6 +105,7 @@ namespace GeometryHelper.Dxf.Viewer
         private int _selection = 0x3D9BFF;
         private int _grip = 0x3D9BFF;
         private int _tableIndicator = 0x5B6573;
+        private int _gripDynamicColor = 140;
         private double _crosshairPercent = 5.0;
         private int _pickboxPixels = 5;
         private int _aperturePixels = 10;
@@ -232,6 +233,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// starts.
         /// </summary>
         public bool TableIndicator { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the colour of a dynamic block's custom grips, as AutoCAD's GRIPDYNCOLOR: an index of AutoCAD's colours,
+        /// 1 to 255, kept on this machine as AutoCAD keeps it in the registry: 140 by default, as AutoCAD 2021 starts, the
+        /// light blue #00BFFF. AutoCAD 2021 took 1 to 255 and wrote no GRIPDYNCOLOR into a drawing (plugin GhDb1).
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int GripDynamicColor
+        {
+            get => _gripDynamicColor;
+            set => _gripDynamicColor = (int)Range(value, 1, 255, nameof(GripDynamicColor));
+        }
 
         /// <summary>Gets or sets the size of the crosshair in per cent of the screen, 1 to 100: 5 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
@@ -878,6 +891,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("grip", Hex(_grip));
             w.Value("tableIndicatorColor", Hex(_tableIndicator));
             w.Value("tableIndicator", TableIndicator);
+            w.Value("gripDynamicColor", _gripDynamicColor);
             w.Value("crosshairPercent", _crosshairPercent);
             w.Value("pickboxPixels", _pickboxPixels);
             w.Value("grid", Grid);
@@ -1116,6 +1130,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Colour("appearance", "grip", v => _s.Grip = v);
                 Colour("appearance", "tableIndicatorColor", v => _s.TableIndicatorColor = v);
                 Flag("appearance", "tableIndicator", v => _s.TableIndicator = v);
+                Number("appearance", "gripDynamicColor", v => _s.GripDynamicColor = Whole(v));
                 Number("appearance", "crosshairPercent", v => _s.CrosshairPercent = v);
                 Number("appearance", "pickboxPixels", v => _s.PickboxPixels = Whole(v));
                 Flag("appearance", "grid", v => _s.Grid = v);

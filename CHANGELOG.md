@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `AddVisibilityParameter` wrote each visibility state listing no parameter, so AutoCAD 2021 read every other
+property of the block as not visible in any state and showed none of its grips: a sign of the states Cross, Tick and
+Blank with a Width kept Width out of Properties and its arrow off the INSERT. Each state now lists the block's other
+parameters, their grips and its actions, those added before the visibility parameter and those added after it, as AutoCAD
+lists them in each state of its Door sample, and AutoCAD 2021 reads Width as visible and shows its grip in all three
+states. A state of a drawing that leaves a parameter out keeps it out; a parameter added afterwards joins every state.
+
+**CHANGED.** `DxfBlockReference.GetDynamicGrips` gives an XY parameter's grips at its two other corners after the one at
+its end, base x with end y and end x with base y, and the grip of a block properties table at its location, of the new
+`DxfDynamicBlockGripType.BlockTable`, as AutoCAD 2021 shows them: a rectangle 100 by 50 of an XY parameter from (0, 0)
+inserted at (1 000, 500) has its grips at (1 100, 550), (1 000, 550) and (1 100, 500), and a table at (0, -20) its grip
+at (1 000, 480). Code that took the grips of such a block by their place in the list finds more of them.
+
+**NEW.** The presenter shows those grips: an XY corner dragged sets the distance of the axis it takes from the end point,
+the corner of base x and end y of the rectangle above dragged by (20, 10) a Height of 60, where AutoCAD 2021 also moves
+the parameter's base point and reads a Width of 80, the block drawn alike; a block table grip clicked lists the rows,
+"100.0000" and "200.0000" for a table of Width, and the one chosen sets Block Table1 and its columns in one undo step.
+While one custom grip is dragged, the STRETCH prompt previews the block worked out at the cursor, the drawing left as it
+is until the point is picked (`CadDynamicBlocks`, `CadPreview`).
+
+**NEW.** GRIPDYNCOLOR sets the colour of a dynamic block's custom grips, an index of AutoCAD's colours from 1 to 255, 140
+(#00BFFF) by default as AutoCAD 2021 starts; it is kept in the settings file (`GlobalSettings.GripDynamicColor`) as
+AutoCAD keeps it in the registry, and given to the canvas (`CanvasOptions.CustomGripColor`). The custom grips were drawn
+#19B5F0 before.
+
 **NEW.** The External References palette's Bind… shows Bind Xrefs/DGN Underlays (`XrefBindWindow`, `XrefBindViewModel`)
 for the drawings selected, the palette now selecting several with Ctrl or Shift (`SelectedRows`): Bind or Insert, started
 from BINDTYPE, and OK writes the choice back to BINDTYPE and binds them all as -XREF Bind binds them, in one undo step.
