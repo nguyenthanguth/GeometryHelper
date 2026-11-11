@@ -107,7 +107,8 @@ the ones wanted.
 - [x] Leader follow-ups 2: Select Custom Arrow Block dialog, TOLERANCE entity, frame, command and dialogs, LEADER/QLEADER Tolerance, Copy/Reuse of a TOLERANCE
 - [ ] Tolerance follow-ups: End/Mid snaps on the row rectangles only; TOLERANCE writing differing DIM* overrides; editing a frame (double-click, DDEDIT, Properties rows); GeometricExtents and Explode; word and glyph placement and gdt letters against AutoCAD with graphics; mixed cells 0.0043 wide off; QLEADER angle constraints in a UCS; group 211 in a UCS (S)
 - [x] Dimension overrides: every differing variable written in group order (where $DIMSTYLE names a style the drawing has), DIMSCALE 0 through a viewport, arrowhead pictures in the style dialogs
-- [ ] Dimension overrides follow-ups: a blank DxfDatabase names ISO-25 in $DIMSTYLE but holds only Standard (20 variables differ): fix in the library, then drive dimensions by the header everywhere (72 fixtures need SetDimstyleData); AutoCAD always writes 279 1 on DIMCONTINUE/DIMBASELINE, 288 1 on radius/diameter, 50 on jogged; leaders compare against the header even with no named style; radial kinds through a viewport unprobed (S)
+- [x] Dimension overrides follow-ups: blank DxfDatabase holds ISO-25 as acadiso, header drives every dimension and leader, AutoCAD's 279/288/50 extras
+- [ ] Dimension overrides follow-ups 2: narrow DIMCONTINUE under DIMTMOVE 1 laid out as AutoCAD (leader to y 20.4088, words at (100.8933, 20.4088), arrows outside; ours differ); DIMDIAMETER and DIMJOGGED extras to re-probe; ordinate and angular chains, QDIM, DIM's radial for 279/288; 279 when the style already holds DIMTMOVE 1 (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

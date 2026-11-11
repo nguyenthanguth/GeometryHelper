@@ -48,6 +48,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             style.Dimjust = 0;
             style.Dimtvp = 0.0;
             set(style);
+            StandardCurrent(document.Database);
             return Session(document);
         }
 
@@ -461,6 +462,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDatabase database = session.Document.Database;
             DxfDimStyleTableRecord style = database.DimStyleTable["Standard"];
             style.Dimblk = CadArrowheads.Ensure(database, arrowhead);
+            StandardCurrent(database);
 
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
 
@@ -479,6 +481,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Metric(s => { });
             DxfDatabase database = session.Document.Database;
             database.DimStyleTable["Standard"].Dimblk = CadArrowheads.Ensure(database, "Oblique");
+            StandardCurrent(database);
             Run(session, "DAN", Enter, P(0, 0), P(40, 0), Polar(60, 40), Polar(30, 30));
 
             // AutoCAD 2021: the tick at 30 on the first ray from (28.75, 1.25) to (31.25, -1.25), the arc there running down.
@@ -492,6 +495,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Metric(s => s.Dimtad = 1);
             DxfDatabase database = session.Document.Database;
             database.DimStyleTable["Standard"].Dimblk = CadArrowheads.Ensure(database, "Dot small");
+            StandardCurrent(database);
 
             Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
 
@@ -594,6 +598,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfTextStyleTableRecord standard = session.Document.Database.TextStyleTable["Standard"];
             standard.FileName = "arial.ttf";
             session.Document.Database.DimStyleTable["Standard"].Dimtxsty = standard;
+            StandardCurrent(session.Document.Database);
             return session;
         }
 
@@ -911,6 +916,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 }
             );
             document.Database.DimStyleTable["Standard"].Dimtxsty = document.Database.TextStyleTable["GHSWIDE"];
+            StandardCurrent(document.Database);
             document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
 
             try

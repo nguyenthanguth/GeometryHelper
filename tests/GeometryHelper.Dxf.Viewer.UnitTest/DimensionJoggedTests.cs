@@ -28,6 +28,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             style.Dimtoh = false;
             style.Dimjogang = Math.PI / 4.0;
             set(style);
+            StandardCurrent(document.Database);
             return Session(document);
         }
 
@@ -164,6 +165,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadCommandSession session = Metric(s => { });
             Run(session, "DIMJOGGED", new[] { Circle(session) }, P(0, -100), P(30, 0), P(15, -50));
+
+            // As another CAD writes it, with no DIMJOGANG of its own: AutoCAD 2021 writes one on each it makes (50), which a
+            // change of the style's then does not reach.
+            DxfRadialDimensionLarge made = session.Document.ModelSpace.Block.OfType<DxfRadialDimensionLarge>().Single();
+            Assert.Contains(made.XData, v => v.TypeCode == 1070 && v.Value.Trim() == "50");
+            made.XData = new[] { new DxfTypedValue(1001, "ACAD") };
             CadDocument document = CadDocument.From(DxfDatabase.Parse(session.Document.Database.ToText()), "read.dxf");
             DxfRadialDimensionLarge again = document.ModelSpace.Block.OfType<DxfRadialDimensionLarge>().Single();
             Near(P(15, -50), P2(again.JogPoint), 1E-9);

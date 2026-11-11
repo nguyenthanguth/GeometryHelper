@@ -255,6 +255,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021's console (GHTOL1), DIMTXT 0.18 in Arial: the widths of its frames' bounding points.
             var database = new DxfDatabase("AC1032");
             database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            EditingDrawings.StandardCurrent(database);
             CadDocument document = CadDocument.From(database, "arial.dxf");
             var widths = new[]
             {
@@ -391,6 +392,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021 (GHTOL4), DIMTXT 0.18 in Arial: the copy of {\Fgdt;j}%%v0.1 at (89.07704, 105).
             var database = new DxfDatabase("AC1032");
             database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            EditingDrawings.StandardCurrent(database);
             CadDocument document = CadDocument.From(database, "arial.dxf");
             var session = Session(document);
             DxfTolerance source = Frame(document, "{\\Fgdt;j}%%v0.1", new GeoPoint3(200, 200, 0));

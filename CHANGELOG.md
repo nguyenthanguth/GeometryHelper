@@ -6,12 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A new `DxfDatabase` holds the dimension style its header names: ISO-25, current and equal to the header in
+every variable, beside Standard, as AutoCAD 2021's acadiso.dwt saved as each version from R2000 to R2018 has them, where
+the header named ISO-25 and the drawing held Standard alone, off the header in 20 variables (arrowheads 0.18 long against
+the header's 2.5). The 20 are written into ISO-25 and the header as AutoCAD writes them, so that AutoCAD reads the same
+values. `new DxfDatabase("AC1015")` is the text of `new DxfWriter().ToString()` but for its code page and ISO-25.
+
+**CHANGED.** The presenter's new dimensions are drawn by the header in every drawing, its DIMSTYLE naming a style of it or
+not: where it names none, they are drawn in the style fallen back on (Standard, else the first) and write each variable
+other than that style's, and leaders are compared with the same style, where dimensions were drawn by the style alone and
+leaders compared with AutoCAD's own values. As AutoCAD 2021, DIMCONTINUE and DIMBASELINE draw and write DIMTMOVE 1 where
+it is nought (`279` first on a continued dimension, in the order of the groups on a baseline one), DIMRADIUS and
+DIMDIAMETER write DIMUPT 1 (`288`), and DIMJOGGED writes DIMJOGANG (`50`) whatever the style has.
+
 **CHANGED.** The presenter's new dimensions are drawn by the drawing's current dimension variables and write each that
 differs from their style as an override, in the order of their groups, as AutoCAD 2021 does for every kind (linear,
 continued, baseline, aligned, angular, radius, diameter, jogged, arc length, ordinate): a drawing saved with DIMASZ 5,
 DIMEXO 1, DIMTAD 0 and DIMSCALE 2 over ISO-25 draws arrowheads 10 long and writes `40 41 42 77` in that order, where
-the presenter drew by the style and wrote DIMTXT and DIMSCALE alone, DIMTXT first. A drawing whose DIMSTYLE names no
-style of it (a blank `DxfDatabase`) is drawn by the style it falls back on, as before.
+the presenter drew by the style and wrote DIMTXT and DIMSCALE alone, DIMTXT first.
 
 **FIXED.** A dimension made with DIMSCALE 0 through a viewport is drawn at one over the viewport's scale and writes it, as
 AutoCAD 2021 does: 2 through a viewport of 1:2, words 2.5 high drawn 5 high and `1070 40, 1040 2` written, where the

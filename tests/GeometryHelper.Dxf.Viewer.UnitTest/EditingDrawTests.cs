@@ -162,6 +162,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimAngularOfTwoLines_MeasuresTheAngleItsArcIsPutIn()
         {
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             Run(session, "L", P(0, 0), P(100, 0), Enter, "L", P(0, 0), P(100, 100), Enter);
 
@@ -190,6 +191,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimAngularByItsVertex_MeasuresTheSideTheArcIsPutOn_ThreeQuartersOfATurnBehindIt()
         {
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
 
             Run(session, "DAN", Enter);
@@ -222,6 +224,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             document.Database.DimStyleTable["Standard"].Dimtad = 1;
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
 
             Run(session, "DLI", P(0, 0), P(300, 100));

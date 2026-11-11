@@ -163,7 +163,8 @@ namespace GeometryHelper.Dxf.Viewer
                 textAngle,
                 out DxfDimension made
             );
-            AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+            // AutoCAD 2021 writes DIMJOGANG on every jogged radius, the style's own too: 1070 50, 1040 45.
+            AddedHandle(Place(c, style, TextHeight(c, style), made, picture, always: 50));
         }
 
         private static GeoPoint2 Middle2(GeoPoint2 a, GeoPoint2 b) =>

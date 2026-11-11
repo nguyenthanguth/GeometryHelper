@@ -299,11 +299,16 @@ A new dimension is drawn by the drawing's current dimension variables (its heade
 that differs from the style as an override, in the order of their groups, as AutoCAD 2021 does: DIMSCALE 10 typed with
 ISO-25 current draws the words of a dimension 25 high and its arrowheads 25 long, and DIMBASELINE puts each next line
 37.5 further out; a drawing saved with DIMASZ 5 and DIMCLRD 1 over ISO-25's 2.5 and ByBlock draws arrowheads 5 long and a
-red line, and writes `1070 41, 1040 5` then `1070 176, 1070 1`. The header's variables are taken as those of the style
-its DIMSTYLE names; where it names no style of the drawing (a blank `DxfDatabase` names ISO-25 and has Standard alone),
-the style fallen back on is drawn by as it is, DIMSCALE and the text height alone written. DIMSCALE 0 draws at 1 in model
+red line, and writes `1070 41, 1040 5` then `1070 176, 1070 1`. Where the drawing's DIMSTYLE names no style of it, the
+dimension is drawn by the header all the same, in the style fallen back on (Standard, else the first), each variable other
+than that style's written; a leader is compared with the same style. DIMSCALE 0 draws at 1 in model
 space and, through a viewport, at one over the viewport's scale, as a leader does: 2 through one of 1:2, written as
-`1070 40, 1040 2`, every kind of dimension alike.
+`1070 40, 1040 2`, every kind of dimension alike. As AutoCAD 2021, each linear and angular dimension DIMCONTINUE and
+DIMBASELINE make is drawn with DIMTMOVE 1 where it is nought and writes it, DIMCONTINUE first (`279 41 176` with DIMASZ
+and DIMCLRD typed), DIMBASELINE in the order of the groups (`41 176 279`): words too wide for a continued dimension of 0.5
+stand over its line past a leader from its middle. DIMRADIUS and DIMDIAMETER write DIMUPT 1 (`1070 288, 1070 1`), and
+DIMJOGGED writes DIMJOGANG whatever the style has (`1070 50, 1040 45`), so that a change of the style's jog angle leaves
+it as it was made.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to

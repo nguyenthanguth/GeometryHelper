@@ -65,7 +65,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            DxfDimStyleTableRecord style = document.Database.DimStyleTable["Standard"];
+            DxfDimStyleTableRecord style = document.Database.DimStyleTable[document.Database.Dimstyle];
 
             Run(session, "DLI", P(0, 0), P(300, 0), P(150, -30));
 

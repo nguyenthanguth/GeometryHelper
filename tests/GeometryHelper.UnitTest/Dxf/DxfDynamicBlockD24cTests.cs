@@ -236,9 +236,10 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ANewDrawingOfR2000_IsTheDrawingTheWriterWrites_ItsCodePageNamed()
         {
-            // D23d: the header names the code page after the version, as AutoCAD's own empty drawings do.
+            // D23d: the header names the code page after the version, as AutoCAD's own empty drawings do; ISO-25 is current,
+            // as in acadiso.dwt.
             Assert.Equal(
-                new DxfWriter()
+                new DxfWriter { Iso25Current = true }
                     .ToString()
                     .Replace(
                         "  9\n$ACADVER\n  1\nAC1015\n",

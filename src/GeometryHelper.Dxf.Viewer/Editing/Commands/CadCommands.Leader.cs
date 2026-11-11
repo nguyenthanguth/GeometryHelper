@@ -808,8 +808,7 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             DxfDatabase db = c.Database;
-            string styleName = db.Dimstyle;
-            DxfDimStyleTableRecord style = db.DimStyleTable.Has(styleName) ? db.DimStyleTable[styleName] : null;
+            DxfDimStyleTableRecord style = NamedDimStyle(c);
             double scale = LeaderScale(c);
             double gap = db.Dimgap * scale;
             int tad = quick ? 0 : db.Dimtad;

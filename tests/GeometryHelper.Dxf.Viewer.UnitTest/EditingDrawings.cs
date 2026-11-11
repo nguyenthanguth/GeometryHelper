@@ -52,8 +52,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         public static CadDocument Plan() => CadDocument.From(PlanDatabase(), "plan.dxf");
 
-        /// <summary>A new drawing of R2013 in millimetres, with its text style, dimension style and two layouts.</summary>
+        /// <summary>A new drawing of R2013 in millimetres, with its text style, dimension styles (ISO-25 current) and two layouts.</summary>
         public static CadDocument Blank() => CadDocument.From(new DxfDatabase("AC1027"), "blank.dxf");
+
+        /// <summary>
+        /// Makes Standard the current dimension style, as AutoCAD's Set Current does: <c>$DIMSTYLE</c> names it and the header
+        /// takes its variables, which new dimensions are drawn by. A fixture that changes Standard calls it after each change.
+        /// </summary>
+        public static void StandardCurrent(DxfDatabase database)
+        {
+            DxfDimStyleTableRecord standard = database.DimStyleTable["Standard"];
+            database.Dimstyle = standard.Name;
+            database.SetDimstyleData(standard);
+        }
 
         /// <summary>
         /// <see cref="Blank"/> with the multileader style Standard, as ezdxf 1.4.5 writes its default one, which a MULTILEADER

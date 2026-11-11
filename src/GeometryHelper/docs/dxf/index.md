@@ -73,11 +73,16 @@ itself erasable and copied, its geometry not moved.
 
 A drawing begins as a file, or new, of a version named: `new DxfDatabase("AC1024")` is a drawing of R2010 with nothing in
 it, the drawing `DxfWriter` writes with no shape, in millimetres, with model space and paper space, two layouts, the layer
-0, the text style and the dimension style Standard and the named object dictionary, its header naming AC1024 and, after it,
-the code page ANSI_1252 (`$DWGCODEPAGE`), as AutoCAD's own empty drawings of each of these versions name it; entities,
-blocks and layers are added to it as to any other. The versions are AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 and
-AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of `DxfDatabase.Parse(new DxfWriter().ToString())` but for that
-code page, and a version of R12 to R14, or one written otherwise, is refused (`ArgumentException`). Text of R2007 or later
+0, the text style Standard, the dimension styles Standard and ISO-25 and the named object dictionary, its header naming
+AC1024 and, after it, the code page ANSI_1252 (`$DWGCODEPAGE`), as AutoCAD's own empty drawings of each of these versions
+name it; entities, blocks and layers are added to it as to any other. Its dimensions are those of AutoCAD 2021's metric
+template acadiso.dwt, saved as each of these versions: ISO-25 is current (`$DIMSTYLE`), and the header and ISO-25 hold the
+same values, arrowheads and text 2.5, a gap of 0.625, two decimal places and a decimal comma, the 20 that differ from
+AutoCAD's own written into both; Standard holds AutoCAD's own, arrowheads 0.18 long, as acadiso.dwt's does. So
+`GetDimstyleData()` of a new drawing gives ISO-25 in every variable. The versions are AC1015 (R2000), AC1018, AC1021,
+AC1024, AC1027 and AC1032 (R2018); `new DxfDatabase("AC1015")` is the very text of
+`DxfDatabase.Parse(new DxfWriter().ToString())` but for that code page and ISO-25, and a version of R12 to R14, or one
+written otherwise, is refused (`ArgumentException`). Text of R2007 or later
 is written in UTF-8 whatever the code page says, and before R2007 a letter the code page has not as its escape: Korean
 text copied into a new drawing of R2018 is written as its letters, and into one of R2004 as `\U+CCA0` and on. A letter
 beyond U+FFFF, such as the face U+1F600, is written as the escapes of its two halves, `\U+D83D\U+DE00`, in a drawing of

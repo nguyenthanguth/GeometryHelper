@@ -2516,6 +2516,21 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Writes an override of a variable that is no block, linetype or text style whether or not it is the style's own, as
+        /// AutoCAD 2021's DIMJOGGED writes DIMJOGANG on every dimension it makes: <c>1070 50, 1040 45</c> with 45 degrees in
+        /// the style too. In place where the dimension has one of the variable, else last.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is one AutoCAD does not take.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension's file is of a version without the variable.</exception>
+        internal void WriteOverride(DxfDimVariable variable, object value)
+        {
+            variable.Check(value, nameof(value));
+            DxfFile file = Item.File;
+            file.Requires(variable.Since, variable.Name.ToUpperInvariant(), variable.SinceSaid);
+            WriteOverride(variable, variable.Write(value), !file.HasMarkers);
+        }
+
+        /// <summary>
         /// Writes an override into the list DSTYLE of the extended data of ACAD, in place where the dimension has one of the
         /// variable, else last in the list; the list and the data of ACAD made where there are none, the rest of ACAD's data
         /// kept.

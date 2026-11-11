@@ -30,6 +30,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimOrdinate_MeasuresAlongXWhereTheLeaderRunsUpOrDown_AlongYWhereItRunsAside()
         {
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             string before = document.Database.ToText();
 
@@ -96,6 +97,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimOrdinate_InAUcsTurned_MeasuresAlongItsAxes_AndIsDrawnAgainTheSame()
         {
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             document.Ucs.SetCurrent(CadUcs.InPlane(P(0, 0), Math.PI / 2.0));
 
@@ -128,6 +130,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
             DxfDimStyleTableRecord style = document.Database.DimStyleTable["Standard"];
             style.Dimtad = 1;
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
 
             Run(session, "DOR", P(600, 0), P(600, -30));

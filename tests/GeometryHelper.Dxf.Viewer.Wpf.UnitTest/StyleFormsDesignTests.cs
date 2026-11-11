@@ -222,7 +222,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private static MainViewModel Opened(out CadDocument document)
         {
             var model = new MainViewModel();
-            document = CadDocument.From(new DxfDatabase("AC1027"), "styles.dxf");
+            // A drawing of the dimension style Standard alone, current and held by the header.
+            var database = new DxfDatabase("AC1027");
+            database.Dimstyle = "Standard";
+            database.SetDimstyleData(database.DimStyleTable["Standard"]);
+            database.DimStyleTable["ISO-25"].Erase();
+            document = CadDocument.From(database, "styles.dxf");
             model.OpenDocument(document);
             return model;
         }

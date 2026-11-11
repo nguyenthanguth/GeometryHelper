@@ -150,6 +150,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ANewDimensionStyleStartsWithAnothers_AndNewDimensionsTakeItOnceItIsCurrent()
         {
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             string start = CadDimStyleEditor.Current(document.Database);
 

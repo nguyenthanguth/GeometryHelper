@@ -93,6 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // origin (100, 120) tied as Perpendicular of parameter 1.75 drawn from (20, 120); the line moved by (20, 7), the origin
             // went to (120, 0), the line of the dimension to y = 40, measuring 80.
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             Run(session, "LINE", P(100, -20), P(100, 60), Enter, "POINT", P(20, 120));
             string upright = Handle<DxfLine>(document, l => true);
@@ -440,6 +441,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // arc through (60, 760); the upright's top stretched by (50, 0): 14 (50, 800), 10 (79.139726, 730.608884), 42
             // 1.107149, 11 at the middle of the arc.
             CadDocument document = Blank();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             Run(session, "LINE", P(0, 700), P(100, 700), Enter, "LINE", P(0, 700), P(0, 800), Enter);
             Run(session, "DIMANGULAR", Enter);

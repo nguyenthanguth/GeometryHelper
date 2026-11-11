@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
@@ -116,8 +117,113 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<DxfDimension> made = All<DxfDimension>(document.ModelSpace);
             Assert.Equal(9, made.Count);
-            Assert.All(made, d => Assert.Equal("41 176", Groups(d)));
+            // AutoCAD 2021 writes DIMTMOVE 1 first on a continued one, DIMUPT 1 on a radius and a diameter, and DIMJOGANG on
+            // a jogged radius whatever the style has.
+            Assert.Equal(
+                new[]
+                {
+                    "41 176",
+                    "279 41 176",
+                    "41 176",
+                    "41 176",
+                    "41 176 288",
+                    "41 176 288",
+                    "41 50 176",
+                    "41 176",
+                    "41 176",
+                },
+                made.Select(Groups)
+            );
             Assert.All(made, d => Assert.Equal(4.0, d.Dimasz));
+        }
+
+        [Fact]
+        public void AShortDimensionDimcontinueAdds_IsDrawnWithDimtmove1_ItsWordsOverTheLinePastALeader_AsAutoCad()
+        {
+            // AutoCAD 2021, acad.dwt's Standard current: DIMLINEAR (0, 0) to (100, 0) at y 20, DIMCONTINUE to (100.5, 0):
+            // 279 1 written, the words "0.5000" over the line, past a leader from the middle of the line (100.25, 20). (Where
+            // AutoCAD runs the leader up to y 20.4088 and on to x 100.43 and centres the words at (100.8933, 20.4088), the
+            // presenter's picture of DIMTMOVE 1 runs it to (100.372, 20.405) and centres them at (101.02, 20.405).)
+            CadDocument document = Blank();
+            StandardCurrent(document.Database);
+            CadCommandSession session = Session(document);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+
+            Run(session, "DCO", P(100.5, 0), Enter, Enter);
+
+            DxfRotatedDimension dimension = All<DxfRotatedDimension>(document.ModelSpace).Last();
+            Assert.Equal("279", Groups(dimension));
+            Assert.Equal(1, dimension.Dimtmove);
+            Assert.Contains(dimension.DimBlock.OfType<DxfLine>(), l =>
+                Math.Abs(l.StartPoint.X - 100.25) < 1E-9 && Math.Abs(l.StartPoint.Y - 20) < 1E-9 && l.EndPoint.Y > 20.4
+            );
+            Assert.True(dimension.DimBlock.OfType<DxfMText>().Single().Location.Y > 20.4);
+        }
+
+        [Fact]
+        public void ABlankDrawing_DrawsANewDimensionByItsHeader_InIso25_WhichItHolds()
+        {
+            // A blank DxfDatabase is acadiso.dwt's in its dimensions: ISO-25 current, the header holding its values.
+            var document = CadDocument.From(new DxfDatabase("AC1027"), "blank.dxf");
+            document.Database.Dimasz = 5.0;
+            CadCommandSession session = Session(document);
+
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+
+            DxfRotatedDimension dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
+            Assert.Equal("ISO-25", dimension.DimensionStyleName);
+            Assert.Equal("41", Groups(dimension));
+            Assert.Equal(5.0, dimension.Dimasz);
+            Assert.Equal(2.5, dimension.DimBlock.OfType<DxfMText>().Single().TextHeight, 9);
+            Assert.EndsWith("100", dimension.DimBlock.OfType<DxfMText>().Single().Contents);
+        }
+
+        [Fact]
+        public void ADrawingWhoseDimstyleNamesNoStyleOfIt_DrawsByTheHeaderAllTheSame_InStandard()
+        {
+            // $DIMSTYLE naming a style the drawing has not: the style fallen back on is Standard, the header drawn by and each
+            // variable other than Standard's written, as where it names one.
+            var db = new DxfDatabase("AC1027");
+            DxfDimStyleTableRecord standard = db.DimStyleTable["Standard"];
+            standard.Dimasz = 3.0;
+            standard.Dimgap = 1.0;
+            db.SetDimstyleData(standard);
+            db.Dimstyle = "GONE";
+            db.Dimasz = 5.0;
+            var document = CadDocument.From(db, "gone.dxf");
+            CadCommandSession session = Session(document);
+
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+
+            DxfRotatedDimension dimension = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace));
+            Assert.Equal("Standard", dimension.DimensionStyleName);
+            Assert.Equal("41", Groups(dimension));
+            DxfSolid arrow = dimension.DimBlock.OfType<DxfSolid>().First();
+            double[] xs = Enumerable.Range(0, 4).Select(i => arrow.GetPointAt((short)i).X).ToArray();
+            Assert.Equal(5.0, xs.Max() - xs.Min(), 9);
+
+            // A leader alike: compared with Standard, whose DIMASZ the header holds, it writes no override.
+            Run(session, "LEADER", P(0, 50), P(10, 60), P(20, 60), Enter, "Hi", Enter);
+            DxfLeader leader = Assert.Single(All<DxfLeader>(document.ModelSpace));
+            Assert.Equal("Standard", leader.DimensionStyleName);
+            Assert.Equal(5.0, leader.Dimasz);
+            Assert.Contains(leader.GetXDataForApplication("ACAD") ?? new List<DxfTypedValue>(), v =>
+                v.TypeCode == 1070 && v.Value.Trim() == "41"
+            );
+            db.Dimasz = 3.0;
+            Run(session, "LEADER", P(0, 80), P(10, 90), P(20, 90), Enter, "Ho", Enter);
+            DxfLeader plain = All<DxfLeader>(document.ModelSpace).Last();
+            Assert.Equal(3.0, plain.Dimasz);
+            Assert.Null(plain.GetXDataForApplication("ACAD"));
+
+            // QLEADER writes DIMGAP and DIMTAD first and moves neither, Standard holding the header's DIMGAP of 1, where
+            // compared with AutoCAD's own 0.09 it moved DIMGAP after DIMTAD.
+            Run(session, "QLEADER", P(0, 120), P(10, 130), P(20, 130), "0", "Q", Enter);
+            DxfLeader quick = All<DxfLeader>(document.ModelSpace).Last();
+            Assert.Equal(
+                new[] { "147", "77" },
+                quick.GetXDataForApplication("ACAD").Where(v => v.TypeCode == 1070).Select(v => v.Value.Trim()).Take(2)
+            );
         }
 
         [Fact]
@@ -151,7 +257,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<DxfDimension> made = All<DxfDimension>(document.ModelSpace);
             Assert.Equal(9, made.Count);
-            Assert.All(made, d => Assert.Equal("40", Groups(d)));
+            Assert.Equal(
+                new[] { "40", "40 279", "40", "40", "40 288", "40 288", "40 50", "40", "40" },
+                made.Select(Groups)
+            );
             Assert.All(made, d => Assert.Equal(2.0, d.Dimscale, 9));
             Assert.All(made, d => Assert.Equal(5.0, d.DimBlock.OfType<DxfMText>().First().TextHeight, 9));
             Assert.Equal(0.0, document.Database.Dimscale);
