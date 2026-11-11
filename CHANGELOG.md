@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** PEDIT Multiple in the presenter joins by Extend, and by Both, at the end of an arc as AutoCAD 2021 does, checked
+in its console: the arc is run on or cut back round its circle to where the other end segment, a line or an arc, meets
+it, and the other is run on or cut back to there too. Of two crossings the one nearer the two ends together is taken, as
+AutoCAD took it where the one nearer the arc's end lay elsewhere. The arc about (0, 0) of radius 100 from 0 to 80 degrees
+and the line from (10, 130) to (10, 200), joined at a fuzz of 40, are one polyline through (10, 99.4987), the arc's bulge
+0.38517039, to 1E-10 of AutoCAD's. Extend refused any arc before; Both added a segment there.
+
+**FIXED.** PEDIT Multiple's Join by Extend in the presenter takes two ends whose meeting point lies within the fuzz
+distance of both, as AutoCAD 2021 does, not two ends within the fuzz of each other: the ends (100, 0) and (130, 30), 42.4
+apart, run on to (130, 0) at a fuzz of 35, and the ends (100, 0) and (110, 5), whose lines meet far off, are not joined
+by Extend; Both adds a segment between them.
+
 **NEW.** SETVAR in the presenter sets PEDITACCEPT and PLINETYPE, kept by the session, and PEDIT, PLINE, POLYGON and
 DONUT honour them as AutoCAD 2021 does, checked in its console. PEDITACCEPT 1 turns a line or an arc picked into a
 polyline without `Do you want to turn it into one? <Y>`, and Multiple without asking to convert. PLINETYPE 0 makes PLINE,

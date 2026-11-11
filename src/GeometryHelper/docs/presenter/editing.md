@@ -311,7 +311,12 @@ the first one the view shows (`No visible vertices` where it shows none); Next a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
 leaves two open ones, and Straighten at one vertex straightens the segment that leaves it. Multiple joins within a fuzz
 distance by Extend, Add or Both: the lines (0, 0) to (100, 0), (103, 0) to (103, 50) and (100, 50) to (0, 52) joined at 4
-by Both are one polyline through (103, 0) and (103, 49.94), "2 segments added to polyline". A run is one undo step, and
+by Both are one polyline through (103, 0) and (103, 49.94), "2 segments added to polyline". Extend runs an arc at an end
+round its circle, on or back, to where the other end segment meets it, of two crossings the one nearer the two ends
+together: the arc about (0, 0) of radius 100 from 0 to 80 degrees and the line from (10, 130) to (10, 200) meet at
+(10, 99.4987), the arc's bulge 0.38517039, as AutoCAD 2021 joins them; an arc whose circle nothing crosses is not
+extended, and Both adds a segment there. Extend joins two ends where they meet within the fuzz of both, however far
+apart the ends are: (100, 0) and (130, 30), 42.4 apart, meet at (130, 0) at a fuzz of 35. A run is one undo step, and
 Undo takes back its last option.
 
 REVCLOUD draws a cloud round a rectangle (Rectangular, the type it starts with), a polygon (Polygonal), the cursor's path
