@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `CollidesWith` and `DistanceTo` of a triangle, a polygon, a face, a plane, a solid or another box against a
+box flat on some axis, `GeoObb3` or `GeoAabb3`, threw "A box with a zero size on some axis has no faces to build"; they
+read the box as the shape it has become and answer as usual: flat on one axis its rectangle, on two its segment, on all
+three its point. The box 100 by 100 by 0 about (50, 50, 0) is 20 from the triangle with corners (10, 10, 20),
+(90, 10, 20) and (10, 90, 20) lying over it, and touched by a square standing upright across it. A box with its faces
+gives the same answer bit for bit, an empty `GeoAabb3` is still refused, and `GetFaces()` and `ToSolid()` of a flat box
+still throw.
+
 **FIXED.** `GetIntersections` of a triangle, a polygon, a face or a plane with a box flat on some axis, `GeoObb3` or
 `GeoAabb3`, or with an empty `GeoAabb3`, threw "A box with a zero size on some axis has no faces to build" or "An empty
 bounding box has no shape to convert"; it gives no points, as `TryIntersectWith` answers false: the plane x = 20 and the

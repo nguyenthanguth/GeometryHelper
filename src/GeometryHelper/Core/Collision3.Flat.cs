@@ -290,7 +290,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// An axis-aligned box is an oriented box whose axes happen to be the world's, so this is the
-        /// oriented answer and not an approximation of it.
+        /// oriented answer and not an approximation of it. A box flat on some axis is read as its rectangle, its segment or
+        /// its point: the box from the origin to (100, 100, 0) is missed by a cube 40 on a side standing 20 over it.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the solid is null.</exception>
         public static bool CollidesWith(GeoAabb3 box, GeoSolid3 solid, Tolerance tolerance) =>

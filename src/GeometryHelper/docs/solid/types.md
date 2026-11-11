@@ -130,7 +130,12 @@ flat, and one 0.0005 thick is flat. A box with a side of nought, as the bounding
 passes the rectangle across it, and a box flat on two axes or three nowhere; a triangle, a polygon, a face or a plane
 against a box flat or empty, and a boolean with a flat box, answer false. `GetIntersections` of a triangle, a polygon,
 a face or a plane with such a box gives no points, as the `Try` method answers, where it threw: the plane x = 20 and
-the box 100 by 100 by 0 cross nowhere. A box,
+the box 100 by 100 by 0 cross nowhere. `CollidesWith` and `DistanceTo` of a triangle, a polygon, a face, a plane, a
+solid or another box read a box flat on some axis as the shape it has become, where they threw: flat on one axis its
+rectangle, on two its segment, on all three its point. The box 100 by 100 by 0 about (50, 50, 0) is 20 from the
+triangle with corners (10, 10, 20), (90, 10, 20) and (10, 90, 20), and touched by a square standing upright across it;
+the box 100 by 0 by 0 is the segment along its X axis. A box with its faces is read as its body, as before, bit for bit,
+and an empty axis-aligned box is still refused. A box,
 oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
 it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
 nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.

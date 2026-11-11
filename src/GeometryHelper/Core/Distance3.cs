@@ -730,10 +730,19 @@ namespace GeometryHelper.Core
         /// Calculates the shortest distance between a solid and an oriented box, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A box is a solid of six faces, so the two are measured against each other as two solids are.
+        /// A box is a solid of six faces, so the two are measured against each other as two solids are. A box flat on some
+        /// axis bounds no body and is read as its rectangle, its segment or its point: a box 100 by 100 by 0 lying on the
+        /// floor is 20 from a cube 40 on a side standing 20 over it.
         /// </remarks>
         public static double DistanceTo(GeoSolid3 solid, GeoObb3 box, Tolerance tolerance)
         {
+            if (Intersection3.FlatOf(box, out GeoPolygon3 rectangle, out GeoLine3 segment))
+            {
+                return rectangle != null
+                    ? DistanceTo(solid, rectangle, tolerance)
+                    : DistanceTo(segment, solid, tolerance);
+            }
+
             return DistanceTo(solid, box.ToSolid(), tolerance);
         }
 
@@ -745,9 +754,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Calculates the shortest distance between a solid and an axis-aligned box, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// The answer of <see cref="DistanceTo(GeoSolid3, GeoObb3, Tolerance)"/> for <c>ToObb()</c>: a box flat on some axis
+        /// is read as its rectangle, its segment or its point, and the box from the origin to (100, 100, 0) is 20 from a
+        /// cube 40 on a side standing 20 over it.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static double DistanceTo(GeoSolid3 solid, GeoAabb3 box, Tolerance tolerance)
         {
-            return DistanceTo(solid, box.ToObb().ToSolid(), tolerance);
+            return DistanceTo(solid, box.ToObb(), tolerance);
         }
 
         /// <summary>
@@ -805,7 +820,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// Boxes that overlap or touch are at distance zero, which the separating axis test settles
         /// outright. Apart, they are measured as the bodies they are. Oriented boxes within the point tolerance of each other are nought
-        /// apart, as for two solids: the exact gap is not read between bodies.
+        /// apart, as for two solids: the exact gap is not read between bodies. A box flat on some axis bounds no body and is
+        /// read as its rectangle, its segment or its point, measured exactly against the other box: a box 100 by 100 by 0
+        /// lying on the floor is 10 from the same box lifted by 10, and 20 from a cube 40 on a side standing 20 over it.
         /// </remarks>
         public static double DistanceTo(GeoObb3 box1, GeoObb3 box2, Tolerance tolerance)
         {
@@ -822,6 +839,20 @@ namespace GeometryHelper.Core
             if (Collision3.CollidesWith(box1, box2, tolerance))
             {
                 return 0.0;
+            }
+
+            if (box1.IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment))
+            {
+                return rectangle != null
+                    ? DistanceTo(rectangle, box2, tolerance)
+                    : DistanceTo(segment, box2, tolerance);
+            }
+
+            if (box2.IsFlat(out rectangle, out segment))
+            {
+                return rectangle != null
+                    ? DistanceTo(rectangle, box1, tolerance)
+                    : DistanceTo(segment, box1, tolerance);
             }
 
             return DistanceTo(box1.ToSolid(), box2.ToSolid(), tolerance);
