@@ -127,7 +127,8 @@ the ones wanted.
 - [x] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT 0 in AutoCAD
       and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
 - [x] Associative dimensions follow-ups: extended perpendicular, DIMANGULAR on a circle, groups 11/42, the angular arc point (1247 of 1335 replayed values match AutoCAD)
-- [ ] Associative dimensions follow-ups 2: coincident endpoints tie the newer object in AutoCAD (31 of 88 differences); two-line angle pick order (one sample); DIMLINEAR line with origins equally far after a move; radius/diameter word widths and a diameter's leader-side end; collinear three-point angle measures 0; second point on the dimensioned circle or a polyline arc; DIMARC association (S)
+- [x] Associative dimensions follow-ups 2: newest object at a shared end, two-line order, DIMLINEAR line after a move, words from the leader end, polyline arc second point, DIMARC association, zero angles (238 of 262 states match)
+- [ ] Associative dimensions follow-ups 3: flag 128 on radii and diameters; DIMARC arc point for a Partial length or under 90 degrees (0.43 off); arc point of an angle too small for its words (two thirds round); DIMARC of a polyline arc segment (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and

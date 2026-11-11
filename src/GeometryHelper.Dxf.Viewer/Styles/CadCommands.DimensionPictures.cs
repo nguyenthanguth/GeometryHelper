@@ -395,7 +395,8 @@ namespace GeometryHelper.Dxf.Viewer
             double radius = (location - vertex).Length;
             AngularSector(first, second, vertex, points, location, rays, near, far, out double from, out double sweep);
 
-            if (sweep <= 1E-12 || radius <= 1E-12)
+            // Three points along one ray, the arc on it, measure nothing and are drawn so (AngularSector).
+            if ((sweep <= 1E-12 && first != null) || radius <= 1E-12)
             {
                 return null;
             }
@@ -414,6 +415,18 @@ namespace GeometryHelper.Dxf.Viewer
                 Formatted(dimension, sweep, string.Empty),
                 placed
             );
+        }
+
+        /// <summary>
+        /// How wide the words of a radius or a diameter of the drawing are for a measurement (the radius, or the diameter), as its
+        /// picture measures them: "R13.5000" of arial.ttf 0.18 high 0.14 wider than "R9.0000".
+        /// </summary>
+        internal static double RoundWordsWidth(DxfDimension dimension, double measured)
+        {
+            DxfDimStyleTableRecord data = dimension.GetDimstyleData();
+            double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
+            string prefix = dimension is DxfDiametricDimension ? "%%c" : "R";
+            return WordsWidth(data, Formatted(dimension, measured, prefix), data.Dimtxt * scale, out _);
         }
 
         /// <summary>The words of a dimension of a drawing: the measurement as it writes it, in place of the &lt;&gt; of its own text.</summary>
