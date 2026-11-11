@@ -160,7 +160,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, Freeze, Thaw, LOck, Unlock, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
@@ -318,6 +318,16 @@ together: the arc about (0, 0) of radius 100 from 0 to 80 degrees and the line f
 extended, and Both adds a segment there. Extend joins two ends where they meet within the fuzz of both, however far
 apart the ends are: (100, 0) and (130, 30), 42.4 apart, meet at (130, 0) at a fuzz of 35. A run is one undo step, and
 Undo takes back its last option.
+
+A 3D polyline picked is edited with AutoCAD 2021's options for one,
+`Enter an option [Close/Join/Edit vertex/Spline curve/Decurve/Reverse/Undo]:` (Open where it is closed), and its vertex
+options `[Next/Previous/Break/Insert/Move/Regen/Straighten/eXit] <N>`. Spline curve fits it as SPLINETYPE and SPLINESEGS
+ask: the 3DPOLY (0, 0, 0), (100, 0, 10),
+(100, 100, 20), (0, 100, 30) is the first vertex of the frame, the 9 of the curve through (75, 50, 15), then the rest of
+the frame, and closed it is fitted again round the frame, 32 vertices of the curve, as AutoCAD stores them. Reverse turns
+the frame round, the first vertex of a closed one too, and fits it again; Decurve straightens it; a vertex moved or put in
+lies at nought, and a fitted polyline is fitted again on its frame. Join asks the objects and adds none, as AutoCAD 2021's
+console did for lines and 3D polylines meeting an end. Multiple leaves 3D polylines out.
 
 REVCLOUD draws a cloud round a rectangle (Rectangular, the type it starts with), a polygon (Polygonal), the cursor's path
 (Freehand), or an object picked, which it replaces (Object: a line, arc, circle, ellipse, polyline or spline). The cloud is

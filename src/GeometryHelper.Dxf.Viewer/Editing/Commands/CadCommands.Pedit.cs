@@ -51,10 +51,10 @@ namespace GeometryHelper.Dxf.Viewer
                 string picked = c.Input.Handles[0];
                 DxfEntity entity = c.Document.FindEntity(picked);
 
-                if (!(entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfLine || entity is DxfArc))
+                if (!(entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfPolyline3d || entity is DxfLine || entity is DxfArc))
                 {
-                    c.Write(entity is DxfPolyline3d || entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
-                        ? "PEDIT edits polylines of the plane here; 3D polylines and meshes are not edited yet."
+                    c.Write(entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
+                        ? "PEDIT edits polylines and 3D polylines here; meshes are not edited yet."
                         : "Object selected is not a polyline");
                     continue;
                 }
@@ -62,6 +62,16 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!CanChange(c, picked, "edited"))
                 {
                     continue;
+                }
+
+                if (entity is DxfPolyline3d)
+                {
+                    foreach (CadPrompt prompt in Pedit3d(c, picked))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
                 }
 
                 if (entity is DxfPolyline || entity is DxfPolyline2d)

@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** PEDIT in the presenter edits a 3D polyline with AutoCAD 2021's options for one, checked in its console: Close and
+Open, Join, Edit vertex (Next, Previous, Break, Insert, Move, Regen, Straighten), Spline curve, Decurve, Reverse and Undo,
+in AutoCAD's words. Spline curve of the 3DPOLY (0, 0, 0), (100, 0, 10), (100, 100, 20), (0, 100, 30) stores the 13
+vertices AutoCAD stores, the curve through (75, 50, 15), and closed, reversed and decurved it is AutoCAD's to 1E-8; a
+vertex moved on the spline fits it again, the curve through (47.168, 18.652, 0.879) as in AutoCAD. Join adds nothing, as
+AutoCAD 2021's console added nothing to a 3D polyline. PEDIT said before that 3D polylines were not edited yet. Multiple
+still leaves them out.
+
 **NEW.** PEDIT Multiple in the presenter joins by Extend, and by Both, at the end of an arc as AutoCAD 2021 does, checked
 in its console: the arc is run on or cut back round its circle to where the other end segment, a line or an arc, meets
 it, and the other is run on or cut back to there too. Of two crossings the one nearer the two ends together is taken, as
