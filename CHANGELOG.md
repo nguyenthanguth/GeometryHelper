@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Point modifiers of the presenter checked against AutoCAD 2021: TK's `Next point  (Press ENTER to end
+tracking):` and its upright tie, (100, 0) towards (130, 30) reaching (100, 30); `40,3` at `(need YZ):` gives Y 3, not
+40; Enter and text at FROM, M2P, TT, TK and filter prompts answered as AutoCAD answers them; TT and TK no longer nest in
+another modifier, nor FROM in TK.
+
+**NEW.** POLARMODE 1 (polar angles from the last segment) and 4 with POLARADDANG (up to ten additional angles, kept in
+the settings file); `CadUnits.TryAngles`, `CadSystemVariable.Text(name, get, take)`,
+`ObjectSnap.PolarFromLastSegment`/`LastSegment`/`AdditionalPolarAngles`, `CadCommandSession.LastSegment`,
+`GlobalSettings.PolarAddedAngles`.
+
 **FIXED.** The External References palette of the presenter said "Needs reloading" where AutoCAD 2021's help of the
 palette's List View says "Needs Reloading". Its other words were checked against that page and stand: Loaded, Unloaded,
 Not Found, Unresolved, Orphaned and Unreferenced for the status, the current drawing listed first, and the types of a

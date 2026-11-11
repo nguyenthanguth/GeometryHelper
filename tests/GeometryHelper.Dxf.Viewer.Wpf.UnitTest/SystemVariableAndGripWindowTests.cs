@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 using Xunit;
 using static GeometryHelper.Dxf.Viewer.Wpf.UnitTest.CanvasMouseTests;
 
@@ -136,6 +137,61 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             again.ApplySettings(saved);
             Assert.True(again.Snap.TracksPolarAngles);
             Assert.True(again.Snap.AcquiresWithShift);
+        }
+
+        [Fact]
+        public void Polaraddang_TakesUpToTenAngles_KeptAsTheDrawingWritesAngles_AndHeldUnderPolarmode4()
+        {
+            MainViewModel model = Room();
+            model.SettingsPath = System.IO.Path.Combine(_folder.FullPath, "settings.json");
+            model.SettingsChanged += (s, e) => model.Settings.Save(model.SettingsPath);
+
+            model.Execute("POLARADDANG");
+            Assert.Equal("Enter new value for POLARADDANG, or . for none <\"\">:", model.Prompt);
+            model.Execute("abc");
+            Assert.Equal("Cannot set POLARADDANG to that value.", model.History.Last());
+            Assert.Equal(string.Empty, model.Settings.PolarAddedAngles);
+
+            // As AutoCAD keeps them: from nought up to a whole turn, to the places of AUPREC, 2 in this drawing.
+            model.Execute("POLARADDANG");
+            model.Execute("33.5;-10");
+            Assert.Equal("33.50;350.00", model.Settings.PolarAddedAngles);
+            Assert.Empty(model.Snap.AdditionalPolarAngles);
+
+            model.Execute("POLARMODE");
+            model.Execute("5");
+            Assert.True(model.Snap.PolarFromLastSegment);
+            Assert.Equal(
+                new[] { 33.5, 350.0 },
+                model.Snap.AdditionalPolarAngles.Select(a => Math.Round(a * 180.0 / Math.PI, 9))
+            );
+            Assert.Contains("\"polarAddedAngles\": \"33.50;350.00\"", System.IO.File.ReadAllText(model.SettingsPath));
+
+            var again = new MainViewModel();
+            again.ApplySettings(GlobalSettings.Load(model.SettingsPath));
+            Assert.Equal(2, again.Snap.AdditionalPolarAngles.Count);
+            Assert.True(again.Snap.PolarFromLastSegment);
+
+            model.Execute("POLARADDANG");
+            Assert.Equal("Enter new value for POLARADDANG, or . for none <\"33.50;350.00\">:", model.Prompt);
+            model.Execute(".");
+            Assert.Equal(string.Empty, model.Settings.PolarAddedAngles);
+            Assert.Empty(model.Snap.AdditionalPolarAngles);
+        }
+
+        [Fact]
+        public void TheSnapsCountPolarAnglesFromTheLineDrawnLast()
+        {
+            MainViewModel model = Room();
+            Assert.Null(model.Snap.LastSegment);
+
+            model.Execute("LINE");
+            model.Execute("0,0");
+            model.Execute("30,40");
+
+            GeoVector2 way = model.Snap.LastSegment.Value;
+            Assert.Equal(0.6, way.X, 12);
+            Assert.Equal(0.8, way.Y, 12);
         }
 
         [Fact]

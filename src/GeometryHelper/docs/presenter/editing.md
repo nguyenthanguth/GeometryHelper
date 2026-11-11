@@ -547,7 +547,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -566,8 +566,11 @@ default, makes it ask them in the Edit Attributes dialog where there is a window
 dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
 the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`, and POLARMODE too: its 2 runs
 the lines of object snap tracking on every polar angle (0, AutoCAD's default, runs them level and upright alone), and its 8
-acquires a point only with Shift held; 1 and 4 (angles from the last segment, additional angles) are kept and not
-followed. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
+acquires a point only with Shift held; its 1 counts the polar angles from the last segment drawn, a line or the end of
+an arc (from the X axis while none is drawn), and its 4 holds the additional angles of POLARADDANG as they are, not their
+multiples. POLARADDANG takes up to ten angles parted by semicolons, read in the drawing's angle units and kept from 0 up
+to 360 as the drawing writes angles: `33.5;-10` is kept as `33.50;350.00` at AUPREC 2, `.` empties it, and `10;;20`
+gets "Cannot set POLARADDANG to that value."; the settings file keeps it as `"polarAddedAngles"`. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
 band stays at the cursor while the marker shows the snap, which a click still takes), 8 POLAR, 16 OTRACK, 32 the tip
 of ortho, polar and tracking; the marker, tips and magnet are kept for the session of the window. FILEDIA 0 makes PNGOUT,
 JPGOUT, BMPOUT and the window's SAVEAS ask for the file on the command line, as in a script; CMDDIA 0 makes PLOT ask
@@ -647,18 +650,23 @@ Any prompt for a point takes AutoCAD's point modifiers, typed or chosen from the
 | FROM | `Base point:`, then `<Offset>:` | the offset point: `@dx,dy` and `@distance<angle` are measured from the base point |
 | M2P, MTP | `First point of mid:`, `Second point of mid:` | the point midway |
 | TT | `Specify temporary OTRACK point:` | no point: the prompt is asked again, and while OTRACK is on tracking lines run from the point |
-| TK, TRACK, TRACKING | `First tracking point:`, then `Next point (Press ENTER to end tracking):` until Enter | the point tracked: each next point taken square from the one before, along the axis it lies farther along |
+| TK, TRACK, TRACKING | `First tracking point:`, then `Next point  (Press ENTER to end tracking):` until Enter | the point tracked: each next point taken square from the one before, along the axis it lies farther along, upright where it lies as far along both |
 | .X .Y .Z .XY .XZ .YZ | `of`, then `(need YZ):` and so on | the coordinates named from the first point, the rest from the second |
 
 LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P between (0, 0) and (100, 40) gives
 (50, 20), and M2P at the radius of a circle centred at (0, 0) between (0, 0) and (60, 80) gives a radius of 50. CIRCLE
 with TK from 100,0 and a click at (130, 50) centres the circle at (100, 50), the middle of a plate 200 by 100; a distance
 typed at `Next point` runs along the axis nearest the cursor, so 60 with the cursor at (80, 10) reaches (60, 0). `.X` of
-(30, 999) with (888, 40) gives (30, 40). At `(need YZ):` the coordinates can be typed alone, in the order X, Y, Z:
-`40,3` gives Y 40. Z, which a plan has none of, is asked as AutoCAD asks it and left out. Coordinates are those of the
-UCS. Each point a modifier asks may be snapped (END typed, or the menu) and may be given by another modifier, as FROM
-with M2P for its base point. Enter at a modifier's prompt is not a point and is asked again, but for TK's `Next point`,
-where it ends tracking; Esc cancels the command.
+(30, 999) with (888, 40) gives (30, 40). At `(need YZ):` the answer is a point whose Y is taken,
+`40,3` giving Y 3 as AutoCAD 2021 gives it; where one coordinate is asked, a number alone is that coordinate. Z, which a
+plan has none of, is asked as AutoCAD asks it and left out. Coordinates are those of the UCS. Each point a modifier asks
+may be snapped (END typed, or the menu). A modifier may be given by another at its prompt, as FROM with M2P for its base
+point, but TT and TK only at the command's own prompt, and FROM not at TK's `Next point`. Enter or text at TT's or a
+filter's prompt, and Enter at FROM's, go to the prompt they were typed at, so Enter at FROM's `Base point:` at LINE's
+next point ends the LINE; FROM asks again for text, M2P for text and Enter, saying "Point or option keyword required."
+where the command's prompt has options and "Invalid point." where it has none; TK says "Invalid 2D point.", at
+`First tracking point:` going back to the command's prompt, and Enter at its `Next point` ends tracking. Esc cancels
+the command.
 
 ## Grips
 

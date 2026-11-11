@@ -485,7 +485,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string typed = Prompt.Kind == CadPromptKind.String ? text : text.Trim();
-            string echo = Prompt.Text + " " + typed;
+            string echo = _refeeding ? null : Prompt.Text + " " + typed;
 
             if (Prompt.Kind != CadPromptKind.String)
             {
@@ -567,6 +567,11 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.AcceptsText)
                     {
                         return Answer(new CadInput(CadInputKind.Text, default, 0.0, typed, null), echo, null);
+                    }
+
+                    if (_modifiers.Count > 0)
+                    {
+                        return MissModifier(typed, echo);
                     }
 
                     return Invalid(
@@ -849,6 +854,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// command line instead, as AutoCAD does in a script.
         /// </summary>
         public bool FileDialogs => !(Remembered.TryGetValue("filedia", out double value) && value == 0.0);
+
+        /// <summary>
+        /// Gets the way the last segment drawn ran at its end, a line or an arc of LINE, ARC or a continued arc, as a unit
+        /// vector: what ARC's Enter continues along, and what the window counts polar angles from under POLARMODE 1; null
+        /// where none has been drawn. After a line from (0, 0) to (30, 40) it is (0.6, 0.8).
+        /// </summary>
+        public GeoVector2? LastSegment =>
+            Remembered.TryGetValue("draw.last", out double drawn)
+            && drawn != 0.0
+            && Remembered.TryGetValue("draw.last.dx", out double dx)
+            && Remembered.TryGetValue("draw.last.dy", out double dy)
+                ? new GeoVector2(dx, dy)
+                : (GeoVector2?)null;
 
         internal void EnsureGroup(string name)
         {

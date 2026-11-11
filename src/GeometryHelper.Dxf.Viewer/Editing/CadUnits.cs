@@ -250,6 +250,53 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Reads a list of angles as AutoCAD's POLARADDANG takes one: up to ten angles parted by semicolons, each read as
+        /// <see cref="TryAngle"/> reads one and turned into a direction from nought up to a whole turn, in the order typed;
+        /// empty for none. A part left empty or with a space about it, an eleventh angle, or a comma between two is refused:
+        /// "-10;400;45d" reads as 350, 40 and 45 degrees, and "10;;20", "10,20" and "15 ; 25" do not read.
+        /// </summary>
+        /// <param name="text">The text typed; null or empty for none.</param>
+        /// <param name="aunits">AUNITS, which a number with no mark of its own is read in.</param>
+        /// <param name="radians">The angles, in radians counter-clockwise from east.</param>
+        /// <returns>Whether it read.</returns>
+        public static bool TryAngles(string text, int aunits, out double[] radians)
+        {
+            radians = Array.Empty<double>();
+
+            if (string.IsNullOrEmpty(text))
+            {
+                return true;
+            }
+
+            string[] parts = text.Split(';');
+
+            if (parts.Length > 10)
+            {
+                return false;
+            }
+
+            var read = new double[parts.Length];
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (
+                    parts[i].Length == 0
+                    || parts[i].Trim().Length != parts[i].Length
+                    || !TryAngle(parts[i], aunits, out double angle)
+                )
+                {
+                    return false;
+                }
+
+                angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
+                read[i] = angle >= 2.0 * Math.PI ? 0.0 : angle;
+            }
+
+            radians = read;
+            return true;
+        }
+
+        /// <summary>
         /// Turns an angle typed, counted as the drawing counts angles, into the direction it names: from the base direction
         /// ANGBASE, clockwise where ANGDIR is 1. With ANGBASE at north and ANGDIR clockwise, as a surveyor counts, 30 is the
         /// direction 60 degrees counter-clockwise from east.

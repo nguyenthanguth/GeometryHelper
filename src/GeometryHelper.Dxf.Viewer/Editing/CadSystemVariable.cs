@@ -119,6 +119,26 @@ namespace GeometryHelper.Dxf.Viewer
             return Number(name, false, RealBound.Positive, true, s => read(), (c, v) => write(v), most: most);
         }
 
+        /// <summary>
+        /// Makes a text the app keeps that may be empty, as POLARADDANG: asked "Enter new value for POLARADDANG, or . for none
+        /// &lt;""&gt;:", a period for an empty text; one refused written off with AutoCAD's "Cannot set POLARADDANG to that
+        /// value." and not asked again; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value.</param>
+        /// <param name="take">Sets a text typed, empty for the period, and gives whether it was taken.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Text(string name, Func<string> get, Func<string, bool> take)
+        {
+            Func<string> read = get ?? throw new ArgumentNullException(nameof(get));
+            Func<string, bool> write = take ?? throw new ArgumentNullException(nameof(take));
+            var variable = new CadSystemVariable(name, CadVariableKind.Text, false, s => "\"" + read() + "\"");
+            variable._ask = c => AskOptionalText(c, variable, write);
+            return variable;
+        }
+
         /// <inheritdoc/>
         public override string ToString() => Name;
 
@@ -375,6 +395,27 @@ namespace GeometryHelper.Dxf.Viewer
             if (!string.IsNullOrEmpty(refused))
             {
                 c.Write(refused);
+            }
+        }
+
+        private static IEnumerable<CadPrompt> AskOptionalText(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<string, bool> take
+        )
+        {
+            yield return CadPrompt.ForString(variable.Message + ", or . for none", variable.GetValue(c.Session));
+
+            if (c.Input.Kind != CadInputKind.Text)
+            {
+                yield break;
+            }
+
+            string typed = c.Input.Text.Trim();
+
+            if (!take(typed == "." ? string.Empty : typed))
+            {
+                c.Write("Cannot set " + variable.Name + " to that value.");
             }
         }
 

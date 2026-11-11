@@ -1,12 +1,14 @@
 using System;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
-    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG and POLARMODE, PICKBOX and APERTURE of
-    /// Global settings, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas follow.
-    /// ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them there.
+    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG, POLARMODE and POLARADDANG, PICKBOX and
+    /// APERTURE of Global settings, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
+    /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
+    /// there.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -34,6 +36,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.AddVariable(CadSystemVariable.Real("POLARANG", 360.0, () => _settings.PolarAngle, SetPolarAngle));
             registry.AddVariable(
                 CadSystemVariable.Integer("POLARMODE", 0, 15, () => _settings.PolarMode, SetPolarMode)
+            );
+            registry.AddVariable(
+                CadSystemVariable.Text("POLARADDANG", () => _settings.PolarAddedAngles, SetPolarAddedAngles)
             );
             registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, Autosnap, SetAutosnap));
             registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
@@ -131,11 +136,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ChangeSettings(s => s.PolarMode = value);
         }
 
-        /// <summary>POLARMODE's bits the snaps follow: 2 tracking on every polar angle, 8 points acquired only with Shift held.</summary>
+        /// <summary>
+        /// POLARMODE's bits the snaps follow: 1 polar angles counted from the last segment, 2 tracking on every polar angle, 4
+        /// the additional angles of POLARADDANG, 8 points acquired only with Shift held.
+        /// </summary>
         private void ApplyPolarMode(int value)
         {
+            Snap.PolarFromLastSegment = (value & 1) != 0;
             Snap.TracksPolarAngles = (value & 2) != 0;
+            Snap.AdditionalPolarAngles =
+                (value & 4) != 0 && CadUnits.TryAngles(_settings.PolarAddedAngles, 0, out double[] added)
+                    ? added
+                    : Array.Empty<double>();
             Snap.AcquiresWithShift = (value & 8) != 0;
+        }
+
+        /// <summary>
+        /// POLARADDANG set, as AutoCAD takes it: up to ten angles parted by semicolons, read in the drawing's angle units and
+        /// kept from nought up to a whole turn, written as the drawing writes angles (AUNITS, AUPREC), so that "33.5;-10" is
+        /// kept as "34;350" at AUPREC 0; the window keeps it in the settings file, and the snaps hold it while POLARMODE has 4.
+        /// </summary>
+        private bool SetPolarAddedAngles(string typed)
+        {
+            DxfDatabase database = _current?.Document.Database;
+            int aunits = database?.Aunits ?? 0;
+
+            if (!CadUnits.TryAngles(typed, aunits, out double[] angles))
+            {
+                return false;
+            }
+
+            int auprec = database?.Auprec ?? 0;
+            string kept = string.Join(";", Array.ConvertAll(angles, a => CadUnits.Angle(a, aunits, auprec)));
+            ChangeSettings(s => s.PolarAddedAngles = kept);
+            ApplyPolarMode(_settings.PolarMode);
+            return true;
         }
 
         /// <summary>
