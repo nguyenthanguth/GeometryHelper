@@ -176,8 +176,81 @@ namespace GeometryHelper.Dxf.Viewer
             return Point(name, false, false, s => new GeoPoint3(read().X, read().Y, 0.0), (c, p) => write(p), null);
         }
 
+        /// <summary>
+        /// Makes a point the app keeps that refuses some values, as SNAPUNIT: asked "Enter new value for SNAPUNIT
+        /// &lt;10.0000,10.0000&gt;:", typed or picked, text that is no point refused with "Invalid 2D point." and asked again; a
+        /// point the take refuses, as 0,5 for a snap spacing, written off with AutoCAD's "Cannot set SNAPUNIT to that value."
+        /// and not asked again; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value.</param>
+        /// <param name="take">Sets a point typed or picked, and gives whether it was taken.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Point(string name, Func<GeoPoint2> get, Func<GeoPoint2, bool> take)
+        {
+            Func<GeoPoint2> read = get ?? throw new ArgumentNullException(nameof(get));
+            Func<GeoPoint2, bool> write = take ?? throw new ArgumentNullException(nameof(take));
+            var variable = new CadSystemVariable(name, CadVariableKind.Point, false, s => Show(P3(read()), false));
+            variable._ask = c => AskPointTaken(c, variable, read, write);
+            return variable;
+        }
+
+        /// <summary>
+        /// Makes a distance the app keeps, of either sign, as POLARDIST: asked "Enter new value for POLARDIST &lt;0.0000&gt;:",
+        /// shown to four places; text that is no number refused with AutoCAD's "Requires numeric distance or two points." and
+        /// asked again; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value.</param>
+        /// <param name="set">Sets a value taken.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Distance(string name, Func<double> get, Action<double> set)
+        {
+            Func<double> read = get ?? throw new ArgumentNullException(nameof(get));
+            Action<double> write = set ?? throw new ArgumentNullException(nameof(set));
+            return Number(name, false, RealBound.Finite, false, s => read(), (c, v) => write(v));
+        }
+
+        /// <summary>
+        /// Makes a switch the app keeps, as LWDISPLAY: shown as OFF or ON, asked "Enter new value for LWDISPLAY &lt;OFF&gt;:",
+        /// 0, 1, ON or OFF taken in either case, anything else refused with AutoCAD's "Requires 0 or 1 only, or option
+        /// keyword." and asked again; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value.</param>
+        /// <param name="set">Sets a value taken.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Switch(string name, Func<bool> get, Action<bool> set)
+        {
+            Func<bool> read = get ?? throw new ArgumentNullException(nameof(get));
+            Action<bool> write = set ?? throw new ArgumentNullException(nameof(set));
+            return Switch(name, false, s => read(), (c, v) => write(v), null);
+        }
+
         /// <inheritdoc/>
         public override string ToString() => Name;
+
+        /// <summary>A switch shown as OFF or ON; one kept in the drawing set as a step of undo named by the record.</summary>
+        internal static CadSystemVariable Switch(
+            string name,
+            bool inDrawing,
+            Func<CadCommandSession, bool> get,
+            Action<CadCommandContext, bool> set,
+            string record
+        )
+        {
+            var variable = new CadSystemVariable(name, CadVariableKind.Integer, inDrawing, s => get(s) ? "ON" : "OFF");
+            variable._ask = c => AskSwitch(c, variable, get, set, record);
+            return variable;
+        }
+
+        private static GeoPoint3 P3(GeoPoint2 point) => new GeoPoint3(point.X, point.Y, 0.0);
 
         /// <summary>What a real number set has to be.</summary>
         internal enum RealBound
@@ -327,10 +400,23 @@ namespace GeometryHelper.Dxf.Viewer
             Func<CadCommandContext, int, string> check
         )
         {
+            // A switch of 0 and 1 is refused as AutoCAD refuses ORTHOMODE 2; text, or a number not whole, as AutoCAD refuses
+            // GRIDSTYLE abc and GRIDDISPLAY 2.5, in the same words.
+            string range =
+                least == 0 && most == 1
+                    ? "Requires 0 or 1 only."
+                    : "Requires an integer between "
+                        + least.ToString(CultureInfo.InvariantCulture)
+                        + " and "
+                        + most.ToString(CultureInfo.InvariantCulture)
+                        + ".";
+
             while (true)
             {
                 int old = get(c.Session);
-                yield return CadPrompt.ForInteger(variable.Message, null, old.ToString(CultureInfo.InvariantCulture));
+                yield return CadPrompt
+                    .ForInteger(variable.Message, null, old.ToString(CultureInfo.InvariantCulture))
+                    .Refusing(range);
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -339,16 +425,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Number < least || c.Input.Number > most)
                 {
-                    // A switch of 0 and 1 is refused as AutoCAD refuses ORTHOMODE 2.
-                    c.Write(
-                        least == 0 && most == 1
-                            ? "Requires 0 or 1 only."
-                            : "Requires an integer between "
-                                + least.ToString(CultureInfo.InvariantCulture)
-                                + " and "
-                                + most.ToString(CultureInfo.InvariantCulture)
-                                + "."
-                    );
+                    c.Write(range);
                     continue;
                 }
 
@@ -518,6 +595,70 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        private static IEnumerable<CadPrompt> AskSwitch(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<CadCommandSession, bool> get,
+            Action<CadCommandContext, bool> set,
+            string record
+        )
+        {
+            const string refused = "Requires 0 or 1 only, or option keyword.";
+
+            while (true)
+            {
+                bool old = get(c.Session);
+                yield return CadPrompt
+                    .ForInteger(variable.Message, null, old ? "ON" : "OFF")
+                    .Hiding("ON", "OFF")
+                    .Refusing(refused);
+
+                bool value;
+
+                if (c.Input.Is("ON") || c.Input.Is("OFF"))
+                {
+                    value = c.Input.Is("ON");
+                }
+                else if (c.Input.Kind == CadInputKind.Number && (c.Input.Number == 0.0 || c.Input.Number == 1.0))
+                {
+                    value = c.Input.Number == 1.0;
+                }
+                else if (c.Input.Kind == CadInputKind.Number)
+                {
+                    c.Write(refused);
+                    continue;
+                }
+                else
+                {
+                    yield break;
+                }
+
+                if (value != old)
+                {
+                    variable.Store(c, record, old ? "1" : "0", value ? "1" : "0", () => set(c, value));
+                }
+
+                yield break;
+            }
+        }
+
+        private static IEnumerable<CadPrompt> AskPointTaken(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<GeoPoint2> get,
+            Func<GeoPoint2, bool> take
+        )
+        {
+            yield return CadPrompt
+                .ForPoint(variable.Message, null, null, Show(P3(get()), false))
+                .Refusing("Invalid 2D point.");
+
+            if (c.Input.IsPoint && !take(c.Input.Point))
+            {
+                c.Write("Cannot set " + variable.Name + " to that value.");
+            }
+        }
+
         private static IEnumerable<CadPrompt> AskPoint(
             CadCommandContext c,
             CadSystemVariable variable,
@@ -528,7 +669,10 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             GeoPoint3 old = get(c.Session);
-            yield return CadPrompt.ForPoint(variable.Message, null, null, Show(old, withZ));
+            CadPrompt prompt = CadPrompt.ForPoint(variable.Message, null, null, Show(old, withZ));
+
+            // A point of two coordinates is refused as AutoCAD refuses SNAPBASE abc.
+            yield return withZ ? prompt : prompt.Refusing("Invalid 2D point.");
 
             if (!c.Input.IsPoint)
             {

@@ -194,6 +194,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(GridMajor));
             Raise(nameof(GridSpacingX));
             Raise(nameof(GridSpacingY));
+            Raise(nameof(GridDisplay));
             Raise(nameof(ShowLineWeights));
         }
 
@@ -211,6 +212,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (toggle.Name)
             {
                 case "SNAP":
+                    _snapModeTwo = false;
                     state.Snap = toggle.IsOn;
                     WriteToDrawing("SNAPMODE", () =>
                     {
@@ -274,8 +276,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The grid spacing as the drawing shown holds it (GRIDUNIT), nought along an axis that takes the snap's; 10 by 10 with none.</summary>
         internal GeoVector2 GridUnit => new GeoVector2(Layout.GridX, Layout.GridY);
 
-        /// <summary>How the drawing shown draws its grid (GRIDDISPLAY): 3 where it has none, or none is open.</summary>
-        internal int GridDisplay => Layout.GridDisplay;
+        /// <summary>
+        /// Gets how the drawing shown draws its grid, its GRIDDISPLAY: 1 beyond the limits, 2 adaptive, 4 subdivided as it
+        /// zooms in, 8 following the dynamic UCS; 3 where it has none, or none is open.
+        /// </summary>
+        public int GridDisplay => Layout.GridDisplay;
+
+        /// <summary>
+        /// Gets where the grid is drawn as dots, AutoCAD's GRIDSTYLE of the settings in use: 1 model space, 2 the Block Editor,
+        /// 4 the layouts; 0, lines everywhere, by default.
+        /// </summary>
+        public int GridStyle => _settings.GridStyle;
 
         /// <summary>
         /// The grid spacing set by Drafting Settings: kept for the drawing shown as its GRIDUNIT, nought along an axis taking
@@ -319,7 +330,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>GRIDSTYLE set by Drafting Settings: kept in the settings file, as AutoCAD keeps it in the registry.</summary>
-        internal void SetGridStyle(int bits) => ChangeSettings(s => s.GridStyle = bits);
+        internal void SetGridStyle(int bits)
+        {
+            ChangeSettings(s => s.GridStyle = bits);
+            Raise(nameof(GridStyle));
+        }
 
         /// <summary>
         /// LWDISPLAY set: the drawing shown draws its lineweights or not and keeps it in <c>$LWDISPLAY</c>, as AutoCAD saves it;

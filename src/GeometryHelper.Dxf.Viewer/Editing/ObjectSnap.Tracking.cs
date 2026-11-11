@@ -409,8 +409,12 @@ namespace GeometryHelper.Dxf.Viewer
             int trackLines = Math.Min(MostTrackingLines, (int)Math.Floor((2.0 * Math.PI - 1E-9) / trackIncrement) + 1);
 
             // The additional angles (POLARMODE 4) run with the polar ones; the polar lines from the base point are counted from
-            // the last segment (POLARMODE 1), those from the points acquired from the X axis.
-            List<double> trackRays = Rays(trackLines, trackIncrement, 0.0, polar && TracksPolarAngles);
+            // the last segment (POLARMODE 1), those from the points acquired from the X axis; both turned by SNAPANG, as the
+            // polar angles are. Level and upright lines follow the snap's axes: turned by SNAPANG, or those of the isometric
+            // plane, as AutoCAD's ortho does.
+            double snapTurn = IsTurned() ? SnapAngle : 0.0;
+            List<double> trackRays =
+                polar && TracksPolarAngles ? Rays(trackLines, trackIncrement, snapTurn, true) : OrthoRays();
 
             foreach (CadAcquiredPoint acquired in _acquired)
             {
@@ -475,7 +479,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The polar lines from the base point cross the others, as AutoCAD's polar and tracking lines do.
             if (polar && basePoint.HasValue && Tracking)
             {
-                foreach (double angle in Rays(lines, increment, RelativeTurn() ?? 0.0, true))
+                foreach (double angle in Rays(lines, increment, RelativeTurn() ?? snapTurn, true))
                 {
                     GeoVector2 direction = _ucs.ToWorld(new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
                     paths.Add(new TrackPath(basePoint.Value, direction, CadSnapKind.Polar, null, null));
@@ -507,9 +511,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (path.Kind != CadSnapKind.Polar)
                 {
-                    tracked.Add(
-                        new Candidate(path.Kind, foot, path.Handle, reach, new[] { new[] { path.From, foot } })
-                    );
+                    GeoPoint2 at = path.Kind == CadSnapKind.Tracking ? PolarSnapped(path, along, foot) : foot;
+                    tracked.Add(new Candidate(path.Kind, at, path.Handle, reach, new[] { new[] { path.From, at } }));
                 }
             }
 
@@ -574,6 +577,43 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                 }
             }
+        }
+
+        /// <summary>
+        /// The directions, in the UCS, of the level and upright tracking lines from a point acquired: both ways along the two
+        /// axes of the snap, turned by <see cref="SnapAngle"/>, or along those of the isometric plane, as ortho holds the
+        /// cursor. With a snap turned by 30 degrees they run at 30, 120, 210 and 300; on the top isoplane at 30, 150, 210 and 330.
+        /// </summary>
+        private List<double> OrthoRays()
+        {
+            double turn = IsTurned() ? SnapAngle : 0.0;
+
+            if (!Isoplane.HasValue)
+            {
+                return Rays(4, Math.PI / 2.0, turn, false);
+            }
+
+            OrthoAxes(out double first, out double second);
+            return new List<double> { turn + first, turn + second, turn + first + Math.PI, turn + second + Math.PI };
+        }
+
+        /// <summary>
+        /// The point a tracking line from a point acquired gives at the cursor while SNAP steps along the polar angles
+        /// (<see cref="PolarSnap"/>): taken to a whole number of <see cref="PolarDistance"/>, or of the snap X spacing where
+        /// that is not above nought, from the point acquired, as AutoCAD's PolarSnap steps along tracking paths; with a
+        /// distance of 25, a cursor 37 along the line is put 25 along it. The foot of the cursor on the line otherwise.
+        /// </summary>
+        private GeoPoint2 PolarSnapped(TrackPath path, double along, GeoPoint2 foot)
+        {
+            double step = PolarDistance > 0.0 ? PolarDistance : GridX;
+
+            if (!GridSnap || !PolarSnap || !(step > 0.0))
+            {
+                return foot;
+            }
+
+            double steps = Math.Round(Math.Max(0.0, along) / step, MidpointRounding.AwayFromZero);
+            return path.From + path.Direction * (steps * step);
         }
 
         /// <summary>The run of an acquired end of an arc: the point of its circle at the cursor's angle, where that lies off the arc and the cursor near the circle.</summary>

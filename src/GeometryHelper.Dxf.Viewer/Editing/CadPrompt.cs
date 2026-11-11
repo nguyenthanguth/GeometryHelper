@@ -189,6 +189,19 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
+        /// <summary>
+        /// The words written for a typed answer the prompt cannot take, where they are not those of its kind: SETVAR's
+        /// "Requires an integer between 0 and 7." for GRIDSTYLE, "Invalid 2D point." for SNAPUNIT; null for its kind's.
+        /// </summary>
+        internal string Refusal { get; private set; }
+
+        /// <summary>Gives the prompt its own words for a typed answer it cannot take (<see cref="Refusal"/>).</summary>
+        internal CadPrompt Refusing(string words)
+        {
+            Refusal = words;
+            return this;
+        }
+
         // Keywords taken but not shown, as a grip edit takes MOVE or MO at its STRETCH prompt.
         private IReadOnlyList<string> _hidden = Array.Empty<string>();
 

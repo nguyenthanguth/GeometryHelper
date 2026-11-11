@@ -190,6 +190,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new PropertyMetadata(5, OnSceneChanged)
         );
 
+        /// <summary>Identifies the <see cref="GridStyle"/> property.</summary>
+        public static readonly DependencyProperty GridStyleProperty = DependencyProperty.Register(
+            nameof(GridStyle),
+            typeof(int),
+            typeof(CadCanvas),
+            new PropertyMetadata(0, OnSceneChanged)
+        );
+
+        /// <summary>Identifies the <see cref="GridDisplay"/> property.</summary>
+        public static readonly DependencyProperty GridDisplayProperty = DependencyProperty.Register(
+            nameof(GridDisplay),
+            typeof(int),
+            typeof(CadCanvas),
+            new PropertyMetadata(3, OnSceneChanged)
+        );
+
         /// <summary>Identifies the <see cref="SnapBase"/> property.</summary>
         public static readonly DependencyProperty SnapBaseProperty = DependencyProperty.Register(
             nameof(SnapBase),
@@ -464,10 +480,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets or sets whether model space shows the grid (GRID, F7): lines across and up a little lighter than the
-        /// background, a major line every <see cref="GridMajor"/> a little stronger as AutoCAD's, under the drawing, every
-        /// <see cref="GridSpacing"/> units or, where those would come closer than 6 pixels, at the major lines alone, then 2,
-        /// 5, 2 and on times them: every 5, 10, 50, 100 times the spacing with a GRIDMAJOR of 5.
+        /// Gets or sets whether model space and the Block Editor show the grid (GRID, F7): lines across and up a little lighter
+        /// than the background, a major line every <see cref="GridMajor"/> a little stronger as AutoCAD's, under the drawing,
+        /// every <see cref="GridSpacing"/> units or, where those would come closer than 6 pixels, at the major lines alone,
+        /// then 2, 5, 2 and on times them: every 5, 10, 50, 100 times the spacing with a GRIDMAJOR of 5. Dots in their place
+        /// and the reach of the grid follow <see cref="GridStyle"/> and <see cref="GridDisplay"/>.
         /// </summary>
         public bool ShowGrid
         {
@@ -623,6 +640,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get => (int)GetValue(GridMajorProperty);
             set => SetValue(GridMajorProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the bits of AutoCAD's GRIDSTYLE, 0 to 7: the grid drawn as dots where lines would cross in 1 model
+        /// space, 2 the Block Editor and 4 the layouts, as lines elsewhere; 0, all lines, by default.
+        /// </summary>
+        public int GridStyle
+        {
+            get => (int)GetValue(GridStyleProperty);
+            set => SetValue(GridStyleProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the bits of AutoCAD's GRIDDISPLAY, 0 to 15: 1 the grid drawn beyond the limits (LIMMIN, LIMMAX) of
+        /// model space, else within them alone; 2 adaptive, its lines thinned out as the view zooms out, else not drawn where
+        /// they would lie closer than 6 pixels; 4, with 2, more lines added between them as it zooms in, GRIDMAJOR to a step;
+        /// 8 the grid following the dynamic UCS, kept but not drawn by. 3 by default.
+        /// </summary>
+        public int GridDisplay
+        {
+            get => (int)GetValue(GridDisplayProperty);
+            set => SetValue(GridDisplayProperty, value);
         }
 
         /// <summary>Gets or sets the point the grid is laid from, in the coordinates of the UCS, as AutoCAD's SNAPBASE; the origin by default.</summary>
@@ -939,6 +978,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     GridSpacing,
                     GridSpacingY,
                     GridMajor,
+                    GridStyle,
+                    GridDisplay,
+                    GridLimitsKey(document),
                     SnapBase.X,
                     SnapBase.Y,
                     SnapAngle,
@@ -968,14 +1010,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 surface.Canvas.Flush();
             }
 
-            if (ShowGrid && space.IsModel)
+            if (ShowGrid && (space.IsModel || space.IsBlockEditor))
             {
-                DrawGrid(_scene, view, scale, ucs);
+                DrawGrid(_scene, view, scale, ucs, space);
             }
 
             _sceneKey = key;
             _markedDirty = true;
             SceneRenders++;
+        }
+
+        /// <summary>The limits of model space as the kept picture's key holds them, so that LIMITS changed draws the grid again.</summary>
+        private static string GridLimitsKey(CadDocument document)
+        {
+            DxfDatabase database = document.Database;
+            return string.Join(
+                ",",
+                new[] { database.Limmin.X, database.Limmin.Y, database.Limmax.X, database.Limmax.Y }.Select(v =>
+                    v.ToString("R", CultureInfo.InvariantCulture)
+                )
+            );
         }
 
         /// <summary>
@@ -1708,9 +1762,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 using (SKBitmap picture = CadRasterWriter.Draw(Document, job.Space, view, Options, job.Handles))
                 {
-                    if (job.Handles == null && ShowGrid && job.Space.IsModel)
+                    if (job.Handles == null && ShowGrid && (job.Space.IsModel || job.Space.IsBlockEditor))
                     {
-                        DrawGrid(picture, view, PixelScale, Document.Ucs.WorkingOf(job.Space));
+                        DrawGrid(picture, view, PixelScale, Document.Ucs.WorkingOf(job.Space), job.Space);
                     }
 
                     File.WriteAllBytes(job.FileName, CadRasterWriter.Encode(picture, job.Format));
@@ -1774,19 +1828,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// they lie under the drawing: one pixel wide, 8 per cent lighter than the background, a major line every
         /// <see cref="GridMajor"/> from the base point 18 per cent lighter, as AutoCAD draws its major lines; turned by
         /// <see cref="SnapAngle"/> about <see cref="SnapBase"/>, or on the two axes of the isometric plane, as AutoCAD lays
-        /// them.
+        /// them. Where <see cref="GridStyle"/> asks dots for the space, only the pixels where two lines cross; where
+        /// <see cref="GridDisplay"/> keeps the grid within the limits, none outside them in model space.
         /// </summary>
-        private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs)
+        private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs, CadSpace space)
         {
             int every = Math.Max(1, GridMajor);
             CadIsoplane? isoplane = Isoplane;
+            int display = GridDisplay;
+            int dottedIn =
+                space.IsBlockEditor ? 2
+                : space.IsModel ? 1
+                : 4;
+            bool dots = (GridStyle & dottedIn) != 0;
 
             // An isometric grid has its lines through points twice the Y spacing apart, as AutoCAD keeps half of it, the
             // lines of each way that far times the cosine of 30 degrees apart.
             double across = isoplane.HasValue ? 2.0 * GridSpacingY * Math.Sqrt(3.0) / 2.0 : GridSpacing;
             double up = isoplane.HasValue ? across : GridSpacingY;
-            double step = AdaptiveStep(view.PixelsPerUnit, across, GridPixels * scale, every);
-            double stepY = AdaptiveStep(view.PixelsPerUnit, up, GridPixels * scale, every);
+            double step = ShownStep(view.PixelsPerUnit, across, GridPixels * scale, every, display);
+            double stepY = ShownStep(view.PixelsPerUnit, up, GridPixels * scale, every, display);
 
             if (step <= 0.0 || stepY <= 0.0)
             {
@@ -1813,7 +1874,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool turned = Math.Abs(Math.IEEERemainder(SnapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad;
             bool based = SnapBase.DistanceTo(GeoPoint2.Origin) > tolerance.EqualPoint;
 
-            if (isoplane.HasValue || turned || based)
+            // GRIDDISPLAY without 1: the grid of model space kept within its limits, the pixels outside put back after.
+            int[] before = null;
+            DxfDatabase database = Document?.Database;
+
+            if ((display & 1) == 0 && space.IsModel && database != null)
+            {
+                before = (int[])pixels.Clone();
+            }
+
+            void Put()
+            {
+                if (before != null)
+                {
+                    KeepWithinLimits(pixels, before, width, height, stride, view, database.Limmin, database.Limmax);
+                }
+
+                Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+            }
+
+            if (isoplane.HasValue || turned || based || dots)
             {
                 // The lines of each way, given by the angle they run at in the world, through the base point: those up the
                 // grid the X spacing apart, those across it the Y spacing.
@@ -1834,16 +1914,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     background,
                     minor,
                     major,
-                    every
+                    every,
+                    dots
                 );
-                Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+                Put();
                 return;
             }
 
             if (!ucs.IsWorld)
             {
                 DrawUcsGrid(pixels, width, height, stride, view, step, stepY, ucs, background, minor, major, every);
-                Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+                Put();
                 return;
             }
 
@@ -1877,7 +1958,77 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+            Put();
+        }
+
+        /// <summary>
+        /// The spacing the grid is drawn at, by the bits of GRIDDISPLAY: with 2, adaptive, <see cref="AdaptiveStep"/>, and with
+        /// 4 as well divided by the major count while the lines so added would lie at least the least distance apart; without
+        /// 2, the spacing asked, or nought, no grid, where its lines would lie closer than that, as AutoCAD shows no grid too
+        /// dense to display.
+        /// </summary>
+        private static double ShownStep(
+            double pixelsPerUnit,
+            double spacing,
+            double leastPixels,
+            int every,
+            int display
+        )
+        {
+            if ((display & 2) == 0)
+            {
+                return spacing > 0.0 && spacing * pixelsPerUnit >= leastPixels ? spacing : 0.0;
+            }
+
+            double step = AdaptiveStep(pixelsPerUnit, spacing, leastPixels, every);
+
+            for (
+                int i = 0;
+                (display & 4) != 0 && every > 1 && step / every * pixelsPerUnit >= leastPixels && i < 60;
+                i++
+            )
+            {
+                step /= every;
+            }
+
+            return step;
+        }
+
+        /// <summary>
+        /// The pixels of the grid outside the limits of model space (LIMMIN, LIMMAX) put back as they were before the grid,
+        /// as AutoCAD keeps the grid within them where GRIDDISPLAY has no 1.
+        /// </summary>
+        private static void KeepWithinLimits(
+            int[] pixels,
+            int[] before,
+            int width,
+            int height,
+            int stride,
+            CadView view,
+            GeoPoint2 least,
+            GeoPoint2 most
+        )
+        {
+            view.DrawingToPixel(least.X, least.Y, out double ax, out double ay);
+            view.DrawingToPixel(most.X, most.Y, out double bx, out double by);
+            double left = Math.Min(ax, bx) - 0.5;
+            double right = Math.Max(ax, bx) + 0.5;
+            double top = Math.Min(ay, by) - 0.5;
+            double bottom = Math.Max(ay, by) + 0.5;
+
+            for (int iy = 0; iy < height; iy++)
+            {
+                bool rowIn = iy >= top && iy <= bottom;
+
+                for (int ix = 0; ix < width; ix++)
+                {
+                    if (!rowIn || ix < left || ix > right)
+                    {
+                        int at = iy * stride + ix;
+                        pixels[at] = before[at];
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1947,7 +2098,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// A grid of two ways of lines through a point of the world, each given by the angle it runs at and how far apart its
         /// lines lie, as AutoCAD draws the grid turned by SNAPANG from SNAPBASE, and the isometric grid on the two axes of its
         /// plane: each pixel of the background within half a pixel of a line taken, a major line every so many (GRIDMAJOR)
-        /// from the point the stronger.
+        /// from the point the stronger; for a dotted grid (GRIDSTYLE) only those within half a pixel of a line of each way,
+        /// all as strong as a major line.
         /// </summary>
         private static void DrawLineGrid(
             int[] pixels,
@@ -1963,7 +2115,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int background,
             int minor,
             int major,
-            int every
+            int every,
+            bool dots
         )
         {
             // How many steps a point lies off the line of each way through the origin is linear in the pixel's column and row.
@@ -2002,7 +2155,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     bool onU = Math.Abs(u - ku) <= halfU;
                     bool onV = Math.Abs(v - kv) <= halfV;
 
-                    if (onU || onV)
+                    if (dots)
+                    {
+                        if (onU && onV)
+                        {
+                            pixels[at] = major;
+                        }
+                    }
+                    else if (onU || onV)
                     {
                         bool strong =
                             (onU && Math.Abs(Math.IEEERemainder(ku, every)) < 0.5)

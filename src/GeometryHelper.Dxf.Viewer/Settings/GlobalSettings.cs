@@ -313,14 +313,14 @@ namespace GeometryHelper.Dxf.Viewer
         public bool PolarSnap { get; set; }
 
         /// <summary>
-        /// Gets or sets the step of PolarSnap in drawing units, as AutoCAD's POLARDIST: nought or above; nought by default,
-        /// when the snap X spacing is the step.
+        /// Gets or sets the step of PolarSnap in drawing units, as AutoCAD's POLARDIST: nought by default, when the snap X
+        /// spacing is the step, as it is for a value below nought, which AutoCAD 2021 keeps as typed (SETVAR POLARDIST -1).
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is below nought or not finite.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not finite.</exception>
         public double PolarDistance
         {
             get => _polarDistance;
-            set => _polarDistance = Range(value, 0.0, double.MaxValue, nameof(PolarDistance));
+            set => _polarDistance = Range(value, -double.MaxValue, double.MaxValue, nameof(PolarDistance));
         }
 
         /// <summary>

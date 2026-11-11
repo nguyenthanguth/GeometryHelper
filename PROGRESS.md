@@ -212,7 +212,8 @@ the ones wanted.
 - [x] Status bar follow-ups: SNAPBASE, SNAPANG and GRIDMAJOR read but not applied to snapping and the grid; isometric
       snap (SNAPSTYL 1) (S). DECIDED by the user 2026-11-11: GRID off and LWDISPLAY on stay the defaults
 - [x] Drafting Settings Snap and Grid tab (designed) and PolarSnap
-- [ ] Snap follow-ups: SNAP Style/Aspect/Type options (RibbonTests asserts the old prompt); GRID command's spacing and Major/aDaptive/Limits/Follow/Aspect; PolarSnap along tracking paths; the canvas drawing by GRIDSTYLE (dots) and GRIDDISPLAY bits; SETVAR of SNAPUNIT, GRIDUNIT, POLARDIST, SNAPTYPE, GRIDSTYLE, GRIDDISPLAY with AutoCAD's texts; iso to rectangular in the dialog (AutoCAD sets X = Y = 2 x stored Y); OTRACK lines following SNAPANG and the isoplane; LWDISPLAY echo <OFF> and keywords; SNAPMODE 2 accepted by AutoCAD (S)
+- [x] Snap follow-ups: SNAP and GRID options, SETVAR of the snap and grid variables, GRIDSTYLE dots and GRIDDISPLAY bits, OTRACK and polar rays by SNAPANG/isoplane, PolarSnap along tracking, LWDISPLAY ON/OFF
+- [ ] Snap follow-ups 2: SNAP Legacy cursor behaviour; paper-space grid (own GRIDMODE); GRIDDISPLAY 8 stored only; SNAPMODE 2 meaning; GRIDUNIT "5" as a distance from the last point; the Drafting Settings dialog refuses a negative POLARDIST that SETVAR takes; "Grid too dense to display" message (S)
 - [ ] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)

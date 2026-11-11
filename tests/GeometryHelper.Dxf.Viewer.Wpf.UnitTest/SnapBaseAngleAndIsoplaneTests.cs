@@ -170,7 +170,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Open(folder.Write("set.dxf", SetRoom()));
 
                 model.Execute("SNAP");
-                Assert.Equal("Specify snap spacing or [ON/OFF] <5.0000>:", model.Prompt);
+                Assert.Equal("Specify snap spacing or [ON/OFF/Legacy/Style/Type] <5.0000>:", model.Prompt);
                 model.Execute("3");
 
                 Assert.Equal(3 * Math.Sqrt(3.0), model.Snap.GridX, 12);

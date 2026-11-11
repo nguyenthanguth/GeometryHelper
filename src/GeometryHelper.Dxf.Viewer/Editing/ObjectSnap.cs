@@ -396,8 +396,9 @@ namespace GeometryHelper.Dxf.Viewer
         public bool PolarSnap { get; set; }
 
         /// <summary>
-        /// Gets or sets the step of <see cref="PolarSnap"/>, as AutoCAD's POLARDIST: nought, as until set, steps by
-        /// <see cref="GridX"/>, the snap X spacing.
+        /// Gets or sets the step of <see cref="PolarSnap"/>, as AutoCAD's POLARDIST: nought, as until set, or below steps by
+        /// <see cref="GridX"/>, the snap X spacing. It steps along the lines of object snap tracking from the points
+        /// acquired too.
         /// </summary>
         public double PolarDistance { get; set; }
 
@@ -625,9 +626,27 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private GeoPoint2 OnOrthoAxis(GeoPoint2 from, GeoPoint2 point)
         {
-            double first;
-            double second;
+            OrthoAxes(out double first, out double second);
+            double dx = point.X - from.X;
+            double dy = point.Y - from.Y;
+            double ux = Math.Cos(SnapAngle + first);
+            double uy = Math.Sin(SnapAngle + first);
+            double vx = Math.Cos(SnapAngle + second);
+            double vy = Math.Sin(SnapAngle + second);
+            double onU = dx * ux + dy * uy;
+            double onV = dx * vx + dy * vy;
+            return Math.Abs(onU) >= Math.Abs(onV)
+                ? new GeoPoint2(from.X + onU * ux, from.Y + onU * uy)
+                : new GeoPoint2(from.X + onV * vx, from.Y + onV * vy);
+        }
 
+        /// <summary>
+        /// The two axes ortho holds the cursor on, in radians from the snap's X axis: across and up for the rectangular snap,
+        /// those of the isometric plane for an isometric one (90 and 150 degrees on the left, 30 and 150 on the top, 30 and 90
+        /// on the right).
+        /// </summary>
+        private void OrthoAxes(out double first, out double second)
+        {
             switch (Isoplane)
             {
                 case CadIsoplane.Left:
@@ -647,18 +666,6 @@ namespace GeometryHelper.Dxf.Viewer
                     second = Math.PI / 2.0;
                     break;
             }
-
-            double dx = point.X - from.X;
-            double dy = point.Y - from.Y;
-            double ux = Math.Cos(SnapAngle + first);
-            double uy = Math.Sin(SnapAngle + first);
-            double vx = Math.Cos(SnapAngle + second);
-            double vy = Math.Sin(SnapAngle + second);
-            double onU = dx * ux + dy * uy;
-            double onV = dx * vx + dy * vy;
-            return Math.Abs(onU) >= Math.Abs(onV)
-                ? new GeoPoint2(from.X + onU * ux, from.Y + onU * uy)
-                : new GeoPoint2(from.X + onV * vx, from.Y + onV * vy);
         }
 
         /// <summary>

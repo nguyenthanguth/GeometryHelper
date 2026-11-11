@@ -4506,6 +4506,8 @@
                         GridSpacing="{Binding GridSpacingX}"
                         GridSpacingY="{Binding GridSpacingY}"
                         GridMajor="{Binding GridMajor}"
+                        GridStyle="{Binding GridStyle}"
+                        GridDisplay="{Binding GridDisplay}"
                         SnapBase="{Binding SnapBase}"
                         SnapAngle="{Binding SnapAngle}"
                         Isoplane="{Binding Isoplane}"

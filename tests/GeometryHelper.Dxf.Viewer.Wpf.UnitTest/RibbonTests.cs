@@ -149,7 +149,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Execute("SNAP OFF");
                 Assert.False(model.Snap.GridSnap);
                 model.Execute("SNAP");
-                Assert.Equal("Specify snap spacing or [ON/OFF] <10.0000>:", model.Prompt);
+                Assert.Equal("Specify snap spacing or [ON/OFF/Aspect/Legacy/Style/Type] <10.0000>:", model.Prompt);
                 model.Execute("25");
                 Assert.True(model.Snap.GridSnap);
                 Assert.Equal(25.0, model.Snap.GridX, 12);

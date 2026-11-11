@@ -514,7 +514,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Number, default, whole, typed, null), echo, null);
                     }
 
-                    return Invalid("Requires an integer value or option keyword.", echo);
+                    return Invalid(Prompt.Refusal ?? "Requires an integer value or option keyword.", echo);
                 case CadPromptKind.Keyword:
                     if (Prompt.AcceptsText)
                     {
@@ -577,7 +577,8 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     return Invalid(
-                        Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.",
+                        Prompt.Refusal
+                            ?? (Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point."),
                         echo
                     );
                 case CadPromptKind.Distance:
@@ -595,7 +596,17 @@ namespace GeometryHelper.Dxf.Viewer
                         );
                     }
 
-                    return Invalid("Requires numeric distance, second point, or option keyword.", echo);
+                    // AutoCAD 2021's words: a distance asked with no base point is given by a number or two points.
+                    return Invalid(
+                        Prompt.Refusal
+                            ?? (
+                                Prompt.BasePoint != null ? "Requires numeric distance, second point, or option keyword."
+                                : Prompt.Keywords.Count > 0
+                                    ? "Requires numeric distance, two points, or option keyword."
+                                : "Requires numeric distance or two points."
+                            ),
+                        echo
+                    );
                 case CadPromptKind.Angle:
                     if (TryAngle(typed, Prompt, out double radians))
                     {
