@@ -648,30 +648,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The picture of an arrowhead of the list, drawn as a leader draws it; a user arrow from a copy of the drawing, made once.</summary>
-        private BitmapSource PictureOf(string name)
-        {
-            try
-            {
-                if (CadArrowheads.Names.Contains(name))
-                {
-                    return CadStylePreview.Arrowhead(null, name, 22, 12);
-                }
-
-                _copy = _copy ?? DxfDatabase.Parse(Request.Document.Database.ToText());
-                return CadStylePreview.Arrowhead(_copy, name, 22, 12);
-            }
-            catch (Exception exception)
-                when (exception is ArgumentException
-                    || exception is InvalidOperationException
-                    || exception is FormatException
-                )
-            {
-                GeometryHelperLog.Debug(
-                    "LeaderSettings: the arrowhead " + name + " was not drawn: " + exception.Message
-                );
-                return null;
-            }
-        }
+        private BitmapSource PictureOf(string name) =>
+            CadStylePreview.ArrowheadEntry(
+                name,
+                () => _copy = _copy ?? DxfDatabase.Parse(Request.Document.Database.ToText()),
+                "LeaderSettings"
+            );
 
         private void StepPoints(int step)
         {

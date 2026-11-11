@@ -177,7 +177,7 @@
                                 Style="{StaticResource GhComboBox}"
                                 ItemsSource="{Binding Choices}"
                                 SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
-                                DisplayMemberPath="Label"
+                                ItemTemplate="{StaticResource ArrowChoiceTemplate}"
                                 ItemContainerStyle="{StaticResource ChoiceItem}"
                                 Visibility="Collapsed"
                             />

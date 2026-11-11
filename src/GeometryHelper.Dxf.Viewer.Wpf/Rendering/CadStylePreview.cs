@@ -213,6 +213,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return own ? Draw(database, null, width, height, fit) : DrawLeader(database, leader, width, height, fit);
         }
 
+        /// <summary>
+        /// The picture of an entry of an arrowhead list, 22 by 12 pixels, as <see cref="Arrowhead"/> draws it: one of AutoCAD's
+        /// arrowheads in a drawing of its own, a user arrow's block in the copy of the drawing <paramref name="copy"/> gives;
+        /// null where it cannot be drawn, said at Debug as the dialog's.
+        /// </summary>
+        internal static BitmapSource ArrowheadEntry(string name, Func<DxfDatabase> copy, string dialog)
+        {
+            try
+            {
+                return CadArrowheads.Names.Contains(name)
+                    ? Arrowhead(null, name, 22, 12)
+                    : Arrowhead(copy(), name, 22, 12);
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
+            {
+                GeometryHelperLog.Debug(dialog + ": the arrowhead " + name + " was not drawn: " + exception.Message);
+                return null;
+            }
+        }
+
         /// <summary>Draws one leader of a drawing alone, in a drawing of its own made by copying it with its block.</summary>
         private static BitmapSource DrawLeader(
             DxfDatabase database,

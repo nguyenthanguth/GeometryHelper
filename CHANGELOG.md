@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter's new dimensions are drawn by the drawing's current dimension variables and write each that
+differs from their style as an override, in the order of their groups, as AutoCAD 2021 does for every kind (linear,
+continued, baseline, aligned, angular, radius, diameter, jogged, arc length, ordinate): a drawing saved with DIMASZ 5,
+DIMEXO 1, DIMTAD 0 and DIMSCALE 2 over ISO-25 draws arrowheads 10 long and writes `40 41 42 77` in that order, where
+the presenter drew by the style and wrote DIMTXT and DIMSCALE alone, DIMTXT first. A drawing whose DIMSTYLE names no
+style of it (a blank `DxfDatabase`) is drawn by the style it falls back on, as before.
+
+**FIXED.** A dimension made with DIMSCALE 0 through a viewport is drawn at one over the viewport's scale and writes it, as
+AutoCAD 2021 does: 2 through a viewport of 1:2, words 2.5 high drawn 5 high and `1070 40, 1040 2` written, where the
+presenter drew at 1 and wrote DIMSCALE 0. In model space DIMSCALE 0 draws at 1.
+
+**NEW.** The arrowhead lists of the Dimension Style dialog (First, Second, Leader) and the Symbol list of the Modify
+Multileader Style dialog show each arrowhead with its picture, as AutoCAD 2021's lists and Leader Settings show them, a
+user arrow drawn from its block.
+
 **NEW.** A distance or an angle the presenter asks with no base point takes two points, as AutoCAD 2021's command line
 does: a point typed or picked at "Enter new value for POLARDIST <0.0000>:" asks "Specify second point:", its rubber band
 from the first, and 0,0 then 3,4 sets POLARDIST to 5; SNAPANG 0,0 then 1,1 sets 45. Every such prompt takes them, SETVAR

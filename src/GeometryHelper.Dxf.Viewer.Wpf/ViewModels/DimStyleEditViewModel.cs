@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -56,6 +57,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _tab = TabNames[0];
         private string _refused = string.Empty;
         private ImageSource _preview;
+        private DxfDatabase _copy;
 
         /// <summary>Makes the dialog's view model.</summary>
         /// <param name="document">The document.</param>
@@ -468,8 +470,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            return names.Select(n => new DimChoice(n, n)).ToList();
+            return names.Select(n => new DimChoice(n, n, ArrowPicture)).ToList();
         }
+
+        /// <summary>The picture of an entry of the arrowhead lists, as AutoCAD's lists show it; a user arrow from a copy of the drawing.</summary>
+        private BitmapSource ArrowPicture(string name) =>
+            CadStylePreview.ArrowheadEntry(
+                name,
+                () => _copy = _copy ?? DxfDatabase.Parse(_document.Database.ToText()),
+                "DimensionStyle"
+            );
 
         private IReadOnlyList<DimChoice> TextStyleChoices() =>
             CadTextStyleEditor.Styles(_document.Database).Select(s => new DimChoice(s.Name, s.Name)).ToList();
