@@ -70,12 +70,17 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                c.Write("Object selected is not a polyline");
-                var yes = new Ref<bool>();
+                // PEDITACCEPT 1 turns it into one without a word, as AutoCAD 2021 does.
+                var yes = new Ref<bool> { Value = PeditAccepts(c) };
 
-                foreach (CadPrompt prompt in PeditYesNo(c, "Do you want to turn it into one?", yes))
+                if (!yes.Value)
                 {
-                    yield return prompt;
+                    c.Write("Object selected is not a polyline");
+
+                    foreach (CadPrompt prompt in PeditYesNo(c, "Do you want to turn it into one?", yes))
+                    {
+                        yield return prompt;
+                    }
                 }
 
                 if (yes.Value)
@@ -192,11 +197,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (others.Count > 0)
             {
-                var yes = new Ref<bool>();
+                var yes = new Ref<bool> { Value = PeditAccepts(c) };
 
-                foreach (CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes))
+                if (!yes.Value)
                 {
-                    yield return prompt;
+                    foreach (CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes))
+                    {
+                        yield return prompt;
+                    }
                 }
 
                 // Splines are left as they are: their conversion by a precision is not built.
@@ -409,7 +417,7 @@ namespace GeometryHelper.Dxf.Viewer
                     polyline.SetPropertiesFrom(curve);
                     CadSpace space = s.Document.FindSpace(handle);
                     curve.Erase();
-                    made.Add(s.Append(space, polyline).Handle);
+                    made.Add(s.Append(space, OfPlineType(c, polyline)).Handle);
                 }
             });
 
@@ -841,13 +849,25 @@ namespace GeometryHelper.Dxf.Viewer
             return a0 + u * t;
         }
 
+        /// <summary>Whether PEDIT turns a line, an arc or a spline into a polyline without asking: PEDITACCEPT 1.</summary>
+        private static bool PeditAccepts(CadCommandContext c) => c.Remembered("peditaccept", 0.0) != 0.0;
+
         /// <summary>
-        /// Makes a POLYLINE a LWPOLYLINE in its own place at the end of the single PEDIT, as AutoCAD 2021's PLINETYPE 2 does to one
-        /// edited and left straight; one fitted with a curve or a spline stays a POLYLINE, as one in a drawing of R12 does.
+        /// A polyline made by PLINE, POLYGON, DONUT or PEDIT as PLINETYPE asks it: at 0 the old-style POLYLINE of its vertices and
+        /// look, as AutoCAD 2021 makes one (RECTANG and REVCLOUD make LWPOLYLINEs whatever it is); a LWPOLYLINE otherwise, or
+        /// in a drawing of R12.
+        /// </summary>
+        private static DxfCurve OfPlineType(CadCommandContext c, DxfPolyline made)
+            => made != null && c.Remembered("plinetype", 2.0) == 0.0 && string.CompareOrdinal(c.Database.Version, "AC1014") >= 0 ? made.ConvertTo(false) : (DxfCurve)made;
+
+        /// <summary>
+        /// Makes a POLYLINE a LWPOLYLINE in its own place at the end of the single PEDIT, as AutoCAD 2021's PLINETYPE 1 and 2 do
+        /// to one edited and left straight; one fitted with a curve or a spline stays a POLYLINE, as one in a drawing of R12
+        /// does, and PLINETYPE 0 leaves every POLYLINE one.
         /// </summary>
         private static void PeditToLightweight(CadCommandContext c, string handle)
         {
-            if (!(c.Document.FindEntity(handle) is DxfPolyline2d heavy) || heavy.PolyType != DxfPoly2dType.SimplePoly
+            if (c.Remembered("plinetype", 2.0) == 0.0 || !(c.Document.FindEntity(handle) is DxfPolyline2d heavy) || heavy.PolyType != DxfPoly2dType.SimplePoly
                 || string.CompareOrdinal(c.Database.Version, "AC1014") < 0 || heavy.Count() < 2)
             {
                 return;

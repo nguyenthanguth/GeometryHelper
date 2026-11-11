@@ -301,7 +301,12 @@ the arc through (100, 0), (150, 50) and (200, 0) is the vertex (200, 0) of bulge
 LWPOLYLINE the POLYLINE AutoCAD makes, its handle kept: Spline of (0, 0), (100, 0), (100, 50), (0, 80) at SPLINETYPE 6
 and SPLINESEGS 8 is the first vertex of the frame (flag 16), the 9 of the curve (flag 8) from (0, 0) through (75, 28.75)
 to (0, 80), then the rest of the frame. A POLYLINE left straight when it is edited alone is a LWPOLYLINE again, as
-AutoCAD's PLINETYPE 2 makes it; Multiple leaves it a POLYLINE, as AutoCAD does. Edit vertex marks the vertex with a cross,
+AutoCAD's PLINETYPE 1 and 2 make it; Multiple leaves it a POLYLINE, as AutoCAD does. PEDITACCEPT 1 turns a line or an arc
+into a polyline without the question, and Multiple's `Convert Lines, Arcs and Splines to polylines [Yes/No]?` is not
+asked. PLINETYPE 0 makes PLINE, POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs and leaves a POLYLINE
+edited alone one, as AutoCAD 2021 does at 0: PLINE from (0, 100) to (100, 100) and, 2 to 4 wide, to (100, 200) is a
+POLYLINE whose second vertex has widths 2 and 4. RECTANG and REVCLOUD make LWPOLYLINEs whatever it is, as AutoCAD's do.
+Both are kept by the session, PEDITACCEPT 0 and PLINETYPE 2 until set. Edit vertex marks the vertex with a cross,
 the first one the view shows (`No visible vertices` where it shows none); Next and Previous stop at the ends, Insert puts a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
 leaves two open ones, and Straighten at one vertex straightens the segment that leaves it. Multiple joins within a fuzz
@@ -491,7 +496,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

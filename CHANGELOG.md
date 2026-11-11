@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** SETVAR in the presenter sets PEDITACCEPT and PLINETYPE, kept by the session, and PEDIT, PLINE, POLYGON and
+DONUT honour them as AutoCAD 2021 does, checked in its console. PEDITACCEPT 1 turns a line or an arc picked into a
+polyline without `Do you want to turn it into one? <Y>`, and Multiple without asking to convert. PLINETYPE 0 makes PLINE,
+POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs, PLINE from (0, 100) to (100, 100) and, 2 to 4 wide, to
+(100, 200) a POLYLINE whose second vertex has widths 2 and 4, and keeps a POLYLINE edited alone one; at 1, as at 2, PEDIT
+makes it a LWPOLYLINE of its handle again. RECTANG and REVCLOUD make LWPOLYLINEs at 0 too, as AutoCAD's do. AutoCAD names
+the first PEDITACCEPT; it has no PEACCEPT.
+
 **NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
 and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
 vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new

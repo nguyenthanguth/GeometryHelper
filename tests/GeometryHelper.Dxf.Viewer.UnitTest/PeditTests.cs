@@ -379,5 +379,84 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(All<DxfPolyline>(document.ModelSpace));
             AssertReopens(document);
         }
+
+        [Fact]
+        public void PeditAcceptOne_TurnsALineIntoAPolylineWithoutAsking_AloneAndInMultiple()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PEDITACCEPT", "1", "LINE", P(0, 0), P(100, 0), Enter);
+
+            // AutoCAD 2021 at PEDITACCEPT 1: "Select polyline or [Multiple]:", then the options at once.
+            int before = session.History.Count;
+            Run(session, "PEDIT", P(50, 0));
+            Assert.Equal(Options, session.PromptText);
+            Assert.DoesNotContain("Object selected is not a polyline", session.History.Skip(before));
+            Run(session, Enter);
+            Vertices(Light(document), 0, 0, 100, 0);
+
+            Run(session, "LINE", P(0, 100), P(100, 100), Enter);
+            Run(session, "PEDIT", "M", new[] { Assert.Single(All<DxfLine>(document.ModelSpace)).Handle }, Enter);
+            Assert.Equal(ManyOptions, session.PromptText);
+            Run(session, Enter);
+            Assert.Equal(2, All<DxfPolyline>(document.ModelSpace).Count);
+            Assert.Empty(All<DxfLine>(document.ModelSpace));
+        }
+
+        [Fact]
+        public void PlineTypeNought_MakesOldStylePolylines_OfPlinePolygonDonutAndPedit_ButNotOfRectang()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PLINETYPE", "0");
+            Run(session, "PLINE", P(0, 100), P(100, 100), "W", "2", "4", P(100, 200), Enter);
+
+            // AutoCAD 2021 at PLINETYPE 0: a POLYLINE of (0, 100), (100, 100) of widths 2 and 4, (100, 200) of 4 and 4.
+            DxfPolyline2d pline = Heavy(document);
+            List<DxfVertex2d> vertices = pline.ToList();
+            Assert.Equal(3, vertices.Count);
+            Near(new GeoPoint3(100, 100, 0), vertices[1].Position);
+            Assert.Equal(2.0, vertices[1].StartWidth);
+            Assert.Equal(4.0, vertices[1].EndWidth);
+            Assert.Equal(4.0, vertices[2].StartWidth);
+            Assert.Empty(All<DxfPolyline>(document.ModelSpace));
+
+            Run(session, "U");
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+            Run(session, "PLINE", P(0, 100), P(100, 100), P(100, 200), "U", Enter);
+            Assert.Equal(2, Heavy(document).Count());
+            Run(session, "ERASE", "ALL", Enter);
+
+            // PEDIT of a line, POLYGON and DONUT make POLYLINEs too; RECTANG a LWPOLYLINE, as AutoCAD's.
+            Run(session, "LINE", P(0, 300), P(100, 300), Enter, "PEDIT", P(50, 300), Enter, "X");
+            Run(session, "POLYGON", "4", P(400, 50), "I", "40");
+            Run(session, "DONUT", "10", "20", P(600, 50), Enter);
+            Run(session, "RECTANG", P(200, 0), P(300, 100));
+            List<DxfPolyline2d> heavy = All<DxfPolyline2d>(document.ModelSpace);
+            Assert.Equal(3, heavy.Count);
+            Assert.Equal(2, heavy.Count(p => p.Closed));
+            DxfPolyline2d donut = heavy.Single(p => p.Count() == 2 && p.Closed);
+            Assert.All(donut, v => Assert.Equal(1.0, v.Bulge));
+            Assert.All(donut, v => Assert.Equal(5.0, v.StartWidth));
+            Assert.True(Assert.Single(All<DxfPolyline>(document.ModelSpace)).Closed);
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void PlineType_DecidesWhetherAPolylineEditedAloneIsMadeALwpolylineAgain()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PLINETYPE", "0", "PLINE", P(0, 100), P(100, 100), P(100, 200), Enter);
+            string handle = Heavy(document).Handle;
+
+            // AutoCAD 2021: at 0 the POLYLINE widened stays one; at 1, as at 2, it is a LWPOLYLINE of its handle.
+            Run(session, "PEDIT", P(50, 100), "W", "1", Enter);
+            Assert.Equal(1.0, Heavy(document).First().StartWidth);
+            Run(session, "PLINETYPE", "1", "PEDIT", P(50, 100), "W", "2", Enter);
+            Assert.Equal(handle, Light(document).Handle);
+            Assert.Equal(2.0, Light(document).ConstantWidth);
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+        }
     }
 }
