@@ -219,7 +219,8 @@ the ones wanted.
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
-- [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
+- [x] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
+- [ ] Table editing follow-ups: Columns/Rows Resize (start the width drag); ORTHO/OSNAP/polar on table drags; a DYN field for row heights; up-flowing tables in CellNear and the drags; TABLEINDICATOR kept in registry or drawing (unverified); a typed 1 in the editor stored as a number or text; a look in the running app (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 - [ ] Tables follow-ups: the row growing live while a cell is typed (the canvas must redraw the table during the edit);
       a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)

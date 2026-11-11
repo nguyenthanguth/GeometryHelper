@@ -116,6 +116,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ClearContentsCommand = new DelegateCommand(_ => Do(d => CadTableEditor.ClearContents(d, Handle, Range)));
             AlignCommand = new DelegateCommand(p => Align(p as string));
             BordersCommand = new DelegateCommand(p => Borders(p as string));
+            SizeColumnsEquallyCommand = new DelegateCommand(_ => SizeEqually(true));
+            SizeRowsEquallyCommand = new DelegateCommand(_ => SizeEqually(false));
+            RemoveOverridesCommand = new DelegateCommand(_ =>
+                Do(d => CadTableEditor.RemoveOverrides(d, Handle, Range))
+            );
             Refresh();
         }
 
@@ -259,6 +264,133 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public DelegateCommand BordersCommand { get; }
 
+        /// <summary>Gets Columns › Size Equally: every column of the range made as wide as their mean, the range's width kept, one undo step.</summary>
+        public DelegateCommand SizeColumnsEquallyCommand { get; }
+
+        /// <summary>Gets Rows › Size Equally: every row of the range made as high as their mean, none below what its text needs, one undo step.</summary>
+        public DelegateCommand SizeRowsEquallyCommand { get; }
+
+        /// <summary>Gets Remove All Property Overrides: what the cells hold of their own over the table style taken away, one undo step.</summary>
+        public DelegateCommand RemoveOverridesCommand { get; }
+
+        /// <summary>
+        /// Gets the right-click menu of the cells, as AutoCAD 2021's: Cut, Copy and Paste; Cell Style, Background Fill,
+        /// Alignment, Borders, Locking, Data Format; Match Cell, Remove All Property Overrides, Data Link; Insert, Edit Text,
+        /// Manage Content, Delete All Contents; Columns and Rows; Merge and Unmerge; Properties and Quick Properties. What the
+        /// presenter does not build is grey, a grey item that opens a menu never opens it.
+        /// </summary>
+        /// <returns>The items, made anew each time the menu opens.</returns>
+        public IReadOnlyList<CadMenuItemViewModel> Menu()
+        {
+            DxfTable table = Table;
+            CadMenuItemViewModel Grey(string name, string keys = null) =>
+                new CadMenuItemViewModel(name, () => { }, false, MainViewModel.NotBuiltYet, shortcut: keys);
+            CadMenuItemViewModel Item(string name, Action run, bool on = true, string keys = null) =>
+                new CadMenuItemViewModel(name, run, on, shortcut: keys);
+            CadMenuItemViewModel Line() => CadMenuItemViewModel.Separator();
+
+            bool everyRow = table != null && _range.TopRow == 0 && _range.BottomRow == table.NumRows - 1;
+            bool everyColumn = table != null && _range.LeftColumn == 0 && _range.RightColumn == table.NumColumns - 1;
+            bool oneRow = _range.TopRow == _range.BottomRow;
+            bool oneColumn = _range.LeftColumn == _range.RightColumn;
+            string shared = SharedAlignment(table);
+            var alignments = new List<CadMenuItemViewModel>();
+
+            foreach (string name in Alignments)
+            {
+                string chosen = name;
+                alignments.Add(new CadMenuItemViewModel(name, () => Align(chosen), isChecked: name == shared));
+            }
+
+            return new[]
+            {
+                Grey("Cut", "Ctrl+X"),
+                Grey("Copy", "Ctrl+C"),
+                Grey("Paste", "Ctrl+V"),
+                Line(),
+                new CadMenuItemViewModel(
+                    "Cell Style",
+                    false,
+                    new[]
+                    {
+                        Grey("By Row/Column"),
+                        Grey("Title"),
+                        Grey("Header"),
+                        Grey("Data"),
+                        Line(),
+                        Grey("Save as New Cell Style…"),
+                        Grey("Create New Cell Style…"),
+                        Grey("Manage Cell Styles…"),
+                    }
+                ),
+                Item("Background Fill…", PickFill),
+                new CadMenuItemViewModel("Alignment", alignments),
+                Grey("Borders…"),
+                new CadMenuItemViewModel(
+                    "Locking",
+                    false,
+                    new[]
+                    {
+                        Grey("Unlocked"),
+                        Grey("Content Locked"),
+                        Grey("Format Locked"),
+                        Grey("Content and Format Locked"),
+                    }
+                ),
+                Grey("Data Format…"),
+                Line(),
+                Grey("Match Cell"),
+                Item("Remove All Property Overrides", () => RemoveOverridesCommand.Execute(null)),
+                Grey("Data Link…"),
+                Line(),
+                new CadMenuItemViewModel("Insert", false, new[] { Grey("Block…"), Grey("Field…"), Grey("Formula") }),
+                Item("Edit Text", () => EditCell()),
+                Grey("Manage Content…"),
+                Item("Delete All Contents", () => ClearContentsCommand.Execute(null), keys: "Del"),
+                Line(),
+                new CadMenuItemViewModel(
+                    "Columns",
+                    true,
+                    new[]
+                    {
+                        Item("Insert Left", () => InsertLeftCommand.Execute(null)),
+                        Item("Insert Right", () => InsertRightCommand.Execute(null)),
+                        Item("Delete", () => DeleteColumnsCommand.Execute(null), !everyColumn),
+                        Line(),
+                        Item("Size Equally", () => SizeColumnsEquallyCommand.Execute(null), !oneColumn),
+                        Grey("Resize"),
+                    }
+                ),
+                new CadMenuItemViewModel(
+                    "Rows",
+                    new[]
+                    {
+                        Item("Insert Above", () => InsertAboveCommand.Execute(null)),
+                        Item("Insert Below", () => InsertBelowCommand.Execute(null)),
+                        Item("Delete", () => DeleteRowsCommand.Execute(null), !everyRow),
+                        Line(),
+                        Item("Size Equally", () => SizeRowsEquallyCommand.Execute(null), !oneRow),
+                        Grey("Resize"),
+                    }
+                ),
+                Line(),
+                new CadMenuItemViewModel(
+                    "Merge",
+                    CanMerge,
+                    new[]
+                    {
+                        Item("All", () => MergeAllCommand.Execute(null)),
+                        Item("By Row", () => MergeByRowCommand.Execute(null), !oneColumn),
+                        Item("By Column", () => MergeByColumnCommand.Execute(null), !oneRow),
+                    }
+                ),
+                Item("Unmerge", () => UnmergeCommand.Execute(null), MeetsMerged(table)),
+                Line(),
+                Item("Properties", () => _model.IsPropertiesPanelShown = true, keys: "Ctrl+1"),
+                Grey("Quick Properties"),
+            };
+        }
+
         /// <summary>Gets the table, or null where it is gone.</summary>
         private DxfTable Table => _model.Document?.FindEntity(Handle) as DxfTable;
 
@@ -303,6 +435,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Fill));
             Raise(nameof(CanMerge));
         }
+
+        /// <summary>Whether the cell the selection runs from is the one given.</summary>
+        internal bool IsAnchoredAt(int row, int column) => _anchorRow == row && _anchorColumn == column;
 
         /// <summary>Grows the selection to a cell, as Shift+click does.</summary>
         internal void ExtendTo(int row, int column)
@@ -368,7 +503,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return _model.EditTableCellAt(middle);
         }
 
-        /// <summary>The corners of the range, then of the table, for the canvas to draw.</summary>
+        /// <summary>
+        /// The corners of the range, then of the table, for the canvas to draw; then the points where the lines between columns
+        /// meet the table's top edge, its left and right corners first and last, and those where the lines between rows meet its
+        /// left edge, so that the bands of letters and numbers are drawn a column and a row at a time.
+        /// </summary>
         internal GeoPoint2[][] Outline()
         {
             DxfTable table = Table;
@@ -378,11 +517,144 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return new[]
+            GeoPoint2[] whole = CadTableEditor.Corners(
+                table,
+                new DxfCellRange(0, 0, table.NumRows - 1, table.NumColumns - 1)
+            );
+            GeoVector2 across = whole[1] - whole[0];
+            GeoVector2 down = whole[3] - whole[0];
+            across = across.Length > 0.0 ? across / across.Length : new GeoVector2(1.0, 0.0);
+            down = down.Length > 0.0 ? down / down.Length : new GeoVector2(0.0, -1.0);
+            var columns = new GeoPoint2[table.NumColumns + 1];
+            var rows = new GeoPoint2[table.NumRows + 1];
+            double at = 0.0;
+
+            for (int c = 0; c <= table.NumColumns; c++)
             {
-                CadTableEditor.Corners(table, _range),
-                CadTableEditor.Corners(table, new DxfCellRange(0, 0, table.NumRows - 1, table.NumColumns - 1)),
-            };
+                columns[c] = whole[0] + across * at;
+                at += c < table.NumColumns ? table.ColumnWidth(c) : 0.0;
+            }
+
+            at = 0.0;
+
+            for (int r = 0; r <= table.NumRows; r++)
+            {
+                rows[r] = whole[0] + down * at;
+                at += r < table.NumRows ? table.RowHeight(r) : 0.0;
+            }
+
+            return new[] { CadTableEditor.Corners(table, _range), whole, columns, rows };
+        }
+
+        /// <summary>The alignment every cell of the range shares, by its name; null where they differ.</summary>
+        private string SharedAlignment(DxfTable table)
+        {
+            if (table == null)
+            {
+                return null;
+            }
+
+            var style = table.TableStyle as DxfTableStyle;
+            DxfCellAlignment? shared = null;
+
+            for (int r = _range.TopRow; r <= _range.BottomRow; r++)
+            {
+                DxfRowType kind = table.RowType(r);
+
+                for (int c = _range.LeftColumn; c <= _range.RightColumn; c++)
+                {
+                    DxfCellAlignment alignment = table.Alignment(r, c)
+                        ?? style?.Alignment(kind)
+                        ?? (kind == DxfRowType.DataRow ? DxfCellAlignment.TopCenter : DxfCellAlignment.MiddleCenter);
+
+                    if (shared.HasValue && shared.Value != alignment)
+                    {
+                        return null;
+                    }
+
+                    shared = alignment;
+                }
+            }
+
+            return shared.HasValue ? Alignments[(int)shared.Value - 1] : null;
+        }
+
+        /// <summary>Whether the range meets a block of merged cells, which Unmerge needs.</summary>
+        private bool MeetsMerged(DxfTable table)
+        {
+            for (int r = _range.TopRow; table != null && r <= _range.BottomRow; r++)
+            {
+                for (int c = _range.LeftColumn; c <= _range.RightColumn; c++)
+                {
+                    if (table.IsMergedCell(r, c, out _))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Background Fill: the Select Color dialog on the first cell's fill, ByLayer and ByBlock offered, the colour chosen given every cell.</summary>
+        private void PickFill()
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            if (_model.PickColor == null)
+            {
+                _model.Session?.Write("The Select Color dialog is shown by the window.");
+                return;
+            }
+
+            DxfColor old =
+                table.IsBackgroundColorNone(_range.TopRow, _range.LeftColumn) != false
+                    ? DxfColor.ByLayer
+                    : table.BackgroundColor(_range.TopRow, _range.LeftColumn) ?? DxfColor.ByLayer;
+            var dialog = new SelectColorViewModel(old, true);
+
+            if (_model.PickColor(dialog))
+            {
+                Do(d => CadTableEditor.SetBackground(d, Handle, Range, dialog.Color));
+            }
+        }
+
+        /// <summary>Size Equally: the columns (or rows) of the range each given their mean, one undo step.</summary>
+        private void SizeEqually(bool columns)
+        {
+            DxfTable table = Table;
+
+            if (table == null)
+            {
+                return;
+            }
+
+            int first = columns ? _range.LeftColumn : _range.TopRow;
+            int count = columns ? _range.RightColumn - _range.LeftColumn + 1 : _range.BottomRow - _range.TopRow + 1;
+            double sum = 0.0;
+
+            for (int k = 0; k < count; k++)
+            {
+                sum += columns ? table.ColumnWidth(first + k) : table.RowHeight(first + k);
+            }
+
+            var sizes = new double[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                sizes[k] = sum / count;
+            }
+
+            Do(d =>
+                columns
+                    ? CadTableEditor.SetColumnWidths(d, Handle, first, sizes)
+                    : CadTableEditor.SetRowHeights(d, Handle, first, sizes)
+            );
         }
 
         private void Align(string name)
@@ -436,17 +708,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             DxfCellRange range = Range;
             int count = byRow ? range.BottomRow - range.TopRow + 1 : range.RightColumn - range.LeftColumn + 1;
+            CadDocument document = _model.Document;
 
-            for (int k = 0; k < count; k++)
+            if (document == null)
             {
-                DxfCellRange part = byRow
-                    ? new DxfCellRange(range.TopRow + k, range.LeftColumn, range.TopRow + k, range.RightColumn)
-                    : new DxfCellRange(range.TopRow, range.LeftColumn + k, range.BottomRow, range.LeftColumn + k);
+                return;
+            }
 
-                if (part.TopRow != part.BottomRow || part.LeftColumn != part.RightColumn)
+            document.BeginGroup("TABLEDIT");
+
+            try
+            {
+                for (int k = 0; k < count; k++)
                 {
-                    Do(d => CadTableEditor.Merge(d, Handle, part));
+                    DxfCellRange part = byRow
+                        ? new DxfCellRange(range.TopRow + k, range.LeftColumn, range.TopRow + k, range.RightColumn)
+                        : new DxfCellRange(range.TopRow, range.LeftColumn + k, range.BottomRow, range.LeftColumn + k);
+
+                    if (part.TopRow != part.BottomRow || part.LeftColumn != part.RightColumn)
+                    {
+                        Do(d => CadTableEditor.Merge(d, Handle, part));
+                    }
                 }
+            }
+            finally
+            {
+                document.EndGroup();
             }
         }
 

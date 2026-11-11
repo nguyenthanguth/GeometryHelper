@@ -18,10 +18,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool isEnabled = true,
             string toolTip = null,
             bool? isChecked = null,
-            CadSnapKind marker = CadSnapKind.None
+            CadSnapKind marker = CadSnapKind.None,
+            string shortcut = null
         )
         {
             Header = header ?? string.Empty;
+            Shortcut = shortcut ?? string.Empty;
             IsEnabled = isEnabled;
             ToolTip = toolTip;
             IsCheckable = isChecked.HasValue;
@@ -32,10 +34,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Makes an item that opens a menu of its own, as "Point Filters" of the Shift+right-click menu.</summary>
         internal CadMenuItemViewModel(string header, IReadOnlyList<CadMenuItemViewModel> items)
-            : this(header, (Action)null)
+            : this(header, true, items) { }
+
+        /// <summary>Makes an item that opens a menu of its own, greyed where it is off: a grey one never opens its menu.</summary>
+        internal CadMenuItemViewModel(string header, bool isEnabled, IReadOnlyList<CadMenuItemViewModel> items)
+            : this(header, (Action)null, isEnabled)
         {
             Items = items;
         }
+
+        /// <summary>Gets the keys written at its right, as "Ctrl+1"; empty for none.</summary>
+        public string Shortcut { get; }
 
         /// <summary>Gets the text, as "Close All Other Drawings"; empty for a separator.</summary>
         public string Header { get; }

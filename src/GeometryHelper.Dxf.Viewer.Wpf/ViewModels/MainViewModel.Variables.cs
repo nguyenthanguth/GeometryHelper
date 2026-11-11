@@ -145,6 +145,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
             );
             registry.AddVariable(CadSystemVariable.Switch("LWDISPLAY", () => ShowLineWeights, SetLineWeightDisplay));
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "TABLEINDICATOR",
+                    0,
+                    1,
+                    () => _settings.TableIndicator ? 1 : 0,
+                    v => ChangeSettings(s => s.TableIndicator = v != 0)
+                )
+            );
         }
 
         /// <summary>

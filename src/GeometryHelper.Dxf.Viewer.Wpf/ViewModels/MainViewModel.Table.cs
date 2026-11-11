@@ -8,7 +8,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// Tables (C18a): TABLE asking for the Insert Table dialog, TABLESTYLE for the Table Style dialog, and the cells of a table
     /// selected on the canvas with the contextual Table Cell tab, as AutoCAD 2021's: a click in a cell selects it, Shift+click
-    /// a range, the arrows move it, Delete empties it, F2 or a double click opens it for typing, Esc lets it go.
+    /// or a press dragged a range, the arrows move it, Delete empties it, F2 or a double click opens it for typing, Esc lets it
+    /// go; the grips of the cells drag the table's lines and autofill, and a right click opens the cells' menu.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -145,8 +146,219 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Lets the cells of a table selected go, the Table Cell tab hidden, as a click away from them does.</summary>
         public void ClearTableCell() => HideTableCell();
 
+        /// <summary>
+        /// A press in a cell dragged across others, with no command running: the range from the cell pressed to the cell under
+        /// the cursor, held at the table's edge where the cursor leaves it, grown to every block of merged cells it meets, as
+        /// AutoCAD 2021 selects it; the objects selected let go. Not an edit: no undo step.
+        /// </summary>
+        /// <param name="anchor">The point pressed, in the drawing.</param>
+        /// <param name="cursor">The cursor, in the drawing.</param>
+        /// <returns>Whether a range is selected.</returns>
+        public bool SelectTableRange(GeoPoint2 anchor, GeoPoint2 cursor)
+        {
+            if (
+                _current == null
+                || _current.Session.IsRunning
+                || !CadTableEditor.TryCellAt(
+                    _current.Document.CurrentSpace,
+                    anchor,
+                    out string handle,
+                    out int row,
+                    out int column
+                )
+                || !(_current.Document.FindEntity(handle) is DxfTable table)
+                || !CadTableEditor.CellNear(table, cursor, out int toRow, out int toColumn)
+            )
+            {
+                return false;
+            }
+
+            if (
+                _tableCell == null
+                || !string.Equals(_tableCell.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                || !_tableCell.IsAnchoredAt(row, column)
+            )
+            {
+                ClearSelection();
+                ShowTableCell(new TableCellViewModel(this, handle, row, column));
+            }
+
+            _tableCell.ExtendTo(toRow, toColumn);
+            return true;
+        }
+
+        /// <summary>
+        /// Starts the drag of a grip of the cells selected: 0 the top edge, 1 the right, 2 the bottom and 3 the left edge, each
+        /// moving that line of the table (the row above it, or the column left of it, changing alone), and 4 the autofill grip.
+        /// </summary>
+        /// <param name="grip">The grip, 0 to 4.</param>
+        /// <returns>The drag; null where no cells are selected or a command runs.</returns>
+        public CadTableDrag StartTableCellDrag(int grip)
+        {
+            TableCellViewModel cell = _tableCell;
+
+            if (cell == null || _current == null || _current.Session.IsRunning)
+            {
+                return null;
+            }
+
+            CadDocument document = _current.Document;
+            DxfCellRange range = cell.Range;
+
+            switch (grip)
+            {
+                case 0:
+                    return CadTableDrag.Row(document, cell.Handle, range.TopRow);
+                case 1:
+                    return CadTableDrag.Column(document, cell.Handle, range.RightColumn + 1, true);
+                case 2:
+                    return CadTableDrag.Row(document, cell.Handle, range.BottomRow + 1);
+                case 3:
+                    return CadTableDrag.Column(document, cell.Handle, range.LeftColumn, true);
+                case 4:
+                    return CadTableDrag.Autofill(document, cell.Handle, range);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Ends a drag of a table's grip let go or clicked again: made, one undo step, a refusal said on the command line; after
+        /// an autofill the source and the cells filled are the cells selected.
+        /// </summary>
+        /// <param name="drag">The drag.</param>
+        /// <returns>What came of it.</returns>
+        public CadEditResult EndTableDrag(CadTableDrag drag)
+        {
+            if (drag == null)
+            {
+                throw new ArgumentNullException(nameof(drag));
+            }
+
+            CadEditResult result = drag.Commit();
+
+            if (!result.Succeeded)
+            {
+                Say(result.Message);
+            }
+            else if (drag.Kind == CadTableDragKind.Autofill && drag.FillRange != null)
+            {
+                DxfCellRange s = drag.Source,
+                    f = drag.FillRange;
+                var cell = new TableCellViewModel(
+                    this,
+                    drag.Handle,
+                    Math.Min(s.TopRow, f.TopRow),
+                    Math.Min(s.LeftColumn, f.LeftColumn)
+                );
+                ShowTableCell(cell);
+                cell.ExtendTo(Math.Max(s.BottomRow, f.BottomRow), Math.Max(s.RightColumn, f.RightColumn));
+            }
+            else
+            {
+                SyncTableCell();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// The menu a right click opens while the autofill grip is dragged, as AutoCAD 2021's: Fill Series, Fill Series Without
+        /// Formatting, Copy Cells, Copy Cells Without Formatting and Fill Formatting Only, the one chosen ticked; the choice lasts
+        /// for this drag.
+        /// </summary>
+        /// <param name="drag">The drag.</param>
+        /// <returns>The items; null for a drag of another kind.</returns>
+        public IReadOnlyList<CadMenuItemViewModel> TableFillMenu(CadTableDrag drag)
+        {
+            if (drag == null || drag.Kind != CadTableDragKind.Autofill)
+            {
+                return null;
+            }
+
+            var choices = new[]
+            {
+                new KeyValuePair<string, DxfTableFillOptions>("Fill Series", CadTableDrag.FillSeries),
+                new KeyValuePair<string, DxfTableFillOptions>(
+                    "Fill Series Without Formatting",
+                    DxfTableFillOptions.GenerateSeries
+                ),
+                new KeyValuePair<string, DxfTableFillOptions>(
+                    "Copy Cells",
+                    DxfTableFillOptions.CopyContent | DxfTableFillOptions.CopyFormat
+                ),
+                new KeyValuePair<string, DxfTableFillOptions>(
+                    "Copy Cells Without Formatting",
+                    DxfTableFillOptions.CopyContent
+                ),
+                new KeyValuePair<string, DxfTableFillOptions>("Fill Formatting Only", DxfTableFillOptions.CopyFormat),
+            };
+            var items = new List<CadMenuItemViewModel>();
+
+            foreach (KeyValuePair<string, DxfTableFillOptions> choice in choices)
+            {
+                DxfTableFillOptions options = choice.Value;
+                items.Add(
+                    new CadMenuItemViewModel(
+                        choice.Key,
+                        () => drag.FillOptions = options,
+                        isChecked: drag.FillOptions == options
+                    )
+                );
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// Table Indicator Color, of the right-click menu of a table selected: the Select Color dialog on the fill of the bands
+        /// of column letters and row numbers, kept in Global settings › Appearance, not in the drawing.
+        /// </summary>
+        private void PickTableIndicatorColor()
+        {
+            if (PickColor == null)
+            {
+                Say("The Select Color dialog is shown by the window.");
+                return;
+            }
+
+            int rgb = _settings.TableIndicatorColor;
+            var dialog = new SelectColorViewModel(
+                DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb),
+                false
+            );
+
+            if (PickColor(dialog))
+            {
+                int chosen = dialog.Color.ColorValue & 0xFFFFFF;
+                ChangeSettings(s => s.TableIndicatorColor = chosen);
+            }
+        }
+
+        /// <summary>Whether a table is among the objects selected, which offers Table Indicator Color on the right-click menu.</summary>
+        private bool TableSelected()
+        {
+            CadDocument document = _current?.Document;
+
+            if (document == null)
+            {
+                return false;
+            }
+
+            foreach (string handle in document.Selection.Handles)
+            {
+                if (document.FindEntity(handle) is DxfTable)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>The corners of the cells selected and of their table, for the canvas to draw; null where none are selected.</summary>
-        /// <returns>The range's corners, then the table's, each four points in the plan.</returns>
+        /// <returns>The range's corners, then the table's, each four points in the plan; then the points of the lines between
+        /// columns on the table's top edge and of the lines between rows on its left edge, its corners first and last.</returns>
         public GeoPoint2[][] TableCellOutline() => _tableCell?.Outline();
 
         /// <summary>Shows the Table Cell tab for the cells selected.</summary>

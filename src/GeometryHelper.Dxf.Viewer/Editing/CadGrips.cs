@@ -62,6 +62,25 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The jog of a jogged radius dimension: moves the jog, kept half way between the radius and its parallel through the centre drawn.</summary>
         Jog,
+
+        /// <summary>
+        /// A column grip of a table, on its top edge at a line between two columns: moves the line, the column left of it
+        /// growing and the one right of it giving it back, the table's width kept; with Ctrl the left column alone changes and
+        /// the table's width follows.
+        /// </summary>
+        TableColumn,
+
+        /// <summary>The top right grip of a table, a triangle pointing along it: stretches every column in proportion to the new width.</summary>
+        TableWidth,
+
+        /// <summary>The bottom left grip of a table, a triangle pointing down: stretches every row in proportion to the new height.</summary>
+        TableHeight,
+
+        /// <summary>The bottom right grip of a table, a triangle pointing into its corner: stretches the columns and the rows alike.</summary>
+        TableSize,
+
+        /// <summary>The table breaking grip under the middle of a table's bottom edge: drawn as AutoCAD's, not offered; dragged, it does nothing.</summary>
+        TableBreak,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
@@ -80,6 +99,12 @@ namespace GeometryHelper.Dxf.Viewer
                 custom == null ? new GeoVector2(0.0, 0.0) : new GeoVector2(custom.Direction.X, custom.Direction.Y);
         }
 
+        internal CadGrip(int index, CadGripKind kind, GeoPoint2 point, GeoVector2 direction)
+            : this(index, kind, point, null)
+        {
+            Direction = direction;
+        }
+
         /// <summary>
         /// Gets the custom grip of a dynamic block's parameter the grip stands for, what it drives and where its parameter
         /// measures from; null for a grip of any other kind.
@@ -87,8 +112,8 @@ namespace GeometryHelper.Dxf.Viewer
         public DxfDynamicBlockGrip Custom { get; }
 
         /// <summary>
-        /// Gets the way a custom grip's arrow points, in the plan: along a linear parameter, across a flip parameter's line; nought
-        /// for a grip of no arrow.
+        /// Gets the way a custom grip's arrow points, in the plan: along a linear parameter, across a flip parameter's line; the
+        /// way a table's stretch or breaking grip points, along the table, down it, or both; nought for a grip of no arrow.
         /// </summary>
         public GeoVector2 Direction { get; }
 
@@ -123,7 +148,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// (its defined width by its defined height, or with none the height of its lines) from the top left, the top right, the
         /// bottom left to the bottom right, the corner its location is at the grip of its insertion; its location first, a fifth
         /// grip, where it is at no corner (held at a middle); its location alone for an MTEXT of no width, in columns or out of
-        /// the plan.
+        /// the plan. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
+        /// its top edge, its width, height and size stretch grips at the top right, bottom left and bottom right, and the table
+        /// breaking grip under the middle of its bottom edge, which is not offered.
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -250,6 +277,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDimension dimension:
                     DimensionGrips(dimension, (kind, at) => Add(kind, at.X, at.Y));
                     break;
+                case DxfTable table when IsPlan(table.Normal):
+                    TableGrips(table, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
+                    break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                 {
                     // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
@@ -331,6 +361,19 @@ namespace GeometryHelper.Dxf.Viewer
             if (grip.Custom != null)
             {
                 return CadDynamicBlocks.Drag(document, handle, grip, to);
+            }
+
+            if (entity is DxfTable && grip.Kind != CadGripKind.Insertion)
+            {
+                CadTableDrag drag = CadTableDrag.FromGrip(document, handle, gripIndex);
+
+                if (drag == null)
+                {
+                    return CadEditResult.Refuse("The table breaking grip is not offered.");
+                }
+
+                drag.Update(to, false);
+                return drag.Commit();
             }
 
             GeoVector2 moved = to - grip.Point;
