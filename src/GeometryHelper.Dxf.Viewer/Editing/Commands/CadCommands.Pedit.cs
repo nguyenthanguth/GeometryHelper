@@ -51,10 +51,10 @@ namespace GeometryHelper.Dxf.Viewer
                 string picked = c.Input.Handles[0];
                 DxfEntity entity = c.Document.FindEntity(picked);
 
-                if (!(entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfLine || entity is DxfArc))
+                if (!(entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfPolyline3d || entity is DxfLine || entity is DxfArc))
                 {
-                    c.Write(entity is DxfPolyline3d || entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
-                        ? "PEDIT edits polylines of the plane here; 3D polylines and meshes are not edited yet."
+                    c.Write(entity is DxfPolygonMesh || entity is DxfPolyFaceMesh
+                        ? "PEDIT edits polylines and 3D polylines here; meshes are not edited yet."
                         : "Object selected is not a polyline");
                     continue;
                 }
@@ -64,18 +64,33 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                if (entity is DxfPolyline3d)
+                {
+                    foreach (CadPrompt prompt in Pedit3d(c, picked))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
                 if (entity is DxfPolyline || entity is DxfPolyline2d)
                 {
                     handle = picked;
                     continue;
                 }
 
-                c.Write("Object selected is not a polyline");
-                var yes = new Ref<bool>();
+                // PEDITACCEPT 1 turns it into one without a word, as AutoCAD 2021 does.
+                var yes = new Ref<bool> { Value = PeditAccepts(c) };
 
-                foreach (CadPrompt prompt in PeditYesNo(c, "Do you want to turn it into one?", yes))
+                if (!yes.Value)
                 {
-                    yield return prompt;
+                    c.Write("Object selected is not a polyline");
+
+                    foreach (CadPrompt prompt in PeditYesNo(c, "Do you want to turn it into one?", yes))
+                    {
+                        yield return prompt;
+                    }
                 }
 
                 if (yes.Value)
@@ -192,11 +207,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (others.Count > 0)
             {
-                var yes = new Ref<bool>();
+                var yes = new Ref<bool> { Value = PeditAccepts(c) };
 
-                foreach (CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes))
+                if (!yes.Value)
                 {
-                    yield return prompt;
+                    foreach (CadPrompt prompt in PeditYesNo(c, "Convert Lines, Arcs and Splines to polylines [Yes/No]?", yes))
+                    {
+                        yield return prompt;
+                    }
                 }
 
                 // Splines are left as they are: their conversion by a precision is not built.
@@ -409,7 +427,7 @@ namespace GeometryHelper.Dxf.Viewer
                     polyline.SetPropertiesFrom(curve);
                     CadSpace space = s.Document.FindSpace(handle);
                     curve.Erase();
-                    made.Add(s.Append(space, polyline).Handle);
+                    made.Add(s.Append(space, OfPlineType(c, polyline)).Handle);
                 }
             });
 
@@ -629,7 +647,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Multiple's Join: the open polylines given joined end to end where their ends lie within the fuzz distance, nearest
-        /// first, in the order of their handles: Extend runs the two straight end segments on or back to where their lines meet,
+        /// first, in the order of their handles: Extend runs the two end segments on or back to where they meet, an arc round its circle,
         /// Add puts a straight segment between the ends, Both extends where it can and adds where it cannot.
         /// </summary>
         private static void PeditFuzzJoin(CadCommandContext c, List<string> handles, double fuzz, int type, List<CadGroupMark> marks)
@@ -681,8 +699,9 @@ namespace GeometryHelper.Dxf.Viewer
                                 GeoPoint2 theirs = fromStart ? other.Points[0].At : other.Points[other.Points.Count - 1].At;
                                 double gap = (theirs - mine).Length;
 
-                                // The nearest within the fuzz; at one distance the lower handle, the seed's end before its start.
-                                if (gap <= fuzz + slack && gap < bestGap - slack)
+                                // The nearest that joins within the fuzz; at one distance the lower handle, the seed's end before
+                                // its start.
+                                if (gap < bestGap - slack && PeditAttach(seed, other, atEnd, fromStart, type, fuzz, slack, false) >= 0)
                                 {
                                     best = other;
                                     bestGap = gap;
@@ -698,7 +717,7 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                     }
 
-                    int segments = PeditAttach(seed, best, bestAtEnd, bestFromStart, bestGap > slack ? type : 0, slack);
+                    int segments = PeditAttach(seed, best, bestAtEnd, bestFromStart, type, fuzz, slack, true);
 
                     if (segments < 0)
                     {
@@ -755,11 +774,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Puts another polyline's vertices on at an end of the seed: joined where their ends meet, else by the join type (1 Add,
-        /// 2 Both, otherwise Extend). Gives the segments added, or -1 where Extend cannot meet the two (an arc at an end, or
-        /// lines that do not cross) and nothing is changed.
+        /// Puts another polyline's vertices on at an end of the seed (or, not applied, says whether it would): joined where
+        /// their ends meet, else by the join type (1 Add, 2 Both, otherwise Extend). Extend runs the two end segments on or back
+        /// to where they meet, a line along its line and an arc round its circle, where that point lies within the fuzz of both
+        /// ends, however far apart the ends are, as AutoCAD 2021 joins; Add puts a segment between ends within the fuzz of each
+        /// other; Both extends where it can and adds where it cannot. Gives the segments added, or -1 where they do not join
+        /// and nothing is changed.
         /// </summary>
-        private static int PeditAttach(PeditChain seed, PeditChain other, bool atEnd, bool fromStart, int type, double slack)
+        private static int PeditAttach(PeditChain seed, PeditChain other, bool atEnd, bool fromStart, int type, double fuzz, double slack, bool apply)
         {
             // The two run one way: the seed then the other where they meet at the seed's end, the other then the seed at its start.
             List<PeditPoint> first;
@@ -783,19 +805,35 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!touch && type != 1)
             {
-                bool straight = first.Count >= 2 && second.Count >= 2 && first[first.Count - 2].Bulge == 0.0 && second[0].Bulge == 0.0;
-                GeoPoint2? meet = straight ? PeditCross(first[first.Count - 2].At, a, b, second[1].At) : null;
+                GeoPoint2? meet = first.Count >= 2 && second.Count >= 2 ? PeditMeet(first[first.Count - 2], a, b, second[0].Bulge, second[1].At) : null;
 
-                if (meet.HasValue)
+                // An arc at an end is run on, or cut back, along its circle to where the two meet, its bulge made anew.
+                double before = meet.HasValue ? PeditBulgeTo(first[first.Count - 2].At, a, first[first.Count - 2].Bulge, meet.Value, true) : 0.0;
+                double after = meet.HasValue ? PeditBulgeTo(b, second[1].At, second[0].Bulge, meet.Value, false) : 0.0;
+
+                if (meet.HasValue && !double.IsNaN(before) && !double.IsNaN(after)
+                    && (meet.Value - a).Length <= fuzz + slack && (meet.Value - b).Length <= fuzz + slack)
                 {
+                    first[first.Count - 2].Bulge = before;
                     first[first.Count - 1].At = meet.Value;
                     second[0].At = meet.Value;
+                    second[0].Bulge = after;
                     touch = true;
                 }
                 else if (type != 2)
                 {
                     return -1;
                 }
+            }
+
+            if (!touch && (b - a).Length > fuzz + slack)
+            {
+                return -1;
+            }
+
+            if (!apply)
+            {
+                return touch ? segments : segments + 1;
             }
 
             var joined = new List<PeditPoint>(first);
@@ -824,6 +862,131 @@ namespace GeometryHelper.Dxf.Viewer
             return segments;
         }
 
+        /// <summary>
+        /// Where the last segment of one polyline, from a vertex to its end a, meets the first of another, from its start b on
+        /// to a point, each run on as a line or round its circle: of two crossings, the one nearer the two ends together, as
+        /// AutoCAD 2021's Extend chose in its console; null where they do not meet.
+        /// </summary>
+        private static GeoPoint2? PeditMeet(PeditPoint last, GeoPoint2 a, GeoPoint2 b, double bulge, GeoPoint2 next)
+        {
+            bool round = PeditCircle(last.At, a, last.Bulge, out GeoPoint2 c0, out double r0);
+            bool round2 = PeditCircle(b, next, bulge, out GeoPoint2 c1, out double r1);
+            var found = new List<GeoPoint2>();
+
+            if (!round && !round2)
+            {
+                GeoPoint2? cross = PeditCross(last.At, a, b, next);
+
+                if (cross.HasValue)
+                {
+                    found.Add(cross.Value);
+                }
+            }
+            else if (round && round2)
+            {
+                PeditCircles(c0, r0, c1, r1, found);
+            }
+            else if (round)
+            {
+                PeditLineCircle(b, next, c0, r0, found);
+            }
+            else
+            {
+                PeditLineCircle(last.At, a, c1, r1, found);
+            }
+
+            if (found.Count == 0)
+            {
+                return null;
+            }
+
+            return found.OrderBy(p => (p - a).Length + (p - b).Length).ThenBy(p => p.X).ThenBy(p => p.Y).First();
+        }
+
+        /// <summary>The circle of a segment of a bulge, its centre and radius; false where the segment is straight.</summary>
+        private static bool PeditCircle(GeoPoint2 from, GeoPoint2 to, double bulge, out GeoPoint2 center, out double radius)
+        {
+            GeoVector2 chord = to - from;
+
+            if (bulge == 0.0 || chord.Length <= 0.0)
+            {
+                center = from;
+                radius = 0.0;
+                return false;
+            }
+
+            // The centre lies off the chord's middle, to its left where the arc runs counter-clockwise.
+            double off = (1.0 / bulge - bulge) / 4.0;
+            center = from + chord / 2.0 + new GeoVector2(-chord.Y, chord.X) * off;
+            radius = (to - center).Length;
+            return true;
+        }
+
+        /// <summary>Adds where the line through two points crosses a circle.</summary>
+        private static void PeditLineCircle(GeoPoint2 p0, GeoPoint2 p1, GeoPoint2 center, double radius, List<GeoPoint2> found)
+        {
+            GeoVector2 u = p1 - p0;
+            double length = u.Length;
+
+            if (length <= 0.0)
+            {
+                return;
+            }
+
+            u = u / length;
+            GeoVector2 w = center - p0;
+            double along = w.X * u.X + w.Y * u.Y;
+            double off = w.X * u.Y - w.Y * u.X;
+            double left = radius * radius - off * off;
+
+            if (left < 0.0)
+            {
+                return;
+            }
+
+            double half = Math.Sqrt(left);
+            found.Add(p0 + u * (along - half));
+            found.Add(p0 + u * (along + half));
+        }
+
+        /// <summary>Adds where two circles cross.</summary>
+        private static void PeditCircles(GeoPoint2 c0, double r0, GeoPoint2 c1, double r1, List<GeoPoint2> found)
+        {
+            GeoVector2 between = c1 - c0;
+            double d = between.Length;
+
+            if (d <= 0.0 || d > r0 + r1 || d < Math.Abs(r0 - r1))
+            {
+                return;
+            }
+
+            double along = (d * d + r0 * r0 - r1 * r1) / (2.0 * d);
+            double half = Math.Sqrt(Math.Max(0.0, r0 * r0 - along * along));
+            GeoVector2 u = between / d;
+            GeoPoint2 foot = c0 + u * along;
+            found.Add(foot + new GeoVector2(-u.Y, u.X) * half);
+            found.Add(foot - new GeoVector2(-u.Y, u.X) * half);
+        }
+
+        /// <summary>
+        /// The bulge of a segment from one point to another run on or cut back to a point of its circle, at its end (or, with
+        /// atEnd false, at its start), turning the way it turned; nought for a straight one, NaN where nothing of it is left.
+        /// </summary>
+        private static double PeditBulgeTo(GeoPoint2 from, GeoPoint2 to, double bulge, GeoPoint2 meet, bool atEnd)
+        {
+            if (!PeditCircle(from, to, bulge, out GeoPoint2 center, out double _))
+            {
+                return 0.0;
+            }
+
+            GeoPoint2 start = atEnd ? from : meet;
+            GeoPoint2 end = atEnd ? meet : to;
+            double sweep = Math.Atan2(end.Y - center.Y, end.X - center.X) - Math.Atan2(start.Y - center.Y, start.X - center.X);
+            double turn = 2.0 * Math.PI;
+            sweep = bulge > 0.0 ? ((sweep % turn) + turn) % turn : -((((-sweep) % turn) + turn) % turn);
+            return Math.Abs(sweep) <= Tolerance.Default.EqualVector ? double.NaN : Math.Tan(sweep / 4.0);
+        }
+
         /// <summary>Where the line through two points meets that through two others; null where they run parallel.</summary>
         private static GeoPoint2? PeditCross(GeoPoint2 a0, GeoPoint2 a1, GeoPoint2 b0, GeoPoint2 b1)
         {
@@ -841,13 +1004,25 @@ namespace GeometryHelper.Dxf.Viewer
             return a0 + u * t;
         }
 
+        /// <summary>Whether PEDIT turns a line, an arc or a spline into a polyline without asking: PEDITACCEPT 1.</summary>
+        private static bool PeditAccepts(CadCommandContext c) => c.Remembered("peditaccept", 0.0) != 0.0;
+
         /// <summary>
-        /// Makes a POLYLINE a LWPOLYLINE in its own place at the end of the single PEDIT, as AutoCAD 2021's PLINETYPE 2 does to one
-        /// edited and left straight; one fitted with a curve or a spline stays a POLYLINE, as one in a drawing of R12 does.
+        /// A polyline made by PLINE, POLYGON, DONUT or PEDIT as PLINETYPE asks it: at 0 the old-style POLYLINE of its vertices and
+        /// look, as AutoCAD 2021 makes one (RECTANG and REVCLOUD make LWPOLYLINEs whatever it is); a LWPOLYLINE otherwise, or
+        /// in a drawing of R12.
+        /// </summary>
+        private static DxfCurve OfPlineType(CadCommandContext c, DxfPolyline made)
+            => made != null && c.Remembered("plinetype", 2.0) == 0.0 && string.CompareOrdinal(c.Database.Version, "AC1014") >= 0 ? made.ConvertTo(false) : (DxfCurve)made;
+
+        /// <summary>
+        /// Makes a POLYLINE a LWPOLYLINE in its own place at the end of the single PEDIT, as AutoCAD 2021's PLINETYPE 1 and 2 do
+        /// to one edited and left straight; one fitted with a curve or a spline stays a POLYLINE, as one in a drawing of R12
+        /// does, and PLINETYPE 0 leaves every POLYLINE one.
         /// </summary>
         private static void PeditToLightweight(CadCommandContext c, string handle)
         {
-            if (!(c.Document.FindEntity(handle) is DxfPolyline2d heavy) || heavy.PolyType != DxfPoly2dType.SimplePoly
+            if (c.Remembered("plinetype", 2.0) == 0.0 || !(c.Document.FindEntity(handle) is DxfPolyline2d heavy) || heavy.PolyType != DxfPoly2dType.SimplePoly
                 || string.CompareOrdinal(c.Database.Version, "AC1014") < 0 || heavy.Count() < 2)
             {
                 return;

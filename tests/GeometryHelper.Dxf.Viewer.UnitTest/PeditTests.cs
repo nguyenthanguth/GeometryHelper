@@ -379,5 +379,250 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(All<DxfPolyline>(document.ModelSpace));
             AssertReopens(document);
         }
+
+        [Fact]
+        public void PeditAcceptOne_TurnsALineIntoAPolylineWithoutAsking_AloneAndInMultiple()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PEDITACCEPT", "1", "LINE", P(0, 0), P(100, 0), Enter);
+
+            // AutoCAD 2021 at PEDITACCEPT 1: "Select polyline or [Multiple]:", then the options at once.
+            int before = session.History.Count;
+            Run(session, "PEDIT", P(50, 0));
+            Assert.Equal(Options, session.PromptText);
+            Assert.DoesNotContain("Object selected is not a polyline", session.History.Skip(before));
+            Run(session, Enter);
+            Vertices(Light(document), 0, 0, 100, 0);
+
+            Run(session, "LINE", P(0, 100), P(100, 100), Enter);
+            Run(session, "PEDIT", "M", new[] { Assert.Single(All<DxfLine>(document.ModelSpace)).Handle }, Enter);
+            Assert.Equal(ManyOptions, session.PromptText);
+            Run(session, Enter);
+            Assert.Equal(2, All<DxfPolyline>(document.ModelSpace).Count);
+            Assert.Empty(All<DxfLine>(document.ModelSpace));
+        }
+
+        [Fact]
+        public void PlineTypeNought_MakesOldStylePolylines_OfPlinePolygonDonutAndPedit_ButNotOfRectang()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PLINETYPE", "0");
+            Run(session, "PLINE", P(0, 100), P(100, 100), "W", "2", "4", P(100, 200), Enter);
+
+            // AutoCAD 2021 at PLINETYPE 0: a POLYLINE of (0, 100), (100, 100) of widths 2 and 4, (100, 200) of 4 and 4.
+            DxfPolyline2d pline = Heavy(document);
+            List<DxfVertex2d> vertices = pline.ToList();
+            Assert.Equal(3, vertices.Count);
+            Near(new GeoPoint3(100, 100, 0), vertices[1].Position);
+            Assert.Equal(2.0, vertices[1].StartWidth);
+            Assert.Equal(4.0, vertices[1].EndWidth);
+            Assert.Equal(4.0, vertices[2].StartWidth);
+            Assert.Empty(All<DxfPolyline>(document.ModelSpace));
+
+            Run(session, "U");
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+            Run(session, "PLINE", P(0, 100), P(100, 100), P(100, 200), "U", Enter);
+            Assert.Equal(2, Heavy(document).Count());
+            Run(session, "ERASE", "ALL", Enter);
+
+            // PEDIT of a line, POLYGON and DONUT make POLYLINEs too; RECTANG a LWPOLYLINE, as AutoCAD's.
+            Run(session, "LINE", P(0, 300), P(100, 300), Enter, "PEDIT", P(50, 300), Enter, "X");
+            Run(session, "POLYGON", "4", P(400, 50), "I", "40");
+            Run(session, "DONUT", "10", "20", P(600, 50), Enter);
+            Run(session, "RECTANG", P(200, 0), P(300, 100));
+            List<DxfPolyline2d> heavy = All<DxfPolyline2d>(document.ModelSpace);
+            Assert.Equal(3, heavy.Count);
+            Assert.Equal(2, heavy.Count(p => p.Closed));
+            DxfPolyline2d donut = heavy.Single(p => p.Count() == 2 && p.Closed);
+            Assert.All(donut, v => Assert.Equal(1.0, v.Bulge));
+            Assert.All(donut, v => Assert.Equal(5.0, v.StartWidth));
+            Assert.True(Assert.Single(All<DxfPolyline>(document.ModelSpace)).Closed);
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void PlineType_DecidesWhetherAPolylineEditedAloneIsMadeALwpolylineAgain()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "PLINETYPE", "0", "PLINE", P(0, 100), P(100, 100), P(100, 200), Enter);
+            string handle = Heavy(document).Handle;
+
+            // AutoCAD 2021: at 0 the POLYLINE widened stays one; at 1, as at 2, it is a LWPOLYLINE of its handle.
+            Run(session, "PEDIT", P(50, 100), "W", "1", Enter);
+            Assert.Equal(1.0, Heavy(document).First().StartWidth);
+            Run(session, "PLINETYPE", "1", "PEDIT", P(50, 100), "W", "2", Enter);
+            Assert.Equal(handle, Light(document).Handle);
+            Assert.Equal(2.0, Light(document).ConstantWidth);
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+        }
+
+        /// <summary>A polyline of one arc drawn with PLINE: about a centre, from an angle on by an included angle, in degrees.</summary>
+        private static void ArcPline(CadCommandSession session, double cx, double cy, double radius, double from, double to)
+        {
+            double a = from * System.Math.PI / 180.0;
+            Run(session, "PLINE", P(cx + radius * System.Math.Cos(a), cy + radius * System.Math.Sin(a)), "A", "CE", P(cx, cy), "A",
+                (to - from).ToString("R", System.Globalization.CultureInfo.InvariantCulture), Enter);
+        }
+
+        /// <summary>The two polylines drawn joined by Multiple at a fuzz (40 unless given), by the join type given; the polylines then left.</summary>
+        private static List<DxfPolyline> FuzzJoined(CadDocument document, CadCommandSession session, string type, string fuzz = "40")
+        {
+            Run(session, "PEDIT", "M", "ALL", Enter, "J", "J", type, fuzz, "X");
+            return All<DxfPolyline>(document.ModelSpace);
+        }
+
+        [Fact]
+        public void FuzzJoinExtend_TakesEndsWhoseMeetingPointIsWithinTheFuzzOfBoth_HoweverFarApartTheEnds()
+        {
+            // AutoCAD 2021, the line from (0, 0) to (100, 0) and another, the ends 42.4 apart: at a fuzz of 40, and of 35, the
+            // two run on to (130, 0), 30 from each; from (125, 45), 45 from the meeting point, and from (145, 30) they are not
+            // joined; from (110, 5) to (210, 6) the lines meet far off, so Extend does not join them and Both adds a segment.
+            string[][] cases =
+            {
+                new[] { "130", "30", "130", "100", "E", "40", "0,0 130,0 130,100" },
+                new[] { "130", "30", "130", "100", "E", "35", "0,0 130,0 130,100" },
+                new[] { "125", "45", "125", "100", "E", "40", null },
+                new[] { "145", "30", "145", "100", "E", "40", null },
+                new[] { "110", "5", "210", "6", "E", "40", null },
+                new[] { "110", "5", "210", "6", "B", "40", "0,0 100,0 110,5 210,6" },
+            };
+
+            foreach (string[] probe in cases)
+            {
+                CadDocument document = Blank();
+                CadCommandSession session = Session(document);
+                Run(session, "PLINE", P(0, 0), P(100, 0), Enter, "PLINE", probe[0] + "," + probe[1], probe[2] + "," + probe[3], Enter);
+                List<DxfPolyline> left = FuzzJoined(document, session, probe[4], probe[5]);
+                string label = probe[0] + "," + probe[1] + " " + probe[4] + " " + probe[5];
+
+                if (probe[6] == null)
+                {
+                    Assert.True(left.Count == 2, "Joined: " + label);
+                    continue;
+                }
+
+                Assert.True(left.Count == 1, "Not joined: " + label);
+                double[] xy = probe[6].Split(' ', ',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                Vertices(left[0], xy);
+            }
+
+            // The arc about (0, 0) of radius 100 to 80 degrees and the line from (-30, 103), 47.6 from its end: they meet at
+            // (0, 100), 17.4 and 30.1 from the two ends, joined at a fuzz of 40 but not of 30.
+            CadDocument arcs = Blank();
+            CadCommandSession run = Session(arcs);
+            ArcPline(run, 0, 0, 100, 0, 80);
+            Run(run, "PLINE", P(-30, 103), P(-100, 110), Enter);
+            Assert.Equal(2, FuzzJoined(arcs, run, "E", "30").Count);
+            DxfPolyline joined = Assert.Single(FuzzJoined(arcs, run, "E"));
+            Vertices(joined, 100, 0, 0, 100, -100, 110);
+            Bulges(joined, 0.4142135624, 0, 0);
+        }
+
+        private static void Bulges(DxfPolyline polyline, params double[] bulges)
+        {
+            for (int i = 0; i < bulges.Length; i++)
+            {
+                Assert.Equal(bulges[i], polyline.GetBulgeAt(i), 8);
+            }
+        }
+
+        [Fact]
+        public void FuzzJoinExtend_RunsAnArcOnOrBackRoundItsCircle_ToWhereTheLineMeetsIt()
+        {
+            // AutoCAD 2021: the arc about (0, 0) of radius 100 from 0 to 80 degrees and the line from (30, 110) to (60, 140)
+            // meet at (18.3095, 98.3095), the arc cut back to a bulge of 0.36125437.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            ArcPline(session, 0, 0, 100, 0, 80);
+            Run(session, "PLINE", P(30, 110), P(60, 140), Enter);
+            DxfPolyline joined = Assert.Single(FuzzJoined(document, session, "E"));
+            Vertices(joined, 100, 0, 18.3095189485, 98.3095189485, 60, 140);
+            Bulges(joined, 0.3612543741, 0, 0);
+
+            // The line from (10, 130) up: the arc run on to (10, 99.4987), a bulge of 0.38517039, by Both as by Extend.
+            document = Blank();
+            session = Session(document);
+            ArcPline(session, 0, 0, 100, 0, 80);
+            Run(session, "PLINE", P(10, 130), P(10, 200), Enter);
+            joined = Assert.Single(FuzzJoined(document, session, "B"));
+            Vertices(joined, 100, 0, 10, 99.4987437107, 10, 200);
+            Bulges(joined, 0.3851703882, 0, 0);
+
+            // The line from (-19.508, 101.507) on to (-78.762, 110.942) crosses the circle at (38.582, 92.257) and at
+            // (-8.0205, 99.6778); AutoCAD takes the second, nearer the two ends together, though the first is nearer the arc's.
+            document = Blank();
+            session = Session(document);
+            ArcPline(session, 0, 0, 100, 0, 80);
+            Run(session, "PLINE", P(-19.508, 101.507), P(-78.762, 110.942), Enter);
+            joined = Assert.Single(FuzzJoined(document, session, "E"));
+            Vertices(joined, 100, 0, -8.0204615738, 99.6778420520, -78.762, 110.942);
+            Bulges(joined, 0.4379305874, 0, 0);
+
+            // The rest of the cases probed: each meeting point and bulge AutoCAD 2021 stored.
+            var cases = new[]
+            {
+                new { From = P(40, 95), To = P(100, 95), Type = "E", Meet = P(31.2249899920, 95), Bulge = 0.3239798971 },
+                new { From = P(-10, 120), To = P(-10, 200), Type = "E", Meet = P(-10, 99.4987437107), Bulge = 0.4438656912 },
+                new { From = P(-30, 103), To = P(-100, 110), Type = "B", Meet = P(0, 100), Bulge = 0.4142135624 },
+                new { From = P(41.758, 93.392), To = P(-17.255, 104.226), Type = "E", Meet = P(28.7325594892, 95.7832972141), Bulge = 0.3312126216 },
+            };
+
+            foreach (var probe in cases)
+            {
+                document = Blank();
+                session = Session(document);
+                ArcPline(session, 0, 0, 100, 0, 80);
+                Run(session, "PLINE", probe.From, probe.To, Enter);
+                List<DxfPolyline> left = FuzzJoined(document, session, probe.Type);
+                Assert.True(left.Count == 1, "Not joined: the line from " + probe.From);
+                joined = left[0];
+                Vertices(joined, 100, 0, probe.Meet.X, probe.Meet.Y, probe.To.X, probe.To.Y);
+                Bulges(joined, probe.Bulge, 0, 0);
+            }
+        }
+
+        [Fact]
+        public void FuzzJoinExtend_MeetsTwoArcsWhereTheirCirclesCross_AndALineBeforeAnArc()
+        {
+            // AutoCAD 2021: the arc about (50, 150) of radius 70 from -122.3 to -60 degrees, joined to the arc about (0, 0),
+            // starts at (1.0155, 99.9948) with a bulge of 0.33658225, the first run on to 0.41124239.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            ArcPline(session, 0, 0, 100, 0, 80);
+            ArcPline(session, 50, 150, 70, -122.3, -60);
+            DxfPolyline joined = Assert.Single(FuzzJoined(document, session, "E"));
+            Vertices(joined, 100, 0, 1.0154680285, 99.9948439905, 85, 89.3782217351);
+            Bulges(joined, 0.4112423923, 0.3365822503, 0);
+
+            // The line from (150, -60) to (100, -20), then the arc about (0, 0) from 5 to 80 degrees: the line cut back to
+            // (98.2543, -18.6035), the arc run back on to there, a bulge of 0.41790644.
+            document = Blank();
+            session = Session(document);
+            Run(session, "PLINE", P(150, -60), P(100, -20), Enter);
+            ArcPline(session, 0, 0, 100, 5, 80);
+            joined = Assert.Single(FuzzJoined(document, session, "E"));
+            Vertices(joined, 150, -60, 98.2543201158, -18.6034560926, 17.3648177667, 98.4807753012);
+            Bulges(joined, 0, 0.4179064351, 0);
+        }
+
+        [Fact]
+        public void FuzzJoin_AnArcWhoseCircleNothingCrosses_IsNotExtended_ButBothAddsASegment()
+        {
+            // AutoCAD 2021: the arc about (0, 0) of radius 100 and the line from (0, 105) to (-60, 105): Extend "0 segments
+            // added to polyline", Both a straight segment from the arc's end to the line, the arc as it was.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            ArcPline(session, 0, 0, 100, 0, 80);
+            Run(session, "PLINE", P(0, 105), P(-60, 105), Enter);
+            Assert.Equal(2, FuzzJoined(document, session, "E").Count);
+            Assert.Contains("0 segments added to polyline", session.History);
+
+            DxfPolyline joined = Assert.Single(FuzzJoined(document, session, "B"));
+            Vertices(joined, 100, 0, 17.3648177667, 98.4807753012, 0, 105, -60, 105);
+            Bulges(joined, 0.3639702343, 0, 0, 0);
+        }
     }
 }
