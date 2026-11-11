@@ -292,6 +292,41 @@ namespace GeometryHelper.Geometry
             return faces.ToArray();
         }
 
+        /// <summary>
+        /// Reads a box flat on some axis, where <see cref="HasFaces"/> is false, as the shape it has become: false for a box
+        /// with its faces. Flat on one axis it is its rectangle, the first face of <see cref="GetFacesWithArea"/>; flat on two
+        /// it is the segment along the third, and the rectangle is null; flat on all three it is its centre, a segment of no
+        /// length.
+        /// </summary>
+        internal bool IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment)
+        {
+            rectangle = null;
+            segment = default(GeoLine3);
+
+            if (HasFaces)
+            {
+                return false;
+            }
+
+            GeoPolygon3[] faces = GetFacesWithArea();
+
+            if (faces.Length > 0)
+            {
+                rectangle = faces[0];
+                return true;
+            }
+
+            double nought = Nought();
+            GeoVector3 along =
+                ExtentX > nought ? AxisX.Multiply(ExtentX)
+                : ExtentY > nought ? AxisY.Multiply(ExtentY)
+                : ExtentZ > nought ? AxisZ.Multiply(ExtentZ)
+                : GeoVector3.Zero;
+
+            segment = new GeoLine3(Center.Subtract(along), Center.Add(along));
+            return true;
+        }
+
         /// <summary>The size on an axis a box has to exceed to have faces across it: <see cref="FlatShare"/> of its reach.</summary>
         private double Nought() =>
             (

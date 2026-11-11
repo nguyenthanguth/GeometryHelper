@@ -22,7 +22,9 @@ namespace GeometryHelper.Core
     /// the nearest corner. A body is read solid through, as it is against a polygon. A box is read through its body: each
     /// answer about a box is the answer about <see cref="GeoObb3.ToSolid"/>, or about <c>ToObb().ToSolid()</c> for an
     /// axis-aligned one, so an empty axis-aligned box is refused, as <see cref="DistanceTo(GeoPolyline3, GeoAabb3)"/>
-    /// refuses it.
+    /// refuses it. A box flat on some axis has no body and is read as the shape it has become: flat on one axis its
+    /// rectangle, on two its segment, on all three its point. A box 100 by 100 by 0 is 20 from a triangle lying 20 over
+    /// it.
     /// </para>
     /// </remarks>
     public static partial class Distance3
@@ -652,11 +654,16 @@ namespace GeometryHelper.Core
         /// <see cref="DistanceTo(GeoSolid3, GeoPlane3, Tolerance)"/> for <see cref="GeoObb3.ToSolid"/>.
         /// </summary>
         /// <remarks>
-        /// The box 100 by 100 by 100 about (50, 50, 50) is 30 from the plane z = 130, and nought from the plane z = 50.
+        /// The box 100 by 100 by 100 about (50, 50, 50) is 30 from the plane z = 130, and nought from the plane z = 50. A
+        /// box flat on some axis is read as its rectangle, its segment or its point: the box 100 by 100 by 0 about
+        /// (50, 50, 0) is 20 from the plane z = 20.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static double DistanceTo(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance) =>
-            DistanceTo(Intersection3.BodyOf(box), plane, tolerance);
+            !Intersection3.FlatOf(box, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? DistanceTo(Intersection3.BodyOf(box), plane, tolerance)
+            : rectangle != null ? DistanceTo(plane, rectangle, tolerance)
+            : DistanceTo(plane, segment);
 
         /// <summary>
         /// Calculates the shortest distance between a plane and an axis-aligned box.
@@ -669,11 +676,13 @@ namespace GeometryHelper.Core
         /// <see cref="DistanceTo(GeoSolid3, GeoPlane3, Tolerance)"/> for <c>ToObb().ToSolid()</c>.
         /// </summary>
         /// <remarks>
-        /// The box from the origin to (100, 100, 100) is 30 from the plane z = 130, and nought from the plane z = 50.
+        /// The box from the origin to (100, 100, 100) is 30 from the plane z = 130, and nought from the plane z = 50. A box
+        /// flat on some axis is read as its rectangle, its segment or its point: the box from the origin to (100, 100, 0)
+        /// is 20 from the plane z = 20.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static double DistanceTo(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance) =>
-            DistanceTo(box.ToObb().ToSolid(), plane, tolerance);
+            DistanceTo(plane, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an oriented box.
@@ -688,11 +697,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box 100 by 100 by 100 about (50, 50, 50) is 30 from the triangle with corners (0, 0, 130), (100, 0, 130) and
-        /// (0, 100, 130), and nought from one wholly inside it.
+        /// (0, 100, 130), and nought from one wholly inside it. A box flat on some axis is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) is 20 from the triangle with corners
+        /// (10, 10, 20), (90, 10, 20) and (10, 90, 20).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static double DistanceTo(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance) =>
-            DistanceTo(Intersection3.BodyOf(box), triangle, tolerance);
+            !Intersection3.FlatOf(box, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? DistanceTo(Intersection3.BodyOf(box), triangle, tolerance)
+            : rectangle != null ? DistanceTo(triangle, rectangle, tolerance)
+            : DistanceTo(segment, triangle, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a triangle and an axis-aligned box.
@@ -707,11 +721,13 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box from the origin to (100, 100, 100) is 30 from the triangle with corners (0, 0, 130), (100, 0, 130) and
-        /// (0, 100, 130), and nought from one wholly inside it.
+        /// (0, 100, 130), and nought from one wholly inside it. A box flat on some axis is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) is 20 from the triangle with corners
+        /// (10, 10, 20), (90, 10, 20) and (10, 90, 20).
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static double DistanceTo(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance) =>
-            DistanceTo(box.ToObb().ToSolid(), triangle, tolerance);
+            DistanceTo(triangle, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a polygon and an oriented box.
@@ -725,11 +741,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box 100 by 100 by 100 about (50, 50, 50) is 30 from the square 100 by 100 lying flat at a height of 130 over
-        /// it, and nought from the square 200 by 200 lying across it at half its height.
+        /// it, and nought from the square 200 by 200 lying across it at half its height. A box flat on some axis is read as
+        /// its rectangle, its segment or its point: the box 100 by 100 by 0 about (50, 50, 0) is 20 from the square 80 by
+        /// 80 lying 20 over it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static double DistanceTo(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance) =>
-            DistanceTo(Intersection3.BodyOf(box), polygon, tolerance);
+            !Intersection3.FlatOf(box, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? DistanceTo(Intersection3.BodyOf(box), polygon, tolerance)
+            : rectangle != null ? DistanceTo(polygon, rectangle, tolerance)
+            : DistanceTo(segment, polygon, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between a polygon and an axis-aligned box.
@@ -745,12 +766,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box from the origin to (100, 100, 100) is 30 from the square 100 by 100 lying flat at a height of 130 over
-        /// it, and nought from the square 200 by 200 lying across it at half its height.
+        /// it, and nought from the square 200 by 200 lying across it at half its height. A box flat on some axis is read as
+        /// its rectangle, its segment or its point: the box from the origin to (100, 100, 0) is 20 from the square 80 by 80
+        /// lying 20 over it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static double DistanceTo(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance) =>
-            DistanceTo(box.ToObb().ToSolid(), polygon, tolerance);
+            DistanceTo(polygon, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between the material of a face and an oriented box.
@@ -764,11 +787,16 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box 100 by 100 by 100 about (50, 50, 50) passes through the hole 150 by 150 in the middle of the square
-        /// 200 by 200 from (-50, -50, 50) to (150, 150, 50) and is 25 from its rim.
+        /// 200 by 200 from (-50, -50, 50) to (150, 150, 50) and is 25 from its rim. A box flat on some axis is read as its
+        /// rectangle, its segment or its point: the box 100 by 100 by 0 about (50, 50, 0), lying in a hole 220 by 220 in a
+        /// face in its own plane, is 60 from the rim.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static double DistanceTo(GeoFace3 face, GeoObb3 box, Tolerance tolerance) =>
-            DistanceTo(Intersection3.BodyOf(box), face, tolerance);
+            !Intersection3.FlatOf(box, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? DistanceTo(Intersection3.BodyOf(box), face, tolerance)
+            : rectangle != null ? DistanceTo(face, rectangle, tolerance)
+            : DistanceTo(segment, face, tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between the material of a face and an axis-aligned box.
@@ -783,12 +811,14 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The box from the origin to (100, 100, 100) passes through the hole 150 by 150 in the middle of the square
-        /// 200 by 200 from (-50, -50, 50) to (150, 150, 50) and is 25 from its rim.
+        /// 200 by 200 from (-50, -50, 50) to (150, 150, 50) and is 25 from its rim. A box flat on some axis is read as its
+        /// rectangle, its segment or its point: the box from the origin to (100, 100, 0), lying in a hole 220 by 220 in a
+        /// face in its own plane, is 60 from the rim.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public static double DistanceTo(GeoFace3 face, GeoAabb3 box, Tolerance tolerance) =>
-            DistanceTo(box.ToObb().ToSolid(), face, tolerance);
+            DistanceTo(face, box.ToObb(), tolerance);
 
         /// <summary>
         /// Calculates the shortest distance between an oriented box and an axis-aligned box.
@@ -805,7 +835,8 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The box from the origin to (100, 100, 100) and the box 100 by 100 by 100 about (250, 50, 50) are 100 apart;
         /// turned 45 degrees about the vertical, the second reaches a corner 50 * sqrt(2) towards the first and is about
-        /// 79.29 from it.
+        /// 79.29 from it. A box flat on some axis is read as its rectangle, its segment or its point, as
+        /// <see cref="DistanceTo(GeoObb3, GeoObb3, Tolerance)"/> reads it.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the oriented box is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the axis-aligned box is empty.</exception>

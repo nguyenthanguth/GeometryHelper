@@ -895,6 +895,20 @@ namespace GeometryHelper.Core
             return box.ToSolid();
         }
 
+        /// <summary>
+        /// Reads a box flat on some axis as its rectangle, or as its segment where the rectangle is null, refusing a box that
+        /// is not there by the name of the argument; false for a box with its faces, which <see cref="BodyOf"/> reads.
+        /// </summary>
+        internal static bool FlatOf(GeoObb3 box, out GeoPolygon3 rectangle, out GeoLine3 segment)
+        {
+            if (box == null)
+            {
+                throw new ArgumentNullException(nameof(box));
+            }
+
+            return box.IsFlat(out rectangle, out segment);
+        }
+
         #endregion
     }
 }

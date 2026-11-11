@@ -508,11 +508,22 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether an oriented box overlaps a solid, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A box flat on some axis bounds no body and is read as its rectangle, its segment or its point: a box 100 by 100
+        /// by 0 lying on the floor is missed by a cube 40 on a side standing 20 over it.
+        /// </remarks>
         public static bool CollidesWith(GeoObb3 box, GeoSolid3 solid, Tolerance tolerance)
         {
             if (box == null)
             {
                 throw new ArgumentNullException(nameof(box));
+            }
+
+            if (box.IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment))
+            {
+                return rectangle != null
+                    ? CollidesWith(rectangle, solid, tolerance)
+                    : CollidesWith(segment, solid, tolerance);
             }
 
             return CollidesWith(box.ToSolid(), solid, tolerance);
@@ -732,11 +743,22 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Checks whether a polygon overlaps an oriented box, within a tolerance.
         /// </summary>
+        /// <remarks>
+        /// A box flat on some axis bounds no body and is read as its rectangle, its segment or its point: a box 100 by 100
+        /// by 0 lying on the floor is touched by a square standing upright across it.
+        /// </remarks>
         public static bool CollidesWith(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance)
         {
             if (box == null)
             {
                 throw new ArgumentNullException(nameof(box));
+            }
+
+            if (box.IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment))
+            {
+                return rectangle != null
+                    ? CollidesWith(polygon, rectangle, tolerance)
+                    : CollidesWith(segment, polygon, tolerance);
             }
 
             return CollidesWith(polygon, box.ToSolid(), tolerance);
