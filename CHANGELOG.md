@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's SNAP and GRID typed ask as AutoCAD 2021's do, checked in its console. SNAP offers
+[ON/OFF/Aspect/Legacy/Style/Type], Aspect left out with an isometric snap, and A where the two spacings differ; Style
+turns the snap and the grid over as AutoCAD does (a snap of 10 with a grid of 4 by 6 turned isometric at 5 keeps 8.6603 by
+2.5 and a grid of 10.3923 by 3, back to Standard at 4 a snap of 4 by 4 and a grid of 6 by 6), Type sets SNAPTYPE and
+POLARDIST. GRID offers [ON/OFF/Snap/Major/aDaptive/Limits/Follow/Aspect]: a spacing, 2x for twice the snap's, Major
+(GRIDMAJOR), and aDaptive, Limits and Follow setting the bits of GRIDDISPLAY. Every answer but OFF turns SNAP or GRID on;
+nought or text is refused in AutoCAD's words and asked again. SETVAR takes SNAPUNIT, GRIDUNIT, POLARDIST, SNAPTYPE,
+GRIDSTYLE and GRIDDISPLAY as AutoCAD does: SNAPUNIT 0,5 gets "Cannot set SNAPUNIT to that value.", GRIDUNIT -2,3 is kept as
+2,3, POLARDIST -1 is kept and "abc" gets "Requires numeric distance or two points.", and with an isometric snap SNAPUNIT
+4,6 reads back 4,12. SNAPMODE takes 2, as AutoCAD does. The canvas draws the grid as dots where GRIDSTYLE says (1 model
+space, 2 the Block Editor, where the grid is now drawn too), within the limits without GRIDDISPLAY 1, not at all where too
+dense without 2, and with lines added between as it zooms in with 4. Object snap tracking runs its level and upright
+lines along the axes turned by SNAPANG, or those of the isoplane, the polar lines from the base point turned by SNAPANG
+too, and PolarSnap steps along a tracking line from the point acquired. `CadSystemVariable.Point` with a take that may
+refuse, `CadSystemVariable.Distance` and `CadSystemVariable.Switch`, the canvas's `GridStyle` and `GridDisplay`, and the
+window's `MainViewModel.GridStyle` and `MainViewModel.GridDisplay` are new.
+
+**CHANGED.** LWDISPLAY is shown as OFF or ON and takes ON and OFF as well as 0 and 1, "Requires 0 or 1 only, or option
+keyword." refusing the rest, as AutoCAD 2021's. A whole-number variable refuses text and numbers not whole in the words
+it refuses a value out of range with ("Requires an integer between 0 and 7." for GRIDSTYLE abc); a point of two
+coordinates refuses text with "Invalid 2D point."; a distance asked with no base point refuses text with "Requires
+numeric distance or two points.", or "Requires numeric distance, two points, or option keyword." where it has options.
+`GlobalSettings.PolarDistance` takes a value below nought, as AutoCAD's POLARDIST does, and throws only for one not
+finite.
+
 **NEW.** The Snap and Grid tab of the presenter's Drafting Settings as AutoCAD 2021's, the dialog now 560 by 580 on every
 tab: Snap X and Y spacing with Equal X and Y spacing, Polar distance (POLARDIST), Grid snap or PolarSnap (SNAPTYPE),
 Rectangular or Isometric snap (SNAPSTYL), the dotted grid of Grid style (GRIDSTYLE), Grid X and Y spacing (GRIDUNIT),

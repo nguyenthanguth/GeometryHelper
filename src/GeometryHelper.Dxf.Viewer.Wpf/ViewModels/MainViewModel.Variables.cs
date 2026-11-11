@@ -1,12 +1,14 @@
 using System;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
     /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), the snap's SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL and
-    /// SNAPISOPAIR, written into the drawing's <c>*Active</c> viewport, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
+    /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport, SNAPTYPE,
+    /// POLARDIST and GRIDSTYLE of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
     /// PICKBOX and APERTURE of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's Input Search Options,
     /// and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
@@ -19,6 +21,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         // DYNMODE as last set, its sign aside: which of pointer and dimensional input F12 brings back.
         private int _dynamicMode = 3;
+
+        // Whether SNAPMODE was set to 2, which it reads back while SNAP stays on.
+        private bool _snapModeTwo;
 
         /// <summary>Adds the variables of the window to a command line's registry, ORTHOMODE and LWDISPLAY of the drawing replaced by those the window draws by.</summary>
         private void AddWindowVariables(CadCommandRegistry registry)
@@ -33,8 +38,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
             );
             registry.AddVariable(ToggleVariable("ORTHOMODE", "ORTHO"));
-            registry.AddVariable(ToggleVariable("SNAPMODE", "SNAP"));
+            registry.AddVariable(CadSystemVariable.Integer("SNAPMODE", 0, 2, SnapMode, SetSnapMode));
             registry.AddVariable(ToggleVariable("GRIDMODE", "GRID"));
+            registry.AddVariable(CadSystemVariable.Point("SNAPUNIT", SnapUnit, TakeSnapUnit));
+            registry.AddVariable(
+                CadSystemVariable.Point("GRIDUNIT", () => new GeoPoint2(Layout.GridX, Layout.GridY), TakeGridUnit)
+            );
+            registry.AddVariable(
+                CadSystemVariable.Distance("POLARDIST", () => _settings.PolarDistance, SetPolarDistance)
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "SNAPTYPE",
+                    0,
+                    1,
+                    () => _settings.PolarSnap ? 1 : 0,
+                    v => SetPolarSnap(v != 0)
+                )
+            );
+            registry.AddVariable(CadSystemVariable.Integer("GRIDSTYLE", 0, 7, () => _settings.GridStyle, SetGridStyle));
+            registry.AddVariable(CadSystemVariable.Integer("GRIDDISPLAY", 0, 15, () => GridDisplay, SetGridDisplay));
             registry.AddVariable(
                 CadSystemVariable.Point(
                     "SNAPBASE",
@@ -121,15 +144,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     v => ChangeSettings(s => s.InputSearchFlags = v)
                 )
             );
-            registry.AddVariable(
-                CadSystemVariable.Integer(
-                    "LWDISPLAY",
-                    0,
-                    1,
-                    () => ShowLineWeights ? 1 : 0,
-                    v => SetLineWeightDisplay(v != 0)
-                )
-            );
+            registry.AddVariable(CadSystemVariable.Switch("LWDISPLAY", () => ShowLineWeights, SetLineWeightDisplay));
+        }
+
+        /// <summary>
+        /// SNAPMODE as AutoCAD 2021 reads it: 0 off, 1 on, and 2, which AutoCAD takes and reads back though its help lists only
+        /// 0 and 1, kept while SNAP stays on as it was set.
+        /// </summary>
+        private int SnapMode() =>
+            !FindToggle("SNAP").IsOn ? 0
+            : _snapModeTwo ? 2
+            : 1;
+
+        /// <summary>SNAPMODE set: SNAP on for 1 and 2, off for 0.</summary>
+        private void SetSnapMode(int value)
+        {
+            FindToggle("SNAP").IsOn = value != 0;
+            _snapModeTwo = value == 2;
+        }
+
+        /// <summary>
+        /// SNAPUNIT as AutoCAD reads it: the drawing's snap spacing, the Y doubled while the snap is isometric, as AutoCAD keeps
+        /// half the vertical spacing; SNAP Style Isometric 5 reads 8.6603,5.0000.
+        /// </summary>
+        private GeoPoint2 SnapUnit() => new GeoPoint2(Snap.GridX, Layout.Isometric ? 2.0 * Snap.GridY : Snap.GridY);
+
+        /// <summary>
+        /// SNAPUNIT set: both spacings above nought, kept as typed, so that 4,6 set while the snap is isometric reads 4,12 as
+        /// AutoCAD's does; 0,5 or -1,1 refused.
+        /// </summary>
+        private bool TakeSnapUnit(GeoPoint2 value)
+        {
+            if (!(value.X > 0.0) || !(value.Y > 0.0))
+            {
+                return false;
+            }
+
+            SetSnapSpacing(value.X, value.Y);
+            return true;
+        }
+
+        /// <summary>GRIDUNIT set: each spacing kept without its sign, as AutoCAD keeps -2,3 as 2,3; nought for the snap's.</summary>
+        private bool TakeGridUnit(GeoPoint2 value)
+        {
+            SetGridSpacing(Math.Abs(value.X), Math.Abs(value.Y));
+            return true;
         }
 
         /// <summary>

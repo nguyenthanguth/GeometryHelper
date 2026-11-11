@@ -341,8 +341,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE")
             );
             registry.AddVariable(
-                Flag(
+                CadSystemVariable.Switch(
                     "LWDISPLAY",
+                    true,
                     s => s.Document.Database.LineWeightDisplay,
                     (c, v) => c.Database.LineWeightDisplay = v,
                     "$LWDISPLAY"

@@ -402,7 +402,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("INPUTSEARCHOPTIONS", InputSearchOptionsBody));
             registry.Add(new CadCommand("-INPUTSEARCHOPTIONS", InputSearchOptionsTyped));
 
-            foreach (string name in new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OSNAP", "DYN" })
+            registry.Add(new CadCommand("GRID", GridBody));
+            registry.Add(new CadCommand("SNAP", SnapBody));
+
+            foreach (string name in new[] { "ORTHO", "POLAR", "OSNAP", "DYN" })
             {
                 registry.Add(new CadCommand(name, c => ToggleBody(c, name)));
             }
@@ -478,49 +481,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// GRID, SNAP, ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's;
-        /// SNAP also takes a spacing, which turns it on. With an isometric snap the spacing is the vertical one, as AutoCAD's:
-        /// 5 keeps a snap of 8.6603 by 2.5, the drawing holding half the vertical spacing, and 5 is offered again.
+        /// ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's. SNAP and
+        /// GRID have their own (<see cref="SnapBody"/>, <see cref="GridBody"/>).
         /// </summary>
         private IEnumerable<CadPrompt> ToggleBody(CadCommandContext c, string name)
         {
             StatusToggleViewModel toggle = FindToggle(name);
-            bool spacing = name == "SNAP";
-            bool isometric = Layout.Isometric;
-            string[] modes = { "ON", "OFF" };
-            yield return spacing
-                ? CadPrompt.ForDistance(
-                    "Specify snap spacing",
-                    null,
-                    modes,
-                    CadCommandContext.Length(isometric ? 2.0 * Snap.GridY : Snap.GridX)
-                )
-                : CadPrompt.ForKeyword("Enter mode", modes, toggle.IsOn ? "ON" : "OFF");
+            yield return CadPrompt.ForKeyword("Enter mode", new[] { "ON", "OFF" }, toggle.IsOn ? "ON" : "OFF");
 
             if (c.Input.Is("ON") || c.Input.Is("OFF"))
             {
                 toggle.IsOn = c.Input.Is("ON");
-            }
-            else if (spacing && c.Input.Kind == CadInputKind.Number)
-            {
-                if (!(c.Input.Number > 0.0) || double.IsInfinity(c.Input.Number))
-                {
-                    c.Write("Value must be positive and nonzero.");
-                    yield break;
-                }
-
-                double typed = c.Input.Number;
-
-                if (isometric)
-                {
-                    SetSnapSpacing(typed * Math.Sqrt(3.0), typed / 2.0);
-                }
-                else
-                {
-                    SetSnapSpacing(typed, typed);
-                }
-
-                toggle.IsOn = true;
             }
         }
 

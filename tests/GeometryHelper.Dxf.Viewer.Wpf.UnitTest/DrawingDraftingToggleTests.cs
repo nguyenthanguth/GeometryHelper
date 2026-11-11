@@ -53,7 +53,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(20.0, model.GridSpacingY);
                 Assert.False(model.ShowLineWeights);
                 model.Execute("LWDISPLAY");
-                Assert.Equal("Enter new value for LWDISPLAY <0>:", model.Prompt);
+                Assert.Equal("Enter new value for LWDISPLAY <OFF>:", model.Prompt);
                 model.Execute("");
 
                 // A drawing of the template's *Active, SNAPMODE and GRIDMODE 0, and no $ORTHOMODE or $LWDISPLAY: the window's.

@@ -144,6 +144,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SetCursor(0.0, 0.0);
             RebuildRecent();
             Raise(nameof(Settings));
+            Raise(nameof(GridStyle));
             SettingsApplied?.Invoke(this, EventArgs.Empty);
         }
 
