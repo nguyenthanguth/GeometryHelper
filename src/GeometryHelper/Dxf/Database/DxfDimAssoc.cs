@@ -88,7 +88,7 @@ namespace GeometryHelper.Dxf
         {
         }
 
-        private DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int subentType, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle, int intersectionSubentType, int intersectionGsMarker, DxfOsnapPointRef lastPointReference)
+        internal DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int subentType, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle, int intersectionSubentType, int intersectionGsMarker, DxfOsnapPointRef lastPointReference)
         {
             if (pointIndex < 0 || pointIndex > 3)
             {

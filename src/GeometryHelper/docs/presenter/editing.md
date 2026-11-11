@@ -150,11 +150,11 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 176 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 178 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -168,7 +168,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -256,17 +256,31 @@ differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words o
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
 its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
-the two lines, arcs or circles that cross there; the second origin snapped with PERpendicular (to a line, an arc or a
-circle) or TANgent (to an arc or a circle) is tied with the point it was drawn from, as AutoCAD writes it, and drawn
-again from that point when the object moves: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100,
-and 120 once that line is moved 20 to the right. DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+the two lines, arcs, circles or polyline segments that cross there. A point snapped with PERpendicular (to a line, an
+arc, a circle or a polyline segment) or TANgent (to an arc, a circle or an arc of a polyline) is tied with the point it
+was drawn from, as AutoCAD writes it: the second origin from the first, the ends of an angle of three points from its
+vertex, and the first origin, the vertex and an ordinate's feature from the last point given (LASTPOINT), which
+`CadPrompt.SnapFrom` hands the window's snap. An ordinate's feature keeps no last point, as AutoCAD keeps none. A
+segment of a polyline is named by its marker, 1 for the first, and a point on an arc of a polyline by its angle counted
+on from the arc's start: a polyline from (0, 200) to (100, 200) and round a half circle to (100, 300) has the end of the
+half circle at marker 2 and 7.85398, its center at 4.71239. When the object moves, a tangent is drawn again from its
+point, and so is a perpendicular whose point is tied to an object; one drawn from a point tied to nothing keeps its
+parameter on the object, or, where that runs past the end of its line, goes to the foot from the origin of the world, as
+AutoCAD 2021 moves it: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100, and 120 once that line
+is moved 20 to the right; a first origin drawn from (37, 123) square to that line, at parameter 1.7875, goes to (120, 0)
+when it moves by (20, 7). DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
 of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
 DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
 and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
 it. Every edit
 that changes those objects, whatever command or grip makes it, carries the dimension with it in the same undo step: a line
 from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to (10, 5), (110, 5) and a line at 25; its end
-stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up; a circle of 25
+stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up, as STRETCH moves
+the origins and the line point of a linear dimension inside its window as AutoCAD's does; the same end dragged by its grip,
+the dimension not stretched with it, leaves the dimension line 20 beyond the origin nearer it, at 50, as AutoCAD 2021
+leaves it (30 for an end at (120, 10), 20 for one at (120, -30)). STRETCH of a polyline's vertex keeps the height of an arc
+off its chord, as AutoCAD's does: the half circle from (100, 200) to (100, 300) whose end goes to (100, 320) takes a bulge
+of 100 / 120, its center at (89, 260); a circle of 25
 scaled twice about its center gives its radius 50 drawn out the same way. An aligned dimension keeps its line as far from
 the line measured, square to it: 20 above (0, 0)-(100, 0), the end stretched to (120, 30), its line point goes to
 (115.149, 49.403). TRIM, EXTEND and LENGTHEN carry the end they move; an ordinate's leader end follows its point along the
@@ -411,8 +425,28 @@ A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
 and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
 with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs reloading once its file changed on disk.
+Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
+leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
+under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
+Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The window
+watches the folders of the files read; one changed on disk is said once on its drawing's command line, where AutoCAD
+2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
+-XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file
+changed anew.
 Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
-not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. IMAGEATTACH
+not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
+"Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
+an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
+reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
+2021 changes it under VISRETAIN 1: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer
+box or -LAYER, each change marked in the 1071 of the record's `AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off,
+2 Freeze, 4 Lock, 16 and 256 Color, 32 Ltype, 64 LWeight). What is marked is drawn as the drawing keeps it, the rest as
+the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
+as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
+"Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
+`"grid|X" is an invalid layer name.` (-LAYER New). The presenter writes no such record when it attaches a file; one
+attached in it has its layers drawn, but not listed. IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by
@@ -657,19 +691,41 @@ is, `WorkingSpace` is model space: the commands draw there, picks and snaps work
 and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
 Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`).
 
-The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper, one undo step each (the wheel's
-notches one step once the view is still). ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
-viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
+The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
+step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
+button's drags made one after another are one step together, however often the view is drawn again between them, as
+AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control Combine, UNDOCTL 61 holding its 16);
+`SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM Previous goes
+back through views of the viewport worked through alone, as AutoCAD keeps a list for each viewport, for the paper of each
+layout and for model space: a viewport never zoomed answers "No previous view saved." while another has views to go back
+to. Each list keeps the last 20 views typed ZOOM and PAN left, as AutoCAD 2021's console, zoomed 30 times, gives 20 back.
+ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewport 100 high shows 5 000 of model space,
+1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
 view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list
-opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the standard
-scales, and Custom..., which runs VPSCALE: it writes `PS:MS == 1:20` and asks a new scale, as 1:37.5 (SCALELISTEDIT is not
-built). Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
+opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the scales
+of the drawing's list (ACAD_SCALELIST; the standard ones where it has none), and Custom..., which runs -SCALELISTEDIT to
+edit that list on the command line (the Edit Drawing Scales dialog is not built). VPSCALE writes `PS:MS == 1:20` and asks
+a new scale, as 1:37.5. -SCALELISTEDIT asks as AutoCAD 2021's console does, word for word: `Enter option
+[?/Add/Delete/Reset/Exit] <Add>:`; ? lists each scale with its paper and drawing units and the scale they give; Add asks
+`Enter name for new scale:` and `Enter scale ratio:` (1:3 or 2.5:1; anything else answers `Invalid entry. Expects a ratio
+entered in the following format: "1:1"`), and for a name the list has asks `GH already exists.  Redefine scale?`; Delete
+takes one scale (`GH scale deleted.`, `Scale NOSUCH not found.`) or `*` every one in no use, and keeps the unit scale, the
+current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`); Reset, after
+`Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the standard 1:1 to 100:1. The
+command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
+alone there, having no profile's default list. Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
 its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
-names. A viewport whose view is turned, or not a plan, is not entered.
+names. A viewport whose view is not a plan is not entered. One whose view is twisted, as DVIEW TWist leaves it (group 51),
+is shown and worked through turned, as AutoCAD 2021 shows it: the view's centre is kept about its target and turned by
+the twist (`ToView` and `FromView`, AutoCAD's TRANS from the world to the view), so through a viewport 120 by 80 about
+(100, 100) at 1:5, its view about (100, 50) twisted 30 degrees, the point (100, 0) of model space is at (97.320, 100) on
+the paper, where AutoCAD's console puts it. Entered, the canvas's view in model units turns with it (`CadView.Twist`):
+picks, snaps and boxes (taken as turned polygons), the crosshair and the UCS icon follow the turn, PAN moves the view by
+the model distance given, and ZOOM Window fits the box as the view turns it.
 
 ### Grip modes
 
@@ -787,7 +843,9 @@ viewport selected on the paper, and are grey with neither; on the Model tab they
 layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7` and is grey in a drawing plotted by colour
 (a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
 "New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
-viewport or all. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+viewport or all; and "Isolate Selected Layers", which turns off every layer but those chosen, the current one too where it
+is not chosen, one undo step, as AutoCAD's help describes the item ("Rename Layer" stays grey: renaming in the list needs a
+name cell that can be typed in, which waits for a design). [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
 one undo step:
 
 | Call | Does |

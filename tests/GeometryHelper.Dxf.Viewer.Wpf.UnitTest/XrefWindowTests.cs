@@ -124,6 +124,97 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void AReferencedFileChangedOnDisk_IsAnnouncedOnTheCommandLineOnce_AndAgainAfterItIsReloadedAndChanged()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Plan(folder, out string grid, out _);
+                const string Line = "External Reference Files Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette.";
+                Assert.False(model.Document.Xrefs.WatchFiles);
+                model.WatchReferenceFiles = true;
+                Assert.True(model.Document.Xrefs.WatchFiles);
+                model.WatchReferenceFiles = false;
+                model.AnnounceChangedReferences(model.Document);
+                Assert.DoesNotContain(Line, model.History);
+
+                Grid(folder);
+                File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(1));
+                model.AnnounceChangedReferences(model.Document);
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Single(model.History, l => l == Line);
+
+                model.Execute("-XREF");
+                model.Execute("R");
+                model.Execute("grid");
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Single(model.History, l => l == Line);
+
+                File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(2));
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Equal(2, model.History.Count(l => l == Line));
+            }
+        }
+
+        [Fact]
+        public void ThePalette_ListsANestedReferenceAsNested_AndTheTreeShowsItUnderItsParent()
+        {
+            using (var folder = new TestFolder())
+            {
+                Grid(folder);
+                DxfDatabase plan = CadTemplate.CreateMetric();
+                plan.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 5000, 0), plan.AttachXref("grid.dxf", "grid")));
+                string planPath = folder.Write(Path.Combine("xref", "plan.dxf"), plan);
+                var model = new MainViewModel();
+                Assert.True(model.Open(folder.Write("site.dxf", CadTemplate.CreateMetric())));
+                foreach (string answer in new[] { "-XREF", "A", planPath, "0,0", string.Empty, string.Empty, string.Empty })
+                {
+                    model.Execute(answer);
+                }
+
+                ExternalReferencesViewModel palette = null;
+                model.ShowExternalReferences = shown => palette = shown;
+                model.Execute("ER");
+
+                Assert.Equal(new[] { "site", "plan", "grid" }, palette.Rows.Select(r => r.Name).ToArray());
+                Assert.Equal(new[] { "Opened", "Loaded", "Loaded" }, palette.Rows.Select(r => r.StatusText).ToArray());
+                Assert.Equal(new[] { "Current", "Attach", "Nested" }, palette.Rows.Select(r => r.TypeName).ToArray());
+                Assert.Equal(new[] { 0.0, 0.0, 0.0 }, palette.Rows.Select(r => r.Indent).ToArray());
+
+                palette.IsTreeView = true;
+                Assert.Equal(new[] { "Current", "Attach", "Attach" }, palette.Rows.Select(r => r.TypeName).ToArray());
+                Assert.Equal(new[] { 0.0, 16.0, 32.0 }, palette.Rows.Select(r => r.Indent).ToArray());
+
+                // A nested reference is opened, but not unloaded, reloaded, detached or given a path: the drawing does not place it.
+                palette.Selected = palette.Rows[2];
+                Assert.True(palette.OpenCommand.CanExecute(null));
+                Assert.False(palette.DetachCommand.CanExecute(null));
+                Assert.False(palette.UnloadCommand.CanExecute(null));
+                Assert.False(palette.MakeAbsoluteCommand.CanExecute(null));
+
+                palette.Selected = palette.Rows[1];
+                palette.UnloadCommand.Execute(null);
+                Assert.Equal(new[] { "Opened", "Unloaded", "Orphaned" }, palette.Rows.Select(r => r.StatusText).ToArray());
+            }
+        }
+
+        [Fact]
+        public void Xopen_OpensTheDrawingOfTheXrefPicked_InATabOfItsOwn()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Plan(folder, out string grid, out _);
+                CadDocument host = model.Document;
+
+                model.Execute("XOPEN");
+                model.Execute("500,0");
+
+                Assert.NotSame(host, model.Document);
+                Assert.Equal(Path.GetFullPath(grid), model.Document.FileName, StringComparer.OrdinalIgnoreCase);
+                Assert.Single(model.Document.Database.LayerTable, l => l.Name == "GRID");
+            }
+        }
+
+        [Fact]
         public void TheAttachDialog_ReadsTheFileChosen_AndOkAttachesItAtThePointTyped_AsOverlay()
         {
             using (var folder = new TestFolder())

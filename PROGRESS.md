@@ -94,20 +94,25 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
-- [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
+- [ ] PEDIT (running): PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
-- [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
+- [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
-- [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
-      SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
-      through the core's API, not only MVIEW (S)
+- [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
+      one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
+      manager; New VP Freeze on viewports made through the core's API (S)
+- [ ] Layouts follow-ups: the SCALELISTEDIT dialog and Rename in the Layer manager (need design); wheel and middle-button
+      views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
+      mode drawing the white paper (S)
 - [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
 - [x] Associative dimensions: PERpendicular and TANgent snaps tied with AutoCAD's "last point" reference
-- [ ] Associative dimensions (running): PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
-      with PER/TAN ties (S)
+- [x] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT 0 in AutoCAD
+      and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
+- [ ] Associative dimensions follow-ups: PER to a foot past a line's end (extended perpendicular); DIMANGULAR on a circle;
+      groups 11 and 42 written; the three-point angular arc point as AutoCAD picks it (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -144,7 +149,7 @@ the ones wanted.
         R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
   - [ ] W4b: tables from R2010 (TABLECONTENT, CELLSTYLEMAP), ACDSDATA, SAB to SAT for R2004-R2010, SHAPE names, MATERIAL,
         VISUALSTYLE, RASTERVARIABLES/WIPEOUTVARIABLES, OLE2FRAME, proxies, dynamic block data (L)
-  - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
+  - [ ] W5 (running) Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
   - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
@@ -235,7 +240,11 @@ the ones wanted.
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
-- [ ] Xrefs (running): XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
+- [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
+      palette (list and tree); a changed referenced file said on the command line
+- [ ] Xrefs follow-ups (running, non-UI): XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
+      core flags setter); the change balloon in the status bar (needs design); Transparency, Plot and Description editors
+      for xref layers; VISRETAIN 0; check the palette's "Nested"/"Orphaned" words against Autodesk's help (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -123,6 +124,90 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(P(1000, 500), Viewport(document, handle).ViewCenter);
             Assert.True(document.Undo());
             Assert.Equal(200, Viewport(document, handle).ViewHeight, 9);
+        }
+
+        [Fact]
+        public void RealTimeZoomsAndPansInARow_AreOneUndoStep_ATypedZoomItsOwn()
+        {
+            CadDocument document = WithViewport(out CadCommandSession session, out string handle);
+            session.View = new CadView(800, 600);
+            document.EnterViewport(handle);
+            CadUndoStep start = document.NextUndo;
+
+            // Three real-time changes in a row, as the wheel and the middle button give them: one step, the first's name.
+            Assert.True(document.SetViewportView(handle, P(1000, 500), 800, "ZOOM", true).Succeeded);
+            Assert.True(document.SetViewportView(handle, P(900, 500), 800, "PAN", true).Succeeded);
+            Assert.True(document.SetViewportView(handle, P(900, 500), 600, "ZOOM", true).Succeeded);
+            Assert.Equal("ZOOM", document.NextUndo.Name);
+            Assert.Equal(3, document.NextUndo.Records.Count);
+
+            // ZOOM typed is a step of its own, as AutoCAD's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each; a real-time
+            // zoom after it starts a step again.
+            Run(session, "ZOOM", "2X");
+            Assert.True(document.SetViewportView(handle, P(900, 500), 200, "ZOOM", true).Succeeded);
+            Assert.True(document.Undo());
+            Assert.Equal(300, Viewport(document, handle).ViewHeight, 9);
+            Assert.True(document.Undo());
+            Assert.Equal(600, Viewport(document, handle).ViewHeight, 9);
+            Assert.True(document.Undo());
+            Assert.Equal(1000, Viewport(document, handle).ViewHeight, 9);
+            Near(P(1000, 500), Viewport(document, handle).ViewCenter);
+            Assert.Same(start, document.NextUndo);
+
+            // Undone and redone, the step takes no more; a real-time change then is a step of its own.
+            Assert.True(document.Redo());
+            Assert.True(document.SetViewportView(handle, P(900, 500), 100, "ZOOM", true).Succeeded);
+            Assert.True(document.Undo());
+            Assert.Equal(600, Viewport(document, handle).ViewHeight, 9);
+        }
+
+        [Fact]
+        public void ZoomPrevious_GoesBackThroughEachViewportsOwnViews_TwentyAtMost_AndThePapersApart()
+        {
+            CadDocument document = WithViewport(out CadCommandSession session, out string first);
+            Run(session, "MV", P(220, 10), P(320, 110));
+            string second = All<DxfViewport>(document.CurrentSpace).Last().Handle;
+            var paper = new CadView(800, 600);
+            paper.ZoomTo(new DisplayBox(0, 0, 420, 297));
+            session.View = paper;
+            double paperZoom = paper.PixelsPerUnit;
+
+            // The paper zoomed once; the first viewport 25 times by 1.1, then the second once.
+            Run(session, "ZOOM", "2X");
+            document.EnterViewport(first);
+            double start = Viewport(document, first).ViewHeight;
+
+            for (int i = 0; i < 25; i++)
+            {
+                Run(session, "ZOOM", "1.1X");
+            }
+
+            document.EnterViewport(second);
+            double secondStart = Viewport(document, second).ViewHeight;
+            Run(session, "PAN", P(0, 0), P(10, 0));
+            Run(session, "ZOOM", "P");
+            Assert.Equal(secondStart, Viewport(document, second).ViewHeight, 9);
+            Run(session, "ZOOM", "P");
+            Assert.Equal("No previous view saved.", session.History.Last());
+
+            // The first goes back through 20 of its 25 views, as AutoCAD 2021 gives 20 of 30 back, and no further.
+            document.EnterViewport(first);
+            for (int i = 0; i < 20; i++)
+            {
+                Run(session, "ZOOM", "P");
+            }
+
+            Assert.Equal(start / Math.Pow(1.1, 5), Viewport(document, first).ViewHeight, 6);
+            Run(session, "ZOOM", "P");
+            Assert.Equal("No previous view saved.", session.History.Last());
+            Assert.Equal(start / Math.Pow(1.1, 5), Viewport(document, first).ViewHeight, 6);
+
+            // The paper keeps its own.
+            document.LeaveViewport();
+            Run(session, "ZOOM", "P");
+            Assert.Equal(paperZoom, paper.PixelsPerUnit, 9);
+            Run(session, "ZOOM", "P");
+            Assert.Equal("No previous view saved.", session.History.Last());
         }
 
         [Fact]

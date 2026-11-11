@@ -824,7 +824,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint);
+            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint, _current.Session.Prompt.SnapFrom);
         }
 
         /// <summary>Selects nothing.</summary>
@@ -1361,6 +1361,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
+            WatchReferences(document);
         }
 
         internal void Say(string line)
@@ -1570,6 +1571,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     OnFindRequested(e);
                     break;
                 case "XREF":
+                case "XOPEN":
                 case "XATTACH":
                 case "IMAGEATTACH":
                     OnXrefRequested(e);

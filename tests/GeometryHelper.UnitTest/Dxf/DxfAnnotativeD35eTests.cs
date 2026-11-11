@@ -301,6 +301,24 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void CanRemoveContext_IsTrueForAScaleInNoUse_AndFalseForTheCurrentOneAndANameTheListHasNot()
+        {
+            // AutoCAD 2021's -SCALELISTEDIT deletes a scale it added and answers "Scale 1:1 is referenced so it cannot be
+            // deleted." for the current one.
+            DxfDatabase db = Scaled();
+            AddScale(db, "Z1", 4.0);
+
+            Assert.True(Scales(db).CanRemoveContext("Z1"));
+            Assert.True(Scales(db).CanRemoveContext("z1"));
+            Assert.False(Scales(db).CanRemoveContext("NOSUCH"));
+            Assert.False(Scales(db).CanRemoveContext(db.Cannoscale));
+            Assert.Throws<ArgumentNullException>(() => Scales(db).CanRemoveContext(null));
+
+            Scales(db).RemoveContext("Z1");
+            Assert.False(Scales(db).CanRemoveContext("Z1"));
+        }
+
+        [Fact]
         public void TheHighestScaleTakenOut_ItsNumberIsNotGivenAgainWhileTheDrawingIsOpen()
         {
             // AutoCAD 2021 added Z1, Z2 and Z3 as *A1, *A2 and *A3, took Z3 out and added Z4 as *A4; took Z4 and Z1 out and added

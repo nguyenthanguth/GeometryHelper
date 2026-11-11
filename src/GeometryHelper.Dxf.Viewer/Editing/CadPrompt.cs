@@ -70,6 +70,21 @@ namespace GeometryHelper.Dxf.Viewer
         public GeoPoint2? BasePoint { get; }
 
         /// <summary>
+        /// Gets the point perpendicular and tangent snaps are drawn from where the prompt has no <see cref="BasePoint"/>, as
+        /// AutoCAD 2021's dimension commands draw them from the last point given (LASTPOINT) at their first extension line
+        /// origin, the vertex of an angle and the feature of an ordinate; null for every other prompt. No rubber band is drawn
+        /// from it, and ortho and polar do not work from it.
+        /// </summary>
+        public GeoPoint2? SnapFrom { get; private set; }
+
+        /// <summary>Gives the prompt the point its perpendicular and tangent snaps are drawn from (<see cref="SnapFrom"/>).</summary>
+        internal CadPrompt SnappingFrom(GeoPoint2 point)
+        {
+            SnapFrom = point;
+            return this;
+        }
+
+        /// <summary>
         /// Gets the text edited in place on the canvas where the prompt asks for one, as TEXTEDIT and MTEXT ask: the window shows
         /// its edit box or the MTEXT editor over the text and answers the prompt with the words when the edit ends, Enter with
         /// nothing where it is cancelled; a test answers it as any prompt for text. Null for every other prompt.

@@ -352,9 +352,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="cursor">The cursor, in drawing units.</param>
         /// <param name="aperture">How near a snap point or object must come, in drawing units: the aperture in pixels divided by the view's pixels per unit.</param>
         /// <param name="basePoint">The point the rubber band is drawn from, which perpendicular, tangent, ortho and polar work from; null for none.</param>
+        /// <param name="drawnFrom">The point perpendicular and tangent are drawn from where there is no base point, as a dimension's first origin draws them from the last point (<see cref="CadPrompt.SnapFrom"/>); null for none.</param>
         /// <returns>The point and the snap that gave it.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the index is null.</exception>
-        public CadSnapResult Snap(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint = null)
+        public CadSnapResult Snap(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint = null, GeoPoint2? drawnFrom = null)
         {
             if (index == null)
             {
@@ -365,7 +366,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (_active != CadSnapModes.None && aperture > 0.0)
             {
-                CadSnapResult found = ObjectSnapAt(index, cursor, aperture, basePoint);
+                CadSnapResult found = ObjectSnapAt(index, cursor, aperture, basePoint, drawnFrom);
 
                 if (found != null)
                 {
@@ -418,10 +419,10 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadSnapResult(kind, ucs.ToWorld(point), null);
         }
 
-        private CadSnapResult ObjectSnapAt(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
+        private CadSnapResult ObjectSnapAt(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, GeoPoint2? drawnFrom)
         {
             var found = new Found();
-            Gather(index, cursor, aperture, basePoint, found);
+            Gather(index, cursor, aperture, basePoint ?? drawnFrom, found);
             List<Candidate> near = found.Near;
             var tracked = new List<Candidate>();
             var offered = new List<Candidate>();
