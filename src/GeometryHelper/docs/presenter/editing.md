@@ -436,9 +436,15 @@ to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Ta
 ([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. A
 click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor)):
 rows and columns put in and taken out, cells merged and unmerged, their alignment, fill and borders, the arrows moving
-the cell and Delete emptying it, each one undo step that draws the table anew in its block. A whole number typed in a
-cell is kept as a number, as AutoCAD 2021 reads a text it parses: 1 is the number 1 and 007 the number 7, so that the
-autofill counts on from it, while b1, 1.5 and 12mm, and a number in a cell made to hold text, stay text. Drawn anew,
+the cell and Delete emptying it, each one undo step that draws the table anew in its block. A number typed in a cell is
+kept as a number, as AutoCAD 2021 reads a text it parses: 1 is the whole number 1 and 007 the whole number 7, 1.5 a
+number shown in the drawing's units (1.5000 at LUNITS 2 and LUPREC 4, 1.50 at LUPREC 2), 1e3 one shown 1.0000E+03, and
+1/2 one of 0.5 shown 1/2 (1-1/2 and 1 1/2 shown 1 1/2, 1/3 shown 5/16 at LUPREC 4), each set top right where the cell has
+no alignment of its own; 1,5 is the point (1, 5, 0), shown 1.0000, 5.0000, 0.0000. The autofill counts each on in its
+format, 1.5 to 2.5000, 3.5000 and 4.5000 and 1/2 to 1 1/2, 2 1/2 and 3 1/2, and copies a point. A number typed over a
+number keeps the cell's kind and format, as AutoCAD keeps them: 12 over 1.25 is shown 12.0000, and 1.5 over the whole
+number 12 is the whole number 1. b1, 12mm, 1,500 (AutoCAD's thousands), feet and inches, and a number in a cell made to
+hold text, stay text. Drawn anew,
 each row grows to
 hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's width less its margins, as an MTEXT of that
 width, and need their actual height and the margins above and below, one line of four thirds of the text height at

@@ -1616,7 +1616,8 @@ namespace GeometryHelper.Dxf
                         made = WithSeriesNumber(
                             made,
                             rounded,
-                            whole && rounded >= int.MinValue && rounded <= int.MaxValue
+                            whole && rounded >= int.MinValue && rounded <= int.MaxValue,
+                            source.InValue(300) ?? string.Empty
                         );
                     }
                     else if (content && !look)
@@ -1811,13 +1812,16 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// A cell's groups given a number of a series, as AutoCAD 2021's Fill wrote it (D33 f02, f18, g06): of its kind in its
-        /// value from R2007 on, the flags of the value 4 and the number shown of six places (3.500000), the cell given its kind
-        /// of value (0x40000); before R2007 as its text.
+        /// value from R2007 on, the flags of the value 4, the format of the source cell its place in the fill repeats, and the
+        /// number shown in it, of six places where it has none (3.500000), 2.5000 of <c>%lu6</c> at LUPREC 4 and 2 1/2 of
+        /// <c>%lu5</c>, the target's own format given way, as AutoCAD 2021 filled 1/2 and 1.5 on to 2 1/2, 3.5000, 4 1/2 and
+        /// 5.5000 (D39a, D39c); the cell given its kind of value (0x40000); before R2007 as its text.
         /// </summary>
-        private static List<KeyValuePair<int, string>> WithSeriesNumber(
+        private List<KeyValuePair<int, string>> WithSeriesNumber(
             List<KeyValuePair<int, string>> groups,
             double value,
-            bool whole
+            bool whole,
+            string format
         )
         {
             CellView cell = View(groups);
@@ -1832,9 +1836,9 @@ namespace GeometryHelper.Dxf
             cell.WriteValue(
                 ((int)written.Kind).ToString(CultureInfo.InvariantCulture),
                 written.Data,
-                whole ? written.Text : RealText(value, null),
+                whole ? written.Text : Shown(value, format),
                 null,
-                null,
+                format,
                 false,
                 "4"
             );

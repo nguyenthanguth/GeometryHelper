@@ -224,7 +224,8 @@ the ones wanted.
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [x] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [x] Table editing follow-ups: Resize from the menu, snaps on table drags, row DYN field, up-flowing tables, TABLEINDICATOR on the machine, a typed whole number kept as a number
-- [ ] Table editing follow-ups 2: typed decimals (1.5 shown 1.5000 at LUPREC 4 needs SetValue(double) in the drawing's format), 1e3, 1,5 and 1/2 values; whether AutoCAD offers a perpendicular back onto the base point (then filter in ObjectSnap for all prompts); band and field sides of up-flowing tables against AutoCAD; a look in the running app (S)
+- [x] Table editing follow-ups 2: decimals, 1e3, fractions and points typed as AutoCAD stores them, series in each source's format; AutoCAD offers a perpendicular back onto the base point (pinned)
+- [ ] Table editing follow-ups 3: band and size-field sides of up-flowing tables (needs a screenshot of AutoCAD); the in-place editor opening a value as AutoCAD's ForEditing text (1.5, not 1.5000); RealText rounding through Fixed; thousands (%th), feet-inches, dates and times typed; text typed over a number (AutoCAD refuses); the table-drag-only perpendicular filter (AutoCAD offers it in prompts) (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 - [ ] Tables follow-ups: the row growing live while a cell is typed (the canvas must redraw the table during the edit);
       a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)

@@ -183,10 +183,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Writes the text of a cell, as typing in it does; the same text changes nothing. A whole number typed, spaces round it
-        /// left out, is kept as a whole number unless the cell is made to hold text, as AutoCAD 2021 reads a text it parses into
-        /// a value: 1 is the number 1 and 007 the number 7, so that the autofill grip dragged from it counts 2, 3, 4; b1, 1.5 and
-        /// 12mm stay text.
+        /// Writes the text of a cell, as typing in it does; the same text changes nothing. A number typed, spaces round it left
+        /// out, is kept as a number unless the cell is made to hold text, as AutoCAD 2021 reads a text it parses into a value
+        /// (<c>ConvertTextToValue</c>): 1 is the whole number 1 and 007 the whole number 7, so that the autofill grip dragged
+        /// from it counts 2, 3, 4; 1.5 a number shown in the drawing's units, 1.5000 at LUPREC 4, 1e3 one shown 1.0000E+03 and
+        /// 1/2 one shown 1/2, each standing top right where the cell has no alignment of its own; 1,5 the point (1, 5, 0)
+        /// shown 1.0000, 5.0000, 0.0000; and a number typed in a cell of a number keeps the cell's kind and format, 12 over
+        /// 1.25 shown 12.0000. b1, 12mm and 1,500 stay text.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The table's handle.</param>
@@ -221,7 +224,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // A whole number, as AutoCAD 2021's SetValue of a text with ConvertTextToValue made 1 and 007 the numbers 1 and 7
-            // and left a cell made to hold text with its text.
+            // and left a cell made to hold text with its text, where the cell takes no value read from the text (a file before
+            // R2007, whose cell holds its text alone).
             int number = 0;
             bool whole =
                 table.DataType(row, column) != DxfDataType.String
@@ -238,13 +242,16 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     t.ResetValue(row, column);
                 }
-                else if (whole)
+                else if (!t.SetValueFromText(row, column, text))
                 {
-                    t.SetValue(row, column, number);
-                }
-                else
-                {
-                    t.SetTextString(row, column, text);
+                    if (whole)
+                    {
+                        t.SetValue(row, column, number);
+                    }
+                    else
+                    {
+                        t.SetTextString(row, column, text);
+                    }
                 }
             });
         }
