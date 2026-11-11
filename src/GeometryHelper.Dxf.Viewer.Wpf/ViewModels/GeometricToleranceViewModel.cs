@@ -207,11 +207,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// AutoCAD 2021's Geometric Tolerance dialog over the request TOLERANCE, LEADER or QLEADER hands the window: two rows of
-    /// a symbol, two tolerances and three datums, the height of a projected zone with its P, and the datum identifier, every
-    /// box empty when it opens. The symbol box opens the Symbol dialog, a box after a value or a letter the Material Condition
-    /// dialog; the box before a tolerance value toggles the diameter sign, and the Projected Tolerance Zone box its P. OK
-    /// writes the boxes into the request, whose words the frame is drawn by; Cancel leaves it.
+    /// AutoCAD 2021's Geometric Tolerance dialog over the request TOLERANCE, LEADER, QLEADER or TEXTEDIT hands the window:
+    /// two rows of a symbol, two tolerances and three datums, the height of a projected zone with its P, and the datum
+    /// identifier, every box empty when it opens for a new frame, a frame's own when TEXTEDIT or a double click opens it. The
+    /// symbol box opens the Symbol dialog, a box after a value or a letter the Material Condition dialog; the box before a
+    /// tolerance value toggles the diameter sign, and the Projected Tolerance Zone box its P. OK writes the boxes into the
+    /// request, whose words the frame is drawn by; Cancel leaves it.
     /// </summary>
     public sealed class GeometricToleranceViewModel : ObservableObject
     {
@@ -219,12 +220,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _projectedZone;
         private string _datumIdentifier = string.Empty;
 
-        /// <summary>Makes the dialog over a request.</summary>
-        /// <param name="request">The request of TOLERANCE, LEADER or QLEADER.</param>
+        /// <summary>
+        /// Makes the dialog over a request, its boxes as the request holds them: empty for TOLERANCE, LEADER and QLEADER, the
+        /// frame's for TEXTEDIT and a double click on one.
+        /// </summary>
+        /// <param name="request">The request of TOLERANCE, LEADER, QLEADER or TEXTEDIT.</param>
         /// <exception cref="ArgumentNullException">Thrown when the request is null.</exception>
         public GeometricToleranceViewModel(CadToleranceRequest request)
         {
             Request = request ?? throw new ArgumentNullException(nameof(request));
+
+            for (int r = 0; r < Rows.Count; r++)
+            {
+                ToleranceRowViewModel row = Rows[r];
+                CadToleranceRow source = request.Rows[r];
+                row.Symbol = source.Symbol;
+                Fill(source.Tolerance1, row.Tolerance1);
+                Fill(source.Tolerance2, row.Tolerance2);
+
+                for (int d = 0; d < row.Datums.Count; d++)
+                {
+                    row.Datums[d].Letter = source.Datums[d].Letter;
+                    row.Datums[d].Material = source.Datums[d].Material;
+                }
+            }
+
+            _height = request.Height ?? string.Empty;
+            _projectedZone = request.ProjectedZone;
+            _datumIdentifier = request.DatumIdentifier ?? string.Empty;
         }
 
         /// <summary>Gets the request.</summary>
@@ -320,6 +343,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Cancel: nothing written.</summary>
         public void Cancel() => Request.Action = CadDialogAction.Cancel;
+
+        private static void Fill(CadToleranceValue source, ToleranceCellViewModel cell)
+        {
+            cell.Diameter = source.Diameter;
+            cell.Value = source.Value;
+            cell.Material = source.Material;
+        }
 
         private static void Copy(ToleranceCellViewModel cell, CadToleranceValue target)
         {

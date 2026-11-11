@@ -208,9 +208,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>A double click on an object: a text, an MTEXT or a dimension is edited in place, as TEXTEDIT; nothing while a command runs.</summary>
+        /// <summary>
+        /// A double click on an object: a text, an MTEXT or a dimension is edited in place, a TOLERANCE in the Geometric
+        /// Tolerance dialog, as TEXTEDIT; nothing while a command runs.
+        /// </summary>
         /// <param name="handle">The handle of the object.</param>
-        /// <returns>Whether an edit started.</returns>
+        /// <returns>Whether an edit started: for a TOLERANCE, whether the dialog was shown.</returns>
         public bool EditTextAt(string handle)
         {
             CadCommandSession session = Session;
@@ -219,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (
                 session == null
                 || session.IsRunning
-                || !(entity is DxfDBText || entity is DxfMText || entity is DxfDimension)
+                || !(entity is DxfDBText || entity is DxfMText || entity is DxfDimension || entity is DxfTolerance)
                 || entity is DxfAttributeDefinition
             )
             {
@@ -228,7 +231,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             StartCommand("TEXTEDIT");
             session.FeedSelection(new[] { handle });
-            return session.Prompt?.InPlace != null;
+            return entity is DxfTolerance || session.Prompt?.InPlace != null;
         }
 
         /// <summary>Follows the prompt of the command running: the editor shown when it asks for a text in place, hidden when it no longer does.</summary>

@@ -117,6 +117,11 @@ moved, its direction turned, its normal the one its turned axes make, so that mi
 (10, 20, 0) along (0.6, 0.8, 0) stands at (-10, 20, 0) along (-0.6, 0.8, 0), its normal (0, 0, -1); scaled, it writes its
 text height and gap scaled as overrides, DIMTXT then DIMGAP, so that a frame of the style's 0.18 and 0.09 scaled by 3
 holds `1070 140, 1040 0.54, 1070 147, 1040 0.27`. It is not exploded, as AutoCAD 2021's `Explode` refuses one.
+`GeometricExtents` is the box of its rows as AutoCAD 2021 lays them out, where the drawing's `FontSearchPath` measures
+its words: each row twice the text height high, each cell its ink and the text height wide, so that `{\Fgdt;j}%%v0.1`
+at (0, 0, 0) in a style of Arial 0.18 high is from (0, -0.18, 0) to (0.92296, 0.18, 0) and a frame of no words from
+(0, -0.18, 0) to (0, 0.18, 0). A frame of symbols alone needs no font; one of words the fonts do not measure has no
+extents, as an entity of no shape the library reads.
 
 ### Multileaders
 

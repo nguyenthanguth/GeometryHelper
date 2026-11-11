@@ -63,7 +63,10 @@ namespace GeometryHelper.Dxf.Viewer
             return new GeoVector3(x.X, x.Y, 0.0);
         }
 
-        /// <summary>The parts of a frame of words at a point, as the frame made there draws them, for a preview.</summary>
+        /// <summary>
+        /// The parts of a frame of words at a point, as the frame made there draws them, for a preview: by the current
+        /// dimension variables, DIMSCALE as a leader takes it.
+        /// </summary>
         private static IReadOnlyList<DxfEntity> FrameParts(
             CadCommandContext c,
             string text,
@@ -72,16 +75,18 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             DxfTolerance look = Current(c, new DxfTolerance());
-            string name = c.Database.Dimstyle;
-            DxfDimStyleTableRecord style = c.Database.DimStyleTable.Has(name)
-                ? c.Database.DimStyleTable[name]
-                : c.Database.GetDimstyleData();
+            DxfDimStyleTableRecord drawn = c.Database.GetDimstyleData();
+            drawn.Keep(DxfDimVariable.Named("Dimscale"), LeaderScale(c));
             return CadToleranceFrame
-                .Of(text, at, along, new GeoVector3(0.0, 0.0, 1.0), style, look, c.Document.LayoutOf)
+                .Of(text, at, along, new GeoVector3(0.0, 0.0, 1.0), drawn, look, c.Document.LayoutOf)
                 .Parts;
         }
 
-        /// <summary>Adds a frame of words at a point along a direction, in the current layer and dimension style.</summary>
+        /// <summary>
+        /// Adds a frame of words at a point along a direction, in the current layer and dimension style (else Standard), each
+        /// current dimension variable other than the style's written as an override, as dimensions and leaders write them: a
+        /// frame made in ISO-25 with DIMTXT 5 typed holds <c>1070 140, 1040 5</c> and has rows 10 high.
+        /// </summary>
         private static DxfTolerance AddFeatureFrame(
             CadCommandContext c,
             CadEditScope s,
@@ -98,14 +103,59 @@ namespace GeometryHelper.Dxf.Viewer
                 Direction = along,
             };
             s.Append(space, Current(c, frame));
-            string name = c.Database.Dimstyle;
+            DxfDimStyleTableRecord style = NamedDimStyle(c);
 
-            if (s.Database.DimStyleTable.Has(name))
+            if (style != null)
             {
-                frame.DimensionStyleName = s.Database.DimStyleTable[name].Name;
+                frame.DimensionStyleName = style.Name;
             }
 
+            OverrideFrame(frame, style, c.Database, LeaderScale(c));
             return frame;
+        }
+
+        /// <summary>
+        /// Writes every current dimension variable a new frame is drawn by where it is not its style's, as AutoCAD 2021 writes
+        /// those of a dimension or a leader, in the order of their groups: DIMSCALE (40) as the scale it is drawn by, DIMTXT
+        /// (140), DIMCLRD (176), DIMCLRT (178) and each other. A variable the drawing's version cannot hold is left out.
+        /// </summary>
+        private static void OverrideFrame(
+            DxfTolerance frame,
+            DxfDimStyleTableRecord style,
+            DxfDatabase db,
+            double scale
+        )
+        {
+            DxfDimStyleTableRecord current = db.GetDimstyleData();
+
+            foreach (DxfDimVariable variable in VariablesByGroup)
+            {
+                object wanted = variable.Code == 40 ? scale : current.Get(variable);
+                object own =
+                    style != null ? style.Get(variable)
+                    : variable.IsReference ? null
+                    : variable.Read(null);
+
+                if (wanted == null && variable.Kind == DxfDimKind.TextStyle || variable.SameValue(wanted, own))
+                {
+                    continue;
+                }
+
+                // One variable at a time, so that each is written last, in the order of the groups.
+                DxfDimStyleTableRecord one = frame.GetDimstyleData();
+                one.Keep(variable, wanted);
+
+                try
+                {
+                    frame.SetDimstyleData(one);
+                }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                {
+                    GeometryHelperLog.Debug(
+                        "TOLERANCE: the override of " + variable.Name.ToUpperInvariant() + " is left out: " + e.Message
+                    );
+                }
+            }
         }
 
         /// <summary>
@@ -131,11 +181,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The width of the first row of a frame of the drawing, as the canvas lays it out: what a leader on its left sets it
-        /// back by, as AutoCAD 2021 sets back a frame copied to a leader drawn to the left (<c>{\Fgdt;j}%%v0.1</c> at DIMTXT
-        /// 0.18 in Arial, 0.92296).
+        /// A frame of the drawing laid out as the canvas lays it out: its <see cref="CadToleranceFrame.Width"/>, that of its
+        /// widest row, is what a leader on its left sets it back by, as AutoCAD 2021 sets back a frame copied to a leader drawn
+        /// to the left (<c>{\Fgdt;j}%%v0.1</c> at DIMTXT 0.18 in Arial, 0.92296; probe GHTQ2, a frame whose second row is the
+        /// wider, that row's 1.27105).
         /// </summary>
-        private static double FrameWidth(CadDocument document, DxfTolerance frame) =>
-            CadToleranceFrame.Of(frame, document.LayoutOf).FirstWidth;
+        private static CadToleranceFrame FrameLaidOut(CadDocument document, DxfTolerance frame) =>
+            CadToleranceFrame.Of(frame, document.LayoutOf);
     }
 }

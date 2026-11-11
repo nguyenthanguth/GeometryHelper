@@ -22,58 +22,54 @@ namespace GeometryHelper.Dxf.Viewer
         {
             ['j'] = new Glyph(
                 "Position",
-                1.5,
                 "M12 3v18M3 12h18M12 12m-5.5 0a5.5 5.5 0 1 0 11 0a5.5 5.5 0 1 0-11 0",
                 string.Empty,
                 null
             ),
             ['r'] = new Glyph(
                 "Concentricity",
-                1.5,
                 "M12 12m-7.5 0a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0-15 0M12 12m-3.5 0a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0",
                 string.Empty,
                 null
             ),
-            ['i'] = new Glyph("Symmetry", 1.5, "M4 12h16M7 7.5h10M7 16.5h10", string.Empty, null),
-            ['f'] = new Glyph("Parallelism", 1.452381, "M5 19 11 5M13 19 19 5", string.Empty, null),
-            ['b'] = new Glyph("Perpendicularity", 2.0, "M4 19h16M12 19V5", string.Empty, null),
-            ['a'] = new Glyph("Angularity", 1.5, "M4 19h16M4 19 18 7", string.Empty, null),
+            ['i'] = new Glyph("Symmetry", "M4 12h16M7 7.5h10M7 16.5h10", string.Empty, null),
+            ['f'] = new Glyph("Parallelism", "M5 19 11 5M13 19 19 5", string.Empty, null),
+            ['b'] = new Glyph("Perpendicularity", "M4 19h16M12 19V5", string.Empty, null),
+            ['a'] = new Glyph("Angularity", "M4 19h16M4 19 18 7", string.Empty, null),
             ['g'] = new Glyph(
                 "Cylindricity",
-                2.0,
                 "M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0-10 0M4 20 10 4M14 20 20 4",
                 string.Empty,
                 null
             ),
-            ['c'] = new Glyph("Flatness", 2.071429, "M3 17h13l5-10H8z", string.Empty, null),
-            ['e'] = new Glyph("Circularity", 1.5, "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0", string.Empty, null),
-            ['u'] = new Glyph("Straightness", 2.0, "M4 12h16", string.Empty, null),
-            ['d'] = new Glyph("Profile of a surface", 2.0, "M4 16a8 8 0 0 1 16 0z", string.Empty, null),
-            ['k'] = new Glyph("Profile of a line", 2.0, "M4 16a8 8 0 0 1 16 0", string.Empty, null),
-            ['h'] = new Glyph("Circular runout", 1.488095, "M7 20 15 7", "M17 3.8 13.3 6 16.7 8z", null),
+            ['c'] = new Glyph("Flatness", "M3 17h13l5-10H8z", string.Empty, null),
+            ['e'] = new Glyph("Circularity", "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0", string.Empty, null),
+            ['u'] = new Glyph("Straightness", "M4 12h16", string.Empty, null),
+            ['d'] = new Glyph("Profile of a surface", "M4 16a8 8 0 0 1 16 0z", string.Empty, null),
+            ['k'] = new Glyph("Profile of a line", "M4 16a8 8 0 0 1 16 0", string.Empty, null),
+            ['h'] = new Glyph("Circular runout", "M7 20 15 7", "M17 3.8 13.3 6 16.7 8z", null),
             ['t'] = new Glyph(
                 "Total runout",
-                2.583333,
                 "M3 20h16M5 20 10 12M12 20 17 12",
                 "M12 8.8 8.3 10.9 11.7 13.1zM19 8.8 15.3 10.9 18.7 13.1z",
                 null
             ),
             ['n'] = new Glyph(
                 "Diameter",
-                1.0,
                 "M12 12m-6.5 0a6.5 6.5 0 1 0 13 0a6.5 6.5 0 1 0-13 0M4.5 19.5 19.5 4.5",
                 string.Empty,
                 null
             ),
-            ['m'] = new Glyph("Maximum material condition", 1.5, Circle, string.Empty, "M"),
-            ['l'] = new Glyph("Least material condition", 1.5, Circle, string.Empty, "L"),
-            ['s'] = new Glyph("Regardless of feature size", 1.5, Circle, string.Empty, "S"),
-            ['p'] = new Glyph("Projected tolerance zone", 1.5, Circle, string.Empty, "P"),
+            ['m'] = new Glyph("Maximum material condition", Circle, string.Empty, "M"),
+            ['l'] = new Glyph("Least material condition", Circle, string.Empty, "L"),
+            ['s'] = new Glyph("Regardless of feature size", Circle, string.Empty, "S"),
+            ['p'] = new Glyph("Projected tolerance zone", Circle, string.Empty, "P"),
         };
 
         /// <summary>
-        /// The room AutoCAD 2021 leaves on either side of the ink of a letter of the gdt font, over the text height: 2/21, so
-        /// that two positions side by side are 3.19 heights wide.
+        /// The room AutoCAD 2021 leaves on either side of the ink of most letters of the gdt font, over the text height: 2/21, so
+        /// that two positions side by side are 3.19 heights wide. The diameter has 1.5/21 either side, and the circular and
+        /// total runouts 2.25/21 on their right (probe GHTQ2), as the frames of TOLERANCE lay them out.
         /// </summary>
         public const double SideBearing = 2.0 / 21.0;
 
@@ -93,7 +89,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="code">The letter.</param>
         /// <returns>The width.</returns>
-        public static double InkWidth(char code) => Glyphs.TryGetValue(code, out Glyph g) ? g.Ink : 0.0;
+        public static double InkWidth(char code) => Glyphs.ContainsKey(code) ? DxfFeatureFrameLayout.Ink(code) : 0.0;
 
         /// <summary>Gets the stroke path of a symbol in its box 24 by 24, as SVG writes one; empty for a letter that is none.</summary>
         /// <param name="code">The letter.</param>
@@ -303,18 +299,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         private sealed class Glyph
         {
-            public Glyph(string name, double ink, string stroke, string fill, string letter)
+            public Glyph(string name, string stroke, string fill, string letter)
             {
                 Name = name;
-                Ink = ink;
                 Stroke = stroke;
                 Fill = fill;
                 Letter = letter;
             }
 
             public string Name { get; }
-
-            public double Ink { get; }
 
             public string Stroke { get; }
 

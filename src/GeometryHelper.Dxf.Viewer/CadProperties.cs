@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -581,6 +582,26 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDimension dimension:
                     groups.AddRange(DimensionGroups(dimension, f));
                     break;
+                case DxfTolerance tolerance:
+                {
+                    // As AutoCAD's palette heads a TOLERANCE's rows, each variable read from its override, else its style's.
+                    DxfDimStyleTableRecord data = Read(() => tolerance.GetDimstyleData(), null);
+                    Group(
+                        "Misc",
+                        Pick(
+                            "Dim style",
+                            () => tolerance.DimensionStyleName,
+                            CadDimStyleEditor.Styles(f.Database).Select(s => s.Name).ToList()
+                        )
+                    );
+                    Group("Lines & Arrows", Row("Dim line color", () => ColorText(data.Dimclrd)));
+                    Group(
+                        "Text",
+                        Row("Text color", () => ColorText(data.Dimclrt)),
+                        Row("Text height", () => Length(data.Dimtxt))
+                    );
+                    break;
+                }
                 case DxfHatch hatch:
                 {
                     bool gradient = Read(() => hatch.IsGradient, false);

@@ -122,9 +122,10 @@ namespace GeometryHelper.Dxf.Viewer
     }
 
     /// <summary>
-    /// AutoCAD's Geometric Tolerance dialog, as data the TOLERANCE command, LEADER and QLEADER share with the window: two rows,
-    /// the height of a projected zone, its P, and the datum identifier, every box empty when it opens. OK hands back the words
-    /// of the frame (<see cref="Text"/>); a frame of no words is drawn by none.
+    /// AutoCAD's Geometric Tolerance dialog, as data the TOLERANCE command, LEADER, QLEADER and TEXTEDIT share with the
+    /// window: two rows, the height of a projected zone, its P, and the datum identifier, every box empty when it opens for a
+    /// new frame and filled from its words for one edited. OK hands back the words of the frame
+    /// (<see cref="Text"/>); a frame of no words is drawn by none.
     /// </summary>
     public sealed class CadToleranceRequest
     {
@@ -189,6 +190,128 @@ namespace GeometryHelper.Dxf.Viewer
 
                 return text.ToString();
             }
+        }
+
+        /// <summary>
+        /// Fills the boxes from the words of a frame, as <see cref="Text"/> writes them, so that the dialog opens on the frame
+        /// edited, as AutoCAD 2021's TEXTEDIT opens it: each of the first two lines that is a row (it has <c>%%v</c>, or is a
+        /// symbol alone) a row, its symbol, tolerances with their diameter sign and material condition, and datums with theirs;
+        /// then a line of a number, or one ending in the P of the projected zone, the height; then the datum identifier. Lines
+        /// of nothing are passed over, and what reads as none of these is left out. <c>{\Fgdt;j}%%v{\Fgdt;n}0.1{\Fgdt;m}%%vA</c>
+        /// and <c>5{\Fgdt;p}</c> read as the position, a diameter 0.1 at MMC to A, and a zone 5 high.
+        /// </summary>
+        internal void Read(string text)
+        {
+            var lines = new List<string>();
+
+            foreach (string line in DxfFeatureFrameLayout.Rows(text))
+            {
+                if (line.Trim().Length > 0)
+                {
+                    lines.Add(line);
+                }
+            }
+
+            int at = 0;
+
+            for (int r = 0; r < Rows.Count && at < lines.Count && IsRow(lines[at]); r++, at++)
+            {
+                ReadRow(lines[at], Rows[r]);
+            }
+
+            if (at < lines.Count && IsHeight(lines[at], out string height, out bool zone))
+            {
+                Height = height;
+                ProjectedZone = zone;
+                at++;
+            }
+
+            if (at < lines.Count)
+            {
+                DatumIdentifier = lines[at].Trim();
+            }
+        }
+
+        private static bool IsRow(string line) =>
+            line.IndexOf("%%v", StringComparison.OrdinalIgnoreCase) >= 0
+            || (Code(line.Trim(), out char symbol) && Symbols.IndexOf(symbol) >= 0);
+
+        private static bool IsHeight(string line, out string height, out bool zone)
+        {
+            string trimmed = line.Trim();
+            zone = trimmed.EndsWith(CadToleranceRow.Gdt('p'), StringComparison.OrdinalIgnoreCase);
+            height = zone ? trimmed.Substring(0, trimmed.Length - 9).Trim() : trimmed;
+            return zone
+                || double.TryParse(
+                    height,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out _
+                );
+        }
+
+        private static void ReadRow(string line, CadToleranceRow row)
+        {
+            List<string> cells = DxfFeatureFrameLayout.Cells(line);
+            row.Symbol = Code(cells[0].Trim(), out char symbol) && Symbols.IndexOf(symbol) >= 0 ? symbol : (char?)null;
+
+            for (int t = 0; t < 2 && t + 1 < cells.Count; t++)
+            {
+                CadToleranceValue value = t == 0 ? row.Tolerance1 : row.Tolerance2;
+                string cell = cells[t + 1].Trim();
+                value.Diameter = cell.StartsWith(CadToleranceRow.Gdt('n'), StringComparison.OrdinalIgnoreCase);
+                cell = value.Diameter ? cell.Substring(9) : cell;
+                value.Material = MaterialAtEnd(ref cell);
+                value.Value = cell.Trim();
+            }
+
+            for (int d = 0; d < row.Datums.Count && d + 3 < cells.Count; d++)
+            {
+                string cell = cells[d + 3].Trim();
+                row.Datums[d].Material = MaterialAtEnd(ref cell);
+                row.Datums[d].Letter = cell.Trim();
+            }
+        }
+
+        // The letters of the symbols of the Symbol dialog.
+        private const string Symbols = "jrifbagceudkht";
+
+        /// <summary>The material condition a cell ends with, taken off it; none where it ends with none.</summary>
+        private static CadMaterialCondition MaterialAtEnd(ref string cell)
+        {
+            foreach (
+                CadMaterialCondition material in new[]
+                {
+                    CadMaterialCondition.Maximum,
+                    CadMaterialCondition.Least,
+                    CadMaterialCondition.RegardlessOfSize,
+                }
+            )
+            {
+                string code = CadToleranceRow.Material(material);
+
+                if (cell.EndsWith(code, StringComparison.OrdinalIgnoreCase))
+                {
+                    cell = cell.Substring(0, cell.Length - code.Length);
+                    return material;
+                }
+            }
+
+            return CadMaterialCondition.None;
+        }
+
+        /// <summary>Whether a cell is one letter of the gdt font alone, <c>{\Fgdt;j}</c>, and which.</summary>
+        private static bool Code(string cell, out char code)
+        {
+            code = '\0';
+
+            if (cell.Length != 9 || !cell.StartsWith("{\\Fgdt;", StringComparison.OrdinalIgnoreCase) || cell[8] != '}')
+            {
+                return false;
+            }
+
+            code = cell[7];
+            return true;
         }
     }
 }

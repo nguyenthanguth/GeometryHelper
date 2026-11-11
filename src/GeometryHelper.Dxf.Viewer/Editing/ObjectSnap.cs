@@ -917,7 +917,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (Has(CadSnapModes.Endpoint))
+            // The walls, symbols and words of a feature control frame give no End or Mid: its rows do, as AutoCAD 2021 gives them.
+            bool inside = item.IsFrameInside;
+
+            if (!inside && Has(CadSnapModes.Endpoint))
             {
                 for (int i = 0; i < count; i++)
                 {
@@ -946,7 +949,7 @@ namespace GeometryHelper.Dxf.Viewer
                 int j = (i + 1) % count;
                 var b = new GeoPoint2(xy[2 * j], xy[2 * j + 1]);
 
-                if (!sampled && Has(CadSnapModes.Midpoint))
+                if (!sampled && !inside && Has(CadSnapModes.Midpoint))
                 {
                     Near(
                         near,
@@ -1007,6 +1010,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The centroid of a closed polyline: near the cursor, or with the cursor on the polyline, as the centre of a circle is.
             if (
                 Has(CadSnapModes.GeometricCenter)
+                && !inside
                 && closed
                 && count > 2
                 && item is DisplayPolyline2

@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// TEXTEDIT (ED, DDEDIT; a double click on a text) and MTEDIT, as AutoCAD 2021's: a TEXT or a dimension's text edited in
     /// a box over it on the canvas, an MTEXT in the MTEXT editor, each through a prompt the window answers from its editor
-    /// (<see cref="CadPrompt.InPlace"/>). TEXTEDIT asks for the next object until Enter on nothing, unless its Mode is Single;
+    /// (<see cref="CadPrompt.InPlace"/>), a TOLERANCE in the Geometric Tolerance dialog filled from its words. TEXTEDIT asks for the next object until Enter on nothing, unless its Mode is Single;
     /// each text changed is one undo step, which its Undo takes back. The attributes of a block, and an attribute definition,
     /// are edited in Properties.
     /// </summary>
@@ -78,6 +78,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                 string handle = c.Input.Handles[0];
                 DxfEntity entity = c.Document.FindEntity(handle);
+
+                // A feature control frame is edited in the Geometric Tolerance dialog, as AutoCAD 2021 edits one.
+                if (!mtextOnly && entity is DxfTolerance frame)
+                {
+                    if (EditFrame(c, frame))
+                    {
+                        made++;
+                    }
+
+                    if (single)
+                    {
+                        yield break;
+                    }
+
+                    continue;
+                }
+
                 CadInPlaceEdit edit = InPlaceOf(entity, mtextOnly);
 
                 if (edit == null)
@@ -174,6 +191,59 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     return null;
             }
+        }
+
+        /// <summary>
+        /// Edits a feature control frame in the Geometric Tolerance dialog, as AutoCAD 2021's TEXTEDIT and a double click edit
+        /// one: the dialog filled from the frame's words (<see cref="CadToleranceRequest.Read"/>), OK writing those it ends
+        /// with, one undo step; false where nothing was written: Cancel, the words unchanged or every box left empty, the
+        /// frame on a locked layer, or no window to show the dialog.
+        /// </summary>
+        private static bool EditFrame(CadCommandContext c, DxfTolerance frame)
+        {
+            string handle = frame.Handle;
+            string was = frame.Text;
+            var request = new CadToleranceRequest(c.Document);
+            request.Read(was);
+
+            if (!c.Session.Request("TOLERANCE", c.Document, request))
+            {
+                c.Write("Geometric Tolerance is shown by the window: the frame is not edited without it.");
+                return false;
+            }
+
+            string text = request.Text;
+
+            if (
+                request.Action != CadDialogAction.Ok
+                || text.Length == 0
+                || string.Equals(text, was, StringComparison.Ordinal)
+            )
+            {
+                return false;
+            }
+
+            if (CadLayerEditor.IsLocked(c.Database, frame.Layer))
+            {
+                c.Write("The " + CadDocument.KindName(frame) + " " + handle + " is on a locked layer.");
+                return false;
+            }
+
+            var planned = new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Text", was, text) };
+            CadEditResult result = c.Apply(planned, s =>
+            {
+                if (!s.IsHandled(handle))
+                {
+                    ((DxfTolerance)s.Document.FindEntity(handle)).Text = text;
+                }
+            });
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+            }
+
+            return result.Succeeded;
         }
 
         /// <summary>Writes the words an edit ended with, one undo step, where they differ from what was there; false where nothing was written.</summary>

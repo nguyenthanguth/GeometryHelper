@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// A TOLERANCE laid out as AutoCAD 2021 lays out its feature control frame, and the parts the canvas draws it with: the
-    /// lines of the frame, the symbols of <see cref="CadGdtGlyphs"/> and the words between them as TEXTs.
+    /// rectangle of each row, the walls between its cells, the symbols of <see cref="CadGdtGlyphs"/> and the words between
+    /// them as TEXTs.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -21,10 +22,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// <para>
     /// A cell's ink runs from the first ink of its first letter to the last of its last, the letters between taking their
     /// advances, as AutoCAD measures an MTEXT: the words in the dimension style's text style, each symbol of the gdt font the
-    /// width AutoCAD gives it (<see cref="CadGdtGlyphs.InkWidth"/>) with 2/21 of the height either side. A symbol is drawn
-    /// centred in its room, its box of 24 four thirds of the height; the words on a baseline half the height below the middle
-    /// of their row. The lines are in DIMCLRD and the words and symbols in DIMCLRT, each the frame's own colour where it is
-    /// BYBLOCK.
+    /// width AutoCAD gives it (<see cref="CadGdtGlyphs.InkWidth"/>) with room of its own either side, 2/21 of the height for
+    /// most, 1.5/21 for the diameter and 2.25/21 on the right of the runouts (probe GHTQ2), so that
+    /// <c>{\Fgdt;n}0.1{\Fgdt;m}</c> at 0.18 is 1.009563 wide. A symbol is drawn centred in its room, its box of 24 four
+    /// thirds of the height; the words on a baseline half the height below the middle of their row. The lines are in DIMCLRD
+    /// and the words and symbols in DIMCLRT, each the frame's own colour where it is BYBLOCK.
     /// </para>
     /// </remarks>
     internal sealed class CadToleranceFrame
@@ -34,8 +36,17 @@ namespace GeometryHelper.Dxf.Viewer
 
         private CadToleranceFrame() { }
 
-        /// <summary>The parts the frame is drawn with, in the world, each of the frame's look and its colour as the class says.</summary>
+        /// <summary>
+        /// The parts the frame is drawn with, in the world, each of the frame's look and its colour as the class says: the
+        /// rectangle of each row first (<see cref="OutlineCount"/> of them), then the walls, the symbols and the words.
+        /// </summary>
         internal IReadOnlyList<DxfEntity> Parts => _parts;
+
+        /// <summary>
+        /// How many of the <see cref="Parts"/> are the rectangles of the rows, one closed polyline a row: the snaps End and Mid
+        /// take their corners and the middles of their sides alone, as AutoCAD 2021 gives them (probe GHTQ2).
+        /// </summary>
+        internal int OutlineCount { get; private set; }
 
         /// <summary>The width of each row, the first on top.</summary>
         internal IReadOnlyList<double> RowWidths => _widths;
@@ -43,8 +54,28 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The height of a row: twice the text height.</summary>
         internal double RowHeight { get; private set; }
 
-        /// <summary>The width of the first row, which a leader on its left sets the frame back by; nought for a frame of none.</summary>
-        internal double FirstWidth => _widths.Count > 0 ? _widths[0] : 0.0;
+        /// <summary>
+        /// The width of the frame, that of its widest row, which a leader on its left sets it back by and writes as its group 40
+        /// (probe GHTQ2: a frame of rows 0.55286 and 1.27105 wide stands 1.27105 to the left of the leader's end); nought for a
+        /// frame of none.
+        /// </summary>
+        internal double Width
+        {
+            get
+            {
+                double widest = 0.0;
+
+                foreach (double width in _widths)
+                {
+                    widest = Math.Max(widest, width);
+                }
+
+                return widest;
+            }
+        }
+
+        /// <summary>The height of the frame, its rows', which a leader writes as its group 41: 0.72 for two rows 0.18 high.</summary>
+        internal double Height => _widths.Count * RowHeight;
 
         /// <summary>
         /// Lays out a TOLERANCE by its own words, place and dimension style. <paramref name="layoutOf"/> lays out the words of
@@ -84,9 +115,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector3 z = DxfOcsTransform.Normalized(normal);
             GeoVector3 y = DxfOcsTransform.Normalized(z.CrossProduct(x));
             GeoPoint3 World(double u, double v) => at.Add(x.Multiply(u)).Add(y.Multiply(v));
+            var outlines = new List<DxfEntity>();
             var lines = new List<DxfEntity>();
             var marks = new List<DxfEntity>();
-            string[] rows = (text ?? string.Empty).Replace("\r", string.Empty).Split('\n');
+            string[] rows = DxfFeatureFrameLayout.Rows(text);
 
             if (text == null || text.Length == 0 || !(h > 0.0))
             {
@@ -101,7 +133,7 @@ namespace GeometryHelper.Dxf.Viewer
                 double left = 0.0;
                 var walls = new List<double>();
 
-                foreach (string cell in Cells(rows[r]))
+                foreach (string cell in DxfFeatureFrameLayout.Cells(rows[r]))
                 {
                     double width = Cell(cell, left, middle, h, font, World, x, z, layoutOf, marks);
 
@@ -114,13 +146,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                 frame._widths.Add(left);
 
-                // The top of the row, as far as the wider of it and the row above, and the walls of its cells.
-                double above = r > 0 ? frame._widths[r - 1] : left;
-                AddLine(lines, World(0.0, top), World(Math.Max(above, left), top));
+                // The rectangle of the row, and the walls between its cells.
+                DxfPolyline outline = DxfLeader.PlanePolyline(
+                    new List<GeoPoint3> { World(0.0, top), World(left, top), World(left, bottom), World(0.0, bottom) },
+                    z,
+                    Tolerance.Default.EqualPoint
+                );
 
-                foreach (double wall in walls)
+                if (outline != null)
                 {
-                    AddLine(lines, World(wall, top), World(wall, bottom));
+                    outline.Closed = true;
+                    outlines.Add(outline);
+                }
+
+                for (int w = 0; w + 1 < walls.Count; w++)
+                {
+                    AddLine(lines, World(walls[w], top), World(walls[w], bottom));
                 }
             }
 
@@ -131,10 +172,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return frame;
             }
 
-            // The bottom of the last row, its own width across, and the left side down every row.
-            double end = -(rows.Length - 1) * frame.RowHeight - h;
-            AddLine(lines, World(0.0, end), World(frame._widths[rows.Length - 1], end));
-            AddLine(lines, World(0.0, h), World(0.0, end));
+            Finish(frame, outlines, style.Dimclrd, look);
+            frame.OutlineCount = frame._parts.Count;
             Finish(frame, lines, style.Dimclrd, look);
             Finish(frame, marks, style.Dimclrt, look);
             return frame;
@@ -167,86 +206,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The cells of a row, <c>%%v</c> between them, letters of either case.</summary>
-        internal static List<string> Cells(string row)
-        {
-            var cells = new List<string>();
-            int from = 0;
-
-            for (int i = 0; i + 2 < row.Length; i++)
-            {
-                if (row[i] == '%' && row[i + 1] == '%' && (row[i + 2] == 'v' || row[i + 2] == 'V'))
-                {
-                    cells.Add(row.Substring(from, i - from));
-                    from = i + 3;
-                    i += 2;
-                }
-            }
-
-            cells.Add(row.Substring(from));
-            return cells;
-        }
-
-        /// <summary>
-        /// The pieces of a cell: runs of words, and the letters of the gdt font in <c>{\Fgdt;...}</c> each a symbol of their
-        /// own; a letter <see cref="CadGdtGlyphs"/> does not draw stays in the words, its font switch with it.
-        /// </summary>
-        internal static List<KeyValuePair<char?, string>> Pieces(string cell)
-        {
-            var pieces = new List<KeyValuePair<char?, string>>();
-            int i = 0;
-            int from = 0;
-
-            while (i < cell.Length)
-            {
-                int end = cell.IndexOf('}', i);
-
-                if (
-                    cell[i] == '{'
-                    && end > i
-                    && string.Compare(cell, i, "{\\Fgdt;", 0, 7, StringComparison.OrdinalIgnoreCase) == 0
-                    && Drawn(cell, i + 7, end)
-                )
-                {
-                    if (i > from)
-                    {
-                        pieces.Add(new KeyValuePair<char?, string>(null, cell.Substring(from, i - from)));
-                    }
-
-                    for (int k = i + 7; k < end; k++)
-                    {
-                        pieces.Add(new KeyValuePair<char?, string>(cell[k], null));
-                    }
-
-                    i = end + 1;
-                    from = i;
-                    continue;
-                }
-
-                i++;
-            }
-
-            if (from < cell.Length)
-            {
-                pieces.Add(new KeyValuePair<char?, string>(null, cell.Substring(from)));
-            }
-
-            return pieces;
-        }
-
-        private static bool Drawn(string cell, int from, int end)
-        {
-            for (int k = from; k < end; k++)
-            {
-                if (!CadGdtGlyphs.Has(cell[k]))
-                {
-                    return false;
-                }
-            }
-
-            return end > from;
-        }
-
         /// <summary>
         /// Lays out a cell from its left side, its marks added; its width, its ink and the text height, nought for a cell of
         /// no ink.
@@ -264,53 +223,14 @@ namespace GeometryHelper.Dxf.Viewer
             List<DxfEntity> marks
         )
         {
-            double pen = 0.0;
-            double first = double.NaN;
-            double last = 0.0;
             var placed = new List<KeyValuePair<double, object>>();
-
-            foreach (KeyValuePair<char?, string> piece in Pieces(cell))
-            {
-                if (piece.Key.HasValue)
-                {
-                    char code = piece.Key.Value;
-                    double ink = CadGdtGlyphs.InkWidth(code) * h;
-                    double start = pen + CadGdtGlyphs.SideBearing * h;
-                    first = double.IsNaN(first) ? start : first;
-                    last = start + ink;
-                    placed.Add(new KeyValuePair<double, object>(start + ink / 2.0, code));
-                    pen = last + CadGdtGlyphs.SideBearing * h;
-                    continue;
-                }
-
-                var words = new DxfMText { Contents = piece.Value, TextHeight = h };
-                words.TextStyleName = font;
-                CadMTextLayout layout = layoutOf(words);
-
-                if (layout == null || layout.Pieces.Count == 0)
-                {
-                    continue;
-                }
-
-                double start0 = layout.Pieces[0].X;
-                double advance = start0;
-
-                foreach (CadMTextLayout.Piece run in layout.Pieces)
-                {
-                    advance = Math.Max(advance, run.X + run.Advance);
-                }
-
-                double[] box = layout.Ink;
-
-                if (box != null && box[2] > box[0])
-                {
-                    first = double.IsNaN(first) ? pen + box[0] - start0 : first;
-                    last = pen + box[2] - start0;
-                }
-
-                placed.Add(new KeyValuePair<double, object>(pen, piece.Value));
-                pen += advance - start0;
-            }
+            double width = DxfFeatureFrameLayout.Cell(
+                cell,
+                h,
+                words => Measure(words, h, font, layoutOf),
+                placed,
+                out double first
+            );
 
             if (double.IsNaN(first))
             {
@@ -332,7 +252,35 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return last - first + h;
+            return width;
+        }
+
+        /// <summary>
+        /// A run of words of a cell laid out as an MTEXT of the canvas: the left and right of its ink (NaN for none), the
+        /// pen's last place and its first; null where it lays out no letter.
+        /// </summary>
+        private static double[] Measure(string words, double h, string font, Func<DxfMText, CadMTextLayout> layoutOf)
+        {
+            var text = new DxfMText { Contents = words, TextHeight = h };
+            text.TextStyleName = font;
+            CadMTextLayout layout = layoutOf(text);
+
+            if (layout == null || layout.Pieces.Count == 0)
+            {
+                return null;
+            }
+
+            double start = layout.Pieces[0].X;
+            double advance = start;
+
+            foreach (CadMTextLayout.Piece run in layout.Pieces)
+            {
+                advance = Math.Max(advance, run.X + run.Advance);
+            }
+
+            double[] box = layout.Ink;
+            bool inked = box != null && box[2] > box[0];
+            return new[] { inked ? box[0] : double.NaN, inked ? box[2] : double.NaN, advance, start };
         }
 
         /// <summary>A symbol centred on a point of the frame: its strokes as polylines, its filled parts as SOLIDs, its letter as a TEXT.</summary>

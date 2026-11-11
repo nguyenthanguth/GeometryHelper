@@ -33,6 +33,10 @@ namespace GeometryHelper.Dxf
     /// (DIMTXT, then DIMGAP), as AutoCAD 2021 writes them: a frame of the style's 0.18 and 0.09 scaled by 3 holds
     /// <c>1070 140, 1040 0.54, 1070 147, 1040 0.27</c>. It is not exploded: AutoCAD 2021's <c>Explode</c> refuses one too.
     /// </para>
+    /// <para>
+    /// <see cref="GeometricExtents"/> is the box of its rows as AutoCAD 2021 lays them out, where the drawing's
+    /// <see cref="DxfDatabase.FontSearchPath"/> measures its words.
+    /// </para>
     /// </remarks>
     public sealed class DxfTolerance : DxfEntity
     {
@@ -234,6 +238,245 @@ namespace GeometryHelper.Dxf
             }
 
             return data;
+        }
+
+        /// <summary>
+        /// Gets the box the frame fills, as AutoCAD's <c>GeometricExtents</c>: that of its rows as AutoCAD 2021 lays them out
+        /// (probes GHTQ1 and GHTQ2), each twice the text height high (<c>Dimtxt</c> times <c>Dimscale</c> of
+        /// <see cref="GetDimstyleData"/>), the first about its <see cref="Location"/>, each next under the one before on the same
+        /// left side, each as wide as its cells, a cell its ink and the text height, along its <see cref="Direction"/> in the
+        /// plane of its <see cref="Normal"/>. <c>{\Fgdt;j}%%v0.1</c> at (0, 0, 0) in a style of Arial 0.18 high is from
+        /// (0, -0.18, 0) to (0.92296, 0.18, 0), and a frame of no words from (0, -0.18, 0) to (0, 0.18, 0). The words are
+        /// measured in the drawing's fonts (<see cref="DxfDatabase.FontSearchPath"/>), in the text style of <c>Dimtxsty</c>, the
+        /// symbols of the gdt font by the widths AutoCAD gives them. Elsewhere, where a cell holds words the fonts do not
+        /// measure, as <see cref="DxfEntity.GeometricExtents"/> gives it.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown, with words not measured, as <see cref="DxfEntity.GeometricExtents"/> throws.</exception>
+        public override GeoAabb3 GeometricExtents
+        {
+            get
+            {
+                DxfDimStyleTableRecord data = GetDimstyleData();
+                double h = data.Dimtxt * (data.Dimscale > 0.0 ? data.Dimscale : 1.0);
+                List<double> widths = h > 0.0 && !double.IsInfinity(h) ? RowWidths(data, h) : null;
+
+                if (widths == null)
+                {
+                    return base.GeometricExtents;
+                }
+
+                GeoPoint3 at = Location;
+                GeoVector3 x = Direction;
+                GeoVector3 normal = Normal;
+                GeoVector3 y = normal.CrossProduct(x);
+                double length = y.Length;
+                y = length > 0.0 ? y.Divide(length) : new GeoVector3(0.0, 1.0, 0.0);
+                double[] box = null;
+
+                for (int r = 0; r < widths.Count; r++)
+                {
+                    foreach (double u in new[] { 0.0, widths[r] })
+                    {
+                        foreach (double v in new[] { h - 2.0 * h * r, -h - 2.0 * h * r })
+                        {
+                            GeoPoint3 p = at.Add(x.Multiply(u)).Add(y.Multiply(v));
+                            box = box ?? new[] { p.X, p.Y, p.Z, p.X, p.Y, p.Z };
+                            box[0] = Math.Min(box[0], p.X);
+                            box[1] = Math.Min(box[1], p.Y);
+                            box[2] = Math.Min(box[2], p.Z);
+                            box[3] = Math.Max(box[3], p.X);
+                            box[4] = Math.Max(box[4], p.Y);
+                            box[5] = Math.Max(box[5], p.Z);
+                        }
+                    }
+                }
+
+                return new GeoAabb3(new GeoPoint3(box[0], box[1], box[2]), new GeoPoint3(box[3], box[4], box[5]));
+            }
+        }
+
+        /// <summary>
+        /// The width of each row of the frame at a text height, its words measured in the drawing's fonts; null where a cell
+        /// holds words they do not measure, or the frame is in no drawing with fonts.
+        /// </summary>
+        private List<double> RowWidths(DxfDimStyleTableRecord data, double h)
+        {
+            DxfFonts fonts = IsResident ? Item.File.Database?.Fonts : null;
+            bool asked = false;
+            bool failed = false;
+            DxfFont font = null;
+            DxfFonts.Big big = null;
+
+            double[] Measure(string words)
+            {
+                if (!asked)
+                {
+                    asked = true;
+                    DxfTextStyleTableRecord style = data.Dimtxsty
+                        ?? (
+                            Item.File.Database != null && Item.File.Database.TextStyleTable.Has("Standard")
+                                ? Item.File.Database.TextStyleTable["Standard"]
+                                : null
+                        );
+                    font =
+                        fonts == null || style == null || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0
+                            ? null
+                            : fonts.FontOf(style, out big);
+                }
+
+                DxfMTextLayout layout = font == null ? null : DxfMTextLayout.Of(font, big, words, h, 0.0, 1.0, false);
+
+                if (layout == null || layout.Lines.Count == 0)
+                {
+                    failed = true;
+                    return null;
+                }
+
+                // The ink as an MTEXT of the words measures it: of a TrueType font none left of the pen's start.
+                DxfTextLine line = layout.Lines[0].Measure;
+                bool inked = !line.AllSpaces && line.ActualWidth > 0.0;
+                return new[]
+                {
+                    inked ? line.WordsStart : double.NaN,
+                    inked ? line.WordsStart + line.ActualWidth : double.NaN,
+                    line.Advance,
+                    0.0,
+                };
+            }
+
+            var widths = new List<double>();
+            var placed = new List<KeyValuePair<double, object>>();
+
+            foreach (string row in DxfFeatureFrameLayout.Rows(Text))
+            {
+                double left = 0.0;
+
+                foreach (string cell in DxfFeatureFrameLayout.Cells(row))
+                {
+                    double width = DxfFeatureFrameLayout.Cell(cell, h, Measure, placed, out _);
+                    left += width > 0.0 ? width : 0.0;
+                }
+
+                widths.Add(left);
+            }
+
+            return failed ? null : widths;
+        }
+
+        /// <summary>
+        /// Gives the frame the variables of a record that differ from what it reads, each as an override (the list DSTYLE of
+        /// its extended data of ACAD), as AutoCAD writes one: an override it has already changed where it stands, a new one put
+        /// last; a block, linetype or text style by its handle. A variable the file's version has not is passed over where the
+        /// record holds AutoCAD's own value of it.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the record is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a value is one AutoCAD does not take.</exception>
+        /// <exception cref="ArgumentException">Thrown when a record of the record is of another drawing, or the frame is in none.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the frame is erased, or its file is too old for a variable given.</exception>
+        internal void SetDimstyleData(DxfDimStyleTableRecord style)
+        {
+            if (style == null)
+            {
+                throw new ArgumentNullException(nameof(style));
+            }
+
+            DxfDimStyleTableRecord now = GetDimstyleData();
+            DxfFile file = Item.File;
+            var changes = new List<KeyValuePair<int, DxfTypedValue>>();
+
+            foreach (DxfDimVariable variable in DxfDimVariable.All)
+            {
+                object value = style.Get(variable);
+
+                if (
+                    (value == null && variable.Kind == DxfDimKind.TextStyle)
+                    || variable.SameValue(value, now.Get(variable))
+                    || (
+                        !file.Supports(variable.Since)
+                        && (variable.IsReference ? value == null : variable.SameValue(value, variable.Read(null)))
+                    )
+                )
+                {
+                    continue;
+                }
+
+                variable.Check(value, nameof(style));
+                DxfDatabase.CheckDimRange(variable, value, nameof(style));
+
+                if (IsErased)
+                {
+                    throw new InvalidOperationException(
+                        "The TOLERANCE " + (Handle ?? string.Empty) + " is erased, and is not changed."
+                    );
+                }
+
+                file.Requires(variable.Since, variable.Name.ToUpperInvariant(), variable.SinceSaid);
+                string text;
+
+                if (!variable.IsReference)
+                {
+                    text = variable.Write(value);
+                }
+                else if (value == null)
+                {
+                    text = "0";
+                }
+                else if (!IsResident)
+                {
+                    throw new ArgumentException(
+                        "The "
+                            + variable.Name
+                            + " of a frame is a record of its own drawing, and the frame is in none.",
+                        nameof(style)
+                    );
+                }
+                else
+                {
+                    text = DxfDimStyleTableRecord.Reference(file, variable, (DxfDBObject)value, false, nameof(style));
+                }
+
+                changes.Add(
+                    new KeyValuePair<int, DxfTypedValue>(
+                        variable.Code,
+                        new DxfTypedValue(variable.DataCode(false), text)
+                    )
+                );
+            }
+
+            if (changes.Count == 0)
+            {
+                return;
+            }
+
+            List<DxfTypedValue> data = Acad(out int open, out int close);
+
+            if (open < 0)
+            {
+                data.Add(new DxfTypedValue(1000, "DSTYLE"));
+                data.Add(new DxfTypedValue(1002, "{"));
+                data.Add(new DxfTypedValue(1002, "}"));
+                open = data.Count - 2;
+                close = data.Count - 1;
+            }
+
+            foreach (KeyValuePair<int, DxfTypedValue> change in changes)
+            {
+                int at = OverrideAt(data, open, close, change.Key);
+
+                if (at >= 0)
+                {
+                    data[at + 1] = change.Value;
+                    continue;
+                }
+
+                data.Insert(close, change.Value);
+                data.Insert(close, new DxfTypedValue(1070, change.Key.ToString(CultureInfo.InvariantCulture)));
+                close += 2;
+            }
+
+            var groups = new List<DxfTypedValue> { new DxfTypedValue(1001, "ACAD") };
+            groups.AddRange(data);
+            XData = groups;
         }
 
         /// <summary>
