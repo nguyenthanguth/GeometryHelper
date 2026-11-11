@@ -427,6 +427,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Quick Select is shown by the window.", session.History.Last());
         }
 
+        [Fact]
+        public void QselectSelectObjects_AsksTheObjectsOnTheCommandLine_ThenShowsTheDialogAgainOverThem()
+        {
+            CadDocument document = Walls();
+            List<string> lines = document.ModelSpace.Block.OfType<DxfLine>().Select(l => l.Handle).ToList();
+            var selected = new List<int>();
+            CadCommandSession session = Session(document);
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "QSELECT")
+                {
+                    selected.Add(document.Selection.Count);
+                    e.Answer = selected.Count == 1 ? "Select objects" : null;
+                    e.Handled = true;
+                }
+            };
+
+            Run(session, "QSELECT");
+            Assert.Equal("Select objects:", session.PromptText);
+            Run(session, new[] { lines[0], lines[2] }, Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { 0, 2 }, selected);
+            Assert.Equal(
+                new[] { lines[0], lines[2] }.OrderBy(h => h, StringComparer.Ordinal),
+                document.Selection.Handles.OrderBy(h => h, StringComparer.Ordinal)
+            );
+        }
+
         /// <summary>A text, an MTEXT with formatting, a dimension with its text overridden, a multileader and a block with an attribute and a text of its own, each saying M20.</summary>
         private static CadDocument Bolts(out string text, out string mtext, out string insert)
         {

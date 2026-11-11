@@ -7,8 +7,9 @@ using System.Linq;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// AutoCAD's Quick Select dialog, which QSELECT shows: Apply to, Object type, Properties, Operator, Value, how to apply
-    /// and Append. Its logic is <see cref="CadQuickSelect"/>; OK selects and says "N item(s) selected." on the command line.
+    /// AutoCAD's Quick Select dialog, which QSELECT shows: Apply to with its Select objects button, Object type, Properties,
+    /// Operator, Value, how to apply and Append. Its logic is <see cref="CadQuickSelect"/>; OK selects and says "N item(s)
+    /// selected." on the command line.
     /// </summary>
     public sealed class QuickSelectViewModel : ObservableObject
     {
@@ -170,6 +171,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (Set(ref _include, value))
                 {
                     Raise(nameof(Exclude));
+                    Raise(nameof(CanSelectObjects));
                 }
             }
         }
@@ -185,8 +187,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool Append
         {
             get => _append;
-            set => Set(ref _append, value);
+            set
+            {
+                if (Set(ref _append, value))
+                {
+                    Raise(nameof(CanSelectObjects));
+                }
+            }
         }
+
+        /// <summary>
+        /// Gets whether the Select objects button can be pressed: the objects that match are included in a new selection, not
+        /// appended to the one there is, as AutoCAD greys it otherwise.
+        /// </summary>
+        public bool CanSelectObjects => _include && !_append;
+
+        /// <summary>
+        /// Gets whether Select objects closed the dialog: QSELECT then asks "Select objects:" on the command line and shows the
+        /// dialog again over the objects picked, Apply to: Current selection.
+        /// </summary>
+        public bool IsSelectingObjects { get; private set; }
+
+        /// <summary>Select objects: the dialog hidden while the objects to look among are picked on the canvas; nothing where the button is greyed.</summary>
+        public void SelectObjects() => IsSelectingObjects = CanSelectObjects;
 
         /// <summary>Gets the note at the foot of the dialog.</summary>
         public string Note =>

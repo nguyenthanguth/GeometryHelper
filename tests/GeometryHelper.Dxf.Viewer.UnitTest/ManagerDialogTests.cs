@@ -236,6 +236,33 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void BattmanHasChanges_OnceARowIsMoved_AndRevertReadsTheRowsAgainFromTheBlock()
+        {
+            CadDocument document = Bubbles();
+            string start = document.Database.ToText();
+            var seen = new List<bool>();
+            CadCommandSession session = Answering(document, "BATTMAN", e =>
+            {
+                var request = (CadAttributeManagerRequest)e.Payload;
+                seen.Add(request.HasChanges);
+                CadAttributeDefinitionRow first = request.Rows[0];
+                request.Rows.RemoveAt(0);
+                request.Rows.Insert(1, first);
+                seen.Add(request.HasChanges);
+                request.Revert();
+                seen.Add(request.HasChanges);
+                Assert.Equal(new[] { "GRID", "LEVEL", "REV" }, request.Rows.Select(r => r.Tag));
+                request.Action = CadDialogAction.Ok;
+                return true;
+            });
+
+            Run(session, "BATTMAN");
+
+            Assert.Equal(new[] { false, true, false }, seen);
+            Assert.Equal(start, document.Database.ToText());
+        }
+
+        [Fact]
         public void BattmanWithNoWindow_SaysItIsADialog_AndOfADrawingWithNoAttributedBlocksSaysSo()
         {
             CadCommandSession session = Run(Session(Bubbles()), "BATTMAN");

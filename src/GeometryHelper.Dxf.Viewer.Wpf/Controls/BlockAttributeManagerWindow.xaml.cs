@@ -23,6 +23,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowEditor = editor => new EditAttributeWindow(editor) { Owner = this }.ShowDialog() == true;
             model.ShowSettings = settings =>
                 new AttributeManagerSettingsWindow(settings) { Owner = this }.ShowDialog() == true;
+            model.AskSaveChanges = block => CadQuestionWindow.AskSaveAttributeChanges(this, block);
         }
 
         /// <summary>Gets the view model.</summary>

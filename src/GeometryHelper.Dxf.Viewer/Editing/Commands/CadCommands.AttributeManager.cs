@@ -54,11 +54,15 @@ namespace GeometryHelper.Dxf.Viewer
                         Load(c, request, block);
                     }
                 };
+                request.Comparing = () => CompareDefinitions(c, request, out _, out _, out _, out _);
+                request.Reverting = () => Load(c, request, request.Block);
 
                 request.Action = CadDialogAction.Cancel;
                 bool asked = c.Session.Request("BATTMAN", c.Document, request);
                 request.Applying = null;
                 request.Showing = null;
+                request.Comparing = null;
+                request.Reverting = null;
 
                 if (!asked)
                 {
@@ -199,39 +203,14 @@ namespace GeometryHelper.Dxf.Viewer
         private static void ApplyDefinitions(CadCommandContext c, CadAttributeManagerRequest request, bool sync)
         {
             string name = request.Block;
-            DxfBlockTableRecord record = c.Database.BlockTable[name];
-            List<DxfAttributeDefinition> definitions = record.OfType<DxfAttributeDefinition>().ToList();
-            List<CadAttributeDefinitionRow> rows = request.Rows.ToList();
-            var changed = new List<KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>>();
-
-            foreach (CadAttributeDefinitionRow row in rows)
-            {
-                DxfAttributeDefinition definition = definitions.FirstOrDefault(d =>
-                    string.Equals(d.Handle, row.Handle, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (definition == null)
-                {
-                    continue;
-                }
-
-                CadAttributeDefinitionRow old = RowOf(definition);
-
-                if (!SameDefinition(old, row))
-                {
-                    changed.Add(new KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>(old, row));
-                }
-            }
-
-            List<string> kept = rows.Select(r => r.Handle)
-                .Where(h => definitions.Exists(d => string.Equals(d.Handle, h, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-            bool removed = kept.Count < definitions.Count;
-            bool reordered = !kept.SequenceEqual(
-                definitions.Select(d => d.Handle).Where(h => kept.Contains(h, StringComparer.OrdinalIgnoreCase)),
-                StringComparer.OrdinalIgnoreCase
+            bool written = CompareDefinitions(
+                c,
+                request,
+                out List<KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>> changed,
+                out List<string> kept,
+                out bool removed,
+                out bool reordered
             );
-            bool written = changed.Count > 0 || removed || reordered;
 
             if (changed.Any(p => !IsTag(p.Value.Tag)))
             {
@@ -306,6 +285,56 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Load(c, request, name);
             }
+        }
+
+        /// <summary>
+        /// Compares the rows of a request with its block's definitions: the rows whose definition they change, each with the
+        /// row of the definition as it is; the handles of the definitions kept, in the order of the rows; whether a definition
+        /// was removed and whether the rest were put in another order. Whether anything is to be written.
+        /// </summary>
+        private static bool CompareDefinitions(
+            CadCommandContext c,
+            CadAttributeManagerRequest request,
+            out List<KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>> changed,
+            out List<string> kept,
+            out bool removed,
+            out bool reordered
+        )
+        {
+            DxfBlockTableRecord record = c.Database.BlockTable[request.Block];
+            List<DxfAttributeDefinition> definitions = record.OfType<DxfAttributeDefinition>().ToList();
+            List<CadAttributeDefinitionRow> rows = request.Rows.ToList();
+            changed = new List<KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>>();
+
+            foreach (CadAttributeDefinitionRow row in rows)
+            {
+                DxfAttributeDefinition definition = definitions.FirstOrDefault(d =>
+                    string.Equals(d.Handle, row.Handle, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                CadAttributeDefinitionRow old = RowOf(definition);
+
+                if (!SameDefinition(old, row))
+                {
+                    changed.Add(new KeyValuePair<CadAttributeDefinitionRow, CadAttributeDefinitionRow>(old, row));
+                }
+            }
+
+            List<string> held = rows.Select(r => r.Handle)
+                .Where(h => definitions.Exists(d => string.Equals(d.Handle, h, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            removed = held.Count < definitions.Count;
+            reordered = !held.SequenceEqual(
+                definitions.Select(d => d.Handle).Where(h => held.Contains(h, StringComparer.OrdinalIgnoreCase)),
+                StringComparer.OrdinalIgnoreCase
+            );
+            kept = held;
+            return changed.Count > 0 || removed || reordered;
         }
 
         /// <summary>Sets on an attribute definition each value of a row that differs from what it was.</summary>

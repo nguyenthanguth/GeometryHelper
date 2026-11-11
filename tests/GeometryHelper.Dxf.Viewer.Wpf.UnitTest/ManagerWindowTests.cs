@@ -326,6 +326,135 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void ChoosingAnotherBlockWithChangesMade_AsksToSaveThem_NoDropsThem_YesWritesThem_AndAConstantDoesNotMove()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                var asked = new List<string>();
+                bool answer = false;
+                bool reached = false;
+                model.ShowBlockAttributeManager = manager =>
+                {
+                    manager.AskSaveChanges = block =>
+                    {
+                        asked.Add(block);
+                        return answer;
+                    };
+
+                    // Nothing changed in GB: TB is shown without asking.
+                    manager.Block = "TB";
+                    Assert.Empty(asked);
+
+                    manager.Selected = manager.Rows.Last();
+                    Assert.Equal("REV", manager.Selected.Tag);
+                    Assert.False(manager.CanMoveUp);
+                    Assert.False(manager.CanMoveDown);
+                    manager.MoveUp();
+                    Assert.Equal("REV", manager.Rows.Last().Tag);
+
+                    manager.Selected = manager.Rows[0];
+                    manager.MoveDown();
+                    Assert.True(manager.Request.HasChanges);
+                    manager.Block = "GB";
+                    Assert.Equal(new[] { "TB" }, asked);
+
+                    manager.MoveDown();
+                    answer = true;
+                    manager.Block = "TB";
+                    Assert.Equal(new[] { "TB", "GB" }, asked);
+                    Assert.Equal("T1", manager.Rows[0].Tag);
+                    Assert.False(manager.Request.HasChanges);
+                    reached = true;
+                    manager.Close(CadDialogAction.Cancel);
+                    return true;
+                };
+
+                model.Execute("BATTMAN");
+
+                Assert.True(reached);
+                Assert.Equal(new[] { "LEVEL", "GRID", "GRID" }, Definitions(model, "GB").Select(d => d.Tag));
+                Assert.Equal("T1", Definitions(model, "TB")[0].Tag);
+            }
+        }
+
+        [Fact]
+        public void SelectBlockWithChangesMade_AsksToSaveThemFirst_AndNoLeavesTheBlockAsItWas()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                string insert = model.Document.ModelSpace.Block.OfType<DxfBlockReference>().Single().Handle;
+                var asked = new List<string>();
+                int shown = 0;
+                model.ShowBlockAttributeManager = manager =>
+                {
+                    shown++;
+                    manager.AskSaveChanges = block =>
+                    {
+                        asked.Add(block);
+                        return false;
+                    };
+
+                    if (shown == 1)
+                    {
+                        manager.MoveDown();
+                        manager.Close(CadDialogAction.SelectBlock);
+                        return true;
+                    }
+
+                    Assert.Equal(new[] { "GRID", "LEVEL", "GRID" }, manager.Rows.Select(r => r.Tag));
+                    manager.Close(CadDialogAction.Ok);
+                    return true;
+                };
+
+                model.Execute("BATTMAN");
+                Assert.Equal("Select a block:", model.Session.PromptText);
+                model.Session.FeedSelection(new[] { insert });
+
+                Assert.Equal(2, shown);
+                Assert.Equal(new[] { "GB" }, asked);
+                Assert.False(model.Session.IsRunning);
+                Assert.Equal(new[] { "GRID", "LEVEL", "GRID" }, Definitions(model, "GB").Select(d => d.Tag));
+            }
+        }
+
+        [Fact]
+        public void Purge_PreviewsAMultileaderStyleAndATableStyleNothingUses_AsTheirDialogsDrawThem()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                Assert.True(CadTableStyleEditor.Add(model.Document, "SCHEDULE", null).Succeeded);
+                Assert.True(CadMLeaderStyleEditor.Add(model.Document, "NOTES", null).Succeeded);
+                bool reached = false;
+                model.ShowPurge = purge =>
+                {
+                    Assert.Null(purge.TablePreview);
+
+                    purge.Selected = purge.Nodes.Single(n => n.Name == "NOTES");
+                    Assert.NotNull(purge.Preview);
+                    Assert.Null(purge.TablePreview);
+                    Assert.Equal("Multileader style NOTES · not used anywhere.", purge.PreviewNote);
+
+                    purge.Selected = purge.Nodes.Single(n => n.Name == "SCHEDULE");
+                    Assert.Null(purge.Preview);
+                    Assert.NotNull(purge.TablePreview);
+                    Assert.Equal("Table style SCHEDULE · not used anywhere.", purge.PreviewNote);
+
+                    purge.Mode = purge.Modes[1];
+                    Assert.Null(purge.TablePreview);
+                    reached = true;
+                    return true;
+                };
+
+                model.Execute("PURGE");
+
+                Assert.True(reached);
+            }
+        }
+
+        [Fact]
         public void ObjectGrouping_FillsTheBoxesFromTheGroupChosen_RenamesIt_AndNewAsksOnTheCommandLineThenComesBack()
         {
             using (var folder = new TestFolder())

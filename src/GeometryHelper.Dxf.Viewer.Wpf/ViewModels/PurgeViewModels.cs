@@ -173,6 +173,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (Set(ref _selected, value))
                 {
                     Raise(nameof(Preview));
+                    Raise(nameof(TablePreview));
                     Raise(nameof(PreviewNote));
                     Raise(nameof(ReasonsTitle));
                     Raise(nameof(Reasons));
@@ -243,8 +244,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : "Pick an item to see why it cannot be purged";
 
         /// <summary>
-        /// Gets the picture of the object chosen in Purgeable Items, white on black: a block, a text style or a dimension
-        /// style; null for the other kinds, which show their name only.
+        /// Gets the picture of the object chosen in Purgeable Items, white on black: a block, a text style, a dimension style
+        /// or a multileader style, drawn as their dialogs draw them; null for the other kinds, a table style shown by
+        /// <see cref="TablePreview"/> and the rest by their name only.
         /// </summary>
         public ImageSource Preview
         {
@@ -285,6 +287,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                                     180
                                 )
                                 : null;
+                        case "Multileader Styles":
+                            DxfMLeaderStyle multileader = CadMLeaderStyleEditor.Find(database, item.Name);
+                            return multileader == null
+                                ? null
+                                : CadStylePreview.MLeader(
+                                    database,
+                                    CadMLeaderStyleSettings.Of(multileader),
+                                    Request.Document.Fonts,
+                                    180,
+                                    180
+                                );
                         default:
                             return null;
                     }
@@ -301,10 +314,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Gets the settings of the table style chosen in Purgeable Items, which the preview draws as the Table Style dialog
+        /// draws them: a title, a header and data rows on white; null for the other kinds.
+        /// </summary>
+        public CadTableStyleSettings TablePreview
+        {
+            get
+            {
+                CadPurgeItem item = _selected?.Item;
+                DxfTableStyle style =
+                    item == null || !IsPurgeable || item.Kind != "Table Styles"
+                        ? null
+                        : CadTableStyleEditor.Find(Request.Document.Database, item.Name);
+                return style == null ? null : CadTableStyleSettings.Of(style);
+            }
+        }
+
         /// <summary>Gets the line under the preview: "Block DOOR_OLD · not used anywhere.", or what to pick.</summary>
         public string PreviewNote =>
             _selected?.Item == null
-                ? "Pick an item to see it. Blocks, dimension styles and text styles show a preview; the other kinds show their name only."
+                ? "Pick an item to see it. Blocks and dimension, multileader, table and text styles show a preview; the other kinds show their name only."
                 : Singular(_selected.Item.Kind) + " " + _selected.Item.Name + " · not used anywhere.";
 
         /// <summary>Gets the heading of the reasons: "Layer WALLS"; empty where no object in use is chosen.</summary>

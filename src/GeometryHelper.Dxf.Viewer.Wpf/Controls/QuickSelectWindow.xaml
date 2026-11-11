@@ -95,15 +95,34 @@
                     Foreground="{StaticResource GhTextMuted}"
                     VerticalAlignment="Center"
                 />
-                <ComboBox
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Style="{StaticResource GhComboBox}"
-                    Margin="0,0,0,8"
-                    AutomationProperties.Name="Apply to"
-                    ItemsSource="{Binding ApplyToOptions}"
-                    SelectedItem="{Binding ApplyTo, Mode=TwoWay}"
-                />
+                <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
+                    <!-- Select objects hides the dialog while the objects to look among are picked, as AutoCAD's button does. -->
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhDialogButton}"
+                        Padding="6,4"
+                        Margin="6,0,0,0"
+                        Click="OnSelectObjects"
+                        IsEnabled="{Binding CanSelectObjects}"
+                        ToolTip="Select objects"
+                        AutomationProperties.Name="Select objects"
+                    >
+                        <Path
+                            Data="{StaticResource BlockSelectIcon}"
+                            Stroke="#C9D1DB"
+                            StrokeThickness="1.8"
+                            Width="14"
+                            Height="14"
+                            Stretch="Uniform"
+                        />
+                    </Button>
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        AutomationProperties.Name="Apply to"
+                        ItemsSource="{Binding ApplyToOptions}"
+                        SelectedItem="{Binding ApplyTo, Mode=TwoWay}"
+                    />
+                </DockPanel>
 
                 <TextBlock
                     Grid.Row="1"

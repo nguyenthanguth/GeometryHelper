@@ -199,6 +199,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>What the command does on <see cref="Show"/>.</summary>
         internal Action<string> Showing { get; set; }
 
+        /// <summary>What the command answers to <see cref="HasChanges"/>.</summary>
+        internal Func<bool> Comparing { get; set; }
+
+        /// <summary>What the command does on <see cref="Revert"/>.</summary>
+        internal Action Reverting { get; set; }
+
+        /// <summary>
+        /// Gets whether the rows differ from the block's definitions, a row moved, edited or removed and not yet written by
+        /// Apply, OK or Sync; AutoCAD's manager then asks to save the changes before it shows another block.
+        /// </summary>
+        public bool HasChanges => Comparing?.Invoke() ?? false;
+
+        /// <summary>The rows read again from the block, the changes made to them dropped, as No to the question of saving them.</summary>
+        public void Revert() => Reverting?.Invoke();
+
         /// <summary>
         /// Apply, the manager staying open: the rows written into the block, as one undo step, and read again; the INSERTs of
         /// the block brought in line too where <see cref="CadAttributeManagerSettings.ApplyToExistingReferences"/> says so.

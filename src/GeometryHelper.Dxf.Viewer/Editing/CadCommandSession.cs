@@ -69,7 +69,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets what the window's dialog answered, for a command that goes on with it: for PASTESPEC the paste chosen,
-        /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; for REDEFINE Yes or No; null where it was cancelled or asks nothing.
+        /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; for REDEFINE Yes or No; for QSELECT "Select objects" where Quick Select's
+        /// button of that name closed it, so that the command asks the objects and shows it again; null where it was cancelled
+        /// or asks nothing.
         /// </summary>
         public string Answer { get; set; }
     }

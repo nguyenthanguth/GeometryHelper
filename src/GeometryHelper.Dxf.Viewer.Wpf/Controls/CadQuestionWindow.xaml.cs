@@ -243,6 +243,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 )
             ) == true;
 
+        /// <summary>
+        /// Asks whether the Block Attribute Manager saves the changes made to a block before it shows another, as AutoCAD's
+        /// asks when another block is chosen or picked: "Save changes to the attributes of block GRID_BUBBLE?".
+        /// </summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="block">The name of the block changed.</param>
+        /// <returns>Whether to save them.</returns>
+        public static bool AskSaveAttributeChanges(Window owner, string block) =>
+            Shown(
+                owner,
+                new CadQuestionWindow(
+                    "Save changes to the attributes of block " + block + "?",
+                    "Yes writes the attributes moved, edited and removed into the block; No drops them.",
+                    string.Empty,
+                    "Yes",
+                    "No"
+                )
+            ) == true;
+
         /// <summary>Shows a message with OK alone, as the Layer manager shows why a rename is refused: "Cannot rename layer "0".".</summary>
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="message">The message.</param>
