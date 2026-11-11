@@ -407,6 +407,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 registry.Add(new CadCommand(name, c => ToggleBody(c, name)));
             }
 
+            registry.Add(new CadCommand("ISOPLANE", IsoplaneBody));
             registry.Add(new CadCommand("DSETTINGS", DraftingSettingsBody));
             var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "DSETTINGS" };
             registry.Shortcuts = new CadShortcuts(registry.Shortcuts.Aliases.Concat(aliases), registry.Shortcuts.Keys);
@@ -476,14 +477,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Array.Empty<CadPrompt>();
         }
 
-        /// <summary>GRID, SNAP, ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's; SNAP also takes a spacing, which turns it on.</summary>
+        /// <summary>
+        /// GRID, SNAP, ORTHO, POLAR, OSNAP, DYN typed: "Enter mode [ON/OFF] &lt;OFF&gt;:", the same toggle as the status bar's;
+        /// SNAP also takes a spacing, which turns it on. With an isometric snap the spacing is the vertical one, as AutoCAD's:
+        /// 5 keeps a snap of 8.6603 by 2.5, the drawing holding half the vertical spacing, and 5 is offered again.
+        /// </summary>
         private IEnumerable<CadPrompt> ToggleBody(CadCommandContext c, string name)
         {
             StatusToggleViewModel toggle = FindToggle(name);
             bool spacing = name == "SNAP";
+            bool isometric = Layout.Isometric;
             string[] modes = { "ON", "OFF" };
             yield return spacing
-                ? CadPrompt.ForDistance("Specify snap spacing", null, modes, CadCommandContext.Length(Snap.GridX))
+                ? CadPrompt.ForDistance(
+                    "Specify snap spacing",
+                    null,
+                    modes,
+                    CadCommandContext.Length(isometric ? 2.0 * Snap.GridY : Snap.GridX)
+                )
                 : CadPrompt.ForKeyword("Enter mode", modes, toggle.IsOn ? "ON" : "OFF");
 
             if (c.Input.Is("ON") || c.Input.Is("OFF"))
@@ -498,8 +509,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     yield break;
                 }
 
-                SetSnapSpacing(c.Input.Number, c.Input.Number);
+                double typed = c.Input.Number;
+
+                if (isometric)
+                {
+                    SetSnapSpacing(typed * Math.Sqrt(3.0), typed / 2.0);
+                }
+                else
+                {
+                    SetSnapSpacing(typed, typed);
+                }
+
                 toggle.IsOn = true;
+            }
+        }
+
+        /// <summary>
+        /// ISOPLANE: "Current isoplane: Left", then "Enter isometric plane setting [Left/Top/Right] &lt;Top&gt;:", Enter taking
+        /// the next plane, and the plane taken written, as AutoCAD 2021 does whether the snap is isometric or not
+        /// (SNAPISOPAIR).
+        /// </summary>
+        private IEnumerable<CadPrompt> IsoplaneBody(CadCommandContext c)
+        {
+            var plane = (CadIsoplane)Layout.Isoplane;
+            var next = (CadIsoplane)(((int)plane + 1) % 3);
+            c.Write("Current isoplane: " + plane);
+            yield return CadPrompt.ForKeyword(
+                "Enter isometric plane setting",
+                new[] { "Left", "Top", "Right" },
+                next.ToString()
+            );
+
+            if (c.Input.Is("Left") || c.Input.Is("Top") || c.Input.Is("Right"))
+            {
+                int taken =
+                    c.Input.Is("Left") ? 0
+                    : c.Input.Is("Top") ? 1
+                    : 2;
+                ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = taken, v => v.SnapPair = taken);
+                c.Write("Current isoplane: " + (CadIsoplane)taken);
             }
         }
     }

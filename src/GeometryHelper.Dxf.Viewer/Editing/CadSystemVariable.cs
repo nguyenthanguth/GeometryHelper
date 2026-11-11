@@ -139,6 +139,43 @@ namespace GeometryHelper.Dxf.Viewer
             return variable;
         }
 
+        /// <summary>
+        /// Makes an angle the app keeps, as SNAPANG: asked "Enter new value for SNAPANG &lt;30&gt;:" in the drawing's angle
+        /// units (AUNITS, AUPREC), typed in them or given by two points, and kept from nought up to a whole turn, as AutoCAD
+        /// keeps 400 as 40 and -30 as 330; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value, in radians.</param>
+        /// <param name="set">Sets a value taken, in radians from nought up to a whole turn.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Angle(string name, Func<double> get, Action<double> set)
+        {
+            Func<double> read = get ?? throw new ArgumentNullException(nameof(get));
+            Action<double> write = set ?? throw new ArgumentNullException(nameof(set));
+            var variable = new CadSystemVariable(name, CadVariableKind.Real, false, s => ShowAngle(s, read()));
+            variable._ask = c => AskAngle(c, variable, read, write);
+            return variable;
+        }
+
+        /// <summary>
+        /// Makes a point the app keeps, as SNAPBASE: asked "Enter new value for SNAPBASE &lt;0.0000,0.0000&gt;:", typed or
+        /// picked; set at once, no step of undo.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="get">Reads the value.</param>
+        /// <param name="set">Sets a point taken.</param>
+        /// <returns>The variable.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
+        public static CadSystemVariable Point(string name, Func<GeoPoint2> get, Action<GeoPoint2> set)
+        {
+            Func<GeoPoint2> read = get ?? throw new ArgumentNullException(nameof(get));
+            Action<GeoPoint2> write = set ?? throw new ArgumentNullException(nameof(set));
+            return Point(name, false, false, s => new GeoPoint3(read().X, read().Y, 0.0), (c, p) => write(p), null);
+        }
+
         /// <inheritdoc/>
         public override string ToString() => Name;
 
@@ -215,9 +252,19 @@ namespace GeometryHelper.Dxf.Viewer
             Func<CadCommandSession, GeoPoint3> get,
             Action<CadCommandContext, GeoPoint2> set,
             string record
+        ) => Point(name, true, withZ, get, set, record);
+
+        /// <summary>A point, kept in the drawing or the app's, shown with its Z where it has one.</summary>
+        private static CadSystemVariable Point(
+            string name,
+            bool inDrawing,
+            bool withZ,
+            Func<CadCommandSession, GeoPoint3> get,
+            Action<CadCommandContext, GeoPoint2> set,
+            string record
         )
         {
-            var variable = new CadSystemVariable(name, CadVariableKind.Point, true, s => Show(get(s), withZ));
+            var variable = new CadSystemVariable(name, CadVariableKind.Point, inDrawing, s => Show(get(s), withZ));
             variable._ask = c => AskPoint(c, variable, withZ, get, set, record);
             return variable;
         }
@@ -292,12 +339,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Number < least || c.Input.Number > most)
                 {
+                    // A switch of 0 and 1 is refused as AutoCAD refuses ORTHOMODE 2.
                     c.Write(
-                        "Requires an integer between "
-                            + least.ToString(CultureInfo.InvariantCulture)
-                            + " and "
-                            + most.ToString(CultureInfo.InvariantCulture)
-                            + "."
+                        least == 0 && most == 1
+                            ? "Requires 0 or 1 only."
+                            : "Requires an integer between "
+                                + least.ToString(CultureInfo.InvariantCulture)
+                                + " and "
+                                + most.ToString(CultureInfo.InvariantCulture)
+                                + "."
                     );
                     continue;
                 }
@@ -385,6 +435,43 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 yield break;
+            }
+        }
+
+        /// <summary>An angle in the angle units of the session's drawing, as AutoCAD shows SNAPANG: 30, or 0.52r at AUNITS 3.</summary>
+        private static string ShowAngle(CadCommandSession session, double radians)
+        {
+            DxfDatabase database = session.Document.Database;
+            return CadUnits.Angle(radians, database.Aunits, database.Auprec);
+        }
+
+        private static IEnumerable<CadPrompt> AskAngle(
+            CadCommandContext c,
+            CadSystemVariable variable,
+            Func<double> get,
+            Action<double> set
+        )
+        {
+            double old = get();
+            yield return CadPrompt.ForAngle(variable.Message, null, null, ShowAngle(c.Session, old));
+
+            if (
+                c.Input.Kind != CadInputKind.Number
+                || double.IsNaN(c.Input.Number)
+                || double.IsInfinity(c.Input.Number)
+            )
+            {
+                yield break;
+            }
+
+            double turn = 2.0 * Math.PI;
+            double value = c.Input.Number % turn;
+            value = value < 0.0 ? value + turn : value;
+            value = value >= turn ? 0.0 : value;
+
+            if (value != old)
+            {
+                set(value);
             }
         }
 

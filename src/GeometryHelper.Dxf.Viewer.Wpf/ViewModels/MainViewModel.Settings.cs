@@ -250,8 +250,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Runs what a key pressed is given in the shortcuts, as "Ctrl+1": a toggle of the status bar, or a command started on the
-        /// command line; nothing for a key given nothing, but Ctrl+9, which shows or hides the command line as in AutoCAD, and
-        /// Ctrl+R, which works through the next viewport of the layout shown while one is worked through.
+        /// command line; nothing for a key given nothing, but Ctrl+9, which shows or hides the command line as in AutoCAD,
+        /// Ctrl+R, which works through the next viewport of the layout shown while one is worked through, and F5 and Ctrl+E,
+        /// which turn to the next isometric plane (SNAPISOPAIR), a command running going on.
         /// </summary>
         /// <param name="gesture">The key, as the shortcuts write it: Ctrl+1, F3, Ctrl+Shift+P.</param>
         /// <returns>Whether the key was given something, and it ran.</returns>
@@ -270,6 +271,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (string.Equals(gesture, "Ctrl+R", StringComparison.OrdinalIgnoreCase))
                 {
                     return CycleViewport();
+                }
+
+                if (
+                    string.Equals(gesture, "F5", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(gesture, "Ctrl+E", StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    return CycleIsoplane();
                 }
 
                 return false;

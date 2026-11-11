@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter applies SNAPBASE, SNAPANG and GRIDMAJOR of the drawing's `*Active` viewport, which it read and
+left alone: the snap grid is laid from SNAPBASE and turned by SNAPANG (a snap of 10 turned by 30 degrees puts the cursor at
+(9, 4) on (8.6603, 5)), ortho holds the cursor along the turned axes, the polar angles are counted from SNAPANG, the
+crosshair turns with it, and the grid is drawn from the same base at the same angle with a major line every GRIDMAJOR.
+SNAPSTYL 1 makes the snap isometric, as AutoCAD 2021's: its points where the 30, 90 and 150 degree lines cross, ortho,
+the crosshair and the grid on the two axes of the isoplane SNAPISOPAIR names, ISOPLANE, and F5 or Ctrl+E turning to the
+next plane, "<Isoplane Top>", while a command runs. SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL and SNAPISOPAIR are set by
+SETVAR, refused in AutoCAD's words and written into the drawing. `ObjectSnap.SnapAngle` and `ObjectSnap.Isoplane`, the
+`CadIsoplane` enum, `CadSystemVariable.Angle` and `CadSystemVariable.Point`, and the canvas's `GridMajor`, `SnapBase`,
+`SnapAngle` and `Isoplane` are new.
+
+**FIXED.** A system variable of 0 and 1 given 2 says "Requires 0 or 1 only.", as AutoCAD 2021 refuses ORTHOMODE, GRIDMODE,
+PICKFIRST or FILEDIA 2, where the presenter said "Requires an integer between 0 and 1.".
+
 **CHANGED.** A new drawing of the presenter (NEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD 2021's
 DWGNAME of a new drawing is, where it was Drawing1.dxf. Save As offers it as an AutoCAD 2018 Drawing (*.dwg) first, and
 QSAVE with FILEDIA 0 asks "Save drawing as <Drawing1.dwg>:", a name typed with no extension saved as a DWG. A DXF is still

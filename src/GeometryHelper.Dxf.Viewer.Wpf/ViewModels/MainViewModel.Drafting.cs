@@ -6,7 +6,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The drafting toggles AutoCAD keeps in the drawing, so that each open drawing shows its own as AutoCAD 2021 does: SNAP
-    /// and GRID with their spacing from the <c>*Active</c> viewport (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT), ORTHO from
+    /// and GRID with their spacing, base point, angle, major lines and isometric plane from the <c>*Active</c> viewport
+    /// (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR), ORTHO from
     /// <c>$ORTHOMODE</c> and the lineweights from <c>$LWDISPLAY</c>. A drawing that has no such value takes the window's:
     /// SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switched, each is written into the
     /// drawing, as AutoCAD saves it. POLAR, OTRACK, OSNAP and DYN stay the window's, as AutoCAD keeps them in the registry.
@@ -34,6 +35,74 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             : _current.Drafting.GridY > 0.0 ? _current.Drafting.GridY
             : _current.Drafting.SnapY;
 
+        /// <summary>
+        /// Gets the point the snap and the grid are laid from, in the coordinates of the UCS: the drawing's SNAPBASE, the
+        /// origin where it has none or none is open.
+        /// </summary>
+        public GeoPoint2 SnapBase => Layout.SnapBase;
+
+        /// <summary>
+        /// Gets the angle the snap, the grid and the crosshair are turned by, in radians from the X axis of the UCS: the
+        /// drawing's SNAPANG, nought where it has none or none is open.
+        /// </summary>
+        public double SnapAngle => Layout.SnapAngle;
+
+        /// <summary>
+        /// Gets the plane of the drawing's isometric snap, its SNAPISOPAIR while SNAPSTYL is 1, which ortho, the crosshair and
+        /// the grid follow; null for the rectangular snap of SNAPSTYL 0.
+        /// </summary>
+        public CadIsoplane? Isoplane => Layout.Isometric ? (CadIsoplane)Layout.Isoplane : (CadIsoplane?)null;
+
+        /// <summary>Gets how many lines of the grid make one step between its major lines: the drawing's GRIDMAJOR, 5 where it has none.</summary>
+        public int GridMajor => Layout.GridMajor;
+
+        // The snap and grid of the window while no drawing is open, which the variables set then.
+        private readonly DraftingState _windowDrafting = new DraftingState();
+
+        /// <summary>The snap and grid of the drawing shown, or of the window where none is.</summary>
+        private DraftingState Layout => _current?.Drafting ?? _windowDrafting;
+
+        /// <summary>
+        /// A value of the snap or the grid set: kept for the drawing shown and written into its <c>*Active</c> viewport, as
+        /// AutoCAD saves it; the snaps, the grid and the crosshair follow at once.
+        /// </summary>
+        private void ChangeDrafting(string name, Action<DraftingState> change, Action<DxfViewportTableRecord> write)
+        {
+            change(Layout);
+
+            if (_current?.Document != null)
+            {
+                WriteToDrawing(name, () =>
+                {
+                    DxfViewportTableRecord active = ActiveViewport(_current.Document);
+
+                    if (active != null)
+                    {
+                        write(active);
+                    }
+                });
+            }
+
+            RaiseDrafting();
+        }
+
+        /// <summary>
+        /// F5 or Ctrl+E: the next isometric plane, Left, Top, Right and round again, written "&lt;Isoplane Top&gt;" as AutoCAD
+        /// writes it; a command running goes on.
+        /// </summary>
+        private bool CycleIsoplane()
+        {
+            int next = (Layout.Isoplane + 1) % 3;
+            ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = next, v => v.SnapPair = next);
+            if (_current != null)
+            {
+                _current.Session.Write("<Isoplane " + (CadIsoplane)next + ">");
+                SyncHistory();
+            }
+
+            return true;
+        }
+
         /// <summary>The <c>*Active</c> viewport of a drawing, which holds its snap and grid; null where it has none.</summary>
         private static DxfViewportTableRecord ActiveViewport(CadDocument document)
         {
@@ -55,6 +124,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 state.SnapY = active.SnapIncrements.Y;
                 state.GridX = active.GridIncrements.X;
                 state.GridY = active.GridIncrements.Y;
+                state.SnapBase = active.SnapBase;
+                state.SnapAngle = active.SnapAngle;
+                state.GridMajor = active.GridMajor;
+                state.Isometric = active.IsometricSnapEnabled;
+                state.Isoplane = active.SnapPair;
             }
 
             if (document.Database.GetHeader("$ORTHOMODE") != null)
@@ -108,6 +182,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void RaiseDrafting()
         {
+            DraftingState layout = Layout;
+            Snap.GridOrigin = layout.SnapBase;
+            Snap.SnapAngle = layout.SnapAngle;
+            Snap.Isoplane = Isoplane;
+            Raise(nameof(SnapBase));
+            Raise(nameof(SnapAngle));
+            Raise(nameof(Isoplane));
+            Raise(nameof(GridMajor));
             Raise(nameof(GridSpacingX));
             Raise(nameof(GridSpacingY));
             Raise(nameof(ShowLineWeights));
@@ -254,6 +336,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public double GridX { get; set; } = 10.0;
 
             public double GridY { get; set; } = 10.0;
+
+            public GeoPoint2 SnapBase { get; set; } = GeoPoint2.Origin;
+
+            public double SnapAngle { get; set; }
+
+            public int GridMajor { get; set; } = 5;
+
+            public bool Isometric { get; set; }
+
+            public int Isoplane { get; set; }
         }
     }
 }
