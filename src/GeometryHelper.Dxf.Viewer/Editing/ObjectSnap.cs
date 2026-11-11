@@ -40,7 +40,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         Insertion = 64,
 
-        /// <summary>The foot of the perpendicular from the base point to an object.</summary>
+        /// <summary>
+        /// The foot of the perpendicular from the base point to an object: on a line or a straight segment of a polyline run on
+        /// past its ends, as AutoCAD gives it; on an arc only where the arc runs.
+        /// </summary>
         Perpendicular = 128,
 
         /// <summary>Where a line from the base point touches a circle or an arc.</summary>
@@ -962,9 +965,21 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoPoint2 perpendicular = Foot(basePoint.Value, a, b, out double t);
                     double slack = Tolerance.EqualPoint / Math.Max((b - a).Length, Tolerance.EqualPoint);
 
-                    if (t >= -slack && t <= 1.0 + slack)
+                    // A line or a straight segment of a polyline gives the foot on its line run on past either end, as
+                    // AutoCAD 2021 gives it (a parameter of 1.75 from (20, 120) to (100, -20)-(100, 60)); a curve drawn in
+                    // pieces and the edge of a fill only between their ends.
+                    bool past = t < -slack || t > 1.0 + slack;
+
+                    if (!past || (item is DisplayPolyline2 && !sampled && (b - a).Length > Tolerance.EqualPoint))
                     {
-                        onObject.Add(new Candidate(CadSnapKind.Perpendicular, perpendicular, item.Handle, reach));
+                        onObject.Add(
+                            new Candidate(
+                                CadSnapKind.Perpendicular,
+                                past ? a + (b - a) * t : perpendicular,
+                                item.Handle,
+                                reach
+                            )
+                        );
                     }
                 }
             }

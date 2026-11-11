@@ -302,8 +302,11 @@ A dimension made with DIMASSOC 2 (the default) whose points were picked with an 
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
 its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
 the two lines, arcs, circles or polyline segments that cross there. A point snapped with PERpendicular (to a line, an
-arc, a circle or a polyline segment) or TANgent (to an arc, a circle or an arc of a polyline) is tied with the point it
-was drawn from, as AutoCAD writes it: the second origin from the first, the ends of an angle of three points from its
+arc, a circle or a polyline segment; on a line or a straight segment the foot may lie past its end, on the line run on,
+as AutoCAD 2021's snap gives it, while an arc gives none off its run) or TANgent (to an arc, a circle or an arc of a
+polyline) is tied with the point it was drawn from, as AutoCAD writes it: from (20, 120) square to (100, -20)-(100, 60)
+the first origin is (100, 120), tied at parameter 1.75; past the end of a polyline's segment the foot is tied to that
+segment. The second origin is drawn from the first, the ends of an angle of three points from its
 vertex, and the first origin, the vertex and an ordinate's feature from the last point given (LASTPOINT), which
 `CadPrompt.SnapFrom` hands the window's snap. An ordinate's feature keeps no last point, as AutoCAD keeps none. A
 segment of a polyline is named by its marker, 1 for the first, and a point on an arc of a polyline by its angle counted
@@ -314,7 +317,18 @@ parameter on the object, or, where that runs past the end of its line, goes to t
 AutoCAD 2021 moves it: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100, and 120 once that line
 is moved 20 to the right; a first origin drawn from (37, 123) square to that line, at parameter 1.7875, goes to (120, 0)
 when it moves by (20, 7). DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
-of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
+of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature.
+DIMANGULAR of a circle measures from the point the circle was picked at, about its center, to a second point
+(`Specify second angle endpoint:`), both brought onto the circle, and ties them as AutoCAD 2021 does: the first and the
+center to the circle, the second as a nearest point of what it was snapped to, a line at the parameter of the point on
+the circle run on, another arc or circle or a POINT at nought, nothing at its angle on the circle. A circle of 25 about
+(200, 0) picked at (225, 0), with the second point the end (300, 40) of a line from (260, 40), measures 21.8 degrees to
+(223.212, 9.285), the second point tied at -0.9197 along the line. When the objects move, a second point so tied past
+the end of its line, or to a POINT, is dropped and stays where it is, as AutoCAD drops it; one within its line goes to
+its point on the line. The arc of any angle goes through a point a third of the way round from the leg it starts at, as
+far out as the point given, as AutoCAD writes it (put at (50, 550) in the right angle at (0, 500), it passes (61.237,
+535.355)), and an angle of three points that follows its objects keeps its arc that far out at the same share of the
+angle, inside the legs where it measured less than half a turn and outside where it measured more;
 DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
 and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
 it. Every edit
@@ -326,7 +340,9 @@ the dimension not stretched with it, leaves the dimension line 20 beyond the ori
 leaves it (30 for an end at (120, 10), 20 for one at (120, -30)). STRETCH of a polyline's vertex keeps the height of an arc
 off its chord, as AutoCAD's does: the half circle from (100, 200) to (100, 300) whose end goes to (100, 320) takes a bulge
 of 100 / 120, its center at (89, 260); a circle of 25
-scaled twice about its center gives its radius 50 drawn out the same way. An aligned dimension keeps its line as far from
+scaled twice about its center gives its radius 50 drawn out the same way, its words where they stood, as AutoCAD keeps
+them. Each dimension that follows writes the middle of its words (group 11) and its measurement (42) anew, as AutoCAD
+writes them when it updates one. An aligned dimension keeps its line as far from
 the line measured, square to it: 20 above (0, 0)-(100, 0), the end stretched to (120, 30), its line point goes to
 (115.149, 49.403). TRIM, EXTEND and LENGTHEN carry the end they move; an ordinate's leader end follows its point along the
 axis measured alone, (100, -40) to (110, -40) for a point moved by (10, 5); an angle of two lines keeps its arc as far from
