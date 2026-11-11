@@ -147,6 +147,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
         }
 
+        /// <summary>A file name no path takes, as the editing fuzz typed (<c>&lt;&gt; mm</c>), is a file not found or not written, not a command that fails.</summary>
+        [Fact]
+        public void AFileNameNoPathTakes_IsAFileNotFoundOrNotWritten_AndTheCommandGoesOn()
+        {
+            CadDocument document = Abc();
+            CadCommandSession session = Run(Session(document), "-LAYER", "stAte", "Save", "Plan", Enter, "I", "<> mm");
+            Assert.Contains(session.History, line => line.StartsWith("Cannot find file \"", StringComparison.Ordinal));
+            Assert.NotEqual(CadCommandOutcome.Failed, session.LastOutcome);
+
+            Run(session, "EXport", "Plan", "<> mm", Enter, Enter);
+            Assert.Contains(session.History, line => line.StartsWith("Cannot write file \"", StringComparison.Ordinal));
+            Assert.NotEqual(CadCommandOutcome.Failed, session.LastOutcome);
+        }
+
         [Fact]
         public void LayerStateSave_KeepsLockPlotTrueColourAndTransparency_AsAutoCad2021()
         {

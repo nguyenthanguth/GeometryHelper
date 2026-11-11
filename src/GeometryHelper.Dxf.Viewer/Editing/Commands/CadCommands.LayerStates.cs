@@ -420,11 +420,13 @@ namespace GeometryHelper.Dxf.Viewer
         private static string ImportLayerStates(CadCommandContext c, string typed, out List<string> read)
         {
             read = new List<string>();
-            string path = CadLayerStates.LasPath(c.Document, typed);
+            string path = typed;
             string text;
 
             try
             {
+                // A name with characters no path takes (<> mm) is refused as a file not found, not thrown.
+                path = CadLayerStates.LasPath(c.Document, typed);
                 text = File.ReadAllText(path);
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException)
@@ -449,10 +451,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A state written to a .las file as AutoCAD's Export writes it; what it says where it cannot, else null.</summary>
         private static string ExportLayerState(CadCommandContext c, string name, string typed)
         {
-            string path = CadLayerStates.LasPath(c.Document, typed);
+            string path = typed;
 
             try
             {
+                // A name with characters no path takes (<> mm) is refused as a file not written, not thrown.
+                path = CadLayerStates.LasPath(c.Document, typed);
                 File.WriteAllText(path, CadLayerStates.ExportText(c.Database, name));
                 return null;
             }
