@@ -40,6 +40,37 @@ now change such a layer and mark it so, and a change of it in the drawing draws 
 -LAYER Set with "Invalid layer name.", as AutoCAD 2021 refuses them; a new layer named with a character AutoCAD refuses,
 `grid|X` among them, is refused with `"grid|X" is an invalid layer name.`
 
+**NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
+and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
+vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new
+`CadPrompt.SnapFrom` hands the window's snap through `ObjectSnap.Snap`; the ends of an angle of three points are drawn
+from its vertex and tied with the vertex's own tie as their last point. A polyline's segment is tied by its marker (91, or
+92 for the second object of an intersection), a point on its arc by its angle counted on from the arc's start: AutoCAD
+2021, probed in its console, wrote the end of a half circle from (100, 200) to (100, 300) as marker 2 and 7.85398 and its
+center as 4.71239, and a line drawn across the third segment as 332 the polyline and 92 = 3. A moved object takes its
+points where AutoCAD takes them: a tangent drawn again from its point; a perpendicular drawn again where its point is tied
+to an object, else kept at its parameter, or, past the end of its line, at the foot from the origin of the world, so a
+first origin drawn from (37, 123) square to (100, -20)-(100, 60) goes to (120, 0) when the line moves by (20, 7). The
+dimension line of a linear dimension stays as far beyond the nearer origin as it was, 50 for an end of the line dragged
+from (100, 0) to (120, 30) with the line 20 above. A drawing of 16 dimensions so tied, made here and opened in AutoCAD
+2021, has no errors in AUDIT, and after the same moves and stretches in both every tied point is where AutoCAD puts it on
+its own drawing, to 1E-3; AutoCAD's file read here follows the same way.
+
+**FIXED.** STRETCH in the presenter moves the origins and the line point of a linear dimension that lie inside its
+window, and keeps the height of a polyline's arc off its chord when one end moves, as AutoCAD 2021 does. It left the
+dimension to its tie, and kept the arc's bulge: the half circle from (100, 200) to (100, 300) whose end goes to
+(100, 320) now takes a bulge of 100 / 120, its center at (89, 260) where AutoCAD puts it, not (100, 260).
+
+**CHANGED.** Esc in the presenter's MTEXT editor with changes asks as AutoCAD 2021 asks: Multiline Text - Unsaved
+Changes, "Do you want to save your text changes?", with Yes, No and Cancel and Always perform my current choice, in the
+place of the presenter's own "Save changes to MText?". Yes writes the changes and closes the editor, No drops them, Cancel
+goes back to editing, and with nothing changed Esc closes with no question. A Yes or No given with the box ticked is kept
+in Global settings as `MTextUnsavedChanges` ("Ask", "Yes" or "No"), as AutoCAD keeps it among its hidden messages, and
+Text and fonts › Hidden messages sets it back to Ask; Cancel is never kept. `MainViewModel.AskKeepMTextChanges` now takes
+the question, an `MTextUnsavedChangesViewModel`, and `CadQuestionWindow.AskKeepMTextChanges` is gone. The screenshot mode
+draws the dialog with `--dialog mtext-unsaved`. Esc in the edit box of a single-line text already kept the old words, as
+AutoCAD does, and a test now holds it.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
@@ -101,6 +132,26 @@ before: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spaci
 snap spacing, writes it into the drawing shown, so that a save keeps it; LWDISPLAY set with a drawing open no longer
 changes Global settings. The snaps step by the drawing's SNAPUNIT and the grid is drawn at its GRIDUNIT, 10 across and
 20 up for a GRIDUNIT of (10, 20). POLAR, OTRACK, OSNAP and DYN stay the window's.
+
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads the types it left out, in all six versions (AutoCAD
+2000 to 2018): VIEWPORT, so a layout comes with its viewports, numbered as AutoCAD numbers them; HATCH with every kind
+of boundary, pattern lines, solid fill and gradient; LEADER, MULTILEADER with MLEADERSTYLE, and TOLERANCE; IMAGE with
+IMAGEDEF and IMAGEDEF_REACTOR, and WIPEOUT; MLINE; REGION, 3DSOLID and BODY of AutoCAD 2000 (their SAT text) and from
+AutoCAD 2013 (the GUID of their data); ACAD_TABLE to AutoCAD 2007 and TABLESTYLE to 2007; the colour of a book with its
+name, from its DBCOLOR; an attribute of several lines of AutoCAD 2018 with its MTEXT; and the proxy graphics of an
+entity where AutoCAD saved them. Each was checked against AutoCAD 2021's own DXF of the same drawing in every version:
+eight drawings more, 0 differences outside what AutoCAD itself changes as it writes. See the guide page "Reading DWG
+files" for what is still left out: tables and table styles from AutoCAD 2010, SHAPE, the ACIS data of AutoCAD 2004 to
+2010 and of the data store, MATERIAL, VISUALSTYLE and the other style objects, proxies, OLE frames and the data of
+dynamic blocks.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), from AutoCAD 2004: an entity of a colour of a book (as
+PANTONE Yellow 012 C) was left out as broken, with a Warn line; it is read with that colour. An element of a multiline
+style before AutoCAD 2018 in Continuous, or any linetype but ByLayer and ByBlock, came out ByLayer; it comes out with
+its linetype.
+
+**FIXED.** `DxfViewport.GetFrozenLayers` and `IsLayerFrozenInViewport` read the frozen layers of a DXF of AutoCAD 2000,
+which AutoCAD writes under group 341 rather than 331; they found none.
 
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length

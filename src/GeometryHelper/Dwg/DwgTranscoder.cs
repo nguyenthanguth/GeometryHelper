@@ -67,6 +67,7 @@ namespace GeometryHelper.Dwg
         private readonly List<DwgObject> _objects = new List<DwgObject>();
         private readonly Dictionary<ulong, DwgObject> _byHandle = new Dictionary<ulong, DwgObject>();
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
+        private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
         private readonly bool _doubleByte;
         private readonly int _version;
@@ -77,6 +78,15 @@ namespace GeometryHelper.Dwg
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
+
+            foreach (DwgClass one in _classes)
+            {
+                // AutoCAD 2021 names the class of a table's data DATATABLE in a DWG of R2000 and ACDBDATATABLE in its DXF.
+                if (_version < 1018 && Encoding.ASCII.GetString(one.DxfName) == "DATATABLE")
+                {
+                    one.DxfName = Encoding.ASCII.GetBytes("ACDBDATATABLE");
+                }
+            }
             string page = _container.CodePage;
 
             _doubleByte = page == "ANSI_932" || page == "ANSI_936" || page == "ANSI_949" || page == "ANSI_950";
@@ -105,6 +115,8 @@ namespace GeometryHelper.Dwg
 
             Broken = broken;
             NumberPaperSpaces();
+            NumberViewports();
+            FillLeaderBoxes();
 
             if (broken > 0)
             {
@@ -193,6 +205,132 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// Gives the viewports of the current layout the number (group 69) and status (68) AutoCAD writes, which a DWG does
+        /// not hold. From R2004 a layout lists its viewports, the one showing the paper first, and they are numbered from
+        /// 1 in that order. An R2000 layout lists none: the viewport that shows the paper itself (its view centre and height
+        /// its own) is number 1 and the others follow in the order of their handles. The status is 0 for a viewport that is
+        /// off, else its number from R2004 and -1 in R2000. The viewports of the other layouts are 0 and 0.
+        /// </summary>
+        private void NumberViewports()
+        {
+            ulong active = _header.Handle("_PAPERSPACE");
+            var order = new List<DwgObject>();
+
+            foreach (DwgObject layout in _objects)
+            {
+                if (layout.Name == "LAYOUT" && layout.Viewports != null && Owned330(layout) == active)
+                {
+                    foreach (ulong handle in layout.Viewports)
+                    {
+                        if (Find(handle) is DwgObject viewport && viewport.Type == 0x22 && !order.Contains(viewport))
+                        {
+                            order.Add(viewport);
+                        }
+                    }
+                }
+            }
+
+            if (_version < 1018)
+            {
+                foreach (DwgObject one in _objects)
+                {
+                    if (one.Type == 0x22 && one.Decoded && (one.EntityMode == 1 || (one.EntityMode == 0 && one.Owner == active)))
+                    {
+                        order.Add(one);
+                    }
+                }
+
+                int paper = order.FindIndex(ShowsThePaper);
+
+                if (paper > 0)
+                {
+                    DwgObject first = order[paper];
+                    order.RemoveAt(paper);
+                    order.Insert(0, first);
+                }
+            }
+
+            for (int i = 0; i < order.Count; i++)
+            {
+                bool off = (Int(order[i], 90) & 0x20000) != 0;
+                _viewportNumbers[order[i].Handle] = new[] { i + 1, off ? 0 : _version < 1018 ? -1 : i + 1 };
+            }
+        }
+
+        /// <summary>
+        /// From R2010 a LEADER keeps no box of its text, and AutoCAD writes the extents of the MTEXT it annotates (groups 40
+        /// and 41), which the reader left as NaN; they are 0 where the annotation is no MTEXT.
+        /// </summary>
+        private void FillLeaderBoxes()
+        {
+            foreach (DwgObject leader in _objects)
+            {
+                if (leader.Type != 0x2D)
+                {
+                    continue;
+                }
+
+                double[] extents = Find(leader.Annotation)?.TextExtents ?? new[] { 0.0, 0.0 };
+
+                for (int i = 0; i < leader.Body.Count; i++)
+                {
+                    DwgGroup group = leader.Body[i];
+
+                    if ((group.Code == 40 || group.Code == 41) && group.Value is double value && double.IsNaN(value))
+                    {
+                        leader.Body[i] = new DwgGroup(group.Code, extents[group.Code - 40]);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Whether a viewport shows the paper itself: its view centre is its centre and its view height its height.</summary>
+        private static bool ShowsThePaper(DwgObject viewport)
+        {
+            return Number(viewport, 12) == Number(viewport, 10) && Number(viewport, 22) == Number(viewport, 20) && Number(viewport, 45) == Number(viewport, 41);
+        }
+
+        /// <summary>The handle a LAYOUT gives its block under group 330.</summary>
+        private static ulong Owned330(DwgObject layout)
+        {
+            foreach (DwgGroup group in layout.Body)
+            {
+                if (group.Code == 330 && group.Value is ulong handle)
+                {
+                    return handle;
+                }
+            }
+
+            return 0;
+        }
+
+        private static double Number(DwgObject one, int code)
+        {
+            foreach (DwgGroup group in one.Body)
+            {
+                if (group.Code == code && group.Value is double value)
+                {
+                    return value;
+                }
+            }
+
+            return double.NaN;
+        }
+
+        private static int Int(DwgObject one, int code)
+        {
+            foreach (DwgGroup group in one.Body)
+            {
+                if (group.Code == code && group.Value is int value)
+                {
+                    return value;
+                }
+            }
+
+            return 0;
+        }
+
         private static void Rename(List<DwgGroup> groups, byte[] old, byte[] name)
         {
             for (int i = 0; i < groups.Count; i++)
@@ -242,6 +380,32 @@ namespace GeometryHelper.Dwg
                 {
                     _dxf.Write(group.Code, found);
                 }
+            }
+            else if (group.Value is DwgBookColour book)
+            {
+                DwgColour colour = Find(book.Book)?.BookColour;
+                _dxf.Write(62, colour?.Index ?? book.Index);
+
+                if (colour != null && colour.Rgb >= 0)
+                {
+                    _dxf.Write(420, colour.Rgb);
+                }
+
+                if (colour?.Name != null && colour.Name.Length > 0)
+                {
+                    _dxf.WriteValue(430, colour.BookName != null && colour.BookName.Length > 0 ? JoinBook(colour.BookName, colour.Name) : colour.Name);
+                }
+            }
+            else if (group.Value is DwgLinetypeIndex linetype)
+            {
+                // The records of the table follow ByBlock and ByLayer, which the control lists first.
+                List<ulong> entries = Find(_header.Handle("_LTYPES"))?.Entries;
+                byte[] named = entries != null && linetype.Index >= 0 && linetype.Index + 2 < entries.Count ? NameOf(entries[linetype.Index + 2]) : null;
+                _dxf.Write(group.Code, named ?? Encoding.ASCII.GetBytes("BYLAYER"));
+            }
+            else if (group.Value is DwgViewportNumber number)
+            {
+                _dxf.Write(group.Code, _viewportNumbers.TryGetValue(number.Viewport, out int[] numbers) ? numbers[number.Status ? 1 : 0] : 0);
             }
             else if (group.Code == DwgObjectReader.LongText)
             {
@@ -461,6 +625,11 @@ namespace GeometryHelper.Dwg
             _dxf.Write(8, NameOf(entity.Layer) ?? new byte[] { (byte)'0' });
             Write(entity.Common);
 
+            if (entity.ProxyGraphics != null)
+            {
+                WriteBinary(_version >= 1024 ? 160 : 92, entity.ProxyGraphics);
+            }
+
             if (entity.Type == 0x04)
             {
                 DwgObject header = Find(owner);
@@ -494,6 +663,35 @@ namespace GeometryHelper.Dwg
             if (end != null && end.IsEntity)
             {
                 WriteEntity(end, entity.Handle, paper, true);
+            }
+        }
+
+        /// <summary>The name DXF gives a colour of a book: the book, a dollar sign, the colour.</summary>
+        private static byte[] JoinBook(byte[] book, byte[] name)
+        {
+            var joined = new byte[book.Length + 1 + name.Length];
+            Array.Copy(book, joined, book.Length);
+            joined[book.Length] = (byte)'$';
+            Array.Copy(name, 0, joined, book.Length + 1, name.Length);
+            return joined;
+        }
+
+        /// <summary>A run of bytes as DXF writes it: its length under <paramref name="sizeCode"/>, then pieces of 127 bytes in hex under 310.</summary>
+        private void WriteBinary(int sizeCode, byte[] bytes)
+        {
+            _dxf.Write(sizeCode, bytes.Length);
+            var hex = new StringBuilder(254);
+
+            for (int at = 0; at < bytes.Length; at += 127)
+            {
+                hex.Clear();
+
+                for (int i = at; i < Math.Min(at + 127, bytes.Length); i++)
+                {
+                    hex.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+                }
+
+                _dxf.Write(310, hex.ToString());
             }
         }
 

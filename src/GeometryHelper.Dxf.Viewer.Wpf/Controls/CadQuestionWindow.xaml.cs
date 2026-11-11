@@ -77,33 +77,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return question;
         }
 
-        /// <summary>
-        /// Asks, on Esc in the MTEXT editor, whether to keep the changes, as AutoCAD asks "Save changes to MText?": Save keeps
-        /// them, Don't save drops them, Cancel goes on editing.
-        /// </summary>
-        /// <param name="owner">The window it is shown over; null for none.</param>
-        /// <returns>True to keep, false to drop, null to go on editing.</returns>
-        public static bool? AskKeepMTextChanges(Window owner)
-        {
-            var question = new CadQuestionWindow("Save changes to MText?", "The words were changed in the editor. Don't save closes it as the MTEXT was.", string.Empty, "Save", "Don't save");
-            question.ThirdButton.Content = "Cancel";
-            question.ThirdButton.Visibility = Visibility.Visible;
-            question.NoButton.IsCancel = false;
-            question.ThirdButton.IsCancel = true;
-
-            if (owner != null && owner.IsVisible)
-            {
-                question.Owner = owner;
-            }
-            else
-            {
-                question.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            }
-
-            question.ShowDialog();
-            return question.Answer == CadSaveChoice.Save ? true : question.Answer == CadSaveChoice.DontSave ? (bool?)false : null;
-        }
-
         private void OnThird(object sender, RoutedEventArgs e)
         {
             Answer = CadSaveChoice.Cancel;

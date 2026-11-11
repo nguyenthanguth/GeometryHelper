@@ -341,7 +341,8 @@ namespace GeometryHelper.Dwg
                     throw new FormatException("The proxy graphics of the entity run past its end.");
                 }
 
-                _data.Position += graphics * 8L;
+                // DXF carries it too (groups 92 or 160, then 310), where AutoCAD saved it: the newer entities in an older file.
+                _object.ProxyGraphics = _data.Bytes((int)graphics);
             }
 
             _object.EntityMode = _data.Bits2();
@@ -422,7 +423,20 @@ namespace GeometryHelper.Dwg
                 _object.Common.Add(new DwgGroup(347, materialHandle));
             }
 
-            AddColour(_object.Common, colour, true);
+            if (colour.HasBook)
+            {
+                // The index, the true colour and the name are those of the DBCOLOR the handle leads to; the transcoder writes them.
+                _object.Common.Add(new DwgGroup(62, new DwgBookColour(colour.Book, colour.Index)));
+
+                if (colour.Transparency != -1)
+                {
+                    _object.Common.Add(new DwgGroup(440, colour.Transparency));
+                }
+            }
+            else
+            {
+                AddColour(_object.Common, colour, true);
+            }
 
             if (linetypeScale != 1.0)
             {
@@ -449,13 +463,13 @@ namespace GeometryHelper.Dwg
         {
             int value = _data.BitShort() & 0xFFFF;
             var colour = new DwgColour { Index = value & 0x1FF };
+            colour.HasBook = (value & 0x4000) != 0;
 
-            if ((value & 0x8000) != 0)
+            // A colour of a book sets 0x8000 too, but its true colour is in its DBCOLOR, not here.
+            if ((value & 0x8000) != 0 && !colour.HasBook)
             {
                 colour.Rgb = _data.BitLong() & 0xFFFFFF;
             }
-
-            colour.HasBook = (value & 0x4000) != 0;
 
             if ((value & 0x2000) != 0)
             {
@@ -471,17 +485,22 @@ namespace GeometryHelper.Dwg
         /// colour in the low three bytes, 0xC3 an index in the low byte), and a byte saying a colour name and a book name
         /// follow as texts.
         /// </summary>
-        private DwgColour ReadColour()
+        private DwgColour ReadColour() => ReadColour(R2004Plus);
+
+        /// <summary>A CMC colour, of the form of R2004 where <paramref name="later"/> is set, as a type newer than R2004 keeps it in an older file.</summary>
+        private DwgColour ReadColour(bool later)
         {
             var colour = new DwgColour { Index = _data.BitShort() };
 
-            if (!R2004Plus)
+            if (!later)
             {
+                colour.Raw = colour.Index == 256 ? unchecked((int)0xC0000000) : colour.Index == 0 ? unchecked((int)0xC1000000) : unchecked((int)0xC3000000) | (colour.Index & 0xFF);
                 return colour;
             }
 
             int rgb = _data.BitLong();
             int names = _data.RawChar();
+            colour.Raw = rgb;
 
             switch ((rgb >> 24) & 0xFF)
             {
@@ -719,12 +738,19 @@ namespace GeometryHelper.Dwg
                 case 0x1E: ReadPolygonMesh(); return true;
                 case 0x1F:
                 case 0x20: ReadSolid(); return true;
+                case 0x22: ReadViewport(); return true;
                 case 0x23: ReadEllipse(); return true;
                 case 0x24: ReadSpline(); return true;
+                case 0x25:
+                case 0x27: return ReadModelerGeometry(false);
+                case 0x26: return ReadModelerGeometry(true);
                 case 0x28: ReadRay("AcDbRay"); return true;
                 case 0x29: ReadRay("AcDbXline"); return true;
                 case 0x2A: ReadDictionary(false); return true;
                 case 0x2C: ReadMText(); return true;
+                case 0x2D: ReadLeader(); return true;
+                case 0x2E: ReadTolerance(); return true;
+                case 0x2F: ReadMLine(); return true;
                 case 0x30:
                 case 0x32:
                 case 0x34:
@@ -747,6 +773,7 @@ namespace GeometryHelper.Dwg
                 case 0x48: ReadGroup(); return true;
                 case 0x49: ReadMLineStyle(); return true;
                 case 0x4D: ReadLwPolyline(); return true;
+                case 0x4E: ReadHatch(); return true;
                 case 0x4F: ReadXRecord(); return true;
                 case 0x50: return true;
                 case 0x52: ReadLayout(); return true;
@@ -761,6 +788,16 @@ namespace GeometryHelper.Dwg
                 case "LAYOUT": ReadLayout(); return true;
                 case "XRECORD": ReadXRecord(); return true;
                 case "LWPOLYLINE": ReadLwPolyline(); return true;
+                case "HATCH": ReadHatch(); return true;
+                case "MULTILEADER": ReadMultiLeader(); return true;
+                case "MLEADERSTYLE": ReadMultiLeaderStyle(); return true;
+                case "IMAGE": ReadRasterImage("AcDbRasterImage"); return true;
+                case "WIPEOUT": ReadRasterImage("AcDbWipeout"); return true;
+                case "IMAGEDEF": ReadImageDefinition(); return true;
+                case "IMAGEDEF_REACTOR": ReadImageDefinitionReactor(); return true;
+                case "DBCOLOR": ReadBookColour(); return true;
+                case "ACAD_TABLE": return ReadTable();
+                case "TABLESTYLE": return ReadTableStyle();
                 default: return false;
             }
         }

@@ -256,17 +256,31 @@ differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words o
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
 its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
-the two lines, arcs or circles that cross there; the second origin snapped with PERpendicular (to a line, an arc or a
-circle) or TANgent (to an arc or a circle) is tied with the point it was drawn from, as AutoCAD writes it, and drawn
-again from that point when the object moves: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100,
-and 120 once that line is moved 20 to the right. DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+the two lines, arcs, circles or polyline segments that cross there. A point snapped with PERpendicular (to a line, an
+arc, a circle or a polyline segment) or TANgent (to an arc, a circle or an arc of a polyline) is tied with the point it
+was drawn from, as AutoCAD writes it: the second origin from the first, the ends of an angle of three points from its
+vertex, and the first origin, the vertex and an ordinate's feature from the last point given (LASTPOINT), which
+`CadPrompt.SnapFrom` hands the window's snap. An ordinate's feature keeps no last point, as AutoCAD keeps none. A
+segment of a polyline is named by its marker, 1 for the first, and a point on an arc of a polyline by its angle counted
+on from the arc's start: a polyline from (0, 200) to (100, 200) and round a half circle to (100, 300) has the end of the
+half circle at marker 2 and 7.85398, its center at 4.71239. When the object moves, a tangent is drawn again from its
+point, and so is a perpendicular whose point is tied to an object; one drawn from a point tied to nothing keeps its
+parameter on the object, or, where that runs past the end of its line, goes to the foot from the origin of the world, as
+AutoCAD 2021 moves it: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100, and 120 once that line
+is moved 20 to the right; a first origin drawn from (37, 123) square to that line, at parameter 1.7875, goes to (120, 0)
+when it moves by (20, 7). DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
 of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
 DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
 and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
 it. Every edit
 that changes those objects, whatever command or grip makes it, carries the dimension with it in the same undo step: a line
 from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to (10, 5), (110, 5) and a line at 25; its end
-stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up; a circle of 25
+stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up, as STRETCH moves
+the origins and the line point of a linear dimension inside its window as AutoCAD's does; the same end dragged by its grip,
+the dimension not stretched with it, leaves the dimension line 20 beyond the origin nearer it, at 50, as AutoCAD 2021
+leaves it (30 for an end at (120, 10), 20 for one at (120, -30)). STRETCH of a polyline's vertex keeps the height of an arc
+off its chord, as AutoCAD's does: the half circle from (100, 200) to (100, 300) whose end goes to (100, 320) takes a bulge
+of 100 / 120, its center at (89, 260); a circle of 25
 scaled twice about its center gives its radius 50 drawn out the same way. An aligned dimension keeps its line as far from
 the line measured, square to it: 20 above (0, 0)-(100, 0), the end stretched to (120, 30), its line point goes to
 (115.149, 49.403). TRIM, EXTEND and LENGTHEN carry the end they move; an ordinate's leader end follows its point along the

@@ -78,8 +78,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return prompt != null && (prompt.Kind == CadPromptKind.Selection || prompt.Kind == CadPromptKind.Entity);
         }
 
-        /// <summary>Gets the point a click at the cursor takes, snapped from the prompt's base point, the grid, ortho and polar along the space's UCS; null where no snap is given.</summary>
-        public static CadSnapResult Snap(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
+        /// <summary>
+        /// Gets the point a click at the cursor takes, snapped from the prompt's base point (perpendicular and tangent from
+        /// <paramref name="drawnFrom"/> where it has none, <see cref="CadPrompt.SnapFrom"/>), the grid, ortho and polar along the
+        /// space's UCS; null where no snap is given.
+        /// </summary>
+        public static CadSnapResult Snap(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, GeoPoint2? drawnFrom = null)
         {
             if (snap == null)
             {
@@ -87,7 +91,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             snap.Ucs = document.Ucs.WorkingOf(space);
-            return snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint);
+            return snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint, drawnFrom);
         }
 
         /// <summary>The cursor has rested at a point prompt: a point is acquired or let go for Extension, Parallel and tracking (<see cref="ObjectSnap.Acquire"/>).</summary>

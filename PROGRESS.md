@@ -94,9 +94,9 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
-- [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
+- [ ] PEDIT (running): PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
-- [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
+- [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
 - [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
@@ -106,8 +106,10 @@ the ones wanted.
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
 - [x] Associative dimensions: PERpendicular and TANgent snaps tied with AutoCAD's "last point" reference
-- [ ] Associative dimensions (running): PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
-      with PER/TAN ties (S)
+- [x] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT 0 in AutoCAD
+      and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
+- [ ] Associative dimensions follow-ups: PER to a foot past a line's end (extended perpendicular); DIMANGULAR on a circle;
+      groups 11 and 42 written; the three-point angular arc point as AutoCAD picks it (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -140,9 +142,11 @@ the ones wanted.
         R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
   - [x] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L); the ACI palette made AutoCAD 2021's
         (197 of 255 indexes were wrong)
-  - [ ] W4 (running) Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
-        layouts; proxies kept as they are (L)
-  - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
+  - [x] W4 Every entity and object: VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, IMAGE, WIPEOUT, MLINE, tables to
+        R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
+  - [ ] W4b: tables from R2010 (TABLECONTENT, CELLSTYLEMAP), ACDSDATA, SAB to SAT for R2004-R2010, SHAPE names, MATERIAL,
+        VISUALSTYLE, RASTERVARIABLES/WIPEOUTVARIABLES, OLE2FRAME, proxies, dynamic block data (L)
+  - [ ] W5 (running) Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
   - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
@@ -187,7 +191,7 @@ the ones wanted.
 - [x] Status bar per drawing: SNAP, GRID and their spacing from the `*Active` VPORT (new `DxfViewportTable`), ORTHO from
       `$ORTHOMODE`, LWDISPLAY from `$LWDISPLAY`, each tab its own; written back on switch (S)
 - [ ] Status bar follow-ups: SNAPBASE, SNAPANG and GRIDMAJOR read but not applied to snapping and the grid; isometric
-      snap (SNAPSTYL 1); GRID and LWDISPLAY defaults wait on the user (S)
+      snap (SNAPSTYL 1) (S). DECIDED by the user 2026-11-11: GRID off and LWDISPLAY on stay the defaults
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
@@ -233,15 +237,18 @@ the ones wanted.
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
-- [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
+- [ ] Xrefs (running): XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer
 
-- [ ] Esc while editing a TEXT in place: cancel (now) or keep what was typed. Autodesk's help says nothing for single-line
-      TEXT and a script cannot send Esc: the maintainer to try it once in AutoCAD
+- [x] Esc in the in-place editors, as AutoCAD 2021: TEXT keeps its old words; MTEXT with changes asks "Multiline Text -
+      Unsaved Changes" (Yes / No / Cancel, "Always perform my current choice" kept in Global settings > Hidden messages);
+      designed in v115 (S)
+- [ ] Design: add the Hidden messages row to the SettingsText artboard (S)
+- [x] Booleans with a flat box answer false for union, intersect and subtract (the user's choice 2026-11-11)
 - [x] DIMBREAK breaks stored as AutoCAD stores them (BREAKDATA in the dimension's extension dictionary), read and drawn
       again on redraw; AUDIT 0 in AutoCAD
 - [x] The oblique angle of a dimension is measured from the dimension line, as AutoCAD (presenter and core's doc fixed)

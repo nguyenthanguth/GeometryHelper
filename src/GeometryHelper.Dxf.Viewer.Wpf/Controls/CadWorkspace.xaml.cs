@@ -563,7 +563,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
                 _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
-                _model.AskKeepMTextChanges = () => CadQuestionWindow.AskKeepMTextChanges(Window.GetWindow(this));
+                _model.AskKeepMTextChanges = question => MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);

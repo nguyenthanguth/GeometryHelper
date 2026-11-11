@@ -160,6 +160,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Stretch_MovesTheOriginOfALinearDimensionInsideItsWindow_TheDimensionLineStaying()
+        {
+            // AutoCAD 2021's STRETCH moves the points of a dimension inside its windows, as it moves the ends of a line.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "DIMLINEAR", P(0, 0), P(100, 0), P(50, 20));
+            string handle = Assert.Single(All<DxfRotatedDimension>(document.ModelSpace)).Handle;
+
+            Run(session, "STRETCH", P(110, -10), P(90, 10), Enter, P(0, 0), P(20, 30));
+
+            var dimension = Entity<DxfRotatedDimension>(document, handle);
+            Near(new GeoPoint3(0, 0, 0), dimension.XLine1Point);
+            Near(new GeoPoint3(120, 30, 0), dimension.XLine2Point);
+            Near(new GeoPoint3(120, 20, 0), dimension.DimLinePoint);
+            Assert.Contains("120", Words(dimension), StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(120, 30, 50)]
+        [InlineData(120, 10, 30)]
+        [InlineData(120, -30, 20)]
+        public void AnEndOfTheLineMoved_LeavesTheDimensionLineAsFarBeyondTheNearerOrigin_AsAutoCadLeavesIt(double x, double y, double line)
+        {
+            // AutoCAD 2021: the line (0, 0)-(100, 0), its DIMLINEAR at y = 20, the end set to (120, 30), (120, 10) and (120, -30):
+            // the dimension line at y = 50, 30 and 20, 20 beyond the origin nearer it.
+            CadDocument document = LineWithDimension(out _, out string drawn, out string handle);
+
+            Assert.True(document.GripDrag(drawn, 1, P(x, y)).Succeeded);
+
+            var dimension = Entity<DxfRotatedDimension>(document, handle);
+            Near(new GeoPoint3(x, y, 0), dimension.XLine2Point);
+            Assert.Equal(line, dimension.DimLinePoint.Y, 9);
+        }
+
+        [Fact]
         public void ARadiusOfACircleScaledTwice_DrawsItsLineOutAlongTheSameWay_TheCenterStaying()
         {
             CadDocument document = Blank();
