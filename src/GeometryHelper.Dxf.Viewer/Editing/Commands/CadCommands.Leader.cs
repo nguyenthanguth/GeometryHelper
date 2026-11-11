@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -30,6 +31,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>The handle of the INSERT the leader points to; null for none.</summary>
             public string Block { get; set; }
+
+            /// <summary>The handle of an INSERT whose copy the leader points to, as Copy and Reuse Current copy one; null for none.</summary>
+            public string Copy { get; set; }
+
+            /// <summary>Whether <see cref="Text"/> holds words typed, which take DIMCLRT where it is not BYBLOCK; false for a copy.</summary>
+            public bool Typed { get; set; }
 
             /// <summary>Whether the words stand with their middle at the leader's end, as a copy of QLEADER's Copy an Object stands.</summary>
             public bool Middle { get; set; }
@@ -65,9 +72,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 last = points[points.Count - 1];
                 bool second = points.Count == 1;
-                yield return second
-                    ? CadPrompt.ForPoint("Specify next point", last)
-                    : CadPrompt.ForPoint("Specify next point", last, LeaderOptions, "Annotation");
+                yield return (
+                    second
+                        ? CadPrompt.ForPoint("Specify next point", last)
+                        : CadPrompt.ForPoint("Specify next point", last, LeaderOptions, "Annotation")
+                ).Previewing(LeaderPreview(c, points, spline, arrow, CadQLeaderAngle.Any));
 
                 if (c.Input.IsPoint)
                 {
@@ -120,7 +129,15 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return prompt;
                 }
 
-                MakeLeader(c, points, spline, arrow, new LeaderWords { Text = LeaderText(c, lines) }, false, 0.0);
+                MakeLeader(
+                    c,
+                    points,
+                    spline,
+                    arrow,
+                    new LeaderWords { Text = LeaderText(c, lines), Typed = true },
+                    false,
+                    0.0
+                );
                 yield break;
             }
 
@@ -150,15 +167,15 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Is("Copy"))
                 {
                     yield return CadPrompt.ForEntity("Select an object to copy");
-                    DxfMText copy = CopiedText(c);
+                    var copied = new LeaderWords();
 
-                    // A miss, or an object that is no text, asks the option again, as AutoCAD 2021 asks it after a miss.
-                    if (copy == null)
+                    // A miss, or an object that is no text or INSERT, asks the option again, as AutoCAD 2021 asks it after a miss.
+                    if (!Copied(c, copied))
                     {
                         continue;
                     }
 
-                    MakeLeader(c, points, spline, arrow, new LeaderWords { Text = copy }, false, 0.0);
+                    MakeLeader(c, points, spline, arrow, copied, false, 0.0);
                     yield break;
                 }
 
@@ -195,7 +212,7 @@ namespace GeometryHelper.Dxf.Viewer
                             points,
                             spline,
                             arrow,
-                            new LeaderWords { Text = LeaderText(c, text) },
+                            new LeaderWords { Text = LeaderText(c, text), Typed = true },
                             false,
                             0.0
                         );
@@ -244,17 +261,17 @@ namespace GeometryHelper.Dxf.Viewer
             while (settings.NoLimit || points.Count < settings.MaxPoints)
             {
                 GeoPoint2 last = points[points.Count - 1];
-                yield return CadPrompt.ForPoint("Specify next point", last);
+                CadQLeaderAngle angle =
+                    points.Count == 1 ? settings.FirstSegment
+                    : points.Count == 2 ? settings.SecondSegment
+                    : CadQLeaderAngle.Any;
+                yield return CadPrompt
+                    .ForPoint("Specify next point", last)
+                    .Previewing(LeaderPreview(c, points, settings.Spline, true, angle));
 
                 if (c.Input.IsPoint)
                 {
-                    GeoPoint2 held = HeldToAngle(
-                        last,
-                        c.Input.Point,
-                        points.Count == 1 ? settings.FirstSegment
-                            : points.Count == 2 ? settings.SecondSegment
-                            : CadQLeaderAngle.Any
-                    );
+                    GeoPoint2 held = HeldToAngle(last, c.Input.Point, angle);
 
                     if ((held - last).Length > c.Session.Tolerance.EqualPoint)
                     {
@@ -289,7 +306,7 @@ namespace GeometryHelper.Dxf.Viewer
                 points,
                 settings.Spline,
                 true,
-                words.Text == null && words.Block == null ? null : words,
+                words.Text == null && words.Block == null && words.Copy == null ? null : words,
                 true,
                 words.Width,
                 settings
@@ -307,16 +324,14 @@ namespace GeometryHelper.Dxf.Viewer
             LeaderWords words
         )
         {
-            // Reuse Current: a copy of the annotation kept, no width or words asked, as AutoCAD 2021 copies it.
-            if (settings.Reuse == CadQLeaderReuse.ReuseCurrent && settings.ReusedHandle != null)
+            // Reuse Current: a copy of the annotation kept, words or an INSERT, no width or words asked, as AutoCAD 2021 copies it.
+            if (
+                settings.Reuse == CadQLeaderReuse.ReuseCurrent
+                && settings.ReusedHandle != null
+                && Took(c.Document.FindEntity(settings.ReusedHandle), words)
+            )
             {
-                DxfMText kept = CopyOfText(c.Document.FindEntity(settings.ReusedHandle));
-
-                if (kept != null)
-                {
-                    words.Text = kept;
-                    yield break;
-                }
+                yield break;
             }
 
             switch (settings.Annotation)
@@ -339,11 +354,8 @@ namespace GeometryHelper.Dxf.Viewer
                             yield break;
                         }
 
-                        DxfMText copy = CopiedText(c);
-
-                        if (copy != null)
+                        if (Copied(c, words))
                         {
-                            words.Text = copy;
                             words.Middle = true;
                             yield break;
                         }
@@ -395,6 +407,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (lines.Count > 0)
             {
                 words.Text = LeaderText(c, lines);
+                words.Typed = true;
             }
             else
             {
@@ -421,6 +434,101 @@ namespace GeometryHelper.Dxf.Viewer
             double held = Math.Round(direction / step, MidpointRounding.AwayFromZero) * step;
             double along = way.Length * Math.Cos(direction - held);
             return new GeoPoint2(from.X + along * Math.Cos(held), from.Y + along * Math.Sin(held));
+        }
+
+        /// <summary>
+        /// The preview of a leader at "Specify next point:": the leader through the points picked and the cursor, held to its
+        /// angle constraint as the point will be, its arrowhead and its line or spline as the leader made there draws them,
+        /// with no rubber band of its own, so that the segment held level from the origin with the cursor at (100, 30) runs to
+        /// (100, 0).
+        /// </summary>
+        private static CadPreview LeaderPreview(
+            CadCommandContext c,
+            List<GeoPoint2> picked,
+            bool spline,
+            bool arrow,
+            CadQLeaderAngle angle
+        )
+        {
+            var points = new List<GeoPoint2>(picked);
+            GeoPoint2 last = points[points.Count - 1];
+            return CadPreview.Making(c, input =>
+            {
+                GeoPoint2 at = HeldToAngle(last, input.Point, angle);
+
+                if ((at - last).Length <= c.Session.Tolerance.EqualPoint)
+                {
+                    return null;
+                }
+
+                var vertices = new List<GeoPoint2>(points) { at };
+                return LeaderParts(c, vertices, spline, arrow);
+            });
+        }
+
+        /// <summary>
+        /// The parts a leader through vertices breaks into, as <see cref="DxfLeader.Explode"/> gives them for the leader made
+        /// with the current settings: the arrowhead at the first vertex, DIMASZ times the scale long, a SOLID for closed
+        /// filled or an INSERT of the DIMLDRBLK block, then the line or spline from the arrow's back where the first segment
+        /// is longer than the arrow; each in the current layer and colour.
+        /// </summary>
+        private static List<DxfEntity> LeaderParts(
+            CadCommandContext c,
+            List<GeoPoint2> vertices,
+            bool spline,
+            bool arrow
+        )
+        {
+            double tolerance = Tolerance.Default.EqualPoint;
+            double size = c.Database.Dimasz * LeaderScale(c);
+            var line = vertices.ConvertAll(P3);
+            var parts = new List<DxfEntity>();
+
+            if (arrow && line[0].DistanceTo(line[1]) > tolerance)
+            {
+                GeoVector3 away = DxfOcsTransform.Normalized(line[1].GetVectorTo(line[0]));
+                DxfBlockTableRecord block = c.Database.Dimldrblk;
+                DxfEntity head;
+
+                if (block == null)
+                {
+                    GeoPoint3 back = line[0].Add(away.Multiply(-size));
+                    GeoVector3 side = new GeoVector3(-away.Y, away.X, 0.0).Multiply(size / 6.0);
+                    head = new DxfSolid(back.Add(side), line[0], back.Add(side.Negate()));
+                }
+                else
+                {
+                    head = new DxfBlockReference(line[0], block)
+                    {
+                        ScaleFactors = new GeoVector3(size, size, size),
+                        Rotation = Math.Atan2(away.Y, away.X),
+                    };
+                }
+
+                parts.Add(Current(c, head));
+
+                if (line[0].DistanceTo(line[1]) > size + tolerance)
+                {
+                    line[0] = line[0].Add(away.Multiply(-size));
+                }
+            }
+
+            var shape = new DxfLeader();
+
+            foreach (GeoPoint3 vertex in line)
+            {
+                shape.AppendVertex(vertex);
+            }
+
+            shape.HasArrowHead = false;
+            shape.IsSplined = spline;
+
+            foreach (DxfEntity part in shape.Explode())
+            {
+                parts.Add(Current(c, part));
+            }
+
+            return parts;
         }
 
         /// <summary>
@@ -571,17 +679,36 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Copy of LEADER: a copy of the MTEXT picked, or an MTEXT of the words, height and style of the TEXT picked, as AutoCAD
-        /// 2021 copies a TEXT; null for a miss or another kind of object.
+        /// Copy of LEADER and QLEADER: the object picked taken into <paramref name="words"/> as <see cref="Took"/> takes it;
+        /// false for a miss or another kind of object.
         /// </summary>
-        private static DxfMText CopiedText(CadCommandContext c)
+        private static bool Copied(CadCommandContext c, LeaderWords words) =>
+            c.Input.Kind == CadInputKind.Selection
+            && c.Input.Handles.Count > 0
+            && Took(c.Document.FindEntity(c.Input.Handles[0]), words);
+
+        /// <summary>
+        /// An object a leader copies, as AutoCAD 2021's Copy and Reuse Current copy it: an MTEXT or a TEXT as the MTEXT of
+        /// <see cref="CopyOfText"/>, an INSERT by its handle, its copy made with the leader; false, nothing taken, for any
+        /// other object (a TOLERANCE among them, which the library cannot move) or none.
+        /// </summary>
+        private static bool Took(DxfEntity picked, LeaderWords words)
         {
-            if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
+            if (picked is DxfBlockReference insert && !(picked is DxfMInsertBlock) && !insert.IsErased)
             {
-                return null;
+                words.Copy = insert.Handle;
+                return true;
             }
 
-            return CopyOfText(c.Document.FindEntity(c.Input.Handles[0]));
+            DxfMText text = CopyOfText(picked);
+
+            if (text == null)
+            {
+                return false;
+            }
+
+            words.Text = text;
+            return true;
         }
 
         /// <summary>An MTEXT copying an MTEXT, or the words, height and style of a TEXT; null for any other object or none.</summary>
@@ -640,7 +767,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// where the last segment runs right or straight up or down, else to its left; a hook DIMASZ long runs on to it where
         /// that segment of a straight leader is steeper than 15 degrees. LEADER sets the words' middle at the hook (their
         /// bottom DIMGAP above it with DIMTAD not nought); QLEADER by its Attachment settings, the middle of their top line on the
-        /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle.
+        /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle. Words typed take
+        /// DIMCLRT where it is not BYBLOCK. A copy of an INSERT stands at the end with no hook. In a UCS other than the world's,
+        /// as AutoCAD 2021 draws it, the last segment is measured along the UCS's axes, the hook gets no vertex of its own, and
+        /// the words run along its X, DIMGAP along it from the end: up its Y for LEADER's DIMTAD, up the world's Y for QLEADER.
         /// </summary>
         private static void MakeLeader(
             CadCommandContext c,
@@ -664,22 +794,49 @@ namespace GeometryHelper.Dxf.Viewer
             bool byAttachment = quick && words?.Middle != true;
             bool leftJustified = false;
 
+            // In a UCS other than the world's the last segment is measured along its axes, as AutoCAD 2021 measures it.
+            CadUcs ucs = c.Session.Ucs;
+            bool world = ucs.IsWorld;
             GeoPoint2 end = points[points.Count - 1];
             GeoVector2 way = end - points[points.Count - 2];
-            bool left = way.X < -c.Session.Tolerance.EqualPoint;
+            GeoVector2 along = world ? way : ucs.ToUcs(way);
+            bool left = along.X < -c.Session.Tolerance.EqualPoint;
             double side = left ? -1.0 : 1.0;
-            bool hook = text != null && !spline && Math.Abs(way.Y) > LeaderHookSlope * Math.Abs(way.X);
+            bool hook = text != null && !spline && Math.Abs(along.Y) > LeaderHookSlope * Math.Abs(along.X);
             var vertices = new List<GeoPoint2>(points);
 
-            if (hook)
+            // AutoCAD 2021 adds the hook's own vertex in the world alone: in any other UCS, a moved one too, the leader keeps
+            // the points picked and only says it has a hook.
+            if (hook && world)
             {
                 vertices.Insert(vertices.Count - 1, new GeoPoint2(end.X - side * db.Dimasz * scale, end.Y));
+            }
+
+            GeoVector2 xAxis = ucs.ToWorld(new GeoVector2(1.0, 0.0));
+            GeoVector2 yAxis = ucs.ToWorld(new GeoVector2(0.0, 1.0));
+
+            // A point of the words: along the UCS's X from the end, then up its Y, or up the world's Y where QLEADER raises
+            // them, as AutoCAD 2021 does in a turned UCS.
+            GeoPoint3 Beside(double alongX, double up, bool upWorld)
+            {
+                if (world)
+                {
+                    return new GeoPoint3(end.X + alongX, end.Y + up, 0.0);
+                }
+
+                GeoVector2 rise = upWorld ? new GeoVector2(0.0, up) : yAxis * up;
+                return new GeoPoint3(end.X + xAxis.X * alongX + rise.X, end.Y + xAxis.Y * alongX + rise.Y, 0.0);
+            }
+
+            if (text != null && !world)
+            {
+                text.Direction = new GeoVector3(xAxis.X, xAxis.Y, 0.0);
             }
 
             if (text != null && byAttachment && settings.Underline)
             {
                 // Underline bottom line: the words stand DIMGAP above the leader's end, which runs on under their last line.
-                text.Location = new GeoPoint3(end.X + side * gap, end.Y + gap, 0.0);
+                text.Location = Beside(side * gap, gap, true);
                 text.Attachment = left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.BottomLeft;
             }
             else if (text != null && byAttachment)
@@ -691,12 +848,12 @@ namespace GeometryHelper.Dxf.Viewer
                     row == CadQLeaderAttachment.MiddleOfTopLine ? half
                     : row == CadQLeaderAttachment.MiddleOfBottomLine ? -half
                     : 0.0;
-                text.Location = new GeoPoint3(end.X + side * gap, end.Y + rise, 0.0);
+                text.Location = Beside(side * gap, rise, true);
                 text.Attachment = QuickAttachment(row, !left || leftJustified);
             }
             else if (text != null)
             {
-                text.Location = new GeoPoint3(end.X + side * gap, end.Y + (tad != 0 ? gap : 0.0), 0.0);
+                text.Location = Beside(side * gap, tad != 0 ? gap : 0.0, false);
                 text.Attachment =
                     tad != 0 ? (left ? DxfAttachmentPoint.BottomRight : DxfAttachmentPoint.BottomLeft)
                     : left ? DxfAttachmentPoint.MiddleRight
@@ -713,6 +870,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadSpace space = c.Space;
             string block = words?.Block;
+            string copied = words?.Copy;
+            bool typed = words?.Typed == true;
             c.Apply(null, s =>
             {
                 var leader = new DxfLeader();
@@ -738,6 +897,13 @@ namespace GeometryHelper.Dxf.Viewer
                 if (text != null)
                 {
                     s.Append(space, Current(c, text));
+
+                    // Words typed take DIMCLRT, as AutoCAD 2021 colours them, the current colour where it is BYBLOCK.
+                    if (typed && db.Dimclrt != null && !db.Dimclrt.IsByBlock)
+                    {
+                        text.Color = db.Dimclrt;
+                    }
+
                     leader.Annotation = text;
                     CadMTextLayout layout = CadMTextEdit.LayoutOf(text);
                     height = layout?.ActualHeight ?? 0.0;
@@ -747,7 +913,9 @@ namespace GeometryHelper.Dxf.Viewer
                     if (leftJustified)
                     {
                         GeoPoint3 at = text.Location;
-                        text.Location = new GeoPoint3(at.X - across, at.Y, at.Z);
+                        text.Location = world
+                            ? new GeoPoint3(at.X - across, at.Y, at.Z)
+                            : new GeoPoint3(at.X - xAxis.X * across, at.Y - xAxis.Y * across, at.Z);
                     }
 
                     // Reuse Next: these words are the ones reused from now on, the settings turned to Reuse Current.
@@ -763,9 +931,13 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     leader.Annotation = s.Document.FindEntity(block);
                 }
+                else if (copied != null && s.Document.FindEntity(copied) is DxfBlockReference source)
+                {
+                    leader.Annotation = CopyAtEnd(s, space, source, P3(end), ucs.Angle);
+                }
 
                 // AutoCAD 2021 writes 74 of 1 on a leader of no annotation too.
-                leader.SetMade(hook, text != null ? left : block == null, height, across);
+                leader.SetMade(hook, text != null ? left : block == null && copied == null, height, across);
             });
         }
 
@@ -789,11 +961,49 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Writes the current dimension variables the leader is drawn by where they are not its style's, as AutoCAD 2021 writes
-        /// them, in the order of their groups: DIMSCALE (40), DIMASZ (41), DIMTAD (77), DIMTXT (140) and DIMGAP (147). QLEADER
-        /// writes DIMGAP and DIMTAD first whatever the style has, and moves each other than the style's after them: DIMGAP below
-        /// nought with Frame text, DIMTAD 1 with Underline bottom line, else nought; then DIMLDRBLK (341) where the drawing's is
-        /// not the style's, as AutoCAD 2021 writes <c>1070 341, 1005</c> and the handle of <c>_Dot</c>.
+        /// Adds a copy of an INSERT as the words of a leader, as AutoCAD 2021's Copy and Reuse Current copy one: its insertion
+        /// point at the leader's end, its scale kept, turned to the X axis of the UCS (0 in the world, 30 degrees in a UCS
+        /// turned 30), so that an INSERT at (500, 500) scaled 1.5 by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by
+        /// 2.5 and turned 0.
+        /// </summary>
+        private static DxfEntity CopyAtEnd(
+            CadEditScope s,
+            CadSpace space,
+            DxfBlockReference source,
+            GeoPoint3 end,
+            double angle
+        )
+        {
+            GeoVector3 normal = source.Normal;
+            double turn = (normal.Z < 0.0 ? -angle : angle) - source.Rotation;
+            GeoTransform3 move =
+                GeoTransform3.Translation(end - source.Position)
+                * GeoTransform3.RotationAxis(source.Position, normal, turn);
+            DxfEntity copy = source.GetTransformedCopy(move);
+            CadOwnerTag.Remove(copy);
+            DxfEntity added = s.Append(space, copy);
+
+            if (added is DxfBlockReference made)
+            {
+                made.KeepRepresentationOf(source);
+            }
+
+            return added;
+        }
+
+        // The dimension variables in the order of their groups, as AutoCAD 2021 writes a leader's overrides; the name breaks a tie.
+        private static readonly DxfDimVariable[] VariablesByGroup = DxfDimVariable
+            .All.OrderBy(v => v.Code)
+            .ThenBy(v => v.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        /// <summary>
+        /// Writes every current dimension variable the leader is drawn by where it is not its style's, as AutoCAD 2021 writes
+        /// them, in the order of their groups: DIMSCALE (40) as the scale the leader is drawn by, DIMASZ (41), DIMEXO (42),
+        /// DIMTAD (77), DIMTXT (140), DIMGAP (147), DIMCLRD (176), DIMCLRT (178), DIMLDRBLK (341, <c>1005</c> and the handle of
+        /// <c>_Dot</c>), DIMLWD (371) and each other. QLEADER writes DIMGAP and DIMTAD first whatever the style has, and moves
+        /// each other than the style's to its place among the rest: DIMGAP below nought with Frame text, DIMTAD 1 with
+        /// Underline bottom line, else nought. A variable the drawing's version cannot hold is left out, as SAVEAS leaves it.
         /// </summary>
         private static void Override(
             DxfLeader leader,
@@ -804,56 +1014,50 @@ namespace GeometryHelper.Dxf.Viewer
             CadQLeaderSettings settings
         )
         {
-            if (!quick)
-            {
-                leader.Dimscale = scale;
-                leader.Dimasz = db.Dimasz;
-                leader.Dimtad = db.Dimtad;
-                leader.Dimtxt = db.Dimtxt;
-                leader.Dimgap = db.Dimgap;
-                return;
-            }
-
             double gap = settings.FrameText ? -db.Dimgap : db.Dimgap;
             double tad = settings.Underline ? 1.0 : 0.0;
-            leader.WriteOverride(147, gap, false);
-            leader.WriteOverride(77, tad, true);
 
-            if (style == null)
+            if (quick)
             {
-                return;
-            }
-
-            if (!scale.Equals(style.Dimscale))
-            {
-                leader.WriteOverride(40, scale, false);
-            }
-
-            if (!db.Dimasz.Equals(style.Dimasz))
-            {
-                leader.WriteOverride(41, db.Dimasz, false);
-            }
-
-            if (db.Dimtad != style.Dimtad)
-            {
+                leader.WriteOverride(147, gap, false);
                 leader.WriteOverride(77, tad, true);
             }
 
-            if (!db.Dimtxt.Equals(style.Dimtxt))
-            {
-                leader.WriteOverride(140, db.Dimtxt, false);
-            }
+            DxfDimStyleTableRecord current = db.GetDimstyleData();
 
-            if (!db.Dimgap.Equals(style.Dimgap))
+            foreach (DxfDimVariable variable in VariablesByGroup)
             {
-                leader.WriteOverride(147, gap, false);
-            }
+                object wanted = variable.Code == 40 ? scale : current.Get(variable);
+                object own =
+                    style != null ? style.Get(variable)
+                    : variable.IsReference ? null
+                    : variable.Read(null);
 
-            DxfBlockTableRecord arrow = db.Dimldrblk;
+                if (wanted == null && variable.Kind == DxfDimKind.TextStyle || variable.SameValue(wanted, own))
+                {
+                    continue;
+                }
 
-            if (arrow != null && !string.Equals(arrow.Name, style.Dimldrblk?.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                leader.Dimldrblk = arrow;
+                if (quick && (variable.Code == 147 || variable.Code == 77))
+                {
+                    leader.WriteOverride(variable.Code, variable.Code == 147 ? gap : tad, variable.Code == 77);
+                    continue;
+                }
+
+                // One variable at a time, so that each is written last, in the order of the groups.
+                DxfDimStyleTableRecord one = leader.GetDimstyleData();
+                one.Keep(variable, wanted);
+
+                try
+                {
+                    leader.SetDimstyleData(one);
+                }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                {
+                    GeometryHelperLog.Debug(
+                        "LEADER: the override of " + variable.Name.ToUpperInvariant() + " is left out: " + e.Message
+                    );
+                }
             }
         }
     }

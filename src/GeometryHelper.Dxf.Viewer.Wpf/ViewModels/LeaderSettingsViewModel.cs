@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Media.Imaging;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
@@ -61,12 +63,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
+    /// An entry of the arrowhead list of Leader Settings: its name and its picture, as AutoCAD's list shows them, or the
+    /// last entry, "User Arrow...", which asks for a block of the drawing.
+    /// </summary>
+    public sealed class LeaderArrowChoiceViewModel : ObservableObject
+    {
+        private readonly Func<string, BitmapSource> _draw;
+        private BitmapSource _picture;
+        private bool _drawn;
+
+        internal LeaderArrowChoiceViewModel(string name, Func<string, BitmapSource> draw)
+        {
+            Name = name;
+            _draw = draw;
+        }
+
+        /// <summary>Gets the name, as "Closed filled", a user arrow's block, or "User Arrow...".</summary>
+        public string Name { get; }
+
+        /// <summary>Gets whether this is "User Arrow...", which asks for a block rather than naming an arrowhead.</summary>
+        public bool IsUserArrowEntry => Name == LeaderSettingsViewModel.UserArrowEntry;
+
+        /// <summary>
+        /// Gets the picture of the arrowhead, 22 by 12 pixels, drawn the first time it is asked: a leader of it pointing left,
+        /// as a leader draws it; null for "User Arrow..." and where it cannot be drawn.
+        /// </summary>
+        public BitmapSource Picture
+        {
+            get
+            {
+                if (!_drawn && !IsUserArrowEntry)
+                {
+                    _drawn = true;
+                    _picture = _draw(Name);
+                }
+
+                return _picture;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override string ToString() => Name;
+    }
+
+    /// <summary>
     /// AutoCAD 2021's Leader Settings of QLEADER over the request its command hands the window: Annotation (the annotation
     /// type, the MText options, Annotation Reuse), Leader Line &amp; Arrow (straight or spline, the arrowhead, the number of
     /// points, the angle constraints) and Attachment (where the leader meets text on either side, Underline bottom line). The
     /// Attachment tab and the MText options are greyed unless the type is MText, the ten round buttons with Underline, Maximum
-    /// with No Limit; Tolerance cannot be picked, as the presenter has no Geometric Tolerance dialog. OK writes the settings
-    /// and the arrowhead into the request; Cancel leaves it.
+    /// with No Limit; Tolerance cannot be picked, as the presenter has no Geometric Tolerance dialog. The arrowheads are
+    /// listed with their pictures, then "User Arrow...", which asks for a block of the drawing as AutoCAD's Select Custom
+    /// Arrow Block does. OK writes the settings and the arrowhead into the request; Cancel leaves it.
     /// </summary>
     public sealed class LeaderSettingsViewModel : ObservableObject
     {
@@ -79,13 +126,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The Attachment tab.</summary>
         public const string AttachmentTab = "Attachment";
 
+        /// <summary>The last entry of the arrowhead list, which asks for a block of the drawing as the arrow.</summary>
+        public const string UserArrowEntry = "User Arrow...";
+
         private static readonly string[] AngleNames = { "Any angle", "Horizontal", "90°", "45°", "30°", "15°" };
 
         private readonly CadQLeaderSettings _settings;
+        private readonly List<LeaderArrowChoiceViewModel> _choices = new List<LeaderArrowChoiceViewModel>();
         private string _tab;
         private string _maxPoints;
         private string _arrow;
         private string _notice = string.Empty;
+        private bool _choosingUserArrow;
+        private string _userArrowBlock = string.Empty;
+        private DxfDatabase _copy;
 
         /// <summary>Makes the dialog over a request.</summary>
         /// <param name="request">The request of QLEADER's Settings.</param>
@@ -105,6 +159,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _maxPoints = _settings.MaxPoints.ToString(CultureInfo.InvariantCulture);
             _arrow = request.Arrow;
+
+            foreach (string name in request.Arrows.Concat(new[] { UserArrowEntry }))
+            {
+                _choices.Add(new LeaderArrowChoiceViewModel(name, PictureOf));
+            }
+
             AttachmentRows = new[]
             {
                 new LeaderAttachmentRowViewModel(this, CadQLeaderAttachment.TopOfTopLine, "Top of top line"),
@@ -269,20 +329,103 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => IsSpline = !value;
         }
 
-        /// <summary>Gets the arrowheads offered, in the order of AutoCAD's list.</summary>
-        public IReadOnlyList<string> Arrows => Request.Arrows;
+        /// <summary>
+        /// Gets the names of the arrowhead list, in the order of AutoCAD's: Closed filled ... None, a user arrow the drawing
+        /// or the dialog has chosen, then <see cref="UserArrowEntry"/>.
+        /// </summary>
+        public IReadOnlyList<string> Arrows => _choices.Select(c => c.Name).ToList();
 
-        /// <summary>Gets or sets the arrowhead chosen, DIMLDRBLK's when the dialog opens.</summary>
+        /// <summary>Gets the entries of the arrowhead list with their pictures, as <see cref="Arrows"/> names them.</summary>
+        public IReadOnlyList<LeaderArrowChoiceViewModel> ArrowChoices => _choices;
+
+        /// <summary>
+        /// Gets or sets the arrowhead chosen, DIMLDRBLK's when the dialog opens. <see cref="UserArrowEntry"/> set asks for a
+        /// block (<see cref="IsChoosingUserArrow"/>) and leaves the arrowhead as it is until one is kept.
+        /// </summary>
         public string Arrow
         {
             get => _arrow;
             set
             {
-                if (value != null && Arrows.Contains(value))
+                if (value == UserArrowEntry)
                 {
-                    Set(ref _arrow, value);
+                    AskUserArrow();
+                }
+                else if (value != null && value != UserArrowEntry && Arrows.Contains(value) && Set(ref _arrow, value))
+                {
+                    Raise(nameof(SelectedArrowChoice));
                 }
             }
+        }
+
+        /// <summary>Gets or sets the entry of the list chosen, as <see cref="Arrow"/> takes its name.</summary>
+        public LeaderArrowChoiceViewModel SelectedArrowChoice
+        {
+            get => _choices.FirstOrDefault(c => c.Name == _arrow);
+            set
+            {
+                if (value != null)
+                {
+                    Arrow = value.Name;
+                }
+            }
+        }
+
+        /// <summary>Gets whether the blocks of the drawing are being asked for a user arrow, as AutoCAD's Select Custom Arrow Block asks them.</summary>
+        public bool IsChoosingUserArrow
+        {
+            get => _choosingUserArrow;
+            private set => Set(ref _choosingUserArrow, value);
+        }
+
+        /// <summary>Gets the blocks of the drawing a user arrow can be, by name.</summary>
+        public IReadOnlyList<string> UserArrowBlocks => Request.Blocks;
+
+        /// <summary>Gets or sets the name of the block chosen or typed for the user arrow.</summary>
+        public string UserArrowBlock
+        {
+            get => _userArrowBlock;
+            set => Set(ref _userArrowBlock, value ?? string.Empty);
+        }
+
+        /// <summary>
+        /// OK of the blocks: the block named, letters of either case the same, made the arrowhead, added to the list before
+        /// <see cref="UserArrowEntry"/> where it is not in it, and kept as the settings' user arrow (group 3).
+        /// </summary>
+        /// <returns>Whether it was kept: false where the drawing has no block of the name, said in <see cref="Notice"/>.</returns>
+        public bool KeepUserArrow()
+        {
+            string typed = (_userArrowBlock ?? string.Empty).Trim();
+            string name = Request.Blocks.FirstOrDefault(b =>
+                string.Equals(b, typed, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (name == null)
+            {
+                Notice = "The drawing has no block " + typed + ".";
+                return false;
+            }
+
+            if (!_choices.Any(c => c.Name == name))
+            {
+                _choices.Insert(_choices.Count - 1, new LeaderArrowChoiceViewModel(name, PictureOf));
+                Raise(nameof(Arrows));
+            }
+
+            _settings.UserArrow = name;
+            _arrow = name;
+            Notice = string.Empty;
+            IsChoosingUserArrow = false;
+            Raise(nameof(Arrow));
+            Raise(nameof(SelectedArrowChoice));
+            return true;
+        }
+
+        /// <summary>Cancel of the blocks: the arrowhead left as it was.</summary>
+        public void DropUserArrow()
+        {
+            IsChoosingUserArrow = false;
+            Raise(nameof(SelectedArrowChoice));
         }
 
         /// <summary>Gets or sets "No Limit": points are asked until Enter, Maximum greyed.</summary>
@@ -411,6 +554,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             target.RightSide = _settings.RightSide;
             target.Underline = _settings.Underline;
             target.Tab = _settings.Tab;
+            target.UserArrow = _settings.UserArrow;
             Request.Arrow = _arrow;
             Request.Action = CadDialogAction.Ok;
             Notice = string.Empty;
@@ -481,6 +625,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _settings.SecondSegment = (CadQLeaderAngle)index;
                 Raise(nameof(SecondSegment));
+            }
+        }
+
+        /// <summary>"User Arrow...": the blocks asked, the one in use first chosen; with no block in the drawing, a line saying so.</summary>
+        private void AskUserArrow()
+        {
+            if (Request.Blocks.Count == 0)
+            {
+                Notice = "The drawing has no block to use as an arrow.";
+                Raise(nameof(SelectedArrowChoice));
+                return;
+            }
+
+            UserArrowBlock =
+                Request.Blocks.Contains(_arrow) ? _arrow
+                : Request.Blocks.Contains(_settings.UserArrow) ? _settings.UserArrow
+                : Request.Blocks[0];
+            Notice = string.Empty;
+            IsChoosingUserArrow = true;
+            Raise(nameof(SelectedArrowChoice));
+        }
+
+        /// <summary>The picture of an arrowhead of the list, drawn as a leader draws it; a user arrow from a copy of the drawing, made once.</summary>
+        private BitmapSource PictureOf(string name)
+        {
+            try
+            {
+                if (CadArrowheads.Names.Contains(name))
+                {
+                    return CadStylePreview.Arrowhead(null, name, 22, 12);
+                }
+
+                _copy = _copy ?? DxfDatabase.Parse(Request.Document.Database.ToText());
+                return CadStylePreview.Arrowhead(_copy, name, 22, 12);
+            }
+            catch (Exception exception)
+                when (exception is ArgumentException
+                    || exception is InvalidOperationException
+                    || exception is FormatException
+                )
+            {
+                GeometryHelperLog.Debug(
+                    "LeaderSettings: the arrowhead " + name + " was not drawn: " + exception.Message
+                );
+                return null;
             }
         }
 

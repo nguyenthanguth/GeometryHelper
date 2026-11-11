@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's LEADER and QLEADER write every dimension variable other than the style's as the leader's
+override, in the order of their groups, as AutoCAD 2021 writes them, where they wrote five (DIMSCALE, DIMASZ, DIMTAD,
+DIMTXT, DIMGAP) and DIMLDRBLK: DIMEXO 0.5, DIMCLRD 1, DIMCLRT 2, the arrow `_Dot` and DIMLWD 0.30 give 42, 176, 178, 341
+and 371 in that order, after QLEADER's DIMGAP and DIMTAD. The words typed take DIMCLRT, the current colour where it is
+BYBLOCK.
+
+**FIXED.** In a UCS other than the world's, LEADER and QLEADER measure the last segment along the UCS's axes, as AutoCAD
+2021 does: the words run along its X, DIMGAP along it from the end, and a segment steeper than 15 degrees to that X is
+hooked with no vertex of the hook's own, where the presenter measured it in the world and added a level hook. In a UCS
+turned 30 degrees a leader from the UCS's (0, 0) to (10, 10) keeps its two points, (0, 0) and (3.66, 13.66) in the world,
+its words 0.625 along the UCS's X from the end; QLEADER raises its words up the world's Y, as AutoCAD 2021 does.
+
+**NEW.** LEADER's Copy and QLEADER's Copy an Object copy an INSERT picked to the leader's end, its scale kept and turned to
+the UCS's X, with no hook, and QLEADER's Reuse Current copies an INSERT kept the same way: an INSERT at (500, 500) scaled
+1.5 by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by 2.5 and turned 0, as AutoCAD 2021 copies it. A TOLERANCE
+is still passed over, as the library cannot move one.
+
+**NEW.** LEADER and QLEADER preview the leader at the cursor while its points are picked, its arrowhead and its line or
+spline as the leader made there draws them; QLEADER's preview runs to the point its angle constraint holds, the cursor at
+(100, 30) previewing a first segment held level to (100, 0) (`CadPreview`).
+
+**NEW.** The Arrowhead list of QLEADER's Leader Settings shows each arrowhead with its picture
+(`CadStylePreview.Arrowhead`) and ends with `User Arrow...`, which lists the drawing's blocks as AutoCAD 2021's Select
+Custom Arrow Block does (`CadQLeaderRequest.Blocks`, `LeaderSettingsViewModel.UserArrowBlocks`): the one chosen becomes
+the arrow, written on OK as DIMLDRBLK and as group 3 of the settings (`CadQLeaderSettings.UserArrow`).
+
 **FIXED.** `AddVisibilityParameter` wrote each visibility state listing no parameter, so AutoCAD 2021 read every other
 property of the block as not visible in any state and showed none of its grips: a sign of the states Cross, Tick and
 Blank with a Width kept Width out of Properties and its arrow off the INSERT. Each state now lists the block's other

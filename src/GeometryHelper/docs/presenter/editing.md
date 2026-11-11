@@ -488,15 +488,25 @@ LEADER (LEAD) asks as AutoCAD 2021 does, on the command line: `Specify leader st
 `Specify next point or [Annotation/Format/Undo] <Annotation>:`. Format makes the leader a spline or straight, with an
 arrow or none; Undo takes the last point back. The words are typed line by line at `Enter first line of annotation text
 or <options>:` and `Enter next line of annotation text:`, or Enter gives `Enter an annotation option
-[Tolerance/Copy/Block/None/Mtext] <Mtext>:`: Copy makes an MTEXT of a text or an MTEXT picked, Block places an INSERT as
-INSERT does, None leaves the leader pointing to nothing, and Mtext opens the MTEXT editor; Tolerance, which needs the
-Geometric Tolerance dialog, is refused. The leader is drawn by the current dimension style and DIMSCALE: its MTEXT stands
+[Tolerance/Copy/Block/None/Mtext] <Mtext>:`: Copy makes an MTEXT of a text or an MTEXT picked, or copies an INSERT picked
+to the leader's end, its scale kept and turned to the X axis of the UCS, with no hook (an INSERT at (500, 500) scaled 1.5
+by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by 2.5 and turned 0, as AutoCAD 2021 copies it); a TOLERANCE,
+which the library cannot move, is passed over and the option asked again. Block places an INSERT as INSERT does, None
+leaves the leader pointing to nothing, and Mtext opens the MTEXT editor; Tolerance, which needs the Geometric Tolerance
+dialog, is refused. While the points are picked the leader is previewed at the cursor, its arrowhead and its line or
+spline as the leader made there draws them. The leader is drawn by the current dimension style and DIMSCALE: its MTEXT stands
 DIMGAP past the last point, to the right where the last segment runs right or straight up or down, and a hook DIMASZ
 long runs on to it where that segment is steeper than 15 degrees: a leader from (0, 0) to (10, 10) with DIMASZ 2.5 ends
 (7.5, 10), (10, 10), its words middle-left at (10.625, 10) with DIMGAP 0.625, or bottom-left at (10.625, 10.625) with
-DIMTAD 1, as ISO-25 has it. The dimension variables other than the
-style's are written as the leader's overrides, as AutoCAD writes them: DIMSCALE 2 gives `1070 40, 1040 2` and words twice
-DIMTXT high. QLEADER (LE) draws by the drawing's Leader Settings, which Settings or Enter at `Specify first leader point,
+DIMTAD 1, as ISO-25 has it. Every dimension variable other than the
+style's is written as the leader's override, as AutoCAD writes them, in the order of their groups: DIMSCALE 2 gives `1070
+40, 1040 2` and words twice DIMTXT high, and DIMEXO 0.5, DIMCLRD 1, DIMCLRT 2, the arrow `_Dot` and DIMLWD 0.30 give 42,
+176, 178, 341 and 371 in that order. Words typed take DIMCLRT, the current colour where it is BYBLOCK. In a UCS other
+than the world's, a moved one too, the last segment is measured along the UCS's axes, as AutoCAD 2021 measures it: the
+words run along its X, DIMGAP along it from the end (and DIMGAP up its Y with DIMTAD 1), and a leader steeper than 15
+degrees to that X is marked as hooked but keeps the points picked, with no vertex of the hook's own; in a UCS turned 30
+degrees a leader from the UCS's (0, 0) to (10, 10) ends at the world's (3.66, 13.66), its words 0.625 along the UCS's X
+from there. QLEADER (LE) draws by the drawing's Leader Settings, which Settings or Enter at `Specify first leader point,
 or [Settings] <Settings>:` shows where there is a window (with none, the command line says so and QLEADER draws by the
 settings the drawing has). AutoCAD 2021 keeps them per drawing, in an XRECORD under the key `AcadDim` of the named object
 dictionary with group 90 of 990106, and `CadQLeaderSettings` reads and writes that record as AutoCAD's QLEADER reads it
@@ -510,12 +520,18 @@ every leader, as AutoCAD 2021 writes them. Each setting is followed as AutoCAD 2
 tab hangs the words from their top, middle or bottom, `Middle of top line` half DIMTXT above the end; Underline bottom
 line writes DIMTAD 1 and stands them DIMGAP above it; Frame text writes DIMGAP below nought; Always left justify asks no
 width and sets the words' right edge DIMGAP short of an end on their right; a segment held to an angle takes the point
-square onto the nearest ray, (100, 30) held level from the origin being (100, 0); Copy an Object stands the copy by its
-middle; Block Reference asks the block and INSERT's prompts; None and Tolerance (which needs the Geometric Tolerance
-dialog, greyed in Leader Settings) end the leader with no annotation; Reuse Next keeps the next words, the settings then
-turned to Reuse Current, which copies them to each later leader with nothing asked. A leader arrow other than the
-style's is written as the leader's DIMLDRBLK override, `1070 341, 1005` and the handle of `_Dot`. LEADER and QLEADER are
-each one undo step.
+square onto the nearest ray, (100, 30) held level from the origin being (100, 0), and the preview at the cursor runs to
+the point held, so that the cursor at (100, 30) previews the segment to (100, 0); Copy an Object stands the copy of words
+by its middle and copies an INSERT as LEADER's Copy does; Block Reference asks the block and INSERT's prompts; None and
+Tolerance (which needs the Geometric Tolerance dialog, greyed in Leader Settings) end the leader with no annotation;
+Reuse Next keeps the next words, the settings then turned to Reuse Current, which copies them to each later leader with
+nothing asked, and copies an INSERT kept to the leader's end as Copy does. In a turned UCS QLEADER raises its words up
+the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. A leader arrow other
+than the style's is written as the leader's DIMLDRBLK override, `1070 341, 1005` and the handle of `_Dot`. The
+Arrowhead list of Leader Settings shows each arrowhead with its picture, drawn as a leader draws it, and ends with
+`User Arrow...`, which lists the drawing's blocks (all but layouts, anonymous blocks and external references) as
+AutoCAD's Select Custom Arrow Block does: the one chosen becomes the arrow, written on OK as DIMLDRBLK and as group 3 of
+the settings. LEADER and QLEADER are each one undo step.
 
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
