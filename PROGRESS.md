@@ -106,8 +106,10 @@ the ones wanted.
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
 - [x] Associative dimensions: PERpendicular and TANgent snaps tied with AutoCAD's "last point" reference
-- [ ] Associative dimensions (running): PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
-      with PER/TAN ties (S)
+- [x] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT 0 in AutoCAD
+      and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
+- [ ] Associative dimensions follow-ups: PER to a foot past a line's end (extended perpendicular); DIMANGULAR on a circle;
+      groups 11 and 42 written; the three-point angular arc point as AutoCAD picks it (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
