@@ -31,6 +31,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 feature;
+            GeoPoint2? last = null;
 
             if (given.HasValue)
             {
@@ -38,7 +39,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                yield return CadPrompt.ForPoint("Specify feature location");
+                last = c.Session.LastPoint;
+                yield return CadPrompt.ForPoint("Specify feature location").SnappingFrom(last.Value);
 
                 if (!c.Input.IsPoint)
                 {
@@ -48,8 +50,9 @@ namespace GeometryHelper.Dxf.Viewer
                 feature = c.Input.Point;
             }
 
-            // The feature is the ordinate's point 1, tied as AutoCAD 2021 ties it (group 90 of its DIMASSOC 2).
-            DxfOsnapPointRef tied = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+            // The feature is the ordinate's point 1, tied as AutoCAD 2021 ties it (group 90 of its DIMASSOC 2): a perpendicular or a
+            // tangent drawn from the last point, which is not tied with it.
+            DxfOsnapPointRef tied = CadDimAssociation.WithoutLastPoint(CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, last));
 
             bool? xDatum = null;
             string text = null;

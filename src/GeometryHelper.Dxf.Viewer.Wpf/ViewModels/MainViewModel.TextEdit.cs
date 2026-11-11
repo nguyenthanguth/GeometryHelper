@@ -40,8 +40,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets what shows Paste Special and gives back the paste chosen (PASTECLIP, PASTEBLOCK, PASTEORIG, TEXT), or null where it was cancelled.</summary>
         public Func<PasteSpecialViewModel, string> ShowPasteSpecial { get; set; }
 
-        /// <summary>Gets or sets what asks, on Esc in the MTEXT editor, whether to keep the changes: true to keep, false to drop, null to go on editing.</summary>
-        public Func<bool?> AskKeepMTextChanges { get; set; }
+        /// <summary>
+        /// Gets or sets what asks, on Esc in the MTEXT editor with changes, Multiline Text - Unsaved Changes: true for Yes, to
+        /// keep them, false for No, to drop them, null for Cancel, to go on editing; the question's
+        /// <see cref="MTextUnsavedChangesViewModel.AlwaysPerform"/> set where Always perform my current choice was ticked.
+        /// </summary>
+        public Func<MTextUnsavedChangesViewModel, bool?> AskKeepMTextChanges { get; set; }
 
         /// <summary>Gets the contextual Text Editor tab, shown while an MTEXT is being written or edited.</summary>
         public CadWorkspaceExtension TextEditorTab
@@ -131,7 +135,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CommitInPlace(editor.IsModified || editor.Edit.Handle == null ? editor.Editor.Contents : editor.Edit.Value);
         }
 
-        /// <summary>Esc in the MTEXT editor: asks whether to keep the changes where there are any, as AutoCAD; with nothing changed it just closes.</summary>
+        /// <summary>
+        /// Esc in the MTEXT editor, as AutoCAD 2021's: with nothing changed it just closes; with changes it asks Multiline
+        /// Text - Unsaved Changes, Yes saving them and closing, No dropping them and closing, Cancel going on editing. A Yes or
+        /// No given with Always perform my current choice is kept in Global settings
+        /// (<see cref="GlobalSettings.MTextUnsavedChanges"/>), saved, and given from then on with no question.
+        /// </summary>
         public void EscapeTextEditor()
         {
             if (_textEditor == null)
@@ -139,8 +148,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            // With no one to ask, the changes are kept, as Close Text Editor keeps them.
-            bool? keep = !_textEditor.IsModified ? false : AskKeepMTextChanges != null ? AskKeepMTextChanges() : true;
+            bool? keep;
+
+            if (!_textEditor.IsModified)
+            {
+                keep = false;
+            }
+            else if (_settings.MTextUnsavedChanges != "Ask")
+            {
+                keep = _settings.MTextUnsavedChanges == "Yes";
+            }
+            else if (AskKeepMTextChanges == null)
+            {
+                // With no one to ask, the changes are kept, as Close Text Editor keeps them.
+                keep = true;
+            }
+            else
+            {
+                var question = new MTextUnsavedChangesViewModel();
+                keep = AskKeepMTextChanges(question);
+
+                if (keep.HasValue && question.AlwaysPerform)
+                {
+                    _settings.MTextUnsavedChanges = keep.Value ? "Yes" : "No";
+
+                    try
+                    {
+                        _settings.Save(SettingsPath);
+                    }
+                    catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+                    {
+                        GeometryHelperLog.Warn("MainViewModel: Global settings were not saved after Always perform my current choice.", ex);
+                    }
+                }
+            }
 
             if (keep.HasValue)
             {

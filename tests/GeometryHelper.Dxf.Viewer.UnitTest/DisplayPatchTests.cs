@@ -289,7 +289,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         /// <summary>Each item as a line of text: its kind and every number, text and list it shows through its public properties.</summary>
-        private static List<string> Describe(DisplayList2 list)
+        internal static List<string> Describe(DisplayList2 list)
         {
             var lines = list.Items.Select(i => Describe(i, 0)).ToList();
             lines.Add(Describe(list.Bounds, 0));

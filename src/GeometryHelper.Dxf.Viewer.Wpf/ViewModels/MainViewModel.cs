@@ -553,12 +553,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Opens a DXF file, or shows it again where it is open already: opened from it, or shown under a key of its own and
         /// saved to it, as an extension's drawing just made is. It lists the other DXF files of its folder. A file that
         /// cannot be read leaves the drawing shown as it was and says why on the command line. Each extension is told of the
-        /// document before it is shown (<see cref="CadWorkspaceExtension.DocumentOpened"/>).
+        /// document before it is shown (<see cref="CadWorkspaceExtension.DocumentOpened"/>). Where
+        /// <see cref="OpensInBackground"/> is set, a file not open yet is opened as <see cref="OpenAsync"/> opens it.
         /// </summary>
         /// <param name="path">The path of the file.</param>
-        /// <returns>True when the file is shown.</returns>
-        public bool Open(string path)
+        /// <returns>True when the file is shown, or, opened in the background, when its opening has started.</returns>
+        public bool Open(string path) => Open(path, OpensInBackground, out _);
+
+        /// <summary>
+        /// <see cref="Open(string)"/>, a file not open yet read and drawn in the background or at once; the opening in the
+        /// background it started or joined, null for none.
+        /// </summary>
+        private bool Open(string path, bool inBackground, out Opening opening)
         {
+            opening = null;
+
             if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
@@ -594,6 +603,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            if (inBackground)
+            {
+                return StartOpening(full, out opening);
+            }
+
             CadDocument document;
 
             try
@@ -610,11 +624,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 extension.DocumentOpened(document);
             }
 
+            return ShowOpened(full, known, document, null);
+        }
+
+        /// <summary>
+        /// Shows a document just opened from a file, its extensions told already: listed under the file, its folder's files
+        /// listed, the lines its fonts said while it was drawn on a worker thread written, then the line that it is open.
+        /// </summary>
+        private bool ShowOpened(string full, KnownFile known, CadDocument document, IReadOnlyList<string> said)
+        {
             known = known ?? new KnownFile(full, System.IO.Path.GetDirectoryName(full));
             Attach(known, document);
             _files[full] = known;
             ListFolder(known.Folder);
             Show(known);
+
+            foreach (string line in said ?? Array.Empty<string>())
+            {
+                Say(line);
+            }
+
             Say("Opened " + document.Title + ": " + Count(document.EntityCount) + " entities, " + Count(document.Layers.Count) + " layers.");
             NoteRecentFile(full);
             OfferMissingFonts(document);
@@ -795,7 +824,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint);
+            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint, _current.Session.Prompt.SnapFrom);
         }
 
         /// <summary>Selects nothing.</summary>
@@ -803,7 +832,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Esc: ends the command running, saying *Cancel*; with none running, clears the selection. With the options menu of
-        /// dynamic input open it closes the menu alone, and the command goes on.
+        /// dynamic input open it closes the menu alone, and the command goes on; while a drawing is opening in the background,
+        /// it stops the opening alone (<see cref="CancelOpening"/>).
         /// </summary>
         public void Escape()
         {
@@ -816,6 +846,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Esc throws away what is typed on the command line, the AutoComplete list with it, as AutoCAD's does.
             CommandText = string.Empty;
             CloseSuggestions();
+
+            if (CancelOpening())
+            {
+                return;
+            }
 
             if (_current == null)
             {
@@ -874,6 +909,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="input">The line.</param>
         public void Execute(string input)
         {
+            if (RefusedWhileOpening(input))
+            {
+                return;
+            }
+
             string line = input ?? string.Empty;
 
             if (line.Trim().Length > 0)
@@ -938,7 +978,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="name">The name: LINE, MOVE, DIMLINEAR.</param>
         public void StartCommand(string name)
         {
-            if (_current == null || string.IsNullOrWhiteSpace(name))
+            if (_current == null || string.IsNullOrWhiteSpace(name) || RefusedWhileOpening(name))
             {
                 return;
             }
@@ -1321,6 +1361,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
+            WatchReferences(document);
         }
 
         internal void Say(string line)
@@ -1530,6 +1571,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     OnFindRequested(e);
                     break;
                 case "XREF":
+                case "XOPEN":
                 case "XATTACH":
                 case "IMAGEATTACH":
                     OnXrefRequested(e);

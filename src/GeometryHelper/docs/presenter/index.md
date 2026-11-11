@@ -101,6 +101,16 @@ dimensions, and 1 000 INSERTs of a block of 500 entities: 3.9 million items), on
 A step of the undo list is saved at once and compressed on a worker thread, so an edit does not wait for the 140 MB of
 such a drawing to be packed; an undo reads the whole drawing back, which is the 2.3 s above.
 
+The canvas keeps a picture of the drawing and draws the selection over a copy of it. Where several thousand items are
+selected, the canvas is cut into tiles and a thread draws each: an item that can only touch the pixels of one tile is
+drawn by its thread, one that reaches into several is drawn by the last of their threads to get to it, the others
+waiting, and a text, a hatch, a ray or a picture, whose pixels its box does not bound, is drawn with every other thread
+waiting. Any two items that may share a pixel are so drawn in the order of the drawing, each as one thread would draw it
+on the whole canvas, and the picture is the same pixel for pixel. All 100 000 entities of a drawing selected at its
+extents are highlighted in about 150 ms rather than 300 on 24 processors under .NET Framework 4.8; where the selection
+lies in a patch of a few hundred pixels, as the first 100 000 entities of a million at the extents, every item waits on
+its neighbours and the threads gain nothing.
+
 ## See also
 
 - [DXF files](../dxf/index.md): the model the presenter opens and edits.

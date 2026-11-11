@@ -38,13 +38,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class ReferenceRowViewModel
     {
-        internal ReferenceRowViewModel(CadExternalReference reference)
+        internal ReferenceRowViewModel(CadExternalReference reference, bool tree = false)
         {
             Reference = reference;
             Name = reference.Name;
             StatusText = reference.StatusText;
-            TypeName = reference.TypeName;
+            TypeName = reference.IsNested && !tree ? "Nested" : reference.TypeName;
             SizeText = Size(reference.Size);
+            Indent = tree ? 16 * (reference.Depth + 1) : 0;
         }
 
         internal ReferenceRowViewModel(CadDocument document)
@@ -76,8 +77,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the status in the palette's words.</summary>
         public string StatusText { get; }
 
-        /// <summary>Gets the type: Current, Attach, Overlay, or the kind of picture.</summary>
+        /// <summary>Gets the type: Current, Attach, Overlay, or the kind of picture; Nested for a nested reference in the list view.</summary>
         public string TypeName { get; }
+
+        /// <summary>Gets the indent of the name in the tree view: 16 under the drawing, 16 more for each level a reference is nested; 0 in the list view.</summary>
+        public double Indent { get; }
+
+        /// <summary>Gets whether the row is a nested reference, which the drawing of another reference places.</summary>
+        public bool IsNested => Reference != null && Reference.IsNested;
 
         /// <summary>Gets the size of its file, as 48 KB or 1.2 MB; empty where no file was found.</summary>
         public string SizeText { get; }
@@ -88,7 +95,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the row is an image.</summary>
         public bool IsImage => Reference != null && Reference.IsImage;
 
-        /// <summary>Gets the colour of the status: green Loaded, red Not Found, amber Unloaded and Needs reloading, the text's otherwise.</summary>
+        /// <summary>Gets the colour of the status: green Loaded, red Not Found, amber Unloaded, Needs reloading and Orphaned, the text's otherwise.</summary>
         public Brush StatusBrush
         {
             get
@@ -102,6 +109,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return Frozen(0xF8, 0x51, 0x49);
                     case CadReferenceStatus.Unloaded:
                     case CadReferenceStatus.NeedsReloading:
+                    case CadReferenceStatus.Orphaned:
                         return Frozen(0xD2, 0x99, 0x22);
                     default:
                         return Frozen(0xE6, 0xE9, 0xED);
@@ -159,14 +167,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AttachDxfCommand = new DelegateCommand(_ => _model.StartCommand("XATTACH"), _ => Document != null);
             AttachImageCommand = new DelegateCommand(_ => _model.StartCommand("IMAGEATTACH"), _ => Document != null);
             OpenCommand = new DelegateCommand(_ => Open(), _ => IsReference && Selected.Reference.FoundAt != null);
-            UnloadCommand = new DelegateCommand(_ => Run("Unload"), _ => IsReference);
-            ReloadCommand = new DelegateCommand(_ => Run("Reload"), _ => IsReference);
-            DetachCommand = new DelegateCommand(_ => Run("Detach"), _ => IsReference);
+            UnloadCommand = new DelegateCommand(_ => Run("Unload"), _ => IsOwn);
+            ReloadCommand = new DelegateCommand(_ => Run("Reload"), _ => IsOwn);
+            DetachCommand = new DelegateCommand(_ => Run("Detach"), _ => IsOwn);
             RefreshCommand = new DelegateCommand(_ => Refresh());
             ReloadAllCommand = new DelegateCommand(_ => ReloadAll(), _ => Document != null);
-            MakeAbsoluteCommand = new DelegateCommand(_ => SetPathType(CadPathType.Full), _ => IsReference && Selected.Reference.FoundAt != null);
-            MakeRelativeCommand = new DelegateCommand(_ => SetPathType(CadPathType.Relative), _ => IsReference && Selected.Reference.FoundAt != null && Document?.HasFile == true);
-            RemovePathCommand = new DelegateCommand(_ => SetPathType(CadPathType.None), _ => IsReference && Selected.Reference.FoundAt != null);
+            MakeAbsoluteCommand = new DelegateCommand(_ => SetPathType(CadPathType.Full), _ => IsOwn && Selected.Reference.FoundAt != null);
+            MakeRelativeCommand = new DelegateCommand(_ => SetPathType(CadPathType.Relative), _ => IsOwn && Selected.Reference.FoundAt != null && Document?.HasFile == true);
+            RemovePathCommand = new DelegateCommand(_ => SetPathType(CadPathType.None), _ => IsOwn && Selected.Reference.FoundAt != null);
             Refresh();
         }
 
@@ -196,12 +204,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the row selected is a reference or an image rather than the drawing itself.</summary>
         public bool IsReference => _selected?.Reference != null;
 
-        /// <summary>Gets or sets whether the rows are shown as a tree under the drawing rather than as a list.</summary>
+        /// <summary>
+        /// Gets or sets whether the rows are shown as a tree under the drawing rather than as a list: each nested reference
+        /// under the one whose drawing places it, of its own type, where the list shows it once, of the type Nested.
+        /// </summary>
         public bool IsTreeView
         {
             get => _isTreeView;
-            set => Set(ref _isTreeView, value);
+            set
+            {
+                if (Set(ref _isTreeView, value))
+                {
+                    Refresh();
+                }
+            }
         }
+
+        /// <summary>Whether the row selected is a reference or image of the drawing's own, which Unload, Reload, Detach and Change Path act on; a nested one is not.</summary>
+        private bool IsOwn => IsReference && !_selected.IsNested;
 
         /// <summary>Gets or sets whether the lower pane shows a preview of the row selected rather than its details.</summary>
         public bool IsPreview
@@ -313,10 +333,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (document != null)
             {
                 Rows.Add(new ReferenceRowViewModel(document));
+                var listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (CadExternalReference reference in document.Xrefs.GetReferences())
                 {
-                    Rows.Add(new ReferenceRowViewModel(reference));
+                    // The list shows a reference nested in two places once; the tree under each.
+                    if (_isTreeView || !reference.IsNested || listed.Add(reference.Name))
+                    {
+                        Rows.Add(new ReferenceRowViewModel(reference, _isTreeView));
+                    }
                 }
             }
 
@@ -330,7 +355,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="path">The new path.</param>
         public void SetPath(string path)
         {
-            if (!IsReference || string.IsNullOrWhiteSpace(path))
+            if (!IsOwn || string.IsNullOrWhiteSpace(path))
             {
                 return;
             }
@@ -389,7 +414,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void Run(string option)
         {
-            if (!IsReference)
+            if (!IsOwn)
             {
                 return;
             }

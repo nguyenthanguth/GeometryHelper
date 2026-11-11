@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The commands of external references and images, in AutoCAD 2021's words: XATTACH and IMAGEATTACH (the attach dialogs,
-    /// their typed forms with no window), XREF, EXTERNALREFERENCES and IMAGE (the palette), -XREF and -IMAGE, IMAGECLIP,
+    /// their typed forms with no window), XREF, EXTERNALREFERENCES and IMAGE (the palette), -XREF and -IMAGE, XOPEN, IMAGECLIP,
     /// IMAGEFRAME and TRANSPARENCY. Each change of the drawing is one undo step; unloading and reloading change what is shown,
     /// not the drawing, and are not.
     /// </summary>
@@ -29,6 +29,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("IMAGE", XrefPalette));
             registry.Add(new CadCommand("-XREF", XrefTyped));
             registry.Add(new CadCommand("-IMAGE", ImageTyped));
+            registry.Add(new CadCommand("XOPEN", XrefOpen));
             registry.Add(new CadCommand("IMAGECLIP", ImageClip));
             registry.Add(new CadCommand("TRANSPARENCY", Transparency));
         }
@@ -42,6 +43,49 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             yield break;
+        }
+
+        /// <summary>
+        /// XOPEN: the drawing of an external reference picked opened in a tab of its own, as AutoCAD 2021 opens it in a window
+        /// of its own. "Select Xref:" is asked until an external reference is picked, anything else answered "Object is not an
+        /// Xref", or until Enter, which ends it saying nothing. A pick on what a nested reference draws takes the INSERT the
+        /// drawing places, and opens its reference. One whose file is not found is refused as -XREF Reload refuses it. The
+        /// window opens the file; with none, the command says so.
+        /// </summary>
+        private static IEnumerable<CadPrompt> XrefOpen(CadCommandContext c)
+        {
+            while (true)
+            {
+                yield return CadPrompt.ForEntity("Select Xref");
+
+                if (c.Input.Kind != CadInputKind.Selection)
+                {
+                    yield break;
+                }
+
+                DxfBlockTableRecord block = c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference reference && c.Database.BlockTable.Has(reference.Name)
+                    ? c.Database.BlockTable[reference.Name]
+                    : null;
+
+                if (block == null || !block.IsFromExternalReference)
+                {
+                    c.Write("Object is not an Xref");
+                    continue;
+                }
+
+                string found = c.Document.Xrefs.Locate(block.PathName);
+
+                if (found == null)
+                {
+                    c.Write("\"" + block.PathName + "\" cannot be found.");
+                }
+                else if (!c.Session.Request("XOPEN", c.Document, found))
+                {
+                    c.Write("The drawing " + found + " is opened in a tab of its own by the window.");
+                }
+
+                yield break;
+            }
         }
 
         /// <summary>

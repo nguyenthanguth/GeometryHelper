@@ -48,6 +48,15 @@ namespace GeometryHelper.UnitTest.Dwg
     /// it holds, and the visual styles <c>$INTERFEREOBJVS</c> and <c>$INTERFEREVPVS</c>, which a file of R2010 and later
     /// holds as no handle.
     /// </para>
+    /// <para>
+    /// And what AutoCAD changes in the records the reader reads since W4: the proxy graphics of an entity, compared by size,
+    /// as AutoCAD draws them anew and the padding after a text in them holds whatever its memory held; the date at the end of
+    /// the second line of the SAT data of an ACIS entity, which AutoCAD writes empty; the entry <c>AcDsDecomposeData</c> of
+    /// the root dictionary of R2013, with what it holds; the part of an R2000 round-trip record that AutoCAD takes into its
+    /// object (the record must start as the key's); the extended data <c>DBColXD</c> of a DBCOLOR, which AutoCAD takes away
+    /// from R2000 and doubles writing R2004 to R2013; and flag 4 of an empty cell value of a table of R2007, which AutoCAD
+    /// writes for some cells and not for others.
+    /// </para>
     /// </remarks>
     internal static class DwgAnswerKey
     {
@@ -294,7 +303,25 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
 
                 List<KeyValuePair<int, string>> groups = WithoutRoundTrip(a, b, got, roundTrip);
+
+                if (a.Type == "DBCOLOR")
+                {
+                    // The extended data DBColXD, the index, true colour and name of a colour of a book for releases that do
+                    // not know it: AutoCAD takes it away from an R2000 file as it reads it, and writing R2004 to R2013 adds a
+                    // second copy. Compared without it.
+                    a.Groups = WithoutBookData(a.Groups);
+                    groups = WithoutBookData(groups);
+                }
+
+                if (a.Type == "XRECORD" && groups.Count > a.Groups.Count && a.Owner != null && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record holder)
+                    && holder.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_XREC_ROUNDTRIP"))
+                {
+                    // The round-trip data of R2000: AutoCAD takes the values it knows into the object and keeps the rest.
+                    groups = groups.GetRange(0, a.Groups.Count);
+                }
                 string fault = groups.Count != a.Groups.Count ? "the key has " + a.Groups.Count + " groups, the reader " + groups.Count : null;
+
+                bool graphics = false;
 
                 for (int i = 0; i < Math.Min(a.Groups.Count, groups.Count); i++)
                 {
@@ -302,6 +329,33 @@ namespace GeometryHelper.UnitTest.Dwg
                     string v1 = a.Groups[i].Value;
                     string v2 = groups[i].Value;
                     bool same = code == groups[i].Key;
+                    graphics = code == 310 ? graphics : (code == 92 || code == 160) && a.Section != "OBJECTS";
+
+                    string head = v1.TrimEnd();
+
+                    if (same && code == 1 && (a.Type == "REGION" || a.Type == "3DSOLID" || a.Type == "BODY") && a.Groups.FindIndex(g => g.Key == 1) + 1 == i
+                        && head.EndsWith(" o", StringComparison.Ordinal) && v2.StartsWith(head.Substring(0, head.Length - 1), StringComparison.Ordinal))
+                    {
+                        // The second line of the SAT data of an ACIS entity ends in the date it was saved, counted by its
+                        // length; AutoCAD writes it empty (the count 0, "o" as SAT data keeps it) as it writes the DXF.
+                        continue;
+                    }
+
+                    if (same && code == 93 && a.Type == "ACAD_TABLE" && i > 0 && a.Groups[i - 1].Value == "CELL_VALUE"
+                        && int.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f1) && int.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f2)
+                        && (f1 & 1) != 0 && (f1 & ~4) == (f2 & ~4))
+                    {
+                        // The flags of an empty cell value: the file holds 7; AutoCAD's DXF of R2007 writes 3 for most and 7
+                        // for some, of its own state. Compared without flag 4.
+                        continue;
+                    }
+
+                    if (same && graphics && code == 310 && v1.Length == v2.Length)
+                    {
+                        // The proxy graphics of an entity: AutoCAD draws them anew as it writes the DXF, and the padding
+                        // after a text in them holds whatever its memory held. Compared by size.
+                        continue;
+                    }
 
                     if (same && IsNumber(code))
                     {
@@ -414,18 +468,35 @@ namespace GeometryHelper.UnitTest.Dwg
                     one.Groups.RemoveRange(saveVersion - 1, Math.Min(3, one.Groups.Count - saveVersion + 1));
                 }
 
-                int recompose = one.Groups.FindIndex(g => g.Key == 3 && g.Value == "ACDB_RECOMPOSE_DATA");
-
-                if (one.Type == "DICTIONARY" && recompose >= 0 && recompose + 1 < one.Groups.Count)
+                foreach (string added in new[] { "ACDB_RECOMPOSE_DATA", "AcDsDecomposeData" })
                 {
-                    dropped.Add("X:" + one.Groups[recompose + 1].Value.ToUpperInvariant());
-                    one.Groups.RemoveRange(recompose, 2);
+                    int recompose = one.Groups.FindIndex(g => g.Key == 3 && g.Value == added);
+
+                    if (one.Type == "DICTIONARY" && recompose >= 0 && recompose + 1 < one.Groups.Count)
+                    {
+                        dropped.Add("X:" + one.Groups[recompose + 1].Value.ToUpperInvariant());
+                        one.Groups.RemoveRange(recompose, 2);
+                    }
                 }
 
                 if (one.Type == "DICTIONARY" && one.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP"))
                 {
                     dropped.Add(one.Key);
                     dropped.UnionWith(one.Groups.Where(g => g.Key == 360 || g.Key == 350).Select(g => "X:" + g.Value.ToUpperInvariant()));
+                }
+            }
+
+            // And what those records own, at any depth.
+            for (bool more = true; more;)
+            {
+                more = false;
+
+                foreach (Record one in records)
+                {
+                    if (one.Section == "OBJECTS" && one.Owner != null && !dropped.Contains(one.Key) && dropped.Contains("X:" + one.Owner.ToUpperInvariant()))
+                    {
+                        more |= dropped.Add(one.Key);
+                    }
                 }
             }
 
@@ -472,6 +543,13 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             return groups;
+        }
+
+        /// <summary>The groups without the extended data of ACAD that starts with DBColXD, to their end.</summary>
+        private static List<KeyValuePair<int, string>> WithoutBookData(List<KeyValuePair<int, string>> groups)
+        {
+            int at = groups.FindIndex(g => g.Key == 1001 && g.Value == "ACAD");
+            return at >= 0 && at + 1 < groups.Count && groups[at + 1].Value == "DBColXD" ? groups.GetRange(0, at) : groups;
         }
 
         /// <summary>Whether the owners of a record lead to a record that is not there or is of a type the reader does not read.</summary>

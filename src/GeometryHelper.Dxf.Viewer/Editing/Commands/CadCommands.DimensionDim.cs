@@ -33,7 +33,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Select objects or specify first extension line origin", null, keywords);
+                GeoPoint2 lastBefore = c.Session.LastPoint;
+                yield return CadPrompt.ForPoint("Select objects or specify first extension line origin", null, keywords).SnappingFrom(lastBefore);
                 IEnumerable<CadPrompt> step;
 
                 if (c.Input.IsPoint)
@@ -42,7 +43,7 @@ namespace GeometryHelper.Dxf.Viewer
                     // A point an object snap gave is an origin, as AutoCAD's DIM takes it, not a pick of the object under it.
                     bool snapped = c.Input.Snap != null && c.Input.Snap.Kind != CadSnapKind.None;
                     DxfEntity picked = c.Input.Text == null && !snapped ? Dimensionable(c, at) : null;
-                    step = picked == null ? DimLine(c, false, at) : DimObject(c, picked);
+                    step = picked == null ? DimLine(c, false, at, lastBefore) : DimObject(c, picked);
                 }
                 else if (c.Input.Is("Angular"))
                 {

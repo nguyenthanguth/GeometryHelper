@@ -25,6 +25,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly DxfDatabase _database;
         private readonly CadDocument _document;
         private readonly Dictionary<string, LayerState> _layers = new Dictionary<string, LayerState>(StringComparer.OrdinalIgnoreCase);
+
+        // A layer of a drawing referenced as drawn: what the drawing showing it changed, the rest its own; made once, looked up only.
+        private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(StringComparer.OrdinalIgnoreCase);
         private readonly double _ltScale;
@@ -49,6 +52,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The handles of the anonymous blocks and other entities the entity being drawn has read; null for none yet.</summary>
         private List<string> _runReads;
+
+        /// <summary>One less than how many entities of a space are drawn between two reports of <see cref="Progress"/>, a power of two.</summary>
+        private const int ReportEvery = 4095;
+
+        /// <summary>Gets or sets what is told the share of a space's entities drawn, every 4 096; null for nothing.</summary>
+        internal IProgress<double> Progress { get; set; }
+
+        /// <summary>Gets or sets what stops a space being drawn, looked at every 4 096 entities.</summary>
+        internal System.Threading.CancellationToken Cancellation { get; set; }
 
         /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
         private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(StringComparer.OrdinalIgnoreCase);
@@ -135,7 +147,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The layer of a name as it is drawn: the drawing's own; in a drawing referenced, a record of the drawing that shows
-        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own.
+        /// it first (GRID|WALLS as AutoCAD keeps it there, or the layer of the INSERT a layer 0 takes), then its own. A record
+        /// that keeps which properties the drawing changed, as AutoCAD 2021 keeps them under VISRETAIN 1, gives those alone, the
+        /// rest read from the drawing referenced (<see cref="CadXrefLayers"/>): GRID|WALLS made red there and green in the file
+        /// referenced is drawn red, and once the file is made blue, still red; left as it was, it is drawn blue.
         /// </summary>
         private LayerState LayerNamed(string name)
         {
@@ -145,7 +160,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (shown != null)
                 {
-                    return shown;
+                    if (shown.Overrides == null || !_layers.TryGetValue(name, out LayerState own))
+                    {
+                        return shown;
+                    }
+
+                    if (!_merged.TryGetValue(name, out LayerState merged))
+                    {
+                        merged = new LayerState(shown, own, shown.Overrides.Value);
+                        _merged[name] = merged;
+                    }
+
+                    return merged;
                 }
             }
 
@@ -256,8 +282,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(space)?.Entities ?? space)
+                IReadOnlyList<DxfEntity> content = ContentOf(space)?.Entities;
+                int walked = 0;
+
+                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)content ?? space)
                 {
+                    if ((++walked & ReportEvery) == 0)
+                    {
+                        Cancellation.ThrowIfCancellationRequested();
+                        Progress?.Report(content == null ? 0.0 : (double)walked / content.Count);
+                    }
+
                     string handle = HandleOf(entity);
 
                     if (hidden != null && handle != null && hidden.Contains(handle))
@@ -521,6 +556,22 @@ namespace GeometryHelper.Dxf.Viewer
                 LineWeight = weight >= 0 ? weight / 100.0 : 0.25;
                 Linetype = record.LinetypeName ?? "Continuous";
                 Record = record;
+                Overrides = record.IsDependent ? CadXrefLayers.Overrides(record) : null;
+            }
+
+            /// <summary>
+            /// A layer of a drawing referenced as the drawing showing it keeps it: what that drawing changed (the bits of
+            /// <see cref="CadXrefLayers"/>) from its record, the rest from the drawing referenced.
+            /// </summary>
+            public LayerState(LayerState shown, LayerState own, int overrides)
+            {
+                bool off = (overrides & CadXrefLayers.Off) != 0 ? shown.Record.IsOff : own.Record.IsOff;
+                bool frozen = (overrides & CadXrefLayers.Frozen) != 0 ? shown.Record.IsFrozen : own.Record.IsFrozen;
+                Visible = !off && !frozen;
+                Rgb = (overrides & CadXrefLayers.Color) != 0 ? shown.Rgb : own.Rgb;
+                LineWeight = (overrides & CadXrefLayers.LineWeight) != 0 ? shown.LineWeight : own.LineWeight;
+                Linetype = (overrides & CadXrefLayers.Linetype) != 0 ? shown.Linetype : own.Linetype;
+                Record = shown.Record;
             }
 
             /// <summary>A layer as one viewport shows it: its colour, lineweight and linetype there.</summary>
@@ -542,6 +593,9 @@ namespace GeometryHelper.Dxf.Viewer
             public string Linetype { get; }
 
             public DxfLayerTableRecord Record { get; }
+
+            /// <summary>For a layer of an external reference, the properties the drawing changed of it; null where it keeps none, or is the drawing's own.</summary>
+            public int? Overrides { get; }
 
             /// <summary>Whether an entity on this layer is drawn as on another: both shown or both hidden, of one colour, lineweight and linetype.</summary>
             public bool DrawsAs(LayerState other)
@@ -849,6 +903,22 @@ namespace GeometryHelper.Dxf.Viewer
             if (_building != null)
             {
                 _runLayers |= _building.LayerBit(layerName);
+            }
+            else if (_host != null)
+            {
+                // What an external reference draws counts in the run of its INSERT, so that a change of grid|GRID in the
+                // drawing showing it draws the INSERT anew.
+                DisplayBuilder root = _host;
+
+                while (root._host != null)
+                {
+                    root = root._host;
+                }
+
+                if (root._building != null)
+                {
+                    root._runLayers |= root._building.LayerBit(layerName);
+                }
             }
 
             // The layer first: an entity's own visibility is read from its groups, near a microsecond each, which an entity on a layer

@@ -21,9 +21,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// </para>
     /// <para>
     /// The points followed are the ends, middles, centers, quadrants and nearest points of lines, arcs, circles and the
-    /// segments of light polylines, POINTs, where two lines, arcs or circles cross, and the feet of perpendiculars to lines,
-    /// arcs and circles and the points of tangency of arcs and circles, drawn again from the point they were drawn from. A
-    /// point tied to another kind of object stays where it is.
+    /// segments of light polylines, POINTs, where two lines, arcs, circles or segments cross, and the feet of perpendiculars
+    /// to them and the points of tangency of arcs, circles and arcs of polylines (<see cref="DrawnAt"/>). A point tied to
+    /// another kind of object stays where it is.
     /// </para>
     /// </remarks>
     internal static class CadDimAssociation
@@ -85,27 +85,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 case DxfCircle circle:
                     return Round(pointIndex, snap, circle, circle.Center, at);
-                case DxfPolyline polyline when snap.Kind == CadSnapKind.Endpoint || snap.Kind == CadSnapKind.Midpoint:
-                    int count = polyline.NumberOfVertices;
-                    int segments = polyline.Closed ? count : count - 1;
-
-                    for (int i = 0; i < segments; i++)
-                    {
-                        double[] places = snap.Kind == CadSnapKind.Midpoint ? new[] { 0.5 } : i == 0 ? new[] { 0.0, 1.0 } : new[] { 1.0 };
-
-                        foreach (double t in places)
-                        {
-                            GeoPoint3 point = polyline.GetPointAtParameter(i + t);
-
-                            if (Distance(snap.Point, point) <= least)
-                            {
-                                DxfOsnapType type = snap.Kind == CadSnapKind.Midpoint ? DxfOsnapType.Midpoint : t == 0.0 ? DxfOsnapType.StartPoint : DxfOsnapType.Endpoint;
-                                return new DxfOsnapPointRef(pointIndex, type, polyline.Handle, i + 1, t, point, null);
-                            }
-                        }
-                    }
-
-                    return null;
+                case DxfPolyline polyline:
+                    return OnPolyline(pointIndex, snap, polyline, at);
                 case DxfDBPoint node when snap.Kind == CadSnapKind.Node:
                     return new DxfOsnapPointRef(pointIndex, DxfOsnapType.Node, node.Handle, 0, 0.0, node.Position, null);
                 default:
@@ -114,30 +95,37 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The reference of a point snapped where two objects cross: the line, arc or circle drawn later first (group 331), the
-        /// other second (332), its parameter on the first, as AutoCAD 2021 wrote a DIMLINEAR snapped to the crossing of two
-        /// lines; null where no second line, arc or circle passes through the point.
+        /// The reference of a point snapped where two objects cross: the line, arc, circle or light polyline drawn later first
+        /// (group 331), the other second (332), each polyline with its segment (groups 91 and 92), its parameter on the first,
+        /// as AutoCAD 2021 wrote a DIMLINEAR snapped to the crossing of two lines, and of a line drawn after a polyline across
+        /// the polyline's third segment (331 the line, 332 the polyline and 92 = 3); null where no second line, arc, circle or
+        /// segment passes through the point.
         /// </summary>
         private static DxfOsnapPointRef Crossing(CadDocument document, int pointIndex, DxfEntity entity, GeoPoint3 at)
         {
             CadSpace space = entity == null ? null : document.FindSpace(entity.Handle);
+            var p = new GeoPoint2(at.X, at.Y);
+            int marker = MarkerAt(entity, p);
 
-            if (!Crossable(entity) || space == null)
+            if (space == null || !PieceOf(entity, marker, out _))
             {
                 return null;
             }
 
             double least = Tolerance.Default.EqualPoint;
             DxfEntity other = null;
+            int otherMarker = 0;
 
             foreach (string handle in document.GetPickIndex(space).Pick(at.X, at.Y, least))
             {
                 DxfEntity found = document.FindEntity(handle);
+                int foundMarker = MarkerAt(found, p);
 
-                if (!ReferenceEquals(found, entity) && Crossable(found) && Distance(((DxfCurve)found).GetClosestPointTo(at, false), at) <= least
+                if (!ReferenceEquals(found, entity) && PieceOf(found, foundMarker, out Piece piece) && Distance(ClosestOn(piece, p), at) <= least
                     && (other == null || Newer(other.Handle, found.Handle)))
                 {
                     other = found;
+                    otherMarker = foundMarker;
                 }
             }
 
@@ -146,100 +134,294 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            DxfEntity first = Newer(entity.Handle, other.Handle) ? other : entity;
-            DxfEntity second = ReferenceEquals(first, entity) ? other : entity;
-            double parameter = first is DxfLine line ? Along(line, new GeoPoint2(at.X, at.Y)) : AngleAbout(first is DxfArc arc ? arc.Center : ((DxfCircle)first).Center, at);
-            return new DxfOsnapPointRef(pointIndex, DxfOsnapType.Intersection, first.Handle, 0, parameter, at, second.Handle);
+            bool swap = Newer(entity.Handle, other.Handle);
+            DxfEntity first = swap ? other : entity;
+            DxfEntity second = swap ? entity : other;
+            int firstMarker = swap ? otherMarker : marker;
+            PieceOf(first, firstMarker, out Piece on);
+            return new DxfOsnapPointRef(pointIndex, DxfOsnapType.Intersection, first.Handle, 2, firstMarker, ParameterOn(on, p), at, second.Handle, 2, swap ? marker : otherMarker, null);
         }
 
         /// <summary>
-        /// The reference of a point snapped perpendicular to a line, an arc or a circle, or tangent to an arc or a circle, from
-        /// another point: its parameter on the object (along a line, run on as far as needed, as AutoCAD 2021 wrote 2.25 for a
-        /// foot past the end; the angle on an arc or a circle), and the reference of the point drawn from; null with no point
-        /// drawn from, or for another object.
+        /// The reference of a point snapped perpendicular to a line, an arc, a circle or a segment of a light polyline, or tangent
+        /// to an arc, a circle or an arc of a polyline, from another point: its parameter on the object (along a line or a
+        /// segment, run on as far as needed, as AutoCAD 2021 wrote 2.25 for a foot past the end; the angle on an arc or a
+        /// circle), its segment, and the reference of the point drawn from; null with no point drawn from, or for another object.
         /// </summary>
         private static DxfOsnapPointRef Drawn(int pointIndex, bool tangent, DxfEntity entity, GeoPoint3 at, GeoPoint2? from, DxfOsnapPointRef fromTied)
         {
-            if (!from.HasValue || !Crossable(entity) || (tangent && entity is DxfLine))
+            var p = new GeoPoint2(at.X, at.Y);
+            int marker = MarkerAt(entity, p);
+
+            if (!from.HasValue || !PieceOf(entity, marker, out Piece piece) || (tangent && !piece.IsRound))
             {
                 return null;
             }
 
-            double parameter = entity is DxfLine line ? Along(line, new GeoPoint2(at.X, at.Y)) : AngleAbout(entity is DxfArc arc ? arc.Center : ((DxfCircle)entity).Center, at);
-            var reference = new DxfOsnapPointRef(pointIndex, tangent ? DxfOsnapType.Tangent : DxfOsnapType.Perpendicular, entity.Handle, 0, parameter, at, null);
+            var reference = new DxfOsnapPointRef(pointIndex, tangent ? DxfOsnapType.Tangent : DxfOsnapType.Perpendicular, entity.Handle, marker, ParameterOn(piece, p), at, null);
             return fromTied != null ? reference.WithLastPoint(fromTied) : reference.WithLastPoint(new GeoPoint3(from.Value.X, from.Value.Y, 0.0));
         }
 
         /// <summary>
-        /// Where a point snapped perpendicular or tangent is now, drawn again from the point it was drawn from: its last point's
-        /// object where that is tied and still there, else the dimension's other origin (AutoCAD 2021 moved a DIMLINEAR's
-        /// perpendicular first point, drawn from a point tied to nothing, square to the line from its second origin). The foot
-        /// on the line run on, or on the arc or the circle; of the two points of tangency, the one nearer the dimension's point.
-        /// A tangent of a circle of 25 about (200, 0) from (300, 100), the circle moved 10 down, goes to (184.593, 9.688).
+        /// Where a point snapped perpendicular or tangent is now, as AutoCAD 2021 finds it. Where the point it was drawn from is
+        /// tied to an object still there, drawn again from that point: the foot on the line or the segment run on, or on the
+        /// arc or the circle; of the two points of tangency, the one nearer the dimension's point. A tangent of a circle of 25
+        /// about (200, 0) from (300, 100), the circle moved 10 down, goes to (184.593, 9.688). Else a tangent is drawn again
+        /// from the point it was drawn from, where it kept one, and a perpendicular stays at its parameter on the object; a
+        /// perpendicular on a line or a segment whose parameter runs past either end is the foot from the origin of the world
+        /// instead, as AutoCAD 2021 moved a DIMLINEAR whose first point was drawn from (20, 320) square to the line (100, -20) to
+        /// (100, 60), at parameter 4.25: the line moved 20 to the right, the point went to (120, 0).
         /// </summary>
         private static GeoPoint3? DrawnAt(CadDocument document, DxfDimension dimension, DxfOsnapPointRef reference, DxfEntity entity)
         {
+            if (!PieceOf(entity, reference.GsMarker, out Piece piece) || (reference.OsnapType == DxfOsnapType.Tangent && !piece.IsRound))
+            {
+                return null;
+            }
+
             DxfOsnapPointRef last = reference.LastPointReference;
             DxfEntity lastObject = last?.ObjectHandle == null ? null : document.FindEntity(last.ObjectHandle);
             GeoPoint3? from = lastObject == null ? null : Evaluate(last, lastObject);
-
-            if (!from.HasValue && reference.PointIndex < 2)
-            {
-                from = PointOf(dimension, 1 - reference.PointIndex);
-            }
-
-            if (!from.HasValue)
-            {
-                return null;
-            }
-
-            var f = new GeoPoint2(from.Value.X, from.Value.Y);
             GeoPoint3 near = PointOf(dimension, reference.PointIndex) ?? reference.Point;
+            GeoPoint2 at;
 
-            if (entity is DxfLine line)
+            if (!from.HasValue && reference.OsnapType == DxfOsnapType.Tangent && last != null && last.ObjectHandle == null)
             {
-                if (reference.OsnapType != DxfOsnapType.Perpendicular || (line.EndPoint - line.StartPoint).Length <= 0.0)
+                from = last.Point;
+            }
+
+            if (from.HasValue)
+            {
+                if (!DrawnFrom(piece, reference.OsnapType == DxfOsnapType.Tangent, new GeoPoint2(from.Value.X, from.Value.Y), new GeoPoint2(near.X, near.Y), out at))
                 {
                     return null;
                 }
-
-                GeoPoint3 foot = Lerp(line.StartPoint, line.EndPoint, Along(line, f));
-                return new GeoPoint3(foot.X, foot.Y, near.Z);
             }
-
-            if (!Crossable(entity))
+            else if (!piece.IsRound && (reference.NearParameter < 0.0 || reference.NearParameter > 1.0))
             {
-                return null;
+                at = ClosestOn(piece, GeoPoint2.Origin, true);
+            }
+            else
+            {
+                at = PointOn(piece, reference.NearParameter);
             }
 
-            Round(entity, out GeoPoint2 center, out double radius);
-            GeoVector2 outward = f - center;
+            return new GeoPoint3(at.X, at.Y, near.Z);
+        }
+
+        /// <summary>
+        /// The foot of the perpendicular from a point to a piece (its line run on, or its whole circle) or its point of tangency,
+        /// of two the one nearer <paramref name="near"/>; false where there is none.
+        /// </summary>
+        private static bool DrawnFrom(Piece piece, bool tangent, GeoPoint2 from, GeoPoint2 near, out GeoPoint2 at)
+        {
+            at = default;
+
+            if (!piece.IsRound)
+            {
+                if ((piece.B - piece.A).Length <= 0.0)
+                {
+                    return false;
+                }
+
+                at = ClosestOn(piece, from, true);
+                return true;
+            }
+
+            GeoVector2 outward = from - piece.Center;
             double far = outward.Length;
 
-            if (far <= 0.0 || (reference.OsnapType == DxfOsnapType.Tangent && far <= radius))
+            if (far <= 0.0 || (tangent && far <= piece.Radius))
             {
-                return null;
+                return false;
             }
 
             GeoVector2 unit = outward / far;
-            double turn = reference.OsnapType == DxfOsnapType.Tangent ? Math.Acos(radius / far) : 0.0;
-            GeoPoint2? best = null;
+            double turn = tangent ? Math.Acos(piece.Radius / far) : 0.0;
+            bool found = false;
 
-            foreach (double angle in reference.OsnapType == DxfOsnapType.Tangent ? new[] { turn, -turn } : new[] { 0.0, Math.PI })
+            foreach (double angle in tangent ? new[] { turn, -turn } : new[] { 0.0, Math.PI })
             {
                 var way = new GeoVector2(unit.X * Math.Cos(angle) - unit.Y * Math.Sin(angle), unit.X * Math.Sin(angle) + unit.Y * Math.Cos(angle));
-                GeoPoint2 candidate = center + way * radius;
+                GeoPoint2 candidate = piece.Center + way * piece.Radius;
 
-                if (!best.HasValue || Distance(candidate, near) < Distance(best.Value, near))
+                if (!found || (candidate - near).Length < (at - near).Length)
                 {
-                    best = candidate;
+                    at = candidate;
+                    found = true;
                 }
             }
 
-            return new GeoPoint3(best.Value.X, best.Value.Y, near.Z);
+            return true;
         }
 
-        private static bool Crossable(DxfEntity entity) => entity is DxfLine || entity is DxfArc || entity is DxfCircle;
+        /// <summary>
+        /// A line, an arc or a circle a point of a dimension is tied to, or the segment of a light polyline its marker names
+        /// (1 for the first): a line from <see cref="A"/> to <see cref="B"/>, else a round about <see cref="Center"/> from the
+        /// angle <see cref="Start"/> counter-clockwise by <see cref="Sweep"/>.
+        /// </summary>
+        private struct Piece
+        {
+            internal bool IsRound;
+            internal GeoPoint2 A;
+            internal GeoPoint2 B;
+            internal GeoPoint2 Center;
+            internal double Radius;
+            internal double Start;
+            internal double Sweep;
+
+            // An arc of a polyline counts its angles on from Start, as AutoCAD 2021 wrote 7.85398 for the end of a half circle
+            // from -90 degrees; an arc or a circle counts them from 0 to 2 pi.
+            internal bool Unwrapped;
+        }
+
+        /// <summary>The piece of an entity a reference names: a line, an arc, a circle, or the segment of a light polyline of the marker; false for any other.</summary>
+        private static bool PieceOf(DxfEntity entity, int marker, out Piece piece)
+        {
+            piece = default;
+
+            switch (entity)
+            {
+                case DxfLine line:
+                    piece.A = new GeoPoint2(line.StartPoint.X, line.StartPoint.Y);
+                    piece.B = new GeoPoint2(line.EndPoint.X, line.EndPoint.Y);
+                    return true;
+                case DxfArc arc:
+                    piece.IsRound = true;
+                    piece.Center = new GeoPoint2(arc.Center.X, arc.Center.Y);
+                    piece.Radius = arc.Radius;
+                    piece.Start = Normal(arc.StartAngle);
+                    piece.Sweep = Normal(arc.EndAngle - arc.StartAngle);
+                    return true;
+                case DxfCircle circle:
+                    piece.IsRound = true;
+                    piece.Center = new GeoPoint2(circle.Center.X, circle.Center.Y);
+                    piece.Radius = circle.Radius;
+                    piece.Sweep = 2.0 * Math.PI;
+                    return true;
+                case DxfPolyline polyline:
+                    int count = polyline.NumberOfVertices;
+                    int i = marker - 1;
+
+                    if (i < 0 || i >= (polyline.Closed ? count : count - 1))
+                    {
+                        return false;
+                    }
+
+                    GeoPoint2 a = polyline.GetPoint2dAt(i);
+                    GeoPoint2 b = polyline.GetPoint2dAt((i + 1) % count);
+                    double bulge = polyline.GetBulgeAt(i);
+                    piece.A = a;
+                    piece.B = b;
+
+                    if (bulge == 0.0 || (b - a).Length <= 0.0)
+                    {
+                        return true;
+                    }
+
+                    double sweep = 4.0 * Math.Atan(bulge);
+                    GeoVector2 chord = b - a;
+                    var left = new GeoVector2(-chord.Y, chord.X) / chord.Length;
+                    piece.IsRound = true;
+                    piece.Unwrapped = true;
+                    piece.Center = a + chord / 2.0 + left * (chord.Length / 2.0 / Math.Tan(sweep / 2.0));
+                    piece.Radius = (a - piece.Center).Length;
+                    piece.Start = Normal(AngleOf(sweep > 0.0 ? a : b, piece.Center));
+                    piece.Sweep = Math.Abs(sweep);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>The segment of a light polyline a point lies on, 1 for the first, the first of two that meet there; 0 for any other entity or a point on none.</summary>
+        private static int MarkerAt(DxfEntity entity, GeoPoint2 point)
+        {
+            if (!(entity is DxfPolyline polyline))
+            {
+                return 0;
+            }
+
+            int count = polyline.NumberOfVertices;
+            int segments = polyline.Closed ? count : count - 1;
+            int best = 0;
+            double nearest = double.MaxValue;
+
+            for (int i = 1; i <= segments; i++)
+            {
+                if (PieceOf(polyline, i, out Piece piece))
+                {
+                    double d = (ClosestOn(piece, point) - point).Length;
+
+                    if (d < nearest - Tolerance.Default.EqualPoint)
+                    {
+                        nearest = d;
+                        best = i;
+                    }
+                }
+            }
+
+            return nearest <= Tolerance.Default.EqualPoint ? best : 0;
+        }
+
+        /// <summary>The parameter of a point on a piece: the share of the way along a line, run on; the angle about a round.</summary>
+        private static double ParameterOn(Piece piece, GeoPoint2 point)
+        {
+            if (!piece.IsRound)
+            {
+                GeoVector2 way = piece.B - piece.A;
+                double squared = way.X * way.X + way.Y * way.Y;
+                return squared <= 0.0 ? 0.0 : ((point.X - piece.A.X) * way.X + (point.Y - piece.A.Y) * way.Y) / squared;
+            }
+
+            double angle = Normal(AngleOf(point, piece.Center));
+
+            if (!piece.Unwrapped)
+            {
+                return angle;
+            }
+
+            // Counted on from the start, a point past the end taken back below the start where it lies nearer that.
+            angle = angle < piece.Start ? angle + 2.0 * Math.PI : angle;
+            double past = angle - piece.Start - piece.Sweep;
+            return past > 0.0 && past > piece.Start + 2.0 * Math.PI - angle ? angle - 2.0 * Math.PI : angle;
+        }
+
+        /// <summary>The point of a parameter on a piece (<see cref="ParameterOn"/>).</summary>
+        private static GeoPoint2 PointOn(Piece piece, double parameter)
+            => piece.IsRound
+                ? new GeoPoint2(piece.Center.X + piece.Radius * Math.Cos(parameter), piece.Center.Y + piece.Radius * Math.Sin(parameter))
+                : piece.A + (piece.B - piece.A) * parameter;
+
+        /// <summary>The point of a piece nearest a point: on the line between its ends or run on, on the arc's stretch or anywhere on its circle.</summary>
+        private static GeoPoint2 ClosestOn(Piece piece, GeoPoint2 point, bool runOn = false)
+        {
+            if (!piece.IsRound)
+            {
+                double t = ParameterOn(piece, point);
+                return PointOn(piece, runOn ? t : Math.Max(0.0, Math.Min(1.0, t)));
+            }
+
+            double angle = (point - piece.Center).Length > 0.0 ? Normal(AngleOf(point, piece.Center)) : piece.Start;
+
+            if (!runOn && Normal(angle - piece.Start) > piece.Sweep)
+            {
+                GeoPoint2 s = PointOn(piece, piece.Start);
+                GeoPoint2 e = PointOn(piece, piece.Start + piece.Sweep);
+                return (s - point).Length <= (e - point).Length ? s : e;
+            }
+
+            return PointOn(piece, angle);
+        }
+
+        private static double AngleOf(GeoPoint2 point, GeoPoint2 center) => Math.Atan2(point.Y - center.Y, point.X - center.X);
+
+        /// <summary>An angle brought to 0 to 2 pi.</summary>
+        private static double Normal(double angle)
+        {
+            angle %= 2.0 * Math.PI;
+            return angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+        }
 
         /// <summary>Whether the second handle is of an object made after the first's, by the number the handles are.</summary>
         private static bool Newer(string first, string second)
@@ -250,7 +432,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// the point it ties now; null for null.
         /// </summary>
         internal static DxfOsnapPointRef Renumbered(DxfOsnapPointRef reference, int pointIndex)
-            => reference == null ? null : WithLast(new DxfOsnapPointRef(pointIndex, reference.OsnapType, reference.ObjectHandle, reference.GsMarker, reference.NearParameter, reference.Point, reference.IntersectionObjectHandle), reference.LastPointReference, null);
+            => reference == null ? null : WithLast(Copy(reference, pointIndex, reference.ObjectHandle, reference.Point, reference.IntersectionObjectHandle), reference.LastPointReference, null);
+
+        /// <summary>The reference without the point its perpendicular or tangent was drawn from, as AutoCAD 2021 ties the feature of an ordinate; null for null.</summary>
+        internal static DxfOsnapPointRef WithoutLastPoint(DxfOsnapPointRef reference)
+            => reference == null ? null : Copy(reference, reference.PointIndex, reference.ObjectHandle, reference.Point, reference.IntersectionObjectHandle);
+
+        /// <summary>A copy of a reference without its last point, numbered, tied to the objects and at the point given; its snap, segments and parameter kept.</summary>
+        private static DxfOsnapPointRef Copy(DxfOsnapPointRef reference, int pointIndex, string handle, GeoPoint3 point, string otherHandle)
+            => new DxfOsnapPointRef(pointIndex, reference.OsnapType, handle, reference.SubentType, reference.GsMarker, reference.NearParameter, point, otherHandle, reference.IntersectionSubentType, reference.IntersectionGsMarker, null);
 
         /// <summary>
         /// A reference given the point its perpendicular or tangent was drawn from, as another had it: that point's reference,
@@ -275,7 +465,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return objects.TryGetValue(last.ObjectHandle, out DxfEntity to) && (last.IntersectionObjectHandle == null || objects.ContainsKey(last.IntersectionObjectHandle))
-                ? reference.WithLastPoint(new DxfOsnapPointRef(last.PointIndex, last.OsnapType, to.Handle, last.GsMarker, last.NearParameter, last.Point, last.IntersectionObjectHandle == null ? null : objects[last.IntersectionObjectHandle].Handle))
+                ? reference.WithLastPoint(Copy(last, last.PointIndex, to.Handle, last.Point, last.IntersectionObjectHandle == null ? null : objects[last.IntersectionObjectHandle].Handle))
                 : reference.WithLastPoint(last.Point);
         }
 
@@ -472,7 +662,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    references.Add(WithLast(new DxfOsnapPointRef(reference.PointIndex, reference.OsnapType, to.Handle, reference.GsMarker, reference.NearParameter, PointOf(copy, reference.PointIndex) ?? reference.Point, other?.Handle), reference.LastPointReference, copies));
+                    references.Add(WithLast(Copy(reference, reference.PointIndex, to.Handle, PointOf(copy, reference.PointIndex) ?? reference.Point, other?.Handle), reference.LastPointReference, copies));
                 }
 
                 if (references.Count > 0)
@@ -568,7 +758,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             DxfEntity other = reference.IntersectionObjectHandle == null ? null : document.FindEntity(reference.IntersectionObjectHandle);
 
-            if (!Crossable(entity) || !Crossable(other))
+            if (!PieceOf(entity, reference.GsMarker, out Piece a) || !PieceOf(other, reference.IntersectionGsMarker, out Piece b))
             {
                 return null;
             }
@@ -576,7 +766,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 near = PointOf(dimension, reference.PointIndex) ?? reference.Point;
             GeoPoint3? best = null;
 
-            foreach (GeoPoint2 point in Crossings(entity, other))
+            foreach (GeoPoint2 point in Crossings(a, b))
             {
                 var candidate = new GeoPoint3(point.X, point.Y, near.Z);
 
@@ -590,26 +780,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Where two lines (run on), arcs or circles (whole) cross in the plane of the drawing.</summary>
-        private static List<GeoPoint2> Crossings(DxfEntity a, DxfEntity b)
+        private static List<GeoPoint2> Crossings(Piece a, Piece b)
         {
             var found = new List<GeoPoint2>();
 
-            if (a is DxfLine && !(b is DxfLine))
+            if (!a.IsRound && b.IsRound)
             {
-                DxfEntity swap = a;
+                Piece swap = a;
                 a = b;
                 b = swap;
             }
 
-            if (b is DxfLine second)
+            if (!b.IsRound)
             {
-                GeoPoint2 p = new GeoPoint2(second.StartPoint.X, second.StartPoint.Y);
-                GeoVector2 d = new GeoVector2(second.EndPoint.X - p.X, second.EndPoint.Y - p.Y);
+                GeoPoint2 p = b.A;
+                GeoVector2 d = b.B - b.A;
 
-                if (a is DxfLine first)
+                if (!a.IsRound)
                 {
-                    GeoPoint2 q = new GeoPoint2(first.StartPoint.X, first.StartPoint.Y);
-                    GeoVector2 e = new GeoVector2(first.EndPoint.X - q.X, first.EndPoint.Y - q.Y);
+                    GeoPoint2 q = a.A;
+                    GeoVector2 e = a.B - a.A;
                     double cross = d.X * e.Y - d.Y * e.X;
 
                     if (Math.Abs(cross) > 1E-12 * d.Length * e.Length)
@@ -621,7 +811,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return found;
                 }
 
-                Round(a, out GeoPoint2 c, out double r);
+                GeoPoint2 c = a.Center;
+                double r = a.Radius;
                 double dd = d.X * d.X + d.Y * d.Y;
 
                 if (dd <= 0.0)
@@ -643,8 +834,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return found;
             }
 
-            Round(a, out GeoPoint2 c1, out double r1);
-            Round(b, out GeoPoint2 c2, out double r2);
+            GeoPoint2 c1 = a.Center;
+            GeoPoint2 c2 = b.Center;
+            double r1 = a.Radius;
+            double r2 = b.Radius;
             GeoVector2 between = c2 - c1;
             double far = between.Length;
 
@@ -660,13 +853,6 @@ namespace GeometryHelper.Dxf.Viewer
             found.Add(mid + new GeoVector2(-unit.Y, unit.X) * up);
             found.Add(mid - new GeoVector2(-unit.Y, unit.X) * up);
             return found;
-        }
-
-        private static void Round(DxfEntity entity, out GeoPoint2 center, out double radius)
-        {
-            GeoPoint3 c = entity is DxfArc arc ? arc.Center : ((DxfCircle)entity).Center;
-            center = new GeoPoint2(c.X, c.Y);
-            radius = entity is DxfArc a ? a.Radius : ((DxfCircle)entity).Radius;
         }
 
         /// <summary>
@@ -726,8 +912,18 @@ namespace GeometryHelper.Dxf.Viewer
                             case DxfOsnapType.StartPoint: return polyline.GetPointAtParameter(segment);
                             case DxfOsnapType.Endpoint: return polyline.GetPointAtParameter(segment + 1.0);
                             case DxfOsnapType.Midpoint: return polyline.GetPointAtParameter(segment + 0.5);
-                            default: return null;
                         }
+
+                        // A center, a quadrant or a nearest point of a segment: on its line at the share of the way, on its arc at
+                        // the angle, as AutoCAD 2021 writes them.
+                        if (!PieceOf(polyline, reference.GsMarker, out Piece piece) || (reference.OsnapType != DxfOsnapType.Nearest && !piece.IsRound)
+                            || (reference.OsnapType != DxfOsnapType.Nearest && reference.OsnapType != DxfOsnapType.Center && reference.OsnapType != DxfOsnapType.Quadrant))
+                        {
+                            return null;
+                        }
+
+                        GeoPoint2 on = reference.OsnapType == DxfOsnapType.Center ? piece.Center : PointOn(piece, reference.NearParameter);
+                        return new GeoPoint3(on.X, on.Y, polyline.GetPointAtParameter(segment).Z);
 
                     case DxfDBPoint node when reference.OsnapType == DxfOsnapType.Node:
                         return node.Position;
@@ -859,6 +1055,14 @@ namespace GeometryHelper.Dxf.Viewer
                     double first = line - Dot(rotated.XLine1Point, across);
                     double second = line - Dot(rotated.XLine2Point, across);
                     double now = Math.Abs(second) < Math.Abs(first) - least ? Dot(p2, across) + second : Dot(p1, across) + first;
+
+                    // A line beyond both origins stays as far beyond the nearer of them as it was: AutoCAD 2021 put the line of
+                    // origins (100, 123) and (50, 77), at y = -60, to y = -137 when the first went to (120, 0).
+                    if (first * second > 0.0)
+                    {
+                        double keep = Math.Abs(second) < Math.Abs(first) ? second : first;
+                        now = (keep > 0.0 ? Math.Max(Dot(p1, across), Dot(p2, across)) : Math.Min(Dot(p1, across), Dot(p2, across))) + keep;
+                    }
                     rotated.XLine1Point = p1;
                     rotated.XLine2Point = p2;
                     rotated.DimLinePoint = p2 + across * (now - Dot(p2, across));
@@ -967,6 +1171,71 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The reference of a point snapped on a light polyline, its segment the marker (1 for the first), as AutoCAD 2021 writes
+        /// them: an end of a segment (the start of the first, else the end of the segment that ends there), its middle, a
+        /// nearest point and a quadrant at their parameter, the center of an arc at the angle it starts at. The parameter on a
+        /// line is the share of the way along it, on an arc the angle counted on from where it starts: of a polyline from
+        /// (0, 200) to (100, 200) and round a half circle to (100, 300), the end of the half circle is of marker 2 and parameter
+        /// 7.85398 and its center of parameter 4.71239. Null for another snap.
+        /// </summary>
+        private static DxfOsnapPointRef OnPolyline(int pointIndex, CadSnapResult snap, DxfPolyline polyline, GeoPoint3 at)
+        {
+            double least = Tolerance.Default.EqualPoint;
+            int count = polyline.NumberOfVertices;
+            int segments = polyline.Closed ? count : count - 1;
+            var p = new GeoPoint2(at.X, at.Y);
+
+            switch (snap.Kind)
+            {
+                case CadSnapKind.Endpoint:
+                case CadSnapKind.Midpoint:
+                    for (int i = 0; i < segments; i++)
+                    {
+                        double[] places = snap.Kind == CadSnapKind.Midpoint ? new[] { 0.5 } : i == 0 ? new[] { 0.0, 1.0 } : new[] { 1.0 };
+
+                        foreach (double t in places)
+                        {
+                            GeoPoint3 point = polyline.GetPointAtParameter(i + t);
+
+                            if (Distance(snap.Point, point) <= least && PieceOf(polyline, i + 1, out Piece piece))
+                            {
+                                DxfOsnapType type = snap.Kind == CadSnapKind.Midpoint ? DxfOsnapType.Midpoint : t == 0.0 ? DxfOsnapType.StartPoint : DxfOsnapType.Endpoint;
+                                double parameter = piece.IsRound ? ParameterOn(piece, new GeoPoint2(point.X, point.Y)) : t;
+                                return new DxfOsnapPointRef(pointIndex, type, polyline.Handle, i + 1, parameter, point, null);
+                            }
+                        }
+                    }
+
+                    return null;
+                case CadSnapKind.Center:
+                    for (int i = 1; i <= segments; i++)
+                    {
+                        if (PieceOf(polyline, i, out Piece piece) && piece.IsRound && (piece.Center - p).Length <= least)
+                        {
+                            return new DxfOsnapPointRef(pointIndex, DxfOsnapType.Center, polyline.Handle, i, piece.Start, new GeoPoint3(piece.Center.X, piece.Center.Y, at.Z), null);
+                        }
+                    }
+
+                    return null;
+                case CadSnapKind.Nearest:
+                case CadSnapKind.Quadrant:
+                {
+                    int marker = MarkerAt(polyline, p);
+
+                    if (!PieceOf(polyline, marker, out Piece piece) || (snap.Kind == CadSnapKind.Quadrant && !piece.IsRound))
+                    {
+                        return null;
+                    }
+
+                    return new DxfOsnapPointRef(pointIndex, snap.Kind == CadSnapKind.Quadrant ? DxfOsnapType.Quadrant : DxfOsnapType.Nearest, polyline.Handle, marker, ParameterOn(piece, p), at, null);
+                }
+
+                default:
+                    return null;
+            }
         }
 
         private static DxfOsnapPointRef Round(int pointIndex, CadSnapResult snap, DxfEntity curve, GeoPoint3 center, GeoPoint3 at)
@@ -1086,12 +1355,6 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The angle between two directions, 0 to pi.</summary>
         private static double Between(GeoVector2 a, GeoVector2 b) => Math.Abs(Math.Atan2(a.X * b.Y - a.Y * b.X, a.X * b.X + a.Y * b.Y));
-
-        private static double AngleAbout(GeoPoint3 center, GeoPoint3 at)
-        {
-            double angle = Math.Atan2(at.Y - center.Y, at.X - center.X);
-            return angle < 0.0 ? angle + 2.0 * Math.PI : angle;
-        }
 
         private static double Dot(GeoVector3 a, GeoVector3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
 

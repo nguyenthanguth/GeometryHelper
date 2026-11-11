@@ -246,6 +246,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
+                        if (entity is DxfRotatedDimension dimension)
+                        {
+                            OwnPicture(s.Database, dimension);
+                            StretchPoints(entity, one.Value, by);
+                            Redraw(dimension);
+                            continue;
+                        }
+
                         StretchPoints(entity, one.Value, by);
                     }
                 }
@@ -324,8 +332,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Which points of an entity STRETCH moves, each true where it lies in a window: a line's two ends, a polyline's
-        /// vertices, an arc's two ends; one point for an entity moved whole by it (a circle's or an ellipse's centre, the point a
-        /// text, a block or a point is placed by); for any other entity one point, true where all of its box lies inside.
+        /// vertices, an arc's two ends, a linear dimension's two origins and the point of its line; one point for an entity
+        /// moved whole by it (a circle's or an ellipse's centre, the point a text, a block or a point is placed by); for any
+        /// other entity one point, true where all of its box lies inside.
         /// </summary>
         private static bool[] Held(DxfEntity entity, Func<GeoPoint3, bool> inside)
         {
@@ -354,6 +363,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return new[] { inside(mtext.Location) };
                 case DxfBlockReference insert:
                     return new[] { inside(insert.Position) };
+                case DxfRotatedDimension rotated:
+                    return new[] { inside(rotated.XLine1Point), inside(rotated.XLine2Point), inside(rotated.DimLinePoint) };
                 case DxfDBPoint point:
                     return new[] { inside(point.Position) };
                 default:
@@ -380,7 +391,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Moves the points STRETCH holds of an entity it stretches: a line's ends, a polyline's vertices, an arc's ends.</summary>
+        /// <summary>Moves the points STRETCH holds of an entity it stretches: a line's ends, a polyline's vertices, an arc's ends, a linear dimension's points.</summary>
         private static void StretchPoints(DxfEntity entity, bool[] held, GeoVector2 by)
         {
             switch (entity)
@@ -398,8 +409,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                     break;
                 case DxfPolyline polyline:
+                {
                     // In the plane of a polyline whose normal points down, x runs along the world's -x.
                     double across = polyline.Normal.Z < 0.0 ? -by.X : by.X;
+                    int count = polyline.NumberOfVertices;
+                    var chords = new double[count];
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        chords[i] = (polyline.GetPoint2dAt((i + 1) % count) - polyline.GetPoint2dAt(i)).Length;
+                    }
 
                     for (int i = 0; i < held.Length; i++)
                     {
@@ -410,7 +429,36 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
+                    // An arc with one end moved keeps its height off its chord, as AutoCAD 2021 stretches one: the half
+                    // circle from (100, 200) to (100, 300) whose end goes to (100, 320) takes a bulge of 100 / 120.
+                    for (int i = 0; i < (polyline.Closed ? count : count - 1); i++)
+                    {
+                        double bulge = polyline.GetBulgeAt(i);
+                        double chord = (polyline.GetPoint2dAt((i + 1) % count) - polyline.GetPoint2dAt(i)).Length;
+
+                        if (bulge != 0.0 && held[i] != held[(i + 1) % count] && chord > 0.0)
+                        {
+                            polyline.SetBulgeAt(i, bulge * chords[i] / chord);
+                        }
+                    }
+
                     break;
+                }
+
+                case DxfRotatedDimension rotated:
+                {
+                    var step = new GeoVector3(by.X, by.Y, 0.0);
+                    rotated.XLine1Point = held[0] ? rotated.XLine1Point + step : rotated.XLine1Point;
+                    rotated.XLine2Point = held[1] ? rotated.XLine2Point + step : rotated.XLine2Point;
+                    GeoPoint3 line = held[2] ? rotated.DimLinePoint + step : rotated.DimLinePoint;
+
+                    // The dimension line's point kept where AutoCAD 2021 keeps it, square across from the second origin.
+                    var square = new GeoVector3(-Math.Sin(rotated.Rotation), Math.Cos(rotated.Rotation), 0.0);
+                    double off = (line - rotated.XLine2Point).X * square.X + (line - rotated.XLine2Point).Y * square.Y;
+                    rotated.DimLinePoint = rotated.XLine2Point + square * off;
+                    break;
+                }
+
                 case DxfArc arc:
                     StretchArc(arc, held[0] ? by : default, held[1] ? by : default);
                     break;

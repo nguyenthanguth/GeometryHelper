@@ -402,6 +402,42 @@ namespace GeometryHelper.Dxf.Viewer
             return index;
         }
 
+        /// <summary>
+        /// Makes the display list and the pick index of a space now, as the first <see cref="GetDisplay"/> and
+        /// <see cref="GetPickIndex"/> make them, saying how far it has got and stopping when asked: the window does it on a worker
+        /// thread for a drawing it opens, so that a drawing of 1 000 000 entities, 7 s to draw, does not hold the window. The
+        /// list is the one <see cref="GetDisplay"/> makes, item for item. A document is not safe to use from two threads at
+        /// once: nothing else may use it, nor another document's fonts be set, until this returns.
+        /// </summary>
+        /// <param name="space">The space; a layout draws model space first.</param>
+        /// <param name="progress">Told the share of the space's entities drawn, from 0 to 1, every 4 096 of them; null for nothing.</param>
+        /// <param name="cancellationToken">Stops the drawing, looked at every 4 096 entities; nothing drawn so far is kept.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the space is null.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when stopped.</exception>
+        public void PrepareDisplay(CadSpace space, IProgress<double> progress, System.Threading.CancellationToken cancellationToken)
+        {
+            if (space == null)
+            {
+                throw new ArgumentNullException(nameof(space));
+            }
+
+            _builder.Progress = progress;
+            _builder.Cancellation = cancellationToken;
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                GetDisplay(space);
+                cancellationToken.ThrowIfCancellationRequested();
+                GetPickIndex(space);
+            }
+            finally
+            {
+                _builder.Progress = null;
+                _builder.Cancellation = System.Threading.CancellationToken.None;
+            }
+        }
+
         /// <summary>Gets the entity with a handle, or null.</summary>
         /// <param name="handle">The handle.</param>
         /// <returns>The entity.</returns>

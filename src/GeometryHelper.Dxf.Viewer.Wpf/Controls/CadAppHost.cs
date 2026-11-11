@@ -37,7 +37,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Insert, Annotate, View,
     /// Plugins, Settings or the header of a tab a host adds); <c>--plugin</c> loads a command plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
-    /// <c>save-changes</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
+    /// <c>save-changes</c>, <c>mtext-unsaved</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
     /// <c>plugin-settings</c>, <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
     /// <c>dsettings[:Tab]</c>, <c>osnap-menu</c>, <c>snap-menu</c>, <c>drawings-menu</c>, <c>scale-menu</c>, <c>missing-shx</c>,
     /// <c>missing-shx-replace</c>, <c>ptype</c>, <c>linetype</c>, <c>linetype-load</c>, <c>select-linetype</c>, <c>hatch</c>,
@@ -85,7 +85,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -166,6 +166,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AttachPlugins(plugins);
             model.UsePlugins(plugins, loadAtStart: true);
             string file = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
+
+            // The window answers while a drawing is read and drawn; the drawing given here is shown once the window runs.
+            model.OpensInBackground = true;
 
             if (file != null)
             {
@@ -435,6 +438,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // The question CLOSE asks of a drawing with changes not saved.
                 var question = CadQuestionWindow.ForSave(new[] { SaveChangesDocument ?? CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf") });
+                root = question.Body;
+                window = question;
+                width = (int)question.Width;
+                height = MeasuredHeight(root, width);
+            }
+            else if (string.Equals(dialogName, "mtext-unsaved", StringComparison.OrdinalIgnoreCase))
+            {
+                // Multiline Text - Unsaved Changes, the question Esc asks in the MTEXT editor with changes.
+                var question = new MTextUnsavedChangesWindow(new MTextUnsavedChangesViewModel());
                 root = question.Body;
                 window = question;
                 width = (int)question.Width;
@@ -1036,7 +1048,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// set to 1); <c>purge</c> and <c>purge-nonpurgeable</c> (Purge in each mode, the current layer chosen in the second);
         /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group); <c>layerstate</c>
         /// (the Layer States Manager, the first state chosen); <c>view</c> (the View Manager, the first named view chosen) and
-        /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control).
+        /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control);
+        /// <c>xref</c> and <c>xref-tree</c> (the External References palette in its list or tree view, the last nested
+        /// reference chosen).
         /// </summary>
         private static bool ManagerDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -1046,7 +1060,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string kind = parts[0].ToLowerInvariant();
 
             if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
-                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate" && kind != "view" && kind != "newview" && kind != "units" && kind != "units-direction")
+                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate" && kind != "view" && kind != "newview" && kind != "units" && kind != "units-direction"
+                && kind != "xref" && kind != "xref-tree")
             {
                 return false;
             }
@@ -1134,6 +1149,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     var dialogWindow = new PurgeWindow(purge);
                     (window, root) = (dialogWindow, dialogWindow.Body);
+                    return true;
+                case "xref":
+                case "xref-tree":
+                    model.ShowExternalReferences = palette => shown = palette;
+                    model.Execute("XREF");
+                    model.ShowExternalReferences = null;
+                    var references = (ExternalReferencesViewModel)shown;
+                    references.IsTreeView = kind == "xref-tree";
+                    references.Selected = references.Rows.LastOrDefault(r => r.IsNested) ?? references.Selected;
+                    var referencesWindow = new ExternalReferencesWindow(references);
+                    (window, root) = (referencesWindow, referencesWindow.Root);
                     return true;
                 case "layerstate":
                     model.ShowLayerStates = dialog => { shown = dialog; return true; };

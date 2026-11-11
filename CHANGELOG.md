@@ -48,6 +48,71 @@ which they refused: the canvas's view in model units turns with it (`CadView.Twi
 crosshair and the UCS icon follow the turn, PAN moves by the model distance given and ZOOM Window fits the box turned.
 `CadViewports.ToView` and `FromView` give the view's coordinates of a point and back.
 
+**NEW.** The presenter's window says on a drawing's command line when a file one of its external references was read
+from changes on disk, where AutoCAD 2021 shows a balloon over its status bar (XREFNOTIFY 2): "External Reference Files
+Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette." Each change is
+said once, and again only after the reference was reloaded and its file changed anew. The files were watched only while
+the External References palette was open, to refresh it. **NEW.** `MainViewModel.WatchReferenceFiles`, which the
+workspace sets.
+
+**NEW.** The External References palette of the presenter lists nested external references as AutoCAD 2021's does: a
+reference the drawing places is followed by those its drawing attaches, of the type Nested in the list view, under their
+parent and of their own type in the tree view, each level 16 pixels further in. A nested reference whose parent is
+unloaded, not found or unresolved stands Orphaned; nested overlays are left out, as AutoCAD loads none. The record
+AutoCAD writes in the host for a nested reference (`c` beside `b`, which no INSERT of the host places, as its console
+showed for a host attaching `b.dwg` that attaches `c.dwg`) was listed as Unreferenced; it is listed under its parent alone.
+**NEW.** `CadExternalReference.Depth`, `ParentName`, `IsNested` and `CadReferenceStatus.Orphaned`; `--dialog xref` and
+`xref-tree` draw the palette in screenshot mode. **FIXED.** The palette's names were drawn in the system's black on its
+dark rows; they are drawn in the text colour.
+
+**NEW.** XOPEN in the presenter opens the drawing of an external reference picked in a tab of its own, as AutoCAD 2021
+opens it in a window of its own. It asks "Select Xref:"; a line picked is answered "Object is not an Xref" and the
+question asked again, and Enter ends it saying nothing, as AutoCAD 2021's console answers them. A pick on what a nested
+reference draws opens the reference the drawing places, and one whose file is gone is refused as -XREF Reload refuses
+it. The registry has 177 commands.
+
+**FIXED.** A layer of an external reference the drawing keeps a record of (`grid|GRID`, as AutoCAD writes it) is drawn
+as AutoCAD 2021 draws it under VISRETAIN 1: what the drawing changed of it as the drawing keeps it, the rest as the file
+referenced has it now. The presenter drew the record whole, so a layer the file made blue after AutoCAD saved the drawing
+stayed green. AutoCAD, probed in its console with -LAYER on `b|WALL` and the drawing written out, marks each change in
+the 1071 of the record's `AcXRefLayerPropertyOverride`: 1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
+LWeight, 128 TRansparency, 1024 Description, 0 for a layer left as it was. The Layer manager, the layer box and -LAYER
+now change such a layer and mark it so, and a change of it in the drawing draws its INSERT anew, which it did not.
+**CHANGED.** The current layer refuses a layer of an external reference with "Cannot set CLAYER to that value.", and
+-LAYER Set with "Invalid layer name.", as AutoCAD 2021 refuses them; a new layer named with a character AutoCAD refuses,
+`grid|X` among them, is refused with `"grid|X" is an invalid layer name.`
+
+**NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
+and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
+vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new
+`CadPrompt.SnapFrom` hands the window's snap through `ObjectSnap.Snap`; the ends of an angle of three points are drawn
+from its vertex and tied with the vertex's own tie as their last point. A polyline's segment is tied by its marker (91, or
+92 for the second object of an intersection), a point on its arc by its angle counted on from the arc's start: AutoCAD
+2021, probed in its console, wrote the end of a half circle from (100, 200) to (100, 300) as marker 2 and 7.85398 and its
+center as 4.71239, and a line drawn across the third segment as 332 the polyline and 92 = 3. A moved object takes its
+points where AutoCAD takes them: a tangent drawn again from its point; a perpendicular drawn again where its point is tied
+to an object, else kept at its parameter, or, past the end of its line, at the foot from the origin of the world, so a
+first origin drawn from (37, 123) square to (100, -20)-(100, 60) goes to (120, 0) when the line moves by (20, 7). The
+dimension line of a linear dimension stays as far beyond the nearer origin as it was, 50 for an end of the line dragged
+from (100, 0) to (120, 30) with the line 20 above. A drawing of 16 dimensions so tied, made here and opened in AutoCAD
+2021, has no errors in AUDIT, and after the same moves and stretches in both every tied point is where AutoCAD puts it on
+its own drawing, to 1E-3; AutoCAD's file read here follows the same way.
+
+**FIXED.** STRETCH in the presenter moves the origins and the line point of a linear dimension that lie inside its
+window, and keeps the height of a polyline's arc off its chord when one end moves, as AutoCAD 2021 does. It left the
+dimension to its tie, and kept the arc's bulge: the half circle from (100, 200) to (100, 300) whose end goes to
+(100, 320) now takes a bulge of 100 / 120, its center at (89, 260) where AutoCAD puts it, not (100, 260).
+
+**CHANGED.** Esc in the presenter's MTEXT editor with changes asks as AutoCAD 2021 asks: Multiline Text - Unsaved
+Changes, "Do you want to save your text changes?", with Yes, No and Cancel and Always perform my current choice, in the
+place of the presenter's own "Save changes to MText?". Yes writes the changes and closes the editor, No drops them, Cancel
+goes back to editing, and with nothing changed Esc closes with no question. A Yes or No given with the box ticked is kept
+in Global settings as `MTextUnsavedChanges` ("Ask", "Yes" or "No"), as AutoCAD keeps it among its hidden messages, and
+Text and fonts › Hidden messages sets it back to Ask; Cancel is never kept. `MainViewModel.AskKeepMTextChanges` now takes
+the question, an `MTextUnsavedChangesViewModel`, and `CadQuestionWindow.AskKeepMTextChanges` is gone. The screenshot mode
+draws the dialog with `--dialog mtext-unsaved`. Esc in the edit box of a single-line text already kept the old words, as
+AutoCAD does, and a test now holds it.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
@@ -73,6 +138,27 @@ in it reads the same in other programs, and one slanted elsewhere draws at its a
 [`DxfAlignedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfAlignedDimension.Oblique) said the angle ran from the square
 of the dimension line; it runs from the line, nought standing for none.
 
+**CHANGED.** The presenter's window opens a drawing in the background. The file is read and its display list and pick
+index made on a worker thread, and the drawing is shown once they are made; meanwhile the status bar says "Opening
+plan.dxf: drawing 45 %" with a Stop button, the view shown pans and zooms, another drawing open is shown, and Esc or Stop
+stops the opening. A command typed or started meanwhile is not run, the command line saying why, so that none runs on a
+drawing half drawn. A drawing of 1 000 000 entities that held the window for 15 s while it opened and drew its first
+frame now holds it for 0.2 s at most while it opens, then 0.8 s for that frame; the display list is the one it was, item
+for item. **NEW.** `MainViewModel.OpenAsync`, `OpensInBackground`, `IsOpening`, `OpeningText`, `CancelOpening` and
+`CancelOpeningCommand`, and `CadDocument.PrepareDisplay`, which makes a space's display ahead, telling how far it has got
+and stopping when asked. `Open` still opens a drawing before it returns unless `OpensInBackground` is set, as a test or a
+screenshot needs.
+
+**CHANGED.** The presenter draws the highlight of a large selection on several threads. Where several thousand items are
+selected, the canvas is cut into tiles, a thread a tile, and an item reaching into several tiles is drawn once every one
+of their threads has drawn what comes before it; a text, a hatch, a ray or a picture is drawn with the other threads
+waiting. The picture is pixel for pixel the one a single thread draws: a test compares the two on a drawing of 100 000
+entities, and the pictures of that drawing and of two sample drawings, at three zooms, plain, selected and hovered, with
+lineweights on and off, hash as before. All of that drawing selected is highlighted in about 150 ms rather than 300 on
+24 processors under .NET Framework 4.8, and with the whole workspace drawn, its canvas 1 000 by 696 pixels, the canvas
+draws the selection in about 240 ms rather than 360. A selection crammed into a patch of a few hundred pixels gains
+nothing.
+
 **NEW.** The snap and grid a drawing keeps. `db.ViewportTable` holds the tiled viewports of model space as AutoCAD's
 `ViewportTable`, each a [`DxfViewportTableRecord`](xref:GeometryHelper.Dxf.DxfViewportTableRecord), and
 `db.ViewportTable["*Active"]` gives SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, SNAPSTYL, SNAPISOPAIR,
@@ -88,6 +174,26 @@ before: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spaci
 snap spacing, writes it into the drawing shown, so that a save keeps it; LWDISPLAY set with a drawing open no longer
 changes Global settings. The snaps step by the drawing's SNAPUNIT and the grid is drawn at its GRIDUNIT, 10 across and
 20 up for a GRIDUNIT of (10, 20). POLAR, OTRACK, OSNAP and DYN stay the window's.
+
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads the types it left out, in all six versions (AutoCAD
+2000 to 2018): VIEWPORT, so a layout comes with its viewports, numbered as AutoCAD numbers them; HATCH with every kind
+of boundary, pattern lines, solid fill and gradient; LEADER, MULTILEADER with MLEADERSTYLE, and TOLERANCE; IMAGE with
+IMAGEDEF and IMAGEDEF_REACTOR, and WIPEOUT; MLINE; REGION, 3DSOLID and BODY of AutoCAD 2000 (their SAT text) and from
+AutoCAD 2013 (the GUID of their data); ACAD_TABLE to AutoCAD 2007 and TABLESTYLE to 2007; the colour of a book with its
+name, from its DBCOLOR; an attribute of several lines of AutoCAD 2018 with its MTEXT; and the proxy graphics of an
+entity where AutoCAD saved them. Each was checked against AutoCAD 2021's own DXF of the same drawing in every version:
+eight drawings more, 0 differences outside what AutoCAD itself changes as it writes. See the guide page "Reading DWG
+files" for what is still left out: tables and table styles from AutoCAD 2010, SHAPE, the ACIS data of AutoCAD 2004 to
+2010 and of the data store, MATERIAL, VISUALSTYLE and the other style objects, proxies, OLE frames and the data of
+dynamic blocks.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), from AutoCAD 2004: an entity of a colour of a book (as
+PANTONE Yellow 012 C) was left out as broken, with a Warn line; it is read with that colour. An element of a multiline
+style before AutoCAD 2018 in Continuous, or any linetype but ByLayer and ByBlock, came out ByLayer; it comes out with
+its linetype.
+
+**FIXED.** `DxfViewport.GetFrozenLayers` and `IsLayerFrozenInViewport` read the frozen layers of a DXF of AutoCAD 2000,
+which AutoCAD writes under group 341 rather than 331; they found none.
 
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length

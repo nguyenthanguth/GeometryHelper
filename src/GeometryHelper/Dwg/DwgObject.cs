@@ -51,6 +51,62 @@ namespace GeometryHelper.Dwg
     }
 
     /// <summary>
+    /// The colour of an entity that is a colour of a book: the transcoder writes the index, the true colour and the name
+    /// (62, 420, 430) of the DBCOLOR object it names, or the index alone where that object is not there.
+    /// </summary>
+    internal sealed class DwgBookColour
+    {
+        /// <summary>The handle of the DBCOLOR object.</summary>
+        public readonly ulong Book;
+
+        /// <summary>The colour index the entity holds beside it.</summary>
+        public readonly int Index;
+
+        /// <summary>A colour of the book at <paramref name="book"/>, <paramref name="index"/> where the book is not there.</summary>
+        public DwgBookColour(ulong book, int index)
+        {
+            Book = book;
+            Index = index;
+        }
+    }
+
+    /// <summary>
+    /// A linetype given by its place among the records of the linetype table, as an MLINESTYLE before R2018 gives the
+    /// linetype of an element; the transcoder writes its name.
+    /// </summary>
+    internal sealed class DwgLinetypeIndex
+    {
+        /// <summary>The place of the linetype among the records of the table, from 0.</summary>
+        public readonly int Index;
+
+        /// <summary>The linetype at <paramref name="index"/>.</summary>
+        public DwgLinetypeIndex(int index)
+        {
+            Index = index;
+        }
+    }
+
+    /// <summary>
+    /// The number of a viewport (group 69) or its status (group 68), which a DWG does not hold: the transcoder gives them
+    /// from the place of the viewport among those of its layout.
+    /// </summary>
+    internal sealed class DwgViewportNumber
+    {
+        /// <summary>The handle of the viewport.</summary>
+        public readonly ulong Viewport;
+
+        /// <summary>Whether the group is the status (68) rather than the number (69).</summary>
+        public readonly bool Status;
+
+        /// <summary>The number of <paramref name="viewport"/>, or its status where <paramref name="status"/> is set.</summary>
+        public DwgViewportNumber(ulong viewport, bool status)
+        {
+            Viewport = viewport;
+            Status = status;
+        }
+    }
+
+    /// <summary>
     /// A colour as a DWG keeps it: the colour index (256 by layer, 0 by block), and from R2004 a true colour, the name of a
     /// colour of a book and a transparency.
     /// </summary>
@@ -70,6 +126,13 @@ namespace GeometryHelper.Dwg
 
         /// <summary>The transparency as group 440 carries it; -1 for none, which is by layer.</summary>
         public int Transparency = -1;
+
+        /// <summary>
+        /// Of a colour of a style (CMC): the value DXF writes where it gives the colour as one number, as a multileader does:
+        /// the high byte 0xC0 by layer, 0xC1 by block, 0xC2 a true colour in the low three bytes, 0xC3 an index in the low
+        /// byte. Before R2004, where the file holds the index alone, made from it.
+        /// </summary>
+        public int Raw;
 
         /// <summary>Whether the colour is one of a book, whose DBCOLOR object the handles name.</summary>
         public bool HasBook;
@@ -166,6 +229,21 @@ namespace GeometryHelper.Dwg
 
         /// <summary>Of a block header: the groups of the BLOCK entity that the header keeps (base point, path of the reference).</summary>
         public List<DwgGroup> BlockBody;
+
+        /// <summary>Of a DBCOLOR from R2004: its colour; null for another type.</summary>
+        public DwgColour BookColour;
+
+        /// <summary>Of an entity: the picture of it kept for programs that cannot draw it (proxy graphics); null for none.</summary>
+        public byte[] ProxyGraphics;
+
+        /// <summary>Of an MTEXT: the height and the width of the extents of its text; null for another type.</summary>
+        public double[] TextExtents;
+
+        /// <summary>Of a LEADER: the handle of its annotation; 0 for none.</summary>
+        public ulong Annotation;
+
+        /// <summary>Of a layout from R2004: its viewports in their order; null before R2004.</summary>
+        public List<ulong> Viewports;
 
         /// <summary>Adds a group to <see cref="Body"/>.</summary>
         public void Add(int code, object value) => Body.Add(new DwgGroup(code, value));

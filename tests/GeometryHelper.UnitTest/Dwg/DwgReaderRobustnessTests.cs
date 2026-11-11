@@ -242,6 +242,14 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("props", 15)]
         [InlineData("tables", 16)]
         [InlineData("later", 17)]
+        [InlineData("vports_AC1015", 18)]
+        [InlineData("hatch_AC1015", 19)]
+        [InlineData("leaders_AC1015", 20)]
+        [InlineData("images_AC1015", 51)]
+        [InlineData("mline_AC1015", 52)]
+        [InlineData("solids_AC1015", 53)]
+        [InlineData("meshes_AC1015", 54)]
+        [InlineData("table_AC1015", 55)]
         public void BytesChangedInsideObjects_UnderARightCheckSum_AreRefusedOrRead_NeverAnythingElse(string name, int seed)
         {
             // With its check sum repaired a changed object reaches its decoder, which has to stand whatever it is given.
@@ -323,6 +331,15 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("blocks_AC1032", 38)]
         [InlineData("curves_AC1021", 39)]
         [InlineData("props_AC1021", 40)]
+        [InlineData("vports_AC1032", 41)]
+        [InlineData("hatch_AC1032", 42)]
+        [InlineData("leaders_AC1032", 43)]
+        [InlineData("images_AC1032", 44)]
+        [InlineData("mline_AC1032", 45)]
+        [InlineData("solids_AC1032", 46)]
+        [InlineData("meshes_AC1032", 47)]
+        [InlineData("table_AC1018", 48)]
+        [InlineData("table_AC1021", 49)]
         public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(string name, int seed)
         {
             // The pages carry their own sums, so the changes are made in the decompressed objects, each object's own check
