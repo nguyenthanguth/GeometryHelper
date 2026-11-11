@@ -62,16 +62,24 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Makes a new drawing with nothing in it, of a version, as AutoCAD's <c>new Database(true, true)</c> makes one of its
         /// own: the drawing <see cref="DxfWriter"/> writes with no shape, in millimetres, with model space and paper space, two
-        /// layouts, the layer 0, the text style and the dimension style Standard and the named object dictionary, its header
-        /// naming the version given (<c>$ACADVER</c>) and its records giving what that version added to them, as AutoCAD
-        /// writes them: from R2004 on how many objects of each class there are, without which AutoCAD opens no drawing of those
-        /// versions, and the layouts' shade plot; from R2007 on the unit, explodability and scaling of model space and paper
-        /// space. <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
+        /// layouts, the layer 0, the text style Standard, the dimension styles Standard and ISO-25 and the named object
+        /// dictionary, its header naming the version given (<c>$ACADVER</c>) and its records giving what that version added to
+        /// them, as AutoCAD writes them: from R2004 on how many objects of each class there are, without which AutoCAD opens no
+        /// drawing of those versions, and the layouts' shade plot; from R2007 on the unit, explodability and scaling of model
+        /// space and paper space. <c>new DxfDatabase("AC1024")</c> is a drawing of R2010, the oldest a
         /// dynamic block is made in (<see cref="DxfBlockTableRecord.AddLinearParameter"/>); <c>"AC1015"</c> gives the very
-        /// text <c>new DxfWriter().ToString()</c> gives, but for the code page its header names after the version
-        /// (<c>$DWGCODEPAGE</c> ANSI_1252), as AutoCAD's own empty drawings of every version from R2000 name it: so that a reader
-        /// that goes by it, as ezdxf does, takes the text of a drawing of R2007 or later, Korean text copied into it among it, for
-        /// the UTF-8 it is written in, which it took for ANSI_1252 without it.
+        /// text <c>new DxfWriter().ToString()</c> gives, but for ISO-25 (below) and the code page its header names after the
+        /// version (<c>$DWGCODEPAGE</c> ANSI_1252), as AutoCAD's own empty drawings of every version from R2000 name it: so that a
+        /// reader that goes by it, as ezdxf does, takes the text of a drawing of R2007 or later, Korean text copied into it among
+        /// it, for the UTF-8 it is written in, which it took for ANSI_1252 without it.
+        /// <para>
+        /// ISO-25 is current, as in AutoCAD 2021's metric template acadiso.dwt saved as each of these versions: <c>$DIMSTYLE</c>
+        /// names it and the header and the style hold the same values, arrowheads and text 2.5, a gap of 0.625, two decimal
+        /// places and a decimal comma, each of the 20 that differ from AutoCAD's own written into both, as AutoCAD writes them;
+        /// Standard holds AutoCAD's own (arrowheads 0.18), as acadiso.dwt's does. So <see cref="GetDimstyleData"/> gives
+        /// ISO-25 in every variable, and AutoCAD, which reads a variable the header leaves out as its imperial drawing has it,
+        /// reads the same.
+        /// </para>
         /// </summary>
         /// <param name="version">The version, as <see cref="Version"/> names it: AC1015 (R2000), AC1018 (R2004), AC1021
         /// (R2007), AC1024 (R2010), AC1027 (R2013) or AC1032 (R2018), letters of either case.</param>
@@ -107,7 +115,12 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            return new DxfWriter { Version = named, CodePage = "ANSI_1252" }.ToString();
+            return new DxfWriter
+            {
+                Version = named,
+                CodePage = "ANSI_1252",
+                Iso25Current = true,
+            }.ToString();
         }
 
         #region Opening and saving

@@ -466,6 +466,87 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #region The header as a dimension style
 
+        [Theory]
+        [InlineData("AC1015")]
+        [InlineData("AC1018")]
+        [InlineData("AC1021")]
+        [InlineData("AC1024")]
+        [InlineData("AC1027")]
+        [InlineData("AC1032")]
+        public void ANewDrawing_NamesIso25_WhichItHolds_ItsVariablesThoseOfTheHeader_AsAcadisoHasThem(string version)
+        {
+            // AutoCAD 2021's acadiso.dwt, saved as each version: $DIMSTYLE ISO-25, the styles Standard (AutoCAD's own values)
+            // and ISO-25, ISO-25 equal to the header in every variable and Standard off it in 20.
+            var db = new DxfDatabase(version);
+
+            Assert.Equal("ISO-25", db.Dimstyle);
+            Assert.Equal("ISO-25", db.GetHeader("$DIMSTYLE").Single().Value);
+            Assert.Equal(new[] { "Standard", "ISO-25" }, db.DimStyleTable.Select(s => s.Name));
+
+            foreach (DxfDatabase drawing in new[] { db, DxfDatabase.Parse(db.ToText()) })
+            {
+                DxfDimStyleTableRecord header = drawing.GetDimstyleData();
+                DxfDimStyleTableRecord iso = drawing.DimStyleTable["ISO-25"];
+                DxfDimStyleTableRecord standard = drawing.DimStyleTable["Standard"];
+                int differ = 0;
+
+                foreach (
+                    System.Reflection.PropertyInfo property in typeof(DxfDimStyleTableRecord)
+                        .GetProperties()
+                        .Where(p =>
+                            p.Name.StartsWith("Dim", StringComparison.Ordinal) && p.GetIndexParameters().Length == 0
+                        )
+                )
+                {
+                    string own = Said(property.GetValue(iso));
+                    Assert.True(
+                        own == Said(property.GetValue(header)),
+                        property.Name + " of ISO-25 is " + own + ", the header's " + Said(property.GetValue(header))
+                    );
+
+                    if (own != Said(property.GetValue(standard)))
+                    {
+                        differ++;
+                    }
+                }
+
+                Assert.Equal(20, differ);
+                Assert.Equal(0.18, standard.Dimasz);
+                Assert.Same(drawing.TextStyleTable["Standard"], iso.Dimtxsty);
+                Assert.Same(drawing.TextStyleTable["Standard"], standard.Dimtxsty);
+            }
+
+            // Written as AutoCAD writes acadiso's: the record its 20 groups and its text style, the header each of them, so
+            // that AutoCAD, which reads a variable the header leaves out as its imperial drawing has it, reads ISO-25 too.
+            string text = db.ToText().Replace("\r\n", "\n");
+            Assert.Contains(
+                "  2\nISO-25\n 70\n0\n 41\n2.5\n 42\n0.625\n 43\n3.75\n 44\n1.25\n 73\n0\n 74\n0\n 77\n1\n 78\n8\n140\n2.5\n"
+                    + "141\n2.5\n143\n0.03937007874015748\n147\n0.625\n171\n3\n172\n1\n271\n2\n272\n2\n274\n3\n278\n44\n"
+                    + "283\n0\n284\n8\n340\n21\n",
+                text
+            );
+            Assert.Equal("2.5", db.GetHeader("$DIMASZ").Single().Value);
+            Assert.Equal("44", db.GetHeader("$DIMDSEP").Single().Value);
+            Assert.Equal("1", db.GetHeader("$DIMTAD").Single().Value);
+        }
+
+        private static string Said(object value)
+        {
+            switch (value)
+            {
+                case null:
+                    return "(none)";
+                case DxfSymbolTableRecord record:
+                    return record.Name;
+                case DxfColor color:
+                    return color.ColorMethod + " " + color.ColorIndex;
+                case double number:
+                    return number.ToString("R", CultureInfo.InvariantCulture);
+                default:
+                    return value.ToString();
+            }
+        }
+
         [Fact]
         public void GetDimstyleData_GivesTheHeaderAsAStyleInNoTable()
         {

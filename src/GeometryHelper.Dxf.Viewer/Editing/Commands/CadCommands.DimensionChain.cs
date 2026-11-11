@@ -76,6 +76,17 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // AutoCAD 2021 draws each linear and angular dimension of the row with DIMTMOVE 1 where it is nought, and writes it,
+            // DIMCONTINUE's override first, DIMBASELINE's in the order of the groups (279 1, then 41 and 176 typed): words too
+            // wide for a short one stand over its line past a leader.
+            DxfDimStyleTableRecord moving = DimStyle(c);
+
+            if (moving.Dimtmove == 0)
+            {
+                moving.Keep(DxfDimVariable.Named("Dimtmove"), 1);
+            }
+
+            int first = baseline ? 0 : 279;
             DxfDimension last = null;
 
             foreach (DxfEntity entity in c.Space.Block)
@@ -144,7 +155,7 @@ namespace GeometryHelper.Dxf.Viewer
                         : from.Angular
                             ? AngularDimensionMade(
                                 c,
-                                style,
+                                moving,
                                 from.Vertex,
                                 from.Origin,
                                 input.Point,
@@ -152,7 +163,16 @@ namespace GeometryHelper.Dxf.Viewer
                                 out _,
                                 out _
                             )
-                        : LinearDimensionMade(c, style, from.Angle, from.Origin, input.Point, after.Line, out _, out _);
+                        : LinearDimensionMade(
+                            c,
+                            moving,
+                            from.Angle,
+                            from.Origin,
+                            input.Point,
+                            after.Line,
+                            out _,
+                            out _
+                        );
                 });
                 yield return (
                     chain.Ordinate
@@ -196,17 +216,27 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         handle = AngularDimension(
                             c,
-                            style,
+                            moving,
                             chain.Vertex,
                             chain.Origin,
                             c.Input.Point,
                             next.Radius,
-                            true
+                            true,
+                            first
                         );
                     }
                     else
                     {
-                        handle = LinearDimension(c, style, chain.Angle, chain.Origin, c.Input.Point, next.Line, true);
+                        handle = LinearDimension(
+                            c,
+                            moving,
+                            chain.Angle,
+                            chain.Origin,
+                            c.Input.Point,
+                            next.Line,
+                            true,
+                            first
+                        );
                     }
 
                     if (handle != null)
@@ -431,8 +461,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a rotated dimension from one origin to another along a direction, its line through a point, as DIMLINEAR makes
-        /// one; "Dimension text = ..." written where <paramref name="echo"/> says. The handle of the dimension, or null where it
-        /// measures nothing or was not made.
+        /// one; "Dimension text = ..." written where <paramref name="echo"/> says, the override of the group
+        /// <paramref name="first"/> written before the rest. The handle of the dimension, or null where it measures nothing or
+        /// was not made.
         /// </summary>
         private static string LinearDimension(
             CadCommandContext c,
@@ -441,7 +472,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 p1,
             GeoPoint2 p2,
             GeoPoint2 onLine,
-            bool echo
+            bool echo,
+            int first = 0
         )
         {
             List<DxfEntity> picture = LinearDimensionMade(
@@ -470,7 +502,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Dimension text = " + words);
             }
 
-            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first));
         }
 
         /// <summary>The picture of the rotated dimension <see cref="LinearDimension"/> makes, and the dimension; null where it measures nothing.</summary>
@@ -505,7 +537,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a three-point angular dimension about a vertex between two points, of the smaller of the two angles they make,
-        /// its arc at a radius; the handle of the dimension, or null where it measures nothing.
+        /// its arc at a radius, the override of the group <paramref name="first"/> written before the rest; the handle of the
+        /// dimension, or null where it measures nothing.
         /// </summary>
         private static string AngularDimension(
             CadCommandContext c,
@@ -514,7 +547,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 a,
             GeoPoint2 b,
             double radius,
-            bool echo
+            bool echo,
+            int first = 0
         )
         {
             List<DxfEntity> picture = AngularDimensionMade(
@@ -543,7 +577,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Dimension text = " + words);
             }
 
-            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first));
         }
 
         /// <summary>The picture of the angular dimension <see cref="AngularDimension"/> makes, and the dimension; null where it measures nothing.</summary>

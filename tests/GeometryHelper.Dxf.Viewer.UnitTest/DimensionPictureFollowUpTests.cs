@@ -39,6 +39,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             style.Dimtofl = true;
             style.Dimatfit = 3;
             set(style);
+            StandardCurrent(document.Database);
             return Session(document);
         }
 
@@ -122,6 +123,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // AutoCAD 2021 writes DIMTFILLCLR BYLAYER as the index 256.
             session.Document.Database.DimStyleTable["Standard"].Dimtfillclr = DxfColor.ByLayer;
+            StandardCurrent(session.Document.Database);
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -60));
             words = Words(Made(session));
             Assert.True(words.BackgroundFill);
@@ -226,6 +228,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(150, jog, 0), leader[0].EndPoint);
 
             session.Document.Database.DimStyleTable["Standard"].Dimfxlen = 50;
+            StandardCurrent(session.Document.Database);
             Run(session, "DOR", P(250, 0), P(270, 40));
             Near(new GeoPoint3(250, 0.625, 0), Lines(Made(session))[0].StartPoint);
         }

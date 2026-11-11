@@ -37,6 +37,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             style.Dimtofl = true;
             style.Dimatfit = 3;
             set(style);
+            StandardCurrent(document.Database);
             return Session(document);
         }
 

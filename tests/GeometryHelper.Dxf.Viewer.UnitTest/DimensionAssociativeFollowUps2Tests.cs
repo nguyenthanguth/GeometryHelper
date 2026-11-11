@@ -25,6 +25,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfTextStyleTableRecord standard = document.Database.TextStyleTable["Standard"];
             standard.FileName = "arial.ttf";
             document.Database.DimStyleTable["Standard"].Dimtxsty = standard;
+            StandardCurrent(document.Database);
             return document;
         }
 

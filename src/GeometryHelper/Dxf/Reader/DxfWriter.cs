@@ -85,8 +85,35 @@ namespace GeometryHelper.Dxf
         private const int PaperLayout = 0x2B;
         private const int PlotStyleDictionary = 0x31;
         private const int PlotStylePlaceholder = 0x32;
+        private const int Iso25DimStyle = 0x2C;
 
         private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+
+        // The dimension style ISO-25 of AutoCAD 2021's acadiso.dwt where it differs from AutoCAD's own: each variable's group in
+        // the record, in the order AutoCAD writes them, its variable and group in the header, and its value.
+        private static readonly Iso25Variable[] Iso25 =
+        {
+            new Iso25Variable(41, "$DIMASZ", 40, "2.5"),
+            new Iso25Variable(42, "$DIMEXO", 40, "0.625"),
+            new Iso25Variable(43, "$DIMDLI", 40, "3.75"),
+            new Iso25Variable(44, "$DIMEXE", 40, "1.25"),
+            new Iso25Variable(73, "$DIMTIH", 70, "0"),
+            new Iso25Variable(74, "$DIMTOH", 70, "0"),
+            new Iso25Variable(77, "$DIMTAD", 70, "1"),
+            new Iso25Variable(78, "$DIMZIN", 70, "8"),
+            new Iso25Variable(140, "$DIMTXT", 40, "2.5"),
+            new Iso25Variable(141, "$DIMCEN", 40, "2.5"),
+            new Iso25Variable(143, "$DIMALTF", 40, Exact(1.0 / 25.4)),
+            new Iso25Variable(147, "$DIMGAP", 40, "0.625"),
+            new Iso25Variable(171, "$DIMALTD", 70, "3"),
+            new Iso25Variable(172, "$DIMTOFL", 70, "1"),
+            new Iso25Variable(271, "$DIMDEC", 70, "2"),
+            new Iso25Variable(272, "$DIMTDEC", 70, "2"),
+            new Iso25Variable(274, "$DIMALTTD", 70, "3"),
+            new Iso25Variable(278, "$DIMDSEP", 70, "44"),
+            new Iso25Variable(283, "$DIMTOLJ", 70, "0"),
+            new Iso25Variable(284, "$DIMTZIN", 70, "8"),
+        };
 
         // The points of a unit circle at 0, 90, 180 and 270 degrees, exact.
         private static readonly double[] QuarterX = { 1.0, 0.0, -1.0, 0.0 };
@@ -135,6 +162,14 @@ namespace GeometryHelper.Dxf
         /// all ASCII, needs none.
         /// </summary>
         internal string CodePage { get; set; }
+
+        /// <summary>
+        /// Whether the dimension style ISO-25 is added and made current, as AutoCAD 2021's acadiso.dwt has it, for the new
+        /// empty drawing of <see cref="DxfDatabase(string)"/>: its record beside Standard, the 20 variables it holds other than
+        /// AutoCAD's own written into it and into the header with <c>$DIMSTYLE</c>, so that the header and the style it names
+        /// agree, read by the library or by AutoCAD; both styles name the text style Standard (340), as acadiso.dwt's do.
+        /// </summary>
+        internal bool Iso25Current { get; set; }
 
         /// <summary>Whether the version is the one named or a later one, so that the records carry the groups it brought.</summary>
         private bool Since(string version) => string.CompareOrdinal(Version, version) >= 0;
@@ -1726,6 +1761,19 @@ namespace GeometryHelper.Dxf
             file.Point(0, any ? _minX : 1E20, any ? _minY : 1E20, any ? _minZ : 1E20);
             file.Str(9, "$EXTMAX");
             file.Point(0, any ? _maxX : -1E20, any ? _maxY : -1E20, any ? _maxZ : -1E20);
+
+            if (Iso25Current)
+            {
+                file.Str(9, "$DIMSTYLE");
+                file.Str(2, "ISO-25");
+
+                foreach (Iso25Variable variable in Iso25)
+                {
+                    file.Str(9, variable.Header);
+                    file.Str(variable.HeaderCode, variable.Value);
+                }
+            }
+
             file.Str(0, "ENDSEC");
         }
 
@@ -1856,16 +1904,25 @@ namespace GeometryHelper.Dxf
             file.Int(70, 0);
             file.Str(0, "ENDTAB");
 
-            Table(file, "DIMSTYLE", DimStyleTable, 1);
+            int dimStyles = Iso25Current ? 2 : 1;
+            Table(file, "DIMSTYLE", DimStyleTable, dimStyles);
             file.Str(100, "AcDbDimStyleTable");
-            file.Int(71, 1);
-            file.Str(0, "DIMSTYLE");
-            file.Hex(105, StandardDimStyle);
-            file.Hex(330, DimStyleTable);
-            file.Str(100, "AcDbSymbolTableRecord");
-            file.Str(100, "AcDbDimStyleTableRecord");
-            file.Str(2, "Standard");
-            file.Int(70, 0);
+            file.Int(71, dimStyles);
+            DimStyle(file, StandardDimStyle, "Standard");
+
+            if (Iso25Current)
+            {
+                file.Hex(340, StandardStyle);
+                DimStyle(file, Iso25DimStyle, "ISO-25");
+
+                foreach (Iso25Variable variable in Iso25)
+                {
+                    file.Str(variable.Code, variable.Value);
+                }
+
+                file.Hex(340, StandardStyle);
+            }
+
             file.Str(0, "ENDTAB");
 
             Table(file, "BLOCK_RECORD", BlockRecordTable, 2);
@@ -1911,6 +1968,18 @@ namespace GeometryHelper.Dxf
             file.Str(100, "AcDbSymbolTableRecord");
             file.Str(100, subclass);
             file.Str(2, name);
+        }
+
+        /// <summary>The head of a DIMSTYLE record, its handle as group 105, as AutoCAD writes it.</summary>
+        private static void DimStyle(Groups file, int handle, string name)
+        {
+            file.Str(0, "DIMSTYLE");
+            file.Hex(105, handle);
+            file.Hex(330, DimStyleTable);
+            file.Str(100, "AcDbSymbolTableRecord");
+            file.Str(100, "AcDbDimStyleTableRecord");
+            file.Str(2, name);
+            file.Int(70, 0);
         }
 
         private static void Linetype(Groups file, int handle, string name, string description)
@@ -3153,6 +3222,30 @@ namespace GeometryHelper.Dxf
             public override bool Equals(object obj) => obj is Seam other && Equals(other);
 
             public override int GetHashCode() => unchecked(_first.GetHashCode() * 397 ^ _second.GetHashCode());
+        }
+
+        /// <summary>A variable of ISO-25: its group in the record, its variable and group in the header, its value.</summary>
+        private sealed class Iso25Variable
+        {
+            public Iso25Variable(int code, string header, int headerCode, string value)
+            {
+                Code = code;
+                Header = header;
+                HeaderCode = headerCode;
+                Value = value;
+            }
+
+            /// <summary>The group in the DIMSTYLE record.</summary>
+            public int Code { get; }
+
+            /// <summary>The variable of the header.</summary>
+            public string Header { get; }
+
+            /// <summary>The group in the header.</summary>
+            public int HeaderCode { get; }
+
+            /// <summary>The value, as written.</summary>
+            public string Value { get; }
         }
 
         /// <summary>

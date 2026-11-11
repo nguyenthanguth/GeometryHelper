@@ -22,6 +22,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static CadDocument Kinds()
         {
             CadDocument document = BlankWithMLeaderStyle();
+            StandardCurrent(document.Database);
             CadCommandSession session = Session(document);
             Run(session, "DLI", P(0, -50), P(300, -50), P(150, -80));
             Run(session, "MLD", P(0, 200), P(30, 220), "B-12");

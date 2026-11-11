@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using GeometryHelper.Dxf;
 
@@ -61,31 +60,8 @@ namespace GeometryHelper.Dxf.Viewer
             database.TextStyleTable.Add(annotative);
             annotative.Annotative = DxfAnnotativeStates.True;
 
-            var iso = new DxfDimStyleTableRecord { Name = DimensionStyle };
-            database.DimStyleTable.Add(iso);
-            iso.Dimtxsty = database.TextStyleTable["Standard"];
-
-            // ISO-25 where it differs from AutoCAD's own style (acad.dwt), each written into the header as well.
-            Dim(database, "$DIMASZ", 2.5, v => iso.Dimasz = v);
-            Dim(database, "$DIMCEN", 2.5, v => iso.Dimcen = v);
-            Dim(database, "$DIMDLI", 3.75, v => iso.Dimdli = v);
-            Dim(database, "$DIMEXE", 1.25, v => iso.Dimexe = v);
-            Dim(database, "$DIMEXO", 0.625, v => iso.Dimexo = v);
-            Dim(database, "$DIMGAP", 0.625, v => iso.Dimgap = v);
-            Dim(database, "$DIMTXT", 2.5, v => iso.Dimtxt = v);
-            Dim(database, "$DIMALTF", 1.0 / 25.4, v => iso.Dimaltf = v);
-            Whole(database, "$DIMDEC", 2, v => iso.Dimdec = v);
-            Whole(database, "$DIMTDEC", 2, v => iso.Dimtdec = v);
-            Whole(database, "$DIMTAD", 1, v => iso.Dimtad = v);
-            Whole(database, "$DIMZIN", 8, v => iso.Dimzin = v);
-            Whole(database, "$DIMTZIN", 8, v => iso.Dimtzin = v);
-            Whole(database, "$DIMALTD", 3, v => iso.Dimaltd = v);
-            Whole(database, "$DIMALTTD", 3, v => iso.Dimalttd = v);
-            Whole(database, "$DIMTIH", 0, v => iso.Dimtih = v != 0);
-            Whole(database, "$DIMTOH", 0, v => iso.Dimtoh = v != 0);
-            Whole(database, "$DIMTOFL", 1, v => iso.Dimtofl = v != 0);
-            Whole(database, "$DIMTOLJ", 0, v => iso.Dimtolj = v);
-            Whole(database, "$DIMDSEP", ',', v => iso.Dimdsep = (char)v);
+            // ISO-25, current and written into the header where it differs from AutoCAD's own style (acad.dwt), comes with the
+            // library's new drawing, as acadiso.dwt has it.
             Pin(database, "$DIMTXSTY", 7, "Standard");
             Pin(database, "$DIMSTYLE", 2, DimensionStyle);
             return database;
@@ -97,19 +73,5 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void Pin(DxfDatabase database, string name, int code, double value) =>
             Pin(database, name, code, value.ToString("R", CultureInfo.InvariantCulture));
-
-        /// <summary>A real dimension variable: the style's and the header's.</summary>
-        private static void Dim(DxfDatabase database, string name, double value, Action<double> style)
-        {
-            style(value);
-            Pin(database, name, 40, value);
-        }
-
-        /// <summary>A whole dimension variable, a flag or a letter: the style's and the header's.</summary>
-        private static void Whole(DxfDatabase database, string name, int value, Action<int> style)
-        {
-            style(value);
-            Pin(database, name, 70, value.ToString(CultureInfo.InvariantCulture));
-        }
     }
 }
