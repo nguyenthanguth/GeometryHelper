@@ -41,10 +41,28 @@ namespace GeometryHelper.Dxf.Viewer
             bool copy = false;
             bool first = true;
 
+            // One custom grip dragged previews its dynamic block worked out at the cursor, as AutoCAD 2021 redraws it.
+            CadGrip custom = hot.Count == 1 ? CadGrips.Of(c.Document.FindEntity(hot[0].Key))[hot[0].Value] : null;
+            CadPreview reshaped =
+                custom?.Custom == null || custom.Kind == CadGripKind.CustomFlip || custom.Kind == CadGripKind.CustomList
+                    ? null
+                    : CadPreview.Reshaping(c, hot[0].Key, (entity, point) =>
+                    {
+                        Action<DxfBlockReference> write = CadDynamicBlocks.Plan(
+                            (DxfBlockReference)entity,
+                            custom,
+                            origins[0] + (point - basePoint),
+                            out _
+                        );
+                        write?.Invoke((DxfBlockReference)entity);
+                        return write != null;
+                    });
+
             while (true)
             {
                 c.Write("** " + GripModes[mode] + (copy ? " (multiple)" : string.Empty) + " **");
-                yield return GripPrompt(mode, basePoint);
+                CadPrompt asked = GripPrompt(mode, basePoint);
+                yield return mode == 0 && reshaped != null ? asked.Previewing(reshaped) : asked;
                 CadInput input = c.Input;
 
                 if (input.IsNone)

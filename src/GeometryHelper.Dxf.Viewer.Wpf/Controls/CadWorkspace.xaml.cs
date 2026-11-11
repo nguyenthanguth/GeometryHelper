@@ -982,6 +982,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.VisibleLineColor = settings.VisibleLines;
             CanvasView.Options.HiddenLineColor = settings.HiddenLines;
             CanvasView.Options.GripColor = settings.Grip;
+            CanvasView.Options.CustomGripColor = DxfColor
+                .FromColorIndex(DxfColorMethod.ByAci, (short)settings.GripDynamicColor)
+                .ColorValue;
             CanvasView.TableIndicator = settings.TableIndicator;
             CanvasView.TableIndicatorColor = settings.TableIndicatorColor;
             CanvasView.CrosshairPercent = settings.CrosshairPercent;

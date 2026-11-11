@@ -10,9 +10,9 @@ using static GeometryHelper.Dxf.Viewer.Wpf.UnitTest.CanvasMouseTests;
 namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 {
     /// <summary>
-    /// The system variables the window keeps (OSMODE, the status bar's toggles, PICKBOX, APERTURE, LWDISPLAY), set at once with
-    /// no undo step; and the grip modes from the canvas: a grip clicked asks STRETCH, a click stretches it, Space goes on to
-    /// MOVE, whose ghost follows the cursor.
+    /// The system variables the window keeps (OSMODE, the status bar's toggles, PICKBOX, APERTURE, LWDISPLAY,
+    /// GRIPDYNCOLOR), set at once with no undo step; and the grip modes from the canvas: a grip clicked asks STRETCH, a
+    /// click stretches it, Space goes on to MOVE, whose ghost follows the cursor.
     /// </summary>
     public sealed class SystemVariableAndGripWindowTests : IDisposable
     {
@@ -216,6 +216,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.DynamicInput.IsOn = true;
             model.Execute("DYNMODE");
             Assert.Equal("Enter new value for DYNMODE <3>:", model.Prompt);
+        }
+
+        [Fact]
+        public void Gripdyncolor_ColoursTheCustomGrips_KeptInTheSettingsAndNotInTheDrawing()
+        {
+            int before = -1,
+                after = -1;
+            Exception failure = null;
+            MainViewModel model = Room();
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var workspace = new CadWorkspace { DataContext = model };
+                    model.ApplySettings(model.Settings);
+                    before = workspace.DrawingCanvas.Options.CustomGripColor;
+
+                    // AutoCAD 2021 starts at 140 and takes 1 to 255, and writes no GRIPDYNCOLOR into a drawing (plugin GhDb1).
+                    model.Execute("GRIPDYNCOLOR");
+                    Assert.Equal("Enter new value for GRIPDYNCOLOR <140>:", model.Prompt);
+                    model.Execute("0");
+                    Assert.Equal("Requires an integer between 1 and 255.", model.History.Last());
+                    model.Execute("1");
+                    after = workspace.DrawingCanvas.Options.CustomGripColor;
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            Assert.Null(failure);
+            Assert.Equal(0x00BFFF, before);
+            Assert.Equal(0xFF0000, after);
+            Assert.Equal(1, model.Settings.GripDynamicColor);
+            Assert.Equal(140, new GlobalSettings().GripDynamicColor);
+            Assert.Null(model.Document.Database.GetHeader("$GRIPDYNCOLOR"));
+            Assert.False(model.Document.CanUndo);
         }
 
         [Fact]

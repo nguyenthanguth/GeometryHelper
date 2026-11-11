@@ -9,8 +9,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), the snap's SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL and
     /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport, SNAPTYPE,
     /// POLARDIST and GRIDSTYLE of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
-    /// PICKBOX and APERTURE of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's Input Search Options,
-    /// and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
+    /// PICKBOX, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
+    /// Input Search Options, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
     /// there.
     /// </summary>
@@ -142,6 +142,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     31,
                     () => _settings.InputSearchFlags,
                     v => ChangeSettings(s => s.InputSearchFlags = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "GRIPDYNCOLOR",
+                    1,
+                    255,
+                    () => _settings.GripDynamicColor,
+                    v => ChangeSettings(s => s.GripDynamicColor = v)
                 )
             );
             registry.AddVariable(CadSystemVariable.Switch("LWDISPLAY", () => ShowLineWeights, SetLineWeightDisplay));
@@ -314,9 +323,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Raised when a value of Global settings is changed from the command line or a dialog other than Global settings:
-        /// PICKBOX, APERTURE, LWDISPLAY, POLARANG, the increment of Drafting Settings, the command line's Input Settings; and
-        /// when what the settings remember changes: a command used, a misspelling corrected, a file opened or pinned. The window
-        /// keeps the settings in use in the settings file, as it keeps DYN and OSMODE.
+        /// PICKBOX, APERTURE, GRIPDYNCOLOR, LWDISPLAY, POLARANG, the increment of Drafting Settings, the command line's Input
+        /// Settings; and when what the settings remember changes: a command used, a misspelling corrected, a file opened or
+        /// pinned. The window keeps the settings in use in the settings file, as it keeps DYN and OSMODE.
         /// </summary>
         public event EventHandler SettingsChanged;
 

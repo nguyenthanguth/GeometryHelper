@@ -55,6 +55,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets the colour of the grips as 0xRRGGBB: #3D9BFF by default.</summary>
         public int GripColor { get; set; } = 0x3D9BFF;
+
+        /// <summary>
+        /// Gets or sets the colour of a dynamic block's custom grips as 0xRRGGBB, AutoCAD's GRIPDYNCOLOR: #00BFFF by default,
+        /// the colour of index 140 that AutoCAD 2021 starts with.
+        /// </summary>
+        public int CustomGripColor { get; set; } = 0x00BFFF;
     }
 
     /// <summary>

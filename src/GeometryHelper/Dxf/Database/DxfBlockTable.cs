@@ -1513,6 +1513,12 @@ namespace GeometryHelper.Dxf
         /// three edges, the classes listed; the block is made dynamic as <see cref="AddLinearParameter"/> makes it. Linear
         /// parameters and their stretches may come before or after it.
         /// </para>
+        /// <para>
+        /// Every state lists the block's other parameters, their grips and its actions, those added before the visibility
+        /// parameter and those added after it, as AutoCAD's Block Editor lists them in each state of its Door sample: so a Width
+        /// of the sign is shown, with its grip, in Cross, Tick and Blank alike. AutoCAD 2021 read a state listing none as hiding
+        /// them, Width not visible in any state and its grip not shown (plugin GhDb1).
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the name, the states or one of them is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty, the name or the description holds a line break,

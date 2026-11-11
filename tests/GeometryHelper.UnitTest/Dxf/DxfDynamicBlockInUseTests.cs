@@ -323,23 +323,142 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(Reopened(db).ModelSpace.GetVisibilityStates());
         }
 
+        /// <summary>The sign of <see cref="Sign"/> given a Width from (0, 0) to (40, 0) that stretches its bottom line, before or after its states.</summary>
+        private static DxfDatabase SignWithWidth(bool widthFirst, out DxfBlockTableRecord block)
+        {
+            DxfDatabase db = Drawing("GH_SIGN", out block, new GeoPoint3(0, 0, 0));
+            DxfLine[] lines =
+            {
+                Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0))),
+                Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(40, 40, 0))),
+                Add(block, new DxfLine(new GeoPoint3(10, 20, 0), new GeoPoint3(20, 10, 0))),
+            };
+            DxfBlockLinearParameter width = widthFirst
+                ? block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0), -10, null)
+                : null;
+            block.AddVisibilityParameter(
+                "Mark",
+                "What the sign shows",
+                new GeoPoint3(20, -10, 0),
+                new[]
+                {
+                    new DxfBlockVisibilityState("Cross", new DxfEntity[] { lines[1] }),
+                    new DxfBlockVisibilityState("Tick", new DxfEntity[] { lines[2] }),
+                    new DxfBlockVisibilityState("Blank", new DxfEntity[0]),
+                }
+            );
+            width = width
+                ?? block.AddLinearParameter("Width", null, new GeoPoint3(0, 0, 0), new GeoPoint3(40, 0, 0), -10, null);
+            block.AddStretchAction(width, new GeoPoint2(30, -5), new GeoPoint2(50, 5), new[] { lines[0] });
+            return db;
+        }
+
+        /// <summary>The nodes of the graph of a block, in its order.</summary>
+        private static List<DxfItem> Nodes(DxfBlockTableRecord block)
+        {
+            DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
+            return graph
+                .Item.Groups.Where(g => g.TypeCode == 360)
+                .Select(g => graph.Item.File.ObjectItem(g.Value))
+                .ToList();
+        }
+
+        /// <summary>The handles each state of the block's visibility parameter lists after its 95, by the state's name.</summary>
+        private static Dictionary<string, List<string>> Listed(DxfBlockTableRecord block)
+        {
+            DxfItem visibility = Nodes(block).Single(n => n.Type == "BLOCKVISIBILITYPARAMETER");
+            var listed = new Dictionary<string, List<string>>();
+            List<string> state = null;
+
+            foreach (DxfTypedValue group in visibility.Groups)
+            {
+                if (group.TypeCode == 303)
+                {
+                    state = new List<string>();
+                    listed.Add(group.Value, state);
+                }
+                else if (group.TypeCode == 333)
+                {
+                    state.Add(group.Value);
+                }
+            }
+
+            return listed;
+        }
+
+        /// <summary>A drawing's text with the state of a name made to list nothing (95 of nought), as a state that hides every parameter.</summary>
+        private static string Emptied(string text, string state)
+        {
+            string[] lines = text.Split('\n');
+            int at = 0;
+
+            while (!(lines[at].Trim() == "303" && lines[at + 1] == state))
+            {
+                at++;
+            }
+
+            at = Array.FindIndex(lines, at, l => l.Trim() == "95");
+            int count = int.Parse(lines[at + 1].Trim(), System.Globalization.CultureInfo.InvariantCulture);
+            IEnumerable<string> kept = lines.Take(at + 1).Concat(new[] { "0" }).Concat(lines.Skip(at + 2 + 2 * count));
+            return string.Join("\n", kept);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AParameterAddedAfterOrBeforeTheStates_IsShownInEveryState_ItsGripWithIt(bool widthFirst)
+        {
+            DxfDatabase db = SignWithWidth(widthFirst, out DxfBlockTableRecord block);
+
+            foreach (DxfDatabase drawing in new[] { db, Reopened(db) })
+            {
+                DxfBlockReference insert = TheInsert(drawing);
+
+                foreach (string state in new[] { "Cross", "Tick", "Blank" })
+                {
+                    Property(insert, "Mark").Value = state;
+
+                    Assert.True(Property(insert, "Width").VisibleInCurrentVisibilityState);
+                    Assert.Contains(insert.GetDynamicGrips(), g =>
+                        g.GripType == DxfDynamicBlockGripType.Linear && At(g.Position, 40, 0)
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public void EveryState_ListsTheOtherParametersTheirGripsAndTheActions_AsAutoCADsDoorSampleDoes()
+        {
+            DxfDatabase db = SignWithWidth(false, out DxfBlockTableRecord block);
+
+            // The Door sample's states each list every parameter but the visibility parameter and the base point, every grip
+            // but the visibility grip and every action, in the order of the nodes, and no grip location component.
+            string[] expected = Nodes(block)
+                .Where(n =>
+                    n.Type == "BLOCKLINEARPARAMETER" || n.Type == "BLOCKLINEARGRIP" || n.Type == "BLOCKSTRETCHACTION"
+                )
+                .Select(n => n.Handle)
+                .ToArray();
+            Assert.Equal(4, expected.Length);
+
+            foreach (DxfBlockTableRecord read in new[] { block, Reopened(db).BlockTable["GH_SIGN"] })
+            {
+                Dictionary<string, List<string>> listed = Listed(read);
+                Assert.Equal(new[] { "Cross", "Tick", "Blank" }, listed.Keys);
+                Assert.All(listed.Values, handles => Assert.Equal(expected, handles));
+            }
+        }
+
         [Fact]
         public void AParameterTheStateShownDoesNotList_IsHidden_ItsGripWithIt()
         {
-            DxfDatabase db = Sign(out DxfBlockTableRecord block, out DxfLine[] lines);
-            DxfBlockLinearParameter width = block.AddLinearParameter(
-                "Width",
-                null,
-                new GeoPoint3(0, 0, 0),
-                new GeoPoint3(40, 0, 0),
-                -10,
-                null
-            );
-            block.AddStretchAction(width, new GeoPoint2(30, -5), new GeoPoint2(50, 5), new[] { lines[0] });
+            DxfDatabase db = SignWithWidth(false, out DxfBlockTableRecord block);
 
-            // As the library writes it, no state lists Width, and AutoCAD 2021 read such a property as not visible and showed
-            // no grip of it (plugin GhDyn1).
-            DxfBlockReference insert = TheInsert(db);
+            // Cross and Blank made to list nothing, as AutoCAD's Block Editor hides a parameter in a state: Width and its grip
+            // show in Tick alone, as AutoCAD 2021 showed no grip of the Angle of its Toilet sample in a state that did not list
+            // it (plugin GhDyn1).
+            DxfDatabase listed = DxfDatabase.Parse(Emptied(Emptied(db.ToText(), "Cross"), "Blank"));
+            DxfBlockReference insert = TheInsert(listed);
             Assert.False(Property(insert, "Width").VisibleInCurrentVisibilityState);
             Assert.True(Property(insert, "Width").Show);
             Assert.True(Property(insert, "Mark").VisibleInCurrentVisibilityState);
@@ -348,35 +467,6 @@ namespace GeometryHelper.UnitTest.Dxf
                 insert.GetDynamicGrips().Select(g => g.GripType)
             );
 
-            // The state Tick listing Width and its end grip, as AutoCAD's Block Editor lists them, shows both in Tick alone.
-            DxfDBObject graph = block.ExtensionDictionary.GetAt("ACAD_ENHANCEDBLOCK");
-            List<DxfItem> nodes = graph
-                .Item.Groups.Where(g => g.TypeCode == 360)
-                .Select(g => graph.Item.File.ObjectItem(g.Value))
-                .ToList();
-            string parameter = nodes.Single(n => n.Type == "BLOCKLINEARPARAMETER").Handle;
-            string grip = nodes
-                .First(n =>
-                    n.Type == "BLOCKLINEARGRIP" && n.Groups.Any(g => g.TypeCode == 300 && g.Value == "End Grip")
-                )
-                .Handle;
-            string text = db.ToText();
-            int tick = text.IndexOf("303\nTick\n", StringComparison.Ordinal);
-            int count = text.IndexOf(" 95\n0\n", tick, StringComparison.Ordinal);
-            DxfDatabase listed = DxfDatabase.Parse(
-                text.Substring(0, count)
-                    + " 95\n2\n333\n"
-                    + parameter
-                    + "\n333\n"
-                    + grip
-                    + "\n"
-                    + text.Substring(count + " 95\n0\n".Length)
-            );
-
-            insert = TheInsert(listed);
-            Assert.False(Property(insert, "Width").VisibleInCurrentVisibilityState);
-            Assert.Single(insert.GetDynamicGrips());
-
             Property(insert, "Mark").Value = "Tick";
 
             Assert.True(Property(insert, "Width").VisibleInCurrentVisibilityState);
@@ -384,6 +474,81 @@ namespace GeometryHelper.UnitTest.Dxf
                 new[] { DxfDynamicBlockGripType.Visibility, DxfDynamicBlockGripType.Linear },
                 insert.GetDynamicGrips().Select(g => g.GripType)
             );
+
+            // A parameter added afterwards is listed in every state, the emptied ones with the others, the lists kept.
+            DxfBlockTableRecord sign = listed.BlockTable["GH_SIGN"];
+            sign.AddPointParameter("Tag", null, new GeoPoint3(20, 20, 0));
+            Dictionary<string, List<string>> lists = Listed(sign);
+            Assert.Equal(2, lists["Cross"].Count);
+            Assert.Equal(6, lists["Tick"].Count);
+            Assert.Equal(lists["Cross"], lists["Tick"].Skip(4));
+            Assert.Equal(lists["Cross"], lists["Blank"]);
+        }
+
+        [Fact]
+        public void AnXYParameter_GivesItsEndAndItsTwoOtherCorners_AsAutoCADShowsThem()
+        {
+            DxfDatabase db = Drawing("GH_XY", out DxfBlockTableRecord block, new GeoPoint3(1000, 500, 0));
+            DxfLine right = Add(block, new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0)));
+            DxfLine top = Add(block, new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0)));
+            DxfBlockXYParameter xy = block.AddXYParameter(
+                "Width",
+                null,
+                "Height",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 50, 0)
+            );
+            block.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new DxfEntity[] { right, top });
+
+            // AutoCAD 2021 gave the end, base x with end y and end x with base y, and no base grip (plugin GhDb1).
+            IReadOnlyList<DxfDynamicBlockGrip> grips = TheInsert(db).GetDynamicGrips();
+            Assert.All(grips, g => Assert.Equal(DxfDynamicBlockGripType.XY, g.GripType));
+            Assert.All(grips, g => Assert.Equal(new[] { "Width", "Height" }, g.PropertyNames));
+            Assert.All(grips, g => Assert.True(At(g.BasePoint, 1000, 500)));
+            Assert.Equal(3, grips.Count);
+            Assert.True(At(grips[0].Position, 1100, 550));
+            Assert.True(At(grips[1].Position, 1000, 550));
+            Assert.True(At(grips[2].Position, 1100, 500));
+
+            DxfBlockReference insert = TheInsert(db);
+            Property(insert, "Width").Value = 120.0;
+            Property(insert, "Height").Value = 60.0;
+
+            grips = TheInsert(Reopened(db)).GetDynamicGrips();
+            Assert.True(At(grips[0].Position, 1120, 560));
+            Assert.True(At(grips[1].Position, 1000, 560));
+            Assert.True(At(grips[2].Position, 1120, 500));
+        }
+
+        [Fact]
+        public void ABlockPropertiesTable_GivesItsGripAtItsLocation_AfterTheGripsOfItsColumns()
+        {
+            DxfDatabase db = Drawing("GH_PLATE", out DxfBlockTableRecord block, new GeoPoint3(1000, 500, 0));
+            DxfLine right = Add(block, new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0)));
+            DxfBlockLinearParameter width = block.AddLinearParameter(
+                "Width",
+                null,
+                new GeoPoint3(0, 0, 0),
+                new GeoPoint3(100, 0, 0),
+                -10,
+                null
+            );
+            block.AddStretchAction(width, new GeoPoint2(90, -5), new GeoPoint2(110, 60), new[] { right });
+            block.AddBlockPropertiesTable(
+                new GeoPoint3(0, -20, 0),
+                new[] { DxfBlockPropertiesTableColumn.Distance(width) },
+                new[] { new DxfBlockPropertiesTableRow(100.0), new DxfBlockPropertiesTableRow(200.0) }
+            );
+
+            // AutoCAD 2021 gave the table's grip at (1 000, 480), after Width's (plugin GhDb1).
+            IReadOnlyList<DxfDynamicBlockGrip> grips = TheInsert(Reopened(db)).GetDynamicGrips();
+            Assert.Equal(
+                new[] { DxfDynamicBlockGripType.Linear, DxfDynamicBlockGripType.BlockTable },
+                grips.Select(g => g.GripType)
+            );
+            Assert.True(At(grips[1].Position, 1000, 480));
+            Assert.Equal(new[] { "Block Table1" }, grips[1].PropertyNames);
         }
 
         [Fact]
