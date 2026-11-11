@@ -163,9 +163,7 @@
                                 Style="{StaticResource Radio}"
                                 Content="Tolerance"
                                 GroupName="Type"
-                                IsChecked="{Binding IsTolerance, Mode=OneWay}"
-                                IsEnabled="False"
-                                ToolTip="{Binding ToleranceToolTip}"
+                                IsChecked="{Binding IsTolerance, Mode=TwoWay}"
                             />
                             <RadioButton
                                 Style="{StaticResource Radio}"
@@ -273,7 +271,7 @@
                         VerticalAlignment="Top"
                     >
                         <StackPanel>
-                            <!-- Each arrowhead with its picture; User Arrow... last, under a line, asks for a block. -->
+                            <!-- Each arrowhead with its picture; User Arrow... last, under a line, opens Select Custom Arrow Block. -->
                             <ComboBox
                                 Style="{StaticResource GhComboBox}"
                                 ItemsSource="{Binding ArrowChoices}"
@@ -306,40 +304,6 @@
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
-
-                            <!-- User Arrow...: AutoCAD's Select Custom Arrow Block, the drawing's blocks to choose from. -->
-                            <StackPanel
-                                Margin="0,8,0,0"
-                                Visibility="{Binding IsChoosingUserArrow, Converter={StaticResource Shown}}"
-                            >
-                                <TextBlock
-                                    Text="Select from Drawing Blocks:"
-                                    Foreground="{StaticResource GhTextMuted}"
-                                    Margin="0,0,0,4"
-                                />
-                                <ComboBox
-                                    Style="{StaticResource GhComboBox}"
-                                    IsEditable="True"
-                                    ItemsSource="{Binding UserArrowBlocks}"
-                                    Text="{Binding UserArrowBlock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    AutomationProperties.Name="Select from Drawing Blocks"
-                                />
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                                    <Button
-                                        Style="{StaticResource StylePrimaryButton}"
-                                        Content="OK"
-                                        Padding="14,3"
-                                        Margin="0,0,6,0"
-                                        Click="OnKeepUserArrow"
-                                    />
-                                    <Button
-                                        Style="{StaticResource GhDialogButton}"
-                                        Content="Cancel"
-                                        Padding="10,3"
-                                        Click="OnDropUserArrow"
-                                    />
-                                </StackPanel>
-                            </StackPanel>
                         </StackPanel>
                     </HeaderedContentControl>
                     <HeaderedContentControl Grid.Row="2" Style="{StaticResource BlockGroup}" Header="Number of Points">

@@ -104,6 +104,20 @@ and moves each vertex straight onto the plane, the direction of its hook laid in
 (10, 10, 5) and (20, 10, 8) put in the floor runs through (0, 0, 0), (10, 10, 0) and (20, 10, 0), and a leader put in its own
 plane changes nothing.
 
+### Feature control frames
+
+A TOLERANCE is a [`DxfTolerance`](xref:GeometryHelper.Dxf.DxfTolerance), as AutoCAD's `FeatureControlFrame`: its `Text` (group 1),
+`Location` (10), `Direction` (11), `Normal` (210) and `DimensionStyleName` (3), the direction and normal left out of the
+record where they are the world's x and z, as AutoCAD 2021 writes them. The text holds a row to a line, a line feed
+between rows (`^J` in the file), its cells `%%v` apart and its symbols letters of AutoCAD's gdt font: the position of a
+diameter 0.1 at the maximum material condition to the datums A, B and C is
+`{\Fgdt;j}%%v{\Fgdt;n}0.1{\Fgdt;m}%%vA%%vB%%vC`. `GetDimstyleData()` gives every variable the frame is drawn with, its
+override (DSTYLE) else its style's. `TransformBy` and `GetTransformedCopy` move it as AutoCAD 2021 moves one: its point
+moved, its direction turned, its normal the one its turned axes make, so that mirrored in the y axis the frame at
+(10, 20, 0) along (0.6, 0.8, 0) stands at (-10, 20, 0) along (-0.6, 0.8, 0), its normal (0, 0, -1); scaled, it writes its
+text height and gap scaled as overrides, DIMTXT then DIMGAP, so that a frame of the style's 0.18 and 0.09 scaled by 3
+holds `1070 140, 1040 0.54, 1070 147, 1040 0.27`. It is not exploded, as AutoCAD 2021's `Explode` refuses one.
+
 ### Multileaders
 
 A MULTILEADER is a [`DxfMLeader`](xref:GeometryHelper.Dxf.DxfMLeader): its words (`MText`, `TextLocation`, `TextHeight`) or block (`BlockContent`,

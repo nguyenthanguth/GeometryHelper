@@ -1074,6 +1074,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     return;
+                case DxfTolerance tolerance:
+                    // A feature control frame is drawn by its lines, symbols and words, laid out in the drawing's fonts.
+                    foreach (DxfEntity part in CadToleranceFrame.Of(tolerance, LayoutOf).Parts)
+                    {
+                        Draw(part, frame, list, handle);
+                    }
+
+                    return;
                 case DxfTable table:
                 {
                     // A table is drawn by the block AutoCAD drew it with, placed at its point: the block's entities stand turned

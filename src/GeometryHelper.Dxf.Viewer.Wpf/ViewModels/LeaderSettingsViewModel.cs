@@ -111,9 +111,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// type, the MText options, Annotation Reuse), Leader Line &amp; Arrow (straight or spline, the arrowhead, the number of
     /// points, the angle constraints) and Attachment (where the leader meets text on either side, Underline bottom line). The
     /// Attachment tab and the MText options are greyed unless the type is MText, the ten round buttons with Underline, Maximum
-    /// with No Limit; Tolerance cannot be picked, as the presenter has no Geometric Tolerance dialog. The arrowheads are
-    /// listed with their pictures, then "User Arrow...", which asks for a block of the drawing as AutoCAD's Select Custom
-    /// Arrow Block does. OK writes the settings and the arrowhead into the request; Cancel leaves it.
+    /// with No Limit. Tolerance shows the Geometric Tolerance dialog after QLEADER's points. The arrowheads are listed with
+    /// their pictures, then "User Arrow...", which opens AutoCAD's Select Custom Arrow Block over the dialog to choose a block
+    /// of the drawing (<see cref="IsChoosingUserArrow"/>). OK writes the settings and the arrowhead into the request; Cancel
+    /// leaves it.
     /// </summary>
     public sealed class LeaderSettingsViewModel : ObservableObject
     {
@@ -129,6 +130,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The last entry of the arrowhead list, which asks for a block of the drawing as the arrow.</summary>
         public const string UserArrowEntry = "User Arrow...";
 
+        /// <summary>The line of Select Custom Arrow Block in a drawing of no block, as board QLeaderUserArrowNoBlocks says it.</summary>
+        public const string NoBlocks =
+            "The drawing has no block to use as an arrow. Make one with BLOCK first, or Cancel.";
+
         private static readonly string[] AngleNames = { "Any angle", "Horizontal", "90°", "45°", "30°", "15°" };
 
         private readonly CadQLeaderSettings _settings;
@@ -139,6 +144,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _notice = string.Empty;
         private bool _choosingUserArrow;
         private string _userArrowBlock = string.Empty;
+        private string _userArrowMessage = string.Empty;
+        private bool _userArrowNotFound;
         private DxfDatabase _copy;
 
         /// <summary>Makes the dialog over a request.</summary>
@@ -149,7 +156,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Request = request ?? throw new ArgumentNullException(nameof(request));
             _settings = request.Settings.Clone();
 
-            // Tolerance cannot be picked here: a drawing that has it opens on MText's options greyed as AutoCAD's would not.
+            // The tab kept from last time; Attachment only while the type is MText.
             _tab = Tabs[Math.Max(0, Math.Min(2, _settings.Tab))];
 
             if (_tab == AttachmentTab && !IsMText)
@@ -244,8 +251,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => SetAnnotation(value, CadQLeaderAnnotation.CopyObject);
         }
 
-        /// <summary>Gets whether the type is Tolerance, which only a drawing can hold: the dialog cannot pick it.</summary>
-        public bool IsTolerance => _settings.Annotation == CadQLeaderAnnotation.Tolerance;
+        /// <summary>Gets or sets whether the type is Tolerance: QLEADER then shows the Geometric Tolerance dialog after the points.</summary>
+        public bool IsTolerance
+        {
+            get => _settings.Annotation == CadQLeaderAnnotation.Tolerance;
+            set => SetAnnotation(value, CadQLeaderAnnotation.Tolerance);
+        }
 
         /// <summary>Gets or sets whether the type is Block Reference.</summary>
         public bool IsBlockReference
@@ -260,10 +271,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _settings.Annotation == CadQLeaderAnnotation.None;
             set => SetAnnotation(value, CadQLeaderAnnotation.None);
         }
-
-        /// <summary>Gets the tooltip of Tolerance, greyed: why it cannot be picked.</summary>
-        public string ToleranceToolTip =>
-            "Tolerance needs the Geometric Tolerance dialog. " + MainViewModel.NotBuiltYet;
 
         /// <summary>Gets or sets "Prompt for width".</summary>
         public bool PromptForWidth
@@ -371,7 +378,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets whether the blocks of the drawing are being asked for a user arrow, as AutoCAD's Select Custom Arrow Block asks them.</summary>
+        /// <summary>
+        /// Gets whether AutoCAD's Select Custom Arrow Block is open over the dialog, the drawing's blocks asked for a user arrow;
+        /// the window shows it as a dialog of its own while this is true.
+        /// </summary>
         public bool IsChoosingUserArrow
         {
             get => _choosingUserArrow;
@@ -381,18 +391,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the blocks of the drawing a user arrow can be, by name.</summary>
         public IReadOnlyList<string> UserArrowBlocks => Request.Blocks;
 
+        /// <summary>Gets whether the drawing has a block to use as an arrow: with none, the list and its button are greyed.</summary>
+        public bool HasUserArrowBlocks => Request.Blocks.Count > 0;
+
         /// <summary>Gets or sets the name of the block chosen or typed for the user arrow.</summary>
         public string UserArrowBlock
         {
             get => _userArrowBlock;
-            set => Set(ref _userArrowBlock, value ?? string.Empty);
+            set
+            {
+                if (Set(ref _userArrowBlock, value ?? string.Empty))
+                {
+                    Raise(nameof(CanKeepUserArrow));
+                }
+            }
+        }
+
+        /// <summary>Gets whether OK of Select Custom Arrow Block can be pressed: not while its box is empty.</summary>
+        public bool CanKeepUserArrow => (_userArrowBlock ?? string.Empty).Trim().Length > 0;
+
+        /// <summary>
+        /// Gets the line under the box of Select Custom Arrow Block: why OK did not take the name typed, or that the drawing
+        /// has no block to choose; empty otherwise.
+        /// </summary>
+        public string UserArrowMessage
+        {
+            get => _userArrowMessage;
+            private set => Set(ref _userArrowMessage, value ?? string.Empty);
+        }
+
+        /// <summary>Gets whether the name typed was not found: the box's border and the line under it are then orange.</summary>
+        public bool IsUserArrowNotFound
+        {
+            get => _userArrowNotFound;
+            private set => Set(ref _userArrowNotFound, value);
         }
 
         /// <summary>
-        /// OK of the blocks: the block named, letters of either case the same, made the arrowhead, added to the list before
-        /// <see cref="UserArrowEntry"/> where it is not in it, and kept as the settings' user arrow (group 3).
+        /// OK of Select Custom Arrow Block: the block named, letters of either case the same, made the arrowhead, added to the
+        /// list before <see cref="UserArrowEntry"/> where it is not in it, and kept as the settings' user arrow (group 3).
         /// </summary>
-        /// <returns>Whether it was kept: false where the drawing has no block of the name, said in <see cref="Notice"/>.</returns>
+        /// <returns>Whether it was kept, the dialog closed: false where the drawing has no block of the name, said in
+        /// <see cref="UserArrowMessage"/> ("The drawing has no block TAGX."), the dialog left open.</returns>
         public bool KeepUserArrow()
         {
             string typed = (_userArrowBlock ?? string.Empty).Trim();
@@ -402,7 +442,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (name == null)
             {
-                Notice = "The drawing has no block " + typed + ".";
+                UserArrowMessage = HasUserArrowBlocks ? "The drawing has no block " + typed + "." : NoBlocks;
+                IsUserArrowNotFound = HasUserArrowBlocks;
                 return false;
             }
 
@@ -414,16 +455,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _settings.UserArrow = name;
             _arrow = name;
-            Notice = string.Empty;
+            UserArrowMessage = string.Empty;
+            IsUserArrowNotFound = false;
             IsChoosingUserArrow = false;
             Raise(nameof(Arrow));
             Raise(nameof(SelectedArrowChoice));
             return true;
         }
 
-        /// <summary>Cancel of the blocks: the arrowhead left as it was.</summary>
+        /// <summary>Cancel, Esc or the close button of Select Custom Arrow Block: the dialog closed, the arrowhead left as it was.</summary>
         public void DropUserArrow()
         {
+            UserArrowMessage = string.Empty;
+            IsUserArrowNotFound = false;
             IsChoosingUserArrow = false;
             Raise(nameof(SelectedArrowChoice));
         }
@@ -628,21 +672,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>"User Arrow...": the blocks asked, the one in use first chosen; with no block in the drawing, a line saying so.</summary>
+        /// <summary>
+        /// "User Arrow...": Select Custom Arrow Block asked, the block in use as the arrow chosen, else the user arrow kept, else
+        /// the first block; with no block in the drawing, its box empty and a line saying so.
+        /// </summary>
         private void AskUserArrow()
         {
-            if (Request.Blocks.Count == 0)
-            {
-                Notice = "The drawing has no block to use as an arrow.";
-                Raise(nameof(SelectedArrowChoice));
-                return;
-            }
-
             UserArrowBlock =
-                Request.Blocks.Contains(_arrow) ? _arrow
+                Request.Blocks.Count == 0 ? string.Empty
+                : Request.Blocks.Contains(_arrow) ? _arrow
                 : Request.Blocks.Contains(_settings.UserArrow) ? _settings.UserArrow
                 : Request.Blocks[0];
-            Notice = string.Empty;
+            UserArrowMessage = Request.Blocks.Count == 0 ? NoBlocks : string.Empty;
+            IsUserArrowNotFound = false;
             IsChoosingUserArrow = true;
             Raise(nameof(SelectedArrowChoice));
         }

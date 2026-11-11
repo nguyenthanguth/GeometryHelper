@@ -46,6 +46,34 @@ well, about a quarter of their strength. They are now drawn at 45 per cent, as e
 Clipboard of 24 000 items, a tenth of them texts, previews in 16 to 22 ms a move where it took 34, and one of 2 400 in
 under 1 ms where it took 2.7. What is drawn is the same.
 
+**NEW.** `DxfTolerance`, AutoCAD's `FeatureControlFrame`: a TOLERANCE read from DXF and DWG as a class of its own rather
+than a `DxfUnknownEntity`, made in code and written as AutoCAD 2021 writes one (`Text` with its rows as `^J`,
+`Location`, `Direction` and `Normal` left out where they are the world's, `DimensionStyleName`), its style's variables
+read through its overrides (`GetDimstyleData`), and moved, turned, scaled and mirrored as AutoCAD 2021's `TransformBy`
+moves one: mirrored, it is turned over (normal (0, 0, -1)); scaled by 3, a frame of the style's 0.18 and 0.09 holds the
+overrides `1070 140, 1040 0.54, 1070 147, 1040 0.27`, DIMTXT then DIMGAP. A drawing whose code looked for
+`DxfUnknownEntity` with `DxfName == "TOLERANCE"` finds a `DxfTolerance` now.
+
+**NEW.** TOLERANCE (TOL) in the presenter, with AutoCAD 2021's Geometric Tolerance dialog and its Symbol and Material
+Condition dialogs: two rows of a symbol, two tolerances and three datums, the height of a projected zone and the datum
+identifier, written as AutoCAD writes group 1, then "Enter tolerance location:" with the frame following the cursor. The
+canvas draws a frame as AutoCAD 2021 lays one out, measured in its console: rows twice DIMTXT high whatever DIMGAP, each
+cell its ink and DIMTXT wide, a cell of nothing taking no room; `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296
+wide, as in AutoCAD, and a cell mixing a gdt symbol and words comes within 0.005. The symbols are the presenter's own
+strokes. A frame has one grip, at its insertion point, and MOVE, COPY, ROTATE, SCALE and MIRROR (readable under MIRRTEXT
+0) move it, where they refused it before.
+
+**NEW.** LEADER's Tolerance option and QLEADER's Tolerance type show the Geometric Tolerance dialog and put the frame at
+the leader's end; Copy and Reuse Current copy a TOLERANCE there, where they passed it over: on a leader running left the
+frame is set back its width, `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 copied to a leader ending at (90, 105) standing at
+(89.07704, 105), as AutoCAD 2021 puts it. Leader Settings no longer greys Tolerance.
+
+**CHANGED.** User Arrow... of Leader Settings opens AutoCAD's Select Custom Arrow Block as a dialog of its own over Leader
+Settings, rather than a panel under the Arrowhead list: an editable list of the drawing's blocks, a name not found saying
+so in the dialog with its box framed orange, and in a drawing of no block the dialog open with its list and OK greyed.
+`LeaderSettingsViewModel.UserArrowMessage`, `IsUserArrowNotFound`, `HasUserArrowBlocks` and `CanKeepUserArrow` drive it;
+its messages are no longer in `Notice`, and `ToleranceToolTip` is gone.
+
 **NEW.** A distance or an angle the presenter asks with no base point takes two points, as AutoCAD 2021's command line
 does: a point typed or picked at "Enter new value for POLARDIST <0.0000>:" asks "Specify second point:", its rubber band
 from the first, and 0,0 then 3,4 sets POLARDIST to 5; SNAPANG 0,0 then 1,1 sets 45. Every such prompt takes them, SETVAR

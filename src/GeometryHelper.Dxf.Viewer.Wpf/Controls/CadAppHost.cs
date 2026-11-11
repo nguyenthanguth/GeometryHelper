@@ -88,7 +88,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -1255,8 +1255,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control);
         /// <c>xref</c> and <c>xref-tree</c> (the External References palette in its list or tree view, the last nested
         /// reference chosen); <c>scalelist</c> (Edit Drawing Scales, the first scale chosen); <c>qleader</c>,
-        /// <c>qleader-line</c> and <c>qleader-attach</c> (Leader Settings on each tab); <c>inputsearch</c> (Input Search
-        /// Options).
+        /// <c>qleader-line</c> and <c>qleader-attach</c> (Leader Settings on each tab); <c>selectarrow</c> (its Select Custom
+        /// Arrow Block); <c>tolerance</c>, <c>tolerance-filled</c> and <c>tolerance-full</c> (Geometric Tolerance empty, with
+        /// the first row of board GeomToleranceFilled, and with both rows, the zone and the identifier of GeomToleranceFull),
+        /// <c>gdtsymbol</c> and <c>gdtmaterial</c> (its Symbol and Material Condition, M chosen); <c>inputsearch</c> (Input
+        /// Search Options).
         /// </summary>
         private static bool ManagerDialog(
             MainViewModel model,
@@ -1285,6 +1288,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 && kind != "qleader"
                 && kind != "qleader-line"
                 && kind != "qleader-attach"
+                && kind != "selectarrow"
+                && kind != "tolerance"
+                && kind != "tolerance-filled"
+                && kind != "tolerance-full"
+                && kind != "gdtsymbol"
+                && kind != "gdtmaterial"
                 && kind != "inputsearch"
                 && kind != "view"
                 && kind != "newview"
@@ -1469,6 +1478,67 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         : LeaderSettingsViewModel.AnnotationTab;
                     var leaderWindow = new LeaderSettingsWindow(leader);
                     (window, root) = (leaderWindow, leaderWindow.Body);
+                    return true;
+                case "selectarrow":
+                    model.ShowLeaderSettings = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
+                    model.StartCommand("QLEADER");
+                    model.Execute("S");
+                    model.Escape();
+                    model.ShowLeaderSettings = null;
+                    var asking = (LeaderSettingsViewModel)shown;
+                    asking.Arrow = LeaderSettingsViewModel.UserArrowEntry;
+                    var arrowWindow = new SelectArrowBlockWindow(asking);
+                    (window, root) = (arrowWindow, arrowWindow.Body);
+                    return true;
+                case "tolerance":
+                case "tolerance-filled":
+                case "tolerance-full":
+                    model.ShowGeometricTolerance = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
+                    model.Execute("TOLERANCE");
+                    model.ShowGeometricTolerance = null;
+                    var tolerance = (GeometricToleranceViewModel)shown;
+
+                    // Board GeomToleranceFilled: the position, diameter 0.1 at MMC, datums A, B, C; GeomToleranceFull adds a
+                    // second row of flatness 0.05, a zone 5 high with its P and the identifier D.
+                    if (kind != "tolerance")
+                    {
+                        ToleranceRowViewModel first = tolerance.Rows[0];
+                        first.Symbol = 'j';
+                        first.Tolerance1.Diameter = true;
+                        first.Tolerance1.Value = "0.1";
+                        first.Tolerance1.Material = CadMaterialCondition.Maximum;
+                        first.Datums[0].Letter = "A";
+                        first.Datums[1].Letter = "B";
+                        first.Datums[2].Letter = "C";
+                    }
+
+                    if (kind == "tolerance-full")
+                    {
+                        tolerance.Rows[1].Symbol = 'c';
+                        tolerance.Rows[1].Tolerance1.Value = "0.05";
+                        tolerance.Height = "5";
+                        tolerance.ProjectedZone = true;
+                        tolerance.DatumIdentifier = "D";
+                    }
+
+                    var toleranceWindow = new GeometricToleranceWindow(tolerance);
+                    (window, root) = (toleranceWindow, toleranceWindow.Body);
+                    return true;
+                case "gdtsymbol":
+                    var symbolWindow = new GdtSymbolWindow(null);
+                    (window, root) = (symbolWindow, symbolWindow.Body);
+                    return true;
+                case "gdtmaterial":
+                    var materialWindow = new GdtMaterialWindow(CadMaterialCondition.Maximum);
+                    (window, root) = (materialWindow, materialWindow.Body);
                     return true;
                 case "inputsearch":
                     model.ShowInputSearchOptions = dialog =>

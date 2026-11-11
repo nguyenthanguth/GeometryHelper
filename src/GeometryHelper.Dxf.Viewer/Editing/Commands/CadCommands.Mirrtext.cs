@@ -76,6 +76,19 @@ namespace GeometryHelper.Dxf.Viewer
         ) => Flat(dimension.Normal, tolerance) ? new ReadableMirror(mirror, null, null, true) : null;
 
         /// <summary>
+        /// How MIRROR with MIRRTEXT 0 moves a TOLERANCE, as AutoCAD 2021 moves one (probed in its console, GHTOL4): its point and
+        /// direction mirrored, its normal kept rather than turned over, so that its words read: the frame at (10, 20) along
+        /// (0.6, 0.8) mirrored across the y axis stands at (-10, 20) along (-0.6, 0.8), its normal still (0, 0, 1). With
+        /// MIRRTEXT 1 it is mirrored as TransformBy mirrors it, turned over.
+        /// </summary>
+        private static ReadableMirror ReadableTolerance(GeoTransform3 mirror) =>
+            new ReadableMirror(mirror, null, null, then: moved =>
+            {
+                var frame = (DxfTolerance)moved;
+                frame.Normal = frame.Normal.Negate();
+            });
+
+        /// <summary>
         /// How MIRROR with MIRRTEXT 1 mirrors a TEXT or attribute definition, or the attributes of an INSERT, as AutoCAD 2021
         /// mirrors them (probed in its console, mirror-mleader GHMM1): in their plane, their normal still the drawing's, their
         /// points mirrored, turned to their mirrored upright less a quarter turn, and written backwards, or forwards again

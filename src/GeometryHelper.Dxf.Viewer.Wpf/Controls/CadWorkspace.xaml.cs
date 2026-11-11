@@ -630,6 +630,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowLayerStates = dialog => LayerStatesWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowScaleList = dialog => ScaleListEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowLeaderSettings = dialog => LeaderSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowGeometricTolerance = dialog => GeometricToleranceWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowInputSearchOptions = dialog => InputSearchOptionsWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);

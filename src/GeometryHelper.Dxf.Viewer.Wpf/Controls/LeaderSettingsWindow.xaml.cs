@@ -1,12 +1,15 @@
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// AutoCAD's Leader Settings, which QLEADER's Settings shows: Annotation, Leader Line &amp; Arrow and Attachment. Its logic
+    /// AutoCAD's Leader Settings, which QLEADER's Settings shows: Annotation, Leader Line &amp; Arrow and Attachment. User
+    /// Arrow... of the arrowhead list opens <see cref="SelectArrowBlockWindow"/> over it, the dialog dimmed under it. Its logic
     /// is <see cref="LeaderSettingsViewModel"/>.
     /// </summary>
     public partial class LeaderSettingsWindow : Window
@@ -19,6 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+            model.PropertyChanged += OnModelChanged;
+            Closed += (sender, e) => model.PropertyChanged -= OnModelChanged;
         }
 
         /// <summary>Gets the view model.</summary>
@@ -37,6 +42,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
+        /// <summary>User Arrow... picked: Select Custom Arrow Block shown once the list has closed, the dialog dimmed and blocked under it.</summary>
+        private void OnModelChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(LeaderSettingsViewModel.IsChoosingUserArrow) || !Model.IsChoosingUserArrow)
+            {
+                return;
+            }
+
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(() =>
+                {
+                    if (!Model.IsChoosingUserArrow || !IsVisible)
+                    {
+                        return;
+                    }
+
+                    using (DialogDim.Over(Root))
+                    {
+                        SelectArrowBlockWindow.Show(this, Model);
+                    }
+                })
+            );
+        }
+
         private void OnHeaderDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed && IsLoaded)
@@ -48,10 +78,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnMorePoints(object sender, RoutedEventArgs e) => Model.MorePoints();
 
         private void OnFewerPoints(object sender, RoutedEventArgs e) => Model.FewerPoints();
-
-        private void OnKeepUserArrow(object sender, RoutedEventArgs e) => Model.KeepUserArrow();
-
-        private void OnDropUserArrow(object sender, RoutedEventArgs e) => Model.DropUserArrow();
 
         private void OnOk(object sender, RoutedEventArgs e)
         {

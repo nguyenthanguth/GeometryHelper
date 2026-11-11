@@ -148,7 +148,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// (its defined width by its defined height, or with none the height of its lines) from the top left, the top right, the
         /// bottom left to the bottom right, the corner its location is at the grip of its insertion; its location first, a fifth
         /// grip, where it is at no corner (held at a middle); its location alone for an MTEXT of no width, in columns or out of
-        /// the plan. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
+        /// the plan. A TOLERANCE's, as AutoCAD 2021 shows it: its insertion point alone. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
         /// its top edge, its width, height and size stretch grips at the top right, bottom left and bottom right, and the table
         /// breaking grip under the middle of its bottom edge, which is not offered.
         /// </summary>
@@ -257,6 +257,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 case DxfMText mtext:
                     MTextGrips(mtext, (kind, at) => Add(kind, at.X, at.Y));
+                    break;
+                case DxfTolerance tolerance:
+                    Add(CadGripKind.Insertion, tolerance.Location.X, tolerance.Location.Y);
                     break;
                 case DxfBlockReference insert:
                     Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);

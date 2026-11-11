@@ -454,6 +454,7 @@ namespace GeometryHelper.Dxf.Viewer
                 entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
                 : entity is DxfMLeader mleader ? MLeaderMirror(document, mleader, mirror, mirrtext, tolerance)
                 : entity is DxfBlockReference insert ? InsertMirror(document, insert, mirror, mirrtext, tolerance)
+                : entity is DxfTolerance ? (mirrtext ? null : ReadableTolerance(mirror))
                 : mirrtext ? InPlane(entity, mirror, tolerance)
                 : Readable(document, entity, mirror, tolerance);
 
