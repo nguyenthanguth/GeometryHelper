@@ -657,8 +657,11 @@ is, `WorkingSpace` is model space: the commands draw there, picks and snaps work
 and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
 Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`).
 
-The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper, one undo step each (the wheel's
-notches one step once the view is still). ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
+The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
+step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
+button's drags made one after another are one step together, however often the view is drawn again between them, as
+AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control Combine, UNDOCTL 61 holding its 16);
+`SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
 viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
 view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list

@@ -2444,8 +2444,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Writes into the viewport worked through the view the wheel or the middle button gave it, one undo step named ZOOM or
-        /// PAN; a refusal written on the command line.
+        /// Writes into the viewport worked through the view the wheel or the middle button gave it, named ZOOM or PAN, one undo
+        /// step with the real-time zooms and pans made straight before it; a refusal written on the command line.
         /// </summary>
         private void CommitThrough()
         {
@@ -2460,7 +2460,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadViewports.ViewOf(paper, model, through, out GeoPoint2 center, out double height);
-            Report(Document.SetViewportView(through.Handle, center, height, _throughName ?? "ZOOM"));
+            Report(Document.SetViewportView(through.Handle, center, height, _throughName ?? "ZOOM", true));
         }
 
         private void Report(CadEditResult result)

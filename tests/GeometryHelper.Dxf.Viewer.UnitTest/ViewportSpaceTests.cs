@@ -126,6 +126,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void RealTimeZoomsAndPansInARow_AreOneUndoStep_ATypedZoomItsOwn()
+        {
+            CadDocument document = WithViewport(out CadCommandSession session, out string handle);
+            session.View = new CadView(800, 600);
+            document.EnterViewport(handle);
+            CadUndoStep start = document.NextUndo;
+
+            // Three real-time changes in a row, as the wheel and the middle button give them: one step, the first's name.
+            Assert.True(document.SetViewportView(handle, P(1000, 500), 800, "ZOOM", true).Succeeded);
+            Assert.True(document.SetViewportView(handle, P(900, 500), 800, "PAN", true).Succeeded);
+            Assert.True(document.SetViewportView(handle, P(900, 500), 600, "ZOOM", true).Succeeded);
+            Assert.Equal("ZOOM", document.NextUndo.Name);
+            Assert.Equal(3, document.NextUndo.Records.Count);
+
+            // ZOOM typed is a step of its own, as AutoCAD's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each; a real-time
+            // zoom after it starts a step again.
+            Run(session, "ZOOM", "2X");
+            Assert.True(document.SetViewportView(handle, P(900, 500), 200, "ZOOM", true).Succeeded);
+            Assert.True(document.Undo());
+            Assert.Equal(300, Viewport(document, handle).ViewHeight, 9);
+            Assert.True(document.Undo());
+            Assert.Equal(600, Viewport(document, handle).ViewHeight, 9);
+            Assert.True(document.Undo());
+            Assert.Equal(1000, Viewport(document, handle).ViewHeight, 9);
+            Near(P(1000, 500), Viewport(document, handle).ViewCenter);
+            Assert.Same(start, document.NextUndo);
+
+            // Undone and redone, the step takes no more; a real-time change then is a step of its own.
+            Assert.True(document.Redo());
+            Assert.True(document.SetViewportView(handle, P(900, 500), 100, "ZOOM", true).Succeeded);
+            Assert.True(document.Undo());
+            Assert.Equal(600, Viewport(document, handle).ViewHeight, 9);
+        }
+
+        [Fact]
         public void ALockedViewport_KeepsItsView_TheZoomGoingToThePaper()
         {
             CadDocument document = WithViewport(out CadCommandSession session, out string handle);

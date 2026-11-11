@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -160,6 +161,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Click(canvas, At(canvas, 65, 70));
                 picked = Assert.Single(model.Document.Selection.Handles);
                 Assert.Equal(3000.0, ((DxfLine)model.Document.FindEntity(picked)).StartPoint.Y, 9);
+            });
+        }
+
+        [Fact]
+        public void WheelRollsAndAPanDragDrawnBetween_AreOneUndoStep()
+        {
+            OnLayout((model, canvas, viewport) =>
+            {
+                model.Document.EnterViewport(viewport);
+                canvas.RenderNow();
+                CadUndoStep start = model.Document.NextUndo;
+                Point at = At(canvas, 150, 100);
+
+                // A roll, the view drawn again (the canvas still for a moment), another roll, and a drag of the middle button
+                // drawn again half way: one step, as AutoCAD combines consecutive real-time zooms and pans.
+                Mouse(canvas, UIElement.MouseWheelEvent, at, delta: 120);
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseWheelEvent, at, delta: 120);
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseMoveEvent, at);
+                Mouse(canvas, UIElement.MouseDownEvent, at, MouseButton.Middle);
+                Mouse(canvas, UIElement.MouseMoveEvent, new Point(at.X + 20, at.Y));
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseMoveEvent, new Point(at.X + 40, at.Y));
+                Mouse(canvas, UIElement.MouseUpEvent, new Point(at.X + 40, at.Y), MouseButton.Middle);
+                canvas.RenderNow();
+
+                Assert.Equal(3000 / 1.44, Frame(model, viewport).ViewHeight, 6);
+                Assert.NotEqual(2000, Frame(model, viewport).ViewCenter.X, 6);
+                Assert.Equal("ZOOM", model.Document.NextUndo.Name);
+                Assert.True(model.Document.Undo());
+                Assert.Same(start, model.Document.NextUndo);
+                Assert.Equal(3000, Frame(model, viewport).ViewHeight, 9);
+                Assert.Equal(2000, Frame(model, viewport).ViewCenter.X, 9);
             });
         }
 

@@ -155,7 +155,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="name">The name of the undo step, as ZOOM or PAN.</param>
         /// <returns>What came of it: refused for no such viewport, a height not above nought, or a viewport whose display is locked.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
-        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name)
+        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name) => SetViewportView(handle, viewCenter, viewHeight, name, false);
+
+        /// <summary>
+        /// Sets the view a viewport shows of model space, as <see cref="SetViewportView(string, GeoPoint2, double, string)"/>; a
+        /// real-time zoom or pan, the wheel's or the middle button's, made straight after another joins its undo step, as
+        /// AutoCAD 2021 combines consecutive real-time zooms and pans (UNDO Control Combine, on by default: UNDOCTL 61 has
+        /// its 16). ZOOM and PAN typed stay a step each, as AutoCAD's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each.
+        /// </summary>
+        /// <param name="handle">The handle of the viewport.</param>
+        /// <param name="viewCenter">The view's centre, as the viewport keeps it.</param>
+        /// <param name="viewHeight">The height of model space shown, above nought.</param>
+        /// <param name="name">The name of the undo step, as ZOOM or PAN; a step joined keeps the name of the first.</param>
+        /// <param name="realTime">Whether the change is a real-time zoom or pan, which joins the step of the real-time one
+        /// before it where no other step, a save or an undo came between.</param>
+        /// <returns>What came of it, refused as the other overload refuses.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        public CadEditResult SetViewportView(string handle, GeoPoint2 viewCenter, double viewHeight, string name, bool realTime)
         {
             if (name == null)
             {
@@ -169,7 +185,16 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse(refused);
             }
 
-            return ApplyEdit(name, ViewRecord(handle, viewCenter, viewHeight), ViewWriter(handle, viewCenter, viewHeight));
+            _realTime = realTime;
+
+            try
+            {
+                return ApplyEdit(name, ViewRecord(handle, viewCenter, viewHeight), ViewWriter(handle, viewCenter, viewHeight));
+            }
+            finally
+            {
+                _realTime = false;
+            }
         }
 
         /// <summary>Why a view cannot be given to a viewport; null where it can.</summary>

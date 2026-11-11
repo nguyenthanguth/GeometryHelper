@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The wheel's rolls and the middle button's drags in a viewport worked through are one undo step together in
+the presenter, as AutoCAD 2021 combines consecutive real-time zooms and pans by default (UNDO Control Combine: UNDOCTL is
+61 in its console, its 16 set). A roll or a drag held still long enough for the view to be drawn again made a step of
+its own, so one drag could leave several. ZOOM and PAN typed stay a step each, as AutoCAD's console undoes ZOOM 2X, ZOOM
+2X and -PAN one U each. `CadDocument.SetViewportView` takes `realTime` to join a change to the real-time one before it.
+
 **FIXED.** A layout viewport whose view is twisted, or looks at a target off the origin, is drawn in the presenter where
 AutoCAD 2021 draws it, and a twisted one can be worked through. The presenter turned the view the wrong way and took the
 view's centre as a point of model space, where AutoCAD keeps it about the target and turned by the twist: AutoCAD's
