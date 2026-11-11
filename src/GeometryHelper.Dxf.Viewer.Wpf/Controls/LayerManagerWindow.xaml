@@ -150,7 +150,7 @@
                                     <MenuItem Style="{StaticResource GhMenuItem}" Header="VP Freeze Layer in All Viewports" Command="{Binding VpFreezeAllCommand}" />
                                     <MenuItem Style="{StaticResource GhMenuItem}" Header="VP Thaw Layer in All Viewports" Command="{Binding VpThawAllCommand}" />
                                     <Separator Style="{StaticResource GhMenuSeparator}" />
-                                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Isolate Selected Layers" IsEnabled="False" ToolTip="Not built yet: LAYISO isolates the layers of objects picked" />
+                                    <MenuItem Style="{StaticResource GhMenuItem}" Header="Isolate Selected Layers" Command="{Binding IsolateCommand}" />
                                     <MenuItem Style="{StaticResource GhSubmenuItem}" Header="Remove Viewport Overrides for">
                                         <MenuItem Style="{StaticResource GhSubmenuItem}" Header="Selected Layers">
                                             <MenuItem Style="{StaticResource GhMenuItem}" Header="Current Viewport Only" Command="{Binding RemoveOverridesCommand}" CommandParameter="Selected,Current" />

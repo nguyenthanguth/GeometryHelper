@@ -1438,7 +1438,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             double scale = viewport.Height / viewport.ViewHeight;
             GeoPoint3 center = viewport.CenterPoint;
-            GeoPoint2 view = viewport.ViewCenter;
+            GeoPoint2 view = CadViewports.FromView(viewport, viewport.ViewCenter);
             double twist = viewport.TwistAngle;
             list.Add(new DisplayViewport2(center.X, center.Y, viewport.Width, viewport.Height, view.X, view.Y, scale, twist, ModelSeenThrough(viewport), frozen, style, handle, layerName));
         }

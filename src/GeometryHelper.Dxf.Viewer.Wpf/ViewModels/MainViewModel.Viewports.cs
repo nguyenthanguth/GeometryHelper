@@ -71,6 +71,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 CadEditResult result;
+                KeyValuePair<string, double> listed = DrawingScales().FirstOrDefault(s => string.Equals(s.Key, value, StringComparison.OrdinalIgnoreCase));
+
+                if (listed.Key != null && !CadViewports.StandardScales.Contains(value))
+                {
+                    SetViewportScale(listed.Value);
+                    return;
+                }
 
                 if (CadViewports.StandardScales.Contains(value))
                 {
@@ -162,8 +169,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand ToggleViewportLockCommand => _toggleLockCommand ?? (_toggleLockCommand = new DelegateCommand(_ => ToggleViewportLock()));
 
         /// <summary>
-        /// Gets the items of the scale list the status bar opens. In a layout, as AutoCAD 2021's: Scale to fit, the standard scales
-        /// (1:1 to 1:100, then 2:1 to 100:1), and Custom..., the viewport's own ticked, every item grey while its display is locked.
+        /// Gets the items of the scale list the status bar opens. In a layout, as AutoCAD 2021's: Scale to fit, the scales of the
+        /// drawing's list (the standard 1:1 to 100:1 where it has none), and Custom..., which runs -SCALELISTEDIT to edit that
+        /// list; the viewport's own ticked, every item grey while its display is locked.
         /// On the Model tab, the scales of the drawing's list, CANNOSCALE ticked.
         /// </summary>
         /// <returns>The items; empty where no scale is shown.</returns>
@@ -193,22 +201,81 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.Add(new CadMenuItemViewModel("Scale to fit", ScaleToFit, open, null, false));
             items.Add(CadMenuItemViewModel.Separator());
             bool enlarging = false;
+            double now = ScaledViewport()?.CustomScale ?? 0.0;
 
-            foreach (string name in CadViewports.StandardScales)
+            foreach (KeyValuePair<string, double> scale in DrawingScales())
             {
-                if (!enlarging && !name.StartsWith("1:", StringComparison.Ordinal))
+                if (!enlarging && scale.Value > 1.0)
                 {
                     enlarging = true;
                     items.Add(CadMenuItemViewModel.Separator());
                 }
 
-                string chosen = name;
-                items.Add(new CadMenuItemViewModel(name, () => ViewportScale = chosen, open, null, string.Equals(name, own, StringComparison.Ordinal)));
+                double chosen = scale.Value;
+                items.Add(new CadMenuItemViewModel(scale.Key, () => SetViewportScale(chosen), open, null, Math.Abs(chosen - now) <= 1E-9 * chosen));
             }
 
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(new CadMenuItemViewModel("Custom...", () => StartCommand("VPSCALE"), open, "Asks the scale on the command line, as 1:37.5 (SCALELISTEDIT is not built)", false));
+            items.Add(new CadMenuItemViewModel("Custom...", () => StartCommand("-SCALELISTEDIT"), open, "Edits the drawing's list of scales on the command line, as -SCALELISTEDIT (the Edit Drawing Scales dialog is not built)", false));
             return items;
+        }
+
+        /// <summary>
+        /// The scales the status bar's list offers in a layout, as AutoCAD 2021 offers the drawing's list (ACAD_SCALELIST, which
+        /// SCALELISTEDIT edits): each name with the paper length of one model unit, in the list's order; the standard scales
+        /// where the drawing has no list.
+        /// </summary>
+        private IReadOnlyList<KeyValuePair<string, double>> DrawingScales()
+        {
+            var scales = new List<KeyValuePair<string, double>>();
+
+            try
+            {
+                DxfObjectContextCollection list = _current.Document.Database.ObjectContextManager?.GetContextCollection("ACDB_ANNOTATIONSCALES");
+
+                foreach (DxfAnnotationScale scale in ((IEnumerable<DxfObjectContext>)list ?? Array.Empty<DxfObjectContext>()).OfType<DxfAnnotationScale>())
+                {
+                    if (scale.Scale > 0.0 && !double.IsInfinity(scale.Scale))
+                    {
+                        scales.Add(new KeyValuePair<string, double>(scale.Name, scale.Scale));
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // A list that cannot be read offers the standard scales.
+            }
+
+            if (scales.Count == 0)
+            {
+                foreach (string name in CadViewports.StandardScales)
+                {
+                    CadViewports.TryReadScale(name, out double value);
+                    scales.Add(new KeyValuePair<string, double>(name, value));
+                }
+            }
+
+            return scales;
+        }
+
+        /// <summary>Sets the scale of the viewport worked through or selected to a paper length of one model unit, one undo step; a refusal said on the command line.</summary>
+        private void SetViewportScale(double scale)
+        {
+            DxfViewport viewport = ScaledViewport();
+
+            if (viewport == null)
+            {
+                return;
+            }
+
+            CadEditResult result = CadPropertyEditor.Set(_current.Document, new[] { viewport.Handle }, "Custom scale", scale.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+
+            if (!result.Succeeded)
+            {
+                Say(result.Message);
+            }
+
+            RaiseViewportScale();
         }
 
         private ICommand _toggleLockCommand;

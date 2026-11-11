@@ -193,7 +193,9 @@ that differ from an entity's own handle.
 The `LayerTable` holds a [`DxfLayerTableRecord`](xref:GeometryHelper.Dxf.DxfLayerTableRecord) for each layer, found by its name in either case: its `Color`, `ColorIndex`,
 `TrueColor`, `LinetypeName`, `LineWeight`, `IsOff`, `IsFrozen`, `IsLocked` and `IsPlottable`; its `Description` and
 `Transparency`, kept in the extended data of AcAecLayerStandard and AcCmTransparency as AutoCAD keeps them;
-`ViewportVisibilityDefault` (frozen in new viewports, flag 2); and `IsUsed`: layer 0, Defpoints, the current layer and any
+`ViewportVisibilityDefault` (frozen in new viewports, flag 2: a `DxfViewport` made in code and appended to a layout has
+every such layer frozen in it at once, as AutoCAD 2021's `AppendEntity` freezes them, the layout's own viewport 1 none);
+and `IsUsed`: layer 0, Defpoints, the current layer and any
 layer an entity is on, those appended in code among them. The first `IsUsed` reads the drawing once for every layer, and the
 answers hold until the drawing is edited: 400 layers of a drawing of 300 000 lines take 0.08 seconds. Setting the `Name` of
 a layer renames it with every reference to it: the layer steel renamed Steel_S355 has every entity of it, in model space,

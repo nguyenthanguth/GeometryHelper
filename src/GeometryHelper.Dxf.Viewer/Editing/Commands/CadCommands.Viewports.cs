@@ -38,7 +38,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// VPSCALE: the scale of the viewport worked through or selected alone, else of one picked, written as AutoCAD writes it
         /// ("PS:MS == 1:20", "Viewport Scale Factor = 0.0500"); then a new scale asked, as 1:50 or 2:1, Enter keeping it, one
-        /// undo step: the status bar's Custom... while SCALELISTEDIT is not built.
+        /// undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> ViewportScale(CadCommandContext c)
         {
