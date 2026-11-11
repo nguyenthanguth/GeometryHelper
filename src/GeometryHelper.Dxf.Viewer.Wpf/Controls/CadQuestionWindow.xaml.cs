@@ -212,6 +212,62 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : null;
         }
 
+        /// <summary>Asks Reset's question of Edit Drawing Scales: "Reset the scale list to the default entries?".</summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <returns>Whether to reset.</returns>
+        public static bool AskResetScaleList(Window owner) =>
+            Shown(
+                owner,
+                new CadQuestionWindow(
+                    "Reset the scale list to the default entries?",
+                    "Every scale you added is deleted, except a scale in use, and the default scales come back in their order.",
+                    string.Empty,
+                    "Yes",
+                    "No"
+                )
+            ) == true;
+
+        /// <summary>Asks whether New Layer State to Save replaces a state of the name given: "Layer state "Plan" already exists".</summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="name">The name of the state.</param>
+        /// <returns>Whether to replace it.</returns>
+        public static bool AskReplaceLayerState(Window owner, string name) =>
+            Shown(
+                owner,
+                new CadQuestionWindow(
+                    "Layer state \"" + name + "\" already exists",
+                    "Replace it with the layers as they are now? Its description is replaced too.",
+                    string.Empty,
+                    "Yes",
+                    "No"
+                )
+            ) == true;
+
+        /// <summary>Shows a message with OK alone, as the Layer manager shows why a rename is refused: "Cannot rename layer "0".".</summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="message">The message.</param>
+        public static void ShowMessage(Window owner, string message)
+        {
+            var dialog = new CadQuestionWindow(message, string.Empty, string.Empty, "OK", null);
+            dialog.NoButton.Visibility = Visibility.Collapsed;
+            dialog.YesButton.IsCancel = true;
+            Shown(owner, dialog);
+        }
+
+        private static bool? Shown(Window owner, CadQuestionWindow dialog)
+        {
+            if (owner != null && owner.IsVisible)
+            {
+                dialog.Owner = owner;
+            }
+            else
+            {
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            return dialog.ShowDialog();
+        }
+
         private void OnYes(object sender, RoutedEventArgs e)
         {
             Answer = CadSaveChoice.Save;

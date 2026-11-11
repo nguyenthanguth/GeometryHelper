@@ -1,0 +1,384 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.EditLayerStateWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="{Binding Title}"
+    Width="1040"
+    Height="600"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="LayerRow" TargetType="ListBoxItem">
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="IsSelected" Value="{Binding IsChosen, Mode=TwoWay}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border
+                                x:Name="Row"
+                                BorderBrush="{StaticResource GhHeader}"
+                                BorderThickness="0,1,0,0"
+                                Background="Transparent"
+                            >
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="Head" TargetType="TextBlock">
+                <Setter Property="Padding" Value="4,6" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Text="Edits change the saved state only; the drawing changes when the state is restored."
+                    />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="200" />
+                </Grid.ColumnDefinitions>
+
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Run Text="Layers in the state" FontWeight="SemiBold" />
+                        <Run Text="·" Foreground="{StaticResource GhTextMuted}" />
+                        <Run Text="{Binding Summary, Mode=OneWay}" Foreground="{StaticResource GhTextMuted}" />
+                    </TextBlock>
+                    <TextBlock
+                        DockPanel.Dock="Bottom"
+                        Margin="0,6,0,0"
+                        Foreground="{StaticResource GhTextMuted}"
+                        TextWrapping="Wrap"
+                        Text="● differs from the layer in the drawing now · ○ no longer in the drawing (kept in the state, skipped on restore). Plot Style is greyed."
+                    />
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Add layers…"
+                            Padding="10,5"
+                            Margin="0,0,6,0"
+                            Click="OnAddLayers"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Remove layers"
+                            Padding="10,5"
+                            Click="OnRemoveLayers"
+                        />
+                    </StackPanel>
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                        <DockPanel>
+                            <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="30" />
+                                    <ColumnDefinition Width="34" />
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="92" />
+                                    <ColumnDefinition Width="92" />
+                                    <ColumnDefinition Width="82" />
+                                    <ColumnDefinition Width="54" />
+                                    <ColumnDefinition Width="66" />
+                                    <ColumnDefinition Width="66" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Style="{StaticResource Head}" Text="Name" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Head}" Text="On" />
+                                <TextBlock Grid.Column="3" Style="{StaticResource Head}" Text="Frz" />
+                                <TextBlock Grid.Column="4" Style="{StaticResource Head}" Text="Lock" />
+                                <TextBlock Grid.Column="5" Style="{StaticResource Head}" Text="Plot" />
+                                <TextBlock Grid.Column="6" Style="{StaticResource Head}" Text="Color" />
+                                <TextBlock Grid.Column="7" Style="{StaticResource Head}" Text="Linetype" />
+                                <TextBlock Grid.Column="8" Style="{StaticResource Head}" Text="Lineweight" />
+                                <TextBlock Grid.Column="9" Style="{StaticResource Head}" Text="Transp." />
+                                <TextBlock
+                                    Grid.Column="10"
+                                    Style="{StaticResource Head}"
+                                    Text="Plot Style"
+                                    Opacity="0.5"
+                                />
+                                <TextBlock Grid.Column="11" Style="{StaticResource Head}" Text="New VP Frz" />
+                            </Grid>
+                            <ListBox
+                                ItemsSource="{Binding Rows}"
+                                SelectionMode="Extended"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ItemContainerStyle="{StaticResource LayerRow}"
+                                HorizontalContentAlignment="Stretch"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                AutomationProperties.Name="Layers in the state"
+                            >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:EditLayerStateRowViewModel}">
+                                        <Grid IsEnabled="{Binding IsEditable}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="30" />
+                                                <ColumnDefinition Width="34" />
+                                                <ColumnDefinition Width="32" />
+                                                <ColumnDefinition Width="92" />
+                                                <ColumnDefinition Width="92" />
+                                                <ColumnDefinition Width="82" />
+                                                <ColumnDefinition Width="54" />
+                                                <ColumnDefinition Width="66" />
+                                                <ColumnDefinition Width="66" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Differs}" Value="True">
+                                                                <Setter Property="Text" Value="●" />
+                                                                <Setter
+                                                                    Property="Foreground"
+                                                                    Value="{StaticResource GhWarn}"
+                                                                />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                                                <Setter Property="Text" Value="○" />
+                                                                <Setter
+                                                                    Property="Foreground"
+                                                                    Value="{StaticResource GhError}"
+                                                                />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                Padding="4"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis"
+                                                Foreground="{StaticResource GhText}"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="2"
+                                                Style="{StaticResource StyleCheck}"
+                                                IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresOn, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="On"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="3"
+                                                Style="{StaticResource StyleCheck}"
+                                                IsChecked="{Binding IsFrozen, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresFrozen, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Frozen"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="4"
+                                                Style="{StaticResource StyleCheck}"
+                                                IsChecked="{Binding IsLocked, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresLocked, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Locked"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="5"
+                                                Style="{StaticResource StyleCheck}"
+                                                IsChecked="{Binding IsPlotted, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresPlot, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Plot"
+                                            />
+                                            <Button
+                                                Grid.Column="6"
+                                                Margin="2"
+                                                Style="{StaticResource GhFlatButton}"
+                                                HorizontalContentAlignment="Left"
+                                                Padding="4,2"
+                                                Command="{Binding ChooseColorCommand}"
+                                                IsEnabled="{Binding DataContext.RestoresColor, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Color"
+                                            >
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border
+                                                        Width="10"
+                                                        Height="10"
+                                                        Margin="0,0,5,0"
+                                                        BorderBrush="{StaticResource GhBorder}"
+                                                        BorderThickness="1"
+                                                        Background="{Binding Rgb, Converter={StaticResource RgbBrush}}"
+                                                    />
+                                                    <TextBlock Text="{Binding ColorName}" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button
+                                                Grid.Column="7"
+                                                Margin="2"
+                                                Style="{StaticResource GhFlatButton}"
+                                                HorizontalContentAlignment="Left"
+                                                Padding="4,2"
+                                                Content="{Binding Linetype}"
+                                                Command="{Binding ChooseLinetypeCommand}"
+                                                IsEnabled="{Binding DataContext.RestoresLinetype, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Linetype"
+                                            />
+                                            <ComboBox
+                                                Grid.Column="8"
+                                                Margin="2"
+                                                Style="{StaticResource GhComboBox}"
+                                                ItemsSource="{Binding WeightOptions}"
+                                                SelectedItem="{Binding Weight, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresLineweight, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Lineweight"
+                                            />
+                                            <TextBox
+                                                Grid.Column="9"
+                                                Margin="2"
+                                                Style="{StaticResource StyleBox}"
+                                                Text="{Binding Transparency, UpdateSourceTrigger=LostFocus}"
+                                                IsEnabled="{Binding DataContext.RestoresTransparency, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="Transparency"
+                                            />
+                                            <TextBlock
+                                                Grid.Column="10"
+                                                Text="Normal"
+                                                Padding="4"
+                                                Foreground="{StaticResource GhTextMuted}"
+                                                Opacity="0.5"
+                                            />
+                                            <CheckBox
+                                                Grid.Column="11"
+                                                Style="{StaticResource StyleCheck}"
+                                                IsChecked="{Binding IsNewViewportFrozen, Mode=TwoWay}"
+                                                IsEnabled="{Binding DataContext.RestoresNewViewportFreeze, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                AutomationProperties.Name="New VP Freeze"
+                                            />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                </DockPanel>
+
+                <HeaderedContentControl
+                    Grid.Column="2"
+                    Style="{StaticResource BlockGroup}"
+                    Header="Layer properties to restore"
+                    Margin="0"
+                >
+                    <DockPanel>
+                        <UniformGrid DockPanel.Dock="Bottom" Columns="2" Margin="0,6,0,0">
+                            <Button
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Select All"
+                                Padding="6,4"
+                                Margin="0,0,3,0"
+                                Click="OnSelectAll"
+                            />
+                            <Button
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Clear All"
+                                Padding="6,4"
+                                Margin="3,0,0,0"
+                                Click="OnClearAll"
+                            />
+                        </UniformGrid>
+                        <ItemsControl ItemsSource="{Binding Properties}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:EditLayerStatePropertyViewModel}">
+                                    <CheckBox
+                                        Style="{StaticResource StyleCheck}"
+                                        Content="{Binding Name}"
+                                        IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        Margin="0,0,0,5"
+                                        AutomationProperties.Name="{Binding Name}"
+                                    />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DockPanel>
+                </HeaderedContentControl>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

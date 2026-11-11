@@ -31,6 +31,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows the Layer States Manager; the action it closed with is in its request.</summary>
         public Func<LayerStatesViewModel, bool> ShowLayerStates { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows Edit Drawing Scales (SCALELISTEDIT); the action it closed with is in its request.</summary>
+        public Func<ScaleListEditViewModel, bool> ShowScaleList { get; set; }
+
         /// <summary>A request of a manager: its dialog shown where the workspace shows it, the request answered.</summary>
         private void OnManagerRequested(CadUiRequestEventArgs e)
         {
@@ -58,6 +61,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case CadLayerStatesRequest states when ShowLayerStates != null:
                     e.Handled = ShowLayerStates(new LayerStatesViewModel(states));
+                    break;
+                case CadScaleListRequest scales when ShowScaleList != null:
+                    e.Handled = ShowScaleList(new ScaleListEditViewModel(scales));
                     break;
             }
         }

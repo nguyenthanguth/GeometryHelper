@@ -225,7 +225,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "DLI", P(0, 0), P(300, 100));
-            Assert.Equal("Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:", session.PromptText);
+            Assert.Equal(
+                "Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:",
+                session.PromptText
+            );
             Run(session, P(150, -30));
             string words = session.History.Last().Substring("Dimension text = ".Length);
             Assert.StartsWith("300", words, StringComparison.Ordinal);

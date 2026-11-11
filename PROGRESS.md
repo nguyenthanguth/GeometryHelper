@@ -110,7 +110,9 @@ the ones wanted.
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
-- [ ] Layouts follow-ups: the SCALELISTEDIT dialog and Rename in the Layer manager (need design); wheel and middle-button
+- [x] SCALELISTEDIT dialog, in-place layer rename, Edit Layer State with Description, Input Search Options (designed, checked against AutoCAD 2021)
+- [ ] Dialog follow-ups: AutoCAD lists system variables separately only after Tab (ours below a rule); Remember corrections range 2-10 and the Reset/duplicate-scale texts from the design (unverified); Visual Style content finds nothing (no visual styles); a drawing without $MEASUREMENT resets to the metric list (S)
+- [ ] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
 - [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
@@ -182,13 +184,13 @@ the ones wanted.
       clipboard; `ALL` selecting nothing on a minimal hand-written DXF (cause unknown) (S)
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
-- [ ] Managers follow-ups 3: an Edit Layer State dialog and a description in New (needs design); ANGBASE/ANGDIR still raw
+- [ ] Managers follow-ups 3: ANGBASE/ANGDIR still raw
       in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
       ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
       accoreconsole); GhDialogButton dimmed twice when disabled (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
-- [ ] Command line follow-ups: Input Search Options dialog, collapsible content section, hatch thumbnail on hover, visual
+- [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual
       styles (need design); EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
       layouts (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode

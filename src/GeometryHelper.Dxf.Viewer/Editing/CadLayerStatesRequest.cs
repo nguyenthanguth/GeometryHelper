@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -54,6 +55,48 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="description">The description.</param>
         /// <returns>Whether it was saved; <see cref="Message"/> says why not.</returns>
         public bool New(string name, string description) => Change("New", name, description);
+
+        /// <summary>
+        /// New over a state of the name: the state replaced by the layers as they stand, its description by the one given and
+        /// the properties it restores kept, as AutoCAD's New does once its question is answered Yes.
+        /// </summary>
+        /// <param name="name">The name of the state replaced.</param>
+        /// <param name="description">The description.</param>
+        /// <returns>Whether it was saved; <see cref="Message"/> says why not.</returns>
+        public bool Replace(string name, string description) => Change("Replace", name, description);
+
+        /// <summary>Gets whether the drawing has a state of a name, letters of either case the same, as New asks before it replaces one.</summary>
+        /// <param name="name">The name.</param>
+        /// <returns>True when it has.</returns>
+        public bool Has(string name) =>
+            !string.IsNullOrWhiteSpace(name) && CadLayerStates.Find(Document.Database, name.Trim()) != null;
+
+        /// <summary>Edit…: the layers of the state chosen, to be changed and written back by <see cref="Edit"/>.</summary>
+        /// <returns>The state's layers; null where no state is chosen.</returns>
+        public CadLayerStateEdit BeginEdit()
+        {
+            DxfXrecord record = Selected == null ? null : CadLayerStates.Find(Document.Database, Selected);
+            return record == null
+                ? null
+                : CadLayerStateEdit.Read(Document.Database, CadLayerStates.NameOf(Document.Database, Selected), record);
+        }
+
+        /// <summary>OK of Edit Layer State: the state written from the edit, its layers and the properties it restores.</summary>
+        /// <param name="edit">The edit <see cref="BeginEdit"/> gave.</param>
+        /// <returns>Whether it was written.</returns>
+        public bool Edit(CadLayerStateEdit edit)
+        {
+            if (edit == null || Editing == null)
+            {
+                return false;
+            }
+
+            Message = Editing(edit);
+            return Message == null;
+        }
+
+        /// <summary>What the command does on Edit Layer State's OK.</summary>
+        internal Func<CadLayerStateEdit, string> Editing { get; set; }
 
         /// <summary>Update: the state chosen saved again from the layers as they stand, its properties kept.</summary>
         /// <returns>Whether it was.</returns>

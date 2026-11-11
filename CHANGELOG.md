@@ -31,6 +31,33 @@ DIMLINEAR wrote 0,0,0 and none. Text position X and Y of the Properties palette 
 the words under DIMTMOVE 0, as AutoCAD 2021 moves it. A jogged ordinate under DIMFXLON starts its leader DIMFXL before
 the jog, not at DIMEXO.
 
+**NEW.** The presenter's SCALELISTEDIT shows AutoCAD 2021's Edit Drawing Scales with Add Scale and Edit Scale: Move Up
+and Move Down, Delete greyed for a scale the drawing keeps, units greyed for one an object points at, Reset after a
+question; OK writes the drawing's list (ACAD_SCALELIST) as one undo step, a renamed or moved scale keeping its SCALE and
+handle; with no window it asks -SCALELISTEDIT's prompts. `CadScaleListRequest`, `CadScaleListRow`.
+
+**FIXED.** -SCALELISTEDIT Reset in a drawing whose MEASUREMENT is 0 puts back AutoCAD 2021's 16 imperial scales,
+`1/128" = 1'-0"` to `1'-0" = 1'-0"`, not the metric 1:1 to 100:1, as its console resets them.
+
+**NEW.** The presenter's Layer manager renames a layer in place: F2, a slow second click, a double click or Rename
+Layer; refused in AutoCAD 2021's -RENAME words (`Cannot rename layer "0".`, `A layer named "DIM" already exists.`,
+`Invalid layer name.`); `CadLayerEditor.Rename`.
+
+**FIXED.** Defpoints can be renamed (`DxfLayerTableRecord.Name`), as AutoCAD 2021's -RENAME and entmod rename it;
+layer 0 is still refused.
+
+**NEW.** The Layer States Manager's New… asks a description beside the name, and asks before it replaces a state of
+the name; Edit… shows AutoCAD's Edit Layer State: the state's layers with their properties changed in the state only,
+Add layers and Remove layers, the properties it restores. `CadLayerStatesRequest.Replace`, `Has`, `BeginEdit`, `Edit`,
+`CadLayerStateEdit`, `CadLayerStateLayer`.
+
+**NEW.** INPUTSEARCHOPTIONS shows AutoCAD 2021's Input Search Options (mid-string search, the order of the
+suggestions, Remember corrections after 2 to 10 mistypes, Separate commands and system variables, the delay, the
+Content type list and its order), from the command line's Input Settings too; -INPUTSEARCHOPTIONS asks it as AutoCAD's
+console does. INPUTSEARCHOPTIONFLAGS (1 AutoComplete to 16 Mid-string search) is a system variable, and so is
+INPUTSEARCHDELAY, which Delay Time… now asks as `Enter new value for INPUTSEARCHDELAY <300>:`. `GlobalSettings`
+gains `SortAlphabetically`, `SeparateSystemVariables`, `AutoCorrectMistypes`, `ContentTypes` and `InputSearchFlags`.
+
 **FIXED.** The presenter's drawing commands checked entity by entity against AutoCAD 2021 drawing the same picks.
 PLINE keeps the last arc's bulge on its end vertex; a first arc and ARC Enter go on from the last polyline drawn, and
 Undo moves that point back; Width after Halfwidth offers the ending width. Angle defaults are written to AUPREC (40.587

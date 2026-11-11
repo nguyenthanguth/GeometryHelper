@@ -747,7 +747,8 @@ namespace GeometryHelper.Dxf
             DxfSymbolTable.CheckName(name, "value");
             string old = Name;
 
-            if (old == "0" || string.Equals(old, "Defpoints", StringComparison.OrdinalIgnoreCase))
+            // Layer 0 keeps its name; Defpoints is renamed, as AutoCAD 2021's -RENAME and entmod rename it.
+            if (old == "0")
             {
                 throw new InvalidOperationException("The layer " + old + " is not renamed, as AutoCAD keeps its name.");
             }

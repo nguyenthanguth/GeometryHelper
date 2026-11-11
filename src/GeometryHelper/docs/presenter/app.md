@@ -238,10 +238,29 @@ list, Searching for Named Objects) describes no completion at the prompts of a r
 A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again,
 kept in the settings file from one session to the next),
 **Input Settings** (AutoComplete, AutoCorrect, Search System Variables, Search Content and Mid-string Search, ticked when
-on and kept in the settings file; Delay Time…, which asks `Enter the delay time in milliseconds <300>:`, 100 to
-10 000), **Copy** (the text selected in the command line), **Copy History** (every line written), **Paste** (the first
-line of the clipboard added to what is typed), **Paste To CmdLine** (each line of the clipboard run in turn) and
-**Options…** (Global settings).
+on and kept in the settings file; Delay Time…, which asks INPUTSEARCHDELAY as AutoCAD 2021's console does, `Enter new
+value for INPUTSEARCHDELAY <300>:`, 100 to 10 000; and Input Search Options…), **Copy** (the text selected in the
+command line), **Copy History** (every line written), **Paste** (the first line of the clipboard added to what is typed),
+**Paste To CmdLine** (each line of the clipboard run in turn) and **Options…** (Global settings).
+
+**Input Search Options** (INPUTSEARCHOPTIONS) is AutoCAD 2021's dialog of the same name: Enable AutoComplete, with
+Enable mid-string search and the order of the suggestions, According to frequency of usage or Alphabetically; Enable
+AutoCorrect, with Remember corrections after 2 to 10 mistypes (3 by default); Search system variables, with Separate
+commands and system variables, which lists the variables last, below a rule of their own; the suggestion list's delay,
+100 to 10 000 milliseconds; and Search content at command line, with the Content type list (Block, Layer, Hatch, Visual
+Style, Text Style, Dim Style), each kind ticked or not and moved up or down to set the order Search Content lists them
+in. An option under a switch that is off is greyed. OK keeps the settings in the settings file; a number out of range
+keeps the dialog open with the reason under it. The app's drawings have no visual styles, so Visual Style finds
+nothing.
+
+-INPUTSEARCHOPTIONS asks the same on the command line, word for word as AutoCAD 2021's console: `Current settings:
+AutoComplete = Y, AutoCorrect = Y, System variable = Y, Content = Y, Midstring = Y, Delay=0.30`, then `Enter an input
+search Option [autoComplete/autocoRrect/System variables/conTent/Midstring/Delay]:` until Enter, each switch asked as
+`Automatically complete a command as you type? [Yes/No] <Yes>:` and its kin, and Delay in seconds, `Specify the delay
+time in seconds <0.30>:`, above 10 refused with `Invalid. Maximum delay is 10 seconds` and below 0.1 left as it was.
+INPUTSEARCHOPTIONFLAGS holds the five switches as one number, as AutoCAD's does (checked one by one in its console): 1
+AutoComplete, 2 AutoCorrect, 4 Search system variables, 8 Search content, 16 Mid-string search, 31 by default; 64 is
+refused with `Requires an integer between 0 and 31.`
 
 ### The application menu and Recent Documents
 

@@ -470,12 +470,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     "Mid-string Search",
                     "",
                     "Delay Time…",
+                    "Input Search Options…",
                 },
                 input.Select(i => i.Header)
             );
-            Assert.All(input.Where(i => i.Header.Length > 0 && i.Header != "Delay Time…"), i =>
-                Assert.True(i.IsChecked, i.Header)
-            );
+            Assert.All(input.Take(5), i => Assert.True(i.IsChecked, i.Header));
             Assert.True(input[3].IsEnabled);
             Assert.True(input[6].IsEnabled);
             input[3].Command.Execute(null);
@@ -502,12 +501,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         {
             MainViewModel model = Opened();
 
+            // Delay Time… asks INPUTSEARCHDELAY, a system variable in AutoCAD 2021: its console asks "Enter new value for
+            // INPUTSEARCHDELAY <300>:" and refuses 50 with "Requires an integer between 100 and 10000.".
             model.CommandLineMenu()[1].Items[6].Command.Execute(null);
 
-            Assert.Equal("Enter the delay time in milliseconds <300>:", model.Prompt);
+            Assert.Equal("Enter new value for INPUTSEARCHDELAY <300>:", model.Prompt);
             model.Execute("50");
             Assert.Contains("Requires an integer between 100 and 10000.", model.History);
-            Assert.Equal("Enter the delay time in milliseconds <300>:", model.Prompt);
+            Assert.Equal("Enter new value for INPUTSEARCHDELAY <300>:", model.Prompt);
             model.Execute("500");
             Assert.False(model.IsCommandRunning);
             Assert.Equal(500, model.Settings.AutoCompleteDelay);

@@ -221,7 +221,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Reset of -SCALELISTEDIT: every scale in no use taken out, and the default scales the list lacks added after those kept.</summary>
+        /// <summary>
+        /// Reset of -SCALELISTEDIT: every scale in no use taken out, and the default scales the list lacks added after those
+        /// kept, the metric or the imperial ones as the drawing's MEASUREMENT asks (<see cref="DefaultScales"/>).
+        /// </summary>
         private static void ResetScales(CadEditScope s)
         {
             DxfObjectContextCollection list = ScaleList(s.Database);
@@ -231,19 +234,261 @@ namespace GeometryHelper.Dxf.Viewer
                 list.RemoveContext(scale.Name);
             }
 
-            foreach (string name in CadViewports.StandardScales)
+            foreach (CadScaleListRow scale in DefaultScales(s.Database))
             {
-                if (!list.HasContext(name) && CadViewports.TryReadScale(name, out _))
+                if (!list.HasContext(scale.Name))
                 {
-                    string[] parts = name.Split(':');
                     list.AddContext(
                         new DxfAnnotationScale
                         {
-                            Name = name,
-                            PaperUnits = double.Parse(parts[0], CultureInfo.InvariantCulture),
-                            DrawingUnits = double.Parse(parts[1], CultureInfo.InvariantCulture),
+                            Name = scale.Name,
+                            PaperUnits = scale.PaperUnits,
+                            DrawingUnits = scale.DrawingUnits,
                         }
                     );
+                }
+            }
+        }
+
+        /// <summary>
+        /// The default list of scales Reset puts back, as AutoCAD 2021's console resets it: the 17 metric scales 1:1 to 100:1,
+        /// or, where the drawing's header has MEASUREMENT 0 (imperial), the 16 imperial ones from 1/128" = 1'-0" (0.0078125 to
+        /// 12) to 1'-0" = 1'-0" (12 to 12). A drawing with no MEASUREMENT in its header takes the metric list.
+        /// </summary>
+        internal static List<CadScaleListRow> DefaultScales(DxfDatabase database)
+        {
+            var scales = new List<CadScaleListRow>();
+
+            if (database?.GetHeader("$MEASUREMENT") != null && database.Measurement == DxfMeasurementValue.English)
+            {
+                string[] inches =
+                {
+                    "1/128",
+                    "1/64",
+                    "1/32",
+                    "1/16",
+                    "3/32",
+                    "1/8",
+                    "3/16",
+                    "1/4",
+                    "3/8",
+                    "1/2",
+                    "3/4",
+                    "1",
+                    "1-1/2",
+                    "3",
+                    "6",
+                };
+                double[] paper =
+                {
+                    0.0078125,
+                    0.015625,
+                    0.03125,
+                    0.0625,
+                    0.09375,
+                    0.125,
+                    0.1875,
+                    0.25,
+                    0.375,
+                    0.5,
+                    0.75,
+                    1,
+                    1.5,
+                    3,
+                    6,
+                };
+
+                for (int i = 0; i < inches.Length; i++)
+                {
+                    scales.Add(new CadScaleListRow(inches[i] + "\" = 1'-0\"", paper[i], 12));
+                }
+
+                scales.Add(new CadScaleListRow("1'-0\" = 1'-0\"", 12, 12));
+                return scales;
+            }
+
+            foreach (string name in CadViewports.StandardScales)
+            {
+                string[] parts = name.Split(':');
+                scales.Add(
+                    new CadScaleListRow(
+                        name,
+                        double.Parse(parts[0], CultureInfo.InvariantCulture),
+                        double.Parse(parts[1], CultureInfo.InvariantCulture)
+                    )
+                );
+            }
+
+            return scales;
+        }
+
+        /// <summary>
+        /// SCALELISTEDIT: AutoCAD's Edit Drawing Scales, where the window shows it; OK writes the list as the dialog left it as
+        /// one undo step (<see cref="WriteScaleList"/>). With no window, -SCALELISTEDIT's prompts, as AutoCAD's console asks them.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ScaleListDialog(CadCommandContext c)
+        {
+            var request = new CadScaleListRequest(c.Document, ScaleRows(c.Database), DefaultScales(c.Database));
+
+            if (!c.Session.Request("SCALELISTEDIT", c.Document, request))
+            {
+                foreach (CadPrompt prompt in ScaleListEdit(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (request.Action != CadDialogAction.Ok || !ScaleListChanged(c.Database, request.Scales))
+            {
+                yield break;
+            }
+
+            CadEditResult result = c.Apply(ScaleListRecord("Edit Drawing Scales"), s =>
+                WriteScaleList(s.Database, request.Scales)
+            );
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+            }
+        }
+
+        /// <summary>The drawing's scales as the dialog lists them, each with whether the drawing keeps it and whether an object points at it.</summary>
+        internal static List<CadScaleListRow> ScaleRows(DxfDatabase database)
+        {
+            var rows = new List<CadScaleListRow>();
+
+            foreach (DxfAnnotationScale scale in Scales(database))
+            {
+                bool inUse;
+
+                try
+                {
+                    inUse = database.File.CountUses().OfHandle(scale.Handle) > 0;
+                }
+                catch (Exception exception) when (exception is InvalidOperationException)
+                {
+                    inUse = true;
+                }
+
+                rows.Add(
+                    new CadScaleListRow(
+                        scale.Name,
+                        scale.PaperUnits,
+                        scale.DrawingUnits,
+                        scale.Name,
+                        !Removable(database, scale.Name),
+                        inUse
+                    )
+                );
+            }
+
+            return rows;
+        }
+
+        /// <summary>Whether the list the dialog left differs from the drawing's: a scale taken out, added, renamed, given other units or moved.</summary>
+        private static bool ScaleListChanged(DxfDatabase database, IReadOnlyList<CadScaleListRow> wanted)
+        {
+            List<DxfAnnotationScale> now = Scales(database);
+
+            if (wanted == null || now.Count != wanted.Count)
+            {
+                return true;
+            }
+
+            for (int i = 0; i < now.Count; i++)
+            {
+                CadScaleListRow row = wanted[i];
+
+                if (
+                    !string.Equals(row.Original, now[i].Name, StringComparison.Ordinal)
+                    || !string.Equals(row.Name, now[i].Name, StringComparison.Ordinal)
+                    || BitConverter.DoubleToInt64Bits(row.PaperUnits)
+                        != BitConverter.DoubleToInt64Bits(now[i].PaperUnits)
+                    || BitConverter.DoubleToInt64Bits(row.DrawingUnits)
+                        != BitConverter.DoubleToInt64Bits(now[i].DrawingUnits)
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The list of Edit Drawing Scales written into the drawing: the scales it no longer has taken out where the drawing
+        /// lets them go, those it renamed given their names (through names of their own first, so that 1:2 and 1:4 may swap
+        /// names), each given its units where nothing points at it, the new ones added, and every one moved to its place.
+        /// </summary>
+        internal static void WriteScaleList(DxfDatabase database, IReadOnlyList<CadScaleListRow> wanted)
+        {
+            DxfObjectContextCollection list = ScaleList(database);
+            var kept = new HashSet<string>(
+                wanted.Where(r => r.Original != null).Select(r => r.Original),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            foreach (DxfAnnotationScale gone in Scales(database).Where(s => !kept.Contains(s.Name)).ToList())
+            {
+                if (Removable(database, gone.Name))
+                {
+                    list.RemoveContext(gone.Name);
+                }
+            }
+
+            var renamed = wanted
+                .Where(r =>
+                    r.Original != null
+                    && list.HasContext(r.Original)
+                    && !string.Equals(r.Original, r.Name, StringComparison.Ordinal)
+                )
+                .ToList();
+            var handles = new Dictionary<CadScaleListRow, DxfAnnotationScale>();
+
+            for (int i = 0; i < renamed.Count; i++)
+            {
+                var scale = (DxfAnnotationScale)list.GetContext(renamed[i].Original);
+                scale.Name = "GH scale being renamed " + i.ToString(CultureInfo.InvariantCulture);
+                handles[renamed[i]] = scale;
+            }
+
+            foreach (CadScaleListRow row in wanted)
+            {
+                DxfAnnotationScale scale =
+                    handles.TryGetValue(row, out DxfAnnotationScale held) ? held
+                    : row.Original != null ? list.GetContext(row.Original) as DxfAnnotationScale
+                    : null;
+
+                if (scale == null)
+                {
+                    list.AddContext(
+                        new DxfAnnotationScale
+                        {
+                            Name = row.Name,
+                            PaperUnits = row.PaperUnits,
+                            DrawingUnits = row.DrawingUnits,
+                        }
+                    );
+                    continue;
+                }
+
+                scale.Name = row.Name;
+
+                if (!row.IsInUse)
+                {
+                    scale.PaperUnits = row.PaperUnits;
+                    scale.DrawingUnits = row.DrawingUnits;
+                }
+            }
+
+            for (int i = 0; i < wanted.Count; i++)
+            {
+                if (list.HasContext(wanted[i].Name))
+                {
+                    list.MoveContext(wanted[i].Name, i);
                 }
             }
         }

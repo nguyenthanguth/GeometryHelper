@@ -598,6 +598,33 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Moves an entry to another place among the entries, its name and its object kept: the order the record lists them in,
+        /// which the drawing's list of scales is shown in, as Move Up and Move Down of AutoCAD's Edit Drawing Scales change it.
+        /// </summary>
+        /// <param name="key">The entry's name, letters of either case the same.</param>
+        /// <param name="index">Its new place, nought for the first; a place past the last puts it last.</param>
+        /// <exception cref="KeyNotFoundException">Thrown when the dictionary has no entry of the name.</exception>
+        internal void MoveEntry(string key, int index)
+        {
+            Node found = Find(key) ?? throw new KeyNotFoundException("The dictionary has no entry named " + key + ".");
+            Resident();
+            Index indexed = Indexed();
+            List<Entry> entries = indexed.Entries();
+            int at = indexed.Nodes.IndexOf(found);
+            int to = Math.Max(0, Math.Min(index, entries.Count - 1));
+
+            if (at == to)
+            {
+                return;
+            }
+
+            Entry moved = entries[at];
+            entries.RemoveAt(at);
+            entries.Insert(to, moved);
+            Write(entries);
+        }
+
         /// <summary>Gets an enumerator over the entries, in the order of the record.</summary>
         /// <returns>The enumerator.</returns>
         public IEnumerator<DxfDBDictionaryEntry> GetEnumerator()

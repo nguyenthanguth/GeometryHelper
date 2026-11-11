@@ -202,10 +202,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets what the last change said where it was refused; empty where none was.</summary>
         public string Message => Request.Message ?? string.Empty;
 
+        /// <summary>
+        /// Gets or sets how the window shows New Layer State to Save, its name and description: true for OK. With none set,
+        /// New… asks the name alone through <see cref="AskName"/>.
+        /// </summary>
+        public Func<NewLayerStateViewModel, bool> AskNewState { get; set; }
+
+        /// <summary>
+        /// Gets or sets how the window asks whether to replace a state of the name New was given: true for Yes. With none set,
+        /// New refuses the name, "A layer state named Plan already exists.".
+        /// </summary>
+        public Func<string, bool> ConfirmReplace { get; set; }
+
+        /// <summary>Gets or sets how the window shows Edit Layer State over the state chosen: true for OK, which writes the state.</summary>
+        public Func<EditLayerStateViewModel, bool> ShowEditState { get; set; }
+
         /// <summary>New…: the layers as they stand saved as a state of a name asked.</summary>
         /// <returns>Whether it was saved.</returns>
         public bool New()
         {
+            if (AskNewState != null)
+            {
+                var dialog = new NewLayerStateViewModel(
+                    Request.States.Select(s => s.Name),
+                    "Layer state "
+                        + (Request.States.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                );
+
+                if (!AskNewState(dialog))
+                {
+                    return false;
+                }
+
+                string chosen = dialog.Name.Trim();
+
+                if (Request.Has(chosen) && ConfirmReplace != null)
+                {
+                    return ConfirmReplace(chosen) && Changed(Request.Replace(chosen, dialog.Description));
+                }
+
+                return Changed(Request.New(chosen, dialog.Description));
+            }
+
             string name = AskName?.Invoke(
                 "New Layer State to Save",
                 "Layer state " + (Request.States.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -217,12 +255,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether it was.</returns>
         public bool Update() => HasSelected && Changed(Request.Update());
 
-        /// <summary>Edit…: the properties the state chosen restores written from the panel, as -LAYER State Edit does.</summary>
-        /// <returns>Whether it was.</returns>
+        /// <summary>
+        /// Edit…: AutoCAD's Edit Layer State shown over the state chosen, its layers and the properties it restores written on
+        /// OK. With no window to show it (<see cref="ShowEditState"/> unset), the properties the state chosen restores written
+        /// from the panel, as -LAYER State Edit does.
+        /// </summary>
+        /// <returns>Whether the state was written.</returns>
         public bool Edit()
         {
-            ShowProperties = true;
-            return HasSelected && WriteMask();
+            if (!HasSelected)
+            {
+                return false;
+            }
+
+            if (ShowEditState == null)
+            {
+                ShowProperties = true;
+                return WriteMask();
+            }
+
+            CadLayerStateEdit edit = Request.BeginEdit();
+
+            if (edit == null)
+            {
+                return false;
+            }
+
+            var dialog = new EditLayerStateViewModel(edit, Request.Document);
+            return ShowEditState(dialog) && Changed(Request.Edit(dialog.Commit()));
         }
 
         /// <summary>Rename: the state chosen given a name asked.</summary>
