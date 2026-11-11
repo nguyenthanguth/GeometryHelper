@@ -264,6 +264,10 @@ namespace GeometryHelper.Dxf.Viewer
             // goes on; the lines of one run are one undo step.
             var down = new GeoVector2(Math.Sin(angle), -Math.Cos(angle)) * (height * 5.0 / 3.0);
 
+            // The rotation kept from nought up to a whole turn, as AutoCAD 2021 keeps 30 degrees clockwise as 330.
+            angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
+            angle = angle >= 2.0 * Math.PI ? 0.0 : angle;
+
             DxfEntity Line(string words)
             {
                 GeoPoint2 line = at;
@@ -510,8 +514,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 a = c.Input.Point;
             CadUcs ucs = c.Session.Ucs;
             string attach = "TL";
-            string spacing = "At least";
-            double factor = 1.0;
+
+            // The line spacing lasts from one MTEXT to the next, as AutoCAD 2021 keeps it, until Height or Style is chosen.
+            string spacing = c.Remembered("mtext.exactly", 0.0) != 0.0 ? "Exactly" : "At least";
+            double factor = c.Remembered("mtext.spacing", 1.0);
             double rotation = 0.0;
             double? width = null;
             DxfColumnType columns = DxfColumnType.NoColumns;
@@ -544,6 +550,13 @@ namespace GeometryHelper.Dxf.Viewer
                             frame.Closed = true;
                             return Current(c, frame);
                         }));
+
+                if (c.Input.Is("Height") || c.Input.Is("Style"))
+                {
+                    spacing = "At least";
+                    factor = 1.0;
+                    RememberSpacing(c, false, factor);
+                }
 
                 if (c.Input.Is("Height"))
                 {
@@ -610,6 +623,8 @@ namespace GeometryHelper.Dxf.Viewer
                             c.Write("Requires a value between 0.25x and 4x.");
                         }
                     }
+
+                    RememberSpacing(c, spacing == "Exactly", factor);
                 }
                 else if (c.Input.Is("Rotation"))
                 {
@@ -717,20 +732,25 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            // The box lies along the axes of the UCS, the text turned with it, as AutoCAD's; the MTEXT stands at the point of
+            // The box lies along the text's rotation in the UCS, as the frame previewed and as AutoCAD 2021 measures it: corners
+            // picked 30 across and 20 down with a rotation of 30 degrees give a box 15.98 wide. The MTEXT stands at the point of
             // the box its justification names.
             double turn = ucs.AngleToWorld(rotation);
             GeoPoint2 ua = ucs.ToUcs(a);
-            GeoPoint2 ub = width.HasValue ? ua : ucs.ToUcs(c.Input.Point);
-            double boxWidth = width ?? Math.Abs(ub.X - ua.X);
-            double left = width.HasValue ? ua.X : Math.Min(ua.X, ub.X);
-            double top = width.HasValue ? ua.Y : Math.Max(ua.Y, ub.Y);
-            double bottom = width.HasValue ? ua.Y : Math.Min(ua.Y, ub.Y);
+            GeoVector2 diagonal = width.HasValue ? new GeoVector2(0.0, 0.0) : ucs.ToUcs(c.Input.Point) - ua;
+            var way = new GeoVector2(Math.Cos(rotation), Math.Sin(rotation));
+            var upward = new GeoVector2(-way.Y, way.X);
+            double across = diagonal.X * way.X + diagonal.Y * way.Y;
+            double rise = diagonal.X * upward.X + diagonal.Y * upward.Y;
+            double boxWidth = width ?? Math.Abs(across);
+            double left = Math.Min(0.0, across);
+            double top = Math.Max(0.0, rise);
+            double bottom = Math.Min(0.0, rise);
             int place = Array.IndexOf(MTextJustifications, attach);
-            double x = width.HasValue ? ua.X : left + boxWidth * (place % 3) / 2.0;
-            double y = width.HasValue ? ua.Y : top - (top - bottom) * (place / 3) / 2.0;
-            GeoPoint2 corner = ucs.ToWorld(new GeoPoint2(Math.Min(ua.X, ub.X), top));
-            GeoPoint2 location = ucs.ToWorld(new GeoPoint2(x, y));
+            double x = width.HasValue ? 0.0 : left + boxWidth * (place % 3) / 2.0;
+            double y = width.HasValue ? 0.0 : top - (top - bottom) * (place / 3) / 2.0;
+            GeoPoint2 corner = ucs.ToWorld(ua + way * left + upward * top);
+            GeoPoint2 location = ucs.ToWorld(ua + way * x + upward * y);
             var attachment = (DxfAttachmentPoint)(place + 1);
 
             // The window writes the words in the MTEXT editor over the box; the command line takes them typed.
@@ -811,6 +831,13 @@ namespace GeometryHelper.Dxf.Viewer
                     text.Height = columnHeight;
                 }
             });
+        }
+
+        /// <summary>Keeps the line spacing of MTEXT for the next one: its type and its factor of the height.</summary>
+        private static void RememberSpacing(CadCommandContext c, bool exactly, double factor)
+        {
+            c.Remember("mtext.exactly", exactly ? 1.0 : 0.0);
+            c.Remember("mtext.spacing", factor);
         }
     }
 }

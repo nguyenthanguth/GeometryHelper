@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// ARC every way AutoCAD 2021 draws one: through three points; by its start, centre and end, included angle or chord length,
     /// the centre first if asked; by its start and end and the included angle, the direction it leaves the start or the radius;
-    /// and on from the end of the line or arc drawn last, Enter at the first prompt. Counter-clockwise unless Ctrl is held as the
+    /// and on from the end of the line, arc or polyline drawn last, Enter at the first prompt. Counter-clockwise unless Ctrl is held as the
     /// last point is picked, or ANGDIR turns the angles typed clockwise. The prompt of the last point previews the arc the
     /// point at the cursor would give, made as the arc is made.
     /// </summary>
@@ -613,7 +613,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Keeps the end of the line or arc drawn last and the way it left it, which ARC goes on from at Enter.</summary>
+        /// <summary>
+        /// Keeps the end of the line, arc or polyline segment drawn last and the way it left it, which ARC goes on from at Enter
+        /// and the first arc segment of PLINE starts along, as AutoCAD 2021 starts it.
+        /// </summary>
         private static void RememberLast(CadCommandContext c, GeoPoint2 end, GeoVector2 way)
         {
             double length = way.Length;
