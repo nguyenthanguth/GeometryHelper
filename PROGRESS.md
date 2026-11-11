@@ -96,7 +96,9 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [x] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S): MLEADER does not follow it in AutoCAD either
-- [ ] Follow-ups of aids-vars: MLEADERSCALE (AutoCAD rules measured: style scale, override, reset on CMLEADERSTYLE); LEADER/QLEADER commands; Relative/Absolute and the additional angles in Drafting Settings (needs design); refusal message for a modifier picked from the menu where it may not nest (S)
+- [ ] Follow-ups of aids-vars: Relative/Absolute and the additional angles in Drafting Settings (needs design); refusal message for a modifier picked from the menu where it may not nest (S)
+- [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
+- [ ] Leader follow-ups: QLEADER Settings dialog (needs design: Annotation, Leader Line & Arrow, Attachment tabs; where AutoCAD stores them unprobed); LEADER Tolerance (no TOLERANCE command); Copy of INSERT/TOLERANCE; drag preview; other DIM* overrides (DIMCLRD, DIMLDRBLK...); hook along the UCS; DIMSCALE 0 through a viewport for dimensions (1/viewport scale); dimensions writing every differing variable as an override (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

@@ -174,7 +174,10 @@ namespace GeometryHelper.Dxf.Viewer
             return variable;
         }
 
-        /// <summary>A real number, shown to four places or, for an angle, to as few as it needs.</summary>
+        /// <summary>
+        /// A real number, shown to four places or, for an angle, to as few as it needs; a value the check refuses is written
+        /// off with the reason it gives and not asked again, as AutoCAD's "Cannot set MLEADERSCALE to that value.".
+        /// </summary>
         internal static CadSystemVariable Number(
             string name,
             bool inDrawing,
@@ -183,11 +186,12 @@ namespace GeometryHelper.Dxf.Viewer
             Func<CadCommandSession, double> get,
             Action<CadCommandContext, double> set,
             string record = null,
-            double most = double.PositiveInfinity
+            double most = double.PositiveInfinity,
+            Func<double, string> check = null
         )
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => Show(get(s), plain));
-            variable._ask = c => AskReal(c, variable, bound, plain, most, get, set, record);
+            variable._ask = c => AskReal(c, variable, bound, plain, most, get, set, record, check);
             return variable;
         }
 
@@ -330,7 +334,8 @@ namespace GeometryHelper.Dxf.Viewer
             double most,
             Func<CadCommandSession, double> get,
             Action<CadCommandContext, double> set,
-            string record
+            string record,
+            Func<double, string> check
         )
         {
             while (true)
@@ -348,6 +353,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 double value = c.Input.Number;
+                string refused = check?.Invoke(value);
+
+                if (refused != null)
+                {
+                    c.Write(refused);
+                    yield break;
+                }
 
                 if (bound == RealBound.Positive && !(value > 0.0))
                 {

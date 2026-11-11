@@ -1071,6 +1071,44 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Writes an override of a variable of the dimension style whether or not it is the style's own, last of those the
+        /// leader has (one it had taken out first), as AutoCAD 2021's QLEADER writes DIMGAP and DIMTAD on every leader it makes:
+        /// <c>1070 147, 1040 0.09</c> with DIMGAP 0.09 in the style too.
+        /// </summary>
+        /// <param name="code">The group code of the variable in a DIMSTYLE: 147 for DIMGAP, 77 for DIMTAD.</param>
+        /// <param name="value">The value; written as a whole number (1070) where <paramref name="whole"/> is true, else as a real (1040).</param>
+        /// <param name="whole">Whether the variable is a whole number.</param>
+        internal void WriteOverride(int code, double value, bool whole)
+        {
+            WriteOverride(code, null);
+            WriteOverride(
+                code,
+                whole
+                    ? new DxfTypedValue(1070, ((int)value).ToString(CultureInfo.InvariantCulture))
+                    : new DxfTypedValue(1040, Real(value))
+            );
+        }
+
+        /// <summary>
+        /// Writes what AutoCAD 2021's LEADER and QLEADER write of a leader they make that no public member sets: whether a hook
+        /// runs on to the words (75), its group 74 (1 where the words stand to the left of the last vertex, and on a leader of no
+        /// annotation, as AutoCAD 2021 writes it), the height and width of the words (40 and 41, as their MTEXT measures them;
+        /// nought for none) and the horizontal direction (211), the world's X.
+        /// </summary>
+        /// <param name="hook">Whether a hook runs on to the words.</param>
+        /// <param name="flag74">AutoCAD's group 74.</param>
+        /// <param name="height">The height of the words.</param>
+        /// <param name="width">The width of the words.</param>
+        internal void SetMade(bool hook, bool flag74, double height, double width)
+        {
+            SetInt(74, flag74 ? 1 : 0, -1);
+            SetInt(75, hook ? 1 : 0, -1);
+            SetDouble(40, height, double.NaN);
+            SetDouble(41, width, double.NaN);
+            SetPoint(211, new GeoPoint3(1.0, 0.0, 0.0), new GeoPoint3(0.0, 0.0, 0.0));
+        }
+
         #endregion
 
         #region The curve

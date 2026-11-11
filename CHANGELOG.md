@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's LEADER (LEAD) and QLEADER (LE) on the command line, in AutoCAD 2021's prompts: Format (Spline,
+STraight, Arrow, None), Undo, words typed line by line, and the annotation options Copy, Block, None and Mtext. The
+leader is drawn by the current dimension style and DIMSCALE as AutoCAD 2021 draws it: a hook DIMASZ long where the last
+segment is steeper than 15 degrees, the MTEXT DIMGAP past the end, and the variables other than the style's written as
+the leader's overrides (DIMSCALE 2 writes `1070 40, 1040 2` and words twice as high). QLEADER takes its dialog's default
+settings; the Leader Settings dialog and the Tolerance option are not there yet.
+
+**NEW.** MLEADERSCALE and CMLEADERSTYLE through SETVAR, as AutoCAD 2021 keeps them: a style made current gives
+MLEADERSCALE its scale, again when it is current already; MLEADERSCALE set scales the multileaders drawn next and leaves
+the style alone (2 in a style of scale 5 draws words 4 high at 8); nought draws at 1, or through a viewport of 1:10 at
+10. A value below nought, or a name of no style, says `Cannot set ... to that value.`.
+
+**CHANGED.** MLEADER draws at MLEADERSCALE, no longer at the current style's scale: a drawing that keeps no MLEADERSCALE
+reads 1, as AutoCAD 2021 reads it, whatever its current style's scale, until a style is made current again.
+
 **FIXED.** The presenter's drawing commands checked entity by entity against AutoCAD 2021 drawing the same picks.
 PLINE keeps the last arc's bulge on its end vertex; a first arc and ARC Enter go on from the last polyline drawn, and
 Undo moves that point back; Width after Halfwidth offers the ending width. Angle defaults are written to AUPREC (40.587

@@ -121,6 +121,8 @@ namespace GeometryHelper.Dxf.Viewer
                     ["JOG"] = "DIMJOGGED",
                     ["MLD"] = "MLEADER",
                     ["MLS"] = "MLEADERSTYLE",
+                    ["LEAD"] = "LEADER",
+                    ["LE"] = "QLEADER",
                     ["MV"] = "MVIEW",
                     ["MS"] = "MSPACE",
                     ["PS"] = "PSPACE",
