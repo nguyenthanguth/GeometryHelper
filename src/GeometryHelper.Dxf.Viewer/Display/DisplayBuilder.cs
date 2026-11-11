@@ -50,6 +50,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The handles of the anonymous blocks and other entities the entity being drawn has read; null for none yet.</summary>
         private List<string> _runReads;
 
+        /// <summary>One less than how many entities of a space are drawn between two reports of <see cref="Progress"/>, a power of two.</summary>
+        private const int ReportEvery = 4095;
+
+        /// <summary>Gets or sets what is told the share of a space's entities drawn, every 4 096; null for nothing.</summary>
+        internal IProgress<double> Progress { get; set; }
+
+        /// <summary>Gets or sets what stops a space being drawn, looked at every 4 096 entities.</summary>
+        internal System.Threading.CancellationToken Cancellation { get; set; }
+
         /// <summary>The builders of the drawings external references show, by block name and file: looked up only, never listed.</summary>
         private readonly Dictionary<string, DisplayBuilder> _referenced = new Dictionary<string, DisplayBuilder>(StringComparer.OrdinalIgnoreCase);
 
@@ -256,8 +265,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(space)?.Entities ?? space)
+                IReadOnlyList<DxfEntity> content = ContentOf(space)?.Entities;
+                int walked = 0;
+
+                foreach (DxfEntity entity in (IEnumerable<DxfEntity>)content ?? space)
                 {
+                    if ((++walked & ReportEvery) == 0)
+                    {
+                        Cancellation.ThrowIfCancellationRequested();
+                        Progress?.Report(content == null ? 0.0 : (double)walked / content.Count);
+                    }
+
                     string handle = HandleOf(entity);
 
                     if (hidden != null && handle != null && hidden.Contains(handle))

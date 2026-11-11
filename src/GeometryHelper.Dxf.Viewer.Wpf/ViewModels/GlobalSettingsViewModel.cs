@@ -919,6 +919,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Number("Title text height", "mm", () => s.TitleTextHeight, v => s.TitleTextHeight = v),
                     Number("Width factor", null, () => s.WidthFactor, v => s.WidthFactor = v),
                 }),
+                new GlobalSettingSection("Hidden messages", new[]
+                {
+                    // AutoCAD's Hidden Message Settings: the answer Always perform my current choice keeps, Ask to be asked again.
+                    Choice("Esc in the MTEXT editor with changes", new[] { "Ask", "Yes, save the changes", "No, discard the changes" },
+                        () => s.MTextUnsavedChanges == "Yes" ? "Yes, save the changes" : s.MTextUnsavedChanges == "No" ? "No, discard the changes" : "Ask",
+                        v => s.MTextUnsavedChanges = v.StartsWith("Yes", StringComparison.Ordinal) ? "Yes" : v.StartsWith("No", StringComparison.Ordinal) ? "No" : "Ask"),
+                }),
             };
 
             _pages["Fonts"] = new[]

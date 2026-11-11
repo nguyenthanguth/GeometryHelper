@@ -19,8 +19,14 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
         private static readonly string[] NotReadYet =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "HATCH", "LEADER", "MATERIAL", "MLEADERSTYLE",
-            "TABLESTYLE", "VISUALSTYLE",
+            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "MATERIAL", "TABLESTYLE", "VISUALSTYLE",
+            "ACDBASSOCPERSSUBENTMANAGER", "SHAPE",
+
+            // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips.
+            "ACDBDATATABLE", "DATATABLE", "TABLECONTENT", "TABLEGEOMETRY",
+
+            // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
+            "ACDSRECORD", "ACDSSCHEMA",
         };
 
         private readonly List<(GeometryHelperLogLevel Level, string Message)> _written = new List<(GeometryHelperLogLevel Level, string Message)>();
@@ -79,6 +85,183 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
             Assert.True(result.Paired >= 300, "Only " + result.Paired + " records were paired.");
             Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Theory]
+        [InlineData("vports_AC1015")]
+        [InlineData("vports_AC1032")]
+        [InlineData("hatch_AC1015")]
+        [InlineData("hatch_AC1032")]
+        [InlineData("leaders_AC1015")]
+        [InlineData("leaders_AC1032")]
+        [InlineData("images_AC1015")]
+        [InlineData("images_AC1032")]
+        [InlineData("mline_AC1015")]
+        [InlineData("mline_AC1032")]
+        [InlineData("solids_AC1015")]
+        [InlineData("solids_AC1032")]
+        [InlineData("meshes_AC1015")]
+        [InlineData("meshes_AC1032")]
+        [InlineData("table_AC1015")]
+        [InlineData("table_AC1018")]
+        [InlineData("table_AC1021")]
+        public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
+        {
+            // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+
+            Assert.Empty(result.Differences);
+            Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
+            Assert.True(result.Paired >= 300, "Only " + result.Paired + " records were paired.");
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Theory]
+        [InlineData("vports_AC1015")]
+        [InlineData("vports_AC1032")]
+        public void TheViewportsOfTheCurrentLayout_AreRead_NumberedFromThePaper_WithFrozenLayersAndAClipBoundary(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfViewport> viewports = database.PaperSpace.OfType<DxfViewport>().ToList();
+
+            // Layout1 holds the viewport of the paper, 12 by 9, and three more drawn in it.
+            Assert.Equal(4, viewports.Count);
+            DxfViewport paper = Assert.Single(viewports, v => v.Number == 1);
+            Assert.Equal(12.0, paper.Width, 9);
+            Assert.Equal(9.0, paper.Height, 9);
+            Assert.Contains(viewports, v => v.GetFrozenLayers().Count == 1 && v.Locked);
+            Assert.Contains(viewports, v => v.NonRectClipOn);
+            Assert.Contains(viewports, v => Math.Abs(v.LensLength - 35.0) < 1E-9);
+        }
+
+        [Theory]
+        [InlineData("hatch_AC1015", false)]
+        [InlineData("hatch_AC1032", true)]
+        public void TheHatches_AreRead_WithEveryKindOfBoundaryPath(string drawing, bool gradients)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfHatch> hatches = database.ModelSpace.OfType<DxfHatch>().ToList();
+
+            // ANSI31 over a polyline with a bulge, a double user pattern, a solid fill bounded by a line, an arc, a spline and
+            // an elliptic arc, a gradient, ANSI37 with an island, NET following a circle, and a tilted solid fill.
+            Assert.Equal(7, hatches.Count);
+            Assert.Equal(new[] { "ANSI31", "_USER", "SOLID", "SOLID", "ANSI37", "NET", "SOLID" }, hatches.Select(h => h.PatternName));
+            Assert.Equal(2, hatches[4].NumberOfLoops);
+            Assert.True(hatches[5].Associative);
+            Assert.Equal(5.0, hatches[6].Elevation, 9);
+
+            // R2000 has no gradient: AutoCAD saves the gradient as a solid fill.
+            Assert.Equal(gradients, hatches[3].IsGradient);
+        }
+
+        [Theory]
+        [InlineData("leaders_AC1015")]
+        [InlineData("leaders_AC1032")]
+        public void TheLeaders_Multileaders_AndFeatureControlFrames_AreRead(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // A leader of three points annotated by an MTEXT and a spline leader of four; two frames.
+            List<DxfLeader> leaders = database.ModelSpace.OfType<DxfLeader>().ToList();
+            Assert.Equal(new[] { 3, 4 }, leaders.Select(l => l.NumVertices));
+            Assert.Equal(2, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "TOLERANCE"));
+
+            // Two multileaders of text and one of the block GhTag under the style GhBlock.
+            List<DxfMLeader> multileaders = database.ModelSpace.OfType<DxfMLeader>().ToList();
+            Assert.Equal(new[] { DxfContentType.MTextContent, DxfContentType.MTextContent, DxfContentType.BlockContent }, multileaders.Select(m => m.ContentType));
+            Assert.Equal("Multi\\Pleader", multileaders[0].MText.Contents);
+        }
+
+        [Theory]
+        [InlineData("images_AC1015")]
+        [InlineData("images_AC1032")]
+        public void TheImages_AndWipeouts_AreRead_WithTheirDefinitionAndClipBoundary(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // Two images of one PNG of 16 by 8 pixels, the second clipped by a triangle; two wipeouts.
+            List<DxfRasterImage> images = database.ModelSpace.OfType<DxfRasterImage>().Where(i => !(i is DxfWipeout)).ToList();
+            Assert.Equal(2, images.Count);
+            Assert.All(images, image => Assert.EndsWith("gh.png", image.Path, StringComparison.Ordinal));
+            Assert.True(images[1].IsClipped);
+            Assert.Equal(4, images[1].GetClipBoundary().Count);
+            Assert.Equal(2, database.ModelSpace.OfType<DxfWipeout>().Count());
+        }
+
+        [Theory]
+        [InlineData("mline_AC1015")]
+        [InlineData("mline_AC1032")]
+        public void TheMultilines_AreRead_AndAStyleOfTheirsNamesItsLinetypes(string drawing)
+        {
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // Two of STANDARD, one of GH3, whose three lines are Continuous, ByLayer and ByBlock: before R2018 the file
+            // gives the first by its place in the linetype table.
+            Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
+            DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
+            Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
+        }
+
+        [Theory]
+        [InlineData("table_AC1015")]
+        [InlineData("table_AC1018")]
+        [InlineData("table_AC1021")]
+        public void TheTablesOfR2000ToR2007_AreRead_WithTheirCellsAndStyles(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfTable> tables = database.ModelSpace.OfType<DxfTable>().ToList();
+
+            // A table of 3 by 3 under Standard, and one of 2 by 4 under GhTables with two cells merged.
+            Assert.Equal(2, tables.Count);
+            Assert.Equal(3, tables[0].NumRows);
+            Assert.Equal("Title", tables[0].GetTextString(0, 0, 0));
+            Assert.Equal("12.5", tables[0].GetTextString(2, 2, 0));
+            Assert.Equal(2, tables[1].NumRows);
+            Assert.Equal("x", tables[1].GetTextString(1, 3, 0));
+        }
+
+        [Fact]
+        public void ACircleOfAColourOfABook_IsRead_WithTheColourItsBookGives()
+        {
+            // Before, the entity was left out as broken: a colour of a book sets 0x8000 too, but keeps no true colour there.
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
+
+            DxfCircle circle = Assert.Single(database.ModelSpace.OfType<DxfCircle>(), c => Math.Abs(c.Radius - 5.0) < 1E-9 && Math.Abs(c.Center.X - 200.0) < 1E-9);
+            Assert.Contains("PANTONE Yellow 012 C", circle.Color.ColorName);
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Fact]
+        public void AnAttributeOfSeveralLinesOfR2018_IsRead_WithItsMText()
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
+
+            DxfAttributeReference note = database.ModelSpace.OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).Single(a => a.Tag == "NOTE");
+            Assert.True(note.IsMTextAttribute);
+            Assert.Equal("line one\\Pline two", note.MTextAttribute.Contents);
+        }
+
+        [Fact]
+        public void TheSolidAndTheRegionOfR2000_AreRead_WithTheirSatData()
+        {
+            // A circle made a region and a box of 10 by 20 by 30: their SAT data, a line a group, as the file holds it.
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("solids_AC1015")));
+
+            DwgAnswerKey.Record region = Assert.Single(records, r => r.Type == "REGION");
+            DwgAnswerKey.Record box = Assert.Single(records, r => r.Type == "3DSOLID");
+            Assert.Equal(14, region.Groups.Count(g => g.Key == 1));
+            Assert.Equal(95, box.Groups.Count(g => g.Key == 1));
+        }
+
+        [Fact]
+        public void TheSolidAndTheRegionOfR2018_AreRead_WithTheGuidOfTheirDataInTheStore()
+        {
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("solids_AC1032")));
+
+            DwgAnswerKey.Record box = Assert.Single(records, r => r.Type == "3DSOLID");
+            Assert.Matches("^\\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\}$", box.Groups.Single(g => g.Key == 2).Value);
+            Assert.Contains(box.Groups, g => g.Key == 100 && g.Value == "AcDb3dSolid");
         }
 
         [Fact]
@@ -183,8 +366,8 @@ namespace GeometryHelper.UnitTest.Dwg
             DwgReader.ToDxf(DwgAnswerKey.Dwg("later"));
 
             string skipped = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Debug && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
-            Assert.Contains("HATCH 1", skipped);
-            Assert.Contains("LEADER 1", skipped);
+            Assert.DoesNotContain(" HATCH ", skipped);
+            Assert.DoesNotContain(" LEADER ", skipped);
             Assert.Contains("MATERIAL 3", skipped);
 
             string summary = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Info && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;

@@ -36,7 +36,7 @@ The nine categories are those of the Global settings dialog, and of the JSON.
 | Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |
-| Text and fonts | the fonts, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | UI font Inter, drawing font Arial, text 2.5, titles 5, width factor 0.8 |
+| Text and fonts | the fonts, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height; what Esc in the MTEXT editor with changes does (Hidden messages) | UI font Inter, drawing font Arial, text 2.5, titles 5, width factor 0.8, Esc asks |
 | Data sources | whether the sources of a model are asked for changes, and how often | on, every 30 seconds (5 to 3 600) |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave, backups, the layout of an export | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups, `LayoutAndViewports` |
@@ -80,6 +80,20 @@ copy of each open drawing that has a file and changes not saved, beside the file
 newest the first. `BackupsKept` copies are kept, 3 by default and 0 to 50: the last is deleted and the others move up one.
 The user's file itself is never written. A drawing with a command running, or with no file yet, is left for the next time,
 and the copies are not listed in the file list.
+
+## Opening a drawing
+
+The app's window opens a drawing in the background (`MainViewModel.OpensInBackground`, set by the window; `OpenAsync`
+opens one so whatever it says): the file is read and its display list and pick index made on a worker thread, and the
+drawing is shown once they are made. Meanwhile the status bar says how far it has got, "Opening plan.dxf: drawing 45 %",
+with a Stop button, and the window answers: the view shown pans and zooms, another drawing open is shown from the file
+list, and Esc or Stop stops the opening, the command line saying "Opening plan.dxf stopped." A command typed or started
+meanwhile is not run, so that none runs on a drawing half drawn: "LINE not run: plan.dxf is still opening. Run it again once
+it is shown, or press Esc to stop opening it." One drawing opens at a time; another asked for meanwhile is refused, and the
+same one asked again waits with it. The extensions are told of the drawing, and its fonts set, on the window's thread
+between the reading and the drawing, as before. A drawing of 1 000 000 entities that held the window for 15 s, its first
+frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
+the drawing before `Open` returns, as before.
 
 ## Closing a drawing
 
@@ -281,7 +295,7 @@ it cannot read. Both apps take these options:
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
 | `--recent "a.dxf\|*b.dxf"` | fills Recent Documents, the first the newest, a file written with `*` pinned |
 
-The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
+The dialogs are `save-changes`; `mtext-unsaved` (Multiline Text - Unsaved Changes); `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
 `plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,

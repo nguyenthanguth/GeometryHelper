@@ -46,6 +46,12 @@ and kept. It holds [`DisplayItem2`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2)
 back, and the box that holds them all. Each item carries the handle of the entity it came from, its layer, and a
 [`DisplayStyle`](xref:GeometryHelper.Dxf.Viewer.DisplayStyle): colour, line weight and dashes, already worked out.
 
+`PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
+list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
+an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
+asked for. The window calls it on a worker thread for a drawing it opens. A document is not safe to use from two threads
+at once, so nothing else may use it until it returns.
+
 | Item | What it is |
 |---|---|
 | [`DisplayPolyline2`](xref:GeometryHelper.Dxf.Viewer.DisplayPolyline2) | a chain of points, open or closed: a line is one of two points; an ellipse and a spline are sampled into one |
@@ -126,6 +132,15 @@ end makes an empty line for the caret, which the drawn MTEXT does not have. Typi
 out again in about 0.5 ms a key and draws it in about 1 ms. The editor still lacks AutoCAD's own aids: its ruler shows no
 indents or tab stops of the paragraph, the columns cannot be dragged, and a width code in times of a style whose width
 is not 1 is set as if the style's width were 1.
+
+Esc ends an edit in place as AutoCAD 2021 ends it. In the edit box of a single-line text it drops what was typed: a
+TEXT that read "ROOM 1" and was typed over as "ROOM 2" still reads "ROOM 1", and nothing is added to the undo list. In
+the MTEXT editor with nothing changed it closes the editor; with changes it asks Multiline Text - Unsaved Changes, "Do
+you want to save your text changes?": Yes (Enter) writes them and closes, No drops them and closes, and Cancel (Esc)
+goes back to the editor. A Yes or No given with Always perform my current choice ticked is kept in Global settings
+(`MTextUnsavedChanges`, `"hiddenMessages"` in the JSON), as AutoCAD keeps it in its Hidden Message Settings, and Esc then
+does it with no question; Cancel is never kept. Text and fonts › Hidden messages, set back to Ask, or Reset to defaults,
+shows the question again. A host that sets no `AskKeepMTextChanges` keeps the changes, as Close Text Editor does.
 
 ### Viewports
 

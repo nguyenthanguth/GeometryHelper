@@ -27,6 +27,16 @@ window, and keeps the height of a polyline's arc off its chord when one end move
 dimension to its tie, and kept the arc's bulge: the half circle from (100, 200) to (100, 300) whose end goes to
 (100, 320) now takes a bulge of 100 / 120, its center at (89, 260) where AutoCAD puts it, not (100, 260).
 
+**CHANGED.** Esc in the presenter's MTEXT editor with changes asks as AutoCAD 2021 asks: Multiline Text - Unsaved
+Changes, "Do you want to save your text changes?", with Yes, No and Cancel and Always perform my current choice, in the
+place of the presenter's own "Save changes to MText?". Yes writes the changes and closes the editor, No drops them, Cancel
+goes back to editing, and with nothing changed Esc closes with no question. A Yes or No given with the box ticked is kept
+in Global settings as `MTextUnsavedChanges` ("Ask", "Yes" or "No"), as AutoCAD keeps it among its hidden messages, and
+Text and fonts › Hidden messages sets it back to Ask; Cancel is never kept. `MainViewModel.AskKeepMTextChanges` now takes
+the question, an `MTextUnsavedChangesViewModel`, and `CadQuestionWindow.AskKeepMTextChanges` is gone. The screenshot mode
+draws the dialog with `--dialog mtext-unsaved`. Esc in the edit box of a single-line text already kept the old words, as
+AutoCAD does, and a test now holds it.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
@@ -52,6 +62,27 @@ in it reads the same in other programs, and one slanted elsewhere draws at its a
 [`DxfAlignedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfAlignedDimension.Oblique) said the angle ran from the square
 of the dimension line; it runs from the line, nought standing for none.
 
+**CHANGED.** The presenter's window opens a drawing in the background. The file is read and its display list and pick
+index made on a worker thread, and the drawing is shown once they are made; meanwhile the status bar says "Opening
+plan.dxf: drawing 45 %" with a Stop button, the view shown pans and zooms, another drawing open is shown, and Esc or Stop
+stops the opening. A command typed or started meanwhile is not run, the command line saying why, so that none runs on a
+drawing half drawn. A drawing of 1 000 000 entities that held the window for 15 s while it opened and drew its first
+frame now holds it for 0.2 s at most while it opens, then 0.8 s for that frame; the display list is the one it was, item
+for item. **NEW.** `MainViewModel.OpenAsync`, `OpensInBackground`, `IsOpening`, `OpeningText`, `CancelOpening` and
+`CancelOpeningCommand`, and `CadDocument.PrepareDisplay`, which makes a space's display ahead, telling how far it has got
+and stopping when asked. `Open` still opens a drawing before it returns unless `OpensInBackground` is set, as a test or a
+screenshot needs.
+
+**CHANGED.** The presenter draws the highlight of a large selection on several threads. Where several thousand items are
+selected, the canvas is cut into tiles, a thread a tile, and an item reaching into several tiles is drawn once every one
+of their threads has drawn what comes before it; a text, a hatch, a ray or a picture is drawn with the other threads
+waiting. The picture is pixel for pixel the one a single thread draws: a test compares the two on a drawing of 100 000
+entities, and the pictures of that drawing and of two sample drawings, at three zooms, plain, selected and hovered, with
+lineweights on and off, hash as before. All of that drawing selected is highlighted in about 150 ms rather than 300 on
+24 processors under .NET Framework 4.8, and with the whole workspace drawn, its canvas 1 000 by 696 pixels, the canvas
+draws the selection in about 240 ms rather than 360. A selection crammed into a patch of a few hundred pixels gains
+nothing.
+
 **NEW.** The snap and grid a drawing keeps. `db.ViewportTable` holds the tiled viewports of model space as AutoCAD's
 `ViewportTable`, each a [`DxfViewportTableRecord`](xref:GeometryHelper.Dxf.DxfViewportTableRecord), and
 `db.ViewportTable["*Active"]` gives SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, SNAPSTYL, SNAPISOPAIR,
@@ -67,6 +98,26 @@ before: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spaci
 snap spacing, writes it into the drawing shown, so that a save keeps it; LWDISPLAY set with a drawing open no longer
 changes Global settings. The snaps step by the drawing's SNAPUNIT and the grid is drawn at its GRIDUNIT, 10 across and
 20 up for a GRIDUNIT of (10, 20). POLAR, OTRACK, OSNAP and DYN stay the window's.
+
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads the types it left out, in all six versions (AutoCAD
+2000 to 2018): VIEWPORT, so a layout comes with its viewports, numbered as AutoCAD numbers them; HATCH with every kind
+of boundary, pattern lines, solid fill and gradient; LEADER, MULTILEADER with MLEADERSTYLE, and TOLERANCE; IMAGE with
+IMAGEDEF and IMAGEDEF_REACTOR, and WIPEOUT; MLINE; REGION, 3DSOLID and BODY of AutoCAD 2000 (their SAT text) and from
+AutoCAD 2013 (the GUID of their data); ACAD_TABLE to AutoCAD 2007 and TABLESTYLE to 2007; the colour of a book with its
+name, from its DBCOLOR; an attribute of several lines of AutoCAD 2018 with its MTEXT; and the proxy graphics of an
+entity where AutoCAD saved them. Each was checked against AutoCAD 2021's own DXF of the same drawing in every version:
+eight drawings more, 0 differences outside what AutoCAD itself changes as it writes. See the guide page "Reading DWG
+files" for what is still left out: tables and table styles from AutoCAD 2010, SHAPE, the ACIS data of AutoCAD 2004 to
+2010 and of the data store, MATERIAL, VISUALSTYLE and the other style objects, proxies, OLE frames and the data of
+dynamic blocks.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), from AutoCAD 2004: an entity of a colour of a book (as
+PANTONE Yellow 012 C) was left out as broken, with a Warn line; it is read with that colour. An element of a multiline
+style before AutoCAD 2018 in Continuous, or any linetype but ByLayer and ByBlock, came out ByLayer; it comes out with
+its linetype.
+
+**FIXED.** `DxfViewport.GetFrozenLayers` and `IsLayerFrozenInViewport` read the frozen layers of a DXF of AutoCAD 2000,
+which AutoCAD writes under group 341 rather than 331; they found none.
 
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
