@@ -305,6 +305,8 @@
                         x:Name="References"
                         ItemsSource="{Binding Rows}"
                         SelectedItem="{Binding Selected, Mode=TwoWay}"
+                        SelectionMode="Extended"
+                        SelectionChanged="OnRowsSelected"
                         Background="Transparent"
                         BorderThickness="0"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -372,8 +374,7 @@
                                             <MenuItem
                                                 Style="{StaticResource GhMenuItem}"
                                                 Header="Bind…"
-                                                IsEnabled="False"
-                                                ToolTip="Binding a DXF external reference into the drawing is to confirm."
+                                                Command="{Binding BindCommand}"
                                             />
                                         </ContextMenu>
                                     </Setter.Value>
@@ -540,7 +541,7 @@
                 />
                 <TextBlock
                     TextWrapping="Wrap"
-                    Text="Right-click a row: Open, Attach…, Unload, Reload, Detach. Bind… is greyed: binding a DXF xref into the drawing is to confirm."
+                    Text="Right-click a row: Open, Attach…, Unload, Reload, Detach, Bind…. Bind… binds the drawings selected (Ctrl or Shift for several) into this one; greyed for those unloaded or not found, and for images."
                 />
             </StackPanel>
         </DockPanel>

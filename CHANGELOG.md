@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The External References palette's Bind… shows Bind Xrefs/DGN Underlays (`XrefBindWindow`, `XrefBindViewModel`)
+for the drawings selected, the palette now selecting several with Ctrl or Shift (`SelectedRows`): Bind or Insert, started
+from BINDTYPE, and OK writes the choice back to BINDTYPE and binds them all as -XREF Bind binds them, in one undo step.
+It is offered where the selection holds a drawing loaded or needing reloading, and greyed for one of only drawings
+unloaded or not found, or of images. A bind refused binds none, and the lines -XREF Bind writes, "Xref "column" is nested
+and cannot be bound." among them, are shown in a box (`XrefBindRefusedWindow`) as well as on the command line. A host sets
+`MainViewModel.ShowXrefBind` and `ShowXrefBindRefused`; with no dialog set, Bind… binds by BINDTYPE as it stands. Global
+settings › Text and fonts says on top what its Hidden messages keep.
+
 **FIXED.** `CollidesWith` and `DistanceTo` of a triangle, a polygon, a face, a plane, a solid or another box against a
 box flat on some axis, `GeoObb3` or `GeoAabb3`, threw "A box with a zero size on some axis has no faces to build"; they
 read the box as the shape it has become and answer as usual: flat on one axis its rectangle, on two its segment, on all
@@ -36,7 +45,7 @@ records it draws by brought under the reference's name (`GRID$0$WALL`, `GRID$1$W
 merged by name when inserted; the records the reference brought (`GRID|WALL`) are renamed in their places, with what the
 drawing set on them. The presenter's -XREF Bind binds by BINDTYPE (0 Bind, 1 Insert, new and kept by the session) as
 AutoCAD 2021 does, the references the drawing places with it, in AutoCAD's words for one unloaded, not found or nested
-("Duplicate Block "TAG" ignored." when inserting); it refused Bind. The palette's Bind… stays greyed.
+("Duplicate Block "TAG" ignored." when inserting); it refused Bind.
 
 **NEW.** `DxfRasterVariables.GetRasterVariables(db)` makes the variables of images of a drawing with none, as AutoCAD 2021
 makes them when IMAGEFRAME is first changed (frames shown, pictures finely, 72 the unit of the drawing: 1 for millimetres,

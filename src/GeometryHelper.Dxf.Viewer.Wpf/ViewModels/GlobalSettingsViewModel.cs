@@ -609,7 +609,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     false,
                     "The layers written to new drawings, with their colour, linetype and lineweight."
                 ),
-                new GlobalSettingCategory("Text and fonts", false, "Fonts of the app and of the drawings."),
+                new GlobalSettingCategory(
+                    "Text and fonts",
+                    false,
+                    "Fonts of the app and of the drawings. Hidden messages: the answer kept when Always perform my current choice was ticked (AutoCAD’s Hidden Message Settings); set it back to Ask, or Reset to defaults, to be asked again."
+                ),
                 new GlobalSettingCategory(
                     "Fonts",
                     false,

@@ -36,6 +36,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Func<AttachReferenceViewModel, bool> ShowAttachReference { get; set; }
 
         /// <summary>
+        /// Gets or sets how the workspace shows the Bind Xrefs/DGN Underlays dialog of the palette's Bind…; the action it closed
+        /// with is in it. With none set, the drawings are bound by BINDTYPE as it stands.
+        /// </summary>
+        public Action<XrefBindViewModel> ShowXrefBind { get; set; }
+
+        /// <summary>Gets or sets how the workspace shows the box of a bind refused, over the lines -XREF Bind wrote.</summary>
+        public Action<XrefBindRefusedViewModel> ShowXrefBindRefused { get; set; }
+
+        /// <summary>
         /// Gets or sets whether the files the open drawings' external references were read from are watched, so that one
         /// changed on disk is announced on the command line of its drawing, as AutoCAD 2021's status bar announces it (XREFNOTIFY
         /// 2): "External Reference Files Have Changed: grid needs reloading." once for each change, until it is reloaded. Off
@@ -172,6 +181,127 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SyncHistory();
             RunAfterCommand();
+        }
+
+        /// <summary>
+        /// The palette's Bind…: the Bind Xrefs/DGN Underlays dialog for the drawings named, started from BINDTYPE; OK writes the
+        /// bind type chosen back to BINDTYPE, kept by the session, then runs -XREF Bind with the names, one undo step for them
+        /// all. Where it binds nothing, the lines it wrote are shown in a box as well; the "Duplicate Block" lines of Insert
+        /// stay on the command line alone.
+        /// </summary>
+        internal void BindXrefs(IReadOnlyList<string> names)
+        {
+            if (_current == null)
+            {
+                return;
+            }
+
+            CadCommandSession session = _current.Session;
+            var dialog = new XrefBindViewModel(
+                names,
+                session.Remembered.TryGetValue("bindtype", out double kept) ? (int)kept : 0
+            );
+
+            if (ShowXrefBind != null)
+            {
+                ShowXrefBind(dialog);
+
+                if (dialog.Action != CadDialogAction.Ok)
+                {
+                    return;
+                }
+
+                session.Remembered["bindtype"] = dialog.BindType;
+            }
+
+            int written = session.History.Count;
+            RunWithAnswers("-XREF", "B", string.Join(",", names));
+            var refused = new List<string>();
+
+            for (int i = written; i < session.History.Count; i++)
+            {
+                if (IsBindRefusal(session.History[i]))
+                {
+                    refused.Add(session.History[i]);
+                }
+            }
+
+            if (refused.Count > 0)
+            {
+                ShowXrefBindRefused?.Invoke(new XrefBindRefusedViewModel(refused, BindRefusalHint(refused)));
+            }
+        }
+
+        /// <summary>Whether a line is one -XREF Bind writes where it binds nothing, in AutoCAD 2021's words.</summary>
+        private static bool IsBindRefusal(string line) =>
+            line.EndsWith("\" is nested and cannot be bound.", StringComparison.Ordinal)
+            || line == "Cannot bind unloaded xref(s).  Reload them first:"
+            || (
+                line.StartsWith("Xref \"", StringComparison.Ordinal)
+                && line.EndsWith("\" is unloaded.", StringComparison.Ordinal)
+            )
+            || line.EndsWith("\" is currently not found. Reload or detach before binding.", StringComparison.Ordinal)
+            || line == "No matching xref names found."
+            || line.StartsWith("Error: At least one of the specified xrefs failed to bind", StringComparison.Ordinal);
+
+        /// <summary>What to do after a bind refused, by its first line: bind the parent of a nested drawing, reload one unloaded, or find a file.</summary>
+        private string BindRefusalHint(List<string> refused)
+        {
+            string first = refused[0];
+            string hint = string.Empty;
+
+            if (first.EndsWith("is nested and cannot be bound.", StringComparison.Ordinal))
+            {
+                string name = Quoted(first);
+                string parent = _current
+                    .Document.Xrefs.GetReferences()
+                    .FirstOrDefault(r =>
+                        r.IsNested && !r.IsImage && string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase)
+                    )
+                    ?.ParentName;
+
+                if (parent != null)
+                {
+                    hint =
+                        "Select its parent, "
+                        + parent
+                        + ", and bind that: "
+                        + name
+                        + " is bound with it, as "
+                        + parent
+                        + "$0$… and "
+                        + name
+                        + "$0$….";
+                }
+            }
+            else if (first.StartsWith("Cannot bind unloaded", StringComparison.Ordinal))
+            {
+                hint =
+                    "Reload "
+                    + string.Join(", ", refused.Skip(1).Select(Quoted))
+                    + ", then bind again. No reference of the selection was bound.";
+            }
+            else if (
+                first.EndsWith("is currently not found. Reload or detach before binding.", StringComparison.Ordinal)
+            )
+            {
+                hint =
+                    "The file of "
+                    + Quoted(first)
+                    + ", or of a reference it places, is not found. Select New Path, Reload or Detach it, then bind again.";
+            }
+
+            return hint.Length == 0
+                ? "The same lines are on the command line."
+                : hint + " The same lines are on the command line.";
+        }
+
+        /// <summary>The name between the first and the last double quote of a line.</summary>
+        private static string Quoted(string line)
+        {
+            int start = line.IndexOf('"');
+            int end = line.LastIndexOf('"');
+            return end > start ? line.Substring(start + 1, end - start - 1) : line;
         }
 
         /// <summary>Gets the items of the image frame box of Insert › Reference, IMAGEFRAME 0, 1 and 2 in turn, the drawing's ticked.</summary>

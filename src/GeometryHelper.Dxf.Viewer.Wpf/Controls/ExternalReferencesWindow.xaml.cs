@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -154,6 +155,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Model.SetPath(dialog.FileName);
             }
         }
+
+        private void OnRowsSelected(object sender, SelectionChangedEventArgs e) =>
+            Model.SelectedRows = References.SelectedItems.OfType<ReferenceRowViewModel>().ToList();
 
         private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)
         {
