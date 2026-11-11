@@ -17,7 +17,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
     /// <summary>
     /// The External References palette and the attach dialogs of C18b, driven with no window through their view models, and
     /// laid out on a thread of their own to see the design's parts: the orange-red close cross, the Attach menu of two kinds
-    /// offered and six greyed, the right-click menu with Bind greyed.
+    /// offered and six greyed, the right-click menu with Bind… on its command.
     /// </summary>
     public class XrefWindowTests
     {
@@ -296,7 +296,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void ThePaletteAndTheDialog_AreDrawnAsTheDesign_TheCrossOrangeRed_TheOtherKindsGreyed_AndBindGreyed()
+        public void ThePaletteAndTheDialog_AreDrawnAsTheDesign_TheCrossOrangeRed_TheOtherKindsGreyed_AndBindOffered()
         {
             OnSta(() =>
             {
@@ -356,7 +356,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         new[] { "Open", "Attach…", "Unload", "Reload", "Detach", "Bind…" },
                         rowMenu.Items.OfType<MenuItem>().Select(i => (string)i.Header).ToArray()
                     );
-                    Assert.False(rowMenu.Items.OfType<MenuItem>().Last().IsEnabled);
+                    Assert.Equal(
+                        "BindCommand",
+                        System
+                            .Windows.Data.BindingOperations.GetBinding(
+                                rowMenu.Items.OfType<MenuItem>().Last(),
+                                MenuItem.CommandProperty
+                            )
+                            .Path.Path
+                    );
 
                     List<string> dialogTexts = Descendants(dialog.Body)
                         .OfType<TextBlock>()

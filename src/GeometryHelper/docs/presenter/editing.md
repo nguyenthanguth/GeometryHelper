@@ -605,7 +605,15 @@ raised past a name the drawing has; Insert merges them by name, the drawing's ow
 references its drawing places are bound with it under their own names (`column$0$GRID`), its overlays left out; one undo
 step. A reference unloaded is refused ("Cannot bind unloaded xref(s).  Reload them first:"), one whose file, or that of a
 reference it places, is not found too ("xref "column" is currently not found. Reload or detach before binding."), and a
-nested one alone "is nested and cannot be bound". The palette's Bind… stays greyed: its Bind Xrefs dialog is not built.
+nested one alone "is nested and cannot be bound". The palette's Bind… shows Bind Xrefs/DGN Underlays for the drawings
+selected, Ctrl or Shift selecting several: its Bind Type, Bind or Insert, starts from BINDTYPE, and OK writes the choice
+back to BINDTYPE and binds them all as -XREF Bind binds them, in one undo step; Cancel changes nothing. Bind… is offered
+where the selection holds a drawing loaded, or one that Needs Reloading, a nested one too, and greyed for a selection of
+only drawings unloaded or not found, or of images. A bind refused binds none of the selection, and the lines -XREF Bind
+writes are shown in a box as well as on the command line: grid-base and annex selected, annex unloaded, are answered
+"Cannot bind unloaded xref(s).  Reload them first:" and "Xref "annex" is unloaded.", with "Reload annex, then bind
+again."; a nested row selected alone is told to bind its parent. The "Duplicate Block" lines of Insert go to the command
+line alone.
 XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
 an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a

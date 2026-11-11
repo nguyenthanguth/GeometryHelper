@@ -159,6 +159,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private readonly MainViewModel _model;
         private ReferenceRowViewModel _selected;
+        private IReadOnlyList<ReferenceRowViewModel> _selectedRows = new ReferenceRowViewModel[0];
         private bool _isTreeView;
         private bool _isPreview;
         private ImageSource _preview;
@@ -189,6 +190,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _ => SetPathType(CadPathType.None),
                 _ => IsOwn && Selected.Reference.FoundAt != null
             );
+            BindCommand = new DelegateCommand(_ => Bind(), _ => SelectedRows.Any(IsBindable));
             Refresh();
         }
 
@@ -213,6 +215,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Raise(nameof(IsReference));
                     CommandManager.InvalidateRequerySuggested();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the rows selected, Ctrl and Shift adding to them as in AutoCAD's palette, which Bind… binds together;
+        /// the row <see cref="Selected"/> alone where they do not hold it.
+        /// </summary>
+        public IReadOnlyList<ReferenceRowViewModel> SelectedRows
+        {
+            get =>
+                _selectedRows.Contains(_selected) ? _selectedRows
+                : _selected == null ? new ReferenceRowViewModel[0]
+                : new[] { _selected };
+            set
+            {
+                _selectedRows = value ?? new ReferenceRowViewModel[0];
+                CommandManager.InvalidateRequerySuggested();
             }
         }
 
@@ -346,6 +365,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the command of Change Path › Remove Path (-XREF pathType None).</summary>
         public ICommand RemovePathCommand { get; }
 
+        /// <summary>
+        /// Gets the command of Bind…: the Bind Xrefs/DGN Underlays dialog for the drawings selected, then -XREF Bind with them.
+        /// Offered where the rows selected hold a drawing loaded (Needs Reloading counts as loaded), a nested one too, which
+        /// -XREF Bind then refuses; greyed for a selection of only drawings unloaded or not found, or of images.
+        /// </summary>
+        public ICommand BindCommand { get; }
+
         /// <summary>Reads the rows again, the row selected kept by its name where it is still there.</summary>
         public void Refresh()
         {
@@ -459,6 +485,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : option == "Reload" ? "R"
                 : "D";
             _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", answer, _selected.Name);
+            Refresh();
+        }
+
+        /// <summary>Whether a row is a drawing Bind… binds: loaded, or changed on disk since it was read.</summary>
+        private static bool IsBindable(ReferenceRowViewModel row) =>
+            row.Reference != null
+            && !row.IsImage
+            && (
+                row.Reference.Status == CadReferenceStatus.Loaded
+                || row.Reference.Status == CadReferenceStatus.NeedsReloading
+            );
+
+        /// <summary>
+        /// Bind…: the drawings selected, in the palette's order, each once, those unloaded or not found among them, so that
+        /// -XREF Bind refuses them all as it refuses them typed.
+        /// </summary>
+        private void Bind()
+        {
+            List<string> names = SelectedRows
+                .Where(r => r.Reference != null && !r.IsImage)
+                .OrderBy(r => Rows.IndexOf(r))
+                .Select(r => r.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (names.Count == 0)
+            {
+                return;
+            }
+
+            _model.BindXrefs(names);
             Refresh();
         }
 
@@ -904,5 +961,93 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return "units";
             }
         }
+    }
+
+    /// <summary>
+    /// AutoCAD's Bind Xrefs/DGN Underlays dialog, which the palette's Bind… shows: the bind type, Bind or Insert, started from
+    /// BINDTYPE, and the drawings to bind. OK writes the type back to BINDTYPE and binds them as -XREF Bind binds them.
+    /// </summary>
+    public sealed class XrefBindViewModel : ObservableObject
+    {
+        private bool _isInsert;
+
+        /// <summary>Makes the dialog for the drawings selected.</summary>
+        /// <param name="names">The names of the drawings to bind, in the palette's order.</param>
+        /// <param name="bindType">BINDTYPE: 0 Bind, 1 Insert.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the names are null.</exception>
+        public XrefBindViewModel(IReadOnlyList<string> names, int bindType)
+        {
+            Names = names ?? throw new ArgumentNullException(nameof(names));
+            _isInsert = bindType == 1;
+        }
+
+        /// <summary>Gets the names of the drawings to bind.</summary>
+        public IReadOnlyList<string> Names { get; }
+
+        /// <summary>Gets the line under the bind type: "Binding: grid-base", the names parted by commas.</summary>
+        public string NamesText => "Binding: " + string.Join(", ", Names);
+
+        /// <summary>
+        /// Gets or sets whether the records of each drawing are renamed after it, as BINDTYPE 0 binds: layer WALL of grid-base
+        /// becomes grid-base$0$WALL.
+        /// </summary>
+        public bool IsBind
+        {
+            get => !_isInsert;
+            set => IsInsert = !value;
+        }
+
+        /// <summary>
+        /// Gets or sets whether the records of each drawing are merged by name, as if it were detached and inserted, as
+        /// BINDTYPE 1 binds: WALL stays WALL, the drawing's own kept.
+        /// </summary>
+        public bool IsInsert
+        {
+            get => _isInsert;
+            set
+            {
+                if (Set(ref _isInsert, value))
+                {
+                    Raise(nameof(IsBind));
+                }
+            }
+        }
+
+        /// <summary>Gets the bind type chosen, as BINDTYPE holds it: 0 Bind, 1 Insert.</summary>
+        public int BindType => _isInsert ? 1 : 0;
+
+        /// <summary>Gets what the dialog was closed with: Cancel until OK is pressed.</summary>
+        public CadDialogAction Action { get; private set; }
+
+        /// <summary>Says what the dialog was closed with.</summary>
+        /// <param name="action">OK or Cancel; the close button and Esc are Cancel.</param>
+        public void Close(CadDialogAction action) => Action = action;
+    }
+
+    /// <summary>
+    /// The box Bind… shows where -XREF Bind bound nothing: the lines it wrote on the command line, in AutoCAD 2021's words, and
+    /// what to do next.
+    /// </summary>
+    public sealed class XrefBindRefusedViewModel
+    {
+        /// <summary>Makes the box.</summary>
+        /// <param name="lines">The lines -XREF Bind wrote.</param>
+        /// <param name="hint">What to do next.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the lines are null.</exception>
+        public XrefBindRefusedViewModel(IReadOnlyList<string> lines, string hint)
+        {
+            Lines = lines ?? throw new ArgumentNullException(nameof(lines));
+            Hint = hint ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the lines -XREF Bind wrote: "Xref "column" is nested and cannot be bound.", or "Cannot bind unloaded xref(s).
+        /// Reload them first:" with a line for each unloaded, or "xref "detail-B" is currently not found. Reload or detach
+        /// before binding."
+        /// </summary>
+        public IReadOnlyList<string> Lines { get; }
+
+        /// <summary>Gets what to do next, ending "The same lines are on the command line."</summary>
+        public string Hint { get; }
     }
 }
