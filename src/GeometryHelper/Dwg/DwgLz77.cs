@@ -42,6 +42,190 @@ namespace GeometryHelper.Dwg
             return lz._written;
         }
 
+        /// <summary>
+        /// Compresses the <paramref name="count"/> bytes of <paramref name="input"/> from <paramref name="start"/> into the
+        /// form <see cref="Decompress"/> reads, ending with the closing code 0x11 and two bytes of 0 as AutoCAD ends a page.
+        /// Runs are found by a table of the last place of each three bytes, looked back at most 0x4000 bytes, the first
+        /// match taken; the same bytes always give the same output.
+        /// </summary>
+        public static byte[] Compress(byte[] input, int start, int count)
+        {
+            var output = new System.IO.MemoryStream((count / 2) + 16);
+            var last = new int[1 << 16];
+
+            for (int i = 0; i < last.Length; i++)
+            {
+                last[i] = -1;
+            }
+
+            int end = start + count;
+            int at = start;
+            int literalFrom = start;
+            bool first = true;
+            int pendingLength = 0;
+            int pendingOffset = 0;
+
+            while (at < end)
+            {
+                int length = 0;
+                int offset = 0;
+
+                if (at + 3 <= end)
+                {
+                    int key = Key(input, at);
+                    int candidate = last[key];
+                    last[key] = at;
+
+                    if (candidate >= start && at - candidate <= 0x4000 && input[candidate] == input[at]
+                        && input[candidate + 1] == input[at + 1] && input[candidate + 2] == input[at + 2])
+                    {
+                        length = 3;
+
+                        while (at + length < end && input[candidate + length] == input[at + length])
+                        {
+                            length++;
+                        }
+
+                        offset = at - candidate;
+                    }
+                }
+
+                if (length < 3)
+                {
+                    at++;
+                    continue;
+                }
+
+                int literals = at - literalFrom;
+
+                if (first)
+                {
+                    FirstLiteral(output, input, literalFrom, literals);
+                    first = false;
+                }
+                else
+                {
+                    Match(output, pendingLength, pendingOffset, literals);
+                    Literals(output, input, literalFrom, literals);
+                }
+
+                pendingLength = length;
+                pendingOffset = offset;
+
+                for (int i = at + 1; i < at + length && i + 3 <= end; i++)
+                {
+                    last[Key(input, i)] = i;
+                }
+
+                at += length;
+                literalFrom = at;
+            }
+
+            if (first)
+            {
+                FirstLiteral(output, input, start, count);
+            }
+            else
+            {
+                Match(output, pendingLength, pendingOffset, end - literalFrom);
+                Literals(output, input, literalFrom, end - literalFrom);
+            }
+
+            output.WriteByte(0x11);
+            output.WriteByte(0);
+            output.WriteByte(0);
+            return output.ToArray();
+        }
+
+        private static int Key(byte[] input, int at) => ((input[at] << 8) ^ (input[at + 1] << 4) ^ input[at + 2] ^ (input[at] >> 4)) & 0xFFFF;
+
+        /// <summary>The run of literal bytes a page starts with: 1 to 3 as 0x12 to 0x14, 4 to 18 as 1 to 15, more as 0 and a long length.</summary>
+        private static void FirstLiteral(System.IO.Stream output, byte[] input, int from, int count)
+        {
+            if (count == 0)
+            {
+                return;
+            }
+
+            if (count <= 3)
+            {
+                output.WriteByte((byte)(0x11 + count));
+            }
+            else
+            {
+                LiteralCode(output, count);
+            }
+
+            output.Write(input, from, count);
+        }
+
+        /// <summary>The code of a run of 4 or more literal bytes: 1 to 15 for 4 to 18, else 0 and a long length from 15.</summary>
+        private static void LiteralCode(System.IO.Stream output, int count)
+        {
+            if (count <= 18)
+            {
+                output.WriteByte((byte)(count - 3));
+                return;
+            }
+
+            output.WriteByte(0);
+            LongLength(output, count - 3 - 0x0F);
+        }
+
+        /// <summary>A length past the bits of its code: a byte of 0 for each 255, then the rest, 1 to 255.</summary>
+        private static void LongLength(System.IO.Stream output, int value)
+        {
+            while (value > 0xFF)
+            {
+                output.WriteByte(0);
+                value -= 0xFF;
+            }
+
+            output.WriteByte((byte)value);
+        }
+
+        /// <summary>
+        /// A match of <paramref name="length"/> bytes <paramref name="offset"/> back, with the count of the literal bytes
+        /// after it in its last two bits where that is 1 to 3: two bytes where it is of 3 to 14 bytes at most 0x400 back,
+        /// else the code 0x20 with the length and two bytes of offset.
+        /// </summary>
+        private static void Match(System.IO.Stream output, int length, int offset, int literals)
+        {
+            int low = literals >= 1 && literals <= 3 ? literals : 0;
+            int back = offset - 1;
+
+            if (length <= 14 && offset <= 0x400)
+            {
+                output.WriteByte((byte)(((length + 1) << 4) | ((back & 3) << 2) | low));
+                output.WriteByte((byte)(back >> 2));
+                return;
+            }
+
+            if (length - 2 <= 0x1F)
+            {
+                output.WriteByte((byte)(0x20 | (length - 2)));
+            }
+            else
+            {
+                output.WriteByte(0x20);
+                LongLength(output, length - 2 - 0x1F);
+            }
+
+            output.WriteByte((byte)(((back & 0x3F) << 2) | low));
+            output.WriteByte((byte)(back >> 6));
+        }
+
+        /// <summary>The literal bytes after a match: of 4 or more their code first; of 1 to 3 the bytes alone, the match holding their count.</summary>
+        private static void Literals(System.IO.Stream output, byte[] input, int from, int count)
+        {
+            if (count >= 4)
+            {
+                LiteralCode(output, count);
+            }
+
+            output.Write(input, from, count);
+        }
+
         private static FormatException Broken() => new FormatException("A compressed page of the DWG file is broken.");
 
         private void Run()

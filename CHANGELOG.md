@@ -37,6 +37,58 @@ records of layers the file has gained, a record the drawing has keeping what it 
 changes, and Detach takes them out. **NEW.** `DxfLayerTableRecord.SetDependent` and `DxfLinetypeTableRecord.SetDependent`
 mark a record of an external reference (flags 16 and 32), so that its table takes a name with a | in it.
 
+**NEW.** `DwgWriter.Write` writes a DWG file of AutoCAD 2018 (AC1032), the library's own code as the reader is: a
+`DxfDatabase` with every record it holds, or the shapes of a `DxfDocument`, to a path or a stream. The drawing is written
+as its DXF and each record put into the object of the DWG that says the same, with the drawing's handles: the header
+variables, the classes, the tables, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE,
+POLYLINE with its vertices, the meshes, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs of one line, SOLID, TRACE, 3DFACE,
+DIMENSION, VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, and DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE,
+IMAGEDEF, DBCOLOR and the small objects of a new drawing, in the compressed container of pages AutoCAD 2004 and later write, every check sum in
+place, the same bytes for the same drawing. A type not written yet (MATERIAL, VISUALSTYLE, MULTILEADER, ACAD_TABLE, REGION,
+3DSOLID among them) is left out, every handle to it written as 0, and counted in one Warn line. Nineteen test drawings,
+each as AutoCAD 2021 wrote its DXF, written as DWG: AutoCAD 2021 opens each and AUDIT finds 0 errors, its own DXF of
+each is the source but the types left out, and `DwgReader` reads each back to the source records. A drawing of a few
+hundred records takes 0.1 s and some 10 KB, where AutoCAD's own file is 13 to 17 KB, and 100 000 lines 1.1 s. See
+[Reading and writing DWG files](src/GeometryHelper/docs/dxf/dwg.md).
+
+**CHANGED.** REVCLOUD's Arc length in the presenter asks AutoCAD 2021's one approximate length, `Specify approximate
+length of arc <15.0000>:`, in the place of a minimum and a maximum, and SETVAR sets REVCLOUDAPPROXARCLEN,
+REVCLOUDARCVARIANCE and REVCLOUDCREATEMODE, kept by the session. At REVCLOUDARCVARIANCE 1, as AutoCAD starts, each arc is
+drawn between two thirds of the length and four thirds, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6;
+at 0 each is the length, which draws the clouds checked against AutoCAD's console before. The length is no longer scaled
+by DIMSCALE, as AutoCAD 2021 does not scale it: 2021 has no REVCLOUDSCALEMODE, which later releases added to scale it
+again. AutoCAD 2021 sizes the first cloud of a drawing by a share of the view's diagonal its help does not give; the
+presenter still starts at 15 in millimetres and 0.5 in inches. AutoCAD's console runs only the REVCLOUD of earlier
+releases, so this follows AutoCAD 2021's help and variables, read in its console.
+
+**NEW.** PEDIT in the presenter edits a 3D polyline with AutoCAD 2021's options for one, checked in its console: Close and
+Open, Join, Edit vertex (Next, Previous, Break, Insert, Move, Regen, Straighten), Spline curve, Decurve, Reverse and Undo,
+in AutoCAD's words. Spline curve of the 3DPOLY (0, 0, 0), (100, 0, 10), (100, 100, 20), (0, 100, 30) stores the 13
+vertices AutoCAD stores, the curve through (75, 50, 15), and closed, reversed and decurved it is AutoCAD's to 1E-8; a
+vertex moved on the spline fits it again, the curve through (47.168, 18.652, 0.879) as in AutoCAD. Join adds nothing, as
+AutoCAD 2021's console added nothing to a 3D polyline. PEDIT said before that 3D polylines were not edited yet. Multiple
+still leaves them out.
+
+**NEW.** PEDIT Multiple in the presenter joins by Extend, and by Both, at the end of an arc as AutoCAD 2021 does, checked
+in its console: the arc is run on or cut back round its circle to where the other end segment, a line or an arc, meets
+it, and the other is run on or cut back to there too. Of two crossings the one nearer the two ends together is taken, as
+AutoCAD took it where the one nearer the arc's end lay elsewhere. The arc about (0, 0) of radius 100 from 0 to 80 degrees
+and the line from (10, 130) to (10, 200), joined at a fuzz of 40, are one polyline through (10, 99.4987), the arc's bulge
+0.38517039, to 1E-10 of AutoCAD's. Extend refused any arc before; Both added a segment there.
+
+**FIXED.** PEDIT Multiple's Join by Extend in the presenter takes two ends whose meeting point lies within the fuzz
+distance of both, as AutoCAD 2021 does, not two ends within the fuzz of each other: the ends (100, 0) and (130, 30), 42.4
+apart, run on to (130, 0) at a fuzz of 35, and the ends (100, 0) and (110, 5), whose lines meet far off, are not joined
+by Extend; Both adds a segment between them.
+
+**NEW.** SETVAR in the presenter sets PEDITACCEPT and PLINETYPE, kept by the session, and PEDIT, PLINE, POLYGON and
+DONUT honour them as AutoCAD 2021 does, checked in its console. PEDITACCEPT 1 turns a line or an arc picked into a
+polyline without `Do you want to turn it into one? <Y>`, and Multiple without asking to convert. PLINETYPE 0 makes PLINE,
+POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs, PLINE from (0, 100) to (100, 100) and, 2 to 4 wide, to
+(100, 200) a POLYLINE whose second vertex has widths 2 and 4, and keeps a POLYLINE edited alone one; at 1, as at 2, PEDIT
+makes it a LWPOLYLINE of its handle again. RECTANG and REVCLOUD make LWPOLYLINEs at 0 too, as AutoCAD's do. AutoCAD names
+the first PEDITACCEPT; it has no PEACCEPT.
+
 **FIXED.** A [`DxfViewport`](xref:GeometryHelper.Dxf.DxfViewport) made in code and appended to a layout has the layers
 frozen in new viewports (`ViewportVisibilityDefault`, New VP Freeze) frozen in it at once, as AutoCAD 2021's
 `AppendEntity` freezes them: its API, given layer GHB so marked, made a viewport with [GHB] frozen at birth, and left the

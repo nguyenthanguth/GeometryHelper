@@ -273,7 +273,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Apply(null, s => s.Append(c.Space, PolygonOf(c, corners)));
+            c.Apply(null, s => s.Append(c.Space, OfPlineType(c, PolygonOf(c, corners))));
         }
 
         /// <summary>The corners of a polygon on an edge given, counter-clockwise from it, each side the last turned by a sides' share of a turn.</summary>
@@ -368,7 +368,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 at = c.Input.Point;
-                c.Apply(null, s => s.Append(c.Space, Make(at)));
+                c.Apply(null, s => s.Append(c.Space, OfPlineType(c, Make(at))));
             }
         }
 

@@ -160,7 +160,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
@@ -301,22 +301,47 @@ the arc through (100, 0), (150, 50) and (200, 0) is the vertex (200, 0) of bulge
 LWPOLYLINE the POLYLINE AutoCAD makes, its handle kept: Spline of (0, 0), (100, 0), (100, 50), (0, 80) at SPLINETYPE 6
 and SPLINESEGS 8 is the first vertex of the frame (flag 16), the 9 of the curve (flag 8) from (0, 0) through (75, 28.75)
 to (0, 80), then the rest of the frame. A POLYLINE left straight when it is edited alone is a LWPOLYLINE again, as
-AutoCAD's PLINETYPE 2 makes it; Multiple leaves it a POLYLINE, as AutoCAD does. Edit vertex marks the vertex with a cross,
+AutoCAD's PLINETYPE 1 and 2 make it; Multiple leaves it a POLYLINE, as AutoCAD does. PEDITACCEPT 1 turns a line or an arc
+into a polyline without the question, and Multiple's `Convert Lines, Arcs and Splines to polylines [Yes/No]?` is not
+asked. PLINETYPE 0 makes PLINE, POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs and leaves a POLYLINE
+edited alone one, as AutoCAD 2021 does at 0: PLINE from (0, 100) to (100, 100) and, 2 to 4 wide, to (100, 200) is a
+POLYLINE whose second vertex has widths 2 and 4. RECTANG and REVCLOUD make LWPOLYLINEs whatever it is, as AutoCAD's do.
+Both are kept by the session, PEDITACCEPT 0 and PLINETYPE 2 until set. Edit vertex marks the vertex with a cross,
 the first one the view shows (`No visible vertices` where it shows none); Next and Previous stop at the ends, Insert puts a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
 leaves two open ones, and Straighten at one vertex straightens the segment that leaves it. Multiple joins within a fuzz
 distance by Extend, Add or Both: the lines (0, 0) to (100, 0), (103, 0) to (103, 50) and (100, 50) to (0, 52) joined at 4
-by Both are one polyline through (103, 0) and (103, 49.94), "2 segments added to polyline". A run is one undo step, and
+by Both are one polyline through (103, 0) and (103, 49.94), "2 segments added to polyline". Extend runs an arc at an end
+round its circle, on or back, to where the other end segment meets it, of two crossings the one nearer the two ends
+together: the arc about (0, 0) of radius 100 from 0 to 80 degrees and the line from (10, 130) to (10, 200) meet at
+(10, 99.4987), the arc's bulge 0.38517039, as AutoCAD 2021 joins them; an arc whose circle nothing crosses is not
+extended, and Both adds a segment there. Extend joins two ends where they meet within the fuzz of both, however far
+apart the ends are: (100, 0) and (130, 30), 42.4 apart, meet at (130, 0) at a fuzz of 35. A run is one undo step, and
 Undo takes back its last option.
+
+A 3D polyline picked is edited with AutoCAD 2021's options for one,
+`Enter an option [Close/Join/Edit vertex/Spline curve/Decurve/Reverse/Undo]:` (Open where it is closed), and its vertex
+options `[Next/Previous/Break/Insert/Move/Regen/Straighten/eXit] <N>`. Spline curve fits it as SPLINETYPE and SPLINESEGS
+ask: the 3DPOLY (0, 0, 0), (100, 0, 10),
+(100, 100, 20), (0, 100, 30) is the first vertex of the frame, the 9 of the curve through (75, 50, 15), then the rest of
+the frame, and closed it is fitted again round the frame, 32 vertices of the curve, as AutoCAD stores them. Reverse turns
+the frame round, the first vertex of a closed one too, and fits it again; Decurve straightens it; a vertex moved or put in
+lies at nought, and a fitted polyline is fitted again on its frame. Join asks the objects and adds none, as AutoCAD 2021's
+console did for lines and 3D polylines meeting an end. Multiple leaves 3D polylines out.
 
 REVCLOUD draws a cloud round a rectangle (Rectangular, the type it starts with), a polygon (Polygonal), the cursor's path
 (Freehand), or an object picked, which it replaces (Object: a line, arc, circle, ellipse, polyline or spline). The cloud is
 a LWPOLYLINE of arcs of 110 degrees (bulge 0.52056705) bulging out, their vertices an arc length apart along the path, the
 corners not kept; a last arc shorter than half an arc length is taken into the one before. A circle of radius 20 at an arc
 length of 5 is the 25 vertices AutoCAD 2021 makes, to 8 places, and the outline 60 by 40 at 7 is 29, from (0, 0) to
-(0, 4). The arc lengths are kept between runs divided by DIMSCALE and used times it, as AutoCAD keeps them; the maximum is
-no more than three times the minimum. Calligraphy widens each arc from nought to a tenth of the longest arc, and Modify
-redraws the side of a closed cloud picked along a new path. A metric drawing starts at 15.
+(0, 4). Arc length asks AutoCAD 2021's one approximate length, `Specify approximate length of arc <15.0000>:`, kept by
+the session as REVCLOUDAPPROXARCLEN and not scaled by DIMSCALE, as in 2021, which has no REVCLOUDSCALEMODE. At
+REVCLOUDARCVARIANCE 1, as AutoCAD starts, each arc is drawn between two thirds of it and four thirds, and the first prompt
+says so, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6; at 0 each arc is the length, as the clouds above
+were checked. REVCLOUDCREATEMODE sets the type it starts with. Calligraphy widens each arc from nought to a tenth of the
+longest arc, and Modify redraws the side of a closed cloud picked along a new path. A drawing whose REVCLOUDAPPROXARCLEN
+is nought starts at 15 in millimetres and 0.5 in inches; AutoCAD 2021 sizes its first cloud by a share of the view's
+diagonal that its help does not give, so that start is not AutoCAD's.
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
@@ -521,7 +546,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

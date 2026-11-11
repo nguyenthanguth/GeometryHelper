@@ -38,7 +38,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "REVCLOUD");
 
-            Assert.Equal("Minimum arc length: 15.0000   Maximum arc length: 15.0000   Style: Normal   Type: Rectangular", session.History.Last());
+            // At REVCLOUDARCVARIANCE 1 the arcs run from two thirds of the approximate length, 15 in a metric drawing, to four thirds.
+            Assert.Equal("Minimum arc length: 10.0000   Maximum arc length: 20.0000   Style: Normal   Type: Rectangular", session.History.Last());
             Assert.Equal("Specify first corner point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:", session.PromptText);
             Run(session, "P");
             Assert.Equal("Specify first point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:", session.PromptText);
@@ -53,27 +54,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ArcLength_IsTakenAsAutoCadTakesIt_ScaledByDimscale()
+        public void ArcLength_IsOneApproximateLength_KeptAsRevcloudApproxArcLen_AndNotScaledByDimscale()
         {
+            // AutoCAD 2021: "Specify approximate length of arc", kept in REVCLOUDAPPROXARCLEN, nought until set; the minimum
+            // two thirds of it and the maximum four thirds at REVCLOUDARCVARIANCE 1, both it at 0. 2021 has no
+            // REVCLOUDSCALEMODE, which later releases added to scale it by DIMSCALE again.
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
             document.Database.Dimscale = 2.0;
+            Run(session, "REVCLOUDAPPROXARCLEN");
+            Assert.Equal("Enter new value for REVCLOUDAPPROXARCLEN <0.0000>:", session.PromptText);
+            Run(session, Enter);
 
             Run(session, "REVCLOUD", "A");
-            Assert.Equal("Specify minimum length of arc <30.0000>:", session.PromptText);
-            Run(session, "4", "13");
-            Assert.Contains("Maximum arc length cannot exceed three times the minimum arc length.", session.History);
-            Assert.Equal("Specify maximum length of arc <4.0000>:", session.PromptText);
-            Run(session, "3");
-            Assert.Contains("Maximum arc length must be equal or greater than the minimum arc length.", session.History);
-            Run(session, Enter);
-            Assert.Equal("Minimum arc length: 4.0000   Maximum arc length: 4.0000   Style: Normal   Type: Rectangular", session.History.Last());
+            Assert.Equal("Specify approximate length of arc <15.0000>:", session.PromptText);
+            Run(session, "0");
+            Assert.Contains("Value must be positive and nonzero.", session.History);
+            Run(session, "6");
+            Assert.Equal("Minimum arc length: 4.0000   Maximum arc length: 8.0000   Style: Normal   Type: Rectangular", session.History.Last());
             Run(session, Esc);
 
-            // Kept divided by DIMSCALE, as AutoCAD keeps them: 2 at DIMSCALE 1.
-            document.Database.Dimscale = 1.0;
-            Run(session, "REVCLOUD");
-            Assert.StartsWith("Minimum arc length: 2.0000   Maximum arc length: 2.0000", session.History.Last());
+            Run(session, "REVCLOUDARCVARIANCE", "0", "REVCLOUD");
+            Assert.StartsWith("Minimum arc length: 6.0000   Maximum arc length: 6.0000", session.History.Last());
+            Run(session, Esc, "REVCLOUDAPPROXARCLEN");
+            Assert.Equal("Enter new value for REVCLOUDAPPROXARCLEN <6.0000>:", session.PromptText);
+            Run(session, "9", "REVCLOUDCREATEMODE", "2", "REVCLOUD");
+            Assert.Equal("Minimum arc length: 9.0000   Maximum arc length: 9.0000   Style: Normal   Type: Polygonal", session.History.Last());
         }
 
         [Fact]
@@ -81,7 +87,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "CIRCLE", P(0, 0), "20", "REVCLOUD", "A", "5", "5", "O");
+            Run(session, "CIRCLE", P(0, 0), "20", "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "5", "O");
             Assert.Equal("Select object:", session.PromptText);
             Run(session, P(20, 0));
             Assert.Equal("Reverse direction [Yes/No] <No>:", session.PromptText);
@@ -101,12 +107,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ACircleAtDimscaleTwo_IsCloudedWithArcsTwiceTheLengthKept_AsAutoCad2021()
+        public void ACircleAtDimscaleTwo_IsCloudedWithArcsOfTheLengthGiven_AsAutoCadMadeThem()
         {
+            // The console's REVCLOUD, at DIMSCALE 2 and 10 typed, drew these arcs of 10; 2021's own draws the length given too.
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
             document.Database.Dimscale = 2.0;
-            Run(session, "CIRCLE", P(0, 0), "20", "REVCLOUD", "A", "10", Enter, "O", P(20, 0), Enter);
+            Run(session, "CIRCLE", P(0, 0), "20", "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "10", "O", P(20, 0), Enter);
 
             Vertices(Cloud(document), Bulge,
                 20, 0, 17.55165124, 9.58851077, 10.80604612, 16.82941970, 1.41474403, 19.94989973, -8.32293673, 18.18594854,
@@ -119,7 +126,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUD", "A", "7", "7", "O", P(30, 0), Enter);
+            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "7", "O", P(30, 0), Enter);
 
             // The corners are not kept: the vertices lie 7 apart along the 200 of the outline, the last arc 4 long.
             Vertices(Cloud(document), Bulge,
@@ -139,11 +146,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // 4.83 (0.495 of 9.7585) is not; 22 and 20 vertices.
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUD", "A", "9.3", "9.3", "O", P(30, 0), Enter);
+            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "9.3", "O", P(30, 0), Enter);
             Assert.Equal(22, Cloud(document).NumberOfVertices);
             Near(P(0, 4.7), Cloud(document).GetPoint2dAt(21), 1E-9);
 
-            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUD", "A", "9.7585", "9.7585", "O", P(30, 0), Enter);
+            Run(session, "PLINE", P(0, 0), P(60, 0), P(60, 40), P(0, 40), "C", "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "9.7585", "O", P(30, 0), Enter);
             Assert.Equal(20, Cloud(document).NumberOfVertices);
             Near(P(0, 14.5885), Cloud(document).GetPoint2dAt(19), 1E-9);
         }
@@ -153,7 +160,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "LINE", P(0, 0), P(3, 0), Enter, "REVCLOUD", "A", "0.5", "0.5", "O", P(1.2, 0), Enter);
+            Run(session, "LINE", P(0, 0), P(3, 0), Enter, "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "0.5", "O", P(1.2, 0), Enter);
 
             DxfPolyline cloud = Cloud(document);
             Assert.False(cloud.Closed);
@@ -171,7 +178,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "REVCLOUD", "A", "4", "12", "S", "C", P(0, 0), P(60, 40));
+            Run(session, "REVCLOUD", "A", "9", "S", "C", P(0, 0), P(60, 40));
 
             DxfPolyline cloud = Cloud(document);
             Assert.True(cloud.Closed);
@@ -181,9 +188,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Assert.Equal(1.2, cloud.GetEndWidthAt(i), 12);
             });
 
-            // Every arc between the two lengths along the 200 of the rectangle.
+            // Every arc between two thirds of 9 and four thirds, 6 and 12, along the 200 of the rectangle.
             List<GeoPoint2> points = Enumerable.Range(0, cloud.NumberOfVertices).Select(cloud.GetPoint2dAt).ToList();
-            Assert.InRange(points.Count, 200 / 12, 200 / 4);
+            Assert.InRange(points.Count, 200 / 12, 200 / 6);
         }
 
         [Fact]
@@ -192,7 +199,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
 
-            Run(session, "REVCLOUD", "A", "10", "10", P(0, 0));
+            Run(session, "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "10", P(0, 0));
             Assert.Equal("Specify opposite corner:", session.PromptText);
             Run(session, P(100, -50));
             DxfPolyline rectangle = Cloud(document);
@@ -223,7 +230,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
 
-            Run(session, "REVCLOUD", "A", "10", "10", "F", P(0, 0));
+            Run(session, "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "10", "F", P(0, 0));
             Assert.Contains("Guide crosshairs along cloud path...", session.History);
             Assert.True(session.Prompt.Tracks);
             int written = session.History.Count;
@@ -252,7 +259,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
-            Run(session, "REVCLOUD", "A", "10", "10", P(0, 0), P(100, 100));
+            Run(session, "REVCLOUDARCVARIANCE", "0", "REVCLOUD", "A", "10", P(0, 0), P(100, 100));
             string handle = Cloud(document).Handle;
 
             Run(session, "REVCLOUD", "M");
@@ -287,7 +294,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "PEDIT", P(50, 400), "F", "E", "N", "M", P(120, 410), "X", "X");
             Run(session, "LINE", P(300, 0), P(400, 0), Enter, "LINE", P(403, 0), P(403, 50), Enter, "ARC", P(500, 0), P(550, 50), P(600, 0));
             Run(session, "PEDIT", "M", P(350, 0), P(403, 25), P(550, 50), Enter, Enter, "J", "J", "B", "5", "F", "S", "D", "C", "O", "L", "ON", "R", "W", "0.5", "U", "X");
-            Run(session, "CIRCLE", P(700, 0), "20", "REVCLOUD", "O", P(720, 0), "Y");
+            Run(session, "REVCLOUDARCVARIANCE", "0", "CIRCLE", P(700, 0), "20", "REVCLOUD", "O", P(720, 0), "Y");
             Run(session, "REVCLOUD", "S", "C", P(800, 0), P(900, 100));
             Run(session, "REVCLOUD", "P", P(800, 200), P(900, 200), P(850, 300), Enter);
             Run(session, "REVCLOUD", "S", "N", "M", P(845, 0), P(845, -40), P(875, -40), P(875, 0), P(860, 1));

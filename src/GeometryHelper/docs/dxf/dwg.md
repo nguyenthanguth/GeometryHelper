@@ -1,4 +1,4 @@
-# Reading DWG files
+# Reading and writing DWG files
 
 [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads a DWG file as the drawing its DXF would give: the
 [`DxfDocument`](xref:GeometryHelper.Dxf.DxfDocument) of [`DxfReader`](xref:GeometryHelper.Dxf.DxfReader), or the
@@ -19,7 +19,7 @@ db.Save("plan.dxf");                                                            
 
 Both take a path or a stream; a stream is read from where it stands to its end and left open. `Read` takes the
 [`DxfReadOptions`](xref:GeometryHelper.Dxf.DxfReadOptions) of `DxfReader`. A drawing opened from a DWG is saved as a
-DXF: the library does not write DWG files.
+DXF by `Save`, and as a DWG by [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter) (see [Writing DWG files](#writing-dwg-files)).
 
 ## Which files
 
@@ -144,3 +144,54 @@ first. A drawing of 100 000 lines, 1.9 MB as a DWG of AutoCAD 2018 and 14 MB as 
 
 The best of five reads on one machine, .NET Framework 4.8; AC1021 was timed later, on the machine under other load,
 where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundred objects reads in 1 or 2 ms.
+
+## Writing DWG files
+
+[`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter)`.Write` writes a `DxfDatabase`, with every record it holds, or the
+shapes of a `DxfDocument`, as the drawing [`DxfWriter`](xref:GeometryHelper.Dxf.DxfWriter) makes of them, to a path or a
+stream. The file is of AC1032, the version AutoCAD 2018 and later save in; another version is refused with a
+`NotSupportedException` that names it.
+
+```csharp
+DxfDatabase db = DxfDatabase.Open("plan.dxf");
+DwgWriter.Write(db, "plan.dwg");                         // AC1032
+
+DxfDocument shapes = DxfReader.Read("plan.dxf");
+DwgWriter.Write(shapes, "shapes.dwg");                   // the shapes alone, each on its layer
+```
+
+The drawing is written as its DXF, and each record of that DXF is put into the object of the DWG that says the same,
+with the handles of the drawing: the header variables, the classes, the tables, the blocks, the entities and the
+objects, in the container of pages a DWG of AutoCAD 2004 and later has, compressed, with every check sum. The same
+drawing gives the same bytes every time.
+
+| Part | Written |
+|---|---|
+| Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
+| Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
+
+A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
+each (`DwgWriter: types that are not written yet were left out: MATERIAL 3 VISUALSTYLE 24 …`). Every handle to a record
+left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
+with it. Left out so far: MATERIAL, VISUALSTYLE, TABLESTYLE, the detail and section view styles,
+CELLSTYLEMAP, which the reader does not read either and AutoCAD makes anew in a drawing that lacks them; and of the
+types the reader does read, MULTILEADER and MLEADERSTYLE, ACAD_TABLE, REGION, 3DSOLID, BODY, SHAPE and the
+ATTRIB and ATTDEF of several lines.
+
+Proof: the eight drawings of the reader's tests and the eight of hatches, viewports, leaders, images, multilines, tables,
+solids and meshes, each as AutoCAD 2021 wrote its DXF, written by `DwgWriter`:
+
+- read back by `DwgReader`, they give the records of the DXF they were written from, but those of the types left out and
+  the dictionary entries and handles that named them;
+- AutoCAD 2021 opens each (accoreconsole) and `AUDIT` finds 0 errors;
+- AutoCAD's own DXF of each is the DXF it was written from, but the types left out, which AutoCAD makes anew with new
+  handles (`$CMATERIAL` names its new material);
+- object for object, the bits are AutoCAD's own for 848 of the 953 objects of the first eight and 835 of the 908 of
+  the second; the others differ where the DXF does not carry what the file does: the last bit of a double of 16
+  places, a normal of (0, 0, 1) that AutoCAD writes whole for some entities, the extents of an MTEXT.
+
+A drawing of 100 to 450 records is written in about 0.1 s, in some 10 KB: AutoCAD's own file of the same drawing is
+13 to 17 KB. A drawing of 100 000 lines is written in 1.1 s from its `DxfDatabase`, in 2.1 MB to AutoCAD's 1.9 MB.

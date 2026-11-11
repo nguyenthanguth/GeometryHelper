@@ -65,6 +65,17 @@ namespace GeometryHelper.Dxf.Viewer
             registry.AddVariable(CadSystemVariable.Whole("FILEDIA", false, 0, 1, s => s.FileDialogs ? 1 : 0, (c, v) => c.Remember("filedia", v)));
             registry.AddVariable(CadSystemVariable.Whole("CMDDIA", false, 0, 1, s => (int)Kept(s, "cmddia", 1.0), (c, v) => c.Remember("cmddia", v)));
 
+            // Whether PEDIT turns a line, an arc or a spline picked into a polyline without asking (1) or asks first (0), and
+            // whether PLINE, POLYGON, DONUT and PEDIT make old-style POLYLINEs (0) or LWPOLYLINEs (1 and 2), kept by the session.
+            registry.AddVariable(CadSystemVariable.Whole("PEDITACCEPT", false, 0, 1, s => (int)Kept(s, "peditaccept", 0.0), (c, v) => c.Remember("peditaccept", v)));
+            registry.AddVariable(CadSystemVariable.Whole("PLINETYPE", false, 0, 2, s => (int)Kept(s, "plinetype", 2.0), (c, v) => c.Remember("plinetype", v)));
+
+            // REVCLOUD's approximate arc length (nought until set), whether its arcs vary about it (1) or keep to it (0), and the
+            // type it starts with, 0 Freehand, 1 Rectangular, 2 Polygonal, kept by the session.
+            registry.AddVariable(CadSystemVariable.Number("REVCLOUDAPPROXARCLEN", false, CadSystemVariable.RealBound.NonNegative, false, s => Kept(s, "revcloud.approx", 0.0), (c, v) => c.Remember("revcloud.approx", v)));
+            registry.AddVariable(CadSystemVariable.Whole("REVCLOUDARCVARIANCE", false, 0, 1, s => (int)Kept(s, "revcloud.variance", 1.0), (c, v) => c.Remember("revcloud.variance", v)));
+            registry.AddVariable(CadSystemVariable.Whole("REVCLOUDCREATEMODE", false, 0, 2, s => (int)Kept(s, "revcloud.type", 1.0), (c, v) => c.Remember("revcloud.type", v)));
+
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
             registry.AddVariable(Flag("LWDISPLAY", s => s.Document.Database.LineWeightDisplay, (c, v) => c.Database.LineWeightDisplay = v, "$LWDISPLAY"));

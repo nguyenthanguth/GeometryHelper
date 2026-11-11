@@ -97,12 +97,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, removed) }, s =>
+                        c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, removed) }, s => PlineChange(s, removed, p =>
                         {
-                            var p = (DxfPolyline)s.Document.FindEntity(removed);
                             p.RemoveVertexAt(count - 1);
                             p.SetBulgeAt(count - 2, 0.0);
-                        });
+                        }));
                     }
 
                     points.RemoveAt(points.Count - 1);
@@ -183,7 +182,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 start = last;
                     double turn = sweep;
-                    handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, PlineSegment(c, start, next, turn, new[] { w0, w1 }))));
+                    handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, OfPlineType(c, PlineSegment(c, start, next, turn, new[] { w0, w1 })))));
 
                     if (handle == null)
                     {
@@ -194,9 +193,8 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     string growing = handle;
                     int at = points.Count - 1;
-                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, growing) }, s =>
+                    c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, growing) }, s => PlineChange(s, growing, p =>
                     {
-                        var p = (DxfPolyline)s.Document.FindEntity(growing);
                         p.SetBulgeAt(at, bulge);
                         SetWidths(p, at, w0, w1);
 
@@ -208,7 +206,7 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             p.AddVertexAt(at + 1, next, 0.0, w1, w1);
                         }
-                    });
+                    }));
                 }
 
                 widths[0] = w1;
@@ -239,6 +237,28 @@ namespace GeometryHelper.Dxf.Viewer
             made.AddVertexAt(0, from, Math.Tan(sweep / 4.0), widths[0], widths[1]);
             made.AddVertexAt(1, next, 0.0, widths[1], widths[1]);
             return Current(c, made);
+        }
+
+        /// <summary>
+        /// Changes the polyline PLINE is drawing: a LWPOLYLINE as it is; the POLYLINE PLINETYPE 0 makes through a LWPOLYLINE put
+        /// in its place and made a POLYLINE again, of the same handle.
+        /// </summary>
+        private static void PlineChange(CadEditScope s, string handle, Action<DxfPolyline> change)
+        {
+            DxfEntity own = s.Document.FindEntity(handle);
+
+            if (own is DxfPolyline light)
+            {
+                change(light);
+                return;
+            }
+
+            string space = s.Document.FindSpace(handle)?.Name;
+            var drawn = new DxfPolyline();
+            drawn.ConvertFrom(own, true);
+            change(drawn);
+            drawn.ConvertTo(true);
+            s.Record(new CadEditRecord(CadEditRecordKind.Added, handle) { Space = space });
         }
 
         /// <summary>The sweep of the arc that leaves a point a way and ends along a chord from it: twice the angle between the two.</summary>

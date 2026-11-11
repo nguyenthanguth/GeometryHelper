@@ -135,6 +135,46 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// Every named section of a file of R2004 and later (not R2007), its pages decompressed and joined, in the order of
+        /// the section map; <paramref name="layout"/> gives each its section id, its page size and its compression (1 none,
+        /// 2 compressed). For the writer's tests, which put AutoCAD's own sections into a container of the writer's.
+        /// </summary>
+        internal static List<KeyValuePair<string, byte[]>> SectionsOf(byte[] file, out Dictionary<string, int[]> layout)
+        {
+            var head = new byte[0x6C];
+
+            for (int i = 0; i < head.Length; i++)
+            {
+                head[i] = (byte)(file[0x80 + i] ^ HeaderMask[i]);
+            }
+
+            long budget = Math.Min(int.MaxValue, (file.LongLength * Expansion) + Allowance);
+            Dictionary<int, long[]> pages = ReadPageMap(SystemPage(file, U64(head, 0x54) + 0x100, PageMapType, "page map", ref budget), file.LongLength);
+            byte[] map = SystemPage(file, pages[(int)U32(head, 0x5C)][0], SectionMapType, "section map", ref budget);
+            Dictionary<string, Descriptor> descriptors = ReadSectionMap(map);
+            var sections = new List<KeyValuePair<string, byte[]>>();
+            layout = new Dictionary<string, int[]>(StringComparer.Ordinal);
+            int count = (int)U32(map, 0);
+            int at = 20;
+
+            for (int i = 0; i < count; i++)
+            {
+                int end = Array.IndexOf(map, (byte)0, at + 32, 64);
+                string name = Encoding.ASCII.GetString(map, at + 32, (end < 0 ? at + 96 : end) - (at + 32));
+
+                if (name.Length > 0)
+                {
+                    layout[name] = new[] { (int)U32(map, at + 24), (int)U32(map, at + 12), (int)U32(map, at + 20) };
+                    sections.Add(new KeyValuePair<string, byte[]>(name, Join(file, pages, descriptors[name], ref budget)));
+                }
+
+                at += 96 + (16 * (int)U32(map, at + 8));
+            }
+
+            return sections;
+        }
+
+        /// <summary>
         /// A system page at <paramref name="at"/>: a head of five raw longs (its type, the size decompressed, the size
         /// compressed, the kind of compression, the check sum), then the compressed data, decompressed.
         /// </summary>

@@ -19,19 +19,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// cursor, or the outline of an object picked, which it replaces; Modify redraws part of a cloud. The cloud is a
         /// LWPOLYLINE whose vertices lie an arc length apart along the path, each segment an arc of 110 degrees (bulge
         /// 0.52056705) bulging out, a last arc shorter than half an arc length taken into the one before; Calligraphy gives
-        /// each arc a width from nought to a tenth of the longest arc. The arc lengths are kept between runs, times DIMSCALE
-        /// where they are used, as AutoCAD keeps them.
+        /// each arc a width from nought to a tenth of the longest arc. The approximate arc length is AutoCAD 2021's
+        /// REVCLOUDAPPROXARCLEN, kept between runs and not scaled by DIMSCALE: REVCLOUDARCVARIANCE 1 draws each arc between
+        /// two thirds of it and four thirds, 0 each of it.
         /// </summary>
         private static IEnumerable<CadPrompt> RevCloud(CadCommandContext c)
         {
-            double scale = c.Database.Dimscale > 0.0 ? c.Database.Dimscale : 1.0;
-            double fallback = c.Database.Measurement == DxfMeasurementValue.Metric ? 15.0 : 0.5;
             string[] types = { "Freehand", "Rectangular", "Polygonal" };
 
             while (true)
             {
-                double least = c.Remembered("revcloud.min", fallback) * scale;
-                double most = c.Remembered("revcloud.max", fallback) * scale;
+                double approximate = RevCloudLength(c);
+                bool varies = c.Remembered("revcloud.variance", 1.0) != 0.0;
+                double least = varies ? approximate * 2.0 / 3.0 : approximate;
+                double most = varies ? approximate * 4.0 / 3.0 : approximate;
                 bool calligraphy = c.Remembered("revcloud.style", 0.0) != 0.0;
                 int type = (int)c.Remembered("revcloud.type", 1.0);
                 c.Write("Minimum arc length: " + Length(least) + "   Maximum arc length: " + Length(most) + "   Style: "
@@ -41,7 +42,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Arc length"))
                 {
-                    foreach (CadPrompt prompt in RevCloudArcLength(c, least, scale))
+                    foreach (CadPrompt prompt in RevCloudArcLength(c, approximate))
                     {
                         yield return prompt;
                     }
@@ -108,46 +109,30 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Arc length: the minimum, then the maximum, which is no less than the minimum and no more than three times it; both kept
-        /// divided by DIMSCALE, as AutoCAD keeps them.
+        /// The approximate arc length a cloud is drawn with: REVCLOUDAPPROXARCLEN where it is set, else 15 in a metric drawing and
+        /// 0.5 in an imperial one (AutoCAD 2021 sizes its first cloud by a share of the view's diagonal it does not publish).
         /// </summary>
-        private static IEnumerable<CadPrompt> RevCloudArcLength(CadCommandContext c, double least, double scale)
+        private static double RevCloudLength(CadCommandContext c)
         {
-            double low;
+            double kept = c.Remembered("revcloud.approx", 0.0);
+            return kept > 0.0 ? kept : c.Database.Measurement == DxfMeasurementValue.Metric ? 15.0 : 0.5;
+        }
 
+        /// <summary>Arc length: "Specify approximate length of arc", above nought, kept as REVCLOUDAPPROXARCLEN, as AutoCAD 2021 asks it.</summary>
+        private static IEnumerable<CadPrompt> RevCloudArcLength(CadCommandContext c, double approximate)
+        {
             while (true)
             {
-                yield return CadPrompt.ForDistance("Specify minimum length of arc", null, null, Length(least));
-                low = c.Input.Kind == CadInputKind.Number ? c.Input.Number : least;
+                yield return CadPrompt.ForDistance("Specify approximate length of arc", null, null, Length(approximate));
+                double length = c.Input.Kind == CadInputKind.Number ? c.Input.Number : approximate;
 
-                if (low > 0.0)
+                if (length > 0.0)
                 {
-                    break;
+                    c.Remember("revcloud.approx", length);
+                    yield break;
                 }
 
                 c.Write("Value must be positive and nonzero.");
-            }
-
-            while (true)
-            {
-                yield return CadPrompt.ForDistance("Specify maximum length of arc", null, null, Length(low));
-                double high = c.Input.Kind == CadInputKind.Number ? c.Input.Number : low;
-
-                if (high < low - Slack(c))
-                {
-                    c.Write("Maximum arc length must be equal or greater than the minimum arc length.");
-                    continue;
-                }
-
-                if (high > 3.0 * low + Slack(c))
-                {
-                    c.Write("Maximum arc length cannot exceed three times the minimum arc length.");
-                    continue;
-                }
-
-                c.Remember("revcloud.min", low / scale);
-                c.Remember("revcloud.max", high / scale);
-                yield break;
             }
         }
 
@@ -608,7 +593,7 @@ namespace GeometryHelper.Dxf.Viewer
             return twice / 2.0;
         }
 
-        /// <summary>The arc lengths and style of a cloud, as used: times DIMSCALE.</summary>
+        /// <summary>The arc lengths and style of a cloud, as used.</summary>
         private sealed class RevCloudLook
         {
             public RevCloudLook(double least, double most, bool calligraphy)
