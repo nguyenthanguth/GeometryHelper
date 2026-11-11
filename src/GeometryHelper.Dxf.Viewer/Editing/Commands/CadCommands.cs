@@ -218,7 +218,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// QSAVE (Ctrl+S): the drawing saved to its file, a DWG back as a DWG. One with no file yet asks the window for its Save
-        /// As dialog; with FILEDIA 0, "Save drawing as &lt;Drawing1.dxf&gt;:" on the command line instead, a name typed with no
+        /// As dialog; with FILEDIA 0, "Save drawing as &lt;Drawing1.dwg&gt;:" on the command line instead, a name typed with no
         /// extension given the offered one's, and the file handed to the window to save, or saved here with no window.
         /// </summary>
         private static IEnumerable<CadPrompt> QuickSave(CadCommandContext c)

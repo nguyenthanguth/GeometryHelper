@@ -151,9 +151,7 @@ the ones wanted.
         mesh, polyface and MINSERT checked on AutoCAD drawings; R2000 round-trip colours; the preview image
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
-  - [ ] W2 follow-ups: the shared ACI palette (DxfColor) has 250 black where AutoCAD's 250-255 greys are 51, 80, 105,
-        130, 190, 255 (worked round in the DWG reader only); test drawings with a colour-book colour (group 430) and an
-        R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
+  - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
   - [x] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L); the ACI palette made AutoCAD 2021's
         (197 of 255 indexes were wrong)
   - [x] W4 Every entity and object: VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, IMAGE, WIPEOUT, MLINE, tables to
@@ -165,7 +163,7 @@ the ones wanted.
   - [ ] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE, ACIS entities (AcDs store), multiline attributes; prove
         AC1018/1024/1027; R2000 and R2007 containers if wanted (L)
   - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
-  - [ ] W6 follow-ups: AUDIT in AutoCAD of a DWG saved after edits; Save As listing every DXF version (needs a DXF version converter); a new drawing defaulting to DWG as AutoCAD; autosave copy of plan.dwg and plan.dxf colliding (S)
+  - [ ] W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
