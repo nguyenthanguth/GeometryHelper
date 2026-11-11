@@ -161,7 +161,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a point the app keeps, as SNAPBASE: asked "Enter new value for SNAPBASE &lt;0.0000,0.0000&gt;:", typed or
-        /// picked; set at once, no step of undo.
+        /// picked, a number alone the point that far from the last point towards the cursor, as AutoCAD 2021 takes SNAPBASE
+        /// 5; set at once, no step of undo.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="get">Reads the value.</param>
@@ -178,7 +179,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a point the app keeps that refuses some values, as SNAPUNIT: asked "Enter new value for SNAPUNIT
-        /// &lt;10.0000,10.0000&gt;:", typed or picked, text that is no point refused with "Invalid 2D point." and asked again; a
+        /// &lt;10.0000,10.0000&gt;:", typed or picked, a number alone the point that far from the last point towards the cursor
+        /// (GRIDUNIT 5 with the last point at (10, 20) and the cursor at (13, 24) is 13,24, as AutoCAD 2021 takes it), text
+        /// that is no point refused with "Invalid 2D point." and asked again; a
         /// point the take refuses, as 0,5 for a snap spacing, written off with AutoCAD's "Cannot set SNAPUNIT to that value."
         /// and not asked again; set at once, no step of undo.
         /// </summary>
@@ -199,8 +202,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a distance the app keeps, of either sign, as POLARDIST: asked "Enter new value for POLARDIST &lt;0.0000&gt;:",
-        /// shown to four places; text that is no number refused with AutoCAD's "Requires numeric distance or two points." and
-        /// asked again; set at once, no step of undo.
+        /// shown to four places, typed or given by two points, 0,0 then 3,4 at "Specify second point:" setting 5 as AutoCAD
+        /// 2021 does; text that is no number refused with AutoCAD's "Requires numeric distance or two points." and asked
+        /// again; set at once, no step of undo.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="get">Reads the value.</param>
@@ -651,6 +655,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             yield return CadPrompt
                 .ForPoint(variable.Message, null, null, Show(P3(get()), false))
+                .MeasuringFromLastPoint()
                 .Refusing("Invalid 2D point.");
 
             if (c.Input.IsPoint && !take(c.Input.Point))
@@ -669,7 +674,9 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             GeoPoint3 old = get(c.Session);
-            CadPrompt prompt = CadPrompt.ForPoint(variable.Message, null, null, Show(old, withZ));
+            CadPrompt prompt = CadPrompt
+                .ForPoint(variable.Message, null, null, Show(old, withZ))
+                .MeasuringFromLastPoint();
 
             // A point of two coordinates is refused as AutoCAD refuses SNAPBASE abc.
             yield return withZ ? prompt : prompt.Refusing("Invalid 2D point.");

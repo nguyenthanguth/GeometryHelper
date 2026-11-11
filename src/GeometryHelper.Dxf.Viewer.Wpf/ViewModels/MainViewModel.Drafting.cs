@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -10,8 +12,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR, GRIDDISPLAY), ORTHO
     /// from <c>$ORTHOMODE</c> and the lineweights from <c>$LWDISPLAY</c>. A drawing that has no such value takes the
     /// window's: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switched, each is written
-    /// into the drawing, as AutoCAD saves it. POLAR, OTRACK, OSNAP, DYN, SNAPTYPE, POLARDIST and GRIDSTYLE stay the
-    /// window's, as AutoCAD keeps them in the registry.
+    /// into the drawing, as AutoCAD saves it. A layout's paper space has a GRID of its own, kept in the viewport 1 of its
+    /// sheet as AutoCAD keeps it, so that GRID switched on in Layout1 leaves model space's as it was. POLAR, OTRACK, OSNAP,
+    /// DYN, SNAPTYPE, POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY stay the window's, as AutoCAD keeps them in the registry.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -169,7 +172,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             try
             {
                 FindToggle("SNAP").IsOn = state.Snap;
-                FindToggle("GRID").IsOn = state.Grid;
+                FindToggle("GRID").IsOn = ShownGrid();
                 FindToggle("ORTHO").IsOn = state.Ortho;
                 Snap.GridX = state.SnapX;
                 Snap.GridY = state.SnapY;
@@ -225,6 +228,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     });
                     break;
                 case "GRID":
+                    CadSpace paper = PaperShown();
+
+                    if (paper != null)
+                    {
+                        WritePaperGrid(paper, toggle.IsOn);
+                        break;
+                    }
+
                     state.Grid = toggle.IsOn;
                     WriteToDrawing("GRIDMODE", () =>
                     {
@@ -242,6 +253,81 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         WriteHeaderFlag(database, "$ORTHOMODE", toggle.IsOn, v => database.Orthomode = v)
                     );
                     break;
+            }
+        }
+
+        /// <summary>
+        /// The layout whose paper space is shown, not through one of its viewports: its sheet has a grid of its own, as AutoCAD
+        /// 2021 keeps GRIDMODE in a layout apart from model space's; null in model space, the Block Editor or through a
+        /// viewport.
+        /// </summary>
+        private CadSpace PaperShown()
+        {
+            CadDocument document = _current?.Document;
+            CadSpace space = document?.CurrentSpace;
+            return space != null && !space.IsModel && !space.IsBlockEditor && document.ActiveViewport == null
+                ? space
+                : null;
+        }
+
+        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its grid (flag 0x200); null where it has none.</summary>
+        private static DxfViewport SheetViewport(CadSpace space) =>
+            space.Layout?.GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased);
+
+        /// <summary>
+        /// Whether the grid is on where the drawing shown is: in a layout's paper space the sheet's own, kept in its viewport 1
+        /// (or for the window, where the layout has none yet), off until switched on there; elsewhere the drawing's GRIDMODE.
+        /// </summary>
+        private bool ShownGrid()
+        {
+            CadSpace paper = PaperShown();
+
+            if (paper == null)
+            {
+                return _current.Drafting.Grid;
+            }
+
+            DxfViewport sheet = SheetViewport(paper);
+            return sheet != null ? sheet.GridOn : _current.Drafting.PaperGrids.Contains(paper.Name);
+        }
+
+        /// <summary>GRID shown as the space now shown has it: a layout's own in its paper space, model space's elsewhere.</summary>
+        private void LoadGridToggle()
+        {
+            if (_current == null)
+            {
+                return;
+            }
+
+            _loadingDrafting = true;
+
+            try
+            {
+                FindToggle("GRID").IsOn = ShownGrid();
+            }
+            finally
+            {
+                _loadingDrafting = false;
+            }
+        }
+
+        /// <summary>GRID switched in a layout's paper space: kept in its viewport 1, as AutoCAD keeps it, or for the window where it has none.</summary>
+        private void WritePaperGrid(CadSpace paper, bool on)
+        {
+            if (on)
+            {
+                _current.Drafting.PaperGrids.Add(paper.Name);
+            }
+            else
+            {
+                _current.Drafting.PaperGrids.Remove(paper.Name);
+            }
+
+            DxfViewport sheet = SheetViewport(paper);
+
+            if (sheet != null)
+            {
+                WriteToDrawing("GRIDMODE", () => sheet.GridOn = on);
             }
         }
 
@@ -415,6 +501,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public int Isoplane { get; set; }
 
             public int GridDisplay { get; set; } = 3;
+
+            // The layouts, by name, whose paper-space grid is on where the layout has no viewport 1 to keep it.
+            public HashSet<string> PaperGrids { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 }

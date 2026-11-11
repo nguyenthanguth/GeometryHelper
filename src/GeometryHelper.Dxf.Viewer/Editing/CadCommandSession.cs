@@ -553,10 +553,13 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Point, point, 0.0, typed, null), echo, point);
                     }
 
-                    if (Prompt.BasePoint != null && TryLength(typed, out double along))
+                    // With no base point, SETVAR's point takes a number as a distance from the last point, as AutoCAD 2021's.
+                    GeoPoint2? measured = Prompt.BasePoint ?? (Prompt.FromLastPoint ? LastPoint : (GeoPoint2?)null);
+
+                    if (measured != null && TryLength(typed, out double along))
                     {
                         // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
-                        GeoPoint2 from = Prompt.BasePoint.Value;
+                        GeoPoint2 from = measured.Value;
                         GeoVector2 toward = Cursor.HasValue
                             ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from
                             : new GeoVector2(1.0, 0.0);
@@ -597,16 +600,12 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     // AutoCAD 2021's words: a distance asked with no base point is given by a number or two points.
-                    return Invalid(
-                        Prompt.Refusal
-                            ?? (
-                                Prompt.BasePoint != null ? "Requires numeric distance, second point, or option keyword."
-                                : Prompt.Keywords.Count > 0
-                                    ? "Requires numeric distance, two points, or option keyword."
-                                : "Requires numeric distance or two points."
-                            ),
-                        echo
-                    );
+                    if (TryPoint(typed, out GeoPoint2 first))
+                    {
+                        return StartSecondPoint(first, echo);
+                    }
+
+                    return Invalid(Refused(Prompt), echo);
                 case CadPromptKind.Angle:
                     if (TryAngle(typed, Prompt, out double radians))
                     {
@@ -623,7 +622,18 @@ namespace GeometryHelper.Dxf.Viewer
                         );
                     }
 
-                    return Invalid("Requires valid numeric angle or second point.", echo);
+                    if (Prompt.BasePoint == null && TryPoint(typed, out GeoPoint2 from2))
+                    {
+                        return StartSecondPoint(from2, echo);
+                    }
+
+                    // AutoCAD 2021's words: an angle asked with no base point is given by a number or two points.
+                    return Invalid(
+                        Prompt.BasePoint != null
+                            ? "Requires valid numeric angle or second point."
+                            : "Requires valid numeric angle or two points.",
+                        echo
+                    );
                 default:
                     return Invalid("Invalid input.", echo);
             }
@@ -1039,7 +1049,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Answers a prompt for a point, a distance or an angle with a point: a distance or an angle measured from the prompt's
-        /// base point. With no echo the history is left as it is, as for the point a modifier (FROM, M2P) gives.
+        /// base point, or with none the first of two points (<see cref="StartSecondPoint"/>). With no echo the history is left as it is, as for the point a modifier (FROM, M2P) gives.
         /// </summary>
         private bool AnswerPoint(GeoPoint2 point, string echo, bool control = false)
         {
@@ -1054,7 +1064,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadPromptKind.Distance:
                     if (Prompt.BasePoint == null)
                     {
-                        return Invalid("Requires numeric distance or option keyword.");
+                        return StartSecondPoint(point, echo);
                     }
 
                     return Answer(
@@ -1068,7 +1078,7 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     if (Prompt.BasePoint == null)
                     {
-                        return Invalid("Requires valid numeric angle or second point.");
+                        return StartSecondPoint(point, echo);
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
@@ -1085,6 +1095,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private bool Answer(CadInput input, string echo, GeoPoint2? point)
         {
+            // "Specify second point:" of a distance or an angle given by two points hands the prompt that asked its answer.
+            if (_secondFor != null && _modifiers.Count == 0)
+            {
+                return TakeSecondPoint(input, echo);
+            }
+
             // The points a prompt that follows the cursor takes are not written, as AutoCAD writes none of the path.
             if (echo != null && !(Prompt.Tracks && input.IsPoint))
             {
@@ -1192,6 +1208,7 @@ namespace GeometryHelper.Dxf.Viewer
             Prompt = null;
             _modifiers.Clear();
             _trackPoints.Clear();
+            DropSecondPoint();
             ClearGathering();
             ResetOptions();
             LastOutcome = outcome;

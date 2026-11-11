@@ -6,6 +6,39 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A distance or an angle the presenter asks with no base point takes two points, as AutoCAD 2021's command line
+does: a point typed or picked at "Enter new value for POLARDIST <0.0000>:" asks "Specify second point:", its rubber band
+from the first, and 0,0 then 3,4 sets POLARDIST to 5; SNAPANG 0,0 then 1,1 sets 45. Every such prompt takes them, SETVAR
+FILLETRAD, SNAP's spacing and a command's own alike. @dx,dy at the second point is measured from the first, the last
+point is left as it was, FROM and the other point modifiers work at either point, the prompt's keywords are taken at the
+second (T for Through at an offset distance), Enter there is the prompt's Enter, and text gets the prompt's refusal and is
+asked again. Checked in AutoCAD 2021's console.
+
+**CHANGED.** A point SETVAR asks (GRIDUNIT, SNAPUNIT, SNAPBASE, INSBASE, LIMMIN and the others) takes a number alone as a
+distance from the last point towards the cursor, as AutoCAD 2021 does: with the last point at (10, 20) and the cursor at
+(13, 24), GRIDUNIT 5 is 13,24, where the presenter refused it with "Invalid 2D point.". An angle asked with no base point
+refuses text with AutoCAD's "Requires valid numeric angle or two points." rather than "... or second point.", and a point
+picked at a distance asked with no base point is the first of two rather than refused.
+
+**NEW.** SNAPGRIDLEGACY, as AutoCAD 2021's: 0 or 1, set by SETVAR or by SNAP Legacy, and kept in the settings file
+(`GlobalSettings.SnapGridLegacy`) as AutoCAD keeps it in the registry. With 1 and SNAP on, the canvas holds the cursor on
+the snap grid with no point asked too, the crosshair, the coordinates, the object under it and a click or a box corner
+going from one grid point to the next (`CadCanvas.SnapGridLegacy`, `MainViewModel.SnapGridLegacy`); a click at (1 130, 70)
+over a snap of 500 picks a line through (1 000, 0). SNAP Legacy was kept for the window alone before and changed nothing.
+
+**NEW.** A layout's paper space has a grid of its own, as AutoCAD 2021's: GRID, F7 and GRIDMODE in Layout1 switch the
+sheet's grid, kept in the layout's viewport 1, and leave model space's as it was, each shown again with its space. The
+canvas draws it on the paper, 8 and 18 per cent darker than the paper, by the spacing, major lines and GRIDDISPLAY bits
+of that viewport, within the layout's limits without GRIDDISPLAY 1, and dotted with GRIDSTYLE 4. The paper-space snap
+stays model space's.
+
+**NEW.** "Grid too dense to display" is written on the command line once as the grid comes on, or the view or the
+spacing goes to where its lines would lie closer than 6 pixels without GRIDDISPLAY 2, and not again at each redraw.
+
+**FIXED.** The Snap and Grid tab of Drafting Settings refused a Polar distance below nought that SETVAR POLARDIST takes,
+so that the dialog opened after POLARDIST -1 could not be OK'd without changing it. It takes any number now, -1 kept and
+PolarSnap stepping by the snap X spacing, and refuses text with "The polar distance must be a number.".
+
 **FIXED.** `AddVisibilityParameter` wrote each visibility state listing no parameter, so AutoCAD 2021 read every other
 property of the block as not visible in any state and showed none of its grips: a sign of the states Cross, Tick and
 Blank with a Width kept Width out of Properties and its arrow off the INSERT. Each state now lists the block's other

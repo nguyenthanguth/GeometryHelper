@@ -73,7 +73,10 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        /// <summary>Whether the prompt waiting takes a point a modifier may give: a point, or a distance or an angle from a base point.</summary>
+        /// <summary>
+        /// Whether the prompt waiting takes a point a modifier may give: a point, or a distance or an angle, from a base point
+        /// or, with none, as the first of two points, as AutoCAD 2021 takes FROM at "Enter new value for POLARDIST".
+        /// </summary>
         private bool TakesModifier()
         {
             if (Prompt == null)
@@ -82,10 +85,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return Prompt.Kind == CadPromptKind.Point
-                || (
-                    (Prompt.Kind == CadPromptKind.Distance || Prompt.Kind == CadPromptKind.Angle)
-                    && Prompt.BasePoint.HasValue
-                );
+                || Prompt.Kind == CadPromptKind.Distance
+                || Prompt.Kind == CadPromptKind.Angle;
         }
 
         /// <summary>

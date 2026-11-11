@@ -92,7 +92,8 @@ session.Enter();
 | The user | Does |
 |---|---|
 | types a name or an alias and Enter | starts the command; Enter alone runs the last one again; a name that is none gives `Unknown command "FOO".  Press F1 for help.` |
-| answers a point | as `x,y`, `@dx,dy`, `@distance<angle` or `distance<angle`; a number alone at a point prompt is a distance along the rubber band, towards the cursor |
+| answers a point | as `x,y`, `@dx,dy`, `@distance<angle` or `distance<angle`; a number alone at a point prompt is a distance along the rubber band, towards the cursor, and at a point SETVAR asks, which has no band, a distance from the last point towards the cursor, as AutoCAD 2021 takes GRIDUNIT 5 |
+| answers a distance or an angle with no base point by two points | a point typed or picked asks `Specify second point:`, its rubber band from the first, and the distance between them, or the direction from the first to the second, is the answer, as AutoCAD 2021 takes them: POLARDIST 0,0 then 3,4 is 5, SNAPANG 0,0 then 1,1 is 45. `@dx,dy` at the second is measured from the first, the last point is left as it was, the prompt's keywords and point modifiers are taken there, Enter is the prompt's Enter, and text gets the prompt's refusal ("Requires numeric distance or two points.", "Requires valid numeric angle or two points.") and is asked again |
 | answers with a keyword | by its capital letters, as `U` for `Undo` in `[Close/Undo]` |
 | selects first, then starts a command | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR and EXPLODE take the selection made before them, and ask "Select objects:" where there is none |
 | answers "Select objects:" | by a click, a window, a crossing, a lasso, or one of AutoCAD 2021's options typed (below); Shift held takes out what a click, a box or a lasso picks |
@@ -721,7 +722,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -730,7 +731,7 @@ Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with O
 LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them, and SNAPMODE and GRIDMODE, with the
 toggles of the drawing shown, and writes each switched into that drawing: ORTHO into `$ORTHOMODE`, the lineweights into
 `$LWDISPLAY`, SNAP and GRID into its `*Active` viewport, as AutoCAD saves them with the drawing (see the status bar in
-[the app](app.md)).
+[the app](app.md)); in a layout's paper space GRIDMODE is the layout's own, kept in the viewport 1 of its sheet.
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
 selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
 adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,

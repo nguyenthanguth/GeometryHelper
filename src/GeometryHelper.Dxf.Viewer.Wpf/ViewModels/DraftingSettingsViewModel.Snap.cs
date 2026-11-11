@@ -73,7 +73,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets or sets the step of PolarSnap, as typed (POLARDIST): nought or above, nought taking the snap X spacing.</summary>
+        /// <summary>
+        /// Gets or sets the step of PolarSnap, as typed (POLARDIST): any number, nought or one below nought taking the snap X
+        /// spacing, as SETVAR POLARDIST takes -1.
+        /// </summary>
         public string PolarDistance
         {
             get => _polarDistance;
@@ -300,7 +303,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Checks the boxes of the tab that take a value, in the order of the tab: the snap spacing above nought, Polar
-        /// distance nought or above, the grid spacing a number (one below nought is taken as its size, as GRIDUNIT takes it),
+        /// distance a number (one below nought kept, as SETVAR POLARDIST keeps it), the grid spacing a number (one below nought is taken as its size, as GRIDUNIT takes it),
         /// Major line every a whole number from 1 to 100. The first refused is said in <see cref="Notice"/> and named in
         /// <see cref="FaultyBox"/>.
         /// </summary>
@@ -318,12 +321,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Refuse(SnapYBox, "The snap spacing must be a number above nought.");
             }
 
-            if (
-                CanEditPolarDistance
-                && (!Number(_polarDistance, out values.PolarDistance) || values.PolarDistance < 0.0)
-            )
+            // A distance below nought is taken, as SETVAR POLARDIST takes -1, PolarSnap then stepping by the snap X spacing.
+            if (CanEditPolarDistance && !Number(_polarDistance, out values.PolarDistance))
             {
-                return Refuse(PolarDistanceBox, "The polar distance must be a number, nought or above.");
+                return Refuse(PolarDistanceBox, "The polar distance must be a number.");
             }
 
             if (CanEditGridX && !Number(_gridX, out values.GridX))

@@ -553,7 +553,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             private set => Set(ref _cursorText, value);
         }
 
-        /// <summary>Gets whether the canvas shows its dot grid (GRID, F7).</summary>
+        /// <summary>Gets whether the canvas shows its dot grid (GRID, F7): in a layout's paper space the layout's own, in model space the drawing's.</summary>
         public bool GridOn => Toggles.First(t => t.Name == "GRID").IsOn;
 
         /// <summary>Gets the toggles of the status bar: GRID, SNAP, ORTHO, POLAR, OTRACK and OSNAP.</summary>
@@ -2041,6 +2041,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void RaiseSpace()
         {
             ShowPendingView();
+            LoadGridToggle();
             _current.Session.View = View;
             Raise(nameof(Space));
             Raise(nameof(View));

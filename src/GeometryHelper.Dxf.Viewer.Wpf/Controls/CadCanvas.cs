@@ -230,6 +230,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new PropertyMetadata(null, OnSceneChanged)
         );
 
+        /// <summary>Identifies the <see cref="SnapGridLegacy"/> property.</summary>
+        public static readonly DependencyProperty SnapGridLegacyProperty = DependencyProperty.Register(
+            nameof(SnapGridLegacy),
+            typeof(bool),
+            typeof(CadCanvas),
+            new PropertyMetadata(false)
+        );
+
         /// <summary>Identifies the <see cref="DynamicInput"/> property.</summary>
         public static readonly DependencyProperty DynamicInputProperty = DependencyProperty.Register(
             nameof(DynamicInput),
@@ -336,6 +344,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _swallowUp;
         private Point? _pointDown;
         private GeoPoint2? _cursor;
+
+        // Whether the grid was left out of the last picture as too dense to display, so that the message is said once.
+        private bool _gridTooDense;
         private string _typed;
         private Point? _mouse;
         private double _crosshairPercent;
@@ -663,6 +674,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get => (int)GetValue(GridDisplayProperty);
             set => SetValue(GridDisplayProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets whether SNAP holds the cursor on the snap grid with no point asked too, as AutoCAD's SNAPGRIDLEGACY 1:
+        /// with SNAP on, the crosshair, the point the status bar shows, the object under it and a click or a box corner go from
+        /// one grid point to the next, a cursor at (13, 7) over a snap of 10 being at (10, 10). Off by default, when the snap
+        /// holds the cursor only while a point is asked.
+        /// </summary>
+        public bool SnapGridLegacy
+        {
+            get => (bool)GetValue(SnapGridLegacyProperty);
+            set => SetValue(SnapGridLegacyProperty, value);
         }
 
         /// <summary>Gets or sets the point the grid is laid from, in the coordinates of the UCS, as AutoCAD's SNAPBASE; the origin by default.</summary>
@@ -1009,6 +1032,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ucs.Origin.Y,
                     ucs.Angle,
                     CadImageCache.Version,
+                    Through == null,
                 }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture))
             );
             var key = new SceneKey(document.GetDisplay(space), numbers);
@@ -1026,11 +1050,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 surface.Canvas.Flush();
             }
 
-            if (ShowGrid && (space.IsModel || space.IsBlockEditor))
+            // The grid of model space and the Block Editor, or of a layout's paper space while no viewport is worked through.
+            bool dense =
+                ShowGrid
+                && (space.IsModel || space.IsBlockEditor || Through == null)
+                && DrawGrid(_scene, view, scale, ucs, space);
+
+            // As AutoCAD says it, once as the grid comes on or the view goes to where it is too dense, not at each redraw.
+            if (dense && !_gridTooDense && Session != null)
             {
-                DrawGrid(_scene, view, scale, ucs, space);
+                Session.Write("Grid too dense to display");
+                HistoryWritten?.Invoke(this, EventArgs.Empty);
             }
 
+            _gridTooDense = dense;
             _sceneKey = key;
             _markedDirty = true;
             SceneRenders++;
@@ -1368,7 +1401,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnMouseDown(e);
             Focus();
-            Point p = PositionOf(e);
+            Point p = e.ChangedButton == MouseButton.Left ? OnLegacyGrid(PositionOf(e)) : PositionOf(e);
 
             if (TableMouseDown(e.ChangedButton, p))
             {
@@ -1506,7 +1539,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            Point at = PositionOf(e);
+            Point at = OnLegacyGrid(PositionOf(e));
 
             if (TableMouseMove(at))
             {
@@ -1532,7 +1565,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
             base.OnMouseUp(e);
-            Point at = PositionOf(e);
+            Point at = e.ChangedButton == MouseButton.Left ? OnLegacyGrid(PositionOf(e)) : PositionOf(e);
 
             if (e.ChangedButton == MouseButton.Left && TableMouseUp(at))
             {
@@ -1867,13 +1900,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <see cref="GridMajor"/> from the base point 18 per cent lighter, as AutoCAD draws its major lines; turned by
         /// <see cref="SnapAngle"/> about <see cref="SnapBase"/>, or on the two axes of the isometric plane, as AutoCAD lays
         /// them. Where <see cref="GridStyle"/> asks dots for the space, only the pixels where two lines cross; where
-        /// <see cref="GridDisplay"/> keeps the grid within the limits, none outside them in model space.
+        /// <see cref="GridDisplay"/> keeps the grid within the limits, none outside them in model space. In a layout's paper
+        /// space the grid of its sheet, as AutoCAD 2021 draws it apart from model space's: the spacing, major lines and
+        /// GRIDDISPLAY bits of the layout's viewport 1 (10 by 10, every 5 and 3 where it has none), square to the paper from
+        /// its origin, within the layout's limits without GRIDDISPLAY 1, on the paper 8 and 18 per cent darker than it.
         /// </summary>
-        private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs, CadSpace space)
+        /// <returns>Whether the grid was left out as too dense to display, its lines closer than 6 pixels without GRIDDISPLAY 2.</returns>
+        private bool DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs, CadSpace space)
         {
-            int every = Math.Max(1, GridMajor);
-            CadIsoplane? isoplane = Isoplane;
-            int display = GridDisplay;
+            bool paper = !space.IsModel;
+            DxfViewport sheet = paper ? SheetViewport(space) : null;
+            int every = Math.Max(1, paper ? (sheet?.GridMajor ?? 5) : GridMajor);
+            CadIsoplane? isoplane = paper ? null : Isoplane;
+            int display = paper ? (sheet != null ? SheetGridDisplay(sheet) : 3) : GridDisplay;
+            GeoVector2 sheetSpacing = sheet != null ? SheetGridSpacing(sheet) : new GeoVector2(10.0, 10.0);
+            double spacingX = paper ? sheetSpacing.X : GridSpacing;
+            double spacingY = paper ? sheetSpacing.Y : GridSpacingY;
+            double snapAngle = paper ? 0.0 : SnapAngle;
+            GeoPoint2 snapBase = paper ? GeoPoint2.Origin : SnapBase;
             int dottedIn =
                 space.IsBlockEditor ? 2
                 : space.IsModel ? 1
@@ -1882,41 +1926,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // An isometric grid has its lines through points twice the Y spacing apart, as AutoCAD keeps half of it, the
             // lines of each way that far times the cosine of 30 degrees apart.
-            double across = isoplane.HasValue ? 2.0 * GridSpacingY * Math.Sqrt(3.0) / 2.0 : GridSpacing;
-            double up = isoplane.HasValue ? across : GridSpacingY;
+            double across = isoplane.HasValue ? 2.0 * spacingY * Math.Sqrt(3.0) / 2.0 : spacingX;
+            double up = isoplane.HasValue ? across : spacingY;
             double step = ShownStep(view.PixelsPerUnit, across, GridPixels * scale, every, display);
             double stepY = ShownStep(view.PixelsPerUnit, up, GridPixels * scale, every, display);
 
             if (step <= 0.0 || stepY <= 0.0)
             {
-                return;
+                return across > 0.0 && up > 0.0;
             }
 
             int width = picture.Width;
             int height = picture.Height;
             int stride = picture.RowBytes / 4;
             int rgb =
-                (Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background) & 0xFFFFFF;
+                (
+                    paper ? Options.Paper
+                    : Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground
+                    : Options.Background
+                ) & 0xFFFFFF;
             int background = unchecked((int)0xFF000000) | rgb;
             int Lighter(double share) =>
                 unchecked((int)0xFF000000)
                 | (Lift((rgb >> 16) & 0xFF, share) << 16)
                 | (Lift((rgb >> 8) & 0xFF, share) << 8)
                 | Lift(rgb & 0xFF, share);
-            int minor = Lighter(0.08);
-            int major = Lighter(0.18);
+
+            // On the paper, white by default, the lines are darker than it, as AutoCAD draws a layout's grid.
+            int Darker(double share) =>
+                unchecked((int)0xFF000000)
+                | (Lower((rgb >> 16) & 0xFF, share) << 16)
+                | (Lower((rgb >> 8) & 0xFF, share) << 8)
+                | Lower(rgb & 0xFF, share);
+            int minor = paper ? Darker(0.08) : Lighter(0.08);
+            int major = paper ? Darker(0.18) : Lighter(0.18);
             var pixels = new int[stride * height];
             Marshal.Copy(picture.GetPixels(), pixels, 0, pixels.Length);
             DisplayBox visible = view.VisibleBox;
             Tolerance tolerance = Snap?.Tolerance ?? Tolerance.Default;
-            bool turned = Math.Abs(Math.IEEERemainder(SnapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad;
-            bool based = SnapBase.DistanceTo(GeoPoint2.Origin) > tolerance.EqualPoint;
+            bool turned = Math.Abs(Math.IEEERemainder(snapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad;
+            bool based = snapBase.DistanceTo(GeoPoint2.Origin) > tolerance.EqualPoint;
 
-            // GRIDDISPLAY without 1: the grid of model space kept within its limits, the pixels outside put back after.
+            // GRIDDISPLAY without 1: the grid kept within the limits, of model space or of the layout, the pixels outside put
+            // back after.
             int[] before = null;
             DxfDatabase database = Document?.Database;
+            DxfLayout layout = paper ? space.Layout : null;
 
-            if ((display & 1) == 0 && space.IsModel && database != null)
+            if ((display & 1) == 0 && (paper ? layout != null : space.IsModel && database != null))
             {
                 before = (int[])pixels.Clone();
             }
@@ -1925,7 +1982,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (before != null)
                 {
-                    KeepWithinLimits(pixels, before, width, height, stride, view, database.Limmin, database.Limmax);
+                    KeepWithinLimits(
+                        pixels,
+                        before,
+                        width,
+                        height,
+                        stride,
+                        view,
+                        paper ? layout.Limits.MinPoint : database.Limmin,
+                        paper ? layout.Limits.MaxPoint : database.Limmax
+                    );
                 }
 
                 Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
@@ -1935,9 +2001,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // The lines of each way, given by the angle they run at in the world, through the base point: those up the
                 // grid the X spacing apart, those across it the Y spacing.
-                double angle = (ucs.IsWorld ? 0.0 : ucs.Angle) + (turned ? SnapAngle : 0.0);
+                double angle = (ucs.IsWorld ? 0.0 : ucs.Angle) + (turned ? snapAngle : 0.0);
                 SnapAxes(isoplane, out double first, out double second);
-                GeoPoint2 origin = ucs.ToWorld(SnapBase);
+                GeoPoint2 origin = ucs.ToWorld(snapBase);
                 DrawLineGrid(
                     pixels,
                     width,
@@ -1956,14 +2022,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     dots
                 );
                 Put();
-                return;
+                return false;
             }
 
             if (!ucs.IsWorld)
             {
                 DrawUcsGrid(pixels, width, height, stride, view, step, stepY, ucs, background, minor, major, every);
                 Put();
-                return;
+                return false;
             }
 
             for (long k = (long)Math.Ceiling(visible.MinX / step); k * step <= visible.MaxX; k++)
@@ -1997,6 +2063,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Put();
+            return false;
+        }
+
+        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its grid; null where it has none.</summary>
+        private static DxfViewport SheetViewport(CadSpace space) =>
+            space.Layout?.GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased);
+
+        /// <summary>
+        /// The GRIDDISPLAY of a layout's sheet, as AutoCAD reads it from the flags of its viewport 1: 1 beyond the limits, 2
+        /// adaptive, 4 subdivided, 8 following the UCS.
+        /// </summary>
+        private static int SheetGridDisplay(DxfViewport sheet) =>
+            (sheet.GridBoundToLimits ? 0 : 1)
+            | (sheet.GridAdaptive ? 2 : 0)
+            | (sheet.GridSubdivisionRestricted ? 0 : 4)
+            | (sheet.GridFollow ? 8 : 0);
+
+        /// <summary>The grid spacing of a layout's sheet, as its GRIDUNIT, the snap spacing taken along an axis where it is nought.</summary>
+        private static GeoVector2 SheetGridSpacing(DxfViewport sheet)
+        {
+            GeoVector2 grid = sheet.GridIncrement;
+            GeoVector2 snap = sheet.SnapIncrement;
+            return new GeoVector2(grid.X > 0.0 ? grid.X : snap.X, grid.Y > 0.0 ? grid.Y : snap.Y);
         }
 
         /// <summary>
@@ -2240,6 +2329,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>A channel of a colour taken a share of the way to white.</summary>
         private static int Lift(int channel, double share) => channel + (int)((255 - channel) * share);
+
+        private static int Lower(int channel, double share) => channel - (int)(channel * share);
 
         /// <summary>Gets whether a box may start here: with no command running, or while "Select objects:" waits.</summary>
         private bool TakesBox => !IsRunning || Session.Prompt?.Kind == CadPromptKind.Selection;
@@ -2661,6 +2752,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var all = new HashSet<string>(document.Selection.Handles, StringComparer.OrdinalIgnoreCase);
             all.UnionWith(session.Gathering);
             return all;
+        }
+
+        /// <summary>
+        /// The pointer held on the snap grid with <see cref="SnapGridLegacy"/>, as AutoCAD's SNAPGRIDLEGACY 1 holds it: with SNAP
+        /// on, the grid not stepped by PolarSnap and no point asked, the place on the canvas of the grid point nearest it; else
+        /// the pointer as it is, a point prompt snapping its own way.
+        /// </summary>
+        private Point OnLegacyGrid(Point p)
+        {
+            ObjectSnap snap = Snap;
+            CadView view = WorkView;
+            CadDocument document = Document;
+
+            if (
+                !SnapGridLegacy
+                || snap == null
+                || !snap.GridSnap
+                || snap.PolarSnap
+                || view == null
+                || document == null
+                || WorkSpace == null
+                || _panFrom.HasValue
+                || CadPicking.WantsPoint(Session)
+            )
+            {
+                return p;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+
+            // No aperture and no base point: the snap gives the grid point alone, no object snap, ortho or polar.
+            GeoPoint2 grid = snap.Snap(document.GetPickIndex(WorkSpace), new GeoPoint2(x, y), 0.0).Point;
+            view.DrawingToPixel(grid.X, grid.Y, out double px, out double py);
+            return new Point(px / scale, py / scale);
         }
 
         /// <summary>Follows the cursor: its drawing point, the session's cursor and aperture, the snap, the grip under it, the hover.</summary>
