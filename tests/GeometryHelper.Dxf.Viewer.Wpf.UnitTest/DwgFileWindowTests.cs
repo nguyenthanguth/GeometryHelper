@@ -85,8 +85,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     new[] { "AutoCAD 2018 Drawing (*.dwg)", "AutoCAD 2013/LT2013 DXF (*.dxf)" },
                     job.FileTypes
                 );
-                Assert.Equal("AutoCAD 2013/LT2013 DXF (*.dxf)", job.FileType);
-                Assert.Equal("Drawing1.dxf", job.FileName);
+                // A new drawing is a DWG as in AutoCAD, whose DWGNAME of a new drawing is Drawing1.dwg.
+                Assert.Equal(CadExportJob.Dwg, job.FileType);
+                Assert.Equal("Drawing1.dwg", job.FileName);
             }
         }
 
@@ -139,7 +140,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.Execute("QSAVE");
 
-                Assert.Equal("Save drawing as <Drawing1.dxf>:", model.Session.PromptText);
+                Assert.Equal("Save drawing as <Drawing1.dwg>:", model.Session.PromptText);
                 model.Execute(path);
 
                 Assert.False(model.Session.IsRunning);
@@ -166,6 +167,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal(path + ".dwg", model.Document.FileName);
                 Assert.Equal("AC1032", Magic(path + ".dwg"));
+            }
+        }
+
+        [Fact]
+        public void AutosaveOfPlanDwgAndPlanDxfInOneFolder_KeepsACopyOfEach_TheDwgsNamedWithItsExtension()
+        {
+            using (var folder = new TestFolder())
+            {
+                string dwg = LineDwg(folder, "plan.dwg");
+                string dxf = folder.Write("plan.dxf", CadTemplate.CreateMetric());
+                var model = new MainViewModel();
+                model.ApplySettings(new GlobalSettings { AutosaveMinutes = 5, BackupsKept = 2 });
+                Assert.True(model.Open(dwg));
+                model.Execute("LINE 0,100 100,100");
+                model.Enter();
+                Assert.True(model.Open(dxf));
+                model.Execute("LINE 0,200 100,200");
+                model.Enter();
+
+                string[] written = model.Autosave().ToArray();
+
+                // Before, both were plan.autosave1.dxf: the second pushed the first to plan.autosave2.dxf.
+                string ofDwg = Path.Combine(folder.FullPath, "plan.dwg.autosave1.dxf");
+                string ofDxf = Path.Combine(folder.FullPath, "plan.autosave1.dxf");
+                Assert.Equal(new[] { ofDwg, ofDxf }, written);
+                Assert.Equal(2, CadDocument.Open(ofDwg).EntityCount);
+                Assert.Equal(1, CadDocument.Open(ofDxf).EntityCount);
+                Assert.False(File.Exists(Path.Combine(folder.FullPath, "plan.autosave2.dxf")));
+                model.Refresh();
+                Assert.DoesNotContain(model.FileRows, r => r.Label.Contains("autosave"));
             }
         }
 

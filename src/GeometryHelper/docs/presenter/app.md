@@ -76,8 +76,9 @@ the rest.
 ## Autosave
 
 Every minute the window looks at the clock, and where `AutosaveMinutes` have passed (10 by default, 0 for never) it saves a
-copy of each open drawing that has a file and changes not saved, beside the file: `plan.autosave1.dxf` for `plan.dxf`, the
-newest the first. `BackupsKept` copies are kept, 3 by default and 0 to 50: the last is deleted and the others move up one.
+copy of each open drawing that has a file and changes not saved, beside the file: `plan.autosave1.dxf` for `plan.dxf` and
+`plan.dwg.autosave1.dxf` for `plan.dwg`, so that the two open from one folder keep copies of their own, the newest the
+first. `BackupsKept` copies are kept, 3 by default and 0 to 50: the last is deleted and the others move up one.
 The user's file itself is never written. A drawing with a command running, or with no file yet, is left for the next time,
 and the copies are not listed in the file list.
 
@@ -113,13 +114,16 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   not written yet: RASTERVARIABLES 1." (`CadDocument.LeftOutOfDwg` holds it). Saved as a DXF, nothing is left out.
 - A DWG is attached by XATTACH, -XREF and the External References palette, and inserted by INSERT, -INSERT and the Blocks
   palette's Other drawing, as a DXF is; WBLOCK writes a DWG where the file named ends in .dwg.
-- Autosave keeps its copies of a DWG as DXF files beside it: `plan.autosave1.dxf` for `plan.dwg`.
+- Autosave keeps its copies of a DWG as DXF files beside it, the DWG's extension kept in their name:
+  `plan.dwg.autosave1.dxf` for `plan.dwg`, where `plan.dxf` beside it has `plan.autosave1.dxf`.
+- A new drawing (NEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD names its own, so that Save As and
+  QSAVE offer it as a DWG first.
 
 With FILEDIA 0 a command asks on the command line for the file it would show a file dialog for, as AutoCAD 2021 asks:
 
 | Command | Asks | Then |
 |---|---|---|
-| QSAVE of a drawing with no file, SAVEAS | Save drawing as &lt;Drawing1.dxf&gt;: | saves there; a name with no extension takes the offered one's, .dwg for a drawing opened from a DWG |
+| QSAVE of a drawing with no file, SAVEAS | Save drawing as &lt;Drawing1.dwg&gt;: | saves there; a name with no extension takes the offered one's, .dwg for a new drawing or one opened from a DWG |
 | XATTACH | Enter name of file to attach: | the Attach External Reference dialog shown with the file; a file not found said, no dialog |
 | IMAGEATTACH | Enter image file name to attach: | the Attach Image dialog shown with the picture |
 | INSERT, the Blocks palette's Browse… | Enter name of drawing file: | the palette shown again on Other drawing with that drawing's blocks |

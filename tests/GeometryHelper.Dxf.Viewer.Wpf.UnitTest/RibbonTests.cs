@@ -56,18 +56,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Execute("NEW");
 
                 Assert.True(model.HasDocument);
-                Assert.Equal("Drawing1.dxf", model.Title);
+                Assert.Equal("Drawing1.dwg", model.Title);
                 Assert.Empty(model.Document.ModelSpace.Block);
                 Assert.False(model.Document.HasFile);
                 Assert.Equal(new[] { "Model", "Layout1" }, model.SpaceTabs.Select(t => t.Name));
 
                 model.NewCommand.Execute(null);
-                Assert.Equal("Drawing2.dxf", model.Title);
+                Assert.Equal("Drawing2.dwg", model.Title);
 
                 model.Open(folder.Write("room.dxf", TestFiles.Room(out _, out _)));
                 model.Execute("NEW");
 
-                Assert.Equal("Drawing3.dxf", model.Title);
+                Assert.Equal("Drawing3.dwg", model.Title);
                 Assert.False(model.IsCommandRunning);
                 Assert.Equal(4, model.FileRows.Count(r => r.IsOpen));
             }
@@ -86,7 +86,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.SaveAsCommand.Execute(null);
 
-                Assert.Equal("Save drawing as <Drawing1.dxf>:", model.Prompt);
+                Assert.Equal("Save drawing as <Drawing1.dwg>:", model.Prompt);
                 model.Execute(path);
 
                 Assert.True(File.Exists(path));
@@ -330,7 +330,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Button newButton = Descendants(workspace).OfType<Button>().First(b => b.Command == model.NewCommand);
                 Assert.True(newButton.IsEnabled);
                 newButton.Command.Execute(null);
-                Assert.Equal("Drawing1.dxf", model.Title);
+                Assert.Equal("Drawing1.dwg", model.Title);
             }
             finally
             {

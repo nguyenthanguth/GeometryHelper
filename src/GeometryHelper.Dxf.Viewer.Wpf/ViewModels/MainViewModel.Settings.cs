@@ -147,8 +147,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Saves a copy of each open drawing that has a file and changes not saved, as AutoCAD's autosave does: beside the file,
-        /// named plan.autosave1.dxf for plan.dxf, the newest the first and <see cref="GlobalSettings.BackupsKept"/> kept; the
-        /// user's file itself is never written. A drawing with a command running, or with no file yet, is left for the next time.
+        /// named plan.autosave1.dxf for plan.dxf and plan.dwg.autosave1.dxf for plan.dwg, so that the two in one folder keep
+        /// copies of their own, the newest the first and <see cref="GlobalSettings.BackupsKept"/> kept; the user's file itself
+        /// is never written. A drawing with a command running, or with no file yet, is left for the next time.
         /// </summary>
         /// <returns>The copies written.</returns>
         public IReadOnlyList<string> Autosave()
@@ -174,7 +175,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 string path = file.Document.FileName;
                 string folder = System.IO.Path.GetDirectoryName(path);
-                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                // A DWG's copy keeps .dwg in its name, as plan.dxf's would be the same copy otherwise.
+                string name = path.EndsWith(".dwg", StringComparison.OrdinalIgnoreCase)
+                    ? System.IO.Path.GetFileName(path)
+                    : System.IO.Path.GetFileNameWithoutExtension(path);
                 string Copy(int k) =>
                     System.IO.Path.Combine(
                         folder,
@@ -216,7 +220,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return written;
         }
 
-        /// <summary>Whether a file is a copy autosave keeps: plan.autosave2.dxf.</summary>
+        /// <summary>Whether a file is a copy autosave keeps: plan.autosave2.dxf, plan.dwg.autosave2.dxf.</summary>
         private static bool IsAutosaveCopy(string path)
         {
             string name = System.IO.Path.GetFileNameWithoutExtension(path);

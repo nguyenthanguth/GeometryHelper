@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A new drawing of the presenter (NEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD 2021's
+DWGNAME of a new drawing is, where it was Drawing1.dxf. Save As offers it as an AutoCAD 2018 Drawing (*.dwg) first, and
+QSAVE with FILEDIA 0 asks "Save drawing as <Drawing1.dwg>:", a name typed with no extension saved as a DWG. A DXF is still
+written where the name chosen ends in .dxf.
+
+**FIXED.** The presenter's autosave of plan.dwg and plan.dxf open from one folder: both copies were named
+plan.autosave1.dxf, so the second pushed the first down the line, to plan.autosave2.dxf, and the oldest out. The copy of a
+DWG now keeps its extension in its name, plan.dwg.autosave1.dxf; that of a DXF is plan.autosave1.dxf as before.
+
 **NEW.** The presenter's LEADER (LEAD) and QLEADER (LE) on the command line, in AutoCAD 2021's prompts: Format (Spline,
 STraight, Arrow, None), Undo, words typed line by line, and the annotation options Copy, Block, None and Mtext. The
 leader is drawn by the current dimension style and DIMSCALE as AutoCAD 2021 draws it: a hook DIMASZ long where the last

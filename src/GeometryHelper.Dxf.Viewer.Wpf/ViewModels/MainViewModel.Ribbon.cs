@@ -289,7 +289,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Makes a new empty drawing and shows it, as AutoCAD's NEW: a drawing of R2013 of the presenter's metric template
         /// (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0 and Layout1, named
-        /// Drawing1.dxf, then Drawing2.dxf, and listed under Open drawings until it is saved to a file of its own.
+        /// Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new drawing, so that Save As offers a DWG first; listed
+        /// under Open drawings until it is saved to a file of its own.
         /// </summary>
         /// <returns>The document.</returns>
         public CadDocument NewDrawing()
@@ -299,7 +300,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             do
             {
                 _newDrawings++;
-                name = "Drawing" + _newDrawings.ToString(CultureInfo.InvariantCulture) + ".dxf";
+                name = "Drawing" + _newDrawings.ToString(CultureInfo.InvariantCulture) + ".dwg";
             } while (
                 _files.ContainsKey(name)
                 || _files.Values.Any(f =>

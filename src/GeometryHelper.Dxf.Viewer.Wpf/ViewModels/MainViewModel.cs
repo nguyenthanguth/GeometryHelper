@@ -1264,7 +1264,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the types
         /// <see cref="CadExportJob.Dwg"/> and the DXF of the drawing's own version, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for
-        /// one of AC1027; the type of the drawing's file chosen first, DWG for a drawing opened from a DWG, and its name with
+        /// one of AC1027; the type of the drawing's file chosen first, DWG for a drawing opened from a DWG and for a new one
+        /// (Drawing1.dwg), and its name with
         /// that type's extension in its folder. The window shows its dialog and hands the file chosen to <see cref="SaveAs"/>,
         /// which writes a DWG where the name ends in .dwg. Null with no drawing.
         /// </summary>

@@ -876,7 +876,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.NewByShortcut();
 
             Assert.True(model.HasDocument);
-            Assert.Equal("Drawing1.dxf", model.Title);
+            Assert.Equal("Drawing1.dwg", model.Title);
         }
 
         [Fact]
