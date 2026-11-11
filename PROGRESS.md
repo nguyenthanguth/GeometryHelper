@@ -94,9 +94,9 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
-- [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
+- [ ] PEDIT (running): PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
-- [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
+- [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
 - [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
