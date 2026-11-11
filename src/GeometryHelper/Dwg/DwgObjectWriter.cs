@@ -150,9 +150,9 @@ namespace GeometryHelper.Dwg
                 case "TEXT":
                     return 0x01;
                 case "ATTRIB":
-                    return Embedded(record) ? -1 : 0x02;
+                    return Embedded(record) && !R2018Plus ? -1 : 0x02;
                 case "ATTDEF":
-                    return Embedded(record) ? -1 : 0x03;
+                    return Embedded(record) && !R2018Plus ? -1 : 0x03;
                 case "BLOCK":
                     return 0x04;
                 case "ENDBLK":
@@ -265,7 +265,7 @@ namespace GeometryHelper.Dwg
             return 0x0A;
         }
 
-        /// <summary>Whether an attribute is one of several lines, which holds an MTEXT of its own and is not written yet.</summary>
+        /// <summary>Whether an attribute is one of several lines, which holds an MTEXT of its own, written from R2018.</summary>
         private static bool Embedded(DwgRecord record) => record.Body.Exists(g => g.Key == 101);
 
         private static int DimensionType(DwgRecord record)
@@ -349,6 +349,22 @@ namespace GeometryHelper.Dwg
                     return () => WriteRasterImage("AcDbWipeout");
                 case "IMAGEDEF":
                     return WriteImageDefinition;
+                case "RASTERVARIABLES":
+                    return WriteRasterVariables;
+                case "WIPEOUTVARIABLES":
+                    return () => _data.BitShort(_record.Of("AcDbWipeoutVariables").Int(70, 1));
+                case "ACAD_TABLE":
+                    return R2010Plus ? WriteTable : (Action)null;
+                case "TABLESTYLE":
+                    return R2010Plus ? WriteTableStyle : (Action)null;
+                case "TABLECONTENT":
+                    return R2010Plus ? WriteTableContentObject : (Action)null;
+                case "TABLEGEOMETRY":
+                    return R2010Plus ? WriteTableGeometry : (Action)null;
+                case "MULTILEADER":
+                    return WriteMultiLeader;
+                case "MLEADERSTYLE":
+                    return WriteMultiLeaderStyle;
                 case "IMAGEDEF_REACTOR":
                     return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
                 default:

@@ -32,6 +32,17 @@ the angle ezdxf gives it.
 **FIXED.** The presenter draws a TEXT with the spaces before and after its words, as AutoCAD justifies it by them: "ABC "
 on the right of its baseline stands a space further left than "ABC".
 
+**NEW.** `DwgWriter` writes MULTILEADER and MLEADERSTYLE, ACAD_TABLE with its TABLESTYLE (and the TABLECONTENT and
+TABLEGEOMETRY a table keeps for a round trip), the ATTDEF and ATTRIB of several lines with their MTEXT, and
+RASTERVARIABLES and WIPEOUTVARIABLES, where it left them out and wrote every handle to them as 0. A table goes in the
+form of AutoCAD 2010, its content made of the groups DXF keeps of AutoCAD 2007: a table of 3 by 3 with its title merged
+across, written and opened in AutoCAD 2021, gives AutoCAD's own DXF of it back group for group, and its table style is
+AutoCAD's own bits. A drawing with an image saves as a DWG with nothing left out, where the presenter said "Left out of
+the DWG, not written yet: RASTERVARIABLES 1.". The overrides of a cell and of a whole table are not written yet.
+
+**NEW.** `DwgReader` reads ACAD_TABLE and TABLESTYLE of AutoCAD 2010 to 2018, in the groups DXF keeps of AutoCAD 2007,
+and RASTERVARIABLES and WIPEOUTVARIABLES; the tables of AutoCAD 2010, 2013 and 2018 read to AutoCAD's own DXF of them.
+
 **NEW.** The presenter's LEADER (LEAD) and QLEADER (LE) on the command line, in AutoCAD 2021's prompts: Format (Spline,
 STraight, Arrow, None), Undo, words typed line by line, and the annotation options Copy, Block, None and Mtext. The
 leader is drawn by the current dimension style and DIMSCALE as AutoCAD 2021 draws it: a hook DIMASZ long where the last

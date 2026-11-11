@@ -235,7 +235,11 @@ namespace GeometryHelper.Dwg
 
             foreach (DwgRecord record in _drawing.All)
             {
-                if (_drawing.Find(record.Handle) != record || record.Type == "ENDTAB")
+                if (
+                    _drawing.Find(record.Handle) != record
+                    || record.Type == "ENDTAB"
+                    || (_number >= 1024 && DwgObjectWriter.IsOfDxfAlone(record))
+                )
                 {
                     continue;
                 }

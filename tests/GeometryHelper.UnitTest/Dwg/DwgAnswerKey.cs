@@ -45,8 +45,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// AutoCAD adds to a drawing as it reads it or writes its DXF, and the comparison does not count these, on either side:
     /// the extended data <c>DbSaveVer</c> on the head of a table, the entry <c>ACDB_RECOMPOSE_DATA</c> of the root
     /// dictionary with the record it leads to, the dictionary <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> with what
-    /// it holds, and the visual styles <c>$INTERFEREOBJVS</c> and <c>$INTERFEREVPVS</c>, which a file of R2010 and later
-    /// holds as no handle.
+    /// it holds and the pointer of its table style to it, and the visual styles <c>$INTERFEREOBJVS</c> and
+    /// <c>$INTERFEREVPVS</c>, which a file of R2010 and later holds as no handle.
     /// </para>
     /// <para>
     /// And what AutoCAD changes in the records the reader reads since W4: the proxy graphics of an entity, compared by size,
@@ -544,7 +544,8 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>
         /// The key without what AutoCAD adds to a drawing as it reads it or writes its DXF: the extended data
         /// <c>DbSaveVer</c> on the head of a table, the entry <c>ACDB_RECOMPOSE_DATA</c> of the root dictionary with the
-        /// record it leads to, and the dictionary <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> with what it holds.
+        /// record it leads to, and the dictionary <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> with what it holds and
+        /// the pointer to it.
         /// </summary>
         private static List<Record> WithoutWhatAutoCadAdds(List<Record> records)
         {
@@ -599,6 +600,22 @@ namespace GeometryHelper.UnitTest.Dwg
                     {
                         more |= dropped.Add(one.Key);
                     }
+                }
+            }
+
+            // And the pointer of a record to such a dictionary as its extension dictionary, which a TABLESTYLE of R2010 and
+            // later has in DXF alone.
+            foreach (Record one in records)
+            {
+                int open = one.Groups.FindIndex(g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY");
+
+                if (
+                    open >= 0
+                    && open + 2 < one.Groups.Count
+                    && dropped.Contains("X:" + one.Groups[open + 1].Value.ToUpperInvariant())
+                )
+                {
+                    one.Groups.RemoveRange(open, 3);
                 }
             }
 

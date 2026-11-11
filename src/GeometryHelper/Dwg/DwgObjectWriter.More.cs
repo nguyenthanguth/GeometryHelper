@@ -155,6 +155,16 @@ namespace GeometryHelper.Dwg
             _data.RawPoint2(definition.Point(11, 1, 1));
         }
 
+        /// <summary>The RASTERVARIABLES of the drawing: frames shown and pictures finely where its DXF does not say.</summary>
+        private void WriteRasterVariables()
+        {
+            DwgGroups variables = _record.Of("AcDbRasterVariables");
+            _data.BitLong(variables.Int(90));
+            _data.BitShort(variables.Int(70, 1));
+            _data.BitShort(variables.Int(71, 1));
+            _data.BitShort(variables.Int(72));
+        }
+
         /// <summary>The MLINESTYLE named <paramref name="name"/>: the entry of the dictionary ACAD_MLINESTYLE.</summary>
         private ulong EntryOfStyle(string name)
         {
@@ -262,6 +272,14 @@ namespace GeometryHelper.Dwg
             {
                 _groups = new List<KeyValuePair<int, string>>(groups.All);
             }
+
+            public Cursor(List<KeyValuePair<int, string>> groups)
+            {
+                _groups = groups;
+            }
+
+            /// <summary>The handle of the code, in hex; 0 where the next group is not of the code.</summary>
+            public ulong Handle(int code) => At(code) ? DwgRecord.Hex(_groups[_at++].Value) : 0;
 
             public bool At(int code) => _at < _groups.Count && _groups[_at].Key == code;
 
