@@ -94,10 +94,12 @@ the ones wanted.
       Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
 - [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
       and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
-- [ ] PEDIT (running): PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
-      Extend for arc ends in a fuzz join (S)
-- [ ] REVCLOUD (running): the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
-      more than closed polylines (S)
+- [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
+      ends in a fuzz join (20 cases to 1E-10) (S)
+- [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
+- [ ] PEDIT/REVCLOUD follow-ups: a spline turned into a polyline with a precision (parked after 3 models, counts in
+      D:/claude/scratch/pedit-rev/b1-b5.out.txt); BOUNDARY and JOIN under PLINETYPE 0; Multiple with 3D polylines;
+      REVCLOUD's first size from the view; REVCLOUDPROPERTIES and Modify (2021 REVCLOUD cannot be run headless) (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
