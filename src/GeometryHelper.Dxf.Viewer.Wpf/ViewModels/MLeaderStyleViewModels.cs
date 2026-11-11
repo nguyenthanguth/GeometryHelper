@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -28,14 +29,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         Flag,
     }
 
-    /// <summary>One item of a list field of the Modify Multileader Style dialog: its words, the value it stands for, and whether it can be chosen.</summary>
+    /// <summary>One item of a list field of the Modify Multileader Style dialog: its words, the value it stands for, whether it can be chosen, and an arrowhead's picture.</summary>
     public sealed class MLeaderChoice
     {
-        internal MLeaderChoice(string label, object value, bool isEnabled = true)
+        private readonly Func<string, BitmapSource> _draw;
+        private BitmapSource _picture;
+        private bool _drawn;
+
+        internal MLeaderChoice(
+            string label,
+            object value,
+            bool isEnabled = true,
+            Func<string, BitmapSource> draw = null
+        )
         {
             Label = label;
             Value = value;
             IsEnabled = isEnabled;
+            _draw = draw;
+        }
+
+        /// <summary>
+        /// Gets the picture of an arrowhead of the Symbol list, 22 by 12 pixels, drawn the first time it is asked, as AutoCAD's
+        /// list shows it: a leader of it pointing left, "Closed filled" a filled triangle; null for an item of any other list,
+        /// and where it cannot be drawn.
+        /// </summary>
+        public BitmapSource Picture
+        {
+            get
+            {
+                if (!_drawn && _draw != null)
+                {
+                    _drawn = true;
+                    _picture = _draw(Label);
+                }
+
+                return _picture;
+            }
         }
 
         /// <summary>Gets the words, as "Closed filled".</summary>
@@ -659,6 +689,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _tab = TabNames[0];
         private string _refused = string.Empty;
         private ImageSource _preview;
+        private DxfDatabase _copy;
 
         /// <summary>Makes the dialog's view model over a style.</summary>
         /// <param name="document">The document.</param>
@@ -956,8 +987,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 names.Add(_settings.Arrowhead);
             }
 
-            return names.Select(n => new MLeaderChoice(n, n)).ToList();
+            return names.Select(n => new MLeaderChoice(n, n, true, ArrowPicture)).ToList();
         }
+
+        /// <summary>The picture of an entry of the Symbol list, as AutoCAD's list shows it; a user arrow from a copy of the drawing.</summary>
+        private BitmapSource ArrowPicture(string name) =>
+            CadStylePreview.ArrowheadEntry(
+                name,
+                () => _copy = _copy ?? DxfDatabase.Parse(_document.Database.ToText()),
+                "MultileaderStyle"
+            );
 
         private IReadOnlyList<MLeaderChoice> TextStyleChoices() =>
             CadTextStyleEditor.Styles(_document.Database).Select(s => new MLeaderChoice(s.Name, s.Name)).ToList();

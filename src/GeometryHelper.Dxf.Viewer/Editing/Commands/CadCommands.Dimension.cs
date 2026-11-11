@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <remarks>
     /// The library does not draw a dimension: what draws one is its block (<c>*D1</c>), which AutoCAD draws and names itself.
     /// So a dimension is made with its picture (its extension lines, dimension line, arrowheads as SOLIDs, its words as an
-    /// MTEXT and its points of definition on Defpoints, from the variables of the current dimension style) in an anonymous
+    /// MTEXT and its points of definition on Defpoints, from the drawing's current dimension variables) in an anonymous
     /// block added as <c>*D</c>, which the block table names as AutoCAD names its own, the first <c>*D</c> number the drawing
     /// has not. The height of the words is the style's DIMTXT, or the host's default where it sets one ("dim.text.height" of
     /// <see cref="CadCommandSession.Remembered"/>, as the presenter sets Global settings' text height), written then as an
@@ -902,9 +902,37 @@ namespace GeometryHelper.Dxf.Viewer
             return angle >= 2.0 * Math.PI ? 0.0 : angle;
         }
 
-        /// <summary>The current dimension style of the drawing, else Standard, else the first; null where it has none.</summary>
+        /// <summary>
+        /// The variables a dimension to be made is drawn by, as AutoCAD 2021 draws a new one: the drawing's current ones (its
+        /// header's), named as the style it is drawn in (see <see cref="NamedDimStyle"/>), DIMSCALE the scale it is drawn by
+        /// (see <see cref="Dimscale"/>); null where the drawing has no style. <c>Place</c> writes each other than the
+        /// style's as an override: DIMASZ 5 typed over a style of 2.5 draws arrowheads 5 long and writes <c>1070 41, 1040 5</c>.
+        /// The header's variables are those of the style its <c>$DIMSTYLE</c> names: where that is no style of the drawing (a
+        /// blank <see cref="DxfDatabase"/> names ISO-25 and has Standard alone), the style fallen back on is drawn by as it is.
+        /// </summary>
         private static DxfDimStyleTableRecord DimStyle(CadCommandContext c)
         {
+            DxfDimStyleTableRecord style = NamedDimStyle(c, out bool current);
+
+            if (style == null || !current)
+            {
+                return style;
+            }
+
+            DxfDimStyleTableRecord drawn = c.Database.GetDimstyleData();
+            drawn.Name = style.Name;
+            drawn.Keep(DxfDimVariable.Named("Dimscale"), Dimscale(c));
+            return drawn;
+        }
+
+        /// <summary>
+        /// The current dimension style of the drawing, else Standard, else the first; null where it has none.
+        /// <paramref name="current"/> says whether it is the one the header's <c>$DIMSTYLE</c> names.
+        /// </summary>
+        private static DxfDimStyleTableRecord NamedDimStyle(CadCommandContext c, out bool current)
+        {
+            current = false;
+
             if (string.Equals(c.Database.Version, "AC1009", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
@@ -925,6 +953,7 @@ namespace GeometryHelper.Dxf.Viewer
                 string.IsNullOrEmpty(name) || !c.Database.DimStyleTable.Has(name)
                     ? null
                     : c.Database.DimStyleTable[name];
+            current = style != null;
 
             if (style == null && c.Database.DimStyleTable.Has("Standard"))
             {
@@ -966,7 +995,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                dimension.DimensionStyle = style;
+                dimension.DimensionStyleName = style.Name;
 
                 // A dimension in no drawing yet reads AutoCAD's own variables, not its style's: the measurement is written by a
                 // copy given the style's variables as its own, as the dimension reads them once it is in the drawing.
@@ -1966,16 +1995,17 @@ namespace GeometryHelper.Dxf.Viewer
             c.Remembered("dim.text.height", style.Dimtxt);
 
         /// <summary>
-        /// The DIMSCALE of a dimension to be made: the drawing's current one, its header's <c>$DIMSCALE</c>, as AutoCAD's new
-        /// dimension takes the current value and not its style's; <c>Place</c> writes it as an override where they differ.
-        /// DIMSCALE 100 typed with the style's 1 draws arrowheads of 2.5 as 250.
+        /// The DIMSCALE a dimension to be made is drawn by, as AutoCAD 2021 takes it: the drawing's current one, its header's
+        /// <c>$DIMSCALE</c>, and not its style's, where it is above nought; with nought, one over the scale of the viewport
+        /// model space is worked through (2 through one of 1:2), else 1, as a leader takes it. <c>Place</c> writes it as an
+        /// override where it is not the style's. DIMSCALE 100 typed with the style's 1 draws arrowheads of 2.5 as 250.
         /// </summary>
-        private static double Dimscale(CadCommandContext c) => c.Database.Dimscale;
+        private static double Dimscale(CadCommandContext c) => LeaderScale(c);
 
         /// <summary>
         /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
-        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, its text height and the
-        /// drawing's DIMSCALE overrides where they are not the style's.
+        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, and each variable it is
+        /// drawn by (<paramref name="style"/>, the text height given) written as an override where it is not its style's.
         /// </summary>
         private static CadEditResult Place(
             CadCommandContext c,
@@ -1987,7 +2017,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             CadSpace space = c.Space;
             string layer = c.Session.DimLayer;
-            double dimscale = Dimscale(c);
+            double scale = Dimscale(c);
             Dressed(style, picture);
             return c.Apply(null, s =>
             {
@@ -2004,7 +2034,8 @@ namespace GeometryHelper.Dxf.Viewer
                     block.AppendEntity(entity);
                 }
 
-                dimension.DimensionStyle = style;
+                DxfDimStyleTableRecord named = s.Database.DimStyleTable[style.Name];
+                dimension.DimensionStyle = named;
                 dimension.DimBlock = block;
                 dimension.Layer = s.Database.Clayer;
                 space.Block.AppendEntity(dimension);
@@ -2016,15 +2047,59 @@ namespace GeometryHelper.Dxf.Viewer
                     dimension.Layer = layer;
                 }
 
-                // A text height other than the style's is an override, as DIMOVERRIDE writes one, so that a CAD drawing the
-                // dimension again from its style draws its text as high as its picture has it.
-                dimension.Dimtxt = textHeight;
-
-                // The current DIMSCALE other than the style's is an override too, as AutoCAD writes the one typed at the prompt.
-                dimension.Dimscale = dimscale;
+                // Each variable the picture is drawn by other than the style's is an override, as AutoCAD 2021 writes them, so
+                // that a CAD drawing the dimension again from its variables draws it as its picture has it.
+                Override(dimension, named, style, scale, textHeight);
                 Recorded(dimension, picture);
                 s.Added(space, dimension);
             });
+        }
+
+        /// <summary>
+        /// Writes every variable a new dimension is drawn by where it is not its style's, as AutoCAD 2021 writes them, in the
+        /// order of their groups as a leader's (see <see cref="VariablesByGroup"/>): DIMSCALE (40) as the scale it is drawn by,
+        /// DIMASZ (41), DIMEXO (42), DIMTAD (77), DIMTXT (140) as the text height given, DIMGAP (147), DIMCLRD (176), DIMCLRT
+        /// (178), DIMDEC (271), DIMBLK (342, <c>1005</c> and the handle of <c>_Dot</c>), DIMLWD (371) and each other. A variable
+        /// the drawing's version cannot hold is left out, as SAVEAS leaves it.
+        /// </summary>
+        private static void Override(
+            DxfDimension dimension,
+            DxfDimStyleTableRecord style,
+            DxfDimStyleTableRecord drawn,
+            double scale,
+            double textHeight
+        )
+        {
+            foreach (DxfDimVariable variable in VariablesByGroup)
+            {
+                object wanted =
+                    variable.Code == 40 ? scale
+                    : variable.Code == 140 ? textHeight
+                    : drawn.Get(variable);
+
+                if (
+                    wanted == null && variable.Kind == DxfDimKind.TextStyle
+                    || variable.SameValue(wanted, style.Get(variable))
+                )
+                {
+                    continue;
+                }
+
+                // One variable at a time, so that each is written last, in the order of the groups.
+                DxfDimStyleTableRecord one = dimension.GetDimstyleData();
+                one.Keep(variable, wanted);
+
+                try
+                {
+                    dimension.SetDimstyleData(one);
+                }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException)
+                {
+                    GeometryHelperLog.Debug(
+                        "DIM: the override of " + variable.Name.ToUpperInvariant() + " is left out: " + e.Message
+                    );
+                }
+            }
         }
     }
 }

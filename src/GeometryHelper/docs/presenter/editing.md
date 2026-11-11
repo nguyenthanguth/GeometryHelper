@@ -295,9 +295,15 @@ way from that centre to the rim, as AutoCAD 2021 puts them: put 80 out at 14 deg
 grips are the chord point, the centre drawn, the jog and the words. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
-A new dimension takes the drawing's current DIMSCALE, not its style's, and writes it as an override where the two
-differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words of a dimension 25 high and its arrowheads
-25 long, and DIMBASELINE puts each next line 37.5 further out.
+A new dimension is drawn by the drawing's current dimension variables (its header's), not its style's, and writes each
+that differs from the style as an override, in the order of their groups, as AutoCAD 2021 does: DIMSCALE 10 typed with
+ISO-25 current draws the words of a dimension 25 high and its arrowheads 25 long, and DIMBASELINE puts each next line
+37.5 further out; a drawing saved with DIMASZ 5 and DIMCLRD 1 over ISO-25's 2.5 and ByBlock draws arrowheads 5 long and a
+red line, and writes `1070 41, 1040 5` then `1070 176, 1070 1`. The header's variables are taken as those of the style
+its DIMSTYLE names; where it names no style of the drawing (a blank `DxfDatabase` names ISO-25 and has Standard alone),
+the style fallen back on is drawn by as it is, DIMSCALE and the text height alone written. DIMSCALE 0 draws at 1 in model
+space and, through a viewport, at one over the viewport's scale, as a leader does: 2 through one of 1:2, written as
+`1070 40, 1040 2`, every kind of dimension alike.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
@@ -464,7 +470,9 @@ and Delete, which is refused for Standard, the current style and a style a multi
 multileader style is given Standard first, metric: arrows 2.5, a break of 3.75, a landing of 8, text 2.5 high and a
 landing gap of 2. Modify writes the Leader Format, Leader Structure and Content tabs into the drawing's MLEADERSTYLE and
 gives every multileader of the style its values, those it has of its own kept: a style's text made 2.5 high leaves a
-multileader whose words were set 6 high at 6. MLEADER draws in the current style (CMLEADERSTYLE, else Standard): a
+multileader whose words were set 6 high at 6. The Symbol list of Leader Format shows each arrowhead with its picture, as
+AutoCAD's list shows it and as the First, Second and Leader lists of the Dimension Style dialog show theirs, a user arrow
+drawn from its block. MLEADER draws in the current style (CMLEADERSTYLE, else Standard): a
 multileader of a style of words and arrows 4 high has words and arrows 4 high. Each change is one undo step. In a drawing
 of R2007 or later with no style to draw in, MLEADER first makes Standard current, metric as above, or in an imperial
 drawing (MEASUREMENT 0) AutoCAD 2021's own: text and arrows 0.18, a landing of 0.36, a gap of 0.09 and a break of 0.125,

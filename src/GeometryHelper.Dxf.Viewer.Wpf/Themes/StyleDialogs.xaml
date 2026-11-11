@@ -265,6 +265,22 @@
     </DataTemplate>
 
     <!--
+    An item of a list of the style dialogs: its words, after the picture of an arrowhead in the lists of arrowheads, as
+    AutoCAD's lists show them; the words alone in any other list.
+    -->
+    <DataTemplate x:Key="ArrowChoiceTemplate">
+        <StackPanel Orientation="Horizontal">
+            <Image x:Name="Picture" Source="{Binding Picture}" Width="22" Height="12" Margin="0,0,6,0" Stretch="None" />
+            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Picture}" Value="{x:Null}">
+                <Setter TargetName="Picture" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!--
     A field of a dimension style's dialog, as the design lays it: the label with the variable beside it in small mono type,
     then a box 168 wide holding a box to tick, a number (80 wide), a text, or a list with the colour's swatch before it and the
     "…" of the Text Style dialog after it; a group's title instead for a header. Greyed where the field means nothing.
@@ -339,7 +355,7 @@
                         Style="{StaticResource GhComboBox}"
                         ItemsSource="{Binding Choices}"
                         SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
-                        DisplayMemberPath="Label"
+                        ItemTemplate="{StaticResource ArrowChoiceTemplate}"
                         Visibility="Collapsed"
                     />
                     <CheckBox

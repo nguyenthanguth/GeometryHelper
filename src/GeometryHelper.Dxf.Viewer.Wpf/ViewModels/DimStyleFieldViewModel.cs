@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -28,13 +29,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         Text,
     }
 
-    /// <summary>One item of a list field: its words and the value it stands for.</summary>
+    /// <summary>One item of a list field: its words and the value it stands for, and an arrowhead's picture.</summary>
     public sealed class DimChoice
     {
-        internal DimChoice(string label, object value)
+        private readonly Func<string, BitmapSource> _draw;
+        private BitmapSource _picture;
+        private bool _drawn;
+
+        internal DimChoice(string label, object value, Func<string, BitmapSource> draw = null)
         {
             Label = label;
             Value = value;
+            _draw = draw;
         }
 
         /// <summary>Gets the words, as "Closed filled".</summary>
@@ -42,6 +48,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the value it sets.</summary>
         public object Value { get; }
+
+        /// <summary>
+        /// Gets the picture of an arrowhead of the lists of arrowheads, 22 by 12 pixels, drawn the first time it is asked, as
+        /// AutoCAD's lists show it: a leader of it pointing left, "Closed filled" a filled triangle; null for an item of any
+        /// other list, and where it cannot be drawn.
+        /// </summary>
+        public BitmapSource Picture
+        {
+            get
+            {
+                if (!_drawn && _draw != null)
+                {
+                    _drawn = true;
+                    _picture = _draw(Label);
+                }
+
+                return _picture;
+            }
+        }
 
         /// <inheritdoc/>
         public override string ToString() => Label;
