@@ -169,16 +169,16 @@ drawing gives the same bytes every time.
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
 each (`DwgWriter: types that are not written yet were left out: MATERIAL 3 VISUALSTYLE 24 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
-with it. Left out so far: MATERIAL, VISUALSTYLE, TABLESTYLE, MLEADERSTYLE, the detail and section view styles,
+with it. Left out so far: MATERIAL, VISUALSTYLE, TABLESTYLE, the detail and section view styles,
 CELLSTYLEMAP, which the reader does not read either and AutoCAD makes anew in a drawing that lacks them; and of the
-types the reader does read, MULTILEADER, IMAGE, WIPEOUT, IMAGEDEF, ACAD_TABLE, REGION, 3DSOLID, BODY, SHAPE and the
+types the reader does read, MULTILEADER and MLEADERSTYLE, ACAD_TABLE, REGION, 3DSOLID, BODY, SHAPE and the
 ATTRIB and ATTDEF of several lines.
 
 Proof: the eight drawings of the reader's tests and the eight of hatches, viewports, leaders, images, multilines, tables,
