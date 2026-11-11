@@ -985,13 +985,58 @@ namespace GeometryHelper.Dxf
                 {
                     braced = Text(record, pairs[i]).Trim().StartsWith("{", StringComparison.Ordinal);
                 }
-                else if (!braced && pairs[i].Code == 100 && Text(record, pairs[i]).Trim() != "AcDbEntity")
+                else if (!braced && pairs[i].Code == 100 && !ValueIs(record, pairs[i], "AcDbEntity"))
                 {
                     return i;
                 }
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Whether the value of a group, trimmed, is a text of ASCII letters, as <c>Text(record, pair).Trim() == text</c> reads
+        /// it: told from the bytes where they are ASCII with no control but a tab, as every code page the reader takes reads
+        /// them as themselves, so that the subclass markers of every entity drawn are not made strings; read as text otherwise.
+        /// </summary>
+        private bool ValueIs(Rec record, Pair pair, string text)
+        {
+            byte[] bytes = record.Bytes;
+            int start = pair.ValueStart;
+            int end = pair.ValueEnd;
+
+            for (int i = start; i < end; i++)
+            {
+                if (bytes[i] >= 0x80 || (bytes[i] < 0x20 && bytes[i] != '\t'))
+                {
+                    return Text(record, pair).Trim() == text;
+                }
+            }
+
+            while (start < end && (bytes[start] == ' ' || bytes[start] == '\t'))
+            {
+                start++;
+            }
+
+            while (end > start && (bytes[end - 1] == ' ' || bytes[end - 1] == '\t'))
+            {
+                end--;
+            }
+
+            if (end - start != text.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (bytes[start + i] != text[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool IsWhole(int code) =>

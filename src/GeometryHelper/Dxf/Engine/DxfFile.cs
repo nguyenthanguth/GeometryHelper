@@ -161,6 +161,12 @@ namespace GeometryHelper.Dxf
             return new DxfFile(copy.GetBuffer(), (int)copy.Length, "a stream");
         }
 
+        /// <summary>Opens a DXF file from bytes it then holds as its own, as <see cref="Open(Stream)"/> holds its copy of a stream.</summary>
+        /// <param name="bytes">The bytes, not to be changed after.</param>
+        /// <param name="length">How many of them the file has.</param>
+        /// <returns>The file.</returns>
+        internal static DxfFile Open(byte[] bytes, int length) => new DxfFile(bytes, length, "a stream");
+
         /// <summary>
         /// Opens a DXF file from its text.
         /// </summary>

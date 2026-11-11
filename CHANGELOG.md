@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Undo and redo in the presenter hold less memory and give the processor to an edit. The drawing an undo leaves
+is the one a redo goes back to; where it was itself read from the bytes of its step and nothing has written into it since,
+the worker saves it, sets it against those bytes and takes it as it is where they are the same, rather than reading the
+step again, so undo after undo reads one drawing ahead, not two. A drawing read back no longer copies the bytes it is read
+from, and its index of handles is sized at the start. On a drawing of 1 000 000 entities a run of undos and redos
+allocates about 35 GB where it allocated 47, with 28 to 33 full collections where it had 41 to 46, and a redo 3 s after an
+undo takes about 0.3 s under .NET Framework 4.8 where it took 1.6 to 1.9 s. The peak working set is set by the collector
+and moved within its noise (4.0 to 4.8 GB either way under .NET Framework 4.8); the drawings held while none is read are
+as before. Every drawing an undo or a redo gives is the one saved at that step, byte for byte. An edit stops the readings
+still running and they read again after it: an ERASE of 10 000 objects of a drawing of 100 000 straight after an undo
+takes about 185 ms under .NET 10 where it took 220 (110 once the readings are done).
+
+**FIXED.** The first undo after the Block Editor saves (BSAVE, or BCLOSE saving) or discards its changes no longer reads its
+drawing then: the drawing it goes to is read ahead, as after any step. On a drawing of 100 000 entities the undo of BEDIT
+and finding an entity after it take about 1 ms where they took 304, and the undo after the changes are discarded about
+1 ms where it took 309.
+
+**CHANGED.** Reading an entity's groups tells its subclass markers (AcDbEntity, AcDbLine) from their bytes where they are
+plain ASCII, rather than making a string of each. In a drawing of 100 000 entities written with markers, as AutoCAD writes
+them, reading whether each is visible makes 43 MB where it made 51, and drawing again the third of them a layer switched
+on 48 to 50 MB where it made 52 to 53, in the same time; the display lists are item for item as before.
+
 **NEW.** A distance or an angle the presenter asks with no base point takes two points, as AutoCAD 2021's command line
 does: a point typed or picked at "Enter new value for POLARDIST <0.0000>:" asks "Specify second point:", its rubber band
 from the first, and 0,0 then 3,4 sets POLARDIST to 5; SNAPANG 0,0 then 1,1 sets 45. Every such prompt takes them, SETVAR

@@ -393,6 +393,9 @@ namespace GeometryHelper.Dxf.Viewer
             _byHandle = null;
             Selection.Clear();
             CurrentSpace = _spaces.Contains(editor.Previous) ? editor.Previous : ModelSpace;
+
+            // Undo reaches past where the editor opened again: the drawing it goes to is read ahead, as after a step.
+            ReadAround();
             GeometryHelperLog.Info(
                 "CadDocument: the Block Editor closed " + editor.Name + (saved ? ", saved." : ", not saved.")
             );
@@ -486,6 +489,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _position = from + 1;
+
+            // The drawing the next undo goes to is now the one before the first step merged: read it ahead, as after a step.
+            ReadAround();
         }
 
         /// <summary>Reads the drawing back as it stood after a step, the steps after it forgotten, as the Block Editor's changes discarded.</summary>
@@ -498,7 +504,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            Reload(_states[target].Bytes, null);
+            KeptState state = _states[target];
             _steps.RemoveRange(target, _steps.Count - target);
             _states.RemoveRange(target + 1, _states.Count - target - 1);
 
@@ -508,6 +514,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _position = target;
+
+            // Read as an undo reads it: the drawing read ahead taken where it is the one, and those of the new place read ahead.
+            Reload(state, null);
             Changed?.Invoke(
                 this,
                 new CadDocumentChangedEventArgs(

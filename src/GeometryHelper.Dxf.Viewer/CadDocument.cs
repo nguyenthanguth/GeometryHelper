@@ -534,17 +534,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The entities of some spaces by handle, and the space each is in, made once; the first of a handle met in the order
         /// of the spaces given (their tab order) wins. Made on a worker thread too, for a drawing of the undo list read ahead,
-        /// which <paramref name="stop"/>, asked every 4 096 entities, stops; false where it stopped.
+        /// which <paramref name="stop"/>, asked every 4 096 entities, stops; false where it stopped. <paramref name="size"/>
+        /// sizes the two tables at the start, as the index of the drawing shown, which a step changes little, so that tables of
+        /// a million entries are not grown by doubling.
         /// </summary>
         private static bool IndexHandles(
             List<DxfBlockTableRecord> blocks,
             out Dictionary<string, DxfEntity> byHandle,
             out Dictionary<string, DxfBlockTableRecord> blockByHandle,
-            Func<bool> stop = null
+            Func<bool> stop = null,
+            int size = 0
         )
         {
-            byHandle = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
-            blockByHandle = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);
+            byHandle = new Dictionary<string, DxfEntity>(size, StringComparer.OrdinalIgnoreCase);
+            blockByHandle = new Dictionary<string, DxfBlockTableRecord>(size, StringComparer.OrdinalIgnoreCase);
             int met = 0;
 
             foreach (DxfBlockTableRecord block in blocks)
