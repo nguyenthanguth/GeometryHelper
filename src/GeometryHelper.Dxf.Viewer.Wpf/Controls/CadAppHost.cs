@@ -88,7 +88,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -1254,7 +1254,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// (the Layer States Manager, the first state chosen); <c>view</c> (the View Manager, the first named view chosen) and
         /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control);
         /// <c>xref</c> and <c>xref-tree</c> (the External References palette in its list or tree view, the last nested
-        /// reference chosen); <c>scalelist</c> (Edit Drawing Scales, the first scale chosen); <c>inputsearch</c> (Input Search
+        /// reference chosen); <c>scalelist</c> (Edit Drawing Scales, the first scale chosen); <c>qleader</c>,
+        /// <c>qleader-line</c> and <c>qleader-attach</c> (Leader Settings on each tab); <c>inputsearch</c> (Input Search
         /// Options).
         /// </summary>
         private static bool ManagerDialog(
@@ -1281,6 +1282,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 && kind != "group-order"
                 && kind != "layerstate"
                 && kind != "scalelist"
+                && kind != "qleader"
+                && kind != "qleader-line"
+                && kind != "qleader-attach"
                 && kind != "inputsearch"
                 && kind != "view"
                 && kind != "newview"
@@ -1445,6 +1449,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     model.ShowScaleList = null;
                     var scalesWindow = new ScaleListEditWindow((ScaleListEditViewModel)shown);
                     (window, root) = (scalesWindow, scalesWindow.Body);
+                    return true;
+                case "qleader":
+                case "qleader-line":
+                case "qleader-attach":
+                    model.ShowLeaderSettings = dialog =>
+                    {
+                        shown = dialog;
+                        return true;
+                    };
+                    model.StartCommand("QLEADER");
+                    model.Execute("S");
+                    model.Escape();
+                    model.ShowLeaderSettings = null;
+                    var leader = (LeaderSettingsViewModel)shown;
+                    leader.Tab =
+                        kind == "qleader-line" ? LeaderSettingsViewModel.LineTab
+                        : kind == "qleader-attach" ? LeaderSettingsViewModel.AttachmentTab
+                        : LeaderSettingsViewModel.AnnotationTab;
+                    var leaderWindow = new LeaderSettingsWindow(leader);
+                    (window, root) = (leaderWindow, leaderWindow.Body);
                     return true;
                 case "inputsearch":
                     model.ShowInputSearchOptions = dialog =>

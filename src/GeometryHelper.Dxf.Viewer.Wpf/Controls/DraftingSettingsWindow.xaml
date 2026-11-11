@@ -192,22 +192,156 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Polar Tracking: on, and the increment angle the cursor is held on. -->
+                <!-- Polar Tracking: on; the increment, the additional angles with New and Delete; how tracking runs and how
+                     angles are measured (POLARANG, POLARADDANG, POLARMODE). -->
                 <StackPanel Visibility="{Binding IsPolarTrackingTab, Converter={StaticResource Shown}}">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <StackPanel.Resources>
+                        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+                    </StackPanel.Resources>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsPolarOn, Mode=TwoWay}" />
                         <TextBlock Text="Polar Tracking On (F10)" VerticalAlignment="Center" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Style="{StaticResource Label}" Text="Increment angle:" Width="110" />
-                        <ComboBox
-                            Style="{StaticResource GhComboBox}"
-                            Width="90"
-                            IsEditable="False"
-                            ItemsSource="{Binding IncrementAngles}"
-                            SelectedItem="{Binding IncrementAngle, Mode=TwoWay}"
-                        />
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="262" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Polar Angle Settings">
+                            <StackPanel>
+                                <TextBlock
+                                    Text="Increment angle:"
+                                    Foreground="{StaticResource GhIcon}"
+                                    Margin="0,0,0,4"
+                                />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    Width="120"
+                                    HorizontalAlignment="Left"
+                                    IsEditable="True"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    ItemsSource="{Binding IncrementAngles}"
+                                    Text="{Binding IncrementAngle, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                    AutomationProperties.Name="Increment angle"
+                                />
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,8">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsAdditionalAngles, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Text="Additional angles" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border
+                                        Width="150"
+                                        Height="132"
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        Background="{StaticResource GhInput}"
+                                        IsEnabled="{Binding IsAdditionalAngles}"
+                                    >
+                                        <DockPanel>
+                                            <TextBox
+                                                x:Name="NewAngleBox"
+                                                DockPanel.Dock="Bottom"
+                                                Style="{StaticResource GhTextBox}"
+                                                Height="20"
+                                                Padding="5,1"
+                                                BorderBrush="{StaticResource GhAccent}"
+                                                BorderThickness="1"
+                                                Background="{StaticResource GhInput}"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                Text="{Binding NewAngle, UpdateSourceTrigger=PropertyChanged}"
+                                                Visibility="{Binding IsTypingAngle, Converter={StaticResource Shown}}"
+                                                IsVisibleChanged="OnNewAngleShown"
+                                                KeyDown="OnNewAngleKeyDown"
+                                                LostKeyboardFocus="OnNewAngleLeft"
+                                                AutomationProperties.Name="New additional angle"
+                                            />
+                                            <ListBox
+                                                ItemsSource="{Binding AdditionalAngles}"
+                                                SelectedItem="{Binding SelectedAdditionalAngle, Mode=TwoWay}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Foreground="{StaticResource GhText}"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                AutomationProperties.Name="Additional angles"
+                                            />
+                                        </DockPanel>
+                                    </Border>
+                                    <StackPanel Margin="8,0,0,0">
+                                        <Button
+                                            Style="{StaticResource GhDialogButton}"
+                                            Content="New"
+                                            Width="74"
+                                            Margin="0,0,0,8"
+                                            Command="{Binding NewAngleCommand}"
+                                            IsEnabled="{Binding CanAddAngle}"
+                                        />
+                                        <Button
+                                            Style="{StaticResource GhDialogButton}"
+                                            Content="Delete"
+                                            Width="74"
+                                            Command="{Binding DeleteAngleCommand}"
+                                            IsEnabled="{Binding CanDeleteAngle}"
+                                        />
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock
+                                    Text="{Binding AngleError}"
+                                    Foreground="{StaticResource GhWarn}"
+                                    TextWrapping="Wrap"
+                                    Margin="0,6,0,0"
+                                />
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <StackPanel Grid.Column="2">
+                            <HeaderedContentControl
+                                Style="{StaticResource BlockGroup}"
+                                Header="Object Snap Tracking Settings"
+                                Margin="0,0,0,12"
+                            >
+                                <StackPanel>
+                                    <RadioButton
+                                        Style="{StaticResource BlockRadio}"
+                                        Content="Track orthogonally only"
+                                        GroupName="PolarTrack"
+                                        IsChecked="{Binding IsTrackingOrthogonally, Mode=TwoWay}"
+                                        Margin="0,0,0,8"
+                                    />
+                                    <RadioButton
+                                        Style="{StaticResource BlockRadio}"
+                                        Content="Track using all polar angle settings"
+                                        GroupName="PolarTrack"
+                                        IsChecked="{Binding IsTrackingAllPolar, Mode=TwoWay}"
+                                    />
+                                </StackPanel>
+                            </HeaderedContentControl>
+                            <HeaderedContentControl
+                                Style="{StaticResource BlockGroup}"
+                                Header="Polar Angle measurement"
+                            >
+                                <StackPanel>
+                                    <RadioButton
+                                        Style="{StaticResource BlockRadio}"
+                                        Content="Absolute"
+                                        GroupName="PolarMeasure"
+                                        IsChecked="{Binding IsAbsolute, Mode=TwoWay}"
+                                        Margin="0,0,0,8"
+                                    />
+                                    <RadioButton
+                                        Style="{StaticResource BlockRadio}"
+                                        Content="Relative to last segment"
+                                        GroupName="PolarMeasure"
+                                        IsChecked="{Binding IsRelativeToLastSegment, Mode=TwoWay}"
+                                    />
+                                </StackPanel>
+                            </HeaderedContentControl>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Object Snap: on, tracking on, the fourteen snaps in two columns, Select All and Clear All. -->

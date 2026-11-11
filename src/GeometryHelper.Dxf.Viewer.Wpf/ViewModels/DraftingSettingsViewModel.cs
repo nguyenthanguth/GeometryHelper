@@ -50,7 +50,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// the fourteen snaps with their markers, Select All and Clear All). Apply gives them to the window at once, OK applies
     /// and closes, Cancel drops them; the snaps ticked are kept in the settings file by the window.
     /// </summary>
-    public sealed class DraftingSettingsViewModel : ObservableObject
+    public sealed partial class DraftingSettingsViewModel : ObservableObject
     {
         /// <summary>The tab of the snap grid.</summary>
         public const string SnapAndGridTab = "Snap and Grid";
@@ -97,6 +97,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ApplyCommand = new DelegateCommand(_ => Apply());
             OkCommand = new DelegateCommand(_ => Ok());
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
+            LoadPolar();
         }
 
         /// <summary>Raised when the dialog is to close: true after OK, false after Cancel.</summary>
@@ -244,6 +245,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
+            if (!CheckPolar())
+            {
+                return false;
+            }
+
             CadSnapModes modes = Modes.Where(r => r.IsChecked).Aggregate(CadSnapModes.None, (all, r) => all | r.Mode);
             _model.SnapModes = modes;
             _model.Toggles.First(t => t.Name == "OSNAP").IsOn = _isSnapOn;
@@ -253,6 +259,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
             _model.SetSnapSpacing(x, y);
             _model.SetPolarAngle(degrees);
+            ApplyPolar();
             Notice = string.Empty;
             return true;
         }

@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Leader Settings dialog of QLEADER (Settings, or Enter at its first prompt), with AutoCAD 2021's
+Annotation, Leader Line & Arrow and Attachment tabs, and QLEADER drawing by every setting: the annotation type (MText,
+Copy an Object, Block Reference, None; Tolerance greyed), Annotation Reuse, Prompt for width, Always left justify, Frame
+text, straight or spline, the arrowhead, the number of points or No Limit, the angle constraints of the first two
+segments, the attachment of text on either side and Underline bottom line. The settings are kept as AutoCAD 2021 keeps
+them, in the drawing's `AcadDim` XRECORD (group 90 of 990106) read by `CadQLeaderSettings`, and the arrowhead as
+DIMLDRBLK; OK writes both as one undo step. Checked in AutoCAD 2021's console: group 62 is the text on the right side and
+63 on the left, 61 of 2 is Reuse Current, a first segment held level takes (100, 30) to (100, 0) and a second held to 45
+degrees takes (150, 100) to (175, 75), Frame text writes DIMGAP below nought and Underline bottom line DIMTAD 1. Without
+a window, QLEADER says Leader Settings is shown by the window and draws by the settings the drawing has.
+
+**NEW.** The Polar Tracking tab of the presenter's Drafting Settings as AutoCAD 2021's: Additional angles with their list,
+New and Delete (POLARADDANG, POLARMODE 4, ten at most, "Not an angle." for one that does not read), Object Snap Tracking
+Settings (POLARMODE 2), Polar Angle measurement (POLARMODE 1), and the increment typed or chosen. While polar tracking
+holds the cursor, a dotted path runs from the base point through it and the tip says `Polar: 183.8478 < 45°` in the
+drawing's units, or `Relative Polar: 100.0000 < 90°` where the angles are counted from the last segment.
+
 **CHANGED.** A new drawing of the presenter (NEW, Ctrl+N) is named Drawing1.dwg, then Drawing2.dwg, as AutoCAD 2021's
 DWGNAME of a new drawing is, where it was Drawing1.dxf. Save As offers it as an AutoCAD 2018 Drawing (*.dwg) first, and
 QSAVE with FILEDIA 0 asks "Save drawing as <Drawing1.dwg>:", a name typed with no extension saved as a DWG. A DXF is still

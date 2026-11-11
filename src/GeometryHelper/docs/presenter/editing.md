@@ -423,10 +423,26 @@ long runs on to it where that segment is steeper than 15 degrees: a leader from 
 (7.5, 10), (10, 10), its words middle-left at (10.625, 10) with DIMGAP 0.625, or bottom-left at (10.625, 10.625) with
 DIMTAD 1, as ISO-25 has it. The dimension variables other than the
 style's are written as the leader's overrides, as AutoCAD writes them: DIMSCALE 2 gives `1070 40, 1040 2` and words twice
-DIMTXT high. QLEADER (LE) draws with the default settings of its Leader Settings dialog, which the presenter does not have
-yet: three points at most, `Specify text width <0.0000>:`, the middle of the words' top line at the end on the right and
-of their bottom line on the left, and DIMGAP and DIMTAD 0 written as overrides on every leader, as AutoCAD 2021 writes
-them. LEADER and QLEADER are each one undo step.
+DIMTXT high. QLEADER (LE) draws by the drawing's Leader Settings, which Settings or Enter at `Specify first leader point,
+or [Settings] <Settings>:` shows where there is a window (with none, the command line says so and QLEADER draws by the
+settings the drawing has). AutoCAD 2021 keeps them per drawing, in an XRECORD under the key `AcadDim` of the named object
+dictionary with group 90 of 990106, and `CadQLeaderSettings` reads and writes that record as AutoCAD's QLEADER reads it
+(checked in its console): 60 the annotation type, 61 the reuse (2 is Reuse Current, 340 the words kept), 62 the text on
+the right side and 63 on the left, 64 Underline bottom line, 65 Spline, 66 No Limit, 67 the Maximum points, 68 Prompt for
+width, 69 Always left justify, 70 and 71 the angle constraints, 72 Frame text, 170 the tab shown. QLEADER never writes it
+itself; the dialog's OK writes it, and the arrowhead as DIMLDRBLK, an override of the current dimension style, in one
+undo step. With the defaults it takes three points, asks `Specify text width <0.0000>:` and sets the middle of the words'
+top line at the end on the right and of their bottom line on the left; DIMGAP and DIMTAD 0 are written as overrides on
+every leader, as AutoCAD 2021 writes them. Each setting is followed as AutoCAD 2021 follows it: a row of the Attachment
+tab hangs the words from their top, middle or bottom, `Middle of top line` half DIMTXT above the end; Underline bottom
+line writes DIMTAD 1 and stands them DIMGAP above it; Frame text writes DIMGAP below nought; Always left justify asks no
+width and sets the words' right edge DIMGAP short of an end on their right; a segment held to an angle takes the point
+square onto the nearest ray, (100, 30) held level from the origin being (100, 0); Copy an Object stands the copy by its
+middle; Block Reference asks the block and INSERT's prompts; None and Tolerance (which needs the Geometric Tolerance
+dialog, greyed in Leader Settings) end the leader with no annotation; Reuse Next keeps the next words, the settings then
+turned to Reuse Current, which copies them to each later leader with nothing asked. A leader arrow other than the
+style's is written as the leader's DIMLDRBLK override, `1070 341, 1005` and the handle of `_Dot`. LEADER and QLEADER are
+each one undo step.
 
 QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, whose logic is
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
@@ -631,7 +647,14 @@ acquires a point only with Shift held; its 1 counts the polar angles from the la
 an arc (from the X axis while none is drawn), and its 4 holds the additional angles of POLARADDANG as they are, not their
 multiples. POLARADDANG takes up to ten angles parted by semicolons, read in the drawing's angle units and kept from 0 up
 to 360 as the drawing writes angles: `33.5;-10` is kept as `33.50;350.00` at AUPREC 2, `.` empties it, and `10;;20`
-gets "Cannot set POLARADDANG to that value."; the settings file keeps it as `"polarAddedAngles"`. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
+gets "Cannot set POLARADDANG to that value."; the settings file keeps it as `"polarAddedAngles"`. The Polar Tracking tab
+of Drafting Settings sets them too: Additional angles with its list, New opening a row at its end that Enter or a click
+elsewhere keeps where it reads as an angle ("Not an angle." otherwise, the row kept open) and Esc drops, Delete, ten at
+most; Track orthogonally only or using all polar angle settings; Absolute or Relative to last segment; Apply writes
+POLARMODE with its 8 kept. While polar tracking holds the cursor, with DYN off, a dotted path runs from the base point
+through it to the edge of the view and the tip by the cursor says `Polar: 183.8478 < 45°`, the distance in LUNITS and
+LUPREC and the angle in AUNITS and AUPREC from the X axis of the UCS, or `Relative Polar: 100.0000 < 90°`, counted from
+the last segment, where POLARMODE 1 counts from one. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
 band stays at the cursor while the marker shows the snap, which a click still takes), 8 POLAR, 16 OTRACK, 32 the tip
 of ortho, polar and tracking; the marker, tips and magnet are kept for the session of the window. FILEDIA 0 makes PNGOUT,
 JPGOUT, BMPOUT and the window's SAVEAS ask for the file on the command line, as in a script; CMDDIA 0 makes PLOT ask

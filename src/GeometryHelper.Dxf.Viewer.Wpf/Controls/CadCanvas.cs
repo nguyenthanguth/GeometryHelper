@@ -497,6 +497,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
+                if (_snapped?.Kind == CadSnapKind.Polar && Session.Prompt.BasePoint.HasValue)
+                {
+                    return PolarTipText(Session.Prompt.BasePoint.Value, _snapped.Point, Session, snap);
+                }
+
                 return TipText(
                     shown ? _snapped : null,
                     Session.Prompt.BasePoint,
@@ -504,6 +509,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Session
                 );
             }
+        }
+
+        /// <summary>
+        /// The tip while polar tracking holds the cursor, as AutoCAD 2021's with DYN off: "Polar: 183.8478 &lt; 45°", the distance
+        /// from the base point in LUNITS and LUPREC and the angle in AUNITS and AUPREC counted from the X axis of the UCS; and
+        /// "Relative Polar: 100.0000 &lt; 90°", the angle counted from the last segment, where the polar angles are counted from
+        /// it (POLARMODE 1 with a segment drawn).
+        /// </summary>
+        internal static string PolarTipText(
+            GeoPoint2 basePoint,
+            GeoPoint2 target,
+            CadCommandSession session,
+            ObjectSnap snap
+        )
+        {
+            CadUcs ucs = snap?.Ucs ?? session.Ucs;
+            GeoVector2 way = ucs.ToUcs(target - basePoint);
+            double angle = Math.Atan2(way.Y, way.X);
+            bool relative = false;
+
+            if (snap != null && snap.PolarFromLastSegment && snap.LastSegment.HasValue)
+            {
+                GeoVector2 last = ucs.ToUcs(snap.LastSegment.Value);
+
+                if (last.Length > 1E-9)
+                {
+                    angle -= Math.Atan2(last.Y, last.X);
+                    relative = true;
+                }
+            }
+
+            angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
+
+            if (angle >= 2.0 * Math.PI - 1E-12)
+            {
+                angle = 0.0;
+            }
+
+            DxfDatabase database = session.Document.Database;
+            int aunits = database.Aunits;
+            string written = CadUnits.Angle(angle, aunits, database.Auprec);
+            written =
+                aunits == 0 ? written + "°"
+                : aunits == 1 ? written.Replace('d', '°')
+                : written;
+            return (relative ? "Relative Polar: " : "Polar: ")
+                + CadUnits.Length(way.Length, database.Lunits, database.Luprec)
+                + " < "
+                + written;
         }
 
         /// <summary>Whether a snap is an object snap, whose marker the magnet holds the cursor on: not the grid, ortho, polar or a tracking line.</summary>
@@ -3727,6 +3781,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 for (int i = 1; i < track.Count; i++)
                 {
                     dc.DrawLine(DottedPen(pen), ToScreen(view, track[i - 1], scale), ToScreen(view, track[i], scale));
+                }
+            }
+
+            // Polar tracking: the alignment path from the base point through the cursor on to the edge of the view.
+            GeoPoint2? basePoint = Session?.Prompt?.BasePoint;
+
+            if (_snapped.Kind == CadSnapKind.Polar && basePoint.HasValue)
+            {
+                Point from = ToScreen(view, basePoint.Value, scale);
+                Point through = ToScreen(view, _snapped.Point, scale);
+                Vector way = through - from;
+
+                if (way.Length > 0.5)
+                {
+                    way.Normalize();
+                    double reach = 2.0 * (ActualWidth + ActualHeight) + (from - new Point()).Length;
+                    dc.DrawLine(DottedPen(pen), from, from + way * reach);
                 }
             }
         }
