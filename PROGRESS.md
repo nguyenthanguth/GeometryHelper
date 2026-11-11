@@ -242,9 +242,10 @@ the ones wanted.
 
 ### Decisions for the maintainer
 
-- [ ] Esc in the in-place editors (the maintainer tried AutoCAD 2021, 2026-11-11): TEXT (DTEXT) keeps its old words, the
-      typed ones dropped (check ours does); MTEXT asks "Multiline Text - Unsaved Changes / Do you want to save your text
-      changes?" Yes / No / Cancel with "Always perform my current choice" (new dialog: design first) (S)
+- [x] Esc in the in-place editors, as AutoCAD 2021: TEXT keeps its old words; MTEXT with changes asks "Multiline Text -
+      Unsaved Changes" (Yes / No / Cancel, "Always perform my current choice" kept in Global settings > Hidden messages);
+      designed in v115 (S)
+- [ ] Design: add the Hidden messages row to the SettingsText artboard (S)
 - [x] Booleans with a flat box answer false for union, intersect and subtract (the user's choice 2026-11-11)
 - [x] DIMBREAK breaks stored as AutoCAD stores them (BREAKDATA in the dimension's extension dictionary), read and drawn
       again on redraw; AUDIT 0 in AutoCAD
