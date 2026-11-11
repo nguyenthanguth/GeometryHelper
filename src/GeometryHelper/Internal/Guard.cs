@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GeometryHelper
 {
@@ -40,7 +41,71 @@ namespace GeometryHelper
         /// <summary>
         /// Determines whether a value is a finite number.
         /// </summary>
-        internal static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+        /// <remarks>
+        /// One comparison, false for NaN as every comparison with it is, and for either infinity: the same answer as
+        /// <see cref="double.IsNaN"/> and <see cref="double.IsInfinity"/> together, which .NET Framework does not inline.
+        /// </remarks>
+        internal static bool IsFinite(double value) => Math.Abs(value) <= double.MaxValue;
+
+        /// <summary>
+        /// Determines whether every value is a finite number.
+        /// </summary>
+        internal static bool AreFinite(IReadOnlyList<double> values)
+        {
+            if (values is double[] array)
+            {
+                // The lists of the shapes are arrays: read straight, not through the interface.
+                foreach (double value in array)
+                {
+                    if (!IsFinite(value))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (!IsFinite(values[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether every point is a valid one, both its coordinates finite numbers.
+        /// </summary>
+        internal static bool AreValid(IReadOnlyList<Geometry.GeoPoint2> points)
+        {
+            if (points is Geometry.GeoPoint2[] array)
+            {
+                // The vertices of the shapes are arrays: read straight, not through the interface.
+                foreach (Geometry.GeoPoint2 point in array)
+                {
+                    if (!point.IsValid)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (!points[i].IsValid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         /// <summary>
         /// Determines whether a vector is of unit length, as a constructor that normalises leaves it.

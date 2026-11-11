@@ -559,7 +559,6 @@ namespace GeometryHelper.Geometry
         /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
         /// the box at four points at height 50.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box) => Intersection3.GetIntersections(this, box);
 
         /// <summary>
@@ -574,7 +573,6 @@ namespace GeometryHelper.Geometry
         /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
         /// the box at four points at height 50.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box, Tolerance tolerance) =>
             Intersection3.GetIntersections(this, box, tolerance);
 
@@ -590,7 +588,6 @@ namespace GeometryHelper.Geometry
         /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
         /// the box at four points at height 50.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(this, box, out intersections);
 
@@ -607,7 +604,6 @@ namespace GeometryHelper.Geometry
         /// 100 by 100 by 100 with a corner at the origin, crosses nothing and touches nothing; without the hole it crosses
         /// the box at four points at height 50.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(this, box, out intersections, tolerance);
     }

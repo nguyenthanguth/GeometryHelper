@@ -102,7 +102,7 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// true if the segment was split; false if the distance falls outside the segment or lands on one
-        /// of its endpoints.
+        /// of its endpoints, or the segment or the distance is not made of finite numbers.
         /// </returns>
         public static bool TrySplitAtDistance(
             GeoLine2 line,
@@ -114,6 +114,11 @@ namespace GeometryHelper.Core
         {
             first = default(GeoLine2);
             second = default(GeoLine2);
+
+            if (!line.IsValid || !Guard.IsFinite(distance))
+            {
+                return false;
+            }
 
             double[] cuts = NormalizeCuts(line.Length, new[] { distance }, tolerance);
             if (cuts.Length != 1)

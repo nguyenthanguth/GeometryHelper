@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `GetIntersections` of a triangle, a polygon, a face or a plane with a box flat on some axis, `GeoObb3` or
+`GeoAabb3`, or with an empty `GeoAabb3`, threw "A box with a zero size on some axis has no faces to build" or "An empty
+bounding box has no shape to convert"; it gives no points, as `TryIntersectWith` answers false: the plane x = 20 and the
+box 100 by 100 by 0 cross nowhere. `GetFaces()` and `ToSolid()` of such a box still throw, as before: it has no body.
+
+**FIXED.** The `Try` methods of a segment answered true with points of NaN or infinity where the segment, or the shape
+given with it, had a coordinate that is not a finite number: the segment from (NaN, 0) to (0, 100) and the one from the
+origin to (0, 100) were given a point of NaN. They answer false now, for a segment, a ray and a line, a circle and an
+arc, a chain, a curved chain and a curved loop, a face, a rectangle and a triangle, and for `TrySplitAtDistance`,
+`TryExtendTo` a point and `TryTrimExtendToCorner`, whichever of the two shapes the method is asked of; a curved loop with a
+vertex or a bulge of NaN, and an arc with an end of NaN, threw from inside and are false too. Every finite answer is the
+same bit for bit.
+
+**FIXED.** A fillet radius that is not a positive number, given to `TryFilletAt` or `Fillet` of a chain or a loop, flat or
+in space, was refused with "A chamfer distance must be a positive number."; it is refused as a radius.
+
 **NEW.** The presenter's Quick Select (QSELECT) has AutoCAD's Select objects button at the right of Apply to: it hides the
 dialog while `Select objects:` asks on the command line, and the dialog comes back over the objects picked, Apply to:
 Current selection, so a line of DOORS and a text picked offer Multiple, Line and Text. It is greyed while Exclude or

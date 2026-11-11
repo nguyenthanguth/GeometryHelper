@@ -470,7 +470,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box) => Intersection3.GetIntersections(this, box);
 
         /// <summary>
@@ -483,7 +482,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoAabb3 box, Tolerance tolerance) =>
             Intersection3.GetIntersections(this, box, tolerance);
 
@@ -497,7 +495,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(this, box, out intersections);
 
@@ -513,7 +510,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoAabb3 box, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(this, box, out intersections, tolerance);
     }

@@ -128,7 +128,9 @@ point tolerance: the plate 0.0015 thick is a box at a tolerance of a thousandth,
 flat, and one 0.0005 thick is flat. A box with a side of nought, as the bounding box of a flat shape, has no faces and
 `GetFaces()` throws, but no `Try` method does: an arc, a circle or an ellipse meets a box flat on one axis where it
 passes the rectangle across it, and a box flat on two axes or three nowhere; a triangle, a polygon, a face or a plane
-against a box flat or empty, and a boolean with a flat box, answer false. A box,
+against a box flat or empty, and a boolean with a flat box, answer false. `GetIntersections` of a triangle, a polygon,
+a face or a plane with such a box gives no points, as the `Try` method answers, where it threw: the plane x = 20 and
+the box 100 by 100 by 0 cross nowhere. A box,
 oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
 it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
 nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.

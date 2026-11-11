@@ -198,7 +198,10 @@ namespace GeometryHelper.Core
         /// <param name="end">The end that moves.</param>
         /// <param name="result">The extended segment, or the segment unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the foot lies at or beyond the end; false if reaching it would shorten the segment.</returns>
+        /// <returns>
+        /// true if the foot lies at or beyond the end; false if reaching it would shorten the segment, or the segment or
+        /// the point has a coordinate that is not a finite number.
+        /// </returns>
         public static bool TryExtendTo(
             GeoLine2 line,
             GeoPoint2 point,
@@ -207,6 +210,12 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (!line.IsValid || !point.IsValid)
+            {
+                result = line;
+                return false;
+            }
+
             return TryMove(line, end, tolerance, true, out result, (reach, found) =>
                 found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit))
             );
@@ -648,7 +657,10 @@ namespace GeometryHelper.Core
         /// <param name="result1">The first segment ending at the corner, or unchanged when the method returns false.</param>
         /// <param name="result2">The second segment ending at the corner, or unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the two lines cross; false if they are parallel or one is too short to have a direction.</returns>
+        /// <returns>
+        /// true if the two lines cross; false if they are parallel, one is too short to have a direction, or either has a
+        /// coordinate that is not a finite number.
+        /// </returns>
         /// <remarks>
         /// The corner is where the lines carrying the two segments cross. Each segment keeps its end farther
         /// from the corner and has its nearer end moved onto it: extended if the corner lies beyond, trimmed if

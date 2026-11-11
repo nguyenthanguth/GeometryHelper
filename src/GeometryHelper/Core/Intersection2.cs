@@ -90,6 +90,10 @@ namespace GeometryHelper.Core
         /// meets the segment from the origin to (10, 0) at (5, 0), and the one from (5, 0.0008) to (5, 0.0002) meets it
         /// nowhere.
         /// </para>
+        /// <para>
+        /// A segment with a coordinate that is not a finite number meets nothing, and the answer is false: the segment from
+        /// (NaN, 0) to (0, 100) and the one from the origin to (0, 100), which share an end, were given a point of NaN.
+        /// </para>
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the extension is not a defined value.</exception>
         public static bool TryIntersectWith(
@@ -100,9 +104,18 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
-            return extension == LineExtension.None
-                ? TryCross(line1, true, line2, true, out intersection, tolerance)
-                : Crossing(line1, line2, extension, out intersection, tolerance);
+            bool met =
+                extension == LineExtension.None
+                    ? TryCross(line1, true, line2, true, out intersection, tolerance)
+                    : Crossing(line1, line2, extension, out intersection, tolerance);
+
+            if (met && !(line1.IsValid && line2.IsValid))
+            {
+                intersection = default(GeoPoint2);
+                return false;
+            }
+
+            return met;
         }
 
         /// <summary>
@@ -360,6 +373,9 @@ namespace GeometryHelper.Core
         /// and counts once: the segment from (-1, 0) to (0.0004, 0) meets the circle of radius 0.0012 about the origin
         /// at (-0.0012, 0) only. A segment no longer than the tolerance is read as its start.
         /// </para>
+        /// <para>
+        /// A segment or a circle with a coordinate that is not a finite number meets nothing, and the answer is false.
+        /// </para>
         /// </remarks>
         public static bool TryIntersectWith(
             GeoCircle2 circle,
@@ -368,6 +384,12 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (!line.IsValid || !circle.IsValid)
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
+
             return TryIntersectWith(circle, line, out intersections, tolerance, true);
         }
 
@@ -989,6 +1011,9 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Tries to calculate all intersection points between a polyline and a line segment within tolerance.
         /// </summary>
+        /// <remarks>
+        /// A segment or a polyline with a coordinate that is not a finite number meets nothing, and the answer is false.
+        /// </remarks>
         public static bool TryIntersectWith(
             GeoPolyline2 polyline,
             GeoLine2 line,
@@ -998,6 +1023,12 @@ namespace GeometryHelper.Core
         {
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
+
+            if (!line.IsValid || !Guard.AreValid(polyline.Vertices))
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
 
             List<GeoPoint2> points = new List<GeoPoint2>();
             for (int i = 0; i < polyline.EdgeCount; i++)
@@ -1346,6 +1377,10 @@ namespace GeometryHelper.Core
         /// Tries to find where a chain that may curve meets a straight segment, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        /// <remarks>
+        /// A segment or a chain with a coordinate or a bulge that is not a finite number meets nothing, and the answer is
+        /// false.
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         public static bool TryIntersectWith(
             GeoPolylineArc2 chain,
@@ -1354,6 +1389,15 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (chain == null)
+                throw new ArgumentNullException(nameof(chain));
+
+            if (!line.IsValid || !Guard.AreValid(chain.Vertices) || !Guard.AreFinite(chain.Bulges))
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
+
             intersections = GetIntersections(chain, line, tolerance);
 
             return intersections.Length > 0;
@@ -1695,6 +1739,11 @@ namespace GeometryHelper.Core
         /// Tries to find where a loop that may curve meets a straight segment, within a tolerance.
         /// </summary>
         /// <returns>true when they meet anywhere; otherwise, false.</returns>
+        /// <remarks>
+        /// A segment or a loop with a coordinate or a bulge that is not a finite number meets nothing, and the answer is
+        /// false: a loop with a vertex at (NaN, 0) threw "A radius has to be a number" from the arc beside it, and one with
+        /// a bulge of NaN threw "A bulge must be a number".
+        /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         public static bool TryIntersectWith(
             GeoPolygonArc2 loop,
@@ -1703,6 +1752,15 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (loop == null)
+                throw new ArgumentNullException(nameof(loop));
+
+            if (!line.IsValid || !Guard.AreValid(loop.Vertices) || !Guard.AreFinite(loop.Bulges))
+            {
+                intersections = Array.Empty<GeoPoint2>();
+                return false;
+            }
+
             intersections = GetIntersections(loop, line, tolerance);
 
             return intersections.Length > 0;

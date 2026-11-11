@@ -172,7 +172,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoTriangle3 triangle) => Intersection3.GetIntersections(triangle, this);
 
         /// <summary>
@@ -186,7 +185,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoTriangle3 triangle, Tolerance tolerance) =>
             Intersection3.GetIntersections(triangle, this, tolerance);
 
@@ -202,7 +200,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(triangle, this, out intersections);
 
@@ -219,7 +216,6 @@ namespace GeometryHelper.Geometry
         /// and (-50, 300, 50) cross at four points at height 50; a triangle wholly inside the box touches it and crosses
         /// nothing.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoTriangle3 triangle, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(triangle, this, out intersections, tolerance);
 
@@ -233,7 +229,6 @@ namespace GeometryHelper.Geometry
         /// 50) cross at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon) => Intersection3.GetIntersections(polygon, this);
 
         /// <summary>
@@ -247,7 +242,6 @@ namespace GeometryHelper.Geometry
         /// 50) cross at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoPolygon3 polygon, Tolerance tolerance) =>
             Intersection3.GetIntersections(polygon, this, tolerance);
 
@@ -263,7 +257,6 @@ namespace GeometryHelper.Geometry
         /// 50) cross at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(polygon, this, out intersections);
 
@@ -280,7 +273,6 @@ namespace GeometryHelper.Geometry
         /// 50) cross at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoPolygon3 polygon, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(polygon, this, out intersections, tolerance);
 
@@ -295,7 +287,6 @@ namespace GeometryHelper.Geometry
         /// the box at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoFace3 face) => Intersection3.GetIntersections(face, this);
 
         /// <summary>
@@ -311,7 +302,6 @@ namespace GeometryHelper.Geometry
         /// the box at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoFace3 face, Tolerance tolerance) =>
             Intersection3.GetIntersections(face, this, tolerance);
 
@@ -328,7 +318,6 @@ namespace GeometryHelper.Geometry
         /// the box at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(face, this, out intersections);
 
@@ -346,7 +335,6 @@ namespace GeometryHelper.Geometry
         /// the box at four points at height 50.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoFace3 face, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(face, this, out intersections, tolerance);
 
@@ -359,7 +347,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoPlane3 plane) => Intersection3.GetIntersections(plane, this);
 
         /// <summary>
@@ -372,7 +359,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoPoint3[] GetIntersections(GeoPlane3 plane, Tolerance tolerance) =>
             Intersection3.GetIntersections(plane, this, tolerance);
 
@@ -386,7 +372,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoPlane3 plane, out GeoPoint3[] intersections) =>
             Intersection3.TryIntersectWith(plane, this, out intersections);
 
@@ -402,7 +387,6 @@ namespace GeometryHelper.Geometry
         /// The plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50; the
         /// plane z = 101 misses it.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">Thrown when the box is empty.</exception>
         public bool TryIntersectWith(GeoPlane3 plane, out GeoPoint3[] intersections, Tolerance tolerance) =>
             Intersection3.TryIntersectWith(plane, this, out intersections, tolerance);
     }
