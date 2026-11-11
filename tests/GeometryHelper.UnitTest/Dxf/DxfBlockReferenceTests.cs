@@ -249,6 +249,37 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => bolt.TransformBy(shear));
         }
 
+        [Fact]
+        public void AnInsertTurnedInItsPlane_IsWrittenFromNoughtToAWholeTurn_AsAutoCadWritesIt()
+        {
+            // AutoCAD 2021's ROTATE about the origin (mirror-insert GHMI1 R1, R6, R7): an INSERT at (20, 10) turned by -30 degrees
+            // is written 50 330.0, by 270 50 270.0; one turned 350 turned by 20 more, 50 10.
+            double[][] cases =
+            {
+                new[] { 0.0, -30.0, 330.0 },
+                new[] { 0.0, 270.0, 270.0 },
+                new[] { 350.0, 20.0, 10.0 },
+            };
+
+            foreach (double[] c in cases)
+            {
+                var db = new DxfDatabase("AC1027");
+                var block = new DxfBlockTableRecord { Name = "B" };
+                db.BlockTable.Add(block);
+                block.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0));
+                var insert = new DxfBlockReference(new GeoPoint3(20, 10, 0), block);
+                db.ModelSpace.AppendEntity(insert);
+                insert.Rotation = c[0] * (Math.PI / 180.0);
+
+                insert.TransformBy(GeoTransform3.RotationZ(c[1] * (Math.PI / 180.0)));
+
+                string record = Records(db.ToText()).Single(r => HandleOf(r) == insert.Handle);
+                double written = double.Parse(Group(record, 50), System.Globalization.CultureInfo.InvariantCulture);
+                Assert.InRange(written, 0.0, 360.0 - 1E-9);
+                Assert.Equal(c[2], written, 9);
+            }
+        }
+
         #endregion
 
         #region Exploded

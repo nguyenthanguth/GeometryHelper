@@ -149,15 +149,24 @@ before. "ABC" 2.5 high turned 30 degrees at the origin, mirrored across the line
 x = 40, is attached top right at (80, 0). Where the drawing's fonts read the letters, a TEXT is mirrored by the ink of its
 words, as AutoCAD mirrors it: "ABC" of txt.shx 2.5 high at the origin, inked to 6.667, mirrored across x = 100 starts at
 193.333; one on the right of its baseline by the box from where its words start to its point, and one in the middle about
-its point. Where they are not read, the box of the words is the display's estimate. At 1 a TEXT, an attribute definition
-and the attributes of an INSERT are mirrored in the drawing's plane: their normal stays (0, 0, 1) and they are written
-backwards (flag 2 of group 71), "ABC" at the origin mirrored across x = 100 standing at (200, 0) and across y = 100 at
-(0, 200) turned 180 degrees, never upside down.
+its point. Where they are not read, the box of the words is the display's estimate. Turned over across its baseline, a
+text is turned about the middle of the ink of its words: "Q1" of arial.ttf 1.5 high, whose Q reaches below the baseline,
+about a line 0.705 above it rather than 0.75. At 1 a TEXT, an attribute definition and the attributes of an INSERT are
+mirrored in the drawing's plane: their normal stays (0, 0, 1) and they are written backwards (flag 2 of group 71), "ABC"
+at the origin mirrored across x = 100 standing at (200, 0) and across y = 100 at (0, 200) turned 180 degrees, never upside
+down. The attributes of an INSERT already mirrored, whose normal is (0, 0, -1), keep it and are written backwards too.
+
+An INSERT is written as AutoCAD 2021's MIRROR writes it, under either MIRRTEXT: its x factor turned the other way, its y
+and z as they were, and turned to its mirrored y axis less a quarter turn. An INSERT at (20, 10) mirrored across y = 100
+is written at (20, 190) with an x factor of -1 turned 180 degrees; across x = 100, -1 turned nought; across y = x, -1
+turned 270; one scaled 2 by 3 is written -2 by 3, and one already written -1 by 1 comes back 1 by 1. A MINSERT and an
+annotative INSERT keep the factors and angle the mirror gives them.
 
 A multileader keeps the drawing's plane under either MIRRTEXT, as AutoCAD's MIRROR keeps it. At 0 its words keep reading
 along x and stand as far from the mirrored landing as they stood from the landing, held by their other side where the
 mirror crosses the plane's x axis: "ABC" held top left at (30.45, 20.09), landed at (30, 20), mirrored across x = 100 is
-held top right at (169.55, 20.09), its base point at the left of the words less the landing gap. At 1 the words are
+held top right at (169.55, 20.09), its base point at the left of the words less the landing gap. A mirror line at 45
+degrees turns the plane's x axis square to itself, not back, and the words are held by the same side. At 1 the words are
 mirrored with the rest and say they run against the plane's x axis. A multileader of a block is based where a leader from
 the left meets the block, the box from 150 to 180 at (150, 25).
 

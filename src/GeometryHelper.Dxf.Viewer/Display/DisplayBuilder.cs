@@ -1707,9 +1707,11 @@ namespace GeometryHelper.Dxf.Viewer
             string layerName
         )
         {
-            string value = CleanText(text.TextString);
+            // The spaces before and after the words kept: AutoCAD justifies the words by them (mirror-insert GHMI1), "ABC " on the
+            // right of its baseline a space further left than "ABC".
+            string value = CleanText(text.TextString, false).Trim('\n');
 
-            if (value.Length == 0 || text.Height <= 0.0)
+            if (value.Trim().Length == 0 || text.Height <= 0.0)
             {
                 return;
             }
@@ -1897,6 +1899,109 @@ namespace GeometryHelper.Dxf.Viewer
             left = start + (inkLeft * size);
             right = start + (inkRight * size);
             return true;
+        }
+
+        /// <summary>
+        /// How far below and above its baseline the ink of a text runs, as AutoCAD 2021's MIRROR measures it with MIRRTEXT 0
+        /// (probed in its console, mirror-insert GHMI1): in an SHX font by the strokes the display draws, in a TrueType font by
+        /// the outlines of its file. "Q1" of arial.ttf 1.5 high reaches below its baseline by the tail of its Q, so that it is
+        /// turned over about a line 0.705 above its baseline, not 0.75. False where the font's letters are not read, and where
+        /// the words have no ink.
+        /// </summary>
+        internal bool InkHeightOf(DxfDBText text, out double bottom, out double top)
+        {
+            bottom = double.MaxValue;
+            top = double.MinValue;
+            string value = CleanText(text.TextString, false);
+
+            if (value.Trim().Length == 0 || !(text.Height > 0.0))
+            {
+                return false;
+            }
+
+            CadFontFace face = FaceOf(text.TextStyleName);
+
+            if (face.Shx == null)
+            {
+                // A TrueType font only where the style names one: an SHX font the display has not, drawn in another, is not
+                // measured by that other, whose letters stand unlike the missing font's.
+                CadTextInk ink = CadTextInk.Of(face, false, false);
+
+                if (!ink.IsRead || !NamesTrueType(text.TextStyleName))
+                {
+                    return false;
+                }
+
+                int i = 0;
+
+                while (i < value.Length)
+                {
+                    CadTextInk.Letter letter = ink.Next(value, ref i);
+
+                    if (letter.HasInk)
+                    {
+                        bottom = Math.Min(bottom, letter.Bottom * text.Height);
+                        top = Math.Max(top, letter.Top * text.Height);
+                    }
+                }
+
+                return bottom <= top;
+            }
+
+            double factor = text.WidthFactor <= 0.0 ? 1.0 : text.WidthFactor;
+
+            foreach (
+                double[] stroke in ShxText.Strokes(
+                    face,
+                    value,
+                    0.0,
+                    0.0,
+                    text.Height,
+                    0.0,
+                    factor,
+                    0,
+                    0,
+                    0.0,
+                    false,
+                    0.0,
+                    out _
+                )
+            )
+            {
+                for (int p = 1; p < stroke.Length; p += 2)
+                {
+                    bottom = Math.Min(bottom, stroke[p]);
+                    top = Math.Max(top, stroke[p]);
+                }
+            }
+
+            return bottom <= top;
+        }
+
+        /// <summary>Whether a text style names a TrueType font: a file of .ttf, .ttc or .otf, or a typeface; false for one not found.</summary>
+        private bool NamesTrueType(string styleName)
+        {
+            try
+            {
+                DxfTextStyleTableRecord record = _database.TextStyleTable[
+                    string.IsNullOrEmpty(styleName) ? "Standard" : styleName
+                ];
+
+                if (record == null)
+                {
+                    return false;
+                }
+
+                string file = record.FileName ?? string.Empty;
+                return file.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)
+                    || file.EndsWith(".ttc", StringComparison.OrdinalIgnoreCase)
+                    || file.EndsWith(".otf", StringComparison.OrdinalIgnoreCase)
+                    || !string.IsNullOrEmpty(record.Font.TypeFace);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>The left and right of the strokes of some words in an SHX font, upright, from the point they are justified at; false where they have none.</summary>
