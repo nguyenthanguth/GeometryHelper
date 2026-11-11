@@ -402,7 +402,10 @@ to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Ta
 ([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. A
 click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor)):
 rows and columns put in and taken out, cells merged and unmerged, their alignment, fill and borders, the arrows moving
-the cell and Delete emptying it, each one undo step that draws the table anew in its block. Drawn anew, each row grows to
+the cell and Delete emptying it, each one undo step that draws the table anew in its block. A whole number typed in a
+cell is kept as a number, as AutoCAD 2021 reads a text it parses: 1 is the number 1 and 007 the number 7, so that the
+autofill counts on from it, while b1, 1.5 and 12mm, and a number in a cell made to hold text, stay text. Drawn anew,
+each row grows to
 hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's width less its margins, as an MTEXT of that
 width, and need their actual height and the margins above and below, one line of four thirds of the text height at
 least; a row is as high as its tallest cell needs and is never made lower. In AutoCAD's Standard, "HEA300 S355 with end
@@ -425,12 +428,18 @@ counts back, as AutoCAD 2021 fills them; a right click while dragging chooses Fi
 Formatting, Copy Cells, Copy Cells Without Formatting or Fill Formatting Only. A whole table selected has its move grip at
 the top left, a column grip at each line between columns, which moves the line with the table's width kept (with Ctrl
 the column left of it alone changes and the table follows), stretch grips for its width, its height and both, and the
-table breaking grip, drawn grey and not offered. A line dragged shows the new line dashed and "C width = 38.0000", or
-with dynamic input a field over the table that takes a width typed; Esc drops it, and each drag is one undo step
-(Autofill, Column Width, Row Height, Table Size). The right-click menu of cells is AutoCAD's: Background Fill…,
-Alignment, Remove All Property Overrides, Edit Text, Delete All Contents, Columns and Rows (Insert, Delete, Size
-Equally), Merge, Unmerge and Properties work; Cut, Copy, Paste, Cell Style, Borders…, Locking, Data Format…, Match
-Cell, Data Link…, Insert, Manage Content…, Resize and Quick Properties are grey.
+table breaking grip, drawn grey and not offered. A line dragged shows the new line dashed and "C width = 38.0000" or
+"Row 3 height = 15.0000", or with dynamic input a field over the table (left of it for a row) that takes the size typed;
+Esc drops it, and each drag is one undo step (Autofill, Column Width, Row Height, Table Size). The drags follow the
+object snaps, ORTHO and polar tracking from the grip, as the other grip drags do: with Endpoint on, a column's line
+dragged near the end of a line at 53 goes to 53, and with ORTHO the corner's stretch grip dragged right and a little down
+stretches the width alone. A table whose rows flow up is worked the same way from its first row at the bottom: the line
+over its fourth row dragged up 6 makes that row 6 higher, and a 1 dragged up three cells gives 2, 3 and 4. The
+right-click menu of cells is AutoCAD's: Background Fill…, Alignment, Remove All Property Overrides, Edit Text, Delete All
+Contents, Columns and Rows (Insert, Delete, Size Equally, Resize), Merge, Unmerge and Properties work; Cut, Copy, Paste,
+Cell Style, Borders…, Locking, Data Format…, Match Cell, Data Link…, Insert, Manage Content… and Quick Properties are
+grey. Columns › Resize and Rows › Resize start the drag of the selection's right (or bottom) line as though its edge grip
+had been clicked: the line follows the cursor, and a click, Enter or a size typed makes it.
 
 MLEADERSTYLE (MLS), and the last item of the multileader style box of the Annotate tab, show the Multileader Style
 Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadMLeaderStyleEditor)): Set Current, New…, Modify…

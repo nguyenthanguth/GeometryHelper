@@ -358,7 +358,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Item("Delete", () => DeleteColumnsCommand.Execute(null), !everyColumn),
                         Line(),
                         Item("Size Equally", () => SizeColumnsEquallyCommand.Execute(null), !oneColumn),
-                        Grey("Resize"),
+                        Item("Resize", () => _model.CellGripDragRequested?.Invoke(1), table != null),
                     }
                 ),
                 new CadMenuItemViewModel(
@@ -370,7 +370,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Item("Delete", () => DeleteRowsCommand.Execute(null), !everyRow),
                         Line(),
                         Item("Size Equally", () => SizeRowsEquallyCommand.Execute(null), !oneRow),
-                        Grey("Resize"),
+                        Item("Resize", () => _model.CellGripDragRequested?.Invoke(2), table != null),
                     }
                 ),
                 Line(),

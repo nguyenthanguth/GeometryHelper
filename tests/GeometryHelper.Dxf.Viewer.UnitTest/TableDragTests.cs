@@ -293,6 +293,80 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ATableWhoseRowsFlowUp_FindsItsCells_AndItsLinesAndAutofillGoUp()
+        {
+            CadDocument document = Metric();
+            string handle = Schedule(document);
+
+            // Mirrored in the line y = 0, the schedule's rows flow up from its point at the origin: the title from 0 to 11, the
+            // header to 20, the rows of data 9 high above it.
+            Entity<DxfTable>(document, handle).TransformBy(GeoTransform3.Scaling(1.0, -1.0, 1.0));
+            DxfTable table = Entity<DxfTable>(document, handle);
+            Assert.Equal(DxfFlowDirection.BottomToTop, table.FlowDirection);
+
+            Assert.True(CadTableEditor.CellNear(table, P(100, 25), out int row, out int column));
+            Assert.Equal((2, 1), (row, column));
+            Assert.True(CadTableEditor.CellNear(table, P(-50, -40), out row, out column));
+            Assert.Equal((0, 0), (row, column));
+            Assert.True(CadTableEditor.CellNear(table, P(900, 900), out row, out column));
+            Assert.Equal((5, 4), (row, column));
+
+            // The line over row 4, at 38, dragged up to 44: row 4 grows by 6.
+            CadTableDrag line = CadTableDrag.Row(document, handle, 4);
+            line.Update(P(100, 44), false);
+            Assert.Equal(15.0, line.Heights[3], 9);
+            Near(P(0, 44), line.Line[0]);
+            Near(P(317.5, 44), line.Line[1]);
+
+            // The title's own edge, at the bottom, dragged down 10: the title grows and the table moves down with its edge.
+            CadTableDrag first = CadTableDrag.Row(document, handle, 0);
+            first.Update(P(100, -10), false);
+            Assert.Equal(21.0, first.Heights[0], 9);
+            Assert.True(first.Commit().Succeeded);
+            table = Entity<DxfTable>(document, handle);
+            Assert.Equal(-10.0, table.Position.Y, 9);
+            Assert.Equal(21.0, table.RowHeight(0), 9);
+
+            // A 1 in A3, from 20 to 29, filled up into A6: 2, 3 and 4.
+            table.SetValue(2, 0, 1.0);
+            CadTableDrag fill = CadTableDrag.Autofill(document, handle, new DxfCellRange(2, 0, 2, 0));
+            fill.Update(P(30, 52), false);
+            Assert.Equal(new DxfCellRange(3, 0, 5, 0), fill.FillRange);
+            Assert.Equal(new[] { 2.0, 3.0, 4.0 }, fill.Values.Select(v => Number(v.Text)).ToArray());
+            Near(P(31.75, 51.5), fill.Values[2].Center);
+        }
+
+        [Fact]
+        public void AWholeNumberTypedInACell_IsKeptAsANumber_SoThatTheAutofillCountsOn()
+        {
+            CadDocument document = Metric();
+            string handle = Schedule(document);
+
+            // As AutoCAD 2021 reads a text it is given to parse (ConvertTextToValue): 1 a whole number, 007 the number 7.
+            Assert.True(CadTableEditor.SetText(document, handle, 2, 0, "1").Succeeded);
+            Assert.True(CadTableEditor.SetText(document, handle, 2, 1, " 007 ").Succeeded);
+            Assert.True(CadTableEditor.SetText(document, handle, 2, 2, "-3").Succeeded);
+            DxfTable table = Entity<DxfTable>(document, handle);
+            Assert.Equal(DxfDataType.Long, table.DataType(2, 0));
+            Assert.Equal("1", table.TextString(2, 0));
+            Assert.Equal("7", table.TextString(2, 1));
+            Assert.Equal(DxfDataType.Long, table.DataType(2, 2));
+
+            CadTableDrag drag = CadTableDrag.Autofill(document, handle, new DxfCellRange(2, 0, 2, 0));
+            drag.Update(P(30, -52), false);
+            Assert.Equal(new[] { 2.0, 3.0, 4.0 }, drag.Values.Select(v => Number(v.Text)).ToArray());
+
+            // Words stay words, and so does a number in a cell made to hold text.
+            Assert.True(CadTableEditor.SetText(document, handle, 3, 0, "b1").Succeeded);
+            Assert.Equal(DxfDataType.String, Entity<DxfTable>(document, handle).DataType(3, 0));
+            Entity<DxfTable>(document, handle).SetDataType(3, 1, DxfDataType.String, DxfUnitType.Unitless);
+            Assert.True(CadTableEditor.SetText(document, handle, 3, 1, "12").Succeeded);
+            Assert.Equal(DxfDataType.String, Entity<DxfTable>(document, handle).DataType(3, 1));
+            Assert.Equal("12", Entity<DxfTable>(document, handle).TextString(3, 1));
+            AssertReopens(document);
+        }
+
+        [Fact]
         public void RemoveOverrides_TakesTheCellsLooksBack_InOneUndoStep()
         {
             CadDocument document = Metric();

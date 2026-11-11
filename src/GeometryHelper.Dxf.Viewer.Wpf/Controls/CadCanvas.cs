@@ -4088,7 +4088,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 dc.DrawRectangle(null, BasePen, new Rect(from.X - 5.0, from.Y - 5.0, 10.0, 10.0));
             }
 
-            DrawTracking(dc, view, scale);
+            DrawTracking(dc, view, scale, Session?.Prompt?.BasePoint);
 
             if (_snapped != null && (Snap == null || Snap.ShowsMarker))
             {
@@ -4122,9 +4122,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The points acquired, as AutoCAD marks them: a small cross, 7 pixels across, a line acquired for Parallel by the
-        /// marker of Parallel; and the dotted paths of the snap to its point (an extension, a parallel, tracking lines).
+        /// marker of Parallel; and the dotted paths of the snap to its point (an extension, a parallel, tracking lines), polar
+        /// tracking's from the base point given.
         /// </summary>
-        private void DrawTracking(DrawingContext dc, CadView view, double scale)
+        private void DrawTracking(DrawingContext dc, CadView view, double scale, GeoPoint2? basePoint)
         {
             Pen pen = MarkerPen(Options.Background);
             ObjectSnap snap = Snap;
@@ -4160,8 +4161,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // Polar tracking: the alignment path from the base point through the cursor on to the edge of the view.
-            GeoPoint2? basePoint = Session?.Prompt?.BasePoint;
-
             if (_snapped.Kind == CadSnapKind.Polar && basePoint.HasValue)
             {
                 Point from = ToScreen(view, basePoint.Value, scale);

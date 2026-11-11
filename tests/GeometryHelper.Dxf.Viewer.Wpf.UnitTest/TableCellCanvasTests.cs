@@ -63,6 +63,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         CellGripPressed = grip => model.StartTableCellDrag(grip),
                         TableDragEnded = drag => model.EndTableDrag(drag),
                     };
+                    model.CellGripDragRequested = grip => canvas.DragCellGrip(grip);
                     canvas.PixelSizeChanged += (s, e) => model.SetCanvasSize(canvas.PixelWidth, canvas.PixelHeight);
                     canvas.Measure(new Size(Width, Height));
                     canvas.Arrange(new Rect(0, 0, Width, Height));
@@ -356,6 +357,179 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.False(Item("Rows").Items.Single(a => a.Header == "Delete").IsEnabled);
                     Assert.False(Item("Cell Style").IsEnabled);
                     Assert.False(Item("Insert").IsEnabled);
+                }
+            );
+        }
+
+        [Fact]
+        public void ColumnsAndRowsResize_StartTheDragOfTheCellsRightOrBottomLine_AndAClickMakesIt()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    Assert.True(model.SelectTableCellAt(new GeoPoint2(20, -25), false));
+                    CadMenuItemViewModel Resize(string parent) =>
+                        model.ShortcutMenu().First(m => m.Header == parent).Items.Single(a => a.Header == "Resize");
+                    Assert.True(Resize("Columns").IsEnabled);
+                    Assert.True(Resize("Rows").IsEnabled);
+
+                    // Columns › Resize on A3: the line right of A follows the cursor, and a click at 48 makes A 48 wide, the
+                    // columns right of it moving along, as a cell's edge grip does.
+                    Resize("Columns").Command.Execute(null);
+                    Assert.Equal(CadTableDragKind.ColumnLine, canvas.TableDrag.Kind);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 48, -25));
+                    Assert.Equal("A width = 48.0000", canvas.TableDrag.Tip);
+                    CanvasMouseTests.Click(canvas, At(canvas, 48, -25));
+                    Assert.Null(canvas.TableDrag);
+                    DxfTable table = (DxfTable)model.Document.FindEntity(handle);
+                    Assert.Equal(
+                        new[] { 48.0, 40.0, 40.0 },
+                        new[] { 0, 1, 2 }.Select(c => Math.Round(table.ColumnWidth(c), 6))
+                    );
+                    Assert.Equal("Column Width", model.Document.NextUndo.Name);
+
+                    // Rows › Resize: the line under row 3, at -29, dragged down to -35 makes row 3 15 high; Esc first drops it.
+                    Resize("Rows").Command.Execute(null);
+                    Assert.Equal(CadTableDragKind.RowLine, canvas.TableDrag.Kind);
+                    Assert.True(canvas.TableDragKey(Key.Escape));
+                    Assert.Null(canvas.TableDrag);
+                    Resize("Rows").Command.Execute(null);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 20, -35));
+                    Assert.Equal("Row 3 height = 15.0000", canvas.TableDrag.Tip);
+                    CanvasMouseTests.Click(canvas, At(canvas, 20, -35));
+                    Assert.Equal(15.0, ((DxfTable)model.Document.FindEntity(handle)).RowHeight(2), 6);
+                    Assert.Equal("Row Height", model.Document.NextUndo.Name);
+                }
+            );
+        }
+
+        [Fact]
+        public void TheDragsOfATable_FollowOsnapAndOrtho_AsTheOtherGripDragsDo()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    // A line below the table, its end at (53, -50).
+                    model.Execute("LINE");
+                    model.Execute("53,-50");
+                    model.Execute("53,-80");
+                    model.Escape();
+                    model.Snap.IsOn = true;
+                    model.Snap.Modes = CadSnapModes.Endpoint;
+                    model.Document.Selection.Set(new[] { handle });
+                    canvas.RenderNow();
+
+                    // The grip between A and B dragged near the line's end: the line of the columns goes to its 53.
+                    Point grip = At(canvas, 40, 0);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, grip);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, grip);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 52.6, -49.7));
+                    Assert.Equal(CadSnapKind.Endpoint, canvas.CurrentSnap.Kind);
+                    Assert.Equal("A width = 53.0000", canvas.TableDrag.Tip);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseUpEvent, At(canvas, 52.6, -49.7));
+                    Assert.Equal(53.0, ((DxfTable)model.Document.FindEntity(handle)).ColumnWidth(0), 6);
+
+                    // With ORTHO, the corner's stretch grip dragged right and a little down stretches the width alone.
+                    model.Snap.IsOn = false;
+                    model.Snap.Ortho = true;
+                    model.Document.Selection.Set(new[] { handle });
+                    canvas.RenderNow();
+                    Point corner = At(canvas, 120, -38);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, corner);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, corner);
+                    Assert.Equal(CadTableDragKind.Size, canvas.TableDrag.Kind);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 160, -45));
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseUpEvent, At(canvas, 160, -45));
+                    DxfTable table = (DxfTable)model.Document.FindEntity(handle);
+                    Assert.Equal(160.0, table.Width, 6);
+                    Assert.Equal(38.0, table.Height, 6);
+                }
+            );
+        }
+
+        [Fact]
+        public void ARowLineDragged_WithDynamicInput_ShowsTheHeightField_LeftOfTheTable_AndTakesAHeightTyped()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    canvas.DynamicInput = true;
+                    Assert.True(model.SelectTableCellAt(new GeoPoint2(20, -25), false));
+
+                    // The bottom edge grip of A3, at -29, dragged down to -35: a dimension 30 px left of the table from the row's
+                    // top line to the new line, the field of 15.0000 on it.
+                    Point grip = At(canvas, 20, -29);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, grip);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, grip);
+                    Assert.Equal(CadTableDragKind.RowLine, canvas.TableDrag.Kind);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 20, -35));
+                    Point middle = At(canvas, 0, -27.5);
+                    Dictionary<int, int> field = Colours(
+                        Pixels(canvas),
+                        new Point(middle.X - 30 - 12, middle.Y + 8),
+                        24,
+                        2
+                    );
+                    Assert.True(field.TryGetValue(0x1A1E24, out int fill) && fill > 20);
+
+                    // 12 typed, then Enter: row 3 is 12 high.
+                    Assert.True(canvas.TableDragKey(Key.D1));
+                    Assert.True(canvas.TableDragKey(Key.D2));
+                    Assert.True(canvas.TableDragKey(Key.Enter));
+                    Assert.Equal(12.0, ((DxfTable)model.Document.FindEntity(handle)).RowHeight(2), 6);
+                }
+            );
+        }
+
+        [Fact]
+        public void ATableWhoseRowsFlowUp_DrawsTheWidthField_OverTheColumnDragged()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    // Mirrored in y = 0, the rows flow up from the origin; the column line between A and B dragged to 48.
+                    var table = (DxfTable)model.Document.FindEntity(handle);
+                    table.TransformBy(GeoTransform3.Scaling(1.0, -1.0, 1.0));
+                    table.RecomputeTableBlock();
+                    Assert.Equal(DxfFlowDirection.BottomToTop, table.FlowDirection);
+                    canvas.DynamicInput = true;
+                    model.Document.Selection.Set(new[] { handle });
+                    canvas.RenderNow();
+                    Point grip = At(canvas, 40, 0);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, grip);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, grip);
+                    Assert.Equal(CadTableDragKind.ColumnLine, canvas.TableDrag.Kind);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 48, 0));
+
+                    // The field is on the dimension of A, from 0 to 48, 30 px off the edge the grips are on: its middle over 24.
+                    Point middle = At(canvas, 24, 0);
+                    Dictionary<int, int> field = Colours(
+                        Pixels(canvas),
+                        new Point(middle.X - 12, middle.Y + 30 + 8),
+                        24,
+                        2
+                    );
+                    Assert.True(field.TryGetValue(0x1A1E24, out int fill) && fill > 20);
+                    Assert.True(canvas.CancelGesture());
+                }
+            );
+        }
+
+        [Fact]
+        public void TableIndicator_IsKeptOnTheMachine_AndChangesNothingOfTheDrawing()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    // As AutoCAD 2021 keeps it, in the registry: set to 0 it left DBMOD 0, where LUPREC made it 4, and a
+                    // session after it read 0.
+                    model.Execute("TABLEINDICATOR");
+                    model.Execute("0");
+                    Assert.False(model.Settings.TableIndicator);
+                    Assert.Equal("TABLE", model.Document.NextUndo.Name);
+                    model.Execute("TABLEINDICATOR");
+                    model.Execute("1");
+                    Assert.True(model.Settings.TableIndicator);
                 }
             );
         }
