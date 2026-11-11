@@ -1570,6 +1570,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     OnFindRequested(e);
                     break;
                 case "XREF":
+                case "XOPEN":
                 case "XATTACH":
                 case "IMAGEATTACH":
                     OnXrefRequested(e);

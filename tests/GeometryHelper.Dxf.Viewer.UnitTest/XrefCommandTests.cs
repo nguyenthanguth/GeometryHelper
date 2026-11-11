@@ -285,6 +285,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Xopen_RefusesALineAsAutoCadDoes_ThenHandsTheWindowTheFileOfTheXrefPicked()
+        {
+            string grid = Grid();
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+            Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
+            string line = Assert.Single(All<DxfLine>(document.ModelSpace)).Handle;
+            string insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).Handle;
+            var opened = new List<string>();
+            Answer<string>(session, "XOPEN", opened.Add);
+
+            Run(session, "XOPEN", new[] { line }, new[] { insert });
+
+            Assert.Contains("Select Xref:", session.History);
+            Assert.Contains("Object is not an Xref", session.History);
+            Assert.Equal(new[] { Path.GetFullPath(grid) }, opened);
+            Assert.False(session.IsRunning);
+
+            // Enter ends it saying nothing; a file gone is refused as -XREF Reload refuses it.
+            int said = session.History.Count;
+            Run(session, "XOPEN", Enter);
+            Assert.Equal(new[] { "Command: XOPEN", "Select Xref:" }, session.History.Skip(said).ToArray());
+            File.Delete(grid);
+            Run(session, "XOPEN", new[] { insert });
+            Assert.Contains("\"..\\xref\\grid.dxf\" cannot be found.", session.History);
+            Assert.Single(opened);
+        }
+
+        [Fact]
         public void TheNewPathOfAReference_IsAskedUntilItNamesAFileFound_AndTheOldOneKeptOnEnter()
         {
             string grid = Grid();

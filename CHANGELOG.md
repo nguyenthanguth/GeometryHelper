@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** XOPEN in the presenter opens the drawing of an external reference picked in a tab of its own, as AutoCAD 2021
+opens it in a window of its own. It asks "Select Xref:"; a line picked is answered "Object is not an Xref" and the
+question asked again, and Enter ends it saying nothing, as AutoCAD 2021's console answers them. A pick on what a nested
+reference draws opens the reference the drawing places, and one whose file is gone is refused as -XREF Reload refuses
+it. The registry has 177 commands.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension

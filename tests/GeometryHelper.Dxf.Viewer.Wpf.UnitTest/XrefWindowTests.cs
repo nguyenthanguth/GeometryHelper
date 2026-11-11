@@ -124,6 +124,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void Xopen_OpensTheDrawingOfTheXrefPicked_InATabOfItsOwn()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Plan(folder, out string grid, out _);
+                CadDocument host = model.Document;
+
+                model.Execute("XOPEN");
+                model.Execute("500,0");
+
+                Assert.NotSame(host, model.Document);
+                Assert.Equal(Path.GetFullPath(grid), model.Document.FileName, StringComparer.OrdinalIgnoreCase);
+                Assert.Single(model.Document.Database.LayerTable, l => l.Name == "GRID");
+            }
+        }
+
+        [Fact]
         public void TheAttachDialog_ReadsTheFileChosen_AndOkAttachesItAtThePointTyped_AsOverlay()
         {
             using (var folder = new TestFolder())

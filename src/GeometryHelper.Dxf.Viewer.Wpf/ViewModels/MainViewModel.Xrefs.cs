@@ -96,7 +96,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>A request of the external reference commands: the palette or an attach dialog shown where the workspace shows them.</summary>
+        /// <summary>
+        /// A request of the external reference commands: the palette or an attach dialog shown where the workspace shows them,
+        /// or the drawing XOPEN picked opened in a tab of its own, as <see cref="Open(string)"/> opens a file.
+        /// </summary>
         private void OnXrefRequested(CadUiRequestEventArgs e)
         {
             switch (e.Name)
@@ -106,6 +109,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         ShowExternalReferences(new ExternalReferencesViewModel(this));
                         e.Handled = true;
+                    }
+
+                    break;
+                case "XOPEN":
+                    if (e.Payload is string path)
+                    {
+                        e.Handled = Open(path);
                     }
 
                     break;
