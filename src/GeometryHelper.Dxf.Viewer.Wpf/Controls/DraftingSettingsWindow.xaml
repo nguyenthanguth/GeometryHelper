@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Drafting Settings"
     Width="560"
-    Height="470"
+    Height="580"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -166,31 +166,378 @@
             </Border>
 
             <Grid Margin="16,14">
-                <!-- Snap and Grid: the snap grid on, its spacing along X and Y, and the grid shown. -->
-                <StackPanel Visibility="{Binding IsSnapAndGridTab, Converter={StaticResource Shown}}">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridSnapOn, Mode=TwoWay}" />
-                        <TextBlock Text="Snap On (F9)" VerticalAlignment="Center" />
+                <!-- Snap and Grid, as AutoCAD 2021's tab: the snap on with its spacing, PolarSnap's distance and the snap type
+                     on the left; the grid on, its dotted style, spacing and behavior on the right. A box refused is edged in
+                     red. -->
+                <Grid Visibility="{Binding IsSnapAndGridTab, Converter={StaticResource Shown}}">
+                    <Grid.Resources>
+                        <ResourceDictionary>
+                            <ResourceDictionary.MergedDictionaries>
+                                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+                            </ResourceDictionary.MergedDictionaries>
+
+                            <!-- Words beside a box or a check box, muted while greyed. -->
+                            <Style x:Key="Words" TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style x:Key="Row" TargetType="StackPanel">
+                                <Setter Property="Orientation" Value="Horizontal" />
+                                <Setter Property="Margin" Value="0,0,0,8" />
+                            </Style>
+
+                            <!-- The edge of a box: none, red while the box is the one refused. -->
+                            <Style x:Key="Edge" TargetType="Border">
+                                <Setter Property="Width" Value="100" />
+                                <Setter Property="Height" Value="24" />
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="CornerRadius" Value="2" />
+                                <Setter Property="BorderBrush" Value="Transparent" />
+                            </Style>
+
+                            <Style x:Key="SnapNumber" TargetType="TextBox" BasedOn="{StaticResource NumberBox}">
+                                <Setter Property="Width" Value="NaN" />
+                                <Setter Property="Padding" Value="7,3" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter Property="Background" Value="#22262D" />
+                                        <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ResourceDictionary>
+                    </Grid.Resources>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="262" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <StackPanel Style="{StaticResource Row}" Margin="0,0,0,2">
+                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridSnapOn, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Words}" Text="Snap On (F9)" />
+                        </StackPanel>
+                        <HeaderedContentControl
+                            Style="{StaticResource BlockGroup}"
+                            Header="Snap spacing"
+                            Margin="0,0,0,6"
+                        >
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditSnapX}">
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Snap X spacing:"
+                                        Width="104"
+                                        Margin="0,0,8,0"
+                                    />
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaultyBox}" Value="SnapX">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBox
+                                            x:Name="SnapXInput"
+                                            Style="{StaticResource SnapNumber}"
+                                            Text="{Binding SnapX}"
+                                            KeyDown="OnBoxKeyDown"
+                                            AutomationProperties.Name="Snap X spacing"
+                                        />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditSnapY}">
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Snap Y spacing:"
+                                        Width="104"
+                                        Margin="0,0,8,0"
+                                    />
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaultyBox}" Value="SnapY">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBox
+                                            x:Name="SnapYInput"
+                                            Style="{StaticResource SnapNumber}"
+                                            Text="{Binding SnapY}"
+                                            KeyDown="OnBoxKeyDown"
+                                            AutomationProperties.Name="Snap Y spacing"
+                                        />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" IsEnabled="{Binding CanEqualSpacing}">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsEqualSpacing, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Equal X and Y spacing" />
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl
+                            Style="{StaticResource BlockGroup}"
+                            Header="Polar spacing"
+                            Margin="0,0,0,6"
+                        >
+                            <StackPanel Orientation="Horizontal" IsEnabled="{Binding CanEditPolarDistance}">
+                                <TextBlock
+                                    Style="{StaticResource Words}"
+                                    Text="Polar distance:"
+                                    Width="104"
+                                    Margin="0,0,8,0"
+                                />
+                                <Border>
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FaultyBox}" Value="PolarDistance">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource GhError}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBox
+                                        x:Name="PolarDistanceInput"
+                                        Style="{StaticResource SnapNumber}"
+                                        Text="{Binding PolarDistance}"
+                                        KeyDown="OnBoxKeyDown"
+                                        AutomationProperties.Name="Polar distance"
+                                    />
+                                </Border>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Snap type">
+                            <StackPanel>
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Grid snap"
+                                    GroupName="SnapType"
+                                    IsChecked="{Binding IsGridSnapType, Mode=TwoWay}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Rectangular snap"
+                                    GroupName="SnapStyle"
+                                    Margin="20,0,0,6"
+                                    IsEnabled="{Binding CanChooseSnapStyle}"
+                                    IsChecked="{Binding IsRectangularSnap, Mode=TwoWay}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Isometric snap"
+                                    GroupName="SnapStyle"
+                                    Margin="20,0,0,6"
+                                    IsEnabled="{Binding CanChooseSnapStyle}"
+                                    IsChecked="{Binding IsIsometricSnap, Mode=TwoWay}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="PolarSnap"
+                                    GroupName="SnapType"
+                                    Margin="0"
+                                    IsChecked="{Binding IsPolarSnapType, Mode=TwoWay}"
+                                />
+                            </StackPanel>
+                        </HeaderedContentControl>
                     </StackPanel>
-                    <TextBlock
-                        Style="{StaticResource Label}"
-                        Text="Snap spacing"
-                        FontWeight="SemiBold"
-                        Margin="0,4,0,8"
-                    />
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Style="{StaticResource Label}" Text="Snap X spacing:" Width="110" />
-                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding SnapX}" KeyDown="OnBoxKeyDown" />
+
+                    <StackPanel Grid.Column="2">
+                        <StackPanel Style="{StaticResource Row}" Margin="0,0,0,2">
+                            <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridOn, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource Words}" Text="Grid On (F7)" />
+                        </StackPanel>
+                        <HeaderedContentControl
+                            Style="{StaticResource BlockGroup}"
+                            Header="Grid style"
+                            Margin="0,0,0,6"
+                        >
+                            <StackPanel>
+                                <TextBlock
+                                    Text="Display dotted grid in:"
+                                    Foreground="{StaticResource GhIcon}"
+                                    Margin="0,0,0,6"
+                                />
+                                <StackPanel Style="{StaticResource Row}" Margin="12,0,0,6">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsDottedInModel, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="2D model space" />
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource Row}" Margin="12,0,0,6">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsDottedInBlockEditor, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Block editor" />
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource Row}" Margin="12,0,0,0">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsDottedInLayout, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Sheet/Layout" />
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl
+                            Style="{StaticResource BlockGroup}"
+                            Header="Grid spacing"
+                            Margin="0,0,0,6"
+                        >
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource Row}" IsEnabled="{Binding CanEditGridX}">
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Grid X spacing:"
+                                        Width="104"
+                                        Margin="0,0,8,0"
+                                    />
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaultyBox}" Value="GridX">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBox
+                                            x:Name="GridXInput"
+                                            Style="{StaticResource SnapNumber}"
+                                            Text="{Binding GridX}"
+                                            KeyDown="OnBoxKeyDown"
+                                            AutomationProperties.Name="Grid X spacing"
+                                        />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource Row}">
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Grid Y spacing:"
+                                        Width="104"
+                                        Margin="0,0,8,0"
+                                    />
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaultyBox}" Value="GridY">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBox
+                                            x:Name="GridYInput"
+                                            Style="{StaticResource SnapNumber}"
+                                            Text="{Binding GridY}"
+                                            KeyDown="OnBoxKeyDown"
+                                            AutomationProperties.Name="Grid Y spacing"
+                                        />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Major line every:"
+                                        Width="104"
+                                        Margin="0,0,8,0"
+                                    />
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource Edge}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FaultyBox}" Value="MajorLineEvery">
+                                                        <Setter
+                                                            Property="BorderBrush"
+                                                            Value="{StaticResource GhError}"
+                                                        />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBox
+                                            x:Name="MajorLineEveryInput"
+                                            Style="{StaticResource SnapNumber}"
+                                            Text="{Binding MajorLineEvery}"
+                                            KeyDown="OnBoxKeyDown"
+                                            AutomationProperties.Name="Major line every"
+                                        />
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Grid behavior">
+                            <StackPanel>
+                                <StackPanel Style="{StaticResource Row}" Margin="0,0,0,6">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsAdaptiveGrid, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Adaptive grid" />
+                                </StackPanel>
+                                <!-- Its words wrap, as the column is narrower than they are. -->
+                                <DockPanel Margin="20,0,0,6" IsEnabled="{Binding CanSubdivide}">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        VerticalAlignment="Top"
+                                        Margin="0,1,8,0"
+                                        IsChecked="{Binding IsSubdividing, Mode=TwoWay}"
+                                    />
+                                    <TextBlock
+                                        Style="{StaticResource Words}"
+                                        Text="Allow subdivision below grid spacing"
+                                        TextWrapping="Wrap"
+                                    />
+                                </DockPanel>
+                                <StackPanel Style="{StaticResource Row}" Margin="0,0,0,6">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsBeyondLimits, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Display grid beyond Limits" />
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource Row}" Margin="0">
+                                    <CheckBox
+                                        Style="{StaticResource Check}"
+                                        IsChecked="{Binding IsFollowingUcs, Mode=TwoWay}"
+                                    />
+                                    <TextBlock Style="{StaticResource Words}" Text="Follow Dynamic UCS" />
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <TextBlock Style="{StaticResource Label}" Text="Snap Y spacing:" Width="110" />
-                        <TextBox Style="{StaticResource NumberBox}" Text="{Binding SnapY}" KeyDown="OnBoxKeyDown" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <CheckBox Style="{StaticResource Check}" IsChecked="{Binding IsGridOn, Mode=TwoWay}" />
-                        <TextBlock Text="Grid On (F7)" VerticalAlignment="Center" />
-                    </StackPanel>
-                </StackPanel>
+                </Grid>
 
                 <!-- Polar Tracking: on; the increment, the additional angles with New and Delete; how tracking runs and how
                      angles are measured (POLARANG, POLARADDANG, POLARMODE). -->

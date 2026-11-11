@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,6 +26,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DialogResult = ok;
                 }
             };
+            model.PropertyChanged += OnModelChanged;
         }
 
         /// <summary>Gets the view model.</summary>
@@ -81,6 +83,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (Model.IsTypingAngle && !Model.KeepNewAngle() && IsActive)
             {
                 Dispatcher.BeginInvoke(new Action(() => NewAngleBox.Focus()));
+            }
+        }
+
+        /// <summary>A box of Snap and Grid refused by Apply or OK: the caret put in it, its text chosen.</summary>
+        private void OnModelChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (
+                e.PropertyName != nameof(DraftingSettingsViewModel.FaultyBox)
+                || Model.FaultyBox.Length == 0
+                || !IsLoaded
+            )
+            {
+                return;
+            }
+
+            if (FindName(Model.FaultyBox + "Input") is TextBox box)
+            {
+                Dispatcher.BeginInvoke(
+                    new Action(() =>
+                    {
+                        box.Focus();
+                        box.SelectAll();
+                    })
+                );
             }
         }
 

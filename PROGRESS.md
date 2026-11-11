@@ -210,7 +210,8 @@ the ones wanted.
       `$ORTHOMODE`, LWDISPLAY from `$LWDISPLAY`, each tab its own; written back on switch (S)
 - [x] Status bar follow-ups: SNAPBASE, SNAPANG and GRIDMAJOR read but not applied to snapping and the grid; isometric
       snap (SNAPSTYL 1) (S). DECIDED by the user 2026-11-11: GRID off and LWDISPLAY on stay the defaults
-- [ ] Snap follow-ups: SNAP Style/Aspect/Type options (RibbonTests asserts the old prompt); GRID command's spacing and Major/aDaptive/Limits/Follow/Aspect; Drafting Settings Snap and Grid tab controls for isometric, grid major and snap angle (needs design; isometric Y shown as stored 2.5 where AutoCAD shows 5); OTRACK lines following SNAPANG and the isoplane; LWDISPLAY echo <OFF> and keywords; SNAPMODE 2 accepted by AutoCAD (S)
+- [x] Drafting Settings Snap and Grid tab (designed) and PolarSnap
+- [ ] Snap follow-ups: SNAP Style/Aspect/Type options (RibbonTests asserts the old prompt); GRID command's spacing and Major/aDaptive/Limits/Follow/Aspect; PolarSnap along tracking paths; the canvas drawing by GRIDSTYLE (dots) and GRIDDISPLAY bits; SETVAR of SNAPUNIT, GRIDUNIT, POLARDIST, SNAPTYPE, GRIDSTYLE, GRIDDISPLAY with AutoCAD's texts; iso to rectangular in the dialog (AutoCAD sets X = Y = 2 x stored Y); OTRACK lines following SNAPANG and the isoplane; LWDISPLAY echo <OFF> and keywords; SNAPMODE 2 accepted by AutoCAD (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)

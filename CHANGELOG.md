@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The Snap and Grid tab of the presenter's Drafting Settings as AutoCAD 2021's, the dialog now 560 by 580 on every
+tab: Snap X and Y spacing with Equal X and Y spacing, Polar distance (POLARDIST), Grid snap or PolarSnap (SNAPTYPE),
+Rectangular or Isometric snap (SNAPSTYL), the dotted grid of Grid style (GRIDSTYLE), Grid X and Y spacing (GRIDUNIT),
+Major line every (GRIDMAJOR) and Grid behavior (GRIDDISPLAY 1, 2, 4 and 8), each greyed where AutoCAD greys it. With the
+isometric snap the Y boxes show twice what the drawing keeps, so a snap of 8.6603 by 2.5 shows 5. OK writes the values
+changed, the drawing's into its `*Active` viewport, SNAPTYPE, POLARDIST and GRIDSTYLE into the settings file; a box
+refused is edged in red and nothing is written. PolarSnap works: with SNAP on, a point held on a polar angle is taken a
+whole number of POLARDIST from the base point (250 takes a cursor 619.7 along to 500), the snap X spacing where POLARDIST
+is nought. Checked in AutoCAD 2021's console: a new drawing has SNAPUNIT and GRIDUNIT 0.5 (acad.dwt) or 10 (acadiso.dwt),
+GRIDDISPLAY 3, GRIDMAJOR 5, and SNAPTYPE, POLARDIST and GRIDSTYLE 0; GRIDUNIT takes -1,1 as 1,1. `ObjectSnap.PolarSnap`,
+`ObjectSnap.PolarDistance`, `GlobalSettings.PolarSnap`, `GlobalSettings.PolarDistance` and `GlobalSettings.GridStyle` are
+new.
+
 **NEW.** The presenter applies SNAPBASE, SNAPANG and GRIDMAJOR of the drawing's `*Active` viewport, which it read and
 left alone: the snap grid is laid from SNAPBASE and turned by SNAPANG (a snap of 10 turned by 30 degrees puts the cursor at
 (9, 4) on (8.6603, 5)), ortho holds the cursor along the turned axes, the polar angles are counted from SNAPANG, the
