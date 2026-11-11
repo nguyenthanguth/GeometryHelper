@@ -108,6 +108,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Snap.Modes = _settings.Snaps;
             Snap.PolarAngle = _settings.PolarAngle * Math.PI / 180.0;
             ApplyPolarMode(_settings.PolarMode);
+            Snap.PolarSnap = _settings.PolarSnap;
+            Snap.PolarDistance = _settings.PolarDistance;
             // GRID and the lineweights are a drawing's own where it has them; the settings' only where it has none.
             foreach (KnownFile file in _files.Values.Where(f => f.Document != null))
             {

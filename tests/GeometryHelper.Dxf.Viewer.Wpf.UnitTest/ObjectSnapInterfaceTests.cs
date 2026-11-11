@@ -146,6 +146,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("The snap spacing must be a number above nought.", dialog.Notice);
             Assert.Null(closed);
 
+            dialog.IsEqualSpacing = false;
             dialog.SnapX = "25";
             dialog.SnapY = "12.5";
             dialog.IncrementAngle = "45";

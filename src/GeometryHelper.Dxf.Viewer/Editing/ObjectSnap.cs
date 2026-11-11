@@ -381,8 +381,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool ShowsTrackingTip { get; set; } = true;
 
-        /// <summary>Gets or sets whether the cursor is put on the snap grid (SNAP, F9).</summary>
+        /// <summary>
+        /// Gets or sets whether the cursor is put on the snap grid (SNAP, F9), or, while <see cref="PolarSnap"/> is on, on
+        /// steps along the polar angles.
+        /// </summary>
         public bool GridSnap { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether SNAP steps along the polar angles in place of the grid, as AutoCAD's SNAPTYPE 1 (PolarSnap):
+        /// off until set, as SNAPTYPE 0. With SNAP and POLAR on, the cursor held on a polar angle from the base point is put
+        /// at a whole number of <see cref="PolarDistance"/> from it, so that with a distance of 25 a cursor 37 along the
+        /// level line from (0, 0) is put at (25, 0); off a polar angle, or with POLAR off, the cursor goes free.
+        /// </summary>
+        public bool PolarSnap { get; set; }
+
+        /// <summary>
+        /// Gets or sets the step of <see cref="PolarSnap"/>, as AutoCAD's POLARDIST: nought, as until set, steps by
+        /// <see cref="GridX"/>, the snap X spacing.
+        /// </summary>
+        public double PolarDistance { get; set; }
 
         /// <summary>Gets or sets the spacing of the snap grid along X; 10 until set.</summary>
         public double GridX { get; set; }
@@ -463,7 +480,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadSnapKind kind = CadSnapKind.None;
             bool turned = IsTurned();
 
-            if (GridSnap && GridX > 0.0 && GridY > 0.0)
+            if (GridSnap && !PolarSnap && GridX > 0.0 && GridY > 0.0)
             {
                 point =
                     Isoplane.HasValue ? OnIsometricGrid(point)
@@ -509,6 +526,14 @@ namespace GeometryHelper.Dxf.Viewer
                     // The cursor is held on the polar ray only when it comes within the aperture of it, as AutoCAD tracks it.
                     if (length > 0.0 && off <= aperture)
                     {
+                        // PolarSnap: the distance along the ray taken to a whole number of steps, as AutoCAD's SNAPTYPE 1.
+                        double step = PolarDistance > 0.0 ? PolarDistance : GridX;
+
+                        if (GridSnap && PolarSnap && step > 0.0)
+                        {
+                            along = Math.Round(along / step, MidpointRounding.AwayFromZero) * step;
+                        }
+
                         point = new GeoPoint2(from.X + along * Math.Cos(held), from.Y + along * Math.Sin(held));
                         kind = CadSnapKind.Polar;
                     }

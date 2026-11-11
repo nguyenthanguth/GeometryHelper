@@ -110,6 +110,8 @@ namespace GeometryHelper.Dxf.Viewer
         private double _polarAngle = 90.0;
         private int _polarMode;
         private string _polarAddedAngles = string.Empty;
+        private double _polarDistance;
+        private int _gridStyle;
         private double _wheelZoomFactor = 1.2;
         private string _preset = "Assembly";
         private string _sheetSize = "A2";
@@ -302,6 +304,34 @@ namespace GeometryHelper.Dxf.Viewer
                         "The additional polar angles are up to ten angles parted by semicolons: " + value + ".",
                         nameof(value)
                     );
+        }
+
+        /// <summary>
+        /// Gets or sets whether SNAP steps along the polar angles in place of the grid, as AutoCAD's SNAPTYPE 1 (PolarSnap);
+        /// off by default, as SNAPTYPE 0 (Grid snap).
+        /// </summary>
+        public bool PolarSnap { get; set; }
+
+        /// <summary>
+        /// Gets or sets the step of PolarSnap in drawing units, as AutoCAD's POLARDIST: nought or above; nought by default,
+        /// when the snap X spacing is the step.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is below nought or not finite.</exception>
+        public double PolarDistance
+        {
+            get => _polarDistance;
+            set => _polarDistance = Range(value, 0.0, double.MaxValue, nameof(PolarDistance));
+        }
+
+        /// <summary>
+        /// Gets or sets the bits of AutoCAD's GRIDSTYLE, 0 to 7: the grid drawn as dots in 1 model space, 2 the Block Editor and
+        /// 4 the layouts, as lines where its bit is clear; 0 by default, lines everywhere.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int GridStyle
+        {
+            get => _gridStyle;
+            set => _gridStyle = (int)Range(value, 0, 7, nameof(GridStyle));
         }
 
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
@@ -839,6 +869,9 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("polarAngle", _polarAngle);
             w.Value("polarMode", _polarMode);
             w.Value("polarAddedAngles", _polarAddedAngles);
+            w.Value("polarSnap", PolarSnap);
+            w.Value("polarDistance", _polarDistance);
+            w.Value("gridStyle", _gridStyle);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
             w.Value("selectByDragging", SelectByDragging);
             w.Value("dynamicInput", DynamicInput);
@@ -1070,6 +1103,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("canvas", "polarAngle", v => _s.PolarAngle = v);
                 Number("canvas", "polarMode", v => _s.PolarMode = Whole(v));
                 Text("canvas", "polarAddedAngles", v => _s.PolarAddedAngles = v);
+                Flag("canvas", "polarSnap", v => _s.PolarSnap = v);
+                Number("canvas", "polarDistance", v => _s.PolarDistance = v);
+                Number("canvas", "gridStyle", v => _s.GridStyle = Whole(v));
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
                 Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
                 Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);

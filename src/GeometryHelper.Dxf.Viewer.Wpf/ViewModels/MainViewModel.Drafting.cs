@@ -7,10 +7,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The drafting toggles AutoCAD keeps in the drawing, so that each open drawing shows its own as AutoCAD 2021 does: SNAP
     /// and GRID with their spacing, base point, angle, major lines and isometric plane from the <c>*Active</c> viewport
-    /// (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR), ORTHO from
-    /// <c>$ORTHOMODE</c> and the lineweights from <c>$LWDISPLAY</c>. A drawing that has no such value takes the window's:
-    /// SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switched, each is written into the
-    /// drawing, as AutoCAD saves it. POLAR, OTRACK, OSNAP and DYN stay the window's, as AutoCAD keeps them in the registry.
+    /// (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR, GRIDDISPLAY), ORTHO
+    /// from <c>$ORTHOMODE</c> and the lineweights from <c>$LWDISPLAY</c>. A drawing that has no such value takes the
+    /// window's: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switched, each is written
+    /// into the drawing, as AutoCAD saves it. POLAR, OTRACK, OSNAP, DYN, SNAPTYPE, POLARDIST and GRIDSTYLE stay the
+    /// window's, as AutoCAD keeps them in the registry.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -129,6 +130,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 state.GridMajor = active.GridMajor;
                 state.Isometric = active.IsometricSnapEnabled;
                 state.Isoplane = active.SnapPair;
+                state.GridDisplay = active.GridDisplay;
             }
 
             if (document.Database.GetHeader("$ORTHOMODE") != null)
@@ -269,6 +271,56 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseDrafting();
         }
 
+        /// <summary>The grid spacing as the drawing shown holds it (GRIDUNIT), nought along an axis that takes the snap's; 10 by 10 with none.</summary>
+        internal GeoVector2 GridUnit => new GeoVector2(Layout.GridX, Layout.GridY);
+
+        /// <summary>How the drawing shown draws its grid (GRIDDISPLAY): 3 where it has none, or none is open.</summary>
+        internal int GridDisplay => Layout.GridDisplay;
+
+        /// <summary>
+        /// The grid spacing set by Drafting Settings: kept for the drawing shown as its GRIDUNIT, nought along an axis taking
+        /// the snap's spacing there, and the grid drawn by it.
+        /// </summary>
+        internal void SetGridSpacing(double x, double y) =>
+            ChangeDrafting(
+                "GRIDUNIT",
+                s =>
+                {
+                    s.GridX = x;
+                    s.GridY = y;
+                },
+                a => a.GridIncrements = new GeoVector2(x, y)
+            );
+
+        /// <summary>SNAPSTYL set by Drafting Settings: the isometric snap on or off, its spacing kept as it is, as SNAPSTYL typed keeps it.</summary>
+        internal void SetIsometricSnap(bool on) =>
+            ChangeDrafting("SNAPSTYL", s => s.Isometric = on, a => a.IsometricSnapEnabled = on);
+
+        /// <summary>GRIDMAJOR set by Drafting Settings: a major line every so many lines of the grid.</summary>
+        internal void SetGridMajor(int every) =>
+            ChangeDrafting("GRIDMAJOR", s => s.GridMajor = every, a => a.GridMajor = every);
+
+        /// <summary>GRIDDISPLAY set by Drafting Settings: kept for the drawing shown, as AutoCAD saves it there.</summary>
+        internal void SetGridDisplay(int bits) =>
+            ChangeDrafting("GRIDDISPLAY", s => s.GridDisplay = bits, a => a.GridDisplay = bits);
+
+        /// <summary>SNAPTYPE set by Drafting Settings: PolarSnap or the grid; the window keeps it in the settings file, as AutoCAD keeps it in the registry.</summary>
+        internal void SetPolarSnap(bool on)
+        {
+            Snap.PolarSnap = on;
+            ChangeSettings(s => s.PolarSnap = on);
+        }
+
+        /// <summary>POLARDIST set by Drafting Settings: the step of PolarSnap, nought for the snap X spacing; kept in the settings file.</summary>
+        internal void SetPolarDistance(double distance)
+        {
+            Snap.PolarDistance = distance;
+            ChangeSettings(s => s.PolarDistance = distance);
+        }
+
+        /// <summary>GRIDSTYLE set by Drafting Settings: kept in the settings file, as AutoCAD keeps it in the registry.</summary>
+        internal void SetGridStyle(int bits) => ChangeSettings(s => s.GridStyle = bits);
+
         /// <summary>
         /// LWDISPLAY set: the drawing shown draws its lineweights or not and keeps it in <c>$LWDISPLAY</c>, as AutoCAD saves it;
         /// with no drawing open, Global settings keep it, as before a drawing gives its own.
@@ -346,6 +398,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public bool Isometric { get; set; }
 
             public int Isoplane { get; set; }
+
+            public int GridDisplay { get; set; } = 3;
         }
     }
 }
