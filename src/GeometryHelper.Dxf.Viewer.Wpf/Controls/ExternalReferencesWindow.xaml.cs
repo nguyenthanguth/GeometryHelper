@@ -85,7 +85,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _document.Changed -= OnDocumentChanged;
                 _document.Xrefs.FilesChanged -= OnFilesChanged;
-                _document.Xrefs.WatchFiles = false;
+
+                // The window's own watch, which announces a change on the command line, is left on.
+                _document.Xrefs.WatchFiles = _model?.WatchReferenceFiles == true;
             }
 
             _document = document;

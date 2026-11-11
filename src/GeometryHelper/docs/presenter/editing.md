@@ -150,7 +150,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 176 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 177 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -168,7 +168,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -425,8 +425,28 @@ A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
 and picks as the INSERT. [`document.Xrefs`](xref:GeometryHelper.Dxf.Viewer.CadXrefManager) lists each reference and image
 with its status: Loaded, Unloaded, Not Found, Unresolved, Unreferenced, or Needs reloading once its file changed on disk.
+Each reference the drawing places is followed by those its drawing attaches, nested, its overlays left out as AutoCAD
+leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
+under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
+Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The window
+watches the folders of the files read; one changed on disk is said once on its drawing's command line, where AutoCAD
+2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
+-XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file
+changed anew.
 Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
-not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. IMAGEATTACH
+not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
+"Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
+an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
+reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
+2021 changes it under VISRETAIN 1: on, frozen, locked, colour, linetype and lineweight, from the Layer manager, the layer
+box or -LAYER, each change marked in the 1071 of the record's `AcXRefLayerPropertyOverride` as AutoCAD marks it (1 Off,
+2 Freeze, 4 Lock, 16 and 256 Color, 32 Ltype, 64 LWeight). What is marked is drawn as the drawing keeps it, the rest as
+the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
+as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
+"Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
+`"grid|X" is an invalid layer name.` (-LAYER New). The presenter writes no such record when it attaches a file; one
+attached in it has its layers drawn, but not listed. IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by

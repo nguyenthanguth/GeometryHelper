@@ -560,7 +560,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>-LAYER: AutoCAD's options on the command line, stAte among them, until Enter.</summary>
+        /// <summary>
+        /// -LAYER: AutoCAD's options on the command line, stAte among them, until Enter. A layer of an external reference
+        /// (<c>grid|WALL</c>) is switched on and off, frozen, thawed, locked and unlocked, as AutoCAD 2021's -LAYER does, and
+        /// Set refuses it in AutoCAD 2021's words: "Invalid layer name.".
+        /// </summary>
         private static IEnumerable<CadPrompt> LayerTyped(CadCommandContext c)
         {
             string[] options = { "Set", "New", "ON", "OFF", "Freeze", "Thaw", "LOck", "Unlock", "stAte" };
@@ -622,7 +626,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     switch (option)
                     {
-                        case "Set": result = CadLayerEditor.SetCurrent(c.Document, name); break;
+                        case "Set":
+                            result = c.Database.LayerTable.Has(name) && c.Database.LayerTable[name].IsDependent
+                                ? CadEditResult.Refuse("Invalid layer name.")
+                                : CadLayerEditor.SetCurrent(c.Document, name);
+                            break;
                         case "New": result = CadLayerEditor.Add(c.Document, name); break;
                         case "ON": result = CadLayerEditor.SetOn(c.Document, name, true); break;
                         case "OFF": result = CadLayerEditor.SetOn(c.Document, name, false); break;

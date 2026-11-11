@@ -225,6 +225,37 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ANestedReference_IsListedUnderItsParent_OrphanedWhileItIsUnloaded_AndAutoCadsRecordOfItIsNotUnreferenced()
+        {
+            Grid("column");
+            Grid("survey");
+            string plan = Grid("plan", d =>
+            {
+                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 5000, 0), d.AttachXref("column.dxf", "column")));
+                d.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 9000, 0), d.OverlayXref("survey.dxf", "survey")));
+            });
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+            Run(session, "-XREF", "A", plan, P(0, 0), Enter, Enter, Enter);
+
+            // AutoCAD keeps a record of the nested reference in the drawing, which no INSERT of the drawing places.
+            document.Database.AttachXref("..\\xref\\column.dxf", "column");
+
+            IReadOnlyList<CadExternalReference> rows = document.Xrefs.GetReferences();
+            Assert.Equal(new[] { "plan Loaded", "column Loaded" }, rows.Select(r => r.ToString()).ToArray());
+            Assert.Equal(new[] { 0, 1 }, rows.Select(r => r.Depth).ToArray());
+            Assert.Equal("plan", rows[1].ParentName);
+            Assert.True(rows[1].IsNested);
+            Assert.Equal(Path.Combine(_folder, "xref", "column.dxf"), rows[1].FoundAt);
+
+            Run(session, "-XREF", "U", "plan");
+            Assert.Equal(new[] { "plan Unloaded", "column Orphaned" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+            Run(session, "-XREF", "R", "plan");
+            File.Delete(Path.Combine(_folder, "xref", "column.dxf"));
+            Assert.Equal(new[] { "plan Loaded", "column Not Found" }, document.Xrefs.GetReferences().Select(r => r.ToString()).ToArray());
+        }
+
+        [Fact]
         public void ADrawingThatReferencesItself_IsDrawnOnce()
         {
             string loop = Path.Combine(_folder, "xref", "loop.dxf");
@@ -282,6 +313,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("\"grid\" loaded.", session.History);
             Assert.Equal(CadReferenceStatus.Loaded, Assert.Single(document.Xrefs.GetReferences()).Status);
             Assert.Equal(2, Items<DisplayArc2>(document).Count);
+        }
+
+        [Fact]
+        public void Xopen_RefusesALineAsAutoCadDoes_ThenHandsTheWindowTheFileOfTheXrefPicked()
+        {
+            string grid = Grid();
+            CadDocument document = Host();
+            CadCommandSession session = Session(document);
+            Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
+            string line = Assert.Single(All<DxfLine>(document.ModelSpace)).Handle;
+            string insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).Handle;
+            var opened = new List<string>();
+            Answer<string>(session, "XOPEN", opened.Add);
+
+            Run(session, "XOPEN", new[] { line }, new[] { insert });
+
+            Assert.Contains("Select Xref:", session.History);
+            Assert.Contains("Object is not an Xref", session.History);
+            Assert.Equal(new[] { Path.GetFullPath(grid) }, opened);
+            Assert.False(session.IsRunning);
+
+            // Enter ends it saying nothing; a file gone is refused as -XREF Reload refuses it.
+            int said = session.History.Count;
+            Run(session, "XOPEN", Enter);
+            Assert.Equal(new[] { "Command: XOPEN", "Select Xref:" }, session.History.Skip(said).ToArray());
+            File.Delete(grid);
+            Run(session, "XOPEN", new[] { insert });
+            Assert.Contains("\"..\\xref\\grid.dxf\" cannot be found.", session.History);
+            Assert.Single(opened);
         }
 
         [Fact]

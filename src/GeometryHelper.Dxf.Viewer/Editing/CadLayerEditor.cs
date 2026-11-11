@@ -9,6 +9,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public static class CadLayerEditor
     {
+        // The characters AutoCAD refuses in the name of a layer; | joins an external reference's name to its layer's.
+        private static readonly char[] InvalidNameCharacters = { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', '=', '`' };
+
         /// <summary>Gets whether a layer of the drawing is locked; false for a layer it has not.</summary>
         /// <param name="database">The drawing.</param>
         /// <param name="name">The layer's name.</param>
@@ -24,7 +27,10 @@ namespace GeometryHelper.Dxf.Viewer
             return layer != null && layer.IsLocked;
         }
 
-        /// <summary>Makes a layer current, as the layer box does; a frozen layer is refused, as AutoCAD refuses it.</summary>
+        /// <summary>
+        /// Makes a layer current, as the layer box does; a frozen layer is refused, as AutoCAD refuses it, and a layer of an
+        /// external reference (<c>grid|WALL</c>) in the words AutoCAD 2021 refuses CLAYER set to one.
+        /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The layer's name.</param>
         /// <returns>What came of it.</returns>
@@ -35,6 +41,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (layer == null)
             {
                 return refused;
+            }
+
+            if (layer.IsDependent)
+            {
+                return Refuse("Cannot set CLAYER to that value.");
             }
 
             if (layer.IsFrozen)
@@ -50,7 +61,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Adds a layer of the colour White (7) and the linetype Continuous, as AutoCAD's New layer.</summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The name.</param>
-        /// <returns>What came of it; refused where the drawing has a layer of the name, either case.</returns>
+        /// <returns>
+        /// What came of it; refused where the drawing has a layer of the name, either case, and where the name holds a
+        /// character AutoCAD refuses in one, the | of a layer of an external reference among them, in AutoCAD 2021's words:
+        /// <c>"b|X" is an invalid layer name.</c>
+        /// </returns>
         public static CadEditResult Add(CadDocument document, string name)
         {
             if (document == null)
@@ -64,6 +79,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string trimmed = name.Trim();
+
+            if (trimmed.IndexOfAny(InvalidNameCharacters) >= 0)
+            {
+                return Refuse("\"" + trimmed + "\" is an invalid layer name.");
+            }
 
             if (document.Database.LayerTable.Has(trimmed))
             {
@@ -87,7 +107,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
-            return Set(document, layer, "On", !layer.IsOff, on, l => l.IsOff = !on);
+            return Set(document, layer, "On", !layer.IsOff, on, CadXrefLayers.Off, l => l.IsOff = !on);
         }
 
         /// <summary>Freezes or thaws a layer; the current layer is not frozen, as AutoCAD refuses it.</summary>
@@ -109,7 +129,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return Refuse("Cannot freeze layer \"" + layer.Name + "\".  It is the CURRENT layer.");
             }
 
-            return Set(document, layer, "Freeze", layer.IsFrozen, frozen, l => l.IsFrozen = frozen);
+            return Set(document, layer, "Freeze", layer.IsFrozen, frozen, CadXrefLayers.Frozen, l => l.IsFrozen = frozen);
         }
 
         /// <summary>Locks or unlocks a layer: the objects on a locked layer are drawn but not changed.</summary>
@@ -126,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return refused;
             }
 
-            return Set(document, layer, "Lock", layer.IsLocked, locked, l => l.IsLocked = locked);
+            return Set(document, layer, "Lock", layer.IsLocked, locked, CadXrefLayers.Locked, l => l.IsLocked = locked);
         }
 
         /// <summary>Gives a layer a colour of AutoCAD's index, 1 to 255; a true colour it had is taken out, as AutoCAD's index colour does.</summary>
@@ -175,7 +195,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             string layerName = layer.Name;
             var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Color of " + layerName, layer.Color.ToString(), color.ToString()) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].Color = color);
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Color, l => l.Color = color));
         }
 
         /// <summary>
@@ -252,7 +272,7 @@ namespace GeometryHelper.Dxf.Viewer
             string set = document.Database.LinetypeTable[wanted].Name;
             string layerName = layer.Name;
             var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Linetype of " + layerName, layer.LinetypeName, set) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].LinetypeName = set);
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.Linetype, l => l.LinetypeName = set));
         }
 
         /// <summary>Gives a layer a lineweight: Default, or one of AutoCAD's widths; ByLayer and ByBlock are refused, as a layer cannot take them.</summary>
@@ -276,14 +296,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             string layerName = layer.Name;
             var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Lineweight of " + layerName, layer.LineWeight.ToString(), lineWeight.ToString()) { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => s.Database.LayerTable[layerName].LineWeight = lineWeight);
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], CadXrefLayers.LineWeight, l => l.LineWeight = lineWeight));
         }
 
-        private static CadEditResult Set(CadDocument document, DxfLayerTableRecord layer, string what, bool old, bool value, Action<DxfLayerTableRecord> write)
+        private static CadEditResult Set(CadDocument document, DxfLayerTableRecord layer, string what, bool old, bool value, int overrideBits, Action<DxfLayerTableRecord> write)
         {
             string layerName = layer.Name;
             var record = new CadEditRecord(CadEditRecordKind.TableChanged, null, what + " " + layerName, old ? "Yes" : "No", value ? "Yes" : "No") { IsLayerLook = true };
-            return document.ApplyEdit("LAYER", new[] { record }, s => write(s.Database.LayerTable[layerName]));
+            return document.ApplyEdit("LAYER", new[] { record }, s => Write(s.Database.LayerTable[layerName], overrideBits, write));
+        }
+
+        /// <summary>
+        /// Changes a layer; one of an external reference also keeps that the drawing changed it, as AutoCAD 2021 keeps it
+        /// under VISRETAIN 1 (<see cref="CadXrefLayers"/>), so that the property is read from the drawing, the rest from the
+        /// drawing referenced.
+        /// </summary>
+        private static void Write(DxfLayerTableRecord layer, int overrideBits, Action<DxfLayerTableRecord> write)
+        {
+            write(layer);
+            CadXrefLayers.Mark(layer, overrideBits);
         }
 
         private static DxfLayerTableRecord Find(CadDocument document, string name, out CadEditResult refused)

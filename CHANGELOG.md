@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's window says on a drawing's command line when a file one of its external references was read
+from changes on disk, where AutoCAD 2021 shows a balloon over its status bar (XREFNOTIFY 2): "External Reference Files
+Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette." Each change is
+said once, and again only after the reference was reloaded and its file changed anew. The files were watched only while
+the External References palette was open, to refresh it. **NEW.** `MainViewModel.WatchReferenceFiles`, which the
+workspace sets.
+
+**NEW.** The External References palette of the presenter lists nested external references as AutoCAD 2021's does: a
+reference the drawing places is followed by those its drawing attaches, of the type Nested in the list view, under their
+parent and of their own type in the tree view, each level 16 pixels further in. A nested reference whose parent is
+unloaded, not found or unresolved stands Orphaned; nested overlays are left out, as AutoCAD loads none. The record
+AutoCAD writes in the host for a nested reference (`c` beside `b`, which no INSERT of the host places, as its console
+showed for a host attaching `b.dwg` that attaches `c.dwg`) was listed as Unreferenced; it is listed under its parent alone.
+**NEW.** `CadExternalReference.Depth`, `ParentName`, `IsNested` and `CadReferenceStatus.Orphaned`; `--dialog xref` and
+`xref-tree` draw the palette in screenshot mode. **FIXED.** The palette's names were drawn in the system's black on its
+dark rows; they are drawn in the text colour.
+
+**NEW.** XOPEN in the presenter opens the drawing of an external reference picked in a tab of its own, as AutoCAD 2021
+opens it in a window of its own. It asks "Select Xref:"; a line picked is answered "Object is not an Xref" and the
+question asked again, and Enter ends it saying nothing, as AutoCAD 2021's console answers them. A pick on what a nested
+reference draws opens the reference the drawing places, and one whose file is gone is refused as -XREF Reload refuses
+it. The registry has 177 commands.
+
+**FIXED.** A layer of an external reference the drawing keeps a record of (`grid|GRID`, as AutoCAD writes it) is drawn
+as AutoCAD 2021 draws it under VISRETAIN 1: what the drawing changed of it as the drawing keeps it, the rest as the file
+referenced has it now. The presenter drew the record whole, so a layer the file made blue after AutoCAD saved the drawing
+stayed green. AutoCAD, probed in its console with -LAYER on `b|WALL` and the drawing written out, marks each change in
+the 1071 of the record's `AcXRefLayerPropertyOverride`: 1 Off, 2 Freeze, 4 Lock, 8 Plot, 16 and 256 Color, 32 Ltype, 64
+LWeight, 128 TRansparency, 1024 Description, 0 for a layer left as it was. The Layer manager, the layer box and -LAYER
+now change such a layer and mark it so, and a change of it in the drawing draws its INSERT anew, which it did not.
+**CHANGED.** The current layer refuses a layer of an external reference with "Cannot set CLAYER to that value.", and
+-LAYER Set with "Invalid layer name.", as AutoCAD 2021 refuses them; a new layer named with a character AutoCAD refuses,
+`grid|X` among them, is refused with `"grid|X" is an invalid layer name.`
+
 **NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
 and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
 vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new
