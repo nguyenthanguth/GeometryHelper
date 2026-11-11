@@ -24,9 +24,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// DIMLINEAR and DIMALIGNED: two origins (or a line selected), then where the line goes. DIM gives the first origin it
-        /// was answered with as <paramref name="first"/>, and the command goes on from there.
+        /// was answered with as <paramref name="first"/>, and the last point before it as <paramref name="lastBefore"/>, and the
+        /// command goes on from there. A perpendicular or a tangent snapped at the first origin is drawn from the last point given
+        /// before it, as AutoCAD 2021 draws it, and tied with that point as its last point.
         /// </summary>
-        private static IEnumerable<CadPrompt> DimLine(CadCommandContext c, bool aligned, GeoPoint2? first = null)
+        private static IEnumerable<CadPrompt> DimLine(CadCommandContext c, bool aligned, GeoPoint2? first = null, GeoPoint2? lastBefore = null)
         {
             DxfDimStyleTableRecord style = DimStyle(c);
 
@@ -36,9 +38,11 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            GeoPoint2 last = lastBefore ?? c.Session.LastPoint;
+
             if (!first.HasValue)
             {
-                yield return CadPrompt.ForPoint("Specify first extension line origin or", null, null, "select object");
+                yield return CadPrompt.ForPoint("Specify first extension line origin or", null, null, "select object").SnappingFrom(last);
             }
 
             GeoPoint2 p1;
@@ -49,7 +53,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 p1 = first ?? c.Input.Point;
                 // DIM gives its own answer as the first origin, whose snap is still the input here.
-                tied[0] = CadDimAssociation.FromSnap(c.Document, 0, c.Input.Snap);
+                tied[0] = CadDimAssociation.FromSnap(c.Document, 0, c.Input.Snap, last);
                 yield return CadPrompt.ForPoint("Specify second extension line origin", p1);
 
                 if (!c.Input.IsPoint)
@@ -440,7 +444,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.IsNone)
             {
-                yield return CadPrompt.ForPoint("Specify angle vertex");
+                // A perpendicular or a tangent at the vertex is drawn from the last point, at the ends from the vertex, each
+                // tied with the point it was drawn from, as AutoCAD 2021 ties them.
+                GeoPoint2 last = c.Session.LastPoint;
+                yield return CadPrompt.ForPoint("Specify angle vertex").SnappingFrom(last);
 
                 if (!c.Input.IsPoint)
                 {
@@ -448,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 vertex = c.Input.Point;
-                snapped[2] = CadDimAssociation.FromSnap(c.Document, 2, c.Input.Snap);
+                snapped[2] = CadDimAssociation.FromSnap(c.Document, 2, c.Input.Snap, last);
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -460,7 +467,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     points[i] = c.Input.Point;
-                    snapped[i] = CadDimAssociation.FromSnap(c.Document, i, c.Input.Snap);
+                    snapped[i] = CadDimAssociation.FromSnap(c.Document, i, c.Input.Snap, vertex, snapped[2]);
                 }
             }
             else

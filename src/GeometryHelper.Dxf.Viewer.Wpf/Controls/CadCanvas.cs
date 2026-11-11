@@ -1950,7 +1950,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (pointing)
             {
-                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
+                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
             }
 
             GeoPoint2 band = pointing ? BandEnd(cursor) : cursor;
@@ -2039,7 +2039,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (!pointing)
                 {
-                    _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
+                    _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
                 }
 
                 SetHover(null);
@@ -2134,7 +2134,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            _snapped = CadPicking.Snap(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint);
+            _snapped = CadPicking.Snap(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint, session.Prompt.SnapFrom);
             InvalidateVisual();
             return true;
         }
@@ -2198,7 +2198,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // A field of dynamic input that holds a number gives the point, the click its direction or its distance.
             bool control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
             GeoPoint2? fields = HeldAt != null && CadPicking.WantsPoint(Session)
-                ? HeldAt(CadPicking.Snap(document, WorkSpace, Snap, at, aperture, Session.Prompt.BasePoint)?.Point ?? at, true)
+                ? HeldAt(CadPicking.Snap(document, WorkSpace, Snap, at, aperture, Session.Prompt.BasePoint, Session.Prompt.SnapFrom)?.Point ?? at, true)
                 : null;
 
             if (fields.HasValue ? Session.Feed(fields.Value, false, control) : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control))

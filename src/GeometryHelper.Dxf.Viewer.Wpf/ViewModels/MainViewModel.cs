@@ -795,7 +795,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
-            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint);
+            return CadPicking.Snap(_current.Document, Space, Snap, point, aperture, _current.Session.Prompt.BasePoint, _current.Session.Prompt.SnapFrom);
         }
 
         /// <summary>Selects nothing.</summary>

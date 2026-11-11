@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Associative dimensions in the presenter tie the PERpendicular and TANgent snaps at a first origin, on polylines,
+and in angles of three points and ordinates, as AutoCAD 2021 ties them. At a first extension line origin, an angle's
+vertex and an ordinate's feature, the two snaps are drawn from the last point given (LASTPOINT), which the new
+`CadPrompt.SnapFrom` hands the window's snap through `ObjectSnap.Snap`; the ends of an angle of three points are drawn
+from its vertex and tied with the vertex's own tie as their last point. A polyline's segment is tied by its marker (91, or
+92 for the second object of an intersection), a point on its arc by its angle counted on from the arc's start: AutoCAD
+2021, probed in its console, wrote the end of a half circle from (100, 200) to (100, 300) as marker 2 and 7.85398 and its
+center as 4.71239, and a line drawn across the third segment as 332 the polyline and 92 = 3. A moved object takes its
+points where AutoCAD takes them: a tangent drawn again from its point; a perpendicular drawn again where its point is tied
+to an object, else kept at its parameter, or, past the end of its line, at the foot from the origin of the world, so a
+first origin drawn from (37, 123) square to (100, -20)-(100, 60) goes to (120, 0) when the line moves by (20, 7). The
+dimension line of a linear dimension stays as far beyond the nearer origin as it was, 50 for an end of the line dragged
+from (100, 0) to (120, 30) with the line 20 above. A drawing of 16 dimensions so tied, made here and opened in AutoCAD
+2021, has no errors in AUDIT, and after the same moves and stretches in both every tied point is where AutoCAD puts it on
+its own drawing, to 1E-3; AutoCAD's file read here follows the same way.
+
+**FIXED.** STRETCH in the presenter moves the origins and the line point of a linear dimension that lie inside its
+window, and keeps the height of a polyline's arc off its chord when one end moves, as AutoCAD 2021 does. It left the
+dimension to its tie, and kept the arc's bulge: the half circle from (100, 200) to (100, 300) whose end goes to
+(100, 320) now takes a bulge of 100 / 120, its center at (89, 260) where AutoCAD puts it, not (100, 260).
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
