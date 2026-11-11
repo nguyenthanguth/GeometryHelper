@@ -580,7 +580,7 @@ it does not, which is then neither drawn nor picked; an object drawn in the edit
 view of the block, no undo step. RESETBLOCK puts the dynamic block references selected back to their blocks' own values,
 one undo step, and says `2 blocks reset.`, counting every block reference selected as AutoCAD 2021 counts them.
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
-where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
+where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, ISOPLANE, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
 [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.

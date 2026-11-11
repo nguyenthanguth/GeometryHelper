@@ -139,6 +139,23 @@ namespace GeometryHelper.Dxf.Viewer
         ExtendedApparentIntersection,
     }
 
+    /// <summary>
+    /// The isometric plane of an isometric snap, as AutoCAD's SNAPISOPAIR: Left 0 on the 90 and 150 degree axes, Top 1 on the
+    /// 30 and 150 degree axes, Right 2 on the 30 and 90 degree axes. Ortho holds the cursor on the two axes of the plane, and
+    /// the crosshair and the grid are drawn along them.
+    /// </summary>
+    public enum CadIsoplane
+    {
+        /// <summary>The left plane, on the 90 and 150 degree axes.</summary>
+        Left = 0,
+
+        /// <summary>The top plane, on the 30 and 150 degree axes.</summary>
+        Top = 1,
+
+        /// <summary>The right plane, on the 30 and 90 degree axes.</summary>
+        Right = 2,
+    }
+
     /// <summary>The point a snap gave, which snap gave it and, for an object snap, the object.</summary>
     public sealed class CadSnapResult
     {
@@ -314,9 +331,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets whether the polar angles are counted from the last segment drawn (<see cref="LastSegment"/>), as
-        /// AutoCAD's POLARMODE 1 (Relative to last segment): off until set, when they are counted from the X axis of the UCS,
-        /// as they are where no segment has been drawn. With a polar angle of 90 and the last line drawn at 30 degrees, the
-        /// cursor is held at 30, 120, 210 and 300 degrees from the base point.
+        /// AutoCAD's POLARMODE 1 (Relative to last segment): off until set, when they are counted from the X axis of the UCS
+        /// turned by <see cref="SnapAngle"/>, as they are where no segment has been drawn. With a polar angle of 90 and the
+        /// last line drawn at 30 degrees, the cursor is held at 30, 120, 210 and 300 degrees from the base point.
         /// </summary>
         public bool PolarFromLastSegment { get; set; }
 
@@ -377,6 +394,23 @@ namespace GeometryHelper.Dxf.Viewer
         public GeoPoint2 GridOrigin { get; set; } = GeoPoint2.Origin;
 
         /// <summary>
+        /// Gets or sets the angle the snap grid is turned by about <see cref="GridOrigin"/>, in radians from the X axis of
+        /// <see cref="Ucs"/>, as AutoCAD's SNAPANG; nought until set. Ortho holds the cursor along the turned axes and the
+        /// polar angles are counted from it, as AutoCAD's are. With a snap of 10 turned by 30 degrees, the cursor at (9, 4)
+        /// is put on (8.6603, 5), the point 10 along the turned X axis.
+        /// </summary>
+        public double SnapAngle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the plane of an isometric snap, as AutoCAD's SNAPSTYL 1 with SNAPISOPAIR; null, as until set, for the
+        /// rectangular snap of SNAPSTYL 0. The snap points then lie where the 30, 90 and 150 degree lines cross, twice
+        /// <see cref="GridY"/> apart along each, as AutoCAD keeps half the vertical spacing in the drawing: SNAP Style
+        /// Isometric 5 keeps a spacing of 8.6603 by 2.5, and the points lie 5 apart. Ortho holds the cursor on the two axes of
+        /// the plane, whether the snap grid is on or not.
+        /// </summary>
+        public CadIsoplane? Isoplane { get; set; }
+
+        /// <summary>
         /// Gets or sets the user coordinate system the grid, ortho and polar tracking follow, as AutoCAD's do: the grid runs
         /// along its axes, ortho holds the cursor along them, and polar angles are measured from its X axis. Object snaps give
         /// world points whatever it is. The world until set; null sets the world.
@@ -427,13 +461,19 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 point = ucs.ToUcs(cursor);
             basePoint = basePoint.HasValue ? ucs.ToUcs(basePoint.Value) : basePoint;
             CadSnapKind kind = CadSnapKind.None;
+            bool turned = IsTurned();
 
             if (GridSnap && GridX > 0.0 && GridY > 0.0)
             {
-                point = new GeoPoint2(
-                    GridOrigin.X + Math.Round((point.X - GridOrigin.X) / GridX, MidpointRounding.AwayFromZero) * GridX,
-                    GridOrigin.Y + Math.Round((point.Y - GridOrigin.Y) / GridY, MidpointRounding.AwayFromZero) * GridY
-                );
+                point =
+                    Isoplane.HasValue ? OnIsometricGrid(point)
+                    : turned ? OnTurnedGrid(point)
+                    : new GeoPoint2(
+                        GridOrigin.X
+                            + Math.Round((point.X - GridOrigin.X) / GridX, MidpointRounding.AwayFromZero) * GridX,
+                        GridOrigin.Y
+                            + Math.Round((point.Y - GridOrigin.Y) / GridY, MidpointRounding.AwayFromZero) * GridY
+                    );
                 kind = CadSnapKind.Grid;
             }
 
@@ -446,7 +486,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (Ortho)
                 {
                     point =
-                        Math.Abs(dx) >= Math.Abs(dy) ? new GeoPoint2(point.X, from.Y) : new GeoPoint2(from.X, point.Y);
+                        turned || Isoplane.HasValue ? OnOrthoAxis(from, point)
+                        : Math.Abs(dx) >= Math.Abs(dy) ? new GeoPoint2(point.X, from.Y)
+                        : new GeoPoint2(from.X, point.Y);
                     kind = CadSnapKind.Ortho;
                 }
                 else if (Polar && PolarAngle > Tolerance.EqualAngleRad)
@@ -457,8 +499,9 @@ namespace GeometryHelper.Dxf.Viewer
                     double along = length * Math.Cos(angle - held);
                     double off = Math.Abs(length * Math.Sin(angle - held));
 
-                    // POLARMODE 1 and 4: the angles counted from the last segment, and the additional angles, the nearest kept.
-                    if (RelativeTurn().HasValue || AdditionalPolarAngles.Count > 0)
+                    // POLARMODE 1 and 4: the angles counted from the last segment, and the additional angles, the nearest
+                    // kept; SNAPANG: the angles counted from the snap's.
+                    if (turned || RelativeTurn().HasValue || AdditionalPolarAngles.Count > 0)
                     {
                         NearestPolar(angle, length, ref held, ref along, ref off);
                     }
@@ -477,7 +520,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The angle, in the UCS, the polar angles are counted from while <see cref="PolarFromLastSegment"/> is on: that of the
-        /// last segment drawn; null where it is off or no segment has been drawn, when they are counted from the X axis.
+        /// last segment drawn; null where it is off or no segment has been drawn, when they are counted from
+        /// <see cref="SnapAngle"/>.
         /// </summary>
         private double? RelativeTurn()
         {
@@ -490,6 +534,108 @@ namespace GeometryHelper.Dxf.Viewer
             return way.Length > Tolerance.EqualVector ? Math.Atan2(way.Y, way.X) : (double?)null;
         }
 
+        /// <summary>Whether the snap is turned by <see cref="SnapAngle"/>: by more than the tolerance of angles either way of a whole turn.</summary>
+        private bool IsTurned() => Math.Abs(Math.IEEERemainder(SnapAngle, 2.0 * Math.PI)) > Tolerance.EqualAngleRad;
+
+        /// <summary>A point of the UCS on the snap grid turned by <see cref="SnapAngle"/> about <see cref="GridOrigin"/>: the nearest corner.</summary>
+        private GeoPoint2 OnTurnedGrid(GeoPoint2 point)
+        {
+            double cos = Math.Cos(SnapAngle);
+            double sin = Math.Sin(SnapAngle);
+            double dx = point.X - GridOrigin.X;
+            double dy = point.Y - GridOrigin.Y;
+            double u = Math.Round((dx * cos + dy * sin) / GridX, MidpointRounding.AwayFromZero) * GridX;
+            double v = Math.Round((dy * cos - dx * sin) / GridY, MidpointRounding.AwayFromZero) * GridY;
+            return new GeoPoint2(GridOrigin.X + u * cos - v * sin, GridOrigin.Y + u * sin + v * cos);
+        }
+
+        /// <summary>
+        /// A point of the UCS on the isometric snap grid: the nearest of the points where the 30, 90 and 150 degree lines,
+        /// turned by <see cref="SnapAngle"/> about <see cref="GridOrigin"/>, cross, a side of twice <see cref="GridY"/> apart.
+        /// The point lies in a triangle of three of them, so the nearest is a corner of the cell of the 30 and 150 degree
+        /// steps it falls in; the first of the four, in the order tried, where two lie as near.
+        /// </summary>
+        private GeoPoint2 OnIsometricGrid(GeoPoint2 point)
+        {
+            double side = 2.0 * GridY;
+            double half = Math.Sqrt(3.0) / 2.0;
+            double cos = Math.Cos(SnapAngle);
+            double sin = Math.Sin(SnapAngle);
+            double dx = point.X - GridOrigin.X;
+            double dy = point.Y - GridOrigin.Y;
+            double x = dx * cos + dy * sin;
+            double y = dy * cos - dx * sin;
+
+            // The steps along 30 degrees (s) and 150 degrees (t): x = side * cos30 * (s - t), y = side / 2 * (s + t).
+            double across = x / (side * half);
+            double up = 2.0 * y / side;
+            double s0 = Math.Floor((up + across) / 2.0);
+            double t0 = Math.Floor((up - across) / 2.0);
+            double bestX = 0.0;
+            double bestY = 0.0;
+            double best = double.PositiveInfinity;
+
+            for (int k = 0; k < 4; k++)
+            {
+                double s = s0 + (k & 1);
+                double t = t0 + (k >> 1);
+                double cx = side * half * (s - t);
+                double cy = side / 2.0 * (s + t);
+                double far = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+
+                if (far < best)
+                {
+                    best = far;
+                    bestX = cx;
+                    bestY = cy;
+                }
+            }
+
+            return new GeoPoint2(GridOrigin.X + bestX * cos - bestY * sin, GridOrigin.Y + bestX * sin + bestY * cos);
+        }
+
+        /// <summary>
+        /// The cursor held by ortho on the axis through the base point nearest its way, the point taken square onto it: the
+        /// axes of the snap turned by <see cref="SnapAngle"/>, or of the isometric plane; the first where both lie as near.
+        /// </summary>
+        private GeoPoint2 OnOrthoAxis(GeoPoint2 from, GeoPoint2 point)
+        {
+            double first;
+            double second;
+
+            switch (Isoplane)
+            {
+                case CadIsoplane.Left:
+                    first = Math.PI / 2.0;
+                    second = 5.0 * Math.PI / 6.0;
+                    break;
+                case CadIsoplane.Top:
+                    first = Math.PI / 6.0;
+                    second = 5.0 * Math.PI / 6.0;
+                    break;
+                case CadIsoplane.Right:
+                    first = Math.PI / 6.0;
+                    second = Math.PI / 2.0;
+                    break;
+                default:
+                    first = 0.0;
+                    second = Math.PI / 2.0;
+                    break;
+            }
+
+            double dx = point.X - from.X;
+            double dy = point.Y - from.Y;
+            double ux = Math.Cos(SnapAngle + first);
+            double uy = Math.Sin(SnapAngle + first);
+            double vx = Math.Cos(SnapAngle + second);
+            double vy = Math.Sin(SnapAngle + second);
+            double onU = dx * ux + dy * uy;
+            double onV = dx * vx + dy * vy;
+            return Math.Abs(onU) >= Math.Abs(onV)
+                ? new GeoPoint2(from.X + onU * ux, from.Y + onU * uy)
+                : new GeoPoint2(from.X + onV * vx, from.Y + onV * vy);
+        }
+
         /// <summary>
         /// The polar ray nearest the cursor's angle from the base point, among the multiples of the increment counted from the
         /// last segment (<see cref="RelativeTurn"/>) and the additional angles (<see cref="AdditionalPolarAngles"/>): the angle
@@ -498,7 +644,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private void NearestPolar(double angle, double length, ref double held, ref double along, ref double off)
         {
-            double turn = RelativeTurn() ?? 0.0;
+            double turn = RelativeTurn() ?? (IsTurned() ? SnapAngle : 0.0);
             held = turn + Math.Round((angle - turn) / PolarAngle, MidpointRounding.AwayFromZero) * PolarAngle;
             along = length * Math.Cos(angle - held);
             off = Math.Abs(length * Math.Sin(angle - held));

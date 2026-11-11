@@ -182,6 +182,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new PropertyMetadata(10.0, OnSceneChanged)
         );
 
+        /// <summary>Identifies the <see cref="GridMajor"/> property.</summary>
+        public static readonly DependencyProperty GridMajorProperty = DependencyProperty.Register(
+            nameof(GridMajor),
+            typeof(int),
+            typeof(CadCanvas),
+            new PropertyMetadata(5, OnSceneChanged)
+        );
+
+        /// <summary>Identifies the <see cref="SnapBase"/> property.</summary>
+        public static readonly DependencyProperty SnapBaseProperty = DependencyProperty.Register(
+            nameof(SnapBase),
+            typeof(GeoPoint2),
+            typeof(CadCanvas),
+            new PropertyMetadata(GeoPoint2.Origin, OnSceneChanged)
+        );
+
+        /// <summary>Identifies the <see cref="SnapAngle"/> property.</summary>
+        public static readonly DependencyProperty SnapAngleProperty = DependencyProperty.Register(
+            nameof(SnapAngle),
+            typeof(double),
+            typeof(CadCanvas),
+            new PropertyMetadata(0.0, OnSceneChanged)
+        );
+
+        /// <summary>Identifies the <see cref="Isoplane"/> property.</summary>
+        public static readonly DependencyProperty IsoplaneProperty = DependencyProperty.Register(
+            nameof(Isoplane),
+            typeof(CadIsoplane?),
+            typeof(CadCanvas),
+            new PropertyMetadata(null, OnSceneChanged)
+        );
+
         /// <summary>Identifies the <see cref="DynamicInput"/> property.</summary>
         public static readonly DependencyProperty DynamicInputProperty = DependencyProperty.Register(
             nameof(DynamicInput),
@@ -433,8 +465,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets or sets whether model space shows the grid (GRID, F7): lines across and up a little lighter than the
-        /// background, every fifth a little stronger as AutoCAD's major lines, under the drawing, every
-        /// <see cref="GridSpacing"/> units or, where those would come closer than 6 pixels, every 5, 10, 50, 100 times that.
+        /// background, a major line every <see cref="GridMajor"/> a little stronger as AutoCAD's, under the drawing, every
+        /// <see cref="GridSpacing"/> units or, where those would come closer than 6 pixels, at the major lines alone, then 2,
+        /// 5, 2 and on times them: every 5, 10, 50, 100 times the spacing with a GRIDMAJOR of 5.
         /// </summary>
         public bool ShowGrid
         {
@@ -528,6 +561,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => SetValue(GridSpacingYProperty, value);
         }
 
+        /// <summary>
+        /// Gets or sets how many lines of the grid lie between its major lines, as AutoCAD's GRIDMAJOR; 5 by default. A grid of
+        /// 10 with 4 draws a stronger line every 40 units.
+        /// </summary>
+        public int GridMajor
+        {
+            get => (int)GetValue(GridMajorProperty);
+            set => SetValue(GridMajorProperty, value);
+        }
+
+        /// <summary>Gets or sets the point the grid is laid from, in the coordinates of the UCS, as AutoCAD's SNAPBASE; the origin by default.</summary>
+        public GeoPoint2 SnapBase
+        {
+            get => (GeoPoint2)GetValue(SnapBaseProperty);
+            set => SetValue(SnapBaseProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the angle the grid and the crosshair are turned by, in radians from the X axis of the UCS, as AutoCAD's
+        /// SNAPANG; nought by default.
+        /// </summary>
+        public double SnapAngle
+        {
+            get => (double)GetValue(SnapAngleProperty);
+            set => SetValue(SnapAngleProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the plane of an isometric snap, as AutoCAD's SNAPISOPAIR while SNAPSTYL is 1: the grid is drawn on the
+        /// two axes of the plane, its lines through points twice <see cref="GridSpacingY"/> apart, and the crosshair along
+        /// them; null, by default, for the rectangular grid and crosshair.
+        /// </summary>
+        public CadIsoplane? Isoplane
+        {
+            get => (CadIsoplane?)GetValue(IsoplaneProperty);
+            set => SetValue(IsoplaneProperty, value);
+        }
+
         /// <summary>Gets how the space is drawn: background, paper and selection colours, the entity under the cursor.</summary>
         public CanvasOptions Options { get; } = new CanvasOptions();
 
@@ -588,7 +659,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="spacing">The spacing asked, in drawing units.</param>
         /// <param name="leastPixels">The least distance between lines, in pixels.</param>
         /// <returns>The spacing drawn, in drawing units; 0 where the spacing or the zoom is not above nought.</returns>
-        public static double GridStep(double pixelsPerUnit, double spacing, double leastPixels)
+        public static double GridStep(double pixelsPerUnit, double spacing, double leastPixels) =>
+            AdaptiveStep(pixelsPerUnit, spacing, leastPixels, 5);
+
+        /// <summary>
+        /// The spacing the grid is drawn at with a major line every so many: the spacing asked, then the major lines alone,
+        /// then 2, 5, 2 and on times that, the first whose lines lie at least a number of pixels apart; with 5, as
+        /// <see cref="GridStep"/> gives.
+        /// </summary>
+        private static double AdaptiveStep(double pixelsPerUnit, double spacing, double leastPixels, int major)
         {
             if (!(spacing > 0.0) || !(pixelsPerUnit > 0.0))
             {
@@ -599,7 +678,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             for (int i = 0; step * pixelsPerUnit < leastPixels && i < 60; i++)
             {
-                step *= i % 2 == 0 ? 5.0 : 2.0;
+                step *=
+                    i == 0 && major > 1 ? major
+                    : i % 2 == 0 ? 5.0
+                    : 2.0;
             }
 
             return step;
@@ -802,6 +884,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ShowGrid,
                     GridSpacing,
                     GridSpacingY,
+                    GridMajor,
+                    SnapBase.X,
+                    SnapBase.Y,
+                    SnapAngle,
+                    Isoplane,
                     paper.MinX,
                     paper.MinY,
                     paper.MaxX,
@@ -1630,13 +1717,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The grid's lines, across and up, put into the picture of the drawing only where it shows the background, so that
-        /// they lie under the drawing: one pixel wide, 8 per cent lighter than the background, every fifth from the origin 18
-        /// per cent lighter, as AutoCAD draws its major lines.
+        /// they lie under the drawing: one pixel wide, 8 per cent lighter than the background, a major line every
+        /// <see cref="GridMajor"/> from the base point 18 per cent lighter, as AutoCAD draws its major lines; turned by
+        /// <see cref="SnapAngle"/> about <see cref="SnapBase"/>, or on the two axes of the isometric plane, as AutoCAD lays
+        /// them.
         /// </summary>
         private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs)
         {
-            double step = GridStep(view.PixelsPerUnit, GridSpacing, GridPixels * scale);
-            double stepY = GridStep(view.PixelsPerUnit, GridSpacingY, GridPixels * scale);
+            int every = Math.Max(1, GridMajor);
+            CadIsoplane? isoplane = Isoplane;
+
+            // An isometric grid has its lines through points twice the Y spacing apart, as AutoCAD keeps half of it, the
+            // lines of each way that far times the cosine of 30 degrees apart.
+            double across = isoplane.HasValue ? 2.0 * GridSpacingY * Math.Sqrt(3.0) / 2.0 : GridSpacing;
+            double up = isoplane.HasValue ? across : GridSpacingY;
+            double step = AdaptiveStep(view.PixelsPerUnit, across, GridPixels * scale, every);
+            double stepY = AdaptiveStep(view.PixelsPerUnit, up, GridPixels * scale, every);
 
             if (step <= 0.0 || stepY <= 0.0)
             {
@@ -1659,10 +1755,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var pixels = new int[stride * height];
             Marshal.Copy(picture.GetPixels(), pixels, 0, pixels.Length);
             DisplayBox visible = view.VisibleBox;
+            Tolerance tolerance = Snap?.Tolerance ?? Tolerance.Default;
+            bool turned = Math.Abs(Math.IEEERemainder(SnapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad;
+            bool based = SnapBase.DistanceTo(GeoPoint2.Origin) > tolerance.EqualPoint;
+
+            if (isoplane.HasValue || turned || based)
+            {
+                // The lines of each way, given by the angle they run at in the world, through the base point: those up the
+                // grid the X spacing apart, those across it the Y spacing.
+                double angle = (ucs.IsWorld ? 0.0 : ucs.Angle) + (turned ? SnapAngle : 0.0);
+                SnapAxes(isoplane, out double first, out double second);
+                GeoPoint2 origin = ucs.ToWorld(SnapBase);
+                DrawLineGrid(
+                    pixels,
+                    width,
+                    height,
+                    stride,
+                    view,
+                    origin,
+                    angle + second,
+                    step,
+                    angle + first,
+                    stepY,
+                    background,
+                    minor,
+                    major,
+                    every
+                );
+                Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+                return;
+            }
 
             if (!ucs.IsWorld)
             {
-                DrawUcsGrid(pixels, width, height, stride, view, step, stepY, ucs, background, minor, major);
+                DrawUcsGrid(pixels, width, height, stride, view, step, stepY, ucs, background, minor, major, every);
                 Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
                 return;
             }
@@ -1671,7 +1797,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 view.DrawingToPixel(k * step, 0.0, out double px, out _);
                 int ix = (int)Math.Round(px);
-                int color = k % 5 == 0 ? major : minor;
+                int color = k % every == 0 ? major : minor;
 
                 for (int iy = 0; ix >= 0 && ix < width && iy < height; iy++)
                 {
@@ -1686,7 +1812,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 view.DrawingToPixel(0.0, k * stepY, out _, out double py);
                 int iy = (int)Math.Round(py);
-                int color = k % 5 == 0 ? major : minor;
+                int color = k % every == 0 ? major : minor;
 
                 for (int ix = 0; iy >= 0 && iy < height && ix < width; ix++)
                 {
@@ -1702,7 +1828,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The grid of a UCS other than the world's, as AutoCAD draws it: its lines along the axes of the UCS and through its
-        /// origin, each pixel of the background within half a pixel of one taken, every fifth from the origin the stronger.
+        /// origin, each pixel of the background within half a pixel of one taken, a major line every so many (GRIDMAJOR) from
+        /// the origin the stronger.
         /// </summary>
         private static void DrawUcsGrid(
             int[] pixels,
@@ -1715,7 +1842,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadUcs ucs,
             int background,
             int minor,
-            int major
+            int major,
+            int every
         )
         {
             // The UCS coordinates of a pixel, in steps of the grid, are linear in its column and row: those of the corner and
@@ -1753,11 +1881,108 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     if (onU || onV)
                     {
                         bool strong =
-                            (onU && Math.Abs(Math.IEEERemainder(ku, 5.0)) < 0.5)
-                            || (onV && Math.Abs(Math.IEEERemainder(kv, 5.0)) < 0.5);
+                            (onU && Math.Abs(Math.IEEERemainder(ku, every)) < 0.5)
+                            || (onV && Math.Abs(Math.IEEERemainder(kv, every)) < 0.5);
                         pixels[at] = strong ? major : minor;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// A grid of two ways of lines through a point of the world, each given by the angle it runs at and how far apart its
+        /// lines lie, as AutoCAD draws the grid turned by SNAPANG from SNAPBASE, and the isometric grid on the two axes of its
+        /// plane: each pixel of the background within half a pixel of a line taken, a major line every so many (GRIDMAJOR)
+        /// from the point the stronger.
+        /// </summary>
+        private static void DrawLineGrid(
+            int[] pixels,
+            int width,
+            int height,
+            int stride,
+            CadView view,
+            GeoPoint2 origin,
+            double angleU,
+            double stepU,
+            double angleV,
+            double stepV,
+            int background,
+            int minor,
+            int major,
+            int every
+        )
+        {
+            // How many steps a point lies off the line of each way through the origin is linear in the pixel's column and row.
+            view.ScreenToDrawing(0.0, 0.0, out double x0, out double y0);
+            view.ScreenToDrawing(1.0, 0.0, out double x1, out double y1);
+            view.ScreenToDrawing(0.0, 1.0, out double x2, out double y2);
+            double nux = -Math.Sin(angleU) / stepU;
+            double nuy = Math.Cos(angleU) / stepU;
+            double nvx = -Math.Sin(angleV) / stepV;
+            double nvy = Math.Cos(angleV) / stepV;
+            double u0 = (x0 - origin.X) * nux + (y0 - origin.Y) * nuy;
+            double v0 = (x0 - origin.X) * nvx + (y0 - origin.Y) * nvy;
+            double uAcross = (x1 - x0) * nux + (y1 - y0) * nuy;
+            double vAcross = (x1 - x0) * nvx + (y1 - y0) * nvy;
+            double uDown = (x2 - x0) * nux + (y2 - y0) * nuy;
+            double vDown = (x2 - x0) * nvx + (y2 - y0) * nvy;
+            double halfU = 0.5 / (view.PixelsPerUnit * stepU);
+            double halfV = 0.5 / (view.PixelsPerUnit * stepV);
+
+            for (int iy = 0; iy < height; iy++)
+            {
+                double u = u0 + iy * uDown;
+                double v = v0 + iy * vDown;
+
+                for (int ix = 0; ix < width; ix++, u += uAcross, v += vAcross)
+                {
+                    int at = iy * stride + ix;
+
+                    if (pixels[at] != background)
+                    {
+                        continue;
+                    }
+
+                    double ku = Math.Round(u);
+                    double kv = Math.Round(v);
+                    bool onU = Math.Abs(u - ku) <= halfU;
+                    bool onV = Math.Abs(v - kv) <= halfV;
+
+                    if (onU || onV)
+                    {
+                        bool strong =
+                            (onU && Math.Abs(Math.IEEERemainder(ku, every)) < 0.5)
+                            || (onV && Math.Abs(Math.IEEERemainder(kv, every)) < 0.5);
+                        pixels[at] = strong ? major : minor;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The two axes of the snap, in radians from its X axis: across and up for the rectangular snap; for an isometric one
+        /// those of its plane, 90 and 150 degrees on the left, 30 and 150 on the top, 30 and 90 on the right.
+        /// </summary>
+        private static void SnapAxes(CadIsoplane? isoplane, out double first, out double second)
+        {
+            switch (isoplane)
+            {
+                case CadIsoplane.Left:
+                    first = Math.PI / 2.0;
+                    second = 5.0 * Math.PI / 6.0;
+                    break;
+                case CadIsoplane.Top:
+                    first = Math.PI / 6.0;
+                    second = 5.0 * Math.PI / 6.0;
+                    break;
+                case CadIsoplane.Right:
+                    first = Math.PI / 6.0;
+                    second = Math.PI / 2.0;
+                    break;
+                default:
+                    first = 0.0;
+                    second = Math.PI / 2.0;
+                    break;
             }
         }
 
@@ -3108,9 +3333,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool picking = !CadPicking.WantsPoint(Session);
             double gap = picking ? box : 0.0;
 
-            // The lines run along the axes of the UCS, as AutoCAD's crosshair does; across and up in the world's.
+            // The lines run along the axes of the UCS, as AutoCAD's crosshair does; across and up in the world's. Turned by
+            // SNAPANG they follow the snap, and with an isometric snap they run on the two axes of its plane.
             Vector along = CrosshairAxis();
             var up = new Vector(along.Y, -along.X);
+            CadIsoplane? isoplane = Isoplane;
+            Tolerance tolerance = Snap?.Tolerance ?? Tolerance.Default;
+
+            if (isoplane.HasValue || Math.Abs(Math.IEEERemainder(SnapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad)
+            {
+                double axis = Math.Atan2(-along.Y, along.X) + SnapAngle;
+                SnapAxes(isoplane, out double first, out double second);
+                along = new Vector(Math.Cos(axis + first), -Math.Sin(axis + first));
+                up = new Vector(Math.Cos(axis + second), -Math.Sin(axis + second));
+            }
             dc.DrawLine(pen, at - half * along, at - gap * along);
             dc.DrawLine(pen, at + gap * along, at + half * along);
             dc.DrawLine(pen, at + half * up, at + gap * up);
