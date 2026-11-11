@@ -149,7 +149,10 @@ the ones wanted.
         R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
   - [ ] W4b: tables from R2010 (TABLECONTENT, CELLSTYLEMAP), ACDSDATA, SAB to SAT for R2004-R2010, SHAPE names, MATERIAL,
         VISUALSTYLE, RASTERVARIABLES/WIPEOUTVARIABLES, OLE2FRAME, proxies, dynamic block data (L)
-  - [ ] W5 (running) Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
+  - [x] W5 Writing R2018 (AutoCAD 2021's own): `DwgWriter`, our own LZ77; 19 drawings open in AutoCAD with AUDIT 0 and
+        round-trip; files 70-75 % of AutoCAD's size (L)
+  - [ ] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE, ACIS entities (AcDs store), multiline attributes; prove
+        AC1018/1024/1027; R2000 and R2007 containers if wanted (L)
   - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
