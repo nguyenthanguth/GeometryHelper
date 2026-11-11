@@ -98,11 +98,15 @@ call.
   looks are its own, else those of its row and column, else those of a cell style of the table style's own where they
   differ from those of its kind of row, written 170, 7, 63, 64, 283, 140; its edges are its top and left (and its right
   and bottom in the last column and row), each its own border, else the one the cell beside it shares, else its row's,
-  each a lineweight, whether it is hidden (1 hidden, where that is overridden) and a colour. The line under a title of
-  0.35 comes out on each cell of the header below as `279 35`, `69 0`, as AutoCAD writes it. A table of 4 by 3 whose
-  cells each override one look, one of all six and one of four edges comes out as AutoCAD's own DXF of it, group for
-  group, and so does one whose header is red in GhMono, its title filled green and its data 0.3 high at the bottom
-  right with blue lines inside. What a cell of AutoCAD 2010 has beyond those groups, several contents, is not given.
+  each a lineweight, whether it is hidden (1 hidden, where that is overridden) and a colour. A merged range gives its
+  edges on its last cell alone, those of its first cell, without the edges inside it, and the cells it covers give no
+  flag of a content format and an empty value: a title over three columns has the edges (172) 0, 0 and 3, its top and
+  right on its third cell. The line under a title of 0.35 comes out on each cell of the header below as `279 35`,
+  `69 0`, as AutoCAD writes it. A table of 4 by 3 whose cells each override one look, one of all six and one of four
+  edges comes out as AutoCAD's own DXF of it, group for group, and so does one whose header is red in GhMono, its title
+  filled green and its data 0.3 high at the bottom right with blue lines inside. A table whose row, column and cell take
+  cell styles of the style's own does not yet: 9 of its 15 cells differ from AutoCAD's DXF in their edges and flags.
+  What a cell of AutoCAD 2010 has beyond those groups, several contents, is not given.
   Its TABLESTYLE is given the same way: its direction and margins, then the rows of data, title and header from the
   cell styles _DATA, _TITLE and _HEADER, each line of the six by its own (top, inside horizontal, bottom, left, inside
   vertical, right). A table style with cell styles of its own (101 on) is given the CELLSTYLEMAP AutoCAD writes in DXF
@@ -209,11 +213,13 @@ them; the TABLECONTENT is written as its own groups give it. Else the table's ow
 style of each row of their kind and its margins into the table's own. A table style is written with its rows of data,
 title and header as the cell styles _DATA, _TITLE and _HEADER beside Table, its margins kept where they are not
 AutoCAD's 0.06, a border where it is not by block, of the default lineweight and shown, on its own line of the six.
-The CELLSTYLEMAP AutoCAD writes in DXF, with the extension dictionary of the table style that holds it, is not written,
-as a DWG of AutoCAD has none. The cell styles of a table style's own (101 on) are not written yet: a DWG that held them
-crashed AutoCAD 2021 as it read it. A row, column or cell that takes one takes the data's or none instead; the looks
-AutoCAD writes into each of its cells in DXF are kept as the cells' own. AutoCAD works out the places of the cells'
-words again as it opens the file.
+The cell styles of a table style's own (101 on) are written after those three from the CELLSTYLEMAP the style holds in
+DXF, each after its own id as AutoCAD writes it, and a row, column or cell that takes one keeps it; the rows always come
+from the style's groups, which an edit changes, not from the map. The CELLSTYLEMAP itself, with the extension
+dictionary of the table style that holds it, is not written, as a DWG of AutoCAD has none. A style whose map cannot be
+read, or a cell that takes a style the map does not hold, is written as before: the row takes the data's style, the
+column or cell none, and the looks AutoCAD writes into each of its cells in DXF are kept as the cells' own. AutoCAD
+works out the places of the cells' words again as it opens the file.
 
 An attribute of several lines is written with its MTEXT, as AutoCAD writes it, the text's extents left for AutoCAD to
 work out; a multileader with its context, its leaders before its content; RASTERVARIABLES and WIPEOUTVARIABLES, which a
@@ -243,7 +249,10 @@ And for the overrides of tables: five drawings, a table of cells each overriding
 of AutoCAD 2007 a table gives its kinds of row, two of a clean table style of its own with borders, margins and a
 merged range, and a table of a cell of all six overrides and cells of four edges. Each reads back to the records it was
 written from, AutoCAD's own DXF of each is the DXF it was written from but `$CMATERIAL`, and `AUDIT` finds 0 errors in
-each.
+each. A sixth, a table whose row, column and cell take two cell styles of the style's own, GhNote (101) and GhWide
+(102): its table style is AutoCAD's own bits but the one that says it has no extension dictionary, AutoCAD's own DXF of
+it is the DXF it was written from but the types left out, its two cell styles group for group, and `AUDIT` finds 0
+errors.
 
 A drawing of 100 to 450 records is written in about 0.1 s, in some 10 KB: AutoCAD's own file of the same drawing is
 13 to 17 KB. A drawing of 100 000 lines is written in 1.1 s from its `DxfDatabase`, in 2.1 MB to AutoCAD's 1.9 MB.

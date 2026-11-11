@@ -339,6 +339,10 @@ namespace GeometryHelper.Dwg
             return new[] { 0, 1, 1 };
         }
 
+        /// <summary>The merged range (top row, left column, bottom row, right column) that holds a cell; null for none.</summary>
+        private static int[] RangeOf(DwgTableContent content, int r, int c) =>
+            content.Merged.Find(range => r >= range[0] && r <= range[2] && c >= range[1] && c <= range[3]);
+
         /// <summary>
         /// A cell in the groups of R2007: its kind, edges, merging, flags, rotation, block, the overrides AutoCAD 2021 writes
         /// for it and its value. Its looks are its content's own, else its cell style's, its row's, its column's, else those
@@ -347,7 +351,8 @@ namespace GeometryHelper.Dwg
         /// last column and row: each its own border, else the one its neighbour shares, else its row's outer one where the
         /// edge is the row's, else, at the top of a row of another style than the cell above, the bottom border of that
         /// style; written right, bottom, left, top, each a lineweight, whether hidden where that is overridden (1 hidden)
-        /// and a colour.
+        /// and a colour. A merged range gives its edges on its last cell alone, the borders of its first cell, without the
+        /// edges inside the range: a title over three columns, its top and right on its third cell.
         /// </summary>
         private void AddTableCell(DwgTableContent table, Dictionary<int, DwgCellStyle> styles, int r, int c)
         {
@@ -389,7 +394,8 @@ namespace GeometryHelper.Dwg
                 looks.TakeDiffering(custom, ofKind);
             }
 
-            int flags = content?.Format != null ? 0x40000 : 0;
+            // A cell a merged range covers gives no flag of its content's format.
+            int flags = content?.Format != null && merge[0] == 0 ? 0x40000 : 0;
             var groups = new List<DwgGroup>();
 
             if (looks.Alignment != null)
@@ -431,19 +437,31 @@ namespace GeometryHelper.Dwg
             }
 
             // The edges right, bottom, left, top: their bit of 172, of the flags (colour; lineweight and showing on by 4
-            // and 8 places), and their groups.
+            // and 8 places), and their groups. A merged range gives them on its last cell alone, from its first, without
+            // those inside it.
             int edges = 0;
+            int[] range = RangeOf(table, r, c);
+            DwgTableCell edged = range == null ? cell : CellAt(table, range[0], range[1]);
             DwgCellBorder[] borders =
             {
-                c == table.Columns.Count - 1 ? Own(cell, 0x20) ?? Outer(row, 0x20) : null,
-                r == table.Rows.Count - 1 ? Own(cell, 4) ?? Outer(row, 4) : null,
-                Own(cell, 8) ?? (c > 0 ? Own(CellAt(table, r, c - 1), 0x20) : Outer(row, 8)),
-                Own(cell, 1)
-                    ?? (r > 0 ? Own(CellAt(table, r - 1, c), 4) : null)
-                    ?? Outer(row, 1)
-                    ?? (r > 0 ? Outer(table.Rows[r - 1], 4) : null)
-                    ?? (r > 0 ? Boundary(table, styles, r, c, own) : null),
+                c == table.Columns.Count - 1 ? Own(edged, 0x20) ?? Outer(row, 0x20) : null,
+                r == table.Rows.Count - 1 ? Own(edged, 4) ?? Outer(row, 4) : null,
+                range != null && c > range[1]
+                    ? null
+                    : Own(edged, 8) ?? (c > 0 ? Own(CellAt(table, r, c - 1), 0x20) : Outer(row, 8)),
+                range != null && r > range[0]
+                    ? null
+                    : Own(edged, 1)
+                        ?? (r > 0 ? Own(CellAt(table, r - 1, c), 4) : null)
+                        ?? Outer(row, 1)
+                        ?? (r > 0 ? Outer(table.Rows[r - 1], 4) : null)
+                        ?? (r > 0 ? Boundary(table, styles, r, c, own) : null),
             };
+
+            if (range != null && (r != range[2] || c != range[3]))
+            {
+                borders = new DwgCellBorder[4];
+            }
             int[] edgeBits = { 2, 4, 8, 1 };
             int[] flagBits = { 0x80, 0x100, 0x200, 0x40 };
             int[] codes = { 5, 6, 8, 9 };
@@ -487,7 +505,8 @@ namespace GeometryHelper.Dwg
 
             _object.Body.AddRange(groups);
             _object.Add(92, 0);
-            DwgCellValue value = content != null && content.Type == 1 ? content.Value : new DwgCellValue { Flags = 7 };
+            DwgCellValue value =
+                content != null && content.Type == 1 && merge[0] == 0 ? content.Value : new DwgCellValue { Flags = 7 };
             _object.Add(301, "CELL_VALUE");
             AddValue(value);
         }

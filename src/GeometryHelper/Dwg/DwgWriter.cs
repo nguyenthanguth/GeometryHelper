@@ -24,9 +24,8 @@ namespace GeometryHelper.Dwg
     /// drawing holds. A table goes in the form of R2010: its cells, their overrides and borders, merged ranges, sizes and
     /// style from the groups DXF keeps of R2007, the cell styles of its rows, columns and whole from the TABLECONTENT it
     /// keeps for a round trip or else from its own overrides (93 to 96), and its table style's cell styles from the
-    /// style's rows; the CELLSTYLEMAP AutoCAD writes in DXF alone, and the extension dictionary of the table style that
-    /// holds it, are not written, as AutoCAD writes no such object in a DWG, and nor are the cell styles of a table
-    /// style's own (101 on), on which AutoCAD 2021 crashed.
+    /// style's rows, then those of its own (101 on) from the CELLSTYLEMAP AutoCAD writes in DXF alone; that map, and the
+    /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
     /// A record of another type, MATERIAL, VISUALSTYLE, 3DSOLID and REGION among them, is left out, every handle to it
     /// written as 0 and every dictionary entry naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/>
     /// counts them by type.
