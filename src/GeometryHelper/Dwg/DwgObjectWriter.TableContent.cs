@@ -148,7 +148,7 @@ namespace GeometryHelper.Dwg
 
             if (kept != null && kept.Rows.Count == rows && kept.Columns.Count == columns)
             {
-                TakeStyles(content, kept);
+                TakeStyles(content, kept, OwnStyleIdsOf(style));
             }
             else
             {
@@ -161,29 +161,30 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// What the groups of R2007 cannot hold, from the TABLECONTENT AutoCAD keeps for the table's round trip, as AutoCAD
         /// reads it: the cell style and overrides of the whole table, of each row and column, and of each cell that gives
-        /// none of its own in its groups, and the cell style each takes; one of the table style's own (101 on), which is not
-        /// written, is left for a row as it stands by its place, for a column or a cell as none.
+        /// none of its own in its groups, and the cell style each takes; one of the table style's own (101 on) that the
+        /// style does not hold (<paramref name="held"/>) is left for a row as it stands by its place, for a column or a cell
+        /// as none.
         /// </summary>
-        private static void TakeStyles(DwgTableContent content, DwgTableContent kept)
+        private static void TakeStyles(DwgTableContent content, DwgTableContent kept, HashSet<int> held)
         {
             content.Style = kept.Style;
 
             for (int c = 0; c < content.Columns.Count; c++)
             {
                 content.Columns[c].Style = kept.Columns[c].Style;
-                content.Columns[c].StyleId = kept.Columns[c].StyleId >= 101 ? 0 : kept.Columns[c].StyleId;
+                content.Columns[c].StyleId = Held(kept.Columns[c].StyleId, held) ? kept.Columns[c].StyleId : 0;
             }
 
             for (int r = 0; r < content.Rows.Count; r++)
             {
                 DwgTableLine row = content.Rows[r];
                 row.Style = kept.Rows[r].Style;
-                row.StyleId = kept.Rows[r].StyleId >= 101 ? row.StyleId : kept.Rows[r].StyleId;
+                row.StyleId = Held(kept.Rows[r].StyleId, held) ? kept.Rows[r].StyleId : row.StyleId;
 
                 for (int c = 0; c < row.Cells.Count && c < kept.Rows[r].Cells.Count; c++)
                 {
                     DwgTableCell cell = row.Cells[c];
-                    cell.StyleId = kept.Rows[r].Cells[c].StyleId >= 101 ? 0 : kept.Rows[r].Cells[c].StyleId;
+                    cell.StyleId = Held(kept.Rows[r].Cells[c].StyleId, held) ? kept.Rows[r].Cells[c].StyleId : 0;
 
                     if (!cell.Style.HasData)
                     {
@@ -722,7 +723,7 @@ namespace GeometryHelper.Dwg
 
             if (parsed != null)
             {
-                WriteTableContent(WithoutOwnStyles(parsed));
+                WriteTableContent(WithoutOwnStyles(parsed, OwnStyleIdsOf(parsed.TableStyle)));
                 return;
             }
 
@@ -962,7 +963,8 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// A TABLESTYLE from R2010, made of its groups of R2007: its direction, flags and margins in the cell style Table,
         /// its data, title and header rows as the cell styles _DATA, _TITLE and _HEADER, a border written where it is not
-        /// the default (by block, the default lineweight, shown).
+        /// the default (by block, the default lineweight, shown); then the cell styles of its own (101 on) its CELLSTYLEMAP
+        /// holds, as the map gives them.
         /// </summary>
         private void WriteTableStyle()
         {
@@ -996,8 +998,7 @@ namespace GeometryHelper.Dwg
                 },
             };
 
-            // The cell styles of its own (101 on) of its CELLSTYLEMAP are not written: a DWG that held them crashed AutoCAD
-            // 2021 as it read it, and they are left out until that is proven (their looks are the cells' own in DXF).
+            // AutoCAD 2021 writes 101 here also where the style holds 101 and 102.
             _data.RawChar(version);
             T(description);
             _data.BitLong(flags);
@@ -1014,25 +1015,94 @@ namespace GeometryHelper.Dwg
             _data.BitLong(4);
             _data.BitLong(2);
             T("Table");
-            _data.BitLong(3);
 
-            // The rows of DXF are data, title and header; the file holds title (1), header (2) and data (3).
+            // The rows of DXF are data, title and header; the file holds title (1), header (2) and data (3), always from
+            // the groups, which an edit changes; then the cell styles of its own (101 on) its CELLSTYLEMAP holds.
             DwgCellStyle[] ordered = { rows[1], rows[2], rows[0] };
             string[] names = { "_TITLE", "_HEADER", "_DATA" };
+            ordered[0].Merge = 0x8000;
+            var named = new List<NamedCellStyle>();
 
             for (int i = 0; i < 3; i++)
             {
-                if (i == 0)
-                {
-                    ordered[i].Merge = 0x8000;
-                }
-
-                _data.BitLong(i + 1);
-                WriteCellStyle(ordered[i]);
-                _data.BitLong(i + 1);
-                _data.BitLong(i == 2 ? 2 : 1);
-                T(names[i]);
+                named.Add(
+                    new NamedCellStyle
+                    {
+                        Id = i + 1,
+                        Kind = i == 2 ? 2 : 1,
+                        Name = names[i],
+                        Style = ordered[i],
+                    }
+                );
             }
+
+            named.AddRange(CellStylesOf(_record).FindAll(one => one.Id >= 101));
+
+            // Each cell style after its own id, as AutoCAD writes it: the ids 4 and 5 there crashed AutoCAD 2021.
+            _data.BitLong(named.Count);
+
+            foreach (NamedCellStyle one in named)
+            {
+                _data.BitLong(one.Id);
+                WriteCellStyle(one.Style);
+                _data.BitLong(one.Id);
+                _data.BitLong(one.Kind);
+                T(one.Name);
+            }
+        }
+
+        /// <summary>A cell style of a table style: its id (1 to 3 its rows, 101 on its own), kind, name and looks.</summary>
+        private sealed class NamedCellStyle
+        {
+            public int Id;
+            public int Kind;
+            public string Name;
+            public DwgCellStyle Style;
+        }
+
+        /// <summary>
+        /// The cell styles of the CELLSTYLEMAP a table style holds in DXF under its extension dictionary
+        /// (<c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c>), in its order; none where it has none or its groups are
+        /// not of AutoCAD's order.
+        /// </summary>
+        private List<NamedCellStyle> CellStylesOf(DwgRecord style)
+        {
+            var named = new List<NamedCellStyle>();
+            DwgRecord map = EntryOf(_drawing.Find(style.XDictionary), 3, "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP");
+
+            if (map == null || map.Type != "CELLSTYLEMAP")
+            {
+                return named;
+            }
+
+            try
+            {
+                var g = new Cursor(map.Of("AcDbCellStyleMap"));
+                int count = g.Int(90);
+
+                for (int i = 0; i < count; i++)
+                {
+                    Need(g, 300);
+                    DwgCellStyle looks = TableFormatOf(g);
+                    Need(g, 1);
+                    named.Add(
+                        new NamedCellStyle
+                        {
+                            Style = looks,
+                            Id = g.Int(90),
+                            Kind = g.Int(91),
+                            Name = g.Text(300),
+                        }
+                    );
+                    Need(g, 309);
+                }
+            }
+            catch (FormatException)
+            {
+                named.Clear();
+            }
+
+            return named;
         }
 
         /// <summary>A row of a table style, its groups 7 to the last border, as a cell style.</summary>
@@ -1406,27 +1476,48 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// The content without the cell styles of a table style's own (101 on), which are not written (see
-        /// <see cref="WriteTableStyle"/>): a row of one takes the data's (3), a column or a cell none.
+        /// The content without the cell styles of a table style's own (101 on) that the style does not hold
+        /// (<paramref name="held"/>, see <see cref="CellStylesOf"/>): a row of one takes the data's (3), a column or a cell
+        /// none.
         /// </summary>
-        private static DwgTableContent WithoutOwnStyles(DwgTableContent content)
+        private static DwgTableContent WithoutOwnStyles(DwgTableContent content, HashSet<int> held)
         {
             foreach (DwgTableLine column in content.Columns)
             {
-                column.StyleId = column.StyleId >= 101 ? 0 : column.StyleId;
+                column.StyleId = Held(column.StyleId, held) ? column.StyleId : 0;
             }
 
             foreach (DwgTableLine row in content.Rows)
             {
-                row.StyleId = row.StyleId >= 101 ? 3 : row.StyleId;
+                row.StyleId = Held(row.StyleId, held) ? row.StyleId : 3;
 
                 foreach (DwgTableCell cell in row.Cells)
                 {
-                    cell.StyleId = cell.StyleId >= 101 ? 0 : cell.StyleId;
+                    cell.StyleId = Held(cell.StyleId, held) ? cell.StyleId : 0;
                 }
             }
 
             return content;
+        }
+
+        /// <summary>Whether a cell style id is written: one of the rows (1 to 3), none (0), or one the style holds.</summary>
+        private static bool Held(int id, HashSet<int> held) => id < 101 || held.Contains(id);
+
+        /// <summary>The ids of the cell styles a table style of a handle holds in its CELLSTYLEMAP; none where it has none.</summary>
+        private HashSet<int> OwnStyleIdsOf(ulong style)
+        {
+            var ids = new HashSet<int>();
+            DwgRecord record = _drawing.Find(style);
+
+            if (record != null)
+            {
+                foreach (NamedCellStyle one in CellStylesOf(record))
+                {
+                    ids.Add(one.Id);
+                }
+            }
+
+            return ids;
         }
 
         /// <summary>Takes the next group, which must be of <paramref name="code"/>.</summary>

@@ -10,9 +10,10 @@ namespace GeometryHelper.UnitTest.Dwg
 {
     /// <summary>
     /// The overrides of a table and of its cells both ways, read from AutoCAD's DWG of R2018 to the groups of R2007 AutoCAD
-    /// writes in DXF, and written from them to the content AutoCAD keeps; the cell styles of a table style's own, read; the
-    /// TABLECONTENT and TABLEGEOMETRY a table keeps for its round trip, read. Each drawing was made by the probe GhDwgT in
-    /// AutoCAD 2021, which AUDITs each with 0 errors and dumps the DWG the writer makes of each to the DXF it came from:
+    /// writes in DXF, and written from them to the content AutoCAD keeps; the cell styles of a table style's own, read and
+    /// written; the TABLECONTENT and TABLEGEOMETRY a table keeps for its round trip, read. Each drawing was made by the
+    /// probe GhDwgT in AutoCAD 2021, which AUDITs each with 0 errors and dumps the DWG the writer makes of each to the DXF it
+    /// came from:
     /// tcell, cells of Standard each with an override of its own; ttable, the overrides of R2007 a table gives a kind of
     /// row, and a margin; tstyles and tclean, a clean table style of its own with borders, margins and a merged range;
     /// tall, a cell of all six overrides and cells of four edges each; tcustom, two cell styles of the style's own (101
@@ -159,21 +160,100 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
-        public void TheCellStylesOfAStylesOwn_AreLeftOutOfTheDwg_AndNoCellTakesThem()
+        public void TheCellStylesOfAStylesOwn_AreWrittenInTheDwg_AndTheCellsTakeThem()
         {
-            // A DWG that held them crashed AutoCAD 2021 as it read it: until that is proven they are not written, and a row,
-            // column or cell that took one takes the data's or none, its looks kept as the cell's own of the DXF.
             byte[] dwg = Written(Source("tcustom_AC1032"));
             List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(dwg));
 
-            Assert.DoesNotContain(records, r => r.Type == "CELLSTYLEMAP");
-            DwgAnswerKey.Record content = Assert.Single(records, r => r.Type == "TABLECONTENT");
-            Assert.DoesNotContain(
-                content.Groups.Where((g, i) => g.Key == 90 && i > 0 && content.Groups[i - 1].Value.EndsWith("_BEGIN")),
-                g => g.Value == "101" || g.Value == "102"
+            // GhNote (101) and GhWide (102) come back in the style's CELLSTYLEMAP, and the content names both.
+            DwgAnswerKey.Record map = Assert.Single(records, r =>
+                r.Type == "CELLSTYLEMAP" && r.Groups.Any(g => g.Key == 300 && g.Value == "GhNote")
             );
+            Assert.Contains(map.Groups, g => g.Key == 300 && g.Value == "GhWide");
+            DwgAnswerKey.Record content = Assert.Single(records, r => r.Type == "TABLECONTENT");
+            List<string> ids = content
+                .Groups.Where((g, i) => g.Key == 90 && i > 0 && content.Groups[i - 1].Value.EndsWith("_BEGIN"))
+                .Select(g => g.Value)
+                .ToList();
+            Assert.Contains("101", ids);
+            Assert.Contains("102", ids);
             DxfTable table = TableOf(dwg);
             Assert.Equal(2.5, table.TextHeight(2, 0).Value, 12);
+        }
+
+        [Fact]
+        public void TheCellStylesOfAStylesOwn_AreWrittenInAutoCadsBits_EachAfterItsOwnId()
+        {
+            // Each cell style after its own id (1, 2, 3, 101, 102): the ids 4 and 5 there crashed AutoCAD 2021. From the id
+            // 101 of GhNote to the end of the data, its strings with it, the bits are AutoCAD's own. Before it they are not:
+            // AutoCAD's DWG of a drawing read from DXF keeps the style's extension dictionary and gives its rows all six
+            // borders, where the writer gives no dictionary and the rows' borders that are not the default, as AutoCAD writes
+            // a style it made itself.
+            DwgContainer container = DwgContainer.Read(DwgAnswerKey.Dwg("tcustom_AC1032"));
+            DwgDrawing drawing = DwgDrawing.Parse(Source("tcustom_AC1032").ToText());
+            List<string> classes = drawing.Classes.Select(k => k.Of(null).Text(1).Trim()).ToList();
+            var written = new HashSet<ulong>(
+                drawing.All.Where(r => !DwgObjectWriter.IsOfDxfAlone(r)).Select(r => r.Handle)
+            );
+            var writer = new DwgObjectWriter(drawing, DwgContainer.NumberOf(container.Version), classes, written);
+            long at = container.ObjectMap.Single(e => e.Key == 0x78).Value;
+
+            string[] autocad = BitsOf(container.Objects, at);
+            string[] ours = BitsOf(writer.Write(drawing.Find(0x78)), 0);
+
+            // The id 101 (BL 01 01100101), then the cell style's type 5 (BL 01 00000101) and that it has data (BS 01 00000001);
+            // the first such bits are the style's own 101 and its cell style Table.
+            const string ghNote = "010110010101000001010100000001";
+            int from = autocad[0].LastIndexOf(ghNote, StringComparison.Ordinal);
+            Assert.True(from > autocad[0].IndexOf(ghNote, StringComparison.Ordinal));
+            Assert.EndsWith(autocad[0].Substring(from), ours[0], StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AMergedRange_ReadFromAutoCadsDwg_GivesItsEdgesOnItsLastCell()
+        {
+            // The title of tcustom spans its three columns: AutoCAD writes no edges on its first two cells and the top and
+            // right (3) on the last; the flags of the cells it covers give no content format (0x40000), and their values
+            // are empty (7).
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("tcustom_AC1032")));
+            DwgAnswerKey.Record table = Assert.Single(records, r => r.Type == "ACAD_TABLE");
+
+            Assert.Equal(new[] { "0", "0", "3" }, table.Groups.Where(g => g.Key == 172).Take(3).Select(g => g.Value));
+            Assert.Equal(
+                new[] { "262144", "0", "52449" },
+                table.Groups.Where((g, i) => g.Key == 91 && table.Groups[i - 1].Key == 176).Take(3).Select(g => g.Value)
+            );
+            Assert.Equal(
+                new[] { "6", "7", "7" },
+                table
+                    .Groups.Where((g, i) => g.Key == 93 && table.Groups[i - 1].Value == "CELL_VALUE")
+                    .Take(3)
+                    .Select(g => g.Value)
+            );
+        }
+
+        /// <summary>The data bits and the handle bits of the object of R2010 and later at an offset, as strings of 0 and 1.</summary>
+        private static string[] BitsOf(byte[] bytes, long offset)
+        {
+            var head = new DwgBitReader(bytes, offset * 8, bytes.LongLength * 8);
+            long size = head.ModularShort();
+            long handleBits = head.ModularChar(false);
+            long start = head.Position;
+            long end = start + size * 8;
+            return new[] { BitsOf(bytes, start, end - handleBits), BitsOf(bytes, end - handleBits, end) };
+        }
+
+        private static string BitsOf(byte[] bytes, long from, long to)
+        {
+            var reader = new DwgBitReader(bytes, from, to);
+            var bits = new System.Text.StringBuilder();
+
+            while (reader.Remaining > 0)
+            {
+                bits.Append(reader.Bit() ? '1' : '0');
+            }
+
+            return bits.ToString();
         }
 
         [Fact]
@@ -193,6 +273,7 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             Assert.Equal(Written(Source("ttable_AC1032")), Written(Source("ttable_AC1032")));
             Assert.Equal(Written(Source("tall_AC1032")), Written(Source("tall_AC1032")));
+            Assert.Equal(Written(Source("tcustom_AC1032")), Written(Source("tcustom_AC1032")));
         }
 
         [Fact]

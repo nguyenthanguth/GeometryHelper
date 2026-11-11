@@ -132,7 +132,9 @@ finite.
 the table's own (93 to 96 and their groups) and each cell's flags and groups (170, 7, 63, 64, 283, 140 and its edges),
 its row's looks pushed into it and the line under a title of 0.35 given on each cell of the header below. It reads the
 TABLECONTENT and TABLEGEOMETRY a table keeps for its round trip, from AutoCAD 2007 (the TABLEGEOMETRY of every version),
-and gives a table style with cell styles of its own (101 on) the CELLSTYLEMAP AutoCAD writes in DXF. Five table drawings
+and gives a table style with cell styles of its own (101 on) the CELLSTYLEMAP AutoCAD writes in DXF. A merged range gives
+its edges on its last cell alone, without those inside it, and the cells it covers no content format and an empty value:
+a title over three columns reads 172 as 0, 0 and 3, its top and right on the third cell. Five table drawings
 AutoCAD 2021 made, cells of one override each, a cell of all six, cells of four edges, a table of its kinds of row
 overridden and a clean table style of its own, read to AutoCAD's own DXF of them, group for group.
 
@@ -140,7 +142,10 @@ overridden and a clean table style of its own, read to AutoCAD's own DXF of them
 borders) as AutoCAD keeps them, the cell styles of its rows, columns and whole from the TABLECONTENT it keeps for a round
 trip or else from its own overrides (93 to 96), and that TABLECONTENT as its own groups give it. AutoCAD 2021 reads each
 of the five drawings written so to the DXF it was written from, but `$CMATERIAL`, and `AUDIT` finds 0 errors in each. A
-table style's cell styles of its own (101 on) are not written: a DWG that held them crashed AutoCAD 2021 as it read it.
+table style's cell styles of its own (101 on) are written from the CELLSTYLEMAP it holds in DXF, each after its own id as
+AutoCAD writes it, and the rows, columns and cells that take one keep it: a table taking GhNote (101) and GhWide (102)
+by a row, a column and a cell is read by AutoCAD 2021 to the DXF it was written from, its two cell styles group for
+group, and `AUDIT` finds 0 errors.
 
 **FIXED.** The DWG writer and reader gave the lines of a table style's rows the wrong places: the inside horizontal line
 went to the right and the right to the inside horizontal, and a line's colour was read only where flagged as overridden,

@@ -165,7 +165,7 @@ the ones wanted.
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [x] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE (R2010 form, TABLESTYLE, TABLECONTENT), multiline attributes, RASTERVARIABLES/WIPEOUTVARIABLES; reader reads R2010+ tables
   - [x] W5b follow-ups: cell and table overrides both ways, TABLECONTENT (R2007+) and TABLEGEOMETRY read, border edges fixed, clean table sample AUDIT 0, left-out test
-  - [ ] W5b follow-ups 2: writing custom cell styles (101+): AutoCAD crashed on ids 4/5, the id fix needs one AutoCAD run with the maintainer's go-ahead; R2000/R2004 TABLECONTENT; merged title range edges (172); TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
+  - [ ] W5b follow-ups 2: custom cell styles written (ids 101+, AutoCAD AUDIT 0) and merged range edges done; reader parity on tcustom (9 of 15 cells differ, parked after 3 attempts); R2000/R2004 TABLECONTENT; TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
   - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
   - [ ] W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
