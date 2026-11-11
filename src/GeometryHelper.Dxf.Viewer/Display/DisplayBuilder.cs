@@ -1804,6 +1804,144 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Where the words of a text start and where their ink runs, along its baseline from the point it is placed by, in the
+        /// text's own units, as AutoCAD 2021's MIRROR measures them with MIRRTEXT 0 (probed in its console): in an SHX font by the
+        /// strokes the display draws, the words justified by the box of their ink; in a TrueType font by the outlines of its
+        /// file, the ink read as though the words started after any spaces before them, as AutoCAD reads it, and the words
+        /// justified by their advances, centred from the ink's left where it is left of their start. "ABC" of arial.ttf 2.5 high
+        /// on the left is inked from -0.0051 to 7.0430; centred, it starts at -3.5880. False where the font's letters are not read.
+        /// </summary>
+        internal bool InkOf(DxfDBText text, out double start, out double left, out double right)
+        {
+            start = 0.0;
+            left = 0.0;
+            right = 0.0;
+
+            // The spaces before and after the words kept, which AutoCAD justifies by and the display leaves out.
+            string value = CleanText(text.TextString, false);
+
+            if (value.Trim().Length == 0 || !(text.Height > 0.0))
+            {
+                return false;
+            }
+
+            CadFontFace face = FaceOf(text.TextStyleName);
+            double factor = text.WidthFactor <= 0.0 ? 1.0 : text.WidthFactor;
+            int horizontal =
+                text.HorizontalMode == DxfTextHorizontalMode.TextCenter
+                || text.HorizontalMode == DxfTextHorizontalMode.TextMid
+                    ? 1
+                : text.HorizontalMode == DxfTextHorizontalMode.TextRight ? 2
+                : 0;
+
+            if (face.Shx != null)
+            {
+                // The ink from where the words start, then from the point they are justified at: the difference is their start.
+                if (
+                    !ShxInk(face, value, text.Height, factor, 0, out double from, out _)
+                    || !ShxInk(face, value, text.Height, factor, horizontal, out left, out right)
+                )
+                {
+                    return false;
+                }
+
+                start = left - from;
+                return true;
+            }
+
+            CadTextInk ink = CadTextInk.Of(face, false, false);
+
+            if (!ink.IsRead)
+            {
+                return false;
+            }
+
+            double size = text.Height * factor;
+            double pen = 0.0;
+            double skipped = 0.0;
+            double first = double.MaxValue;
+            double inkLeft = double.MaxValue;
+            double inkRight = double.MinValue;
+            bool begun = false;
+            int i = 0;
+
+            while (i < value.Length)
+            {
+                CadTextInk.Letter letter = ink.Next(value, ref i);
+
+                if (letter.HasInk)
+                {
+                    begun = true;
+                    first = Math.Min(first, pen + letter.Left);
+                    inkLeft = Math.Min(inkLeft, pen - skipped + letter.Left);
+                    inkRight = Math.Max(inkRight, pen - skipped + letter.Right);
+                }
+                else if (!begun)
+                {
+                    skipped += letter.Advance;
+                }
+
+                pen += letter.Advance;
+            }
+
+            if (inkLeft > inkRight)
+            {
+                return false;
+            }
+
+            double advance = pen * size;
+            start =
+                horizontal == 0 ? 0.0
+                : horizontal == 1 ? -(advance + Math.Min(0.0, first * size)) / 2.0
+                : -advance;
+            left = start + (inkLeft * size);
+            right = start + (inkRight * size);
+            return true;
+        }
+
+        /// <summary>The left and right of the strokes of some words in an SHX font, upright, from the point they are justified at; false where they have none.</summary>
+        private static bool ShxInk(
+            CadFontFace face,
+            string value,
+            double height,
+            double factor,
+            int horizontal,
+            out double left,
+            out double right
+        )
+        {
+            left = double.MaxValue;
+            right = double.MinValue;
+
+            foreach (
+                double[] stroke in ShxText.Strokes(
+                    face,
+                    value,
+                    0.0,
+                    0.0,
+                    height,
+                    0.0,
+                    factor,
+                    horizontal,
+                    0,
+                    0.0,
+                    false,
+                    0.0,
+                    out _
+                )
+            )
+            {
+                for (int p = 0; p + 1 < stroke.Length; p += 2)
+                {
+                    left = Math.Min(left, stroke[p]);
+                    right = Math.Max(right, stroke[p]);
+                }
+            }
+
+            return left <= right;
+        }
+
+        /// <summary>
         /// A text drawn in a face: by the canvas in the face's name where it is no SHX font; else as the strokes of its letters
         /// (<see cref="ShxText"/>), its width that of their advances and its frame reaching down to the font's depth below the
         /// baseline, by which a text aligned at its bottom stands, as AutoCAD stands one.
@@ -2337,7 +2475,7 @@ namespace GeometryHelper.Dxf.Viewer
             py = m.Y(wx, wy);
         }
 
-        private static string CleanText(string value)
+        private static string CleanText(string value, bool trim = true)
         {
             if (string.IsNullOrEmpty(value))
             {
@@ -2384,7 +2522,7 @@ namespace GeometryHelper.Dxf.Viewer
                 builder.Append(c);
             }
 
-            return builder.ToString().Trim('\n', ' ');
+            return trim ? builder.ToString().Trim('\n', ' ') : builder.ToString();
         }
 
         private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);

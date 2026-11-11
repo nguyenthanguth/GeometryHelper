@@ -444,14 +444,15 @@ namespace GeometryHelper.Dxf.Viewer
             yield return CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No");
             GeoTransform3 mirror = Mirrored(second);
 
-            // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest. A dimension stays readable
-            // under either, as AutoCAD keeps it.
+            // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest, in their plane. A dimension
+            // stays readable under either, as AutoCAD keeps it; a multileader keeps its plane under either.
             CadDocument document = c.Document;
             Tolerance tolerance = c.Session.Tolerance;
             bool mirrtext = c.Database.Mirrtext;
             Func<DxfEntity, ReadableMirror> readable = entity =>
                 entity is DxfDimension dimension ? ReadableDimension(dimension, mirror, tolerance)
-                : mirrtext ? null
+                : entity is DxfMLeader mleader ? MLeaderMirror(document, mleader, mirror, mirrtext, tolerance)
+                : mirrtext ? InPlane(entity, mirror, tolerance)
                 : Readable(document, entity, mirror, tolerance);
 
             Transform(

@@ -185,6 +185,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The width the display gives the words of a text, as MIRROR measures one it keeps readable.</summary>
         internal double TextWidth(DxfDBText text) => _builder.WidthOf(text);
 
+        /// <summary>Where a text's words start and their ink runs along its baseline from its point, as the display's fonts read them (<see cref="DisplayBuilder.InkOf"/>); false where they are not read.</summary>
+        internal bool TextInk(DxfDBText text, out double start, out double left, out double right) =>
+            _builder.InkOf(text, out start, out left, out right);
+
         // The document that shows each drawing, which the grips and the pieces of an MTEXT ask its layout of: looked up only,
         // and weak, so that a drawing let go lets its document go.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy =
