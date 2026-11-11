@@ -28,6 +28,15 @@ is offered as 41), and TEXT under ANGDIR 1 stores 330, not -30. MTEXT with a rot
 30 across and 20 down at 30 degrees make a box 15.98 wide; line spacing carries to the next MTEXT until Height or Style
 is chosen. MIRROR keeps a dimension in the drawing's plane and readable under either MIRRTEXT.
 
+**FIXED.** The presenter's MIRROR leaves texts and multileaders as AutoCAD 2021's MIRROR leaves them, checked group by
+group in its console. A multileader keeps the drawing's plane (297 0) under either MIRRTEXT; at 0 its words keep reading
+along x from the mirrored landing, held by their other side across an upright (171 and 176 turned, bit 14 of 90), the base
+point at the left of the words less the gap; at 1 they are mirrored and write 294 1. A copy of a multileader of a block is
+based at the block's left and writes its matrix where it stands. At MIRRTEXT 1 a TEXT, an attribute definition and the
+attributes of an INSERT keep the normal (0, 0, 1) and are written backwards (71 2), not turned over. At 0 a TEXT is
+mirrored by the ink of its words where the fonts read them: "ABC" of txt.shx 2.5 high mirrored across x = 100 starts at
+193.333, not 195.5, and its turn is written from 0 to 360 degrees.
+
 **NEW.** The presenter's Properties rows of a dimension add Ext line fixed and its length, Fill color, Fractional type,
 Text position X and Y and Text view direction, written as overrides; extension lines follow DIMFXLON as AutoCAD 2021
 draws them. MATCHPROP copies the plot style in a drawing of named plot styles (`CadMatchProperties.PlotStyle`) and a

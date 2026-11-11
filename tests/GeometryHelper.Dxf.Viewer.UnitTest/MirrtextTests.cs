@@ -160,5 +160,176 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(copy.Normal.Z < 0.0 || copy.IsMirroredInX, "The text was not mirrored.");
         }
+
+        /// <summary>Asserts a text mirrored in its plane: its normal still up, written backwards or not, turned as given.</summary>
+        private static void InPlane(DxfDBText text, bool backward, double degrees, GeoPoint3 at)
+        {
+            Assert.True(text.Normal.Z > 1.0 - 1E-9, "The normal is " + text.Normal + ".");
+            Assert.Equal(backward, text.IsMirroredInX);
+            Assert.False(text.IsMirroredInY);
+            double turned = ((text.Rotation / Degree % 360.0) + 360.0) % 360.0;
+            Assert.True(Math.Abs(turned - degrees) < 1E-6, "Turned " + turned + " degrees, not " + degrees + ".");
+            Near(at, text.Position, 1E-9);
+        }
+
+        [Fact]
+        public void WithMirrtextOn_ATextMirroredAcrossAnUpright_KeepsItsNormalUpAndIsWrittenBackwards()
+        {
+            // AutoCAD 2021 (mirror-mleader GHMM1, MIRRTEXT 1): "ABC" at the origin mirrored across x = 100 stands at (200, 0),
+            // normal (0, 0, 1), flag 71 of 2; turned 30 degrees, at 330.
+            InPlane(
+                MirroredCopy<DxfDBText>(WithText(true, db => Text(db, 0, 0, 0)), P(100, 0), P(100, 10)),
+                true,
+                0,
+                P3(200, 0)
+            );
+            InPlane(
+                MirroredCopy<DxfDBText>(WithText(true, db => Text(db, 0, 0, 30)), P(100, 0), P(100, 10)),
+                true,
+                330,
+                P3(200, 0)
+            );
+        }
+
+        [Fact]
+        public void WithMirrtextOn_ATextMirroredAcrossALevelLine_IsTurnedHalfRoundAndWrittenBackwards_NotUpsideDown()
+        {
+            // AutoCAD 2021 (GHMM1, MIRRTEXT 1, across y = 100): at (0, 200) turned 180 degrees, flag 71 of 2, never 4.
+            DxfDBText copy = MirroredCopy<DxfDBText>(WithText(true, db => Text(db, 0, 0, 0)), P(0, 100), P(10, 100));
+
+            InPlane(copy, true, 180, P3(0, 200));
+        }
+
+        [Fact]
+        public void WithMirrtextOn_ATextWrittenBackwards_IsMirroredBackToReadForwards()
+        {
+            // AutoCAD 2021 (GHMM1 flags2, MIRRTEXT 1): the flag turned off again, at (200, 0) turned nought.
+            CadDocument document = WithText(true, db => Text(db, 0, 0, 0).IsMirroredInX = true);
+
+            InPlane(MirroredCopy<DxfDBText>(document, P(100, 0), P(100, 10)), false, 0, P3(200, 0));
+        }
+
+        [Fact]
+        public void WithMirrtextOn_ACentredTextHasItsPointMirrored()
+        {
+            // AutoCAD 2021 (GHMM1 BaseCenter, MIRRTEXT 1): the alignment point (0, 0) mirrored to (200, 0), written backwards.
+            CadDocument document = WithText(true, db =>
+            {
+                DxfDBText text = Text(db, 0, 0, 0);
+                text.HorizontalMode = DxfTextHorizontalMode.TextCenter;
+                text.AlignmentPoint = new GeoPoint3(0, 0, 0);
+            });
+
+            DxfDBText copy = MirroredCopy<DxfDBText>(document, P(100, 0), P(100, 10));
+
+            Assert.True(copy.Normal.Z > 0.0 && copy.IsMirroredInX);
+            Near(P3(200, 0), copy.AlignmentPoint, 1E-9);
+        }
+
+        [Fact]
+        public void WithMirrtextOn_AnAttributeDefinitionAndTheAttributeOfAnInsert_AreWrittenBackwards()
+        {
+            // AutoCAD 2021 (GHMM1 ATTDEF and INSERT|PATT, MIRRTEXT 1): both at (200, 0), normal up, flag 71 of 2.
+            CadDocument definition = WithText(true, db =>
+            {
+                var tag = new DxfAttributeDefinition(new GeoPoint3(0, 0, 0), "VALUE", "TAG", string.Empty, null);
+                db.ModelSpace.AppendEntity(tag);
+            });
+            InPlane(MirroredCopy<DxfAttributeDefinition>(definition, P(100, 0), P(100, 10)), true, 0, P3(200, 0));
+
+            CadDocument inserted = WithText(true, db =>
+            {
+                var block = new DxfBlockTableRecord { Name = "B1" };
+                db.BlockTable.Add(block);
+                block.AppendEntity(new DxfCircle(new GeoPoint3(0, 0, 0), new GeoVector3(0, 0, 1), 1.0));
+                var insert = new DxfBlockReference(new GeoPoint3(0, 0, 0), block);
+                db.ModelSpace.AppendEntity(insert);
+                var value = new DxfAttributeReference(new GeoPoint3(0, 0, 0), "VALUE", "TAG", null);
+                insert.AttributeCollection.AppendAttribute(value);
+                value.Height = 2.5;
+            });
+            DxfBlockReference copy = MirroredCopy<DxfBlockReference>(inserted, P(100, 0), P(100, 10));
+            InPlane(copy.AttributeCollection.Cast<DxfAttributeReference>().Single(), true, 0, P3(200, 0));
+        }
+
+        private static GeoPoint3 P3(double x, double y) => new GeoPoint3(x, y, 0);
+
+        /// <summary>
+        /// A drawing of one TEXT "I" 10 high in a font 10 above its baseline whose I is a line up at 1 moving the pen 4, so that
+        /// its ink stands 1 along from where it starts and its advance is 4.
+        /// </summary>
+        private static CadDocument WithInk(FontFolder folder, Action<DxfDBText> justify)
+        {
+            folder.Write("ghtest.shx", ShxFiles.Unifont());
+            CadDocument document = WithText(false, db =>
+            {
+                db.TextStyleTable["Standard"].FileName = "ghtest.shx";
+                DxfDBText text = Text(db, 0, 0, 0, "I");
+                text.Height = 10;
+                justify(text);
+            });
+            document.Fonts = new CadFonts(new[] { folder.FullPath }, null, null);
+            return document;
+        }
+
+        [Fact]
+        public void WithMirrtextOff_ATextOnTheLeft_HasTheInkOfItsWordsMirrored()
+        {
+            // AutoCAD 2021 (GHMM1 and GHMM2, every font and justification but Right and Middle): the ink of the copy is the
+            // mirror of the ink, not of the box of the advances: "I" inked at 1 mirrored across x = 100 is inked at 199, so it
+            // starts at 198 (romans.shx "I" 2.5 high, inked at 0.476, starts at 199.048).
+            using (var folder = new FontFolder())
+            {
+                DxfDBText copy = MirroredCopy<DxfDBText>(WithInk(folder, t => { }), P(100, 0), P(100, 10));
+
+                Readable(copy, 0);
+                Near(P3(198, 0), copy.Position, 1E-9);
+            }
+        }
+
+        [Fact]
+        public void WithMirrtextOff_ATextOnTheRightAtMidHeight_HasItsInkMirrored_ButOneOnTheRightOfItsBaseline_ItsBox()
+        {
+            // AutoCAD 2021 (GHMM2): "I" right at mid height, inked at its point, keeps its point at the mirror, 200; right on its
+            // baseline its words start at the mirrored point, so that the point is 201 (romans.shx "I": 200 and 200.476).
+            using (var folder = new FontFolder())
+            {
+                DxfDBText middle = MirroredCopy<DxfDBText>(WithInk(folder, t =>
+                    {
+                        t.HorizontalMode = DxfTextHorizontalMode.TextRight;
+                        t.VerticalMode = DxfTextVerticalMode.TextVerticalMid;
+                        t.AlignmentPoint = new GeoPoint3(0, 0, 0);
+                    }), P(100, 0), P(100, 10));
+                DxfDBText baseline = MirroredCopy<DxfDBText>(WithInk(folder, t =>
+                    {
+                        t.HorizontalMode = DxfTextHorizontalMode.TextRight;
+                        t.AlignmentPoint = new GeoPoint3(0, 0, 0);
+                    }), P(100, 0), P(100, 10));
+
+                Readable(middle, 0);
+                Near(P3(200, 0), middle.AlignmentPoint, 1E-9);
+                Readable(baseline, 0);
+                Near(P3(201, 0), baseline.AlignmentPoint, 1E-9);
+            }
+        }
+
+        [Fact]
+        public void WithMirrtextOff_ATextEndingInASpace_OnTheRightOfItsBaseline_KeepsTheSpaceInItsBox()
+        {
+            // AutoCAD 2021 (GHMM1 "ABC " of txt.shx right on its baseline: 10 wide with its space, its point 210): "I " is
+            // justified by its I and the 5 its space moves the pen, 9 in all, so mirrored across x = 100 its point is 209.
+            using (var folder = new FontFolder())
+            {
+                DxfDBText copy = MirroredCopy<DxfDBText>(WithInk(folder, t =>
+                    {
+                        t.TextString = "I ";
+                        t.HorizontalMode = DxfTextHorizontalMode.TextRight;
+                        t.AlignmentPoint = new GeoPoint3(0, 0, 0);
+                    }), P(100, 0), P(100, 10));
+
+                Readable(copy, 0);
+                Near(P3(209, 0), copy.AlignmentPoint, 1E-9);
+            }
+        }
     }
 }

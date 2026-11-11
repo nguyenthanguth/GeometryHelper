@@ -84,7 +84,8 @@ The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawin
 the ones wanted.
 
 - [x] MIRRTEXT for tables and dimensions (MIRROR keeps a dimension in the plane, as AutoCAD)
-- [ ] MIRRTEXT follow-ups: MLEADER under MIRROR (AutoCAD keeps +Z, base 167.33 vs ours 182, groups 171/176/297/90 differ); TEXT box from the font's ink box (AutoCAD 193.333 vs ours 195.5 for "ABC" 2.5 in txt.shx); MIRRTEXT 1 TEXT as flag 71 = 2 with +Z, not -Z; DIMLINEAR groups 11 and 42 and its Mtext/Angle/Rotated options; core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
+- [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
+- [ ] MIRROR follow-ups: INSERT mirrored as AutoCAD (41 = -1, not 42) and ATTRIBs without explicit 210; DxfDBText.TransformBy writing 41 0.9999999999999999 and negative 50 (ROTATE?); TEXT spaces trimmed by the display; MTEXT under MIRRTEXT 1; 45-degree mirror line for multileaders; multi-line multileader text; DIMLINEAR groups 11/42 and Mtext/Angle/Rotated (task dim-pictures); core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity

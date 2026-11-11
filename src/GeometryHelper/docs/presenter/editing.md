@@ -146,7 +146,20 @@ of an INSERT stay readable: the box of their words is mirrored, and they read wi
 before. "ABC" 2.5 high turned 30 degrees at the origin, mirrored across the line y = 10, reads at 330 degrees from
 (-1.25, 17.835); turned 120 degrees and mirrored across an upright, it reads at 240. A text aligned between (0, 0) and
 (20, 0) mirrored across x = 30 runs from (40, 0) to (60, 0); an MTEXT attached top left at the origin, mirrored across
-x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
+x = 40, is attached top right at (80, 0). Where the drawing's fonts read the letters, a TEXT is mirrored by the ink of its
+words, as AutoCAD mirrors it: "ABC" of txt.shx 2.5 high at the origin, inked to 6.667, mirrored across x = 100 starts at
+193.333; one on the right of its baseline by the box from where its words start to its point, and one in the middle about
+its point. Where they are not read, the box of the words is the display's estimate. At 1 a TEXT, an attribute definition
+and the attributes of an INSERT are mirrored in the drawing's plane: their normal stays (0, 0, 1) and they are written
+backwards (flag 2 of group 71), "ABC" at the origin mirrored across x = 100 standing at (200, 0) and across y = 100 at
+(0, 200) turned 180 degrees, never upside down.
+
+A multileader keeps the drawing's plane under either MIRRTEXT, as AutoCAD's MIRROR keeps it. At 0 its words keep reading
+along x and stand as far from the mirrored landing as they stood from the landing, held by their other side where the
+mirror crosses the plane's x axis: "ABC" held top left at (30.45, 20.09), landed at (30, 20), mirrored across x = 100 is
+held top right at (169.55, 20.09), its base point at the left of the words less the landing gap. At 1 the words are
+mirrored with the rest and say they run against the plane's x axis. A multileader of a block is based where a leader from
+the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
