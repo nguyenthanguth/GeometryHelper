@@ -85,6 +85,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void SelectObjects_HidesQuickSelectWhileObjectsArePicked_AndItComesBackToLookAmongThemOnly()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                string doors = model.Document.ModelSpace.Block.OfType<DxfLine>().Single(l => l.Layer == "DOORS").Handle;
+                string text = model.Document.ModelSpace.Block.OfType<DxfDBText>().Single().Handle;
+                int shown = 0;
+                model.ShowQuickSelect = dialog =>
+                {
+                    shown++;
+
+                    if (shown == 1)
+                    {
+                        Assert.Equal(new[] { "Entire drawing" }, dialog.ApplyToOptions);
+
+                        // Greyed while the matches are appended to the selection there is.
+                        dialog.Append = true;
+                        Assert.False(dialog.CanSelectObjects);
+                        dialog.SelectObjects();
+                        Assert.False(dialog.IsSelectingObjects);
+                        dialog.Append = false;
+                        Assert.True(dialog.CanSelectObjects);
+                        dialog.SelectObjects();
+                        Assert.True(dialog.IsSelectingObjects);
+                        return false;
+                    }
+
+                    Assert.Equal("Current selection", dialog.ApplyTo);
+                    Assert.Equal(new[] { "Multiple", "Line", "Text" }, dialog.ObjectTypes);
+                    dialog.ObjectType = "Line";
+                    Assert.Equal(new[] { "DOORS" }, dialog.Values);
+                    dialog.Value = "DOORS";
+                    return true;
+                };
+
+                model.Execute("QSELECT");
+                Assert.Equal("Select objects:", model.Session.PromptText);
+                model.Session.FeedSelection(new[] { doors, text });
+                model.Execute(string.Empty);
+
+                Assert.Equal(2, shown);
+                Assert.False(model.Session.IsRunning);
+                Assert.Equal("1 item(s) selected.", model.History.Last());
+                Assert.Equal(new[] { doors }, model.Document.Selection.Handles);
+            }
+        }
+
+        [Fact]
         public void FindShowsFindAndReplace_ReplaceAllIsOneUndoStep_AndKeepsTheFormattingOfMtext()
         {
             using (var folder = new TestFolder())

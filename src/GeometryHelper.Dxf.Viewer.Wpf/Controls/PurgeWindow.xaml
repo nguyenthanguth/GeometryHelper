@@ -294,7 +294,21 @@
                         Background="#000000"
                         Margin="0,0,0,6"
                     >
-                        <Image Source="{Binding Preview}" Stretch="None" />
+                        <Grid>
+                            <Image Source="{Binding Preview}" Stretch="None" />
+                            <!-- A table style is drawn as the Table Style dialog draws it, on white. -->
+                            <local:TableStylePreview Settings="{Binding TablePreview}">
+                                <local:TableStylePreview.Style>
+                                    <Style TargetType="local:TableStylePreview">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding TablePreview}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </local:TableStylePreview.Style>
+                            </local:TableStylePreview>
+                        </Grid>
                     </Border>
                     <Border Padding="10,8" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
                         <TextBlock

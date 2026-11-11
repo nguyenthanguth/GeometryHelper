@@ -104,7 +104,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the blocks with attributes, which the Block list offers.</summary>
         public IReadOnlyList<string> Blocks => Request.Blocks;
 
-        /// <summary>Gets or sets the block shown: another one chosen applies what was changed in this one, then shows it.</summary>
+        /// <summary>
+        /// Gets or sets how the window asks whether to save the changes made to a block before another is shown, as AutoCAD's
+        /// manager asks: true writes them, false drops them. With none set, they are written without asking.
+        /// </summary>
+        public Func<string, bool> AskSaveChanges { get; set; }
+
+        /// <summary>
+        /// Gets or sets the block shown: another one chosen asks first whether to save what was changed in this one, where
+        /// anything was, then shows it.
+        /// </summary>
         public string Block
         {
             get => Request.Block;
@@ -112,6 +121,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (value != null && !string.Equals(value, Request.Block, StringComparison.Ordinal))
                 {
+                    AskBeforeLeaving();
                     Request.Show(value);
                     Rebuild(0);
                     Raise(nameof(Block));
@@ -144,11 +154,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets whether Move Up can run: a row is chosen and it is not the first.</summary>
-        public bool CanMoveUp => Index > 0;
+        /// <summary>Gets whether Move Up can run: a row is chosen, it is not the first, and it is not of a constant attribute.</summary>
+        public bool CanMoveUp => Index > 0 && !_selected.Row.Constant;
 
-        /// <summary>Gets whether Move Down can run: a row is chosen and it is not the last.</summary>
-        public bool CanMoveDown => Index >= 0 && Index < _rows.Count - 1;
+        /// <summary>Gets whether Move Down can run: a row is chosen, it is not the last, and it is not of a constant attribute.</summary>
+        public bool CanMoveDown => Index >= 0 && Index < _rows.Count - 1 && !_selected.Row.Constant;
 
         /// <summary>Gets whether Edit can run: a row is chosen.</summary>
         public bool CanEdit => Index >= 0;
@@ -239,15 +249,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
-        /// <summary>Closes the manager with an action: OK writes what is left to write, Cancel writes nothing more, Select block asks a block on the command line.</summary>
+        /// <summary>
+        /// Closes the manager with an action: OK writes what is left to write, Cancel writes nothing more, Select block asks
+        /// first whether to save what was changed, then asks a block on the command line.
+        /// </summary>
         /// <param name="action">OK, Cancel or Select block.</param>
-        public void Close(CadDialogAction action) => Request.Action = action;
+        public void Close(CadDialogAction action)
+        {
+            if (action == CadDialogAction.SelectBlock)
+            {
+                AskBeforeLeaving();
+            }
+
+            Request.Action = action;
+        }
+
+        /// <summary>Where the rows of the block shown were changed, asks whether to save them; No reads them again from the block.</summary>
+        private void AskBeforeLeaving()
+        {
+            if (AskSaveChanges != null && Request.HasChanges && !AskSaveChanges(Request.Block))
+            {
+                Request.Revert();
+            }
+        }
 
         private void Move(int by)
         {
             int at = Index;
 
-            if (at < 0 || at + by < 0 || at + by >= Request.Rows.Count)
+            if (at < 0 || at + by < 0 || at + by >= Request.Rows.Count || Request.Rows[at].Constant)
             {
                 return;
             }

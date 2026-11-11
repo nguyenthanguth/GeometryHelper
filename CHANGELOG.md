@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Quick Select (QSELECT) has AutoCAD's Select objects button at the right of Apply to: it hides the
+dialog while `Select objects:` asks on the command line, and the dialog comes back over the objects picked, Apply to:
+Current selection, so a line of DOORS and a text picked offer Multiple, Line and Text. It is greyed while Exclude or
+Append is chosen. `QuickSelectViewModel.CanSelectObjects`, `IsSelectingObjects` and `SelectObjects()` are new; the
+window answers QSELECT's request with "Select objects".
+
+**NEW.** The presenter's Purge dialog previews an unused multileader style as MLEADER draws one and an unused table
+style as the Table Style dialog draws it (`PurgeViewModel.TablePreview`), as it did blocks, text and dimension styles.
+
+**FIXED.** The presenter's Block Attribute Manager (BATTMAN) wrote the changes made to a block without asking when
+another block was chosen or Select block pressed; it now asks `Save changes to the attributes of block GB?` first, as
+AutoCAD's does, No dropping them (`CadAttributeManagerRequest.HasChanges` and `Revert()`,
+`BlockAttributeManagerViewModel.AskSaveChanges`). Move Up and Move Down are greyed on a constant attribute, as AutoCAD's.
+
 **NEW.** The Snap and Grid tab of the presenter's Drafting Settings as AutoCAD 2021's, the dialog now 560 by 580 on every
 tab: Snap X and Y spacing with Equal X and Y spacing, Polar distance (POLARDIST), Grid snap or PolarSnap (SNAPTYPE),
 Rectangular or Isometric snap (SNAPSTYL), the dotted grid of Grid style (GRIDSTYLE), Grid X and Y spacing (GRIDUNIT),

@@ -457,7 +457,10 @@ QSELECT and FIND show the window's Quick Select and Find and Replace dialogs, wh
 [`CadQuickSelect`](xref:GeometryHelper.Dxf.Viewer.CadQuickSelect) and [`CadFind`](xref:GeometryHelper.Dxf.Viewer.CadFind).
 Quick Select compares the rows of the Properties panel: of a plan of 312 lines on layer WALLS among others, Line, Layer,
 `= Equals`, WALLS selects the 312 and says `312 item(s) selected.`; numbers are compared within the tolerance of a point,
-so Length `= 200` takes a line 200.0004 long. FIND searches TEXT, MTEXT by its words, attribute values, dimension text,
+so Length `= 200` takes a line 200.0004 long. Its Select objects button, at the right of Apply to, hides the dialog
+while `Select objects:` asks on the command line; the objects picked become the selection and the dialog comes back with
+Apply to: Current selection, its types those of the objects picked, so a line of DOORS and a text picked offer Multiple,
+Line and Text. The button is greyed while Exclude or Append to current selection set is chosen. FIND searches TEXT, MTEXT by its words, attribute values, dimension text,
 multileader text and table cells, and replaces in MTEXT its words alone: `{\fArial|b1;Bolts M20}` with M20 replaced by
 M24 is `{\fArial|b1;Bolts M24}`. Replace and Replace All are one undo step each. Over 100 000 objects Quick Select by
 layer takes 0.25 s and FIND 0.04 s.
@@ -474,7 +477,9 @@ erased; with "Verify each name to be purged?" Yes it asks `Purge layer "EMPTY1"?
 unused, so that a block OUTER inserted nowhere, holding the only INSERT of INNER, takes INNER with it, and the layer only
 INNER's circle was on; a name answered No is not asked again. PURGE shows the Purge dialog where there is a window (the
 typed form otherwise): the named objects nothing uses by kind, with Confirm each item, Purge nested items, the geometry
-of no length and the empty texts; and in Find Non-Purgeable Items the objects in use with the reasons, `Layer WALLS is the
+of no length and the empty texts, and a preview of the item chosen: a block, or a text, dimension or multileader style
+drawn as its dialog draws it, white on black, or a table style drawn on white as the Table Style dialog draws it; and in
+Find Non-Purgeable Items the objects in use with the reasons, `Layer WALLS is the
 current layer.`, `Used by 2 objects in model space and 0 in layouts.`, `Referenced by block GB.`. Each purge is one undo
 step. CLASSICGROUP shows AutoCAD's Object Grouping dialog (GROUP being the command-line form in AutoCAD 2021): New, Add,
 Remove, Find Name and Highlight ask on the command line and bring the dialog back; Rename, Description, Explode,
@@ -582,7 +587,9 @@ preset, L lock position, M multiple lines), a tag given twice in red. Move Up, M
 modes, text options and properties) and Remove change the list; Apply and OK write it into the block, each one undo step,
 and the INSERTs keep their attributes until Sync runs ATTSYNC's logic on every one of them, or at once with "Apply changes
 to existing references" in its Settings. A block GB of GRID, LEVEL and REV with LEVEL moved up and synced gives each INSERT
-LEVEL then GRID, their values kept. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
+LEVEL then GRID, their values kept. Move Up and Move Down are greyed on a constant attribute, as AutoCAD's are. Another
+block chosen in the list, or Select block, with changes not yet written asks first, as AutoCAD's manager does:
+`Save changes to the attributes of block GB?`, Yes writing them and No dropping them. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
 makes INSERT and -INSERT ask the values of the attributes in the Edit Attributes dialog, eight a page in the block's
 order, the constant ones left out and a value to be verified asked once; Cancel places the defaults.
 

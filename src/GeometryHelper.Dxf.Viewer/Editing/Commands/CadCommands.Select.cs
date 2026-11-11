@@ -8,15 +8,35 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        /// <summary>QSELECT: the Quick Select dialog, over the objects selected before it where there are any.</summary>
+        /// <summary>
+        /// QSELECT: the Quick Select dialog, over the objects selected before it where there are any. Its Select objects
+        /// button, the window's answer "Select objects", hides it while "Select objects:" asks on the command line; the objects
+        /// picked become the selection, and the dialog comes back over them, as AutoCAD's does.
+        /// </summary>
         private static IEnumerable<CadPrompt> QuickSelect(CadCommandContext c)
         {
-            if (!c.Session.Request("QSELECT", c.Document))
+            while (true)
             {
-                c.Write("Quick Select is shown by the window.");
-            }
+                CadUiRequestEventArgs asked = c.Session.Ask("QSELECT", c.Document);
 
-            yield break;
+                if (!asked.Handled)
+                {
+                    c.Write("Quick Select is shown by the window.");
+                    yield break;
+                }
+
+                if (asked.Answer != "Select objects")
+                {
+                    yield break;
+                }
+
+                yield return CadPrompt.ForSelection();
+
+                if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles.Count > 0)
+                {
+                    c.Document.Selection.Set(c.Input.Handles);
+                }
+            }
         }
 
         /// <summary>FIND: the Find and Replace dialog; the objects selected before it are those of Find where: Selected objects.</summary>

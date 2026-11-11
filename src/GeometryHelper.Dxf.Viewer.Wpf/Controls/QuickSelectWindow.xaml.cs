@@ -6,7 +6,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// AutoCAD's Quick Select dialog, which QSELECT shows: Apply to, Object type, Properties, Operator, Value and how to apply.
-    /// Its logic is <see cref="QuickSelectViewModel"/>.
+    /// Select objects closes it with <see cref="QuickSelectViewModel.IsSelectingObjects"/> set, and QSELECT shows it again
+    /// once the objects are picked. Its logic is <see cref="QuickSelectViewModel"/>.
     /// </summary>
     public partial class QuickSelectWindow : Window
     {
@@ -41,6 +42,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;
+
+        private void OnSelectObjects(object sender, RoutedEventArgs e)
+        {
+            Model.SelectObjects();
+            DialogResult = false;
+        }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
     }

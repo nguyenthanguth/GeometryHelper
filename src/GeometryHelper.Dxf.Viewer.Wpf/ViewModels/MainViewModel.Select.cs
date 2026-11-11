@@ -73,7 +73,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RefreshViewGroup();
         }
 
-        /// <summary>QSELECT's request: the dialog shown where the workspace shows it, OK selecting.</summary>
+        /// <summary>
+        /// QSELECT's request: the dialog shown where the workspace shows it, OK selecting; Select objects answered "Select
+        /// objects", so that the command asks them and shows the dialog again.
+        /// </summary>
         private void OnQuickSelectRequested(CadUiRequestEventArgs e)
         {
             CadDocument document = e.Document ?? _current?.Document;
@@ -88,6 +91,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (ShowQuickSelect(dialog))
             {
                 dialog.Apply();
+            }
+            else if (dialog.IsSelectingObjects)
+            {
+                e.Answer = "Select objects";
             }
 
             e.Handled = true;

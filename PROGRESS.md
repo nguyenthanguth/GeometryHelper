@@ -212,6 +212,7 @@ the ones wanted.
       snap (SNAPSTYL 1) (S). DECIDED by the user 2026-11-11: GRID off and LWDISPLAY on stay the defaults
 - [x] Drafting Settings Snap and Grid tab (designed) and PolarSnap
 - [ ] Snap follow-ups: SNAP Style/Aspect/Type options (RibbonTests asserts the old prompt); GRID command's spacing and Major/aDaptive/Limits/Follow/Aspect; PolarSnap along tracking paths; the canvas drawing by GRIDSTYLE (dots) and GRIDDISPLAY bits; SETVAR of SNAPUNIT, GRIDUNIT, POLARDIST, SNAPTYPE, GRIDSTYLE, GRIDDISPLAY with AutoCAD's texts; iso to rectangular in the dialog (AutoCAD sets X = Y = 2 x stored Y); OTRACK lines following SNAPANG and the isoplane; LWDISPLAY echo <OFF> and keywords; SNAPMODE 2 accepted by AutoCAD (S)
+- [ ] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
@@ -264,8 +265,9 @@ the ones wanted.
 - [ ] Xrefs follow-ups: Bind (AutoCAD renames to `x$0$NAME`; ours refuses); the change balloon in the status bar (needs
       design) (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
-- [ ] Selection: QSELECT's "select objects" button
+- [x] Managers: PURGE previews of table and multileader styles (the managers had them; Groups kind was done); BATTMAN asks before dropping changes, constants do not move
+- [ ] Managers follow-ups 4: ATTDIA Cancel and Object Grouping Cancel unverifiable headless (ours: defaults placed, changes taken back); BATTMAN counts model space only where AutoCAD counts the current space; Quick Select's Append should look at the whole drawing (S)
+- [x] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer
 
