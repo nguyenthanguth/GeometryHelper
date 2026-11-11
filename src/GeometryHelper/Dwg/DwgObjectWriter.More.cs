@@ -283,6 +283,9 @@ namespace GeometryHelper.Dwg
 
             public bool At(int code) => _at < _groups.Count && _groups[_at].Key == code;
 
+            /// <summary>The code of the next group, -1 at the end.</summary>
+            public int Code => _at < _groups.Count ? _groups[_at].Key : -1;
+
             public string Text(int code, string otherwise = "")
             {
                 return At(code) ? _groups[_at++].Value : otherwise;

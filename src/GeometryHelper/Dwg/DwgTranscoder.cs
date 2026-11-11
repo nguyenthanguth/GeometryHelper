@@ -96,7 +96,25 @@ namespace GeometryHelper.Dwg
             string page = _container.CodePage;
 
             _doubleByte = page == "ANSI_932" || page == "ANSI_936" || page == "ANSI_949" || page == "ANSI_950";
-            var reader = new DwgObjectReader(_container.Objects, _classes, _container.Version);
+            // The offsets by handle, made the first time a table asks for its style, so that a drawing of no table pays nothing.
+            Dictionary<ulong, long> offsets = null;
+            var reader = new DwgObjectReader(_container.Objects, _classes, _container.Version)
+            {
+                OffsetOf = handle =>
+                {
+                    if (offsets == null)
+                    {
+                        offsets = new Dictionary<ulong, long>();
+
+                        foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
+                        {
+                            offsets[entry.Key] = entry.Value;
+                        }
+                    }
+
+                    return offsets.TryGetValue(handle, out long at) ? at : (long?)null;
+                },
+            };
             int broken = 0;
             string firstFault = null;
 
@@ -129,6 +147,7 @@ namespace GeometryHelper.Dwg
             NumberPaperSpaces();
             NumberViewports();
             FillLeaderBoxes();
+            AddCellStyleMaps();
 
             if (broken > 0)
             {
@@ -285,6 +304,127 @@ namespace GeometryHelper.Dwg
                     : i + 1,
                 };
             }
+        }
+
+        /// <summary>
+        /// A table style of cell styles of its own keeps them in DXF in a CELLSTYLEMAP under its extension dictionary
+        /// (<c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c>), which a DWG does not hold: the two are added, with the
+        /// next handles of the drawing, after the objects read, where the style has no extension dictionary.
+        /// </summary>
+        private void AddCellStyleMaps()
+        {
+            var added = new List<DwgObject>();
+            ulong next = _header.Handle("HANDSEED");
+
+            foreach (DwgObject style in _objects)
+            {
+                if (style.CellStyleMap == null)
+                {
+                    continue;
+                }
+
+                if (style.XDictionary != 0)
+                {
+                    // A DWG AutoCAD made of a DXF may keep the dictionary, empty or naming a CELLSTYLEMAP it does not hold:
+                    // the map read of the style takes that one's place, or is put into the dictionary.
+                    DwgObject held = Find(style.XDictionary);
+
+                    if (!TakePlaceOfMap(style) && held != null && held.Decoded && held.Name == "DICTIONARY")
+                    {
+                        DwgObject into = style.CellStyleMap;
+                        into.Handle = next++;
+                        into.Owner = held.Handle;
+                        into.Reactors.Add(held.Handle);
+                        held.Add(3, "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP");
+                        held.Add(360, into.Handle);
+                        added.Add(into);
+                    }
+
+                    continue;
+                }
+
+                var dictionary = new DwgObject
+                {
+                    Name = "DICTIONARY",
+                    Decoded = true,
+                    Handle = next++,
+                    Owner = style.Handle,
+                };
+                DwgObject map = style.CellStyleMap;
+                map.Handle = next++;
+                map.Owner = dictionary.Handle;
+                map.Reactors.Add(dictionary.Handle);
+                dictionary.Reactors.Add(style.Handle);
+                dictionary.Add(100, "AcDbDictionary");
+                dictionary.Add(280, 1);
+                dictionary.Add(281, 1);
+                dictionary.Add(3, "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP");
+                dictionary.Add(360, map.Handle);
+                style.XDictionary = dictionary.Handle;
+                added.Add(dictionary);
+                added.Add(map);
+            }
+
+            foreach (DwgObject one in added)
+            {
+                _objects.Add(one);
+                _byHandle[one.Handle] = one;
+            }
+
+            if (added.Count > 0)
+            {
+                _header.Set("HANDSEED", next);
+            }
+        }
+
+        /// <summary>
+        /// Puts the CELLSTYLEMAP read of a table style in place of the one its extension dictionary names, of the same
+        /// handle, owner and reactors, where that one is not read or not in the file (AutoCAD's DWG of a DXF names one it
+        /// does not hold); false where the dictionary names none.
+        /// </summary>
+        private bool TakePlaceOfMap(DwgObject style)
+        {
+            DwgObject dictionary = Find(style.XDictionary);
+            List<DwgGroup> entries = dictionary?.Body ?? new List<DwgGroup>();
+
+            for (int i = 0; i + 1 < entries.Count; i++)
+            {
+                if (
+                    entries[i].Code != 3
+                    || !(entries[i].Value is byte[] name)
+                    || Encoding.ASCII.GetString(name) != "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP"
+                    || !(entries[i + 1].Value is ulong handle)
+                )
+                {
+                    continue;
+                }
+
+                DwgObject held = Find(handle);
+                DwgObject map = style.CellStyleMap;
+
+                if (held != null && held.Decoded)
+                {
+                    return true;
+                }
+
+                map.Handle = handle;
+                map.Owner = held?.Owner ?? dictionary.Handle;
+                map.Reactors.AddRange(held?.Reactors ?? new List<ulong> { dictionary.Handle });
+
+                if (held != null)
+                {
+                    _objects[_objects.IndexOf(held)] = map;
+                }
+                else
+                {
+                    _objects.Add(map);
+                }
+
+                _byHandle[map.Handle] = map;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -678,7 +818,13 @@ namespace GeometryHelper.Dwg
             }
 
             _dxf.Write(8, NameOf(entity.Layer) ?? new byte[] { (byte)'0' });
-            Write(entity.Common);
+
+            // AutoCAD 2021 writes no material for a BLOCK or an ENDBLK, though the file may give them one.
+            Write(
+                entity.Type == 0x04 || entity.Type == 0x05
+                    ? entity.Common.FindAll(group => group.Code != 347)
+                    : entity.Common
+            );
 
             if (entity.ProxyGraphics != null)
             {

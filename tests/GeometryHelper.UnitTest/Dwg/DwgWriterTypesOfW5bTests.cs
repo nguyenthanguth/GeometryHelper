@@ -82,11 +82,10 @@ namespace GeometryHelper.UnitTest.Dwg
         public void TablesAndTheirStyles_WrittenAsDwg_ReadBackToTheSameCellsAndStyles()
         {
             // A table of 3 by 3 of the Standard style, its title merged across, and one of 2 by 4 of a style of its own,
-            // with a merged range in each row; the second keeps its content for a round trip, which the reader leaves out
-            // as it does of AutoCAD's own file.
+            // with a merged range in each row; the second keeps its content for a round trip, read back with it.
             DwgAnswerKey.Result result = RoundTrip("table_AC1032");
 
-            OnlyWhatTheTypesLeftOutLeadTo(result, "TABLECONTENT", "TABLEGEOMETRY");
+            OnlyWhatTheTypesLeftOutLeadTo(result);
             Assert.True(result.Paired > 380, result.Paired + " records paired");
         }
 
@@ -100,10 +99,7 @@ namespace GeometryHelper.UnitTest.Dwg
 
             Assert.Empty(result.Differences);
             Assert.All(result.Missing.Keys, type =>
-                Assert.Contains(
-                    type,
-                    StillLeftOut.Concat(new[] { "TABLECONTENT", "TABLEGEOMETRY", "CLASS CELLSTYLEMAP" })
-                )
+                Assert.Contains(type, StillLeftOut.Concat(new[] { "CLASS CELLSTYLEMAP" }))
             );
             Assert.True(result.Paired > 380, result.Paired + " records paired");
         }

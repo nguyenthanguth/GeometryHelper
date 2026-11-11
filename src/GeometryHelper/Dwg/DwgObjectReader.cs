@@ -225,6 +225,15 @@ namespace GeometryHelper.Dwg
         private readonly byte[] _file;
         private readonly int _version;
         private readonly Dictionary<int, DwgClass> _classes = new Dictionary<int, DwgClass>();
+
+        private readonly List<DwgClass> _classList;
+        private readonly string _versionName;
+
+        /// <summary>
+        /// Where the object of a handle starts, from the object map, for the objects a decoder reads beside its own (the
+        /// cell styles of a table's style); none where it is not set.
+        /// </summary>
+        public Func<ulong, long?> OffsetOf { get; set; }
         private DwgBitReader _data;
         private DwgBitReader _handles;
         private DwgBitReader _strings;
@@ -237,6 +246,8 @@ namespace GeometryHelper.Dwg
         public DwgObjectReader(byte[] file, List<DwgClass> classes, string version)
         {
             _file = file;
+            _classList = classes;
+            _versionName = version;
             _version = DwgContainer.NumberOf(version);
 
             foreach (DwgClass one in classes)
@@ -1069,6 +1080,11 @@ namespace GeometryHelper.Dwg
                     return ReadTable();
                 case "TABLESTYLE":
                     return ReadTableStyle();
+                case "TABLECONTENT":
+                    return R2007Plus && ReadTableContentObject();
+                case "TABLEGEOMETRY":
+                    ReadTableGeometry();
+                    return true;
                 default:
                     return false;
             }

@@ -158,6 +158,9 @@ namespace GeometryHelper.Dwg
         public ulong Handle(string name) =>
             _values.TryGetValue(name, out object value) && value is ulong handle ? handle : 0;
 
+        /// <summary>Sets the value under <paramref name="name"/>, as the reader does for the next handle after records it adds.</summary>
+        public void Set(string name, object value) => _values[name] = value;
+
         private static object Value(
             DwgBitReader data,
             DwgBitReader strings,
