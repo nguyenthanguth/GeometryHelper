@@ -160,6 +160,36 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Marks the linetype as one an external reference brings, as AutoCAD writes the linetypes of an external reference into
+        /// the drawing that attaches it: flag 16 of group 70 where it comes from one, and 32 as well where that reference is
+        /// resolved; AutoCAD 2021 writes 48 for the linetype <c>grid|DASHED</c> of a drawing attached and loaded, and 16 once
+        /// it is unloaded.
+        /// </summary>
+        /// <remarks>
+        /// A linetype made in code is marked before it is added, so that its table takes its name: <c>new
+        /// DxfLinetypeTableRecord { Name = "grid|DASHED" }</c> marked dependent and resolved is written <c>2 grid|DASHED,
+        /// 70 48</c>. Its name and the marks agree: a linetype named with a | is dependent, and one without is not.
+        /// </remarks>
+        /// <param name="dependent">Whether the linetype comes from an external reference (flag 16).</param>
+        /// <param name="resolved">Whether that reference is resolved (flag 32); only where it is dependent.</param>
+        /// <exception cref="ArgumentException">Thrown when the linetype is resolved and not dependent, or its name has a | in it
+        /// and it is not dependent, or none and it is.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the linetype is erased.</exception>
+        public void SetDependent(bool dependent, bool resolved)
+        {
+            int bits = Dependence(dependent, resolved);
+
+            if (Item == null)
+            {
+                MadeDependence = bits;
+            }
+            else if ((Flags & 48) != bits)
+            {
+                Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(70, ((Flags & ~48) | bits).ToString(CultureInfo.InvariantCulture)) }, Order, false);
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the length of the linetype's pattern (group 40), as AutoCAD's <c>PatternLength</c>: the dashes and gaps
         /// together, 0.75 for a dash of 0.5 and a gap of 0.25; nought where the record gives none.
         /// </summary>
@@ -556,7 +586,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            DxfItem item = file.AddLinetype(Name, _description, PatternLength, _dashes.Count, groups);
+            DxfItem item = file.AddLinetype(Name, MadeDependence, _description, PatternLength, _dashes.Count, groups);
 
             if (item == null)
             {

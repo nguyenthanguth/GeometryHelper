@@ -418,8 +418,12 @@ switches cycling between 0 and 2, as in AutoCAD.
 
 XATTACH and -XREF Attach or Overlay attach a DXF as an external reference: a block flagged 4 (12 overlaid) naming the
 file, and an INSERT of it, one undo step. The presenter reads the file and draws its model space under the INSERT, its
-layers named after the reference (`grid|GRID`) and its layer 0 taking the INSERT's; nothing of it is written into the
-drawing. Its own attachments are followed, its overlays not. The file is looked for as AutoCAD looks: the path saved, from
+layers named after the reference (`grid|GRID`) and its layer 0 taking the INSERT's. Of the file, the drawing takes the
+records AutoCAD 2021 writes for it, as its -XREF Attach of x.dwg wrote them: for each linetype but ByBlock, ByLayer and
+Continuous, `x|DASHED` with its description and dashes; for each layer but 0, `x|WALL` with its colour, linetype
+(`x|DASHED`), lineweight, on, frozen, locked, plotted, transparency and description, and `1001
+AcXRefLayerPropertyOverride, 1071 0`; each flagged 48 (dependent, resolved), and its block 36. Its entities are not
+written. Its own attachments are followed, its overlays not. The file is looked for as AutoCAD looks: the path saved, from
 the folder of the drawing that names it, then the file's name there, in the drawing's folder and in the support folders.
 A grid of 1 000 by 1 attached at (100, 200) from `D:\Plans\xref\grid.dxf` into `D:\Plans\plans\host.dxf` is saved as
 `..\xref\grid.dxf` (Relative path; Full path until the drawing is saved), draws its line from (100, 200) to (1 100, 200),
@@ -434,7 +438,10 @@ watches the folders of the files read; one changed on disk is said once on its d
 2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
 -XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file
 changed anew.
-Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
+Unload flags the reference's layers and linetypes 16 and its block 4, as AutoCAD 2021 writes them unloaded, and Reload
+flags them 48 and 36 again and writes those of layers and linetypes the file has gained, each an undo step where anything
+changes; a record the drawing has keeps what it has. Detach takes them out with the block. No DXF says a reference is
+unloaded. One
 not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
 an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
@@ -445,8 +452,7 @@ box or -LAYER, each change marked in the 1071 of the record's `AcXRefLayerProper
 the file referenced has it now: `grid|GRID` made red in the drawing stays red when the file makes GRID cyan, and one left
 as it was is drawn cyan. The current layer, a new name with a | and deleting are refused in AutoCAD 2021's words:
 "Cannot set CLAYER to that value." (the layer box, the Layer manager, CLAYER), "Invalid layer name." (-LAYER Set) and
-`"grid|X" is an invalid layer name.` (-LAYER New). The presenter writes no such record when it attaches a file; one
-attached in it has its layers drawn, but not listed. IMAGEATTACH
+`"grid|X" is an invalid layer name.` (-LAYER New). IMAGEATTACH
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by

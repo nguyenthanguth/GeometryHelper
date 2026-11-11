@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter's XATTACH and -XREF Attach and Overlay write into the drawing the records AutoCAD 2021 writes
+for a drawing it attaches, as its -XREF Attach of x.dwg, its layer WALL green on DASHED, wrote them: the linetype
+`x|DASHED` with its dashes and the layer `x|WALL` on it, green, with the file's lineweight, plotting, transparency and
+description and `1001 AcXRefLayerPropertyOverride, 1071 0`, each flagged 48 (dependent, resolved), and the block of the
+reference 36. Nothing of the file was written before, so a drawing saved by the presenter listed no layer of a reference
+in the Layer manager until AutoCAD had saved it. Unload flags them 16 and the block 4, Reload 48 and 36 again with the
+records of layers the file has gained, a record the drawing has keeping what it has; each is an undo step where anything
+changes, and Detach takes them out. **NEW.** `DxfLayerTableRecord.SetDependent` and `DxfLinetypeTableRecord.SetDependent`
+mark a record of an external reference (flags 16 and 32), so that its table takes a name with a | in it.
+
 **NEW.** The presenter's window says on a drawing's command line when a file one of its external references was read
 from changes on disk, where AutoCAD 2021 shows a balloon over its status bar (XREFNOTIFY 2): "External Reference Files
 Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette." Each change is

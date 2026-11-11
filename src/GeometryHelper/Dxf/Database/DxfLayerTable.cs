@@ -433,6 +433,37 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Marks the layer as one an external reference brings, as AutoCAD writes the layers of an external reference into the
+        /// drawing that attaches it: flag 16 of group 70 where it comes from one, and 32 as well where that reference is
+        /// resolved; AutoCAD 2021 writes 48 for the layer <c>grid|WALL</c> of a drawing attached and loaded, and 16 once it is
+        /// unloaded.
+        /// </summary>
+        /// <remarks>
+        /// A layer made in code is marked before it is added, so that its table takes its name: <c>new DxfLayerTableRecord {
+        /// Name = "grid|WALL" }</c> marked dependent and resolved is written <c>2 grid|WALL, 70 48</c>. Its linetype is one of
+        /// the table's, <c>grid|DASHED</c> marked the same way, or Continuous. Its name and the marks agree: a layer named
+        /// with a | is dependent, and one without is not.
+        /// </remarks>
+        /// <param name="dependent">Whether the layer comes from an external reference (flag 16).</param>
+        /// <param name="resolved">Whether that reference is resolved (flag 32); only where it is dependent.</param>
+        /// <exception cref="ArgumentException">Thrown when the layer is resolved and not dependent, or its name has a | in it and
+        /// it is not dependent, or none and it is.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the layer is erased.</exception>
+        public void SetDependent(bool dependent, bool resolved)
+        {
+            int bits = Dependence(dependent, resolved);
+
+            if (Item == null)
+            {
+                MadeDependence = bits;
+            }
+            else if ((Flags & 48) != bits)
+            {
+                Set(70, ((Flags & ~48) | bits).ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the description of the layer, as AutoCAD's <c>Description</c>, kept as AutoCAD keeps it: the second 1000
         /// of the layer's extended data of the application <c>AcAecLayerStandard</c>, after an empty one; empty where it has none.
         /// </summary>
@@ -761,7 +792,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A DXF of version " + (file.Version ?? "R12") + " has no transparency, which came with R2004 (AC1018).", "value");
             }
 
-            DxfItem item = file.AddLayer(Name, (_off ? -_colour : _colour), _trueColour, _linetype, (int)_lineWeight, (_frozen ? 1 : 0) | (_frozenInNewViewports ? 2 : 0) | (_locked ? 4 : 0), _plotted);
+            DxfItem item = file.AddLayer(Name, (_off ? -_colour : _colour), _trueColour, _linetype, (int)_lineWeight, (_frozen ? 1 : 0) | (_frozenInNewViewports ? 2 : 0) | (_locked ? 4 : 0) | MadeDependence, _plotted);
 
             if (item == null)
             {
