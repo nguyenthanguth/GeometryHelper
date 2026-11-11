@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** -SCALELISTEDIT in the presenter edits the drawing's list of scales (ACAD_SCALELIST), its prompts and answers
+word for word as AutoCAD 2021's console gives them: ? lists the scales with their units, Add asks a name and a ratio and
+redefines a scale of that name when told Yes, Delete takes out one scale or `*` every one in no use and says "Scale 1:1 is
+referenced so it cannot be deleted." for one AutoCAD keeps, Reset puts back the standard 1:1 to 100:1, Exit ends; the
+command is one undo step. The status bar's scale list in a layout offers the drawing's list, as AutoCAD's does, and its
+Custom... runs -SCALELISTEDIT in place of VPSCALE. The Edit Drawing Scales dialog of SCALELISTEDIT waits for a design.
+[`DxfObjectContextCollection.CanRemoveContext`](xref:GeometryHelper.Dxf.DxfObjectContextCollection.CanRemoveContext(System.String))
+says whether `RemoveContext` would take a scale out.
+
 **CHANGED.** ZOOM Previous in the presenter goes back through a list of its own for each viewport of a layout, for the
 paper of each layout and for model space, 20 views each, as AutoCAD 2021 keeps them. It went back through one list of
 every view the drawing's ZOOM and PAN had left, whichever viewport or space they changed, and a viewport's views were kept

@@ -143,6 +143,29 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets whether <see cref="RemoveContext"/> would take a scale out: the list has it, and it is not the unit scale, the
+        /// current scale or one an object points at. AutoCAD's -SCALELISTEDIT answers "Scale 1:1 is referenced so it cannot be
+        /// deleted." for one it keeps, and its Delete * takes out every one this gives true for.
+        /// </summary>
+        /// <param name="contextName">The name of the scale, letters of either case the same.</param>
+        /// <returns>Whether it can be taken out; false for a name the list has not.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        public bool CanRemoveContext(string contextName)
+        {
+            if (contextName == null)
+            {
+                throw new ArgumentNullException(nameof(contextName));
+            }
+
+            DxfAnnotationScale scale = Find(_database, contextName);
+
+            return scale != null
+                && !scale.IsUnitScale
+                && !string.Equals(scale.Name, _database.Cannoscale?.Trim(), StringComparison.OrdinalIgnoreCase)
+                && _database.File.CountUses().OfHandle(scale.Handle) == 0;
+        }
+
+        /// <summary>
         /// Takes a scale out of the list, as AutoCAD's <c>RemoveContext</c>: its SCALE erased with its entry of ACAD_SCALELIST.
         /// The scale AutoCAD keeps is refused: the unit scale (290 of 1), the current scale (<see cref="CurrentContext"/>), and a
         /// scale an object points at (the 340 of an annotative object's context, or any other hard pointer), as AutoCAD keeps a

@@ -158,18 +158,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void CustomScale_AsksTheScaleOnTheCommandLine()
+        public void Custom_EditsTheDrawingsScaleList_WhichTheListThenOffers()
         {
             OnRoom((model, viewport) =>
             {
                 model.SelectSpace(Layout1(model));
                 model.Document.EnterViewport(viewport);
 
+                // Custom... runs -SCALELISTEDIT, as AutoCAD's opens the drawing's scales: a scale added there is in the list.
                 model.ScaleMenu().Single(i => i.Header == "Custom...").Command.Execute(null);
-                Assert.Contains("PS:MS == 1:20", model.History);
+                model.Execute("A");
+                Assert.Contains(model.History, l => l.StartsWith("Enter option [?/Add/Delete/Reset/Exit] <Add>", StringComparison.Ordinal));
+                model.Execute("Plan 1:37.5");
                 model.Execute("1:37.5");
+                model.Execute("E");
 
+                model.ScaleMenu().Single(i => i.Header == "Plan 1:37.5").Command.Execute(null);
                 Assert.Equal("1:37.5", model.StatusScale);
+                Assert.Contains(model.ScaleMenu(), i => i.Header == "Plan 1:37.5" && i.IsChecked);
                 Assert.Equal(150 * 37.5, ((DxfViewport)model.Document.FindEntity(viewport)).ViewHeight, 9);
             });
         }
