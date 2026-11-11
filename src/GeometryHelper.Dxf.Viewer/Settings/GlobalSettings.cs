@@ -366,6 +366,13 @@ namespace GeometryHelper.Dxf.Viewer
             set => _gridStyle = (int)Range(value, 0, 7, nameof(GridStyle));
         }
 
+        /// <summary>
+        /// Gets or sets whether SNAP holds the cursor on the snap grid at all times, as AutoCAD's SNAPGRIDLEGACY 1 (SNAP Legacy
+        /// Yes): with no point asked too, so that the crosshair and the objects picked go from one grid point to the next; off
+        /// by default, as SNAPGRIDLEGACY 0, when SNAP holds the cursor only while a point is asked.
+        /// </summary>
+        public bool SnapGridLegacy { get; set; }
+
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
         public bool F3TogglesSnaps { get; set; } = true;
 
@@ -907,6 +914,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("polarSnap", PolarSnap);
             w.Value("polarDistance", _polarDistance);
             w.Value("gridStyle", _gridStyle);
+            w.Value("snapGridLegacy", SnapGridLegacy);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
             w.Value("selectByDragging", SelectByDragging);
             w.Value("dynamicInput", DynamicInput);
@@ -1144,6 +1152,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("canvas", "polarSnap", v => _s.PolarSnap = v);
                 Number("canvas", "polarDistance", v => _s.PolarDistance = v);
                 Number("canvas", "gridStyle", v => _s.GridStyle = Whole(v));
+                Flag("canvas", "snapGridLegacy", v => _s.SnapGridLegacy = v);
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
                 Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
                 Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);

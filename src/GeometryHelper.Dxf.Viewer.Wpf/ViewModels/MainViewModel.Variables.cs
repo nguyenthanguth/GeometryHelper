@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
     /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), the snap's SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL and
     /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport, SNAPTYPE,
-    /// POLARDIST and GRIDSTYLE of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
+    /// POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
     /// PICKBOX, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
     /// Input Search Options, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
@@ -58,6 +58,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             );
             registry.AddVariable(CadSystemVariable.Integer("GRIDSTYLE", 0, 7, () => _settings.GridStyle, SetGridStyle));
             registry.AddVariable(CadSystemVariable.Integer("GRIDDISPLAY", 0, 15, () => GridDisplay, SetGridDisplay));
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "SNAPGRIDLEGACY",
+                    0,
+                    1,
+                    () => SnapGridLegacy ? 1 : 0,
+                    v => SetSnapGridLegacy(v != 0)
+                )
+            );
             registry.AddVariable(
                 CadSystemVariable.Point(
                     "SNAPBASE",

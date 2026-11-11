@@ -296,10 +296,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             dialog.GridY = "0";
             dialog.IsPolarSnapType = true;
-            dialog.PolarDistance = "-1";
+            dialog.PolarDistance = "abc";
             Assert.False(dialog.Apply());
             Assert.Equal(DraftingSettingsViewModel.PolarDistanceBox, dialog.FaultyBox);
-            Assert.Equal("The polar distance must be a number, nought or above.", dialog.Notice);
+            Assert.Equal("The polar distance must be a number.", dialog.Notice);
             Assert.False(model.Settings.PolarSnap);
 
             dialog.PolarDistance = "0";

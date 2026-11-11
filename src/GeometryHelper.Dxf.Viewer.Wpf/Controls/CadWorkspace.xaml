@@ -4508,6 +4508,7 @@
                         GridMajor="{Binding GridMajor}"
                         GridStyle="{Binding GridStyle}"
                         GridDisplay="{Binding GridDisplay}"
+                        SnapGridLegacy="{Binding SnapGridLegacy}"
                         SnapBase="{Binding SnapBase}"
                         SnapAngle="{Binding SnapAngle}"
                         Isoplane="{Binding Isoplane}"

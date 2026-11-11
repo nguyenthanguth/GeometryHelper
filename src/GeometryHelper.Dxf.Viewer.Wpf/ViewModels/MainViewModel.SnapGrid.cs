@@ -12,10 +12,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed partial class MainViewModel
     {
-        // SNAPGRIDLEGACY, as SNAP Legacy sets it: kept for the window, as AutoCAD keeps it in the registry.
-        private bool _snapGridLegacy;
-
         private static readonly double Root3 = Math.Sqrt(3.0);
+
+        /// <summary>
+        /// Gets whether SNAP holds the cursor on the snap grid at all times, AutoCAD's SNAPGRIDLEGACY 1 as SNAP Legacy Yes sets
+        /// it, kept in the settings file (<see cref="GlobalSettings.SnapGridLegacy"/>) as AutoCAD keeps it in the registry;
+        /// off, SNAP holds the cursor only while a point is asked.
+        /// </summary>
+        public bool SnapGridLegacy => _settings.SnapGridLegacy;
+
+        /// <summary>SNAPGRIDLEGACY set, by SNAP Legacy or SETVAR: kept in the settings file, the canvas following.</summary>
+        private void SetSnapGridLegacy(bool on)
+        {
+            ChangeSettings(s => s.SnapGridLegacy = on);
+            Raise(nameof(SnapGridLegacy));
+        }
 
         /// <summary>
         /// SNAP typed: a spacing, which with an isometric snap is the vertical one (5 keeps 8.6603 by 2.5, the drawing holding
@@ -65,12 +76,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     yield return CadPrompt.ForKeyword(
                         "Maintain legacy behavior of always snapping to the grid?",
                         new[] { "Yes", "No" },
-                        _snapGridLegacy ? "Yes" : "No"
+                        SnapGridLegacy ? "Yes" : "No"
                     );
 
                     if (c.Input.Is("Yes") || c.Input.Is("No"))
                     {
-                        _snapGridLegacy = c.Input.Is("Yes");
+                        SetSnapGridLegacy(c.Input.Is("Yes"));
                     }
                 }
                 else if (c.Input.Is("Style"))

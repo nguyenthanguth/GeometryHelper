@@ -12,10 +12,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A point, picked or typed as x,y, @dx,dy or @distance&lt;angle.</summary>
         Point,
 
-        /// <summary>A distance, typed or as the distance from the prompt's base point to a point picked.</summary>
+        /// <summary>
+        /// A distance, typed or as the distance from the prompt's base point to a point picked; with no base point, as the
+        /// distance between two points, the second asked "Specify second point:".
+        /// </summary>
         Distance,
 
-        /// <summary>An angle in degrees, typed or as the direction from the prompt's base point to a point picked.</summary>
+        /// <summary>
+        /// An angle in degrees, typed or as the direction from the prompt's base point to a point picked; with no base point,
+        /// as the direction from one point to a second, asked "Specify second point:".
+        /// </summary>
         Angle,
 
         /// <summary>Objects, picked one by one or by a window, until Enter ends the selection.</summary>
@@ -82,6 +88,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// from it, and ortho and polar do not work from it.
         /// </summary>
         public GeoPoint2? SnapFrom { get; private set; }
+
+        /// <summary>
+        /// Whether a number typed at a prompt for a point with no base point is a distance from the last point given
+        /// (LASTPOINT) towards the cursor, as SETVAR's points take it in AutoCAD 2021: GRIDUNIT 5 with the last point at
+        /// (10, 20) is the point 5 from it. False for every other prompt, which refuses a number alone.
+        /// </summary>
+        internal bool FromLastPoint { get; private set; }
+
+        /// <summary>Makes a number typed a distance from the last point (<see cref="FromLastPoint"/>).</summary>
+        internal CadPrompt MeasuringFromLastPoint()
+        {
+            FromLastPoint = true;
+            return this;
+        }
 
         /// <summary>Gives the prompt the point its perpendicular and tangent snaps are drawn from (<see cref="SnapFrom"/>).</summary>
         internal CadPrompt SnappingFrom(GeoPoint2 point)
