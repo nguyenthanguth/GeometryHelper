@@ -272,13 +272,75 @@
                         Header="Arrowhead"
                         VerticalAlignment="Top"
                     >
-                        <ComboBox
-                            Style="{StaticResource GhComboBox}"
-                            ItemsSource="{Binding Arrows}"
-                            SelectedItem="{Binding Arrow, Mode=TwoWay}"
-                            MaxDropDownHeight="268"
-                            AutomationProperties.Name="Arrowhead"
-                        />
+                        <StackPanel>
+                            <!-- Each arrowhead with its picture; User Arrow... last, under a line, asks for a block. -->
+                            <ComboBox
+                                Style="{StaticResource GhComboBox}"
+                                ItemsSource="{Binding ArrowChoices}"
+                                SelectedItem="{Binding SelectedArrowChoice, Mode=TwoWay}"
+                                MaxDropDownHeight="268"
+                                AutomationProperties.Name="Arrowhead"
+                            >
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="Entry" BorderBrush="{StaticResource GhBorder}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image
+                                                    x:Name="Picture"
+                                                    Source="{Binding Picture}"
+                                                    Width="22"
+                                                    Height="12"
+                                                    Margin="0,0,6,0"
+                                                    Stretch="None"
+                                                />
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsUserArrowEntry}" Value="True">
+                                                <Setter TargetName="Picture" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="Entry" Property="BorderThickness" Value="0,1,0,0" />
+                                                <Setter TargetName="Entry" Property="Padding" Value="0,2,0,0" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <!-- User Arrow...: AutoCAD's Select Custom Arrow Block, the drawing's blocks to choose from. -->
+                            <StackPanel
+                                Margin="0,8,0,0"
+                                Visibility="{Binding IsChoosingUserArrow, Converter={StaticResource Shown}}"
+                            >
+                                <TextBlock
+                                    Text="Select from Drawing Blocks:"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,0,0,4"
+                                />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    IsEditable="True"
+                                    ItemsSource="{Binding UserArrowBlocks}"
+                                    Text="{Binding UserArrowBlock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    AutomationProperties.Name="Select from Drawing Blocks"
+                                />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                    <Button
+                                        Style="{StaticResource StylePrimaryButton}"
+                                        Content="OK"
+                                        Padding="14,3"
+                                        Margin="0,0,6,0"
+                                        Click="OnKeepUserArrow"
+                                    />
+                                    <Button
+                                        Style="{StaticResource GhDialogButton}"
+                                        Content="Cancel"
+                                        Padding="10,3"
+                                        Click="OnDropUserArrow"
+                                    />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
                     </HeaderedContentControl>
                     <HeaderedContentControl Grid.Row="2" Style="{StaticResource BlockGroup}" Header="Number of Points">
                         <StackPanel>

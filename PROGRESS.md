@@ -103,7 +103,8 @@ the ones wanted.
 - [ ] Follow-ups of aids-vars: refusal message for a modifier picked from the menu where it may not nest (S)
 - [x] MLEADERSCALE, CMLEADERSTYLE, LEADER and QLEADER (command line) as AutoCAD 2021
 - [x] QLEADER Leader Settings (AcadDim xrecord, DIMLDRBLK) and the Polar tab's additional angles, tracking and measurement, with the polar tooltip
-- [ ] Leader follow-ups: QLEADER "User Arrow..." and arrow pictures in Leader Settings; angle constraints not previewed by the rubber band; Reuse Current of an INSERT; LEADER Tolerance (no TOLERANCE command); Copy of INSERT/TOLERANCE; drag preview; other DIM* overrides (DIMCLRD, DIMLDRBLK...); hook along the UCS; DIMSCALE 0 through a viewport for dimensions (1/viewport scale); dimensions writing every differing variable as an override (S)
+- [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
+- [ ] Leader follow-ups 2: the User Arrow block chooser was built as an inline panel with no board (design board QLeaderUserArrow to add, then match); TOLERANCE class and Geometric Tolerance dialog (unlocks LEADER Tolerance, Copy/Reuse of a TOLERANCE); QLEADER angle constraints in the UCS; group 211 in a UCS; arrow pictures in the Dimension Style and Multileader Style lists (CadStylePreview.Arrowhead); DIMSCALE 0 through a viewport for dimensions; dimensions writing every differing variable (S-M)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

@@ -11,7 +11,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>An MTEXT of the lines typed: "Enter first line of annotation text &lt;Mtext&gt;:".</summary>
         MText = 0,
 
-        /// <summary>A copy of an MTEXT or a TEXT picked: "Select an object to copy:".</summary>
+        /// <summary>A copy of an MTEXT, a TEXT or an INSERT picked: "Select an object to copy:".</summary>
         CopyObject = 1,
 
         /// <summary>A geometric tolerance, which needs AutoCAD's Geometric Tolerance dialog: the presenter draws no annotation.</summary>
@@ -156,7 +156,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the tab the dialog opens on: 0 Annotation, 1 Leader Line &amp; Arrow, 2 Attachment.</summary>
         public int Tab { get; set; }
 
-        /// <summary>Gets or sets the name of a user arrow block (group 3); empty for none.</summary>
+        /// <summary>
+        /// Gets or sets the name of a user arrow block (group 3), the block Leader Settings' "User Arrow..." chose last; empty
+        /// for none. The arrow drawn is DIMLDRBLK all the same.
+        /// </summary>
         public string UserArrow { get; set; } = string.Empty;
 
         /// <summary>Gets a copy of the settings.</summary>
@@ -364,6 +367,24 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Arrows = arrows;
+            var blocks = new List<string>();
+
+            foreach (DxfBlockTableRecord record in document.Database.BlockTable)
+            {
+                if (!record.IsLayout && !record.IsAnonymous && !record.IsFromExternalReference)
+                {
+                    blocks.Add(record.Name);
+                }
+            }
+
+            blocks.Sort(
+                (a, b) =>
+                {
+                    int order = StringComparer.OrdinalIgnoreCase.Compare(a, b);
+                    return order != 0 ? order : StringComparer.Ordinal.Compare(a, b);
+                }
+            );
+            Blocks = blocks;
         }
 
         /// <summary>Gets the document.</summary>
@@ -375,7 +396,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the arrowheads offered, as <see cref="CadArrowheads.Names"/>, and a user arrow the drawing's DIMLDRBLK names.</summary>
         public IReadOnlyList<string> Arrows { get; }
 
-        /// <summary>Gets or sets the arrowhead, by its name in <see cref="Arrows"/>: DIMLDRBLK's when the dialog opens.</summary>
+        /// <summary>
+        /// Gets the blocks of the drawing a user arrow can be, as AutoCAD's Select Custom Arrow Block lists them: each block but
+        /// the layouts, the anonymous ones and the external references, by name, letters of either case together.
+        /// </summary>
+        public IReadOnlyList<string> Blocks { get; }
+
+        /// <summary>
+        /// Gets or sets the arrowhead, by its name in <see cref="Arrows"/>, or a block of <see cref="Blocks"/> for a user arrow:
+        /// DIMLDRBLK's when the dialog opens.
+        /// </summary>
         public string Arrow { get; set; }
 
         /// <summary>Gets or sets what the dialog was closed with: OK writes the settings and the arrow; Cancel until set.</summary>

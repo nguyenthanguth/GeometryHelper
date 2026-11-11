@@ -49,6 +49,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnFewerPoints(object sender, RoutedEventArgs e) => Model.FewerPoints();
 
+        private void OnKeepUserArrow(object sender, RoutedEventArgs e) => Model.KeepUserArrow();
+
+        private void OnDropUserArrow(object sender, RoutedEventArgs e) => Model.DropUserArrow();
+
         private void OnOk(object sender, RoutedEventArgs e)
         {
             // A box being typed in gives its text before the settings are taken.
