@@ -192,7 +192,7 @@ namespace GeometryHelper.Dwg
                 else if ((code >= 0 && code <= 9) || (code >= 100 && code <= 105) || (code >= 300 && code <= 309) || (code >= 410 && code <= 419)
                     || (code >= 430 && code <= 439) || (code >= 470 && code <= 479) || (code >= 1000 && code <= 1003))
                 {
-                    string text = Unescape(value);
+                    string text = value;
 
                     if (R2007Plus)
                     {
@@ -326,7 +326,8 @@ namespace GeometryHelper.Dwg
             _data.Point3(layout.Point(14));
             _data.Point3(layout.Point(15));
             ulong block = layout.Handle(330);
-            List<DwgRecord> viewports = R2004Plus ? ViewportsOf(block) : new List<DwgRecord>();
+            // A layout lists its viewports once one of them has been active (331); AutoCAD's layouts that never were list none.
+            List<DwgRecord> viewports = R2004Plus && layout.Has(331) ? ViewportsOf(block) : new List<DwgRecord>();
 
             if (R2004Plus)
             {

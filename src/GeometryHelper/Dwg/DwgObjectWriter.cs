@@ -30,6 +30,7 @@ namespace GeometryHelper.Dwg
         private DwgBitWriter _strings;
         private DwgBitWriter _handles;
         private DwgRecord _record;
+        private Dictionary<ulong, DwgRecord> _leaders;
 
         /// <summary>
         /// An encoder of the records of <paramref name="drawing"/> into objects of <paramref name="version"/> (such as 1032),
@@ -110,14 +111,15 @@ namespace GeometryHelper.Dwg
             switch (type)
             {
                 case "TEXT": return 0x01;
-                case "ATTRIB": return 0x02;
-                case "ATTDEF": return 0x03;
+                case "ATTRIB": return Embedded(record) ? -1 : 0x02;
+                case "ATTDEF": return Embedded(record) ? -1 : 0x03;
                 case "BLOCK": return 0x04;
                 case "ENDBLK": return 0x05;
                 case "SEQEND": return 0x06;
                 case "INSERT": return record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbMInsertBlock") ? 0x08 : 0x07;
                 case "VERTEX": return VertexType(record);
                 case "POLYLINE": return PolylineType(record);
+                case "DIMENSION": return DimensionType(record);
                 case "ARC": return 0x11;
                 case "CIRCLE": return 0x12;
                 case "LINE": return 0x13;
@@ -125,6 +127,11 @@ namespace GeometryHelper.Dwg
                 case "3DFACE": return 0x1C;
                 case "SOLID": return 0x1F;
                 case "TRACE": return 0x20;
+                case "VIEWPORT": return 0x22;
+                case "LEADER": return 0x2D;
+                case "TOLERANCE": return 0x2E;
+                case "MLINE": return 0x2F;
+                case "HATCH": return 0x4E;
                 case "ELLIPSE": return 0x23;
                 case "SPLINE": return 0x24;
                 case "RAY": return 0x28;
@@ -172,6 +179,32 @@ namespace GeometryHelper.Dwg
             return 0x0A;
         }
 
+        /// <summary>Whether an attribute is one of several lines, which holds an MTEXT of its own and is not written yet.</summary>
+        private static bool Embedded(DwgRecord record) => record.Body.Exists(g => g.Key == 101);
+
+        private static int DimensionType(DwgRecord record)
+        {
+            foreach (KeyValuePair<int, string> group in record.Body)
+            {
+                if (group.Key != 100)
+                {
+                    continue;
+                }
+
+                switch (group.Value.Trim())
+                {
+                    case "AcDbOrdinateDimension": return 0x14;
+                    case "AcDbRotatedDimension": return 0x15;
+                    case "AcDb3PointAngularDimension": return 0x17;
+                    case "AcDb2LineAngularDimension": return 0x18;
+                    case "AcDbRadialDimension": return 0x19;
+                    case "AcDbDiametricDimension": return 0x1A;
+                }
+            }
+
+            return record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbAlignedDimension") ? 0x16 : -1;
+        }
+
         private static int PolylineType(DwgRecord record)
         {
             foreach (KeyValuePair<int, string> group in record.Body)
@@ -205,6 +238,11 @@ namespace GeometryHelper.Dwg
                 case "LAYOUT": return WriteLayout;
                 case "XRECORD": return WriteXRecord;
                 case "LWPOLYLINE": return WriteLwPolyline;
+                case "DBCOLOR": return WriteBookColour;
+                case "IMAGE": return () => WriteRasterImage("AcDbRasterImage");
+                case "WIPEOUT": return () => WriteRasterImage("AcDbWipeout");
+                case "IMAGEDEF": return WriteImageDefinition;
+                case "IMAGEDEF_REACTOR": return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
                 default: return null;
             }
         }
@@ -241,7 +279,8 @@ namespace GeometryHelper.Dwg
 
             _data.Handle(0, record.Handle);
             WriteExtendedData();
-            bool entity = IsEntity(type);
+            // An object of a class is an entity where its record is one (IMAGE, WIPEOUT); a fixed type says it by its number.
+            bool entity = type < 500 ? IsEntity(type) : record.Body.Exists(g => g.Key == 100 && g.Value.Trim() == "AcDbEntity");
 
             if (entity)
             {
@@ -399,7 +438,7 @@ namespace GeometryHelper.Dwg
         /// <summary>A text of the object: before R2007 in the data in the drawing's code page, from R2007 in the string stream as UTF-16.</summary>
         private void T(string text)
         {
-            text = Unescape(text ?? string.Empty);
+            text = text ?? string.Empty;
 
             if (R2007Plus)
             {
@@ -409,32 +448,6 @@ namespace GeometryHelper.Dwg
             {
                 _data.Text(Encoding.UTF8.GetBytes(text));
             }
-        }
-
-        /// <summary>A text with its <c>\U+XXXX</c> escapes, as a DXF before R2007 keeps the letters its code page lacks, made the letters again.</summary>
-        internal static string Unescape(string text)
-        {
-            if (text.IndexOf("\\U+", StringComparison.Ordinal) < 0)
-            {
-                return text;
-            }
-
-            var result = new StringBuilder(text.Length);
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                if (text[i] == '\\' && i + 7 <= text.Length && text[i + 1] == 'U' && text[i + 2] == '+'
-                    && int.TryParse(text.Substring(i + 3, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int code))
-                {
-                    result.Append((char)code);
-                    i += 6;
-                    continue;
-                }
-
-                result.Append(text[i]);
-            }
-
-            return result.ToString();
         }
 
         /// <summary>
@@ -488,7 +501,7 @@ namespace GeometryHelper.Dwg
 
                     if (R2007Plus)
                     {
-                        string text = Unescape(value);
+                        string text = value;
                         values.WriteByte((byte)text.Length);
                         values.WriteByte((byte)(text.Length >> 8));
                         byte[] utf16 = Encoding.Unicode.GetBytes(text);
@@ -743,6 +756,22 @@ namespace GeometryHelper.Dwg
 
             bool rgb = all.Has(420);
             bool transparency = all.Has(440);
+            ulong book = all.Has(430) ? BookColourOf(all.Text(430)) : 0;
+
+            if (book != 0)
+            {
+                // A colour of a book: its DBCOLOR, named in the handles, holds the true colour and the names.
+                _data.BitShort((index & 0x1FF) | 0x8000 | 0x4000 | (transparency ? 0x2000 : 0));
+
+                if (transparency)
+                {
+                    _data.BitLong(all.Int(440));
+                }
+
+                H(5, book);
+                return;
+            }
+
             int value = (index & 0x1FF) | (rgb ? 0x8000 : 0) | (transparency ? 0x2000 : 0);
             _data.BitShort(value);
 
@@ -762,7 +791,7 @@ namespace GeometryHelper.Dwg
         /// a bit long whose high byte says how it is given (0xC0 by layer, 0xC1 by block, 0xC2 a true colour, 0xC3 an
         /// index) and a byte of 0, no names following.
         /// </summary>
-        private void WriteColour(int index, int rgb = -1)
+        private void WriteColour(int index, int rgb = -1, string bookName = null)
         {
             if (!R2004Plus)
             {
@@ -776,7 +805,40 @@ namespace GeometryHelper.Dwg
                 : index == 0 ? unchecked((int)0xC1000000)
                 : unchecked((int)0xC3000000) | (index & 0xFF);
             _data.BitLong(value);
-            _data.RawChar(0);
+            int split = string.IsNullOrEmpty(bookName) ? -1 : bookName.IndexOf('$');
+
+            if (split < 0)
+            {
+                _data.RawChar(0);
+                return;
+            }
+
+            // The names of a colour of a book, group 430 as book$colour: the colour's name, then the book's.
+            _data.RawChar(3);
+            T(bookName.Substring(split + 1));
+            T(bookName.Substring(0, split));
+        }
+
+        /// <summary>A DBCOLOR, a colour of a book: its colour with its name and its book.</summary>
+        private void WriteBookColour()
+        {
+            DwgGroups colour = _record.Of("AcDbColor");
+
+            if (!R2004Plus)
+            {
+                _data.BitShort(colour.Int(62));
+                return;
+            }
+
+            WriteColour(colour.Int(62), colour.Has(420) ? colour.Int(420) : -1, colour.Text(430));
+        }
+
+        /// <summary>The written DBCOLOR whose name (group 430) is <paramref name="name"/>; 0 for none.</summary>
+        private ulong BookColourOf(string name)
+        {
+            DwgRecord found = _drawing.Objects.Find(record => record.Type == "DBCOLOR" && _written.Contains(record.Handle)
+                && string.Equals(record.Of("AcDbColor").Text(430).Trim(), name.Trim(), StringComparison.Ordinal));
+            return found?.Handle ?? 0;
         }
 
         private static double Radians(double degrees) => degrees * Math.PI / 180.0;
@@ -805,12 +867,24 @@ namespace GeometryHelper.Dwg
                 case 0x11: WriteCircle(true); return;
                 case 0x12: WriteCircle(false); return;
                 case 0x13: WriteLine(); return;
+                case 0x14:
+                case 0x15:
+                case 0x16:
+                case 0x17:
+                case 0x18:
+                case 0x19:
+                case 0x1A: WriteDimension(type); return;
                 case 0x1B: WritePoint(); return;
                 case 0x1C: WriteFace(); return;
                 case 0x1D: WritePolyfaceMesh(); return;
                 case 0x1E: WritePolygonMesh(); return;
                 case 0x1F:
                 case 0x20: WriteSolid(); return;
+                case 0x22: WriteViewport(); return;
+                case 0x2D: WriteLeader(); return;
+                case 0x2E: WriteTolerance(); return;
+                case 0x2F: WriteMLine(); return;
+                case 0x4E: WriteHatch(); return;
                 case 0x23: WriteEllipse(); return;
                 case 0x24: WriteSpline(); return;
                 case 0x28:

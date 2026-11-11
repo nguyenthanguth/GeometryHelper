@@ -17,10 +17,11 @@ namespace GeometryHelper.Dwg
     /// same, with the handles of the drawing: the header variables, the classes, the nine tables, the blocks, the entities
     /// and the objects. Written are the tables and their records, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE,
     /// RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and polyface mesh, TEXT, MTEXT,
-    /// ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE and 3DFACE, and of the objects
-    /// DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE and the small ones a new drawing holds. A record of another type,
-    /// DIMENSION, HATCH and VIEWPORT among them, is left out, every handle to it written as 0 and every dictionary entry
-    /// naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/> counts them by type.
+    /// ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION, VIEWPORT, HATCH,
+    /// LEADER, TOLERANCE and MLINE, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR and the small
+    /// ones a new drawing holds. A record of another type, MATERIAL, VISUALSTYLE, MULTILEADER, IMAGE and 3DSOLID among them,
+    /// is left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one Warn line of
+    /// <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
     /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in. The same bytes come of the same

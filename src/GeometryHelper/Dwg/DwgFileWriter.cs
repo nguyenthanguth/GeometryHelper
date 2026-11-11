@@ -344,7 +344,7 @@ namespace GeometryHelper.Dwg
 
         private void Text(DwgBitWriter data, DwgBitWriter strings, string text)
         {
-            text = DwgObjectWriter.Unescape(text ?? string.Empty);
+            text = text ?? string.Empty;
 
             if (_number >= 1021)
             {

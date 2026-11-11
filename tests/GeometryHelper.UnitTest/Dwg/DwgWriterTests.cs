@@ -19,7 +19,7 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types of AutoCAD's new drawing of R2018 that the writer does not write yet.</summary>
         private static readonly string[] NotWritten =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "MATERIAL", "MLEADERSTYLE", "TABLESTYLE", "VISUALSTYLE",
+            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "MATERIAL", "MLEADERSTYLE", "TABLESTYLE", "VISUALSTYLE", "MULTILEADER",
         };
 
         private static byte[] Written(DxfDatabase database)
@@ -37,6 +37,11 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("curves_AC1032")]
         [InlineData("blocks_AC1032")]
         [InlineData("props_AC1032")]
+        [InlineData("vports_AC1032")]
+        [InlineData("hatch_AC1032")]
+        [InlineData("leaders_AC1032")]
+        [InlineData("images_AC1032")]
+        [InlineData("mline_AC1032")]
         public void ADrawingWrittenAsDwg_ReadsBackToTheSameRecords_ButForTheTypesNotWritten(string name)
         {
             byte[] dwg = Written(Source(name));

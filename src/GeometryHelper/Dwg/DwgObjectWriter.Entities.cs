@@ -325,8 +325,19 @@ namespace GeometryHelper.Dwg
             _data.BitDouble(text.Double(40));
             _data.BitShort(text.Int(71, 1));
             _data.BitShort(text.Int(72, 1));
-            _data.BitDouble(text.Double(43));
-            _data.BitDouble(text.Double(42));
+
+            // The extents of the text: a DXF of AutoCAD gives them for a leader's annotation as the leader's box (40, 41).
+            double extentsHeight = text.Double(43);
+            double extentsWidth = text.Double(42);
+
+            if (!text.Has(43) && LeaderOf(_record.Handle) is DwgRecord leader)
+            {
+                extentsHeight = leader.Of("AcDbLeader").Double(40);
+                extentsWidth = leader.Of("AcDbLeader").Double(41);
+            }
+
+            _data.BitDouble(extentsHeight);
+            _data.BitDouble(extentsWidth);
             T(string.Concat(string.Concat(text.Each(3)), text.Text(1)));
             _data.BitShort(text.Int(73, 1));
             _data.BitDouble(text.Double(44, 1.0));
@@ -357,10 +368,31 @@ namespace GeometryHelper.Dwg
                 _data.Point3(insertion);
                 _data.BitDouble(text.Double(41));
                 _data.BitDouble(text.Double(46));
-                _data.BitDouble(text.Double(42));
-                _data.BitDouble(text.Double(43));
+                _data.BitDouble(extentsWidth);
+                _data.BitDouble(extentsHeight);
                 _data.BitShort(0);
             }
+        }
+
+        /// <summary>The LEADER whose annotation is the object of <paramref name="annotation"/>; null for none.</summary>
+        private DwgRecord LeaderOf(ulong annotation)
+        {
+            if (_leaders == null)
+            {
+                _leaders = new Dictionary<ulong, DwgRecord>();
+
+                foreach (DwgRecord record in _drawing.All)
+                {
+                    ulong target = record.Type == "LEADER" ? record.Of("AcDbLeader").Handle(340) : 0;
+
+                    if (target != 0 && !_leaders.ContainsKey(target))
+                    {
+                        _leaders[target] = record;
+                    }
+                }
+            }
+
+            return _leaders.TryGetValue(annotation, out DwgRecord leader) ? leader : null;
         }
 
         private void WriteInsert(bool array)
@@ -654,6 +686,95 @@ namespace GeometryHelper.Dwg
                     _data.BitDouble(pair[1]);
                 }
             }
+        }
+
+        private void WriteDimension(int type)
+        {
+            DwgGroups dimension = _record.Of("AcDbDimension");
+            string subclass = type == 0x14 ? "AcDbOrdinateDimension" : type == 0x15 || type == 0x16 ? "AcDbAlignedDimension"
+                : type == 0x17 ? "AcDb3PointAngularDimension" : type == 0x18 ? "AcDb2LineAngularDimension"
+                : type == 0x19 ? "AcDbRadialDimension" : "AcDbDiametricDimension";
+            DwgGroups kind = _record.Of(subclass);
+            int flags = dimension.Int(70);
+            double[] middle = dimension.Point(11);
+
+            if (R2010Plus)
+            {
+                _data.RawChar(dimension.Int(280));
+            }
+
+            _data.Point3(dimension.Point(210, 0, 0, 1));
+            _data.RawPoint2(middle);
+            _data.BitDouble(middle[2]);
+            // Bit 1 where the text is where the dimension puts it; AutoCAD sets 2 and 8 besides in every dimension it wrote.
+            _data.RawChar(((flags & 128) != 0 ? 0 : 1) | 2 | 8);
+            T(dimension.Text(1));
+            _data.BitDouble(Radians(dimension.Double(53)));
+            _data.BitDouble(Radians(dimension.Double(51)));
+            _data.Point3(new[] { 1.0, 1.0, 1.0 });
+            _data.BitDouble(0.0);
+            _data.BitShort(dimension.Int(71, 5));
+            _data.BitShort(dimension.Int(72, 1));
+            _data.BitDouble(dimension.Double(41, 1.0));
+            _data.BitDouble(dimension.Double(42));
+
+            if (R2007Plus)
+            {
+                _data.Bit(dimension.Int(73) != 0);
+                _data.Bit(dimension.Int(74) != 0);
+                _data.Bit(dimension.Int(75) != 0);
+            }
+
+            _data.RawPoint2(dimension.Point(12));
+
+            switch (type)
+            {
+                case 0x14:
+                    _data.Point3(dimension.Point(10));
+                    _data.Point3(kind.Point(13));
+                    _data.Point3(kind.Point(14));
+                    _data.RawChar((flags & 64) != 0 ? 1 : 0);
+                    break;
+                case 0x15:
+                case 0x16:
+                    _data.Point3(kind.Point(13));
+                    _data.Point3(kind.Point(14));
+                    _data.Point3(dimension.Point(10));
+                    _data.BitDouble(Radians(kind.Double(52)));
+
+                    if (type == 0x15)
+                    {
+                        _data.BitDouble(Radians(kind.Double(50)));
+                    }
+
+                    break;
+                case 0x17:
+                    _data.Point3(dimension.Point(10));
+                    _data.Point3(kind.Point(13));
+                    _data.Point3(kind.Point(14));
+                    _data.Point3(kind.Point(15));
+                    break;
+                case 0x18:
+                    _data.RawPoint2(kind.Point(16));
+                    _data.Point3(kind.Point(13));
+                    _data.Point3(kind.Point(14));
+                    _data.Point3(kind.Point(15));
+                    _data.Point3(dimension.Point(10));
+                    break;
+                case 0x19:
+                    _data.Point3(dimension.Point(10));
+                    _data.Point3(kind.Point(15));
+                    _data.BitDouble(kind.Double(40));
+                    break;
+                default:
+                    _data.Point3(kind.Point(15));
+                    _data.Point3(dimension.Point(10));
+                    _data.BitDouble(kind.Double(40));
+                    break;
+            }
+
+            H(5, _drawing.HandleOf("DIMSTYLE", dimension.Text(3, "Standard")));
+            H(5, _drawing.HandleOf("BLOCK_RECORD", dimension.Text(2)));
         }
 
         private void WriteSolid()

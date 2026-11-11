@@ -296,7 +296,7 @@ namespace GeometryHelper.Dwg
                 if ((kind & 2) != 0)
                 {
                     hasText = true;
-                    string text = dash.TryGetValue(9, out string found) ? Unescape(found) : string.Empty;
+                    string text = dash.TryGetValue(9, out string found) ? found : string.Empty;
                     byte[] bytes = R2007Plus ? Encoding.Unicode.GetBytes(text) : Encoding.UTF8.GetBytes(text);
                     int step = R2007Plus ? 2 : 1;
                     shape = areaUsed;
