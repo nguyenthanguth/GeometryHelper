@@ -196,6 +196,12 @@ namespace GeometryHelper.Dwg
         /// <summary>The extended data as groups 1001 and up.</summary>
         public List<DwgGroup> XData = new List<DwgGroup>();
 
+        /// <summary>
+        /// Of a table style of cell styles of its own (101 on): the CELLSTYLEMAP AutoCAD writes for it in DXF alone, which
+        /// the reader adds under its extension dictionary; null for none.
+        /// </summary>
+        public DwgObject CellStyleMap;
+
         /// <summary>The name of a table record, a block or a named object, as the bytes of the file.</summary>
         public byte[] RecordName;
 

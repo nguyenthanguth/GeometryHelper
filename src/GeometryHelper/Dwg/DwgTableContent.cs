@@ -41,6 +41,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The custom data, a 32-bit number.</summary>
         public int Custom;
 
+        /// <summary>The items of custom data, each a name and a value.</summary>
+        public readonly List<KeyValuePair<string, DwgCellValue>> Items = new List<KeyValuePair<string, DwgCellValue>>();
+
         /// <summary>The overrides.</summary>
         public DwgCellStyle Style = new DwgCellStyle();
 
@@ -221,7 +224,7 @@ namespace GeometryHelper.Dwg
         /// <summary>1 where the border is hidden.</summary>
         public int Invisible;
 
-        /// <summary>The spacing of a double line.</summary>
-        public double Spacing;
+        /// <summary>The spacing of a double line, 0.045 where AutoCAD 2021 gives none of its own.</summary>
+        public double Spacing = 0.045;
     }
 }

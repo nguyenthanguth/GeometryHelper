@@ -27,11 +27,11 @@ namespace GeometryHelper.UnitTest.Dwg
             "VISUALSTYLE",
             "ACDBASSOCPERSSUBENTMANAGER",
             "SHAPE",
-            // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips.
+            // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
+            // R2007 its TABLECONTENT and TABLEGEOMETRY are read.
             "ACDBDATATABLE",
             "DATATABLE",
             "TABLECONTENT",
-            "TABLEGEOMETRY",
             // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
             "ACDSRECORD",
             "ACDSSCHEMA",

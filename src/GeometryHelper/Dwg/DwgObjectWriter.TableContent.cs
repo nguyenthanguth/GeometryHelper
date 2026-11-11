@@ -80,10 +80,20 @@ namespace GeometryHelper.Dwg
             int rows = table.Int(91);
             int columns = table.Int(92);
             var content = new DwgTableContent { TableStyle = style };
+            var flags = new int[4];
 
             for (int code = 93; code <= 96; code++)
             {
-                table.Int(code);
+                flags[code - 93] = table.Int(code);
+            }
+
+            // The table's own overrides, which AutoCAD 2021 writes in the head before the heights.
+            var own = new List<KeyValuePair<int, string>>();
+
+            while (table.Code >= 0 && table.Code != 141 && table.Code != 142 && table.Code != 171)
+            {
+                int code = table.Code;
+                own.Add(new KeyValuePair<int, string>(code, table.Text(code)));
             }
 
             DwgGroups styleGroups = (_drawing.Find(style) ?? _record).Of("AcDbTableStyle");
@@ -133,7 +143,264 @@ namespace GeometryHelper.Dwg
                 }
             }
 
+            DwgRecord roundTrip = RoundTripOf(_record);
+            DwgTableContent kept = roundTrip == null ? null : ContentOfDxf(roundTrip);
+
+            if (kept != null && kept.Rows.Count == rows && kept.Columns.Count == columns)
+            {
+                TakeStyles(content, kept);
+            }
+            else
+            {
+                TableOverrides(content, flags, own);
+            }
+
             return content;
+        }
+
+        /// <summary>
+        /// What the groups of R2007 cannot hold, from the TABLECONTENT AutoCAD keeps for the table's round trip, as AutoCAD
+        /// reads it: the cell style and overrides of the whole table, of each row and column, and of each cell that gives
+        /// none of its own in its groups, and the cell style each takes; one of the table style's own (101 on), which is not
+        /// written, is left for a row as it stands by its place, for a column or a cell as none.
+        /// </summary>
+        private static void TakeStyles(DwgTableContent content, DwgTableContent kept)
+        {
+            content.Style = kept.Style;
+
+            for (int c = 0; c < content.Columns.Count; c++)
+            {
+                content.Columns[c].Style = kept.Columns[c].Style;
+                content.Columns[c].StyleId = kept.Columns[c].StyleId >= 101 ? 0 : kept.Columns[c].StyleId;
+            }
+
+            for (int r = 0; r < content.Rows.Count; r++)
+            {
+                DwgTableLine row = content.Rows[r];
+                row.Style = kept.Rows[r].Style;
+                row.StyleId = kept.Rows[r].StyleId >= 101 ? row.StyleId : kept.Rows[r].StyleId;
+
+                for (int c = 0; c < row.Cells.Count && c < kept.Rows[r].Cells.Count; c++)
+                {
+                    DwgTableCell cell = row.Cells[c];
+                    cell.StyleId = kept.Rows[r].Cells[c].StyleId >= 101 ? 0 : kept.Rows[r].Cells[c].StyleId;
+
+                    if (!cell.Style.HasData)
+                    {
+                        cell.Style = kept.Rows[r].Cells[c].Style;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The table's own overrides of R2007 (93 to 96 and their groups) as AutoCAD 2021 keeps them from R2010: the margins
+        /// in the table's own cell style, the looks and lines of a kind of row in the cell style of each row of that kind.
+        /// The groups are read as AutoCAD writes them, each group of a code taking the next flag of that code: those of 93
+        /// first (64 the colours of the rows, 63 their fills), then the lines' colours (94), lineweights (95) and showing
+        /// (96, 1 hidden), each line of a kind of row in the order top, inside horizontal, bottom, left, inside vertical,
+        /// right.
+        /// </summary>
+        private void TableOverrides(DwgTableContent content, int[] flags, List<KeyValuePair<int, string>> own)
+        {
+            int[] looks = { 64, 283, 63, 170, 7, 140 };
+            int[][] lines =
+            {
+                new[] { 64, 65, 66, 63, 68, 69 },
+                new[] { 274, 275, 276, 277, 278, 279 },
+                new[] { 284, 285, 286, 287, 288, 289 },
+            };
+            var seen = new Dictionary<int, int>();
+            var kinds = new DwgCellStyle[3];
+
+            for (int i = 0; i < 3; i++)
+            {
+                kinds[i] = new DwgCellStyle { Type = 2 };
+            }
+
+            foreach (KeyValuePair<int, string> group in own)
+            {
+                // The slots of the code: the single ones, those of 93, then those of the lines.
+                var slots = new List<int>();
+                int single = Array.IndexOf(new[] { 280, 281, 70, 40, 41 }, group.Key);
+
+                if (single >= 0)
+                {
+                    slots.Add(single);
+                }
+
+                int look = Array.IndexOf(looks, group.Key);
+
+                for (int bit = 5 + 3 * look; look >= 0 && bit < 8 + 3 * look; bit++)
+                {
+                    if ((flags[0] & (1 << bit)) != 0)
+                    {
+                        slots.Add(bit);
+                    }
+                }
+
+                for (int kind = 0; kind < 3; kind++)
+                {
+                    int line = Array.IndexOf(lines[kind], group.Key);
+
+                    for (int rowKind = 0; line >= 0 && rowKind < 3; rowKind++)
+                    {
+                        if ((flags[kind + 1] & (1 << (rowKind * 6 + line))) != 0)
+                        {
+                            slots.Add((kind + 1) * 100 + rowKind * 6 + line);
+                        }
+                    }
+                }
+
+                seen.TryGetValue(group.Key, out int n);
+                seen[group.Key] = n + 1;
+
+                if (n < slots.Count)
+                {
+                    TableOverride(content, kinds, slots[n], group.Value);
+                }
+            }
+
+            foreach (DwgTableLine row in content.Rows)
+            {
+                if (row.StyleId >= 1 && row.StyleId <= 3 && kinds[row.StyleId - 1].HasData)
+                {
+                    row.Style = kinds[row.StyleId - 1];
+                    row.Style.Borders.Sort((a, b) => a.Edge.CompareTo(b.Edge));
+                }
+            }
+        }
+
+        /// <summary>One override of the table's own, of its slot: 3 and 4 the margins, 5 to 22 the looks of 93, 100 on the lines.</summary>
+        private void TableOverride(DwgTableContent content, DwgCellStyle[] kinds, int slot, string text)
+        {
+            if (slot == 3 || slot == 4)
+            {
+                DwgCellStyle table = content.Style;
+
+                if (!table.HasData)
+                {
+                    table.HasData = true;
+                    table.Format = new DwgContentFormat
+                    {
+                        DataType = 512,
+                        Alignment = 1,
+                        Height = 0.18,
+                    };
+                    table.Margins = new[] { 0.06, 0.06, 0.06, 0.06, 0.18, 0.18 };
+                }
+
+                double margin = DwgRecord.Double(text);
+                table.MarginFlags = 1;
+                table.Overrides |= slot == 3 ? 0x1400 : 0x2800;
+                table.Margins[slot == 3 ? 1 : 0] = margin;
+                table.Margins[slot == 3 ? 3 : 2] = margin;
+                return;
+            }
+
+            if (slot < 5 || (slot > 22 && slot < 100))
+            {
+                return;
+            }
+
+            if (slot < 100)
+            {
+                DwgCellStyle looks = KindOf(kinds[(slot - 5) % 3]);
+                int value = DwgRecord.Int(text);
+
+                switch ((slot - 5) / 3)
+                {
+                    case 0:
+                        looks.Overrides |= 0x20;
+                        looks.Format.Colour = RawOf(value);
+                        break;
+                    case 1:
+                        looks.Overrides |= 0x200;
+
+                        if (value != 0)
+                        {
+                            looks.Background = unchecked((int)0xC8000000);
+                        }
+
+                        break;
+                    case 2:
+                        looks.Overrides |= 0x200;
+                        looks.Background = RawOf(value);
+                        break;
+                    case 3:
+                        looks.Overrides |= 0x10;
+                        looks.Format.Alignment = value;
+                        break;
+                    case 4:
+                        looks.Overrides |= 0x40;
+                        looks.Format.TextStyle = _drawing.HandleOf("STYLE", text);
+                        break;
+                    default:
+                        looks.Overrides |= 0x80;
+                        looks.Format.Height = DwgRecord.Double(text);
+                        break;
+                }
+
+                return;
+            }
+
+            int kind = slot / 100 - 1;
+            int bit = slot % 100;
+            DwgCellBorder border = BorderOf(KindOf(kinds[bit / 6]), 1 << (bit % 6));
+            SetBorder(border, kind, text);
+        }
+
+        /// <summary>The cell style of a kind of row, given data on first use.</summary>
+        private static DwgCellStyle KindOf(DwgCellStyle style)
+        {
+            if (!style.HasData)
+            {
+                style.HasData = true;
+                style.Format = new DwgContentFormat
+                {
+                    DataType = 512,
+                    Alignment = 1,
+                    Height = 0.18,
+                };
+            }
+
+            return style;
+        }
+
+        /// <summary>The border of an edge of a cell style, put in where it has none.</summary>
+        private static DwgCellBorder BorderOf(DwgCellStyle style, int edge)
+        {
+            DwgCellBorder border = style.Borders.Find(b => b.Edge == edge);
+
+            if (border == null)
+            {
+                border = new DwgCellBorder { Edge = edge, Colour = unchecked((int)0xC1000000) };
+                style.Borders.Add(border);
+            }
+
+            return border;
+        }
+
+        /// <summary>One property of a border from a group of R2007: its colour (0), lineweight (1) or whether hidden (2, 1 hidden).</summary>
+        private static void SetBorder(DwgCellBorder border, int kind, string text)
+        {
+            int value = DwgRecord.Int(text);
+
+            switch (kind)
+            {
+                case 0:
+                    border.Overrides |= 8;
+                    border.Colour = RawOf(value);
+                    break;
+                case 1:
+                    border.Overrides |= 2;
+                    border.LineWeight = value;
+                    break;
+                default:
+                    border.Overrides |= 0x10;
+                    border.Invisible = value != 0 ? 1 : 0;
+                    break;
+            }
         }
 
         /// <summary>One cell from its groups of R2007, 171 to <c>304 ACVALUE_END</c>, its merging added to the ranges.</summary>
@@ -157,6 +424,8 @@ namespace GeometryHelper.Dwg
             double rotation = table.Double(145);
             ulong block = table.Handle(340);
             double scale = table.Double(144, 1.0);
+            var looks = new DwgContentFormat();
+            int lookFlags = OwnOverrides(table, cell, looks);
 
             // A table of a DXF before AutoCAD 2007 gives a cell's words in group 1, with no CELL_VALUE.
             table.SkipTo(1, 171, 301);
@@ -247,7 +516,114 @@ namespace GeometryHelper.Dwg
                 );
             }
 
+            // The colour, text style and height of a cell's own are its content's where it has one, as AutoCAD keeps them;
+            // else its cell style's.
+            if (lookFlags != 0)
+            {
+                DwgContentFormat into;
+                DwgCellContent first = cell.Contents.Count > 0 ? cell.Contents[0] : null;
+
+                if (first != null)
+                {
+                    first.Format = first.Format
+                        ?? new DwgContentFormat
+                        {
+                            DataType = value.Type,
+                            Rotation = rotation,
+                            Scale = scale,
+                            Alignment = 1,
+                            Height = 0.18,
+                        };
+                    first.Format.Overrides |= lookFlags;
+                    into = first.Format;
+                }
+                else
+                {
+                    KindOf(cell.Style).Overrides |= lookFlags;
+                    into = cell.Style.Format;
+                }
+
+                into.Colour = (lookFlags & 0x20) != 0 ? looks.Colour : into.Colour;
+                into.TextStyle = (lookFlags & 0x40) != 0 ? looks.TextStyle : into.TextStyle;
+                into.Height = (lookFlags & 0x80) != 0 ? looks.Height : into.Height;
+            }
+
             return cell;
+        }
+
+        /// <summary>
+        /// The overrides of a cell's own after its turn (and its block), as AutoCAD 2021 writes them in the order 170, 7, 63,
+        /// 64, 283, 140 and its edges right, bottom, left, top, each a lineweight, whether hidden (1 hidden) and a colour:
+        /// its alignment, fill and borders into its cell style, its colour, text style and height into
+        /// <paramref name="looks"/>, whose flags of R2010 it returns. An edge takes an override where its group is not the
+        /// default: a colour not by block, a lineweight not -2, and whether hidden where it is given at all.
+        /// </summary>
+        private int OwnOverrides(Cursor table, DwgTableCell cell, DwgContentFormat looks)
+        {
+            int lookFlags = 0;
+            int background = -1;
+            int fill = -1;
+            int[] codes = { 69, 65, 66, 68, 279, 275, 276, 278, 289, 285, 286, 288 };
+            int[] edges = { 1, 0x20, 4, 8 };
+
+            while (table.Code >= 0)
+            {
+                int code = table.Code;
+                int edge = Array.IndexOf(codes, code);
+
+                if (code == 170)
+                {
+                    KindOf(cell.Style).Overrides |= 0x10;
+                    cell.Style.Format.Alignment = table.Int(170);
+                }
+                else if (code == 63)
+                {
+                    background = table.Int(63);
+                }
+                else if (code == 283)
+                {
+                    fill = table.Int(283);
+                }
+                else if (code == 64)
+                {
+                    lookFlags |= 0x20;
+                    looks.Colour = RawOf(table.Int(64));
+                }
+                else if (code == 7)
+                {
+                    lookFlags |= 0x40;
+                    looks.TextStyle = _drawing.HandleOf("STYLE", table.Text(7));
+                }
+                else if (code == 140)
+                {
+                    lookFlags |= 0x80;
+                    looks.Height = table.Double(140);
+                }
+                else if (edge >= 0)
+                {
+                    string text = table.Text(code);
+                    int value = DwgRecord.Int(text);
+                    int kind = edge / 4;
+
+                    if (kind == 2 || (kind == 0 && value != 0) || (kind == 1 && value != -2))
+                    {
+                        SetBorder(BorderOf(KindOf(cell.Style), edges[edge % 4]), kind, text);
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (background >= 0 || fill >= 0)
+            {
+                KindOf(cell.Style).Overrides |= 0x200;
+                cell.Style.Background = fill > 0 || background < 0 ? unchecked((int)0xC8000000) : RawOf(background);
+            }
+
+            cell.Style.Borders.Sort((a, b) => a.Edge.CompareTo(b.Edge));
+            return lookFlags;
         }
 
         private void WriteTableContent(DwgTableContent content)
@@ -341,6 +717,15 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private void WriteTableContentObject()
         {
+            // Its own groups where they are in AutoCAD's order: the content as it was, cell styles and borders with it.
+            DwgTableContent parsed = ContentOfDxf(_record);
+
+            if (parsed != null)
+            {
+                WriteTableContent(WithoutOwnStyles(parsed));
+                return;
+            }
+
             DwgRecord table = _drawing.Find(_record.Owner);
 
             for (int up = 0; up < 3 && table != null && table.Type != "ACAD_TABLE"; up++)
@@ -610,6 +995,9 @@ namespace GeometryHelper.Dwg
                     Height = 0.18,
                 },
             };
+
+            // The cell styles of its own (101 on) of its CELLSTYLEMAP are not written: a DWG that held them crashed AutoCAD
+            // 2021 as it read it, and they are left out until that is proven (their looks are the cells' own in DXF).
             _data.RawChar(version);
             T(description);
             _data.BitLong(flags);
@@ -671,23 +1059,20 @@ namespace GeometryHelper.Dwg
                 Format = format,
             };
 
-            // The borders of DXF: top, inside horizontal, bottom, left, inside vertical, right.
-            int[] edges = { 1, 0x20, 4, 8, 0x10, 2 };
-
+            // The borders of DXF: top, inside horizontal, bottom, left, inside vertical, right, each its line of AutoCAD's
+            // GridLineType; a cell style of a table style holds a border that is not the default with no flags of overrides.
             for (int i = 0; i < 6; i++)
             {
                 int weight = style.Int(274 + i, -2);
                 bool shown = style.Int(284 + i, 1) != 0;
                 int colour = style.Int(64 + i);
-                int overrides = (weight != -2 ? 2 : 0) | (colour != 0 ? 8 : 0) | (shown ? 0 : 0x10);
 
-                if (overrides != 0)
+                if (weight != -2 || colour != 0 || !shown)
                 {
                     row.Borders.Add(
                         new DwgCellBorder
                         {
-                            Edge = edges[i],
-                            Overrides = overrides,
+                            Edge = 1 << i,
                             Colour = RawOf(colour),
                             LineWeight = weight,
                             Invisible = shown ? 0 : 1,
@@ -697,6 +1082,362 @@ namespace GeometryHelper.Dwg
             }
 
             return row;
+        }
+
+        /// <summary>
+        /// The TABLECONTENT AutoCAD keeps for a table's round trip: under its extension dictionary's
+        /// <c>ACAD_XREC_ROUNDTRIP</c>, the XRECORD's <c>ACAD_ROUNDTRIP_2008_TABLE_ENTITY</c>. Null where there is none.
+        /// </summary>
+        private DwgRecord RoundTripOf(DwgRecord table)
+        {
+            DwgRecord found = EntryOf(_drawing.Find(table.XDictionary), 3, "ACAD_XREC_ROUNDTRIP");
+            found = EntryOf(found, 102, "ACAD_ROUNDTRIP_2008_TABLE_ENTITY");
+            return found != null && found.Type == "TABLECONTENT" ? found : null;
+        }
+
+        /// <summary>The record named by the 360 after the group of <paramref name="code"/> that holds <paramref name="name"/>.</summary>
+        private DwgRecord EntryOf(DwgRecord record, int code, string name)
+        {
+            List<KeyValuePair<int, string>> groups = record?.Body ?? new List<KeyValuePair<int, string>>();
+
+            for (int i = 0; i + 1 < groups.Count; i++)
+            {
+                if (groups[i].Key == code && groups[i].Value.Trim() == name && groups[i + 1].Key == 360)
+                {
+                    return _drawing.Find(DwgRecord.Hex(groups[i + 1].Value));
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The content of a TABLECONTENT from its DXF, the mirror of the reader's: its columns, rows, cells with their values,
+        /// formats and custom data, its own cell style, merged ranges and table style. Null where it holds what no test drawing
+        /// has shown (a cell linked to data, attributes of a block, fields, a cell's geometry) or its groups are not of
+        /// that order.
+        /// </summary>
+        private static DwgTableContent ContentOfDxf(DwgRecord record)
+        {
+            try
+            {
+                var g = new Cursor(record.Body);
+                g.SkipTo(100);
+                Need(g, 100);
+                var content = new DwgTableContent { Name = g.Text(1), Description = g.Text(300) };
+                g.SkipTo(100);
+                Need(g, 100);
+                int columns = g.Int(90);
+
+                for (int i = 0; i < columns; i++)
+                {
+                    Need(g, 300);
+                    Need(g, 1);
+                    var column = new DwgTableLine { Name = g.Text(300), Custom = g.Int(91) };
+                    CustomDataOf(g, column.Items);
+                    Need(g, 309);
+                    column.Style = FormattedOf(g);
+                    Need(g, 1);
+                    column.StyleId = g.Int(90);
+                    column.Size = g.Double(40);
+                    Need(g, 309);
+                    content.Columns.Add(column);
+                }
+
+                int rows = g.Int(91);
+
+                for (int i = 0; i < rows; i++)
+                {
+                    Need(g, 301);
+                    Need(g, 1);
+                    var row = new DwgTableLine();
+                    int cells = g.Int(90);
+
+                    for (int j = 0; j < cells; j++)
+                    {
+                        row.Cells.Add(CellOfDxf(g));
+                    }
+
+                    row.Custom = g.Int(91);
+                    CustomDataOf(g, row.Items);
+                    Need(g, 309);
+                    row.Style = FormattedOf(g);
+                    Need(g, 1);
+                    row.StyleId = g.Int(90);
+                    row.Size = g.Double(40);
+                    Need(g, 309);
+                    content.Rows.Add(row);
+                }
+
+                if (g.Int(92) != 0)
+                {
+                    return null;
+                }
+
+                Need(g, 100);
+                Need(g, 300);
+                content.Style = TableFormatOf(g);
+                int merged = g.Int(90);
+
+                for (int i = 0; i < merged; i++)
+                {
+                    content.Merged.Add(new[] { g.Int(91), g.Int(92), g.Int(93), g.Int(94) });
+                }
+
+                Need(g, 100);
+                content.TableStyle = g.Handle(340);
+                return content;
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>A cell of a TABLECONTENT from its DXF: its linked part with its contents, its format and its style.</summary>
+        private static DwgTableCell CellOfDxf(Cursor g)
+        {
+            Need(g, 300);
+            Need(g, 1);
+            var cell = new DwgTableCell
+            {
+                State = g.Int(90),
+                Tooltip = g.Text(300),
+                Custom = g.Int(91),
+            };
+            CustomDataOf(g, cell.Items);
+
+            if (g.Int(92) != 0)
+            {
+                throw new FormatException("A cell linked to data is not read.");
+            }
+
+            int contents = g.Int(95);
+
+            for (int i = 0; i < contents; i++)
+            {
+                Need(g, 302);
+                Need(g, 1);
+                var content = new DwgCellContent { Type = g.Int(90) };
+
+                if (content.Type == 1)
+                {
+                    Need(g, 300);
+                    content.Value = ValueOf(g);
+                }
+                else
+                {
+                    content.Handle = g.Handle(340);
+                }
+
+                if (g.Int(91) != 0)
+                {
+                    throw new FormatException("The attributes of a block content are not read.");
+                }
+
+                Need(g, 309);
+                Need(g, 1);
+
+                if (g.Int(170) != 0)
+                {
+                    Need(g, 300);
+                    content.Format = ContentFormatOf(g);
+                }
+
+                Need(g, 309);
+                cell.Contents.Add(content);
+            }
+
+            Need(g, 309);
+            cell.Style = FormattedOf(g);
+            Need(g, 1);
+            cell.StyleId = g.Int(90);
+
+            if (g.Int(91) != 0)
+            {
+                throw new FormatException("The geometry of a cell is not read.");
+            }
+
+            Need(g, 309);
+            return cell;
+        }
+
+        /// <summary>Custom data from DXF: <c>CUSTOMDATA</c>, its count, then each item its name and its value.</summary>
+        private static void CustomDataOf(Cursor g, List<KeyValuePair<string, DwgCellValue>> items)
+        {
+            Need(g, 301);
+            Need(g, 1);
+            int count = g.Int(90);
+
+            for (int i = 0; i < count; i++)
+            {
+                string name = g.Text(300);
+                Need(g, 301);
+                items.Add(new KeyValuePair<string, DwgCellValue>(name, ValueOf(g)));
+            }
+
+            Need(g, 309);
+        }
+
+        /// <summary>A value from DXF, from its flags (93) to <c>ACVALUE_END</c>.</summary>
+        private static DwgCellValue ValueOf(Cursor g)
+        {
+            var value = new DwgCellValue { Flags = g.Int(93), Type = g.Int(90) };
+
+            if ((value.Flags & 1) == 0)
+            {
+                switch (value.Type)
+                {
+                    case 0:
+                    case 1:
+                        value.Long = g.Int(91);
+                        break;
+                    case 2:
+                        value.Double = g.Double(140);
+                        break;
+                    default:
+                        var text = new StringBuilder();
+
+                        while (g.At(2))
+                        {
+                            text.Append(g.Text(2));
+                        }
+
+                        value.Text = text.Append(g.Text(1)).ToString();
+                        break;
+                }
+            }
+
+            value.Unit = g.Int(94);
+            value.Format = g.Text(300);
+            value.Shown = g.Text(302);
+            Need(g, 304);
+            return value;
+        }
+
+        /// <summary>The formatted part of a column, row or cell from DXF: its name and its cell style between two marks.</summary>
+        private static DwgCellStyle FormattedOf(Cursor g)
+        {
+            Need(g, 1);
+            Need(g, 300);
+            DwgCellStyle style = TableFormatOf(g);
+            Need(g, 309);
+            return style;
+        }
+
+        /// <summary>A cell style from its DXF (TABLEFORMAT), the mirror of the reader's.</summary>
+        private static DwgCellStyle TableFormatOf(Cursor g)
+        {
+            Need(g, 1);
+            var style = new DwgCellStyle { Type = g.Int(90), HasData = g.Int(170) != 0 };
+
+            if (style.HasData)
+            {
+                style.Overrides = g.Int(91);
+                style.Merge = g.Int(92);
+                int background = g.Int(62);
+                style.Background = background == 257 ? unchecked((int)0xC8000000) : RawOf(background);
+                style.Layout = g.Int(93);
+                Need(g, 300);
+                style.Format = ContentFormatOf(g);
+                style.MarginFlags = g.Int(171);
+
+                if ((style.MarginFlags & 1) != 0)
+                {
+                    Need(g, 301);
+                    Need(g, 1);
+
+                    for (int i = 0; i < 6; i++)
+                    {
+                        style.Margins[i] = g.Double(40);
+                    }
+
+                    Need(g, 309);
+                }
+
+                int borders = g.Int(94);
+
+                for (int i = 0; i < borders; i++)
+                {
+                    var border = new DwgCellBorder { Edge = g.Int(95) };
+
+                    if (border.Edge != 0)
+                    {
+                        Need(g, 302);
+                        Need(g, 1);
+                        border.Overrides = g.Int(90);
+                        border.Type = g.Int(91);
+                        border.Colour = RawOf(g.Int(62));
+                        border.LineWeight = g.Int(92);
+                        border.Linetype = g.Handle(340);
+                        border.Invisible = g.Int(93);
+                        border.Spacing = g.Double(40);
+                        Need(g, 309);
+                    }
+
+                    style.Borders.Add(border);
+                }
+            }
+
+            Need(g, 309);
+            return style;
+        }
+
+        /// <summary>A content format from its DXF (CONTENTFORMAT), between its two marks.</summary>
+        private static DwgContentFormat ContentFormatOf(Cursor g)
+        {
+            Need(g, 1);
+            var format = new DwgContentFormat
+            {
+                Overrides = g.Int(90),
+                Flags = g.Int(91),
+                DataType = g.Int(92),
+                UnitType = g.Int(93),
+                FormatString = g.Text(300),
+                Rotation = g.Double(40),
+                Scale = g.Double(140, 1.0),
+                Alignment = g.Int(94),
+                Colour = RawOf(g.Int(62)),
+                TextStyle = g.Handle(340),
+                Height = g.Double(144),
+            };
+            Need(g, 309);
+            return format;
+        }
+
+        /// <summary>
+        /// The content without the cell styles of a table style's own (101 on), which are not written (see
+        /// <see cref="WriteTableStyle"/>): a row of one takes the data's (3), a column or a cell none.
+        /// </summary>
+        private static DwgTableContent WithoutOwnStyles(DwgTableContent content)
+        {
+            foreach (DwgTableLine column in content.Columns)
+            {
+                column.StyleId = column.StyleId >= 101 ? 0 : column.StyleId;
+            }
+
+            foreach (DwgTableLine row in content.Rows)
+            {
+                row.StyleId = row.StyleId >= 101 ? 3 : row.StyleId;
+
+                foreach (DwgTableCell cell in row.Cells)
+                {
+                    cell.StyleId = cell.StyleId >= 101 ? 0 : cell.StyleId;
+                }
+            }
+
+            return content;
+        }
+
+        /// <summary>Takes the next group, which must be of <paramref name="code"/>.</summary>
+        private static void Need(Cursor g, int code)
+        {
+            if (!g.At(code))
+            {
+                throw new FormatException("The table content is not in the order of AutoCAD's DXF.");
+            }
+
+            g.Text(code);
         }
 
         /// <summary>The one number of a CMC colour of an index: 0xC0 by layer (256), 0xC1 by block (0), else 0xC3 and the index.</summary>

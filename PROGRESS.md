@@ -87,7 +87,7 @@ the ones wanted.
 - [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
 - [x] MIRROR: INSERT (41 = -1, turn of the mirrored y axis), ATTRIBs without 210, rotations within 0..360, TEXT spaces kept, 45-degree multileaders
 - [x] MIRROR follow-ups 2: MTEXT with no 11 read along world x, MINSERT, annotative INSERT, dynamic flip kept (and on COPY/ARRAY), MLEADER sizes exact, missing $AUPREC and $MIRRTEXT read as 0
-- [ ] MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none; DWG writer's MTEXT with 50 and no 11 not turned into its plane (task dwg-tables) (S)
+- [ ] MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
@@ -164,7 +164,8 @@ the ones wanted.
   - [x] W5 Writing R2018 (AutoCAD 2021's own): `DwgWriter`, our own LZ77; 19 drawings open in AutoCAD with AUDIT 0 and
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [x] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE (R2010 form, TABLESTYLE, TABLECONTENT), multiline attributes, RASTERVARIABLES/WIPEOUTVARIABLES; reader reads R2010+ tables
-  - [ ] W5b follow-ups: cell and table overrides (91, 93-96, borders) and custom cell styles both ways; cell geometry cache; TABLECONTENT/TABLEGEOMETRY in the reader; NotWritten list in DwgWriterTests stale; a test for the presenter's "Left out of the DWG" line (3DSOLID or REGION drawing); a clean table sample for AUDIT 0; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers
+  - [x] W5b follow-ups: cell and table overrides both ways, TABLECONTENT (R2007+) and TABLEGEOMETRY read, border edges fixed, clean table sample AUDIT 0, left-out test
+  - [ ] W5b follow-ups 2: writing custom cell styles (101+): AutoCAD crashed on ids 4/5, the id fix needs one AutoCAD run with the maintainer's go-ahead; R2000/R2004 TABLECONTENT; merged title range edges (172); TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
   - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
   - [ ] W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the

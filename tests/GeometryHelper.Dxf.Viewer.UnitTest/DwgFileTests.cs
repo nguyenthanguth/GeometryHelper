@@ -486,5 +486,52 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(string.Empty, document.LeftOutOfDwg);
         }
+
+        [Fact]
+        public void ADrawingWithARegionSavedAsADwg_SaysTheRegionWasLeftOut_AndQsaveSaysItAgain()
+        {
+            // A metric drawing with a line from (0, 0) to (0, 500) and a REGION, whose SAT data the DWG writer does not
+            // write yet: the region is put into the DXF's entities by hand.
+            string path = Path.Combine(_folder, "host.dxf");
+            DxfDatabase database = CadTemplate.CreateMetric();
+            database.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 500, 0)));
+            database.Save(path);
+            string text = File.ReadAllText(path);
+            string line = text.Contains("\r\n") ? "\r\n" : "\n";
+            int entities = text.IndexOf("ENTITIES", StringComparison.Ordinal);
+            int end = text.IndexOf("ENDSEC", entities, StringComparison.Ordinal);
+            int at = text.LastIndexOf('\n', text.LastIndexOf('\n', end - 1) - 1) + 1;
+            string region = string.Join(
+                line,
+                "  0",
+                "REGION",
+                "  5",
+                "FFFF0",
+                "100",
+                "AcDbEntity",
+                "  8",
+                "0",
+                "100",
+                "AcDbModelerGeometry",
+                " 70",
+                "1",
+                string.Empty
+            );
+            File.WriteAllText(path, text.Insert(at, region));
+            CadDocument document = CadDocument.Open(path);
+            Assert.Single(All<DxfUnknownEntity>(document.ModelSpace), e => e.DxfName == "REGION");
+            string dwg = Path.Combine(_folder, "host.dwg");
+
+            document.SaveAs(dwg);
+
+            Assert.Equal("REGION 1", document.LeftOutOfDwg);
+            Assert.Single(DwgReader.Open(dwg).ModelSpace.OfType<DxfLine>());
+
+            CadCommandSession session = Session(document);
+            Run(session, "QSAVE");
+
+            Assert.Contains("Saved " + dwg + ".", session.History);
+            Assert.Contains("Left out of the DWG, not written yet: REGION 1.", session.History);
+        }
     }
 }

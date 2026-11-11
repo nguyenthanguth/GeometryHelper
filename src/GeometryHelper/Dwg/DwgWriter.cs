@@ -21,9 +21,12 @@ namespace GeometryHelper.Dwg
     /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT and ACAD_TABLE, and of the objects
     /// DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES,
     /// WIPEOUTVARIABLES, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small ones a new
-    /// drawing holds. A table goes in the form of R2010: its cells, merged ranges, sizes and style from the groups DXF
-    /// keeps of R2007, its cell styles from its table style's rows; the CELLSTYLEMAP AutoCAD writes in DXF alone, and the
-    /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
+    /// drawing holds. A table goes in the form of R2010: its cells, their overrides and borders, merged ranges, sizes and
+    /// style from the groups DXF keeps of R2007, the cell styles of its rows, columns and whole from the TABLECONTENT it
+    /// keeps for a round trip or else from its own overrides (93 to 96), and its table style's cell styles from the
+    /// style's rows; the CELLSTYLEMAP AutoCAD writes in DXF alone, and the extension dictionary of the table style that
+    /// holds it, are not written, as AutoCAD writes no such object in a DWG, and nor are the cell styles of a table
+    /// style's own (101 on), on which AutoCAD 2021 crashed.
     /// A record of another type, MATERIAL, VISUALSTYLE, 3DSOLID and REGION among them, is left out, every handle to it
     /// written as 0 and every dictionary entry naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/>
     /// counts them by type.

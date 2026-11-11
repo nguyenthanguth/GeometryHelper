@@ -64,6 +64,32 @@ numeric distance or two points.", or "Requires numeric distance, two points, or 
 `GlobalSettings.PolarDistance` takes a value below nought, as AutoCAD's POLARDIST does, and throws only for one not
 finite.
 
+**NEW.** The DWG reader gives the overrides of a table of AutoCAD 2010 and later as AutoCAD 2021 writes them in DXF:
+the table's own (93 to 96 and their groups) and each cell's flags and groups (170, 7, 63, 64, 283, 140 and its edges),
+its row's looks pushed into it and the line under a title of 0.35 given on each cell of the header below. It reads the
+TABLECONTENT and TABLEGEOMETRY a table keeps for its round trip, from AutoCAD 2007 (the TABLEGEOMETRY of every version),
+and gives a table style with cell styles of its own (101 on) the CELLSTYLEMAP AutoCAD writes in DXF. Five table drawings
+AutoCAD 2021 made, cells of one override each, a cell of all six, cells of four edges, a table of its kinds of row
+overridden and a clean table style of its own, read to AutoCAD's own DXF of them, group for group.
+
+**NEW.** The DWG writer writes the overrides of a table's cells (their alignment, fill, colour, text style, height and
+borders) as AutoCAD keeps them, the cell styles of its rows, columns and whole from the TABLECONTENT it keeps for a round
+trip or else from its own overrides (93 to 96), and that TABLECONTENT as its own groups give it. AutoCAD 2021 reads each
+of the five drawings written so to the DXF it was written from, but `$CMATERIAL`, and `AUDIT` finds 0 errors in each. A
+table style's cell styles of its own (101 on) are not written: a DWG that held them crashed AutoCAD 2021 as it read it.
+
+**FIXED.** The DWG writer and reader gave the lines of a table style's rows the wrong places: the inside horizontal line
+went to the right and the right to the inside horizontal, and a line's colour was read only where flagged as overridden,
+which a table style's lines never are. A data row's red bottom line now stays its bottom line.
+
+**FIXED.** The DWG writer read a table's row heights from the wrong groups where the table gives overrides of its own,
+which AutoCAD writes before the heights: a table of 4 rows of 10 was written with rows of 0.
+
+**FIXED.** The DWG writer wrote an MTEXT of an angle and no direction along (cos, sin, 0) whatever its plane: it reads
+along its plane's x axis turned by the angle, as AutoCAD takes it, so one of the normal (1, 0, 0) turned 30 degrees
+reads along (0, 0.866, 0.5). The DWG reader no longer gives a BLOCK or an ENDBLK a material (347), which AutoCAD does
+not write.
+
 **NEW.** The Snap and Grid tab of the presenter's Drafting Settings as AutoCAD 2021's, the dialog now 560 by 580 on every
 tab: Snap X and Y spacing with Equal X and Y spacing, Polar distance (POLARDIST), Grid snap or PolarSnap (SNAPTYPE),
 Rectangular or Isometric snap (SNAPSTYL), the dotted grid of Grid style (GRIDSTYLE), Grid X and Y spacing (GRIDUNIT),

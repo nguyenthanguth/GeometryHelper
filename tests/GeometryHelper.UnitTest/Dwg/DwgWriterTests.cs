@@ -22,10 +22,7 @@ namespace GeometryHelper.UnitTest.Dwg
             "ACDBDETAILVIEWSTYLE",
             "ACDBSECTIONVIEWSTYLE",
             "MATERIAL",
-            "MLEADERSTYLE",
-            "TABLESTYLE",
             "VISUALSTYLE",
-            "MULTILEADER",
         };
 
         private static byte[] Written(DxfDatabase database)

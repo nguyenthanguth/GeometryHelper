@@ -390,20 +390,47 @@ namespace GeometryHelper.Dwg
 
         private void WriteMText() => WriteMText(_record.Of("AcDbMText"), false);
 
+        /// <summary>
+        /// The direction an MTEXT of an angle and no direction reads along, in world coordinates, as AutoCAD 2021 takes it:
+        /// the x axis of its plane's system (the arbitrary axis of its normal) turned by the angle. Of the normal (1, 0, 0)
+        /// and 30 degrees, (0, 0.866, 0.5); of the normal (0, 0, 1), (cos, sin, 0) as it was written before.
+        /// </summary>
+        private static double[] AlongPlane(double[] normal, double angle)
+        {
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+
+            if (normal[0] == 0.0 && normal[1] == 0.0 && normal[2] > 0.0)
+            {
+                return new[] { cos, sin, 0.0 };
+            }
+
+            double length = Math.Sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+            double[] z = { normal[0] / length, normal[1] / length, normal[2] / length };
+            double[] x =
+                Math.Abs(z[0]) < 1.0 / 64.0 && Math.Abs(z[1]) < 1.0 / 64.0
+                    ? new[] { z[2], 0.0, -z[0] }
+                    : new[] { -z[1], z[0], 0.0 };
+            double size = Math.Sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+            x = new[] { x[0] / size, x[1] / size, x[2] / size };
+            double[] y = { z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0] };
+            return new[] { x[0] * cos + y[0] * sin, x[1] * cos + y[1] * sin, x[2] * cos + y[2] * sin };
+        }
+
         /// <summary>The data of an MTEXT of <paramref name="text"/>, its own or, <paramref name="embedded"/>, an attribute's.</summary>
         private void WriteMText(DwgGroups text, bool embedded)
         {
             double[] insertion = text.Point(10);
             double[] direction = text.Point(11, 1);
+            double[] normal = text.Point(210, 0, 0, 1);
 
             if (!text.Has(11) && text.Has(50))
             {
-                double angle = Radians(text.Double(50));
-                direction = new[] { Math.Cos(angle), Math.Sin(angle), 0.0 };
+                direction = AlongPlane(normal, Radians(text.Double(50)));
             }
 
             _data.Point3(insertion);
-            _data.Point3(text.Point(210, 0, 0, 1));
+            _data.Point3(normal);
             _data.Point3(direction);
             _data.BitDouble(text.Double(41));
 
