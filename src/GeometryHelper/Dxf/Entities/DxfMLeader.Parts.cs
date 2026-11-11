@@ -206,7 +206,8 @@ namespace GeometryHelper.Dxf
         /// the plane, the leaders' points, doglegs and breaks, the lines' vertices, the MTEXT's place, direction and normal and the
         /// block's place, normal, scale and turn as it is drawn, its matrix written as its transform where it then stands, as
         /// AutoCAD 2021 writes it; the sizes the words, arrows, landing and doglegs are drawn with scaled with it (41, 140 and 145
-        /// of the context data, 40 of each leader, and the widths of the words), and the scale of the context data (40), the
+        /// of the context data, 40 of each leader, and the widths of the words), left to the bit by a turn or a mirror alone, as
+        /// AutoCAD 2021 leaves them (words 0.18 high mirrored across a line at 45 degrees stay 0.18, check mirror-3 GHM3B), and the scale of the context data (40), the
         /// MULTILEADER's own scale (45), length of the doglegs (41), size of the arrows (42), block scale (10) and block turn
         /// (43), and the arrow sizes leader lines have of their own, left as they are, as AutoCAD 2021's <c>TransformBy</c> leaves
         /// them: a multileader of scale 1, its doglegs 8, scaled by 2 is still of scale 1, its doglegs drawn 16 and 41 still 8,
@@ -269,12 +270,19 @@ namespace GeometryHelper.Dxf
 
             double scale = x.Length;
 
+            // Turned or mirrored, not scaled, its sizes are left as they are, as AutoCAD 2021 leaves them: mirrored across a
+            // line at 45 degrees, words 0.18 high stay 0.18, not 0.18000000000000002 (mirror-3 GHM3B).
+            bool unscaled = Math.Abs(scale - 1.0) <= 1E-9;
+
             // The context data: its base point, sizes and plane; its scale (40) left as it is, as AutoCAD 2021 leaves it.
             MovePoint(ctx.Head, 10, transform.Transform, ContextOrder, 0, -1);
 
             foreach (int code in new[] { 41, 140, 145 })
             {
-                ScaleNumber(ctx.Head, code, scale, ContextOrder);
+                if (!unscaled)
+                {
+                    ScaleNumber(ctx.Head, code, scale, ContextOrder);
+                }
             }
 
             MovePoint(ctx.Head, 110, transform.Transform, ContextOrder, 0, -1);
@@ -482,7 +490,7 @@ namespace GeometryHelper.Dxf
                 double newLength = turned.Length;
                 PutPoint(leader.Head, 11, Pt(newLength > 0.0 ? turned.Multiply(1.0 / newLength) : dogleg), LeaderOrder);
 
-                if (Text(leader.Head, 40) != null)
+                if (Text(leader.Head, 40) != null && !unscaled)
                 {
                     PutNumber(leader.Head, 40, newLength, 0.0, LeaderOrder);
                 }

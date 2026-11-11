@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** An MTEXT whose record gives neither a direction (group 11) nor an angle (50) reads along the world's x axis put
+into its plane, as AutoCAD 2021 reads it, rather than along the plane's own x axis: on the normal (0, 0, -1) `Direction` is
+(1, 0, 0) and `Rotation` pi, where it was (-1, 0, 0) and nought, and the display draws it so. The presenter's MIRROR under
+MIRRTEXT 1 writes an MTEXT along x mirrored across a level line with no 11, as AutoCAD does; `Normal` set on an MTEXT of
+neither still reads along the new plane's x axis, now written as its direction (11 of (-1, 0, 0) for (0, 0, -1)).
+
+**FIXED.** A header with no `$AUPREC` reads `Auprec` 0, and one with no `$MIRRTEXT` reads `Mirrtext` false, as AutoCAD 2021
+reads them; they read 2 and true. A drawing without them now shows angles to whole degrees (DIST, MEASUREGEOM, the
+Properties palette, prompts) and keeps texts readable under MIRROR.
+
+**FIXED.** The presenter's MIRROR writes a MINSERT as AutoCAD 2021 writes it, as an INSERT with its columns the other way:
+3 columns 15 apart and 2 rows 8 apart mirrored across y = 100 are written x factor -1 turned 180, 44 of -15 and 45 of 8,
+where they were y factor -1 and 45 of -8. An annotative INSERT is written so in its record and in each of its contexts,
+which kept the factors the mirror gave them. A copy of a dynamic block's INSERT made by MIRROR or COPY keeps the values its
+parameters are set to: a door flipped stays flipped, where the copy lost its representation and was no longer dynamic. A
+multileader turned or mirrored keeps the sizes of its context (41, 140, 145) and its doglegs to the bit: words 4 high
+mirrored across a line at 45 degrees stay 4, not 4.000000000000001. Checked against AutoCAD 2021's MIRROR in its console
+on 64 cases.
+
 **NEW.** The Snap and Grid tab of the presenter's Drafting Settings as AutoCAD 2021's, the dialog now 560 by 580 on every
 tab: Snap X and Y spacing with Equal X and Y spacing, Polar distance (POLARDIST), Grid snap or PolarSnap (SNAPTYPE),
 Rectangular or Isometric snap (SNAPSTYL), the dotted grid of Grid style (GRIDSTYLE), Grid X and Y spacing (GRIDUNIT),

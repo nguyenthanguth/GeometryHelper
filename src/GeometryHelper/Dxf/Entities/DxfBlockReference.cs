@@ -1317,32 +1317,153 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Writes the scale factors and angle of an INSERT that MIRROR has mirrored in the drawing's plane, as AutoCAD 2021's
-        /// MIRROR writes them (probed in its console, mirror-insert GHMI1), the block placed as before: its x factor turned the
-        /// other way, its y and z as they were, and its angle that of its mirrored y axis less a quarter turn, from nought to a
-        /// whole turn; each factor of 1 and an angle of nought left out. Its ATTRIBs are left where they are. An annotative one,
-        /// whose contexts hold their own factors and angles, is left as it is.
+        /// Gives a copy of an INSERT of a dynamic block, added to the INSERT's own drawing, the INSERT's representation (the
+        /// entry AcDbBlockRepresentation of its extension dictionary, with the values its parameters are set to), as AutoCAD
+        /// 2021's MIRROR and COPY keep it (check mirror-3 GHM3B): a door flipped, copied, places the same anonymous block and
+        /// reads Hand 1. Each object of the entry is copied as it is but its handle and owner, its pointers left naming what
+        /// they name; nothing is done where the copy has the entry already, or the INSERT none.
         /// </summary>
-        /// <param name="scale">The factors the INSERT had before it was mirrored.</param>
-        /// <param name="degrees">The angle to write, in degrees.</param>
-        internal void FinishMirror(GeoVector3 scale, double degrees)
+        /// <param name="source">The INSERT copied.</param>
+        internal void KeepRepresentationOf(DxfBlockReference source)
         {
-            if (Shown(out _) != null)
+            const string Name = "AcDbBlockRepresentation";
+
+            if (
+                !IsResident
+                || !source.IsResident
+                || source.Item.File != Item.File
+                || !(DxfDynamicProperties.Entry(source.ExtensionDictionary, Name) is DxfDBDictionary from)
+                || DxfDynamicProperties.Entry(ExtensionDictionary, Name) != null
+            )
             {
                 return;
             }
 
-            degrees = DxfOcsTransform.WholeTurn(degrees);
+            CreateExtensionDictionary();
+            CopyEntry(ExtensionDictionary, Name, from);
+        }
+
+        /// <summary>Copies an object of a dictionary, and a dictionary's entries in their order, into another dictionary under a name.</summary>
+        private static void CopyEntry(DxfDBDictionary owner, string name, DxfDBObject value)
+        {
+            IReadOnlyList<DxfTypedValue> groups = value.Item.File.GroupsOf(value.Item);
+            int start = 0;
+
+            while (start < groups.Count && groups[start].TypeCode != 100)
+            {
+                start++;
+            }
+
+            var dictionary = value as DxfDBDictionary;
+            DxfItem made = owner.Add(name, value.Item.Type, b =>
+            {
+                // A dictionary's entries are added after it, each copied.
+                for (int i = start; i < groups.Count && !(dictionary != null && groups[i].TypeCode == 3); i++)
+                {
+                    b.Group(groups[i].TypeCode, groups[i].Value);
+                }
+            });
+
+            if (dictionary != null)
+            {
+                var copy = (DxfDBDictionary)DxfDBObject.OfObject(made);
+
+                foreach (DxfDBDictionaryEntry entry in dictionary)
+                {
+                    CopyEntry(copy, entry.Key, entry.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// What MIRROR writes an INSERT from, read before it is mirrored (<see cref="FinishMirror"/>): its own factors and angle,
+        /// a MINSERT's spacings, and the factors and angle of each of its contexts, in their order.
+        /// </summary>
+        internal MirrorSource BeforeMirror()
+        {
+            var source = new MirrorSource(OwnScale(), GetDouble(50, 0.0) * (Math.PI / 180.0));
+
+            if (this is DxfMInsertBlock array)
+            {
+                source.Columns = array.ColumnSpacing;
+                source.Rows = array.RowSpacing;
+            }
+
+            ShownContexts held = Shown(out _);
+
+            if (held != null)
+            {
+                foreach (DxfItem item in held.All)
+                {
+                    ContextGroups context = ContextGroups.Read(item, ContextCodes);
+                    source.Contexts.Add(
+                        new MirrorSource(
+                            new GeoVector3(
+                                context.Value(ScaledX, source.Scale.X),
+                                context.Value(ScaledY, source.Scale.Y),
+                                context.Value(ScaledZ, source.Scale.Z)
+                            ),
+                            context.Value(AtDegrees, GetDouble(50, 0.0)) * (Math.PI / 180.0)
+                        )
+                    );
+                }
+            }
+
+            return source;
+        }
+
+        /// <summary>
+        /// Writes the scale factors and angle of an INSERT that MIRROR has mirrored in the drawing's plane, as AutoCAD 2021's
+        /// MIRROR writes them (probed in its console, mirror-insert GHMI1 and mirror-3 GHM3B), the block placed as before: its
+        /// x factor turned the other way, its y and z as they were, and its angle that of its mirrored y axis less a quarter
+        /// turn, from nought to a whole turn; each factor of 1 and an angle of nought left out. Its ATTRIBs are left where they
+        /// are. A MINSERT's columns are spaced the other way, its rows as they were: 3 columns 15 apart and 2 rows 8 apart
+        /// mirrored across a level line are written 41 of -1, 50 of 180, 44 of -15 and 45 of 8. An annotative one's record and
+        /// each of its contexts are written alike, each from its own factors and angle: the context of 1:2 scaled by 2 and
+        /// turned nought, mirrored across a level line, is written 41 of -2 and 50 of 180.
+        /// </summary>
+        /// <param name="before">The INSERT as it was before it was mirrored, as <see cref="BeforeMirror"/> read it.</param>
+        /// <param name="mirror">The mirror.</param>
+        internal void FinishMirror(MirrorSource before, GeoTransform3 mirror)
+        {
+            double degrees = DxfOcsTransform.WholeTurn(Mirrored(before.Turn, mirror));
             SetGroups(
                 Join(
-                    MirroredFactor(41, -scale.X),
-                    MirroredFactor(42, scale.Y),
-                    MirroredFactor(43, scale.Z),
+                    MirroredFactor(41, -before.Scale.X),
+                    MirroredFactor(42, before.Scale.Y),
+                    MirroredFactor(43, before.Scale.Z),
                     degrees == 0.0
                         ? (GetString(50) == null ? new KeyValuePair<int, string>[0] : new[] { Out(50) })
                         : new[] { new KeyValuePair<int, string>(50, Numbers.Exact(degrees)) }
                 )
             );
+
+            if (this is DxfMInsertBlock array)
+            {
+                array.ColumnSpacing = -before.Columns + 0.0;
+                array.RowSpacing = before.Rows;
+            }
+
+            ShownContexts held = Shown(out _);
+
+            if (held != null && held.All.Count == before.Contexts.Count)
+            {
+                var contexts = new List<KeyValuePair<ContextGroups, double[]>>(held.All.Count);
+
+                for (int i = 0; i < held.All.Count; i++)
+                {
+                    ContextGroups context = ContextGroups.Read(held.All[i], ContextCodes);
+                    double[] numbers = context.Copy();
+                    MirrorSource was = before.Contexts[i];
+                    numbers[ScaledX] = -was.Scale.X + 0.0;
+                    numbers[ScaledY] = was.Scale.Y;
+                    numbers[ScaledZ] = was.Scale.Z;
+                    numbers[AtDegrees] = DxfOcsTransform.WholeTurn(Mirrored(was.Turn, mirror));
+                    contexts.Add(new KeyValuePair<ContextGroups, double[]>(context, numbers));
+                }
+
+                WriteMoved(contexts);
+            }
 
             KeyValuePair<int, string>[] MirroredFactor(int code, double value) =>
                 value == 1.0
@@ -1350,6 +1471,38 @@ namespace GeometryHelper.Dxf
                     : new[] { new KeyValuePair<int, string>(code, Numbers.Exact(value + 0.0)) };
 
             KeyValuePair<int, string> Out(int code) => new KeyValuePair<int, string>(code, null);
+        }
+
+        /// <summary>The angle, in degrees, of the y axis of a turn in radians mirrored, less a quarter turn.</summary>
+        private static double Mirrored(double turn, GeoTransform3 mirror)
+        {
+            GeoVector3 up = mirror.Transform(new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0.0));
+            return (Math.Atan2(up.Y, up.X) * (180.0 / Math.PI)) - 90.0;
+        }
+
+        /// <summary>An INSERT, or one of its contexts, as it was before MIRROR mirrored it: its factors and angle, a MINSERT's spacings, and its contexts.</summary>
+        internal sealed class MirrorSource
+        {
+            internal MirrorSource(GeoVector3 scale, double turn)
+            {
+                Scale = scale;
+                Turn = turn;
+            }
+
+            /// <summary>The scale factors.</summary>
+            internal GeoVector3 Scale { get; }
+
+            /// <summary>The angle, in radians.</summary>
+            internal double Turn { get; }
+
+            /// <summary>A MINSERT's spacing of its columns (44); nought for an INSERT.</summary>
+            internal double Columns { get; set; }
+
+            /// <summary>A MINSERT's spacing of its rows (45); nought for an INSERT.</summary>
+            internal double Rows { get; set; }
+
+            /// <summary>The factors and angle of each context, in their order; none for an INSERT not annotative.</summary>
+            internal List<MirrorSource> Contexts { get; } = new List<MirrorSource>();
         }
 
         [DxfType("INSERT")]

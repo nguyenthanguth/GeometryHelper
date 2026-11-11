@@ -42,7 +42,9 @@ through AutoCAD's properties: `Clayer`, `Insunits`, `Extmin`, `Extmax`, `Handsee
 `Aunits`, `Auprec`, `Angbase` (in radians; the file writes degrees), `Angdir`, `Orthomode`, `Fillmode`, `Mirrtext`,
 `LineWeightDisplay`, `Saveproxygraphics`, `Splinesegs`, `Splinetype`, `Surftype`, `Surfu` and `Surfv`. A variable R2000
 brought, `$INSUNITS`, `$CELWEIGHT`, `$LWDISPLAY` and `$PROXYGRAPHICS` among them, is refused in a file of R12, as AutoCAD
-writes none there. Setting `Clayer` to a layer the table does not list adds it, as an entity's `Layer` does.
+writes none there. Setting `Clayer` to a layer the table does not list adds it, as an entity's `Layer` does. Where the
+header gives no `$AUPREC` and no `$MIRRTEXT`, `Auprec` reads 0 and `Mirrtext` false, as AutoCAD 2021 reads them: angles to
+whole degrees, and texts kept readable by MIRROR.
 
 Every other variable of the header AutoCAD's `Database` has as a member is read and set by its AutoCAD name in the same
 way: `db.Chamfera = 10`, `db.Filletrad`, `db.TileMode`, `db.Plimmax`, `db.Useri1`, `db.Latitude`, `db.LoftAng1` and the rest,

@@ -747,7 +747,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gets or sets how far the MTEXT is turned, as AutoCAD's <c>Rotation</c>: in radians from the x axis of the system of
         /// its normal's plane, from nought up to 2 pi; read from its direction (11) where it has one, which wins, else from its
-        /// angle (50, in degrees). An annotative MTEXT's is that of the direction of the context it is read at (its 10, 20, 30),
+        /// angle (50, in degrees), else from the direction it reads along where it has neither, as <see cref="Direction"/>
+        /// says: pi on the normal (0, 0, -1), as AutoCAD 2021 reads it. An annotative MTEXT's is that of the direction of the context it is read at (its 10, 20, 30),
         /// as <see cref="Location"/> says.
         /// </summary>
         /// <value>Set, written as the record has it: as its direction where it has one, as its angle too where it has that; an
@@ -781,6 +782,13 @@ namespace GeometryHelper.Dxf
                     return Turn(Math.Atan2(direction.Y, direction.X));
                 }
 
+                if (Value(50) == null)
+                {
+                    GeoVector3 normal = Normal;
+                    GeoVector3 along = Plane(normal, AlongWorldX(normal));
+                    return Turn(Math.Atan2(along.Y, along.X));
+                }
+
                 return Turn(Number(50, 0.0) * (Math.PI / 180.0));
             }
             set
@@ -809,7 +817,10 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets the direction the MTEXT reads along (groups 11, 21, 31), as AutoCAD's <c>Direction</c>: in world
-        /// coordinates, of unit length; where the record gives none, the x axis of the system of its plane turned by its angle (50).
+        /// coordinates, of unit length; where the record gives none, the x axis of the system of its plane turned by its angle (50);
+        /// where it gives no angle either, the world's x axis put into its plane, as AutoCAD 2021 reads it (check mirror-3
+        /// GHM3A): (1, 0, 0) on the normal (0, 0, -1), whose x axis is the world's -x, and (0.8, 0, 0.6) on (0.6, 0, -0.8); the
+        /// x axis of the system of its plane where the plane holds no part of the world's x axis, as on the normal (1, 0, 0).
         /// An annotative MTEXT's is that of the context it is read at (its 10, 20, 30), as <see cref="Location"/> says.
         /// </summary>
         /// <value>Set, a direction of some length, written made of unit length; the angle (50) the record has, written to agree.</value>
@@ -902,9 +913,37 @@ namespace GeometryHelper.Dxf
                     return DxfOcsTransform.Normalized(Point(11, Origin).ToVector());
                 }
 
+                if (Value(50) == null)
+                {
+                    return AlongWorldX(Normal);
+                }
+
                 double angle = Number(50, 0.0) * (Math.PI / 180.0);
                 return World(Normal, new GeoVector3(Math.Cos(angle), Math.Sin(angle), 0.0));
             }
+        }
+
+        /// <summary>
+        /// The direction an MTEXT of no direction and no angle reads along on a normal, as AutoCAD 2021 reads it (check mirror-3
+        /// GHM3A): the world's x axis put into the plane, of unit length; the x axis of the system of the plane where the plane
+        /// holds no part of it.
+        /// </summary>
+        private static GeoVector3 AlongWorldX(GeoVector3 normal)
+        {
+            if (normal.X == 0.0)
+            {
+                return new GeoVector3(1.0, 0.0, 0.0);
+            }
+
+            double length = normal.Length;
+            double across = normal.X / (length * length);
+            var along = new GeoVector3(
+                1.0 - across * normal.X + 0.0,
+                -across * normal.Y + 0.0,
+                -across * normal.Z + 0.0
+            );
+            double size = along.Length;
+            return size > 1E-12 ? along.Divide(size) : World(normal, new GeoVector3(1.0, 0.0, 0.0));
         }
 
         /// <summary>Writes a direction into the context shown (its 10, 20, 30); nothing where there is none.</summary>
@@ -1120,7 +1159,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>Set, a direction of some length, written made of unit length; the MTEXT keeps its location and reads along the
         /// x axis of the new plane, turned nought, as AutoCAD 2021 writes it: its direction, and its angle, written so where
-        /// the record has them. The MTEXT at (10, 200, 0) turned 30 degrees given the normal (0, 0.6, 0.8) stays at (10, 200,
+        /// the record has them, and its direction written where it has neither and would otherwise read along the world's x
+        /// axis (given (0, 0, -1), 11 of (-1, 0, 0), check mirror-3 GHM3C). The MTEXT at (10, 200, 0) turned 30 degrees given the normal (0, 0.6, 0.8) stays at (10, 200,
         /// 0) and reads along (-1, 0, 0) (check D35d). An annotative one's direction is written into the context it is read at,
         /// and into its record where that context is the default, its other contexts left as they are (check D35c).</value>
         /// <exception cref="ArgumentException">Thrown when the direction set has no length or is not finite.</exception>
@@ -1141,12 +1181,28 @@ namespace GeometryHelper.Dxf
                 GeoVector3 unit = Math.Abs(length - 1.0) <= 1E-12 ? value : value.Divide(length);
                 ShownContexts contexts = Shown(out ContextGroups shown);
 
-                // Along the x axis of the new plane, annotative or not (check D35c, D35d).
+                // Along the x axis of the new plane, annotative or not (check D35c, D35d); one of no direction and no angle is
+                // given that direction where it would read along another, the world's x axis put into the plane, as AutoCAD
+                // 2021 writes it (check mirror-3 GHM3C: 11 of (-1, 0, 0) on the normal (0, 0, -1)).
+                GeoVector3 planeX = World(unit, new GeoVector3(1.0, 0.0, 0.0));
+                GeoVector3 read = AlongWorldX(unit);
+                bool direction =
+                    contexts != null
+                    || HasDirection()
+                    || (
+                        Value(50) == null
+                        && (
+                            Math.Abs(planeX.X - read.X) > 1E-12
+                            || Math.Abs(planeX.Y - read.Y) > 1E-12
+                            || Math.Abs(planeX.Z - read.Z) > 1E-12
+                        )
+                    );
+
                 Carried(() =>
                 {
                     Set(
                         contexts == null || contexts.ShownIsDefault
-                            ? Join(normal, Turned(unit, 0.0, contexts != null || HasDirection(), Value(50) != null))
+                            ? Join(normal, Turned(unit, 0.0, direction, Value(50) != null))
                             : normal
                     );
                     WriteDirection(shown, World(unit, new GeoVector3(1.0, 0.0, 0.0)));
@@ -1796,8 +1852,9 @@ namespace GeometryHelper.Dxf
         /// carries one: its location and direction carried, its angle (50) given up for its direction, its height the stretch of
         /// its upright square to its direction, its width the stretch of its direction, the heights <c>\H</c> of its words scaled
         /// with it, its normal carried. Turned or mirrored, not scaled, its height and width are left as they were, a direction
-        /// along x is not written where the record gave none, and its normal is left out where it is the drawing's own, as
-        /// AutoCAD 2021 writes them. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
+        /// along the world's x axis is not written where the record gave none, on any normal (an MTEXT along x mirrored across
+        /// a level line, of normal (0, 0, -1), reads along (1, 0, 0) with no 11, check mirror-3 GHM3B), and its normal is left
+        /// out where it is the drawing's own, as AutoCAD 2021 writes them. A scale unlike along its direction and its upright stretches its box, as ezdxf stretches
         /// it; one that leans them is refused, an MTEXT having no lean. The height of its box (46) is stretched as its upright
         /// is, in columns or not: scaled by 2 about the origin, the MTEXT in a box 20 high is in one 40 high, as AutoCAD 2021
         /// scales it (check D35c). An annotative one's contexts are carried with it, each
@@ -1824,10 +1881,7 @@ namespace GeometryHelper.Dxf
 
             // An MTEXT has no lean: a transformation that leans its frame is refused, before anything is written, as a circle
             // refuses one that makes it an ellipse.
-            GeoVector3 frame =
-                HasDirection() ? Point(11, Origin).ToVector()
-                : Value(50) != null ? OwnDirection
-                : new GeoVector3(1.0, 0.0, 0.0);
+            GeoVector3 frame = HasDirection() ? Point(11, Origin).ToVector() : OwnDirection;
 
             if (DxfOcsTransform.Shears(transform, Normal, frame))
             {
@@ -1843,10 +1897,7 @@ namespace GeometryHelper.Dxf
             List<DxfMText> linked = ColumnTexts();
             GeoVector3 normal = Normal;
             var ocs = new DxfOcsTransform(normal, transform);
-            GeoVector3 oldDirection =
-                HasDirection() ? Point(11, Origin).ToVector()
-                : Value(50) != null ? OwnDirection
-                : new GeoVector3(1.0, 0.0, 0.0);
+            GeoVector3 oldDirection = HasDirection() ? Point(11, Origin).ToVector() : OwnDirection;
             GeoVector3 newDirection = transform.Transform(oldDirection);
             GeoVector3 upright = DxfOcsTransform.Cross(normal, oldDirection);
             double oldHeight = Number(40, 2.5);
@@ -1894,13 +1945,13 @@ namespace GeometryHelper.Dxf
             }
 
             groups.AddRange(PointChanges(10, transform.Transform(Point(10, Origin)), Origin));
-            // A direction along x, where the record gives none and the x axis of its plane is the world's, is left out, as
-            // AutoCAD 2021 leaves it out.
+            // A direction the record would read where it gives none, the world's x axis put into the new plane, is left out
+            // where the record gives none, as AutoCAD 2021 leaves it out: an MTEXT along x mirrored across a level line, of
+            // normal (0, 0, -1), is written with no direction (check mirror-3 GHM3B).
             GeoVector3 unitDirection = newDirection.Divide(newDirection.Length);
-            GeoVector3 planeX = World(ocs.NewExtrusion, new GeoVector3(1.0, 0.0, 0.0));
+            GeoVector3 planeX = AlongWorldX(ocs.NewExtrusion);
             bool alongX =
                 !HasDirection()
-                && Math.Abs(planeX.X - 1.0) <= 1E-12
                 && Math.Abs(unitDirection.X - planeX.X) <= 1E-12
                 && Math.Abs(unitDirection.Y - planeX.Y) <= 1E-12
                 && Math.Abs(unitDirection.Z - planeX.Z) <= 1E-12;

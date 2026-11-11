@@ -159,8 +159,17 @@ down. The attributes of an INSERT already mirrored, whose normal is (0, 0, -1), 
 An INSERT is written as AutoCAD 2021's MIRROR writes it, under either MIRRTEXT: its x factor turned the other way, its y
 and z as they were, and turned to its mirrored y axis less a quarter turn. An INSERT at (20, 10) mirrored across y = 100
 is written at (20, 190) with an x factor of -1 turned 180 degrees; across x = 100, -1 turned nought; across y = x, -1
-turned 270; one scaled 2 by 3 is written -2 by 3, and one already written -1 by 1 comes back 1 by 1. A MINSERT and an
-annotative INSERT keep the factors and angle the mirror gives them.
+turned 270; one scaled 2 by 3 is written -2 by 3, and one already written -1 by 1 comes back 1 by 1. A MINSERT is written
+so too, its columns spaced the other way and its rows as they were: 3 columns 15 apart and 2 rows 8 apart mirrored across
+y = 100 are written -1 turned 180 degrees, 44 of -15 and 45 of 8. An annotative INSERT is written so in its record and in
+each of its contexts, each from its own factors and angle: its context of 1:2, scaled by 2, mirrored across y = 100 is
+written -2 by 2 turned 180. A dynamic block's INSERT keeps the values its parameters are set to, under MIRROR as under COPY:
+a door flipped (Hand 1) is copied flipped, the same anonymous block placed, written -1 turned 180 across y = 100.
+
+At MIRRTEXT 1 an MTEXT along x mirrored across a level line is of normal (0, 0, -1) and is written with no direction
+(group 11), as AutoCAD writes it: a record of no direction reads along the world's x axis put into its plane, here
+(1, 0, 0) turned 180 degrees. A multileader's sizes, the height of its words, its arrows and its landing gap, are kept to
+the bit by a mirror: 4 stays 4 across a line at 45 degrees, not 4.000000000000001.
 
 A multileader keeps the drawing's plane under either MIRRTEXT, as AutoCAD's MIRROR keeps it. At 0 its words keep reading
 along x and stand as far from the mirrored landing as they stood from the landing, held by their other side where the

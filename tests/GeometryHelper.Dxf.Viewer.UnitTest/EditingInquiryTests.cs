@@ -38,8 +38,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void DistWritesAnAngleDownwardsAsTheTurnFromNought_ToThePlacesOfAuprec()
         {
-            // At the plan's AUPREC of 2, angles are written to two places.
+            // At an AUPREC of 2, angles are written to two places.
             CadDocument document = Plan();
+            document.Database.Auprec = 2;
 
             CadCommandSession session = Measure(document, "DIST", P(0, 0), P(0, -20));
 

@@ -528,7 +528,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Appends a copy of an entity moved by a transformation to the space of the entity, and gives it back, its owner's tag
         /// taken off. A dimension drawn by an anonymous block of its own is copied as AutoCAD 2021's COPY copies one: its
         /// picture copied into a block of the copy's own, which moves with it, so that the copy is drawn where it stands and a
-        /// move of the one leaves the other's picture where it is.
+        /// move of the one leaves the other's picture where it is. A copy of a dynamic block's INSERT keeps the values its
+        /// parameters are set to, as AutoCAD 2021's COPY and MIRROR keep them: a door flipped is copied flipped.
         /// </summary>
         internal static DxfEntity AppendCopy(CadEditScope s, string handle, GeoTransform3 transform)
         {
@@ -540,7 +541,15 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity copied = entity.GetTransformedCopy(transform);
                 CadOwnerTag.Remove(copied);
-                return s.Append(space, copied);
+                DxfEntity added = s.Append(space, copied);
+
+                // A dynamic block's INSERT keeps the values its parameters are set to, as AutoCAD's COPY and MIRROR keep them.
+                if (entity is DxfBlockReference insert && added is DxfBlockReference made)
+                {
+                    made.KeepRepresentationOf(insert);
+                }
+
+                return added;
             }
 
             var copy = (DxfDimension)entity.Clone();

@@ -342,6 +342,13 @@ a POLYLINE and a HATCH keep their points, turn and contexts in their plane, the 
 the world, where AutoCAD lays its dimension line and text on the new plane. An attribute of letters 0.7 wide made of
 several lines keeps its width factor, its MTEXT's words opening with `\W0.7000;`.
 
+An MTEXT whose record gives neither a direction (11) nor an angle (50) reads along the world's x axis put into its plane,
+as AutoCAD 2021 reads it, not along the plane's own x axis: on the normal (0, 0, -1) its `Direction` is (1, 0, 0) and its
+`Rotation` pi; on (0.6, 0, -0.8), (0.8, 0, 0.6) turned a quarter; on (1, 0, 0), whose plane holds no part of that axis,
+the plane's x axis. So an MTEXT along x mirrored across a level line is written with no direction, as AutoCAD writes it,
+and one given a normal whose plane's x axis reads otherwise is written with that direction, 11 of (-1, 0, 0) for
+(0, 0, -1).
+
 ### The codes of an MTEXT
 
 `DxfMText` names the codes of an MTEXT as AutoCAD's `MText` does: `ParagraphBreak` and `LineBreak` are `\P`, `UnderlineOn` is

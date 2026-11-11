@@ -795,5 +795,46 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new GeoPoint3(ShownX, ValveY, 0.0), valve.Position);
             Assert.Equal(new GeoVector3(2.0, 2.0, 2.0), valve.ScaleFactors);
         }
+
+        [Fact]
+        public void AnAnnotativeInsertMirrored_IsWrittenAsMirrorWritesIt_ItsRecordAndEachContextTheirXFactorTurnedTheOtherWay()
+        {
+            // AutoCAD 2021's MIRROR (mirror-3 GHM3B, an annotative INSERT across y = 100 and across a 30-degree line) writes the
+            // record and each context alike: the x factor turned the other way, the turn that of the mirrored y axis less a
+            // quarter turn. The valve's context of 1:1, turned 45 degrees and scaled by 2, mirrored across y = 100 is turned 135
+            // and scaled -2, 2, 2; that of 1:2, turned 10 and scaled by 3, is turned 170 and scaled -3, 3, 3.
+            DxfDatabase db = DxfDatabase.Parse(Valve(unitIsDefault: false));
+            DxfBlockReference valve = Insert(db);
+            Dictionary<int, double> record = OwnOf(db.ToText(), "65", "AcDbBlockReference");
+            GeoTransform3 mirror = GeoTransform3.Mirror(
+                new GeoPlane3(new GeoPoint3(0.0, 100.0, 0.0), new GeoVector3(0.0, 1.0, 0.0))
+            );
+            DxfBlockReference.MirrorSource before = valve.BeforeMirror();
+
+            valve.TransformBy(mirror);
+            valve.FinishMirror(before, mirror);
+
+            string text = db.ToText();
+            Dictionary<int, double> one = ContextOf(text, "E01");
+            Dictionary<int, double> half = ContextOf(text, "E02");
+            Near(135.0, one[50]);
+            Near(-2.0, one[41]);
+            Near(2.0, one[42]);
+            Near(2.0, one[43]);
+            At(one, 10, ShownX, 200.0 - ValveY);
+            Near(170.0, half[50]);
+            Near(-3.0, half[41]);
+            Near(3.0, half[42]);
+            Near(3.0, half[43]);
+            At(half, 10, -50.0, 200.0 - ValveY);
+
+            Dictionary<int, double> own = OwnOf(text, "65", "AcDbBlockReference");
+            double turn = (record.TryGetValue(50, out double d) ? d : 0.0) * Math.PI / 180.0;
+            double expected = Math.Atan2(-Math.Cos(turn), -Math.Sin(turn)) * 180.0 / Math.PI - 90.0;
+            expected = expected < 0.0 ? expected + 360.0 : expected;
+            Near(-(record.TryGetValue(41, out double sx) ? sx : 1.0), own.TryGetValue(41, out double x) ? x : 1.0);
+            Near(record.TryGetValue(42, out double sy) ? sy : 1.0, own.TryGetValue(42, out double y) ? y : 1.0);
+            Near(expected, own.TryGetValue(50, out double turned) ? turned : 0.0);
+        }
     }
 }

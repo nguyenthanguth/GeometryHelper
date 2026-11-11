@@ -152,7 +152,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Cannot set POLARADDANG to that value.", model.History.Last());
             Assert.Equal(string.Empty, model.Settings.PolarAddedAngles);
 
-            // As AutoCAD keeps them: from nought up to a whole turn, to the places of AUPREC, 2 in this drawing.
+            // As AutoCAD keeps them: from nought up to a whole turn, to the places of AUPREC, set to 2 in this drawing.
+            model.Document.Database.Auprec = 2;
             model.Execute("POLARADDANG");
             model.Execute("33.5;-10");
             Assert.Equal("33.50;350.00", model.Settings.PolarAddedAngles);
