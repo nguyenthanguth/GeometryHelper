@@ -92,6 +92,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void IsolateSelectedLayers_TurnsEveryOtherLayerOff_OneUndoStep()
+        {
+            OnRoom((model, viewport) =>
+            {
+                using (LayerManagerViewModel manager = model.CreateLayerManager())
+                {
+                    // The room's layers 0, WALLS (current) and COLUMNS: COLUMNS chosen, 0 and WALLS go off.
+                    manager.Rows.Single(r => r.Name == "COLUMNS").IsChosen = true;
+                    manager.IsolateCommand.Execute(null);
+
+                    DxfLayerTable layers = model.Document.Database.LayerTable;
+                    Assert.False(layers["COLUMNS"].IsOff);
+                    Assert.True(layers["WALLS"].IsOff);
+                    Assert.True(layers["0"].IsOff);
+                    Assert.Equal("LAYER", model.Document.NextUndo.Name);
+
+                    Assert.True(model.Document.Undo());
+                    Assert.False(model.Document.Database.LayerTable["WALLS"].IsOff);
+                    Assert.False(model.Document.Database.LayerTable["0"].IsOff);
+                }
+            });
+        }
+
+        [Fact]
         public void OnThePaper_TheViewportSelected_IsTheOneTheColumnsActOn_AndNoneLeavesThemGrey()
         {
             OnRoom((model, viewport) =>

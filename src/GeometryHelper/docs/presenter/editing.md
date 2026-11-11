@@ -809,7 +809,9 @@ viewport selected on the paper, and are grey with neither; on the Model tab they
 layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7` and is grey in a drawing plotted by colour
 (a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
 "New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
-viewport or all. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+viewport or all; and "Isolate Selected Layers", which turns off every layer but those chosen, the current one too where it
+is not chosen, one undo step, as AutoCAD's help describes the item ("Rename Layer" stays grey: renaming in the list needs a
+name cell that can be typed in, which waits for a design). [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
 one undo step:
 
 | Call | Does |

@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** "Isolate Selected Layers" in the shortcut menu of the presenter's Layer Properties Manager turns off every layer
+but those chosen, one undo step: of the layers 0, WALLS and COLUMNS, COLUMNS chosen leaves 0 and WALLS off. The item was
+grey. "Rename Layer" stays grey, since renaming in the list needs a name cell that can be typed in, which waits for a
+design.
+
 **NEW.** -SCALELISTEDIT in the presenter edits the drawing's list of scales (ACAD_SCALELIST), its prompts and answers
 word for word as AutoCAD 2021's console gives them: ? lists the scales with their units, Add asks a name and a ratio and
 redefines a scale of that name when told Yes, Delete takes out one scale or `*` every one in no use and says "Scale 1:1 is
