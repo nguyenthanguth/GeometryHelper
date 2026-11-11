@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgWriter.Write` writes a DWG file of AutoCAD 2018 (AC1032), the library's own code as the reader is: a
+`DxfDatabase` with every record it holds, or the shapes of a `DxfDocument`, to a path or a stream. The drawing is written
+as its DXF and each record put into the object of the DWG that says the same, with the drawing's handles: the header
+variables, the classes, the tables, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE,
+POLYLINE with its vertices, the meshes, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs of one line, SOLID, TRACE, 3DFACE,
+DIMENSION, VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, and DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR and the
+small objects of a new drawing, in the compressed container of pages AutoCAD 2004 and later write, every check sum in
+place, the same bytes for the same drawing. A type not written yet (MATERIAL, VISUALSTYLE, MULTILEADER, IMAGE, ACAD_TABLE,
+3DSOLID among them) is left out, every handle to it written as 0, and counted in one Warn line. Sixteen test drawings,
+each as AutoCAD 2021 wrote its DXF, written as DWG: AutoCAD 2021 opens each and AUDIT finds 0 errors, its own DXF of
+each is the source but the types left out, and `DwgReader` reads each back to the source records. A drawing of a few
+hundred records takes 0.1 s and some 10 KB, where AutoCAD's own file is 13 to 17 KB. See
+[Reading and writing DWG files](src/GeometryHelper/docs/dxf/dwg.md).
+
 **CHANGED.** Esc in the presenter's MTEXT editor with changes asks as AutoCAD 2021 asks: Multiline Text - Unsaved
 Changes, "Do you want to save your text changes?", with Yes, No and Cancel and Always perform my current choice, in the
 place of the presenter's own "Save changes to MText?". Yes writes the changes and closes the editor, No drops them, Cancel

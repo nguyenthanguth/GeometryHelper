@@ -17,7 +17,7 @@ it was read. `DxfWriter` makes a file from nothing. The three meet: an entity of
 
 A DWG file of AutoCAD 2000, 2004, 2010, 2013 or 2018 is read into the same two: [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader)`.Read` gives the
 `DxfDocument` and `DwgReader.Open` the `DxfDatabase` that the DXF of the drawing would give (see
-[Reading DWG files](dwg.md)).
+[Reading and writing DWG files](dwg.md)); [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter) writes either as a DWG of AutoCAD 2018.
 
 ## Editing a DXF file
 

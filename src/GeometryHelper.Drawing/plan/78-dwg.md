@@ -1,4 +1,4 @@
-# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018; W3: R2007; W4: the types left out)
+# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018; W3: R2007; W4: the types left out; W5: writing R2018)
 
 A DWG is read by code of our own into the records the library already has for a DXF, so that everything built on a DXF
 document works on a DWG: `DxfDatabase`, `DxfReader`, the presenter. Stage W1, done here, is the bit layer and the format
@@ -444,6 +444,83 @@ bytes changed inside objects of the new types (and the layouts, MTEXTs, dictiona
 under a repaired check sum: 11 867 read, 7 333 refused, 0 faults of another kind, each in under 0.22 s, the process
 under 75 MB. In the suite: sixteen W4 drawings more in the two seeded theories of bytes changed inside objects.
 
+## W5: writing DWG (R2018)
+
+| Path | What it holds |
+|---|---|
+| `src/GeometryHelper/Dwg/DwgBitWriter.cs` | the bit codes written, the mirror of `DwgBitReader` |
+| `src/GeometryHelper/Dwg/DwgLz77.cs` | also the compression of a page |
+| `src/GeometryHelper/Dwg/DwgContainerWriter.cs` | the container of R2004 and later: data pages, section map, page map, the masked file header |
+| `src/GeometryHelper/Dwg/DwgDrawing.cs`, `DwgRecord.cs` | a DXF taken apart into records, with the indexes the encoders look things up in |
+| `src/GeometryHelper/Dwg/DwgObjectWriter*.cs` | one record encoded into its object: the common data, tables, entities, objects |
+| `src/GeometryHelper/Dwg/DwgFileWriter.cs` | the sections: header variables, classes, object map, the small sections |
+| `src/GeometryHelper/Dwg/DwgWriter.cs` | the public face: `Write` of a `DxfDatabase` or a `DxfDocument` to a path or a stream |
+
+DECIDED: the writer is the reader's mirror. The drawing is written as its DXF (`DxfDatabase.ToText`; a document through
+`DxfWriter`), taken apart into records, and each record encoded into the object that says the same, with the handles
+the drawing has. One model of a drawing for both directions; the round trip DWG, DXF, DWG is what the tests hold.
+
+DECIDED: only AC1032 is written; `Write` takes the version as a parameter and refuses any other by name. The encoders
+carry the branches of R2004 to R2013 the reader has, unproved; R2000 and R2007 would need the containers of their own.
+
+DECIDED: the compression is the library's own: one candidate a hash of three bytes, at most 0x4000 back, the two-byte code
+for runs of 3 to 14 bytes within 0x400. Each page is filled out to 0x7400 bytes with zeros and compressed whole, as AutoCAD
+writes it; a page of zeros takes some 150 bytes. The page map is stored as one run of literal bytes, so its own size,
+which it lists, is known before it is written. The files come out at 70 to 75 percent of AutoCAD's size.
+
+DECIDED: the sections are AutoCAD 2021's but three: AcDb:Header, AuxHeader, Classes, Handles, Template, ObjFreeSpace,
+AcDbObjects, RevHistory, Preview (no image) and AppInfo, which names GeometryHelper and makes no claim of an Autodesk
+application. AppInfoHistory, SummaryInfo and FileDepList are not written; AutoCAD opens the file without them.
+
+DECIDED: what AutoCAD writes that the specification does not say, each found by comparing the writer's object with
+AutoCAD's own bit for bit (`objcmp` in scratch): a TU text has no closing zero; the bits after the handles are ones; the
+owner is written by its step from the object's handle (codes 6, 8, 0xA, 0xC) where that is the smaller number, else as
+itself; dictionary entries are code 2, group members 5, a viewport's frozen layers and shade plot 4, a layout's second
+handle of R2007 4; a SEQEND has a plot style of its own, a null handle; a 2D vertex of R2010 its id (0); a dimension
+style one bit after its lineweights; a dimension sets 2 and 8 in its flags besides bit 1; a leader's projected end
+point is (0, 0, 0); from R2013 a spline is kind 1 with the flags 9 and its parameterisation for fit points, 0 and 15
+for control points; a BLOCK keeps the DXF name of its block, while the block record keeps `*Paper_Space` for every
+layout and `*U`, `*D` for an anonymous block; a class carries the release that brought it (ACDBDICTIONARYWDFLT 22.42,
+SCALE 27.1, VISUALSTYLE 26.0 and so on).
+
+DECIDED: the header variables a DXF does not carry (ISOLINES, TEXTQLTY, FACETRES, TSTACKALIGN, TSTACKSIZE; nearly all
+for a drawing of `DxfWriter`) are given as AutoCAD 2021 gives a new drawing, in a table of the writer; the values the
+specification does not name as AutoCAD writes them in every drawing; points not given as a new drawing has them (the
+world axes, empty extents, limits 12 by 9), without which AutoCAD normalised a UCS axis of 0 on opening.
+
+DECIDED: a type not written is left out, never written wrongly: every handle to it is written 0, every dictionary entry
+naming it is dropped, what it owns goes with it, and one Warn line counts the types. An attribute of several lines
+(R2018, group 101) is such a type for now.
+
+DECIDED: texts are written as the DXF has them, `\U+XXXX` kept: AutoCAD keeps them so in the MTEXT of a dimension, and
+the reader's comparer reads both alike.
+
+DECIDED: a layout lists its viewports only where its DXF names a last active one (331): AutoCAD's Layout2 of `vports`,
+never made current, lists none though it has a viewport.
+
+DECIDED (parked, with numbers): what a DXF does not carry is not made up. Of the 953 objects of W1's eight drawings,
+848 come out bit for bit as AutoCAD's (of the 908 of W4's eight, 835); the others differ by the last bit of a double that 16 places do not hold, by an
+extrusion of (0, 0, 1) that AutoCAD writes whole (a bit and three doubles) for some entities and as one bit for others,
+by an MTEXT's extents (AutoCAD's DXF gives them only for a leader's annotation, and the writer uses those), and by the
+spline tolerances, both 1E-10 in AutoCAD's file where its DXF writes 42 as 1E-9 (the writer writes the DXF's).
+
+Proof: W1's eight drawings, W4's eight and W2's three (anonymous blocks, tilted splines, 100 000 lines), each from the
+DXF AutoCAD 2021 wrote of its own AC1032 file (`DxfDatabase.Open`, `DwgWriter.Write`). Read back by `DwgReader`, each
+gives its source records but the types left out (above) and the dictionary entries and handles that named them; in
+`tilted` also W2's two spline normals, as on AutoCAD's own file. Every one opens in accoreconsole with `_.AUDIT _N`
+reporting 0 errors. AutoCAD's own DXF of each (probe `GhDwg5`: `ReadDwgFile`, `DxfOut` with 16 places), compared with
+the source by `DwgAnswerKey`:
+
+| Drawing | AutoCAD's DXF of the written DWG against the source |
+|---|---|
+| empty, curves, polys, text, props, tables, later, vports, hatch, images, mline, big, anon, tilted | the same but `$CMATERIAL` and the cell map of the table style, which AutoCAD makes anew with the materials, visual styles and styles left out; in `tables` the new materials have the mapping scale of another unit |
+| blocks | also the order of the two inserts in the `{BLKREFS` of one block record, which AutoCAD sorts anew |
+| leaders, table, solids, meshes | also what the types left out own or name: the multileaders and their style, the tables with their blocks (AutoCAD purges the anonymous blocks no table names), the solids, region and shape, the attribute of several lines and its insert's SEQEND |
+
+Speed: a drawing of a few hundred records is written in 0.1 s (most of it the DXF text of the database), 100 000
+lines in 1.1 s; the files are 9 to 13 KB where AutoCAD's are 13 to 17 KB, and 2.1 MB to AutoCAD's 1.9 MB for the
+100 000 lines.
+
 ## Left open by W1
 
 | What | State |
@@ -465,6 +542,6 @@ under 75 MB. In the suite: sixteen W4 drawings more in the two seeded theories o
 | W2: R2004, R2010, R2013, R2018 (AC1018 to AC1032) | done, see W2 above. As planned: a second container behind the same hand-over (`Header`, `Classes`, `ObjectMap`, the bytes of the objects): the encrypted file header, the page map and section map, the LZ77 decompression of pages, the 32-bit check sum. Objects are no longer at offsets of the file but of the decompressed AcDbObjects section, so `DwgObjectReader` is to take that array. The decoders take the version: R2004 colours (CMC with a true colour and a book name), the count of owned objects in place of first and last handles, no next and previous links; R2010 the type as two bits and bytes, the size of the handle stream in the object's head; R2013 and R2018 a few more fields. The probe already wrote the eight drawings in AC1018, AC1021, AC1024, AC1027 and AC1032 with their answer keys (scratch, `out/`), ready to be the proof |
 | W3: R2007 (AC1021) | done, see W3 above |
 | W4: the entities and objects left out | done in part, see W4 above; what is parked is listed there |
-| later: writing a DWG | the bit writer as the mirror of `DwgBitReader`, and the tables of `DwgHeaderVariables` and the decoders read the other way |
+| W5: writing a DWG | done for AC1032, see W5 above; the other versions, MULTILEADER, ACAD_TABLE, the ACIS entities and the objects the reader does not read are left |
 
 W1's open questions for W2 were answered by the maintainer and are DECIDED in the W2 section.
