@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private DxfViewport _target;
         private bool _hasViewportColumns;
-        private ICommand _newLayerVpFrozen, _vpFreezeAll, _vpThawAll, _removeOverrides, _selectAll, _clearAll, _allButCurrent, _invert;
+        private ICommand _newLayerVpFrozen, _vpFreezeAll, _vpThawAll, _removeOverrides, _selectAll, _clearAll, _allButCurrent, _invert, _isolate;
 
         /// <summary>Gets whether the VP columns are shown: a layout is current, as AutoCAD shows them only there.</summary>
         public bool HasViewportColumns
@@ -49,6 +49,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of "VP Freeze Layer in All Viewports", on the rows chosen.</summary>
         public ICommand VpFreezeAllCommand => _vpFreezeAll ?? (_vpFreezeAll = new DelegateCommand(_ => Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), true))));
+
+        /// <summary>
+        /// Gets the command of "Isolate Selected Layers", as AutoCAD 2021's shortcut menu of the Layer Properties Manager: every
+        /// layer but the rows chosen turned off, one undo step; the current layer too where it is not chosen, as AutoCAD lets the
+        /// current layer be off. With layers A, B and C on and B chosen, A and C go off.
+        /// </summary>
+        public ICommand IsolateCommand => _isolate ?? (_isolate = new DelegateCommand(_ => Isolate()));
 
         /// <summary>Gets the command of "VP Thaw Layer in All Viewports", on the rows chosen.</summary>
         public ICommand VpThawAllCommand => _vpThawAll ?? (_vpThawAll = new DelegateCommand(_ => Done(CadViewportLayerEditor.SetFrozenInAllViewports(Document, ChosenNames(), false))));
@@ -94,6 +101,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The names of the rows chosen, in the order of the rows; the row of <see cref="SelectedRow"/> where none is.</summary>
+        private void Isolate()
+        {
+            var kept = new HashSet<string>(ChosenNames(), StringComparer.OrdinalIgnoreCase);
+
+            if (kept.Count == 0)
+            {
+                return;
+            }
+
+            Document.BeginGroup("LAYER");
+
+            try
+            {
+                foreach (string name in Document.Database.LayerTable.Select(l => l.Name).ToList())
+                {
+                    if (!kept.Contains(name) && !Document.Database.LayerTable[name].IsOff && !Done(CadLayerEditor.SetOn(Document, name, false)))
+                    {
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                Document.EndGroup();
+            }
+        }
+
         internal List<string> ChosenNames()
         {
             var names = Rows.Where(r => r.IsChosen).Select(r => r.Name).ToList();

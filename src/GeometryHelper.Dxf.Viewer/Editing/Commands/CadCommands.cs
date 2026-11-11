@@ -96,6 +96,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("VPLAYER", ViewportLayer));
             registry.Add(new CadCommand("LAYVPI", LayerViewportIsolate));
             registry.Add(new CadCommand("VPSCALE", ViewportScale));
+            registry.Add(new CadCommand("-SCALELISTEDIT", ScaleListEdit));
             registry.Add(new CadCommand("MEASUREGEOM", MeasureGeom));
             registry.Add(new CadCommand("UNITS", Units));
             registry.Add(new CadCommand("-UNITS", UnitsTyped));
@@ -308,14 +309,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Previous"))
             {
-                if (c.Session.Views.Count == 0)
+                if (!c.Session.Views.TryTake(shown, out DisplayBox previous))
                 {
                     c.Write("No previous view saved.");
                     yield break;
                 }
 
-                DisplayBox previous = c.Session.Views[c.Session.Views.Count - 1];
-                c.Session.Views.RemoveAt(c.Session.Views.Count - 1);
                 view.ZoomTo(previous, 0.0);
                 yield break;
             }
@@ -370,7 +369,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Session.Views.Add(before);
+            c.Session.Views.Add(shown, before);
         }
 
         /// <summary>
@@ -388,7 +387,8 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            DisplayBox before = CadViewports.ViewBox(viewport);
+            GeoPoint2 wasCenter = viewport.ViewCenter;
+            double wasHeight = viewport.ViewHeight;
             DisplayBox extents = c.Document.GetDisplay(c.Document.ModelSpace).Bounds;
             GeoPoint2 center = viewport.ViewCenter;
             double height = viewport.ViewHeight;
@@ -435,15 +435,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Previous"))
             {
-                if (c.Session.Views.Count == 0)
+                // Each viewport goes back through views of its own, as AutoCAD's.
+                if (!c.Session.Views.TryTake(handle, out center, out height))
                 {
                     c.Write("No previous view saved.");
                     yield break;
                 }
 
-                DisplayBox previous = c.Session.Views[c.Session.Views.Count - 1];
-                c.Session.Views.RemoveAt(c.Session.Views.Count - 1);
-                CadViewports.Fit(viewport, previous, out center, out height);
                 c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height));
                 yield break;
             }
@@ -492,7 +490,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height)).Succeeded)
             {
-                c.Session.Views.Add(before);
+                c.Session.Views.Add(handle, wasCenter, wasHeight);
             }
         }
 
@@ -539,12 +537,22 @@ namespace GeometryHelper.Dxf.Viewer
                 yield return CadPrompt.ForPoint("Specify second point", start);
                 GeoVector2 shift = c.Input.IsPoint ? c.Input.Point - start : new GeoVector2(start.X, start.Y);
                 var viewport = (DxfViewport)c.Document.FindEntity(handle);
-                DisplayBox before = CadViewports.ViewBox(viewport);
+                GeoPoint2 wasCenter = viewport.ViewCenter;
+                double wasHeight = viewport.ViewHeight;
+
+                // The view's centre is kept turned by its twist: the shift of model space turned with it.
+                if (viewport.TwistAngle != 0.0)
+                {
+                    double cos = Math.Cos(viewport.TwistAngle);
+                    double sin = Math.Sin(viewport.TwistAngle);
+                    shift = new GeoVector2(cos * shift.X - sin * shift.Y, sin * shift.X + cos * shift.Y);
+                }
+
                 GeoPoint2 center = viewport.ViewCenter - shift;
 
                 if (c.Apply(c.Document.ViewRecord(handle, center, viewport.ViewHeight), CadDocument.ViewWriter(handle, center, viewport.ViewHeight)).Succeeded)
                 {
-                    c.Session.Views.Add(before);
+                    c.Session.Views.Add(handle, wasCenter, wasHeight);
                 }
 
                 yield break;
@@ -575,7 +583,7 @@ namespace GeometryHelper.Dxf.Viewer
                 move = move * (through.Height / through.ViewHeight);
             }
 
-            c.Session.Views.Add(view.VisibleBox);
+            c.Session.Views.Add(c.Document.CurrentSpace, view.VisibleBox);
             view.Pan(move.X * view.PixelsPerUnit, -move.Y * view.PixelsPerUnit);
         }
 

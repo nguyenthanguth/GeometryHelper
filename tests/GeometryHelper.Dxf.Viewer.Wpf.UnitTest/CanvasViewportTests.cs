@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -127,6 +128,73 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.True(model.Document.Undo());
                 Assert.Equal(3000, Frame(model, viewport).ViewHeight, 9);
+            });
+        }
+
+        [Fact]
+        public void ATwistedViewport_IsWorkedThroughTurned_ItsPicksBoxesAndUcsIconTurnedWithIt()
+        {
+            OnLayout((model, canvas, viewport) =>
+            {
+                // Twisted a quarter turn about the room's middle, as DVIEW TWist 90 leaves it: the view's centre (-1 500, 2 000)
+                // is the room's middle turned. The bottom wall then runs up the frame at paper x 225.
+                DxfViewport frame = Frame(model, viewport);
+                frame.TwistAngle = Math.PI / 2.0;
+                frame.ViewCenter = new GeoPoint2(-1500, 2000);
+                model.Document.Regen();
+                Assert.True(canvas.ViewportClick(At(canvas, 150, 120), true));
+                Assert.Equal(viewport, canvas.ThroughHandle);
+                canvas.RenderNow();
+
+                Click(canvas, At(canvas, 225, 140));
+                string picked = Assert.Single(model.Document.Selection.Handles);
+                Assert.Equal(0.0, ((DxfLine)model.Document.FindEntity(picked)).StartPoint.Y, 9);
+
+                // The X arm of the icon, and the crosshair, run up the canvas.
+                Assert.True(canvas.TryPlaceUcsIcon(out _, out Vector xArm, out _));
+                Assert.Equal(0.0, xArm.X, 9);
+                Assert.Equal(-1.0, xArm.Y, 9);
+
+                // A crossing box right to left over the top wall, shown at paper x 75, takes it alone.
+                model.Document.Selection.Clear();
+                Click(canvas, At(canvas, 85, 60));
+                Click(canvas, At(canvas, 65, 70));
+                picked = Assert.Single(model.Document.Selection.Handles);
+                Assert.Equal(3000.0, ((DxfLine)model.Document.FindEntity(picked)).StartPoint.Y, 9);
+            });
+        }
+
+        [Fact]
+        public void WheelRollsAndAPanDragDrawnBetween_AreOneUndoStep()
+        {
+            OnLayout((model, canvas, viewport) =>
+            {
+                model.Document.EnterViewport(viewport);
+                canvas.RenderNow();
+                CadUndoStep start = model.Document.NextUndo;
+                Point at = At(canvas, 150, 100);
+
+                // A roll, the view drawn again (the canvas still for a moment), another roll, and a drag of the middle button
+                // drawn again half way: one step, as AutoCAD combines consecutive real-time zooms and pans.
+                Mouse(canvas, UIElement.MouseWheelEvent, at, delta: 120);
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseWheelEvent, at, delta: 120);
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseMoveEvent, at);
+                Mouse(canvas, UIElement.MouseDownEvent, at, MouseButton.Middle);
+                Mouse(canvas, UIElement.MouseMoveEvent, new Point(at.X + 20, at.Y));
+                canvas.RenderNow();
+                Mouse(canvas, UIElement.MouseMoveEvent, new Point(at.X + 40, at.Y));
+                Mouse(canvas, UIElement.MouseUpEvent, new Point(at.X + 40, at.Y), MouseButton.Middle);
+                canvas.RenderNow();
+
+                Assert.Equal(3000 / 1.44, Frame(model, viewport).ViewHeight, 6);
+                Assert.NotEqual(2000, Frame(model, viewport).ViewCenter.X, 6);
+                Assert.Equal("ZOOM", model.Document.NextUndo.Name);
+                Assert.True(model.Document.Undo());
+                Assert.Same(start, model.Document.NextUndo);
+                Assert.Equal(3000, Frame(model, viewport).ViewHeight, 9);
+                Assert.Equal(2000, Frame(model, viewport).ViewCenter.X, 9);
             });
         }
 

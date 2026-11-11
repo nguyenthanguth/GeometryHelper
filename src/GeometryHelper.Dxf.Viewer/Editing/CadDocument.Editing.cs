@@ -51,6 +51,8 @@ namespace GeometryHelper.Dxf.Viewer
         private string _groupName;
         private List<CadEditRecord> _groupRecords;
         private bool _groupFailed;
+        private bool _realTime;
+        private CadUndoStep _realTimeStep;
         private readonly CadOwnerRegistry _owners = new CadOwnerRegistry();
         private ReadAhead _readUndo;
         private ReadAhead _readRedo;
@@ -630,6 +632,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadUndoStep step = _steps[_position - 1];
+            _realTimeStep = null;
             _position--;
             Reload(_states[_position], step.Records);
             Announce(CadChangeKind.Undo, step.Name, step.Records);
@@ -646,6 +649,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadUndoStep step = _steps[_position];
+            _realTimeStep = null;
             _position++;
             Reload(_states[_position], step.Records);
             Announce(CadChangeKind.Redo, step.Name, step.Records);
@@ -724,6 +728,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Makes the edits one step: the drawing after them kept, the steps undone before forgotten.</summary>
         private void Commit(string name, List<CadEditRecord> records)
         {
+            // A real-time zoom or pan straight after another joins its step: the drawing after both kept in its place.
+            if (_realTime && _position > UndoFloor && _position == _steps.Count && _savedPosition != _position && ReferenceEquals(_steps[_position - 1], _realTimeStep))
+            {
+                CadUndoStep before = _steps[_position - 1];
+                var joined = new List<CadEditRecord>(before.Records);
+                joined.AddRange(records);
+                _realTimeStep = _steps[_position - 1] = new CadUndoStep(before.Name, joined.ToArray());
+                _states[_position] = Keep();
+                ReadAround();
+                return;
+            }
+
             if (_steps.Count > _position)
             {
                 _steps.RemoveRange(_position, _steps.Count - _position);
@@ -735,9 +751,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            _steps.Add(new CadUndoStep(name, records.ToArray()));
+            var step = new CadUndoStep(name, records.ToArray());
+            _steps.Add(step);
             _states.Add(Keep());
             _position++;
+            _realTimeStep = _realTime ? step : null;
             ReadAround();
         }
 

@@ -254,7 +254,7 @@ namespace GeometryHelper.Dxf.Viewer
             get
             {
                 Affine2 toView = Affine2.Translation(-ViewCenterX, -ViewCenterY);
-                Affine2 turn = Affine2.ScaleRotate(Scale, Scale, -Twist);
+                Affine2 turn = Affine2.ScaleRotate(Scale, Scale, Twist);
                 return toView.Then(turn).Then(Affine2.Translation(CenterX, CenterY));
             }
         }

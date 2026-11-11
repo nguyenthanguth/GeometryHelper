@@ -150,11 +150,11 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 177 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 178 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -691,19 +691,41 @@ is, `WorkingSpace` is model space: the commands draw there, picks and snaps work
 and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
 Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`).
 
-The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper, one undo step each (the wheel's
-notches one step once the view is still). ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
-viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
+The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
+step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
+button's drags made one after another are one step together, however often the view is drawn again between them, as
+AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control Combine, UNDOCTL 61 holding its 16);
+`SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM Previous goes
+back through views of the viewport worked through alone, as AutoCAD keeps a list for each viewport, for the paper of each
+layout and for model space: a viewport never zoomed answers "No previous view saved." while another has views to go back
+to. Each list keeps the last 20 views typed ZOOM and PAN left, as AutoCAD 2021's console, zoomed 30 times, gives 20 back.
+ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewport 100 high shows 5 000 of model space,
+1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
 view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too. The list
-opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the standard
-scales, and Custom..., which runs VPSCALE: it writes `PS:MS == 1:20` and asks a new scale, as 1:37.5 (SCALELISTEDIT is not
-built). Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
+opens on a click of the scale, as AutoCAD 2021's: Scale to fit, which fits model space's extents to the frame, the scales
+of the drawing's list (ACAD_SCALELIST; the standard ones where it has none), and Custom..., which runs -SCALELISTEDIT to
+edit that list on the command line (the Edit Drawing Scales dialog is not built). VPSCALE writes `PS:MS == 1:20` and asks
+a new scale, as 1:37.5. -SCALELISTEDIT asks as AutoCAD 2021's console does, word for word: `Enter option
+[?/Add/Delete/Reset/Exit] <Add>:`; ? lists each scale with its paper and drawing units and the scale they give; Add asks
+`Enter name for new scale:` and `Enter scale ratio:` (1:3 or 2.5:1; anything else answers `Invalid entry. Expects a ratio
+entered in the following format: "1:1"`), and for a name the list has asks `GH already exists.  Redefine scale?`; Delete
+takes one scale (`GH scale deleted.`, `Scale NOSUCH not found.`) or `*` every one in no use, and keeps the unit scale, the
+current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`); Reset, after
+`Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the standard 1:1 to 100:1. The
+command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
+alone there, having no profile's default list. Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
 its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
-names. A viewport whose view is turned, or not a plan, is not entered.
+names. A viewport whose view is not a plan is not entered. One whose view is twisted, as DVIEW TWist leaves it (group 51),
+is shown and worked through turned, as AutoCAD 2021 shows it: the view's centre is kept about its target and turned by
+the twist (`ToView` and `FromView`, AutoCAD's TRANS from the world to the view), so through a viewport 120 by 80 about
+(100, 100) at 1:5, its view about (100, 50) twisted 30 degrees, the point (100, 0) of model space is at (97.320, 100) on
+the paper, where AutoCAD's console puts it. Entered, the canvas's view in model units turns with it (`CadView.Twist`):
+picks, snaps and boxes (taken as turned polygons), the crosshair and the UCS icon follow the turn, PAN moves the view by
+the model distance given, and ZOOM Window fits the box as the view turns it.
 
 ### Grip modes
 
@@ -821,7 +843,9 @@ viewport selected on the paper, and are grey with neither; on the Model tab they
 layer's own in that viewport alone is marked blue. VP Plot Style reads `Color_7` and is grey in a drawing plotted by colour
 (a CTB table), as AutoCAD's. Its right-click menu has "VP Freeze Layer in All Viewports", "VP Thaw Layer in All Viewports",
 "New Layer VP Frozen in All Viewports" and "Remove Viewport Overrides for", on the layers chosen or all, in the current
-viewport or all. [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
+viewport or all; and "Isolate Selected Layers", which turns off every layer but those chosen, the current one too where it
+is not chosen, one undo step, as AutoCAD's help describes the item ("Rename Layer" stays grey: renaming in the list needs a
+name cell that can be typed in, which waits for a design). [`CadViewportLayerEditor`](xref:GeometryHelper.Dxf.Viewer.CadViewportLayerEditor) makes these edits, each
 one undo step:
 
 | Call | Does |
