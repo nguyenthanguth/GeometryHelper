@@ -124,6 +124,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void AReferencedFileChangedOnDisk_IsAnnouncedOnTheCommandLineOnce_AndAgainAfterItIsReloadedAndChanged()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Plan(folder, out string grid, out _);
+                const string Line = "External Reference Files Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette.";
+                Assert.False(model.Document.Xrefs.WatchFiles);
+                model.WatchReferenceFiles = true;
+                Assert.True(model.Document.Xrefs.WatchFiles);
+                model.WatchReferenceFiles = false;
+                model.AnnounceChangedReferences(model.Document);
+                Assert.DoesNotContain(Line, model.History);
+
+                Grid(folder);
+                File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(1));
+                model.AnnounceChangedReferences(model.Document);
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Single(model.History, l => l == Line);
+
+                model.Execute("-XREF");
+                model.Execute("R");
+                model.Execute("grid");
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Single(model.History, l => l == Line);
+
+                File.SetLastWriteTimeUtc(grid, DateTime.UtcNow.AddMinutes(2));
+                model.AnnounceChangedReferences(model.Document);
+                Assert.Equal(2, model.History.Count(l => l == Line));
+            }
+        }
+
+        [Fact]
         public void ThePalette_ListsANestedReferenceAsNested_AndTheTreeShowsItUnderItsParent()
         {
             using (var folder = new TestFolder())

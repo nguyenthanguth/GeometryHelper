@@ -1361,6 +1361,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
             document.ActiveViewportChanged += OnActiveViewportChanged;
+            WatchReferences(document);
         }
 
         internal void Say(string line)

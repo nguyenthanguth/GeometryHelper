@@ -576,6 +576,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 MainViewModel shown = _model;
                 _model.ShowExternalReferences = palette => ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
                 _model.ShowAttachReference = dialog => AttachReferenceWindow.Show(Window.GetWindow(this), dialog);
+                _model.WatchReferenceFiles = true;
                 _model.ReadClipboardText = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
                 _model.WriteClipboardText = text => Clipboard.SetText(text ?? string.Empty);
                 _model.PropertyChanged += OnModelPropertyChanged;

@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's window says on a drawing's command line when a file one of its external references was read
+from changes on disk, where AutoCAD 2021 shows a balloon over its status bar (XREFNOTIFY 2): "External Reference Files
+Have Changed: grid needs reloading. Reload it with -XREF Reload or in the External References palette." Each change is
+said once, and again only after the reference was reloaded and its file changed anew. The files were watched only while
+the External References palette was open, to refresh it. **NEW.** `MainViewModel.WatchReferenceFiles`, which the
+workspace sets.
+
 **NEW.** The External References palette of the presenter lists nested external references as AutoCAD 2021's does: a
 reference the drawing places is followed by those its drawing attaches, of the type Nested in the list view, under their
 parent and of their own type in the tree view, each level 16 pixels further in. A nested reference whose parent is

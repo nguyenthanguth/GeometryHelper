@@ -415,7 +415,11 @@ Each reference the drawing places is followed by those its drawing attaches, nes
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
 under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
 Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
-Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path.
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The window
+watches the folders of the files read; one changed on disk is said once on its drawing's command line, where AutoCAD
+2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
+-XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file
+changed anew.
 Unload and Reload change what is shown, not the drawing, and are not undone; no DXF says a reference is unloaded. One
 not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
