@@ -798,6 +798,7 @@ namespace GeometryHelper.Dxf.Viewer
         public void Regen()
         {
             _builder = new DisplayBuilder(Database, this);
+            AgeKeptLayouts();
             _displays.Clear();
             _indexes.Clear();
             _stale.Clear();

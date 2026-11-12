@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -95,11 +96,16 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The pieces EXPLODE makes of an MTEXT, as AutoCAD 2021 makes them: a TEXT for each run of letters of each line where
-        /// the layout draws it, of its height, width factor and slant, in the MTEXT's text style, turn and plane, a line under,
-        /// over or through it written <c>%%U</c>, <c>%%O</c> or <c>%%K</c> before its letters, and a LINE for the bar of each
-        /// stack; all with the MTEXT's layer, colour, linetype and lineweight. Null for an MTEXT in no drawing or of no letters.
+        /// the layout draws it, of its height, width factor and slant, in the MTEXT's turn and plane, a line under, over or
+        /// through it written <c>%%U</c>, <c>%%O</c> or <c>%%K</c> before its letters, and a LINE for the bar of each stack;
+        /// all with the MTEXT's layer, linetype and lineweight. A run in its own colour (<c>\C1;</c>, <c>\C256;</c> ByLayer,
+        /// <c>\C0;</c> ByBlock, <c>\c16711680;</c> the true colour 0,0,255) is a TEXT of that colour, the rest of the MTEXT's. A
+        /// run in an SHX font of its own (<c>\Ftxt.shx;</c>) is a TEXT of the style <c>MtXpl_txt_shx</c> of that font, which
+        /// <paramref name="styles"/> is given (name and font file) for the drawing to have; the rest, a run in a TrueType font
+        /// of its own too, is of the MTEXT's style, as AutoCAD 2021's <c>Explode</c> makes them (probed). Null for an MTEXT in
+        /// no drawing or of no letters.
         /// </summary>
-        internal static IReadOnlyList<DxfEntity> Explode(DxfMText text)
+        internal static IReadOnlyList<DxfEntity> Explode(DxfMText text, IDictionary<string, string> styles)
         {
             CadMTextLayout layout = LayoutOf(text);
 
@@ -165,9 +171,29 @@ namespace GeometryHelper.Dxf.Viewer
                     made.Oblique = piece.Slant;
                 }
 
-                if (!string.IsNullOrEmpty(style))
+                if (piece.Look.Font != null && piece.Look.IsShx)
+                {
+                    string own = ExplodedStyleName(piece.Look.Font);
+                    styles[own] = piece.Look.Font;
+                    made.TextStyleName = own;
+                }
+                else if (!string.IsNullOrEmpty(style))
                 {
                     made.TextStyleName = style;
+                }
+
+                if (piece.Look.TrueColor.HasValue)
+                {
+                    int rgb = piece.Look.TrueColor.Value;
+                    made.Color = DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+                }
+                else if (piece.Look.ColorIndex.HasValue)
+                {
+                    int index = piece.Look.ColorIndex.Value;
+                    made.Color =
+                        index <= 0 ? DxfColor.ByBlock
+                        : index >= 256 ? DxfColor.ByLayer
+                        : DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)index);
                 }
 
                 pieces.Add(made);
@@ -186,6 +212,23 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return pieces.Count == 0 ? null : pieces;
+        }
+
+        /// <summary>The style AutoCAD 2021's EXPLODE gives a run of an SHX font of its own: <c>MtXpl_txt_shx</c> for txt.shx.</summary>
+        internal static string ExplodedStyleName(string font) => "MtXpl_" + font.Replace('.', '_');
+
+        /// <summary>Adds to a drawing the styles of the runs of SHX fonts of their own <see cref="Explode"/> made TEXTs of, those it has not.</summary>
+        internal static void AddExplodedStyles(DxfDatabase database, IDictionary<string, string> styles)
+        {
+            foreach (KeyValuePair<string, string> style in styles.OrderBy(s => s.Key, StringComparer.Ordinal))
+            {
+                if (!database.TextStyleTable.Has(style.Key))
+                {
+                    database.TextStyleTable.Add(
+                        new DxfTextStyleTableRecord { Name = style.Key, FileName = style.Value }
+                    );
+                }
+            }
         }
     }
 }

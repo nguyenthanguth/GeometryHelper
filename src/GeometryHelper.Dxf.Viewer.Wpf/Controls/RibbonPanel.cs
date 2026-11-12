@@ -62,6 +62,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new PropertyMetadata(null)
         );
 
+        /// <summary>Identifies the <see cref="Launcher"/> property.</summary>
+        public static readonly DependencyProperty LauncherProperty = DependencyProperty.Register(
+            nameof(Launcher),
+            typeof(ICommand),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null)
+        );
+
+        /// <summary>Identifies the <see cref="LauncherToolTip"/> property.</summary>
+        public static readonly DependencyProperty LauncherToolTipProperty = DependencyProperty.Register(
+            nameof(LauncherToolTip),
+            typeof(object),
+            typeof(RibbonPanel),
+            new PropertyMetadata(null)
+        );
+
         /// <summary>Identifies the <see cref="Body"/> property.</summary>
         public static readonly DependencyProperty BodyProperty = DependencyProperty.Register(
             nameof(Body),
@@ -172,6 +188,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get => GetValue(HeaderProperty);
             set => SetValue(HeaderProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the command of the panel's launcher, the small arrow at the right of its title that opens its dialog, as
+        /// Paragraph's opens the Paragraph dialog: drawn beside the title, and on the title bar of the drop-down of the panel
+        /// collapsed. Null for no launcher.
+        /// </summary>
+        public ICommand Launcher
+        {
+            get => (ICommand)GetValue(LauncherProperty);
+            set => SetValue(LauncherProperty, value);
+        }
+
+        /// <summary>Gets or sets the tooltip of the launcher, which also names it for screen readers.</summary>
+        public object LauncherToolTip
+        {
+            get => GetValue(LauncherToolTipProperty);
+            set => SetValue(LauncherToolTipProperty, value);
         }
 
         /// <summary>Gets or sets the panel's buttons.</summary>

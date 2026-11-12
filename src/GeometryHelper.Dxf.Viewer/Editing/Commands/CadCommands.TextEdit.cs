@@ -366,19 +366,22 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Gives an MTEXT the defined height and columns its editor set (<see cref="CadInPlaceEdit.NewFrame"/>), as AutoCAD's
-        /// own calls set them; the message of a file that keeps no such columns, null where all was set.
+        /// Gives an MTEXT the defined height and columns its editor set (<see cref="CadInPlaceEdit.NewFrame"/>), or those it
+        /// opened with where it set none (<see cref="CadInPlaceEdit.Frame"/>), as AutoCAD's own calls set them; the message of
+        /// a file that keeps no such columns, null where all was set.
         /// </summary>
         internal static string ApplyFrame(DxfMText mtext, CadInPlaceEdit edit)
         {
-            if (edit.NewFrame == null)
+            CadMTextFrame frame = edit.NewFrame ?? edit.Frame;
+
+            if (frame == null)
             {
                 return null;
             }
 
             try
             {
-                edit.NewFrame.ApplyTo(mtext);
+                frame.ApplyTo(mtext);
                 return null;
             }
             catch (InvalidOperationException exception)

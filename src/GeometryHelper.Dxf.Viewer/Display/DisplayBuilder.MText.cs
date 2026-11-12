@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -17,20 +18,41 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal CadMTextLayout LayoutOf(DxfMText text)
         {
-            CadMTextContent content = CadMTextContent.Parse(
-                text.Contents,
-                text.TextHeight,
-                WidthFactorOf(text.TextStyleName)
-            );
-            CadFontFace styleFace = FaceOf(text.TextStyleName);
-            return CadMTextLayout.Of(
-                text,
-                content,
-                look => look.Font == null ? styleFace : FaceOfFont(look.Font, look.IsShx),
-                WidthFactorOf(text.TextStyleName),
-                ObliqueOf(text.TextStyleName)
-            );
+            string styleName = text.TextStyleName;
+            double styleWidth = WidthFactorOf(styleName);
+            CadFontFace styleFace = FaceOf(styleName);
+            var inputs = new CadMTextLayout.Inputs(text, text.Contents, styleWidth, ObliqueOf(styleName));
+            KeptLayout kept = _document?.KeptLayoutOf(text);
+            KeptLayout.Entry entry = kept?.Last;
+
+            if (
+                entry != null
+                && entry.IsFor(inputs, CadTrueTypeFonts.MeasureWidth, (font, shx) => FaceOf(styleFace, font, shx))
+            )
+            {
+                return entry.Layout;
+            }
+
+            CadMTextContent content = CadMTextContent.Parse(inputs.Contents, inputs.TextHeight, styleWidth);
+            var faces = new List<KeptLayout.Face>();
+            CadMTextLayout layout = CadMTextLayout.Of(inputs, content, look =>
+            {
+                CadFontFace face = FaceOf(styleFace, look.Font, look.IsShx);
+                KeptLayout.Note(faces, look.Font, look.IsShx, face);
+                return face;
+            });
+
+            if (kept != null)
+            {
+                kept.Last = new KeptLayout.Entry(inputs, CadTrueTypeFonts.MeasureWidth, faces, layout);
+            }
+
+            return layout;
         }
+
+        /// <summary>The face a look of an MTEXT is drawn in: the style's where the look names no font.</summary>
+        private CadFontFace FaceOf(CadFontFace styleFace, string font, bool shx) =>
+            font == null ? styleFace : FaceOfFont(font, shx);
 
         /// <summary>
         /// The layout of the words of an MTEXT being edited, as <see cref="LayoutOf"/> lays out the MTEXT's own, with where
@@ -277,6 +299,110 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return found.Face;
+        }
+
+        /// <summary>
+        /// The layout an MTEXT was last laid out with, with what it was laid out from: its inputs, the canvas's measure of
+        /// letters, and the face each font of its looks came to. A display drawn again from the start (REGEN) makes its faces
+        /// again; a face made again of the same font, big font, code page and name draws alike.
+        /// </summary>
+        internal sealed class KeptLayout
+        {
+            private Entry _last;
+
+            /// <summary>The layout last made; null until one is.</summary>
+            internal Entry Last
+            {
+                get => Volatile.Read(ref _last);
+                set => Volatile.Write(ref _last, value);
+            }
+
+            /// <summary>Notes the face a font of a look came to, once a font; null the style's font.</summary>
+            internal static void Note(List<Face> faces, string font, bool shx, CadFontFace face)
+            {
+                foreach (Face noted in faces)
+                {
+                    if (noted.Shx == shx && string.Equals(noted.Font, font, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+                }
+
+                faces.Add(new Face(font, shx, face));
+            }
+
+            /// <summary>A layout and what it was laid out from.</summary>
+            internal sealed class Entry
+            {
+                private readonly CadMTextLayout.Inputs _inputs;
+                private readonly Func<string, bool, bool, string, double> _measure;
+                private readonly List<Face> _faces;
+
+                internal Entry(
+                    CadMTextLayout.Inputs inputs,
+                    Func<string, bool, bool, string, double> measure,
+                    List<Face> faces,
+                    CadMTextLayout layout
+                )
+                {
+                    _inputs = inputs;
+                    _measure = measure;
+                    _faces = faces;
+                    Layout = layout;
+                }
+
+                internal CadMTextLayout Layout { get; }
+
+                /// <summary>Whether the layout is the one inputs read since would make, each font of its looks asked of <paramref name="faceOf"/> again.</summary>
+                internal bool IsFor(
+                    CadMTextLayout.Inputs inputs,
+                    Func<string, bool, bool, string, double> measure,
+                    Func<string, bool, CadFontFace> faceOf
+                )
+                {
+                    if (!Equals(_measure, measure) || !_inputs.IsSameAs(inputs))
+                    {
+                        return false;
+                    }
+
+                    foreach (Face face in _faces)
+                    {
+                        CadFontFace now = faceOf(face.Font, face.Shx);
+
+                        if (
+                            !ReferenceEquals(now, face.Drawn)
+                            && (
+                                !string.Equals(now.Name, face.Drawn.Name, StringComparison.Ordinal)
+                                || !ReferenceEquals(now.Shx, face.Drawn.Shx)
+                                || !ReferenceEquals(now.Big, face.Drawn.Big)
+                                || !Equals(now.Page, face.Drawn.Page)
+                            )
+                        )
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            /// <summary>A font of a look, null the style's, and the face it came to.</summary>
+            internal sealed class Face
+            {
+                internal Face(string font, bool shx, CadFontFace drawn)
+                {
+                    Font = font;
+                    Shx = shx;
+                    Drawn = drawn;
+                }
+
+                internal string Font { get; }
+
+                internal bool Shx { get; }
+
+                internal CadFontFace Drawn { get; }
+            }
         }
     }
 }

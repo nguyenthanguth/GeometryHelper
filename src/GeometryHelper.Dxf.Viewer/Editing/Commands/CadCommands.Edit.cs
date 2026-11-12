@@ -487,6 +487,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var parts = new List<KeyValuePair<string, IReadOnlyList<DxfEntity>>>();
+            var styles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             int refused = 0;
 
             foreach (string handle in c.Selected)
@@ -526,7 +527,8 @@ namespace GeometryHelper.Dxf.Viewer
                 try
                 {
                     // An MTEXT breaks into its TEXTs where the picture draws them; one in no drawing as the library breaks it.
-                    pieces = (entity is DxfMText words ? CadMTextEdit.Explode(words) : null) ?? entity.Explode();
+                    pieces = (entity is DxfMText words ? CadMTextEdit.Explode(words, styles) : null)
+                        ?? entity.Explode();
                 }
                 catch (NotSupportedException)
                 {
@@ -569,6 +571,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.Apply(planned, s =>
             {
+                // The styles of the runs of an MTEXT in SHX fonts of their own, before the TEXTs in them.
+                CadMTextEdit.AddExplodedStyles(s.Database, styles);
+
                 foreach (KeyValuePair<string, IReadOnlyList<DxfEntity>> pair in parts)
                 {
                     if (s.IsHandled(pair.Key))

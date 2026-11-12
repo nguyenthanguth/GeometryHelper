@@ -1060,8 +1060,11 @@ holds no defined height, a corner changes the width alone.
 
 EXPLODE breaks an MTEXT into a TEXT for each run of each line, where the picture draws it and of its height, width
 factor and slant, with `%%U`, `%%O` or `%%K` before the words of a run lined under, over or through, and a LINE for
-the bar of each stack, all in the MTEXT's text style, layer and colour. A run in a font or colour of its own (`\f`,
-`\C`) becomes a TEXT in the MTEXT's style and colour, as in AutoCAD.
+the bar of each stack, all in the MTEXT's layer. The runs keep their colours and SHX fonts, as AutoCAD 2021's Explode
+keeps them: in an MTEXT of blue, `{\C1;CD}` is a red TEXT, `\C256;` ByLayer, `\C0;` ByBlock and `\c16711680;` the true
+colour 0,0,255, and the rest blue; `{\Ftxt.shx;CD}` is a TEXT in a text style `MtXpl_txt_shx` of txt.shx, which the
+drawing is given if it has none, in the same undo step. A run in a TrueType font of its own (`\fArial|b1;`) is a TEXT
+in the MTEXT's style, as in AutoCAD.
 
 A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
 ([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a

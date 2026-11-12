@@ -6,6 +6,43 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter keeps the layout of each MTEXT from one drawing to the next, REGEN too, and lays the words out
+again only where the words, sizes, spacing, columns, the style's width and slant or the faces of the fonts have changed;
+the picture is the same to the bit. 10 000 MTEXTs are drawn again after a REGEN in 128 ms under .NET Framework 4.8,
+where they took 196 ms; a document drawing them for the first time takes 233 ms, 30 ms more than before, for the
+layouts it keeps.
+
+**FIXED.** The presenter drew a TEXT's `%%U`, `%%O` and `%%K` as written. In an SHX font they now draw the lines AutoCAD
+2021 draws, under, over and through the letters after them, 0.2 of the height below the baseline, 1.2 heights and half
+a height above it, along the letters' pens but 0.15 of the height left of them, and a justified text is boxed with its
+lines: "%%uAB" of simplex 10 high centred on nought starts at -8.738, not -8.571. In a TrueType font the codes are left
+out; its lines are not drawn yet.
+
+**FIXED.** EXPLODE of an MTEXT gave every TEXT the MTEXT's colour and style. A run of its own colour keeps it (`\C1;`
+red, `\C256;` ByLayer, `\C0;` ByBlock, `\c16711680;` the true colour 0,0,255), and a run of an SHX font of its own
+(`\Ftxt.shx;`) is a TEXT of a style `MtXpl_txt_shx` of that font, added to the drawing, as AutoCAD 2021's Explode makes
+them; a run of a TrueType font of its own stays in the MTEXT's style, as there.
+
+**FIXED.** The MTEXT editor read a width in times (`{\W1.2x;ABC}`) as times 1 in a style of another width, and an edit
+wrote it back so: in a style 0.8 wide the letters drawn 0.96 wide became 1.2 wide. They are 0.96 in the editor and are
+written `\W0.9600;`. New: a `CadMTextEditor` constructor taking the style's width, and `CadMTextEditor.StyleWidth`.
+
+**FIXED.** MTEXT's Columns option opened the editor with no columns and wrote its own columns whatever the editor did. The
+editor opens with them (`CadInPlaceEdit.Frame`), and the MTEXT is written with the columns the editor ends with, No
+Columns too.
+
+**FIXED.** In the MTEXT editor, End on a line that breaks between two ideographs put the caret at the start of the next
+line, its place being the first of that line. It stands at the end of the line, where Home, Up and Down go on from, and
+a click past the end of such a line puts it there too (`CadMTextEditBox.CaretLine`).
+
+**NEW.** `RibbonPanel.Launcher` and `RibbonPanel.LauncherToolTip`: the small arrow at the right of a panel's title that
+opens its dialog, drawn on the title bar of the drop-down of the panel collapsed too, as AutoCAD 2021's. The Text
+Editor tab's Paragraph panel opens the Paragraph dialog from either.
+
+**NEW.** `CadMTextEditor.SetNumbering` and `CadMTextNumbering`: paragraphs numbered, lettered or bulleted as AutoCAD
+2021's Bullets and Numbering writes them, "Plate", "Beam" numbered `\pxi-3,l3,t3;1.\tPlate\P2.\tBeam` and bulleted with
+`{\fSymbol|b0|i0|c2|p18;·\t}`; Off takes the list away. The ribbon's menu does not offer it yet.
+
 **CHANGED.** The presenter drags objects as AutoCAD 2021 does, after the maintainer's pictures of its SCALE: while
 MOVE, COPY, ROTATE, SCALE, MIRROR, ALIGN, an array or a grip edit waits for its point, the copy at the cursor is drawn in
 the objects' own colours, not dashed blue, and the rubber band from the base point is dashed amber, 16 pixels on and 9

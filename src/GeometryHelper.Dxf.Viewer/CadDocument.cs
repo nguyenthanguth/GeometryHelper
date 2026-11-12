@@ -198,12 +198,50 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy =
             new System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument>();
 
+        private readonly object _keptGate = new object();
+        private Dictionary<DxfMText, DisplayBuilder.KeptLayout> _keptLayouts =
+            new Dictionary<DxfMText, DisplayBuilder.KeptLayout>();
+        private Dictionary<DxfMText, DisplayBuilder.KeptLayout> _keptLayoutsBefore;
+
         /// <summary>The document last made of a drawing; null for a drawing no document shows.</summary>
         internal static CadDocument Showing(DxfDatabase database) =>
             ShownBy.TryGetValue(database, out CadDocument document) ? document : null;
 
         /// <summary>The layout of an MTEXT's words as the display draws them, in the document's fonts.</summary>
         internal CadMTextLayout LayoutOf(DxfMText text) => _builder.LayoutOf(text);
+
+        /// <summary>
+        /// The layout an MTEXT was last laid out with, kept from one drawing of it to the next, REGEN too, and taken again only
+        /// where its inputs and faces are the same (<see cref="DisplayBuilder.KeptLayout"/>). Those of the MTEXTs laid out since
+        /// the REGEN before last are kept, so that an MTEXT erased lets its layout go at the second REGEN after it.
+        /// </summary>
+        internal DisplayBuilder.KeptLayout KeptLayoutOf(DxfMText text)
+        {
+            lock (_keptGate)
+            {
+                if (!_keptLayouts.TryGetValue(text, out DisplayBuilder.KeptLayout kept))
+                {
+                    if (_keptLayoutsBefore == null || !_keptLayoutsBefore.TryGetValue(text, out kept))
+                    {
+                        kept = new DisplayBuilder.KeptLayout();
+                    }
+
+                    _keptLayouts.Add(text, kept);
+                }
+
+                return kept;
+            }
+        }
+
+        /// <summary>Lets go of the layouts of the MTEXTs not laid out since the REGEN before, as a REGEN does.</summary>
+        private void AgeKeptLayouts()
+        {
+            lock (_keptGate)
+            {
+                _keptLayoutsBefore = _keptLayouts;
+                _keptLayouts = new Dictionary<DxfMText, DisplayBuilder.KeptLayout>();
+            }
+        }
 
         /// <summary>The layout of the words of an MTEXT being edited, with where each place of the editor stands.</summary>
         internal CadMTextLayout EditorLayoutOf(DxfMText text, CadMTextContent content) =>

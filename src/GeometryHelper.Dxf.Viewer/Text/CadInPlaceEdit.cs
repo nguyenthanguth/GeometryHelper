@@ -106,6 +106,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public CadMTextFrame NewFrame { get; set; }
 
+        /// <summary>
+        /// Gets the box an MTEXT being made opens in the editor with, where MTEXT's Columns option gave it columns: two static
+        /// columns 93.75 wide with a gutter of 12.5, 200 in all and 25 high, for an MTEXT 2.5 high given the Static defaults; null where the
+        /// editor opens with <see cref="Width"/> alone. What the editor makes of it is <see cref="NewFrame"/>.
+        /// </summary>
+        public CadMTextFrame Frame { get; internal set; }
+
         /// <summary>Gets the row of the table cell edited, from nought, where <see cref="Handle"/> is a table's; -1 for any other text.</summary>
         public int TableRow { get; internal set; } = -1;
 

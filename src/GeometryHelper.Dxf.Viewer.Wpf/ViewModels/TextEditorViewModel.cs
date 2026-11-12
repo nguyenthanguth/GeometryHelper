@@ -74,12 +74,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             StyleIsShx = styleIsShx;
             int column = (edit.Attachment - 1) % 3;
 
-            // The box of the MTEXT edited, its columns kept; of an MTEXT being made or a table cell, the edit's width.
+            // The box of the MTEXT edited, its columns kept; of an MTEXT being made, the columns MTEXT's Columns option gave or
+            // the edit's width; of a table cell, the edit's width.
             CadMTextFrame frame =
                 edit.Handle != null && !edit.IsTableCell && model?.Document?.FindEntity(edit.Handle) is DxfMText mtext
                     ? CadMTextFrame.Of(mtext)
-                    : CadMTextFrame.Of(Math.Max(0.0, edit.Width));
-            Editor = new CadMTextEditor(edit.Value, edit.Height, frame, styleFont, styleIsShx, "lcr"[column]);
+                    : edit.Frame ?? CadMTextFrame.Of(Math.Max(0.0, edit.Width));
+            Editor = new CadMTextEditor(
+                edit.Value,
+                edit.Height,
+                frame,
+                model?.StyleWidthOf(edit.StyleName) ?? 1.0,
+                styleFont,
+                styleIsShx,
+                "lcr"[column]
+            );
             Editor.Changed += (s, e) => Refresh();
             Fonts = new[] { styleFont ?? "Arial" }
                 .Concat(CadTrueTypeFonts.Families)

@@ -325,6 +325,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return database.LayerTable[layer].Color.ColorValue & 0xFFFFFF;
         }
 
+        /// <summary>The width factor of a text style's letters; 1 where the style is not found or gives none above nought.</summary>
+        internal double StyleWidthOf(string styleName)
+        {
+            DxfDatabase database = Document?.Database;
+            string name = string.IsNullOrEmpty(styleName) ? "Standard" : styleName;
+
+            if (database == null || !database.TextStyleTable.Has(name))
+            {
+                return 1.0;
+            }
+
+            double width = database.TextStyleTable[name].XScale;
+            return width > 0.0 && !double.IsInfinity(width) ? width : 1.0;
+        }
+
         /// <summary>The font of a text style: its TrueType family (the style's typeface, or the family of its file), else its SHX file.</summary>
         private void StyleFontOf(string styleName, out string font, out bool shx)
         {

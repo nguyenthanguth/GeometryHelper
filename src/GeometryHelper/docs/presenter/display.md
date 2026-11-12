@@ -75,7 +75,7 @@ How each entity is drawn:
 | 3DFACE | its edges |
 | SOLID, WIPEOUT | a fill; a wipeout is a mask |
 | HATCH | a solid fill, a gradient filled with the colour half way along it, or the lines of its pattern cut by its loops; a hatch that holds no lines of its pattern, or would draw more than 20 000, is drawn by its boundary |
-| TEXT | a text item; the library has no fonts, so the box of a text is estimated from its height and its characters |
+| TEXT | a text item; the library has no fonts, so the box of a text is estimated from its height and its characters. In an SHX font, `%%U`, `%%K` and `%%O` draw a line under, through or over the letters after them, as AutoCAD 2021 draws it: 0.2 of the height below the baseline, half the height or 1.2 heights above it, along the letters' pens but 0.15 of the height left of them, slanted as the letters, and a justified text is boxed with its lines ("%%uAB" of simplex 10 high is lined from -1.5 to 18.98); in a TrueType font the codes are left out and no line is drawn yet |
 | MTEXT | a text item whose `Parts` are its picture, laid out as AutoCAD 2021 lays it out: the mask and the frame, then a text for each run of each line and a polyline for each line under, over or through a run and for the bar of a stack; see below |
 | INSERT, MINSERT | the block's entities under the INSERT's matrix, to a depth of 12 blocks; every item is picked as the INSERT; the values of its ATTRIBs are drawn where the file puts them, an invisible one left out |
 | DIMENSION, TABLE | the block AutoCAD drew it with |
@@ -129,8 +129,26 @@ and a stack stands in the editor where it will be drawn. In "II II II" 20 wide t
 second line, 7 along it, and the space the first line breaks at stays at that line's end, at 20. A word typed past the
 width takes the caret down with it; Home, End and the arrows up and down follow the lines as they wrap; an Enter at the
 end makes an empty line for the caret, which the drawn MTEXT does not have. Typing in an MTEXT of 2 000 letters lays it
-out again in about 0.5 ms a key and draws it in about 1 ms. A width code in times of a style whose width is not 1 is
-still set as if the style's width were 1.
+out again in about 0.5 ms a key and draws it in about 1 ms. A width code in times is times the style's width, as AutoCAD
+2021 draws it: `{\W1.2x;ABC}` in a style 0.8 wide is 0.96 wide in the editor as in the drawing, and written back as
+`\W0.9600;`. Where a line breaks between two letters with no space, as between two ideographs, End puts the caret at
+the end of that line, though its place is the first of the next line, and Home, Up and Down go on from the line it is
+drawn on; a click past the end of such a line does the same.
+
+The MTEXT command's Columns option opens the editor with those columns: Static with its defaults, in an MTEXT 2.5 high,
+gives two columns 93.75 wide with a gutter of 12.5 and 25 high, which the ruler and the Columns menu then change, and
+the MTEXT is written with the columns the editor ends with, No Columns too.
+
+`CadMTextEditor.SetNumbering` sets the selected paragraphs as a list, as AutoCAD 2021's Bullets and Numbering writes
+one (checked against its TextEditor): each paragraph hangs 3 heights in with a tab stop there and opens with its label
+and a tab, "Plate" and "Beam" numbered `\pxi-3,l3,t3;1.\tPlate\P2.\tBeam`, lettered `a.\t` or `A.\t`, bulleted
+`{\fSymbol|b0|i0|c2|p18;·\t}`; a label already there is replaced, and Off takes the labels, the indent and the stop
+away. The ribbon's Bullets and Numbering menu does not offer it yet.
+
+The layout an MTEXT is drawn with is kept by the document from one drawing to the next, REGEN too, and taken again only
+where the words, the sizes, the spacing, the columns, the style's width and slant and the faces of the fonts are the same
+to the bit, so a drawing drawn again shows the same picture, faster: 10 000 MTEXTs drawn again after a REGEN in 128 ms
+under .NET Framework 4.8, where a new document lays them all out in 233 ms (196 ms before the layouts were kept).
 
 The ruler on the editor's frame works as AutoCAD 2021's. The box at its left end gives the kind of the next tab stop,
 Left, Centre, Right or Decimal, each click the next; a click on the ruler adds a stop of that kind at the nearest minor

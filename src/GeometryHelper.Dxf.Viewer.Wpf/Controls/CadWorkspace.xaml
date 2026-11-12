@@ -310,9 +310,32 @@
                 </Setter>
             </Style>
 
+            <!-- The launcher of a panel (RibbonPanel.Launcher): the small arrow at the right of its title that opens its dialog. -->
+            <Style x:Key="PanelLauncher" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Width" Value="16" />
+                <Setter Property="Height" Value="14" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="4,0,0,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <Path
+                                Data="M2 2l6 6M8 4v4H4"
+                                Stroke="{StaticResource GhText}"
+                                StrokeThickness="1.4"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                            />
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!--
             A panel of the ribbon (RibbonPanel): its body over its title, a line on its right; collapsed, one big button; its
-            drop-down under it with the title bar and the pin, as AutoCAD 2021's panels.
+            drop-down under it with the title bar, the pin and the launcher, as AutoCAD 2021's panels.
             -->
             <Style TargetType="local:RibbonPanel">
                 <Setter Property="Padding" Value="6,0" />
@@ -331,12 +354,25 @@
                                 >
                                     <DockPanel>
                                         <Grid DockPanel.Dock="Bottom">
-                                            <TextBlock
+                                            <StackPanel
                                                 x:Name="TitleText"
-                                                Style="{StaticResource GroupTitle}"
-                                                Text="{TemplateBinding Title}"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Center"
                                                 Visibility="Collapsed"
-                                            />
+                                            >
+                                                <TextBlock
+                                                    Style="{StaticResource GroupTitle}"
+                                                    Text="{TemplateBinding Title}"
+                                                />
+                                                <Button
+                                                    x:Name="InlineLauncher"
+                                                    Style="{StaticResource PanelLauncher}"
+                                                    Content="{TemplateBinding Title}"
+                                                    Command="{TemplateBinding Launcher}"
+                                                    ToolTip="{TemplateBinding LauncherToolTip}"
+                                                    AutomationProperties.Name="{Binding Title, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0} settings}"
+                                                />
+                                            </StackPanel>
                                             <ContentPresenter
                                                 x:Name="TitleHeader"
                                                 Content="{TemplateBinding Header}"
@@ -401,7 +437,17 @@
                                                         ToolTip="Pin the panel open"
                                                         IsChecked="{Binding IsPinned, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                                     />
-                                                    <Border DockPanel.Dock="Right" Width="20" />
+                                                    <Border DockPanel.Dock="Right" Width="20">
+                                                        <Button
+                                                            x:Name="DroppedLauncher"
+                                                            Style="{StaticResource PanelLauncher}"
+                                                            HorizontalAlignment="Right"
+                                                            Content="{TemplateBinding Title}"
+                                                            Command="{TemplateBinding Launcher}"
+                                                            ToolTip="{TemplateBinding LauncherToolTip}"
+                                                            AutomationProperties.Name="{Binding Title, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0} settings}"
+                                                        />
+                                                    </Border>
                                                     <TextBlock
                                                         Style="{StaticResource GroupTitle}"
                                                         Margin="0"
@@ -423,6 +469,10 @@
                                 <Trigger Property="Size" Value="Collapsed">
                                     <Setter TargetName="Host" Property="Visibility" Value="Collapsed" />
                                     <Setter TargetName="CollapsedHost" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="Launcher" Value="{x:Null}">
+                                    <Setter TargetName="InlineLauncher" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="DroppedLauncher" Property="Visibility" Value="Collapsed" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -1261,32 +1311,9 @@
                         MinFullWidth="250"
                         MinCollapsedWidth="80"
                         Icon="{StaticResource IconJustify}"
+                        Launcher="{Binding ParagraphCommand}"
+                        LauncherToolTip="Paragraph: tab stops, indents, alignment, paragraph spacing and line spacing."
                     >
-                        <local:RibbonPanel.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource GroupTitle}" Text="Paragraph" />
-                                <Button
-                                    Style="{StaticResource GhFlatButton}"
-                                    Width="16"
-                                    Height="14"
-                                    Padding="0"
-                                    Margin="4,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Focusable="False"
-                                    Command="{Binding ParagraphCommand}"
-                                    AutomationProperties.Name="Paragraph settings"
-                                    ToolTip="Paragraph: tab stops, indents, alignment, paragraph spacing and line spacing."
-                                >
-                                    <Path
-                                        Data="M2 2l6 6M8 4v4H4"
-                                        Stroke="{StaticResource GhText}"
-                                        StrokeThickness="1.4"
-                                        StrokeStartLineCap="Round"
-                                        StrokeEndLineCap="Round"
-                                    />
-                                </Button>
-                            </StackPanel>
-                        </local:RibbonPanel.Header>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
