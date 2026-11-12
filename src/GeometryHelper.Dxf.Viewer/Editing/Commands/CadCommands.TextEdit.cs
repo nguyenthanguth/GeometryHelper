@@ -316,13 +316,28 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                 }
 
+                if (edit.NewFrame != null)
+                {
+                    planned.Add(
+                        new CadEditRecord(CadEditRecordKind.PropertyChanged, edit.Handle, "Columns", null, null)
+                    );
+                }
+
+                string refused = null;
                 CadEditResult result = c.Apply(planned, s =>
                 {
                     if (!s.IsHandled(edit.Handle))
                     {
-                        ApplyBox((DxfMText)s.Document.FindEntity(edit.Handle), edit);
+                        var target = (DxfMText)s.Document.FindEntity(edit.Handle);
+                        ApplyBox(target, edit);
+                        refused = ApplyFrame(target, edit);
                     }
                 });
+
+                if (refused != null)
+                {
+                    c.Write(refused);
+                }
 
                 done = result.Succeeded;
             }
@@ -347,6 +362,29 @@ namespace GeometryHelper.Dxf.Viewer
             if (edit.NewLineSpacing.HasValue && edit.NewLineSpacing.Value >= 0.25 && edit.NewLineSpacing.Value <= 4.0)
             {
                 mtext.LineSpacingFactor = edit.NewLineSpacing.Value;
+            }
+        }
+
+        /// <summary>
+        /// Gives an MTEXT the defined height and columns its editor set (<see cref="CadInPlaceEdit.NewFrame"/>), as AutoCAD's
+        /// own calls set them; the message of a file that keeps no such columns, null where all was set.
+        /// </summary>
+        internal static string ApplyFrame(DxfMText mtext, CadInPlaceEdit edit)
+        {
+            if (edit.NewFrame == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                edit.NewFrame.ApplyTo(mtext);
+                return null;
+            }
+            catch (InvalidOperationException exception)
+            {
+                GeometryHelperLog.Warn("CadCommands: the MTEXT editor's columns were not written.", exception);
+                return "The columns were not written: " + exception.Message;
             }
         }
 

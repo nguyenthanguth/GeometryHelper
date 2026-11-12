@@ -165,4 +165,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
             throw new NotSupportedException();
     }
+
+    /// <summary>
+    /// Ticks a radio button whose parameter is the value of a text property, as the Paragraph dialog's Left, Centre, Right and
+    /// Decimal; ticking it sets the property to its parameter.
+    /// </summary>
+    public sealed class TextEqualsConverter : IValueConverter
+    {
+        /// <summary>Whether the value is the parameter.</summary>
+        /// <param name="value">The value.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">The text of the button.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>True where they are the same text.</returns>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+            string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.Ordinal);
+
+        /// <summary>The parameter where the button was ticked; nothing where it was cleared.</summary>
+        /// <param name="value">Whether it is ticked.</param>
+        /// <param name="targetType">Not used.</param>
+        /// <param name="parameter">The text of the button.</param>
+        /// <param name="culture">Not used.</param>
+        /// <returns>The parameter, or <see cref="Binding.DoNothing"/>.</returns>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            value is bool on && on ? parameter : Binding.DoNothing;
+    }
 }

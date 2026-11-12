@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -9,10 +10,13 @@ using GeometryHelper.Dxf;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The MTEXT editor's frame on the canvas, as the design draws it: the ruler on top, its diamond at the right dragging the
-    /// frame's width, and under it the words where the canvas will draw them, at the size it shows them, with the caret and
-    /// the selection, in a dark box with a dashed border. It draws and takes keys for a <see cref="TextEditorViewModel"/>;
-    /// what the keys do is the editor's (<see cref="CadMTextEditor"/>).
+    /// The MTEXT editor's frame on the canvas, as the design draws it: the ruler on top (the tab type box at its left end,
+    /// the indents and tab stops of the caret's paragraph, the arrows of the width, with columns a column's width, the gutter
+    /// edge and the total), the height grips under the frame, and the words where the canvas will draw them, at the size it
+    /// shows them, with the caret and the selection, in a dark box with a dashed border. A click on the ruler adds a tab stop
+    /// and a drag moves what it holds, one step of the editor's undo each, Esc during a drag putting it back; a right-click
+    /// on the ruler gives Set Mtext Width and Height, elsewhere the editor's menu. It draws and takes keys for a
+    /// <see cref="TextEditorViewModel"/>; what the keys do is the editor's (<see cref="CadMTextEditor"/>).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -25,7 +29,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <para>
     /// Keys as AutoCAD's editor: letters type, Enter a new paragraph, Backspace and Delete, the arrows, Home and End (Shift
     /// selecting) along the lines as they wrap, Ctrl+A, Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Z and Ctrl+Y, Ctrl+C, Ctrl+X and Ctrl+V as
-    /// plain text, Ctrl+Enter closes keeping the words, Esc asks (<see cref="EscapePressed"/>). In a table cell, as AutoCAD's:
+    /// plain text, Alt+Enter a column break in an MTEXT in columns, Ctrl+Enter closes keeping the words, Esc puts back a drag
+    /// of the ruler or else asks (<see cref="EscapePressed"/>). In a table cell, as AutoCAD's:
     /// Tab keeps the words and goes to the next cell, Shift+Tab to the one before, Enter to the one below, and Alt+Enter starts
     /// a new paragraph.
     /// </para>
@@ -67,7 +72,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private double _top;
         private double _areaWidth;
         private double _textHeight;
-        private bool _draggingWidth;
+        private static readonly Brush TypeBoxBack = Freeze(new SolidColorBrush(Color.FromRgb(0xC3, 0xC8, 0xD0)));
+        private static readonly Brush GutterBack = Freeze(new SolidColorBrush(Color.FromRgb(0xAE, 0xB4, 0xBD)));
+        private static readonly Brush Active = Freeze(new SolidColorBrush(Color.FromRgb(0x1F, 0x6F, 0xD1)));
+        private static readonly Brush TipBack = Freeze(new SolidColorBrush(Color.FromRgb(0x2E, 0x34, 0x3D)));
+        private static readonly Brush TipText = Freeze(new SolidColorBrush(Color.FromRgb(0xE6, 0xE9, 0xED)));
+        private static readonly Brush Faint = Freeze(new SolidColorBrush(Color.FromArgb(0x80, 0x0B, 0x12, 0x20)));
+        private static readonly Pen RulerEdge = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x5B, 0x65, 0x73)), 1.0)
+        );
+        private static readonly Pen TipEdge = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x3A, 0x41, 0x4C)), 1.0)
+        );
+        private static readonly Pen Guide = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x3D, 0x9B, 0xFF)), 1.0) { DashStyle = DashStyles.Dash }
+        );
+        private static readonly Pen OldOutline = FreezePen(
+            new Pen(new SolidColorBrush(Color.FromRgb(0x5B, 0x65, 0x73)), 1.0) { DashStyle = DashStyles.Dash }
+        );
+
+        private readonly System.Windows.Threading.DispatcherTimer _tipTimer =
+            new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+
+        private MTextRuler _ruler;
+        private MTextRulerPart _hover = MTextRulerPart.None;
+        private int _hoverIndex;
+        private Point _pointer;
+        private string _tip;
+        private Rect _oldOutline = Rect.Empty;
         private bool _selecting;
 
         /// <summary>Makes the frame; it takes the keyboard focus when shown.</summary>
@@ -76,7 +108,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Focusable = true;
             FocusVisualStyle = null;
             Cursor = Cursors.IBeam;
+            _tipTimer.Tick += (s, e) =>
+            {
+                _tipTimer.Stop();
+                _tip = _ruler?.TipOf(_hover, _hoverIndex, NaturalHeight);
+                InvalidateVisual();
+            };
         }
+
+        /// <summary>Gets the ruler's logic, for a test to press and drag it as the mouse does; null without a model.</summary>
+        internal MTextRuler Ruler => _ruler;
+
+        /// <summary>The height of the words where the box defines none, for the height grip.</summary>
+        private double NaturalHeight => _layout == null ? 0.0 : _layout.Box[3] - _layout.Box[1];
+
+        /// <summary>The room left of the frame: none, the tab type box being drawn just outside it, left of the ruler, as AutoCAD draws it.</summary>
+        private const double Lead = 0.0;
 
         /// <summary>Raised on Esc: the window asks whether to keep the changes.</summary>
         public event EventHandler EscapePressed;
@@ -98,6 +145,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 _model = value;
                 _layout = null;
+                _ruler = value == null ? null : new MTextRuler(value);
+                _tip = null;
 
                 if (_model != null)
                 {
@@ -199,7 +248,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override Size MeasureOverride(Size availableSize)
         {
             Relayout();
-            return new Size(_areaWidth + 2.0 * Pad, Top + _textHeight + Pad + 8.0);
+            return new Size(Lead + _areaWidth + 2.0 * Pad, Top + _textHeight + Pad + 8.0);
         }
 
         /// <inheritdoc/>
@@ -213,7 +262,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Relayout();
             double width = _areaWidth + 2.0 * Pad;
             double top = _model.IsRulerShown ? RulerHeight : 0.0;
-            dc.DrawRectangle(Back, Border, new Rect(0.5, top + 0.5, width - 1.0, _textHeight + 2.0 * Pad));
+
+            if (!_oldOutline.IsEmpty)
+            {
+                dc.DrawRectangle(null, OldOutline, _oldOutline);
+            }
+
+            dc.DrawRectangle(Back, Border, new Rect(Lead + 0.5, top + 0.5, width - 1.0, _textHeight + 2.0 * Pad));
 
             if (_model.IsRulerShown)
             {
@@ -263,19 +318,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            // The arrow under the middle of the frame, which AutoCAD drags for the height of columns; drawn as the design has it.
-            double mid = width / 2.0;
-            double bottom = top + _textHeight + 2.0 * Pad;
-            var arrow = new StreamGeometry();
-
-            using (StreamGeometryContext g = arrow.Open())
-            {
-                g.BeginFigure(new Point(mid - 4.0, bottom + 1.0), true, true);
-                g.LineTo(new Point(mid + 4.0, bottom + 1.0), true, false);
-                g.LineTo(new Point(mid, bottom + 7.0), true, false);
-            }
-
-            dc.DrawGeometry(Border.Brush, null, arrow);
+            DrawGrips(dc);
+            DrawGuide(dc, top);
+            DrawTip(dc);
         }
 
         /// <inheritdoc/>
@@ -298,17 +343,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             base.OnMouseDown(e);
             Focus();
 
-            if (_model == null || e.ChangedButton != MouseButton.Left)
+            if (_model == null)
             {
                 return;
             }
 
             Point at = e.GetPosition(this);
 
-            if (_model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0)
+            if (e.ChangedButton == MouseButton.Right)
             {
-                _draggingWidth = true;
-                CaptureMouse();
+                // The ruler's own menu, Set Mtext Width and Height; elsewhere the editor's.
+                bool onRuler = _model.IsRulerShown && at.Y >= 0.0 && at.Y <= RulerHeight;
+                ShowMenu(_model.Menu(onRuler ? "Ruler" : "Editor"));
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ChangedButton != MouseButton.Left)
+            {
+                return;
+            }
+
+            Relayout();
+
+            if (_model.IsRulerShown && _ruler.Press(at, NaturalHeight))
+            {
+                _tipTimer.Stop();
+                _tip = null;
+
+                if (_ruler.Dragging != MTextRulerPart.None)
+                {
+                    _oldOutline =
+                        _ruler.Dragging == MTextRulerPart.Width
+                        || _ruler.Dragging == MTextRulerPart.ColumnWidth
+                        || _ruler.Dragging == MTextRulerPart.Gutter
+                        || _ruler.Dragging == MTextRulerPart.Total
+                            ? new Rect(
+                                Lead + 0.5,
+                                RulerHeight + 0.5,
+                                _areaWidth + 2.0 * Pad - 1.0,
+                                _textHeight + 2.0 * Pad
+                            )
+                            : Rect.Empty;
+                    CaptureMouse();
+                }
+
+                InvalidateVisual();
             }
             else if (e.ClickCount == 2)
             {
@@ -335,28 +415,75 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Point at = e.GetPosition(this);
+            _pointer = at;
 
-            if (_draggingWidth)
+            if (_ruler != null && _ruler.Dragging != MTextRulerPart.None)
             {
-                double left = _layout != null ? PixelX(_layout.Box[0]) : Pad;
-                _model.Width = Math.Max(1.0, (at.X - left) / _pixelsPerUnit);
+                _ruler.Move(at);
+                InvalidateVisual();
+                return;
             }
-            else if (_selecting && e.LeftButton == MouseButtonState.Pressed)
+
+            if (_selecting && e.LeftButton == MouseButtonState.Pressed)
             {
                 _model.Editor.MoveTo(PlaceAt(at), true);
             }
 
+            // Over a marker: the marker in the accent and its tip after 400 ms; the arrows and edges ↔.
+            int index = 0;
+            MTextRulerPart part =
+                _ruler != null && _model.IsRulerShown && _layout != null
+                    ? _ruler.HitTest(at, NaturalHeight, out index)
+                    : MTextRulerPart.None;
+
+            if (part != _hover || index != _hoverIndex)
+            {
+                _hover = part;
+                _hoverIndex = index;
+                _tip = null;
+                _tipTimer.Stop();
+
+                if (part != MTextRulerPart.None && part != MTextRulerPart.Ruler)
+                {
+                    _tipTimer.Start();
+                }
+
+                InvalidateVisual();
+            }
+
             Cursor =
-                _model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0
-                    ? Cursors.SizeWE
-                    : Cursors.IBeam;
+                part == MTextRulerPart.Height ? Cursors.SizeNS
+                : part == MTextRulerPart.None ? Cursors.IBeam
+                : part == MTextRulerPart.Ruler || part == MTextRulerPart.TypeBox ? Cursors.Arrow
+                : Cursors.SizeWE;
+        }
+
+        /// <inheritdoc/>
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _tipTimer.Stop();
+
+            if (_hover != MTextRulerPart.None || _tip != null)
+            {
+                _hover = MTextRulerPart.None;
+                _tip = null;
+                InvalidateVisual();
+            }
         }
 
         /// <inheritdoc/>
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
             base.OnMouseUp(e);
-            _draggingWidth = false;
+
+            if (_ruler != null && _ruler.Dragging != MTextRulerPart.None)
+            {
+                _ruler.Release();
+                _oldOutline = Rect.Empty;
+                InvalidateVisual();
+            }
+
             _selecting = false;
             ReleaseMouseCapture();
         }
@@ -406,7 +533,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (key)
             {
                 case System.Windows.Input.Key.Escape:
+                    // Esc during a drag of the ruler puts back what it moved; else the window asks.
+                    if (_ruler != null && _ruler.Cancel())
+                    {
+                        _oldOutline = Rect.Empty;
+                        ReleaseMouseCapture();
+                        InvalidateVisual();
+                        return true;
+                    }
+
                     EscapePressed?.Invoke(this, EventArgs.Empty);
+                    return true;
+                case System.Windows.Input.Key.Enter
+                    when !inCell && (modifiers & ModifierKeys.Alt) != 0 && editor.Frame.HasColumns:
+                    editor.InsertColumnBreak();
                     return true;
                 case System.Windows.Input.Key.Tab when inCell && !control:
                     _model.Edit.Move = shift ? CadTableCellMove.Previous : CadTableCellMove.Next;
@@ -531,13 +671,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private double BoxRight => _layout != null ? PixelX(_layout.Box[2]) : Pad + _areaWidth;
-
-        private double PixelX(double x) => Pad + ((x - _left) * _pixelsPerUnit);
+        private double PixelX(double x) => Lead + Pad + ((x - _left) * _pixelsPerUnit);
 
         private double PixelY(double y) => Top + ((_top - y) * _pixelsPerUnit);
 
-        private double UnitX(double x) => _left + ((x - Pad) / _pixelsPerUnit);
+        private double UnitX(double x) => _left + ((x - Lead - Pad) / _pixelsPerUnit);
 
         private double UnitY(double y) => _top - ((y - Top) / _pixelsPerUnit);
 
@@ -548,7 +686,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InvalidateVisual();
         }
 
-        /// <summary>Lays the words out again where they or the box changed: the display's layout, the frame around all it draws.</summary>
+        /// <summary>Lays the words out again where they or the box changed: the display's layout, the frame around all it draws, and the ruler over it.</summary>
         private void Relayout()
         {
             if (_model == null || _document == null)
@@ -567,14 +705,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _layout = new CadMTextEditorLayout(_document, _model.Edit);
                 }
 
-                _layout.Update(
-                    _model.Editor,
-                    _model.Width,
-                    _model.Attachment,
-                    _model.LineSpacing,
-                    DefaultRgb,
-                    LayerRgb
-                );
+                _layout.Update(_model.Editor, _model.Attachment, _model.LineSpacing, DefaultRgb, LayerRgb);
                 _stale = false;
             }
 
@@ -583,6 +714,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _top = bounds[3];
             _areaWidth = Math.Max(40.0, (bounds[2] - bounds[0]) * _pixelsPerUnit);
             _textHeight = Math.Max(0.0, (bounds[3] - bounds[1]) * _pixelsPerUnit);
+
+            // The ruler on the frame's top edge, its zero at the left of the words, scaled with the view.
+            double[] box = _layout.Box;
+            _ruler.Zero = PixelX(box[0]);
+            _ruler.FrameLeft = Lead;
+            _ruler.RulerTop = 0.0;
+            _ruler.BoxTop = PixelY(box[3]);
+            _ruler.Scale = _pixelsPerUnit;
+            _ruler.Columns = _layout.ColumnCount;
+            _ruler.NaturalWidth = box[2] - box[0];
+            _ruler.CaretColumn = _layout.LineCount > 0 ? _layout.ColumnOf(_layout.LineOfPlace(_model.Editor.Caret)) : 0;
         }
 
         private void SelectWord(int place)
@@ -606,35 +748,266 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static bool IsWordLetter(string text) => text.Length > 0 && char.IsLetterOrDigit(text[0]);
 
+        private void ShowMenu(IReadOnlyList<CadMenuItemViewModel> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return;
+            }
+
+            System.Windows.Controls.ContextMenu menu = CadMenus.Make(items);
+            menu.PlacementTarget = this;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            menu.IsOpen = true;
+        }
+
+        /// <summary>
+        /// The ruler as the design draws it: the tab type box left of the frame, the ruler over every column with the gutters
+        /// shaded, major and minor ticks, the indents and stops of the caret's paragraph on its column (stops set on only some
+        /// selected paragraphs at half strength), and the arrows of the width, a column's width and the total, the gutter edge.
+        /// </summary>
         private void DrawRuler(DrawingContext dc, double width)
         {
-            dc.DrawRectangle(RulerBack, Tick, new Rect(0.5, 0.5, width - 1.0, RulerHeight - 1.0));
-
-            for (int i = 0; Pad + i * 10.0 < width - 2.0; i++)
-            {
-                double x = Math.Floor(Pad + i * 10.0) + 0.5;
-                dc.DrawLine(Tick, new Point(x, i % 5 == 0 ? 11.0 : 15.0), new Point(x, RulerHeight - 1.0));
-            }
-
-            // The indents, first line above and paragraph below, at the left; the diamond of the width at the right.
-            dc.DrawGeometry(Dark, null, Triangle(Pad, 1.0, Pad + 8.0, 1.0, Pad + 4.0, 7.0));
-            dc.DrawGeometry(
-                Dark,
-                null,
-                Triangle(Pad, RulerHeight - 1.0, Pad + 8.0, RulerHeight - 1.0, Pad + 4.0, RulerHeight - 7.0)
+            MTextRuler ruler = _ruler;
+            CadMTextFrame frame = _model.Editor.Frame;
+            dc.DrawRectangle(RulerBack, RulerEdge, new Rect(Lead + 0.5, 0.5, width - 1.0, RulerHeight - 1.0));
+            dc.DrawRectangle(
+                TypeBoxBack,
+                RulerEdge,
+                new Rect(0.5 - MTextRuler.TypeBoxWidth, 0.5, MTextRuler.TypeBoxWidth - 1.0, RulerHeight - 1.0)
             );
-            double right = BoxRight;
-            var diamond = new StreamGeometry();
+            Glyph(dc, ruler.TabType, -MTextRuler.TypeBoxWidth / 2.0, Dark, 1.6, 7.0, 15.0);
+            int columns = frame.HasColumns ? Math.Max(1, ruler.Columns) : 1;
+            double segment = (frame.HasColumns ? frame.ColumnWidth : ruler.Room) * _pixelsPerUnit;
+            double minor = ruler.Minor * _pixelsPerUnit;
 
-            using (StreamGeometryContext g = diamond.Open())
+            for (int c = 0; c < columns; c++)
             {
-                g.BeginFigure(new Point(right, 4.0), true, true);
-                g.LineTo(new Point(right + 6.0, 11.0), true, false);
-                g.LineTo(new Point(right, 18.0), true, false);
-                g.LineTo(new Point(right - 6.0, 11.0), true, false);
+                double zero = ruler.ZeroOf(c);
+
+                if (c + 1 < columns)
+                {
+                    dc.DrawRectangle(
+                        GutterBack,
+                        null,
+                        new Rect(
+                            zero + segment,
+                            1.0,
+                            Math.Max(0.0, ruler.ZeroOf(c + 1) - zero - segment),
+                            RulerHeight - 2.0
+                        )
+                    );
+                }
+
+                for (int i = 0; minor > 0.5 && i * minor <= segment + 1E-6; i++)
+                {
+                    double x = Math.Floor(zero + (i * minor)) + 0.5;
+                    dc.DrawLine(
+                        Tick,
+                        new Point(x, RulerHeight - (i % 5 == 0 ? 9.0 : 5.0)),
+                        new Point(x, RulerHeight - 1.0)
+                    );
+                }
             }
 
-            dc.DrawGeometry(_draggingWidth ? Accent : Dark, null, diamond);
+            // The width arrows: the MTEXT's, or a column's and the total of static ones; the gutter edge a 2 px bar.
+            if (frame.HasColumns)
+            {
+                Arrows(dc, ruler.ZeroOf(0) + segment, Lit(MTextRulerPart.ColumnWidth));
+
+                if (columns > 1)
+                {
+                    double edge = ruler.ZeroOf(1);
+                    var bar = new Pen(Lit(MTextRulerPart.Gutter), 2.0);
+                    dc.DrawLine(bar, new Point(edge, 3.0), new Point(edge, RulerHeight - 3.0));
+                }
+
+                if (frame.ColumnType == DxfColumnType.StaticColumns)
+                {
+                    Arrows(dc, ruler.EndX, Lit(MTextRulerPart.Total));
+                }
+            }
+            else
+            {
+                Arrows(dc, ruler.EndX, Lit(MTextRulerPart.Width));
+            }
+
+            if (!ruler.ShowsMarkers)
+            {
+                return;
+            }
+
+            CadMTextParagraphFormat format = _model.Editor.CurrentFormat;
+            (int first, int last) = _model.Editor.SelectedParagraphs;
+            dc.DrawGeometry(
+                Lit(MTextRulerPart.First),
+                null,
+                Triangle(
+                    ruler.X(format.FirstLineIndent) - 4.0,
+                    1.0,
+                    ruler.X(format.FirstLineIndent) + 4.0,
+                    1.0,
+                    ruler.X(format.FirstLineIndent),
+                    7.0
+                )
+            );
+            double hanging = ruler.X(format.HangingIndent);
+            dc.DrawGeometry(
+                Lit(MTextRulerPart.Hanging),
+                null,
+                Triangle(hanging - 4.0, RulerHeight - 1.0, hanging + 4.0, RulerHeight - 1.0, hanging, RulerHeight - 7.0)
+            );
+
+            for (int i = 0; i < format.TabStops.Count; i++)
+            {
+                CadMTextTabStop stop = format.TabStops[i];
+
+                if (ruler.Dragging == MTextRulerPart.Tab && ruler.IsOff)
+                {
+                    break;
+                }
+
+                bool everywhere = Enumerable
+                    .Range(first, last - first + 1)
+                    .All(p => _model.Editor.FormatOf(p).TabStops.Any(s => s.Equals(stop)));
+                Brush brush =
+                    (_hover == MTextRulerPart.Tab && _hoverIndex == i)
+                    || (ruler.Dragging == MTextRulerPart.Tab && Math.Abs(stop.Position - ruler.DragValue) < 1E-9)
+                        ? Active
+                    : everywhere ? Dark
+                    : Faint;
+                Glyph(dc, stop.Kind, ruler.X(stop.Position), brush, 2.0, 10.0, 18.0);
+            }
+
+            // A stop dragged off the ruler follows the pointer at 40 % in white.
+            if (ruler.Dragging == MTextRulerPart.Tab && ruler.IsOff)
+            {
+                dc.PushOpacity(0.4);
+                Glyph(dc, 'l', _pointer.X, Brushes.White, 2.0, _pointer.Y - 4.0, _pointer.Y + 4.0);
+                dc.Pop();
+            }
+        }
+
+        /// <summary>The brush of a part: the accent while it is hovered or dragged.</summary>
+        private Brush Lit(MTextRulerPart part) => _hover == part || _ruler.Dragging == part ? Active : Dark;
+
+        /// <summary>A tab glyph: L for left, an inverted T for centre, a reversed L for right, the T with a dot for decimal.</summary>
+        private static void Glyph(
+            DrawingContext dc,
+            char kind,
+            double x,
+            Brush brush,
+            double thickness,
+            double y0,
+            double y1
+        )
+        {
+            var pen = new Pen(brush, thickness) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawLine(pen, new Point(x, y0), new Point(x, y1));
+
+            switch (kind)
+            {
+                case 'c':
+                    dc.DrawLine(pen, new Point(x - 5.0, y1), new Point(x + 5.0, y1));
+                    break;
+                case 'r':
+                    dc.DrawLine(pen, new Point(x - 7.0, y1), new Point(x, y1));
+                    break;
+                case 'd':
+                    dc.DrawLine(pen, new Point(x - 5.0, y1), new Point(x + 5.0, y1));
+                    dc.DrawEllipse(brush, null, new Point(x + 4.0, y0 + 3.0), 1.0, 1.0);
+                    break;
+                default:
+                    dc.DrawLine(pen, new Point(x, y1), new Point(x + 7.0, y1));
+                    break;
+            }
+        }
+
+        /// <summary>The width arrows, 12 by 8, ending at a point of the ruler.</summary>
+        private static void Arrows(DrawingContext dc, double x, Brush brush)
+        {
+            var pen = new Pen(brush, 1.6) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            dc.DrawLine(pen, new Point(x - 12.0, 11.0), new Point(x, 11.0));
+            dc.DrawLine(pen, new Point(x - 12.0, 11.0), new Point(x - 9.0, 8.0));
+            dc.DrawLine(pen, new Point(x - 12.0, 11.0), new Point(x - 9.0, 14.0));
+            dc.DrawLine(pen, new Point(x, 11.0), new Point(x - 3.0, 8.0));
+            dc.DrawLine(pen, new Point(x, 11.0), new Point(x - 3.0, 14.0));
+        }
+
+        /// <summary>The height grips under the frame: one under the first column, or one under each dynamic column of its own height.</summary>
+        private void DrawGrips(DrawingContext dc)
+        {
+            if (_layout == null || _ruler == null)
+            {
+                return;
+            }
+
+            for (int c = 0; c < _ruler.GripCount; c++)
+            {
+                Point at = _ruler.GripAt(c, NaturalHeight);
+                bool lit =
+                    (_hover == MTextRulerPart.Height && _hoverIndex == c)
+                    || (_ruler.Dragging == MTextRulerPart.Height && _ruler.DraggedIndex == c);
+                var pen = new Pen(lit ? Accent : Border.Brush, 1.6);
+                dc.DrawLine(pen, new Point(at.X, at.Y + 1.0), new Point(at.X, at.Y + 11.0));
+                dc.DrawLine(pen, new Point(at.X - 3.5, at.Y + 7.5), new Point(at.X, at.Y + 11.0));
+                dc.DrawLine(pen, new Point(at.X + 3.5, at.Y + 7.5), new Point(at.X, at.Y + 11.0));
+            }
+        }
+
+        /// <summary>The dashed guide of a drag: down the frame at a stop or an indent, or across at a height.</summary>
+        private void DrawGuide(DrawingContext dc, double top)
+        {
+            if (_ruler == null || _layout == null)
+            {
+                return;
+            }
+
+            double bottom = top + _textHeight + 2.0 * Pad;
+
+            switch (_ruler.Dragging)
+            {
+                case MTextRulerPart.Tab when !_ruler.IsOff:
+                case MTextRulerPart.First:
+                case MTextRulerPart.Hanging:
+                    double x = Math.Floor(_ruler.X(_ruler.DragValue)) + 0.5;
+                    dc.DrawLine(Guide, new Point(x, top), new Point(x, bottom));
+                    break;
+                case MTextRulerPart.Height:
+                    Point grip = _ruler.GripAt(_ruler.DraggedIndex, NaturalHeight);
+                    double y = Math.Floor(grip.Y) + 0.5;
+                    double half =
+                        (_model.Editor.Frame.HasColumns ? _model.Editor.Frame.ColumnWidth : _ruler.Room)
+                        * _pixelsPerUnit
+                        / 2.0;
+                    dc.DrawLine(Guide, new Point(grip.X - half, y), new Point(grip.X + half, y));
+                    break;
+            }
+        }
+
+        /// <summary>The tip: during a drag its value, over a marker after 400 ms its name and value, 4 px under the ruler at the pointer.</summary>
+        private void DrawTip(DrawingContext dc)
+        {
+            string tip = _ruler?.DragTip ?? _tip;
+
+            if (string.IsNullOrEmpty(tip))
+            {
+                return;
+            }
+
+            var text = new FormattedText(
+                tip,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"),
+                11.0,
+                TipText,
+                1.0
+            );
+            double y = _ruler.Dragging == MTextRulerPart.Height ? _pointer.Y + 14.0 : RulerHeight + 4.0;
+            var box = new Rect(_pointer.X + 8.0, y, text.Width + 16.0, text.Height + 6.0);
+            dc.DrawRoundedRectangle(TipBack, TipEdge, box, 3.0, 3.0);
+            dc.DrawText(text, new Point(box.X + 8.0, box.Y + 3.0));
         }
 
         private static System.Windows.Media.Geometry Triangle(

@@ -24,6 +24,8 @@ namespace GeometryHelper.Dxf.Viewer
         private List<char> _alignments = new List<char>();
         private List<string> _paragraphCodes = new List<string>();
         private CadMTextLook _pending;
+        private State _changeStart;
+        private bool _changed;
 
         /// <summary>Opens the words of an MTEXT for editing.</summary>
         /// <param name="contents">The words with their codes.</param>
@@ -38,12 +40,31 @@ namespace GeometryHelper.Dxf.Viewer
             bool styleIsShx = false,
             char defaultAlignment = 'l'
         )
+            : this(contents, height, CadMTextFrame.Of(0.0), styleFont, styleIsShx, defaultAlignment) { }
+
+        /// <summary>Opens the words of an MTEXT for editing in its box: the width, height and columns the ruler and Column Settings change.</summary>
+        /// <param name="contents">The words with their codes.</param>
+        /// <param name="height">The MTEXT's height.</param>
+        /// <param name="frame">The MTEXT's box as it is (<see cref="CadMTextFrame.Of(DxfMText)"/>); null for none.</param>
+        /// <param name="styleFont">The font of the MTEXT's style: a TrueType family (Arial) or an SHX file (romans); null for none known.</param>
+        /// <param name="styleIsShx">Whether the style's font is an SHX file, whose letters cannot be bold or italic.</param>
+        /// <param name="defaultAlignment">How a paragraph with no alignment code is aligned, l, c or r, as the MTEXT's attachment says.</param>
+        public CadMTextEditor(
+            string contents,
+            double height,
+            CadMTextFrame frame,
+            string styleFont = null,
+            bool styleIsShx = false,
+            char defaultAlignment = 'l'
+        )
         {
             Height = height;
             StyleFont = styleFont;
             StyleIsShx = styleIsShx;
             DefaultAlignment = defaultAlignment == '\0' ? 'l' : defaultAlignment;
             Original = contents ?? string.Empty;
+            OriginalFrame = frame ?? CadMTextFrame.Of(0.0);
+            Frame = OriginalFrame;
             Load(CadMTextContent.Parse(Original, height));
         }
 
@@ -146,11 +167,202 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>Gets the alignment a paragraph carries of its own: l, c, r, j or d; nought where it follows the MTEXT's attachment.</summary>
+        /// <param name="paragraph">The paragraph, from nought.</param>
+        /// <returns>Its own alignment.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no such paragraph.</exception>
+        public char OwnAlignmentOf(int paragraph)
+        {
+            if (paragraph < 0 || paragraph >= _alignments.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(paragraph),
+                    paragraph,
+                    "The words have " + _alignments.Count + " paragraphs, counted from nought."
+                );
+            }
+
+            return _alignments[paragraph];
+        }
+
         /// <summary>Gets whether a change can be taken back.</summary>
         public bool CanUndo => _undo.Count > 0;
 
         /// <summary>Gets whether a change taken back can be made again.</summary>
         public bool CanRedo => _redo.Count > 0;
+
+        /// <summary>Gets the MTEXT's box as it was when the editor opened.</summary>
+        public CadMTextFrame OriginalFrame { get; }
+
+        /// <summary>Gets the MTEXT's box as the ruler and Column Settings have it now.</summary>
+        public CadMTextFrame Frame { get; private set; }
+
+        /// <summary>Gets whether a ruler drag is going on (<see cref="BeginChange"/>): its changes are one undo step when it ends.</summary>
+        public bool IsChanging => _changeStart != null;
+
+        /// <summary>Gets how many paragraphs the words make, at least one.</summary>
+        public int ParagraphCount => _paragraphCodes.Count;
+
+        /// <summary>Gets the first and the last paragraph the selection, or the caret, is in.</summary>
+        public (int First, int Last) SelectedParagraphs =>
+            (ParagraphOf(SelectionStart), ParagraphOf(SelectionStart + SelectionLength));
+
+        /// <summary>Gets how the caret's paragraph is set, or the first selected one's, as the ruler shows it.</summary>
+        public CadMTextParagraphFormat CurrentFormat => FormatOf(SelectedParagraphs.First);
+
+        /// <summary>
+        /// Gets how a paragraph is set: its own codes over those of the paragraphs before it, as AutoCAD carries them on. In an
+        /// MTEXT 2.5 high, <c>\pxt4;A\PB</c> has a tab stop at 10 in both paragraphs.
+        /// </summary>
+        /// <param name="paragraph">The paragraph, from nought.</param>
+        /// <returns>Its format.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no such paragraph.</exception>
+        public CadMTextParagraphFormat FormatOf(int paragraph)
+        {
+            if (paragraph < 0 || paragraph >= _paragraphCodes.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(paragraph),
+                    paragraph,
+                    "The words have " + _paragraphCodes.Count + " paragraphs, counted from nought."
+                );
+            }
+
+            CadMTextParagraphFormat format = CadMTextParagraphFormat.Default;
+
+            for (int p = 0; p <= paragraph; p++)
+            {
+                format = CadMTextParagraphFormat.Read(format, _paragraphCodes[p], Height);
+            }
+
+            return format;
+        }
+
+        /// <summary>
+        /// Changes how the selected paragraphs, or the caret's, are set: their indents, tab stops and spacing, one undo step.
+        /// Each is written as AutoCAD writes it, what differs from the paragraph before, and the paragraph after them is
+        /// written back to how it was: a tab stop at 10 set on the first of "A", "B" in an MTEXT 2.5 high writes
+        /// <c>\pxt4;A\P\ptz;B</c>.
+        /// </summary>
+        /// <param name="change">What becomes of each paragraph's format.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the change is null.</exception>
+        public void SetFormat(Func<CadMTextParagraphFormat, CadMTextParagraphFormat> change)
+        {
+            if (change == null)
+            {
+                throw new ArgumentNullException(nameof(change));
+            }
+
+            (int first, int last) = SelectedParagraphs;
+            int count = _paragraphCodes.Count;
+            var formats = new CadMTextParagraphFormat[count];
+            CadMTextParagraphFormat format = CadMTextParagraphFormat.Default;
+
+            for (int p = 0; p < count; p++)
+            {
+                format = CadMTextParagraphFormat.Read(format, _paragraphCodes[p], Height);
+                formats[p] = format;
+            }
+
+            var wanted = (CadMTextParagraphFormat[])formats.Clone();
+            bool changed = false;
+
+            for (int p = first; p <= last; p++)
+            {
+                wanted[p] = change(formats[p]) ?? formats[p];
+                changed |= !wanted[p].Equals(formats[p]);
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            Save();
+
+            for (int p = first; p <= Math.Min(last + 1, count - 1); p++)
+            {
+                CadMTextParagraphFormat before = p == 0 ? CadMTextParagraphFormat.Default : wanted[p - 1];
+                string codes = wanted[p].WriteAfter(before, Height) + OtherCodes(_paragraphCodes[p]);
+                _paragraphCodes[p] = codes.Length == 0 ? null : codes;
+            }
+
+            Raise();
+        }
+
+        /// <summary>Changes the MTEXT's box: its width, defined height or columns, one undo step.</summary>
+        /// <param name="frame">The box.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the frame is null.</exception>
+        public void SetFrame(CadMTextFrame frame)
+        {
+            if (frame == null)
+            {
+                throw new ArgumentNullException(nameof(frame));
+            }
+
+            if (frame.Equals(Frame))
+            {
+                return;
+            }
+
+            Save();
+            Frame = frame;
+            Raise();
+        }
+
+        /// <summary>
+        /// Starts a drag of the ruler: what changes until <see cref="EndChange"/> is shown at once but makes one undo step at
+        /// the end, or none where the drag is put back.
+        /// </summary>
+        public void BeginChange()
+        {
+            if (_changeStart == null)
+            {
+                _changeStart = Capture();
+                _changed = false;
+            }
+        }
+
+        /// <summary>Ends a drag of the ruler: its changes kept as one undo step (the release), or put back (Esc).</summary>
+        /// <param name="keep">Whether to keep the changes.</param>
+        public void EndChange(bool keep)
+        {
+            State start = _changeStart;
+
+            if (start == null)
+            {
+                return;
+            }
+
+            _changeStart = null;
+
+            if (!keep)
+            {
+                if (_changed)
+                {
+                    Restore(start);
+                }
+
+                return;
+            }
+
+            if (_changed)
+            {
+                _undo.Push(start);
+                _redo.Clear();
+                Raise();
+            }
+        }
+
+        /// <summary>Puts a column break at the caret (Alt+Enter), over the selection: the words after it start the next column.</summary>
+        public void InsertColumnBreak()
+        {
+            Save();
+            RemoveSelection();
+            InsertBreak(true);
+            Anchor = Caret;
+            Raise();
+        }
 
         /// <summary>Gets whether the words differ from what they were when the editor opened.</summary>
         public bool IsModified =>
@@ -172,14 +384,21 @@ namespace GeometryHelper.Dxf.Viewer
                 var paragraphs = new List<CadMTextParagraph>();
                 var runs = new List<CadMTextRun>();
                 int paragraph = 0;
+                bool startsColumn = false;
 
                 foreach (Cell cell in _cells)
                 {
                     if (cell.Break)
                     {
-                        paragraphs.Add(new CadMTextParagraph(runs, _alignments[paragraph], _paragraphCodes[paragraph]));
+                        paragraphs.Add(
+                            new CadMTextParagraph(runs, _alignments[paragraph], _paragraphCodes[paragraph])
+                            {
+                                StartsColumn = startsColumn,
+                            }
+                        );
                         runs = new List<CadMTextRun>();
                         paragraph++;
+                        startsColumn = cell.Column;
                         continue;
                     }
 
@@ -198,7 +417,12 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                paragraphs.Add(new CadMTextParagraph(runs, _alignments[paragraph], _paragraphCodes[paragraph]));
+                paragraphs.Add(
+                    new CadMTextParagraph(runs, _alignments[paragraph], _paragraphCodes[paragraph])
+                    {
+                        StartsColumn = startsColumn,
+                    }
+                );
                 return CadMTextContent.Of(paragraphs);
             }
         }
@@ -674,13 +898,53 @@ namespace GeometryHelper.Dxf.Viewer
             Anchor = start;
         }
 
-        private void InsertBreak()
+        private void InsertBreak(bool column = false)
         {
             int paragraph = ParagraphOf(Caret);
-            _cells.Insert(Caret, Cell.ParagraphBreak);
+            _cells.Insert(Caret, column ? Cell.ColumnBreak : Cell.ParagraphBreak);
             _alignments.Insert(paragraph + 1, _alignments[paragraph]);
             _paragraphCodes.Insert(paragraph + 1, _paragraphCodes[paragraph]);
             Caret++;
+        }
+
+        /// <summary>The codes of a paragraph that are not its indents, stops or spacing, kept as they were (\pn... and the like).</summary>
+        private static string OtherCodes(string codes)
+        {
+            if (string.IsNullOrEmpty(codes))
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+
+            foreach (string group in CadMTextParagraphFormat.Groups(codes))
+            {
+                bool times = group.StartsWith("x", StringComparison.Ordinal);
+                var kept = new List<string>();
+                bool tabbing = false;
+
+                foreach (string item in CadMTextParagraphFormat.Items(times ? group.Substring(1) : group))
+                {
+                    if (item.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    tabbing |= item[0] == 't';
+
+                    if (!tabbing && "ilrbas".IndexOf(item[0]) < 0)
+                    {
+                        kept.Add(item);
+                    }
+                }
+
+                if (kept.Count > 0)
+                {
+                    builder.Append("\\p").Append(times ? "x" : string.Empty).Append(string.Join(",", kept)).Append(';');
+                }
+            }
+
+            return builder.ToString();
         }
 
         private void Load(CadMTextContent content)
@@ -691,12 +955,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int p = 0; p < content.Paragraphs.Count; p++)
             {
+                CadMTextParagraph paragraph = content.Paragraphs[p];
+
                 if (p > 0)
                 {
-                    _cells.Add(Cell.ParagraphBreak);
+                    _cells.Add(paragraph.StartsColumn ? Cell.ColumnBreak : Cell.ParagraphBreak);
                 }
 
-                CadMTextParagraph paragraph = content.Paragraphs[p];
                 _alignments.Add(paragraph.Alignment);
                 _paragraphCodes.Add(paragraph.Codes);
 
@@ -718,6 +983,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         private void Save()
         {
+            // A drag of the ruler is one step, taken when it ends.
+            if (_changeStart != null)
+            {
+                _changed = true;
+                return;
+            }
+
             _undo.Push(Capture());
             _redo.Clear();
         }
@@ -728,7 +1000,8 @@ namespace GeometryHelper.Dxf.Viewer
                 new List<char>(_alignments),
                 new List<string>(_paragraphCodes),
                 Caret,
-                Anchor
+                Anchor,
+                Frame
             );
 
         private void Restore(State state)
@@ -738,23 +1011,27 @@ namespace GeometryHelper.Dxf.Viewer
             _paragraphCodes = new List<string>(state.Codes);
             Caret = state.Caret;
             Anchor = state.Anchor;
+            Frame = state.Frame;
             _pending = null;
             Raise();
         }
 
         private void Raise() => Changed?.Invoke(this, EventArgs.Empty);
 
-        /// <summary>A place of the words: a letter, a symbol kept as its code, or a paragraph break.</summary>
+        /// <summary>A place of the words: a letter, a symbol kept as its code, or a paragraph or column break.</summary>
         private sealed class Cell
         {
             public static readonly Cell ParagraphBreak = new Cell("\n", CadMTextLook.Plain, null, true);
 
-            public Cell(string text, CadMTextLook look, string code, bool isBreak = false)
+            public static readonly Cell ColumnBreak = new Cell("\n", CadMTextLook.Plain, null, true, true);
+
+            public Cell(string text, CadMTextLook look, string code, bool isBreak = false, bool isColumn = false)
             {
                 Text = text;
                 Look = look;
                 Code = code;
                 Break = isBreak;
+                Column = isColumn;
             }
 
             public string Text { get; }
@@ -764,17 +1041,28 @@ namespace GeometryHelper.Dxf.Viewer
             public string Code { get; }
 
             public bool Break { get; }
+
+            /// <summary>Whether a break starts the next column (<c>\N</c>).</summary>
+            public bool Column { get; }
         }
 
         private sealed class State
         {
-            public State(List<Cell> cells, List<char> alignments, List<string> codes, int caret, int anchor)
+            public State(
+                List<Cell> cells,
+                List<char> alignments,
+                List<string> codes,
+                int caret,
+                int anchor,
+                CadMTextFrame frame
+            )
             {
                 Cells = cells;
                 Alignments = alignments;
                 Codes = codes;
                 Caret = caret;
                 Anchor = anchor;
+                Frame = frame;
             }
 
             public List<Cell> Cells { get; }
@@ -786,6 +1074,8 @@ namespace GeometryHelper.Dxf.Viewer
             public int Caret { get; }
 
             public int Anchor { get; }
+
+            public CadMTextFrame Frame { get; }
         }
     }
 }

@@ -431,7 +431,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (p > 0)
                 {
-                    builder.Append("\\P");
+                    // A paragraph begun by a column break starts the next column, and is written as one (\N).
+                    builder.Append(paragraph.StartsColumn ? "\\N" : "\\P");
                 }
 
                 if (paragraph.Codes != null)

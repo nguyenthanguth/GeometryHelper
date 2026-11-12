@@ -93,11 +93,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the line spacing factor an MTEXT was given in the editor (Line Spacing, 1 single); null where it was not changed.</summary>
         public double? NewLineSpacing { get; set; }
 
-        /// <summary>Gets whether the editor changed the box: its width, attachment or line spacing.</summary>
+        /// <summary>Gets whether the editor changed the box: its width, attachment, line spacing, defined height or columns.</summary>
         public bool ChangesBox =>
             (NewWidth.HasValue && NewWidth.Value >= 0.0 && NewWidth.Value != Width)
             || NewAttachment.HasValue
-            || NewLineSpacing.HasValue;
+            || NewLineSpacing.HasValue
+            || NewFrame != null;
+
+        /// <summary>
+        /// Gets or sets the box an MTEXT was given in the editor where its defined height or columns changed (the ruler's
+        /// height grips, Set Mtext Height, Column Settings), which the command writes with the words; null where they did not.
+        /// </summary>
+        public CadMTextFrame NewFrame { get; set; }
 
         /// <summary>Gets the row of the table cell edited, from nought, where <see cref="Handle"/> is a table's; -1 for any other text.</summary>
         public int TableRow { get; internal set; } = -1;

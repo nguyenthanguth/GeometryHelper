@@ -786,6 +786,7 @@ namespace GeometryHelper.Dxf.Viewer
             string styleName = style;
             DxfLineSpacingStyle lineSpacing =
                 spacing == "Exactly" ? DxfLineSpacingStyle.Exactly : DxfLineSpacingStyle.AtLeast;
+            string refused = null;
             c.Apply(null, s =>
             {
                 var text = new DxfMText
@@ -830,7 +831,17 @@ namespace GeometryHelper.Dxf.Viewer
                     text.SetDynamicColumns(columnWidth, gutter, true);
                     text.Height = columnHeight;
                 }
+                else
+                {
+                    // The height and columns given in the editor, once the MTEXT is in the drawing.
+                    refused = ApplyFrame(text, edit);
+                }
             });
+
+            if (refused != null)
+            {
+                c.Write(refused);
+            }
         }
 
         /// <summary>Keeps the line spacing of MTEXT for the next one: its type and its factor of the height.</summary>

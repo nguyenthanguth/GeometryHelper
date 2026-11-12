@@ -270,8 +270,9 @@ the ones wanted.
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and
       their collections stopped each other's timers (now one serial collection); layer off 85 -> 23 ms by testing the
       layer before the entity's own visibility (S)
-- [ ] MTEXT follow-ups: the editor's ruler (indents, tab stops), column drag, `\W1.2x;` in a style of width not 1, the
-      caret at a soft break between ideographs; paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+- [ ] MTEXT follow-ups: (ruler, column drag, Paragraph and Column Settings dialogs and ribbon controls done 2026-11-12); `\W1.2x;` in a style of width not 1, the
+- [ ] MTEXT ruler follow-ups: a look at the ruler in the running app against design v126; the launcher in the collapsed Paragraph panel (RibbonPanel template); MTEXT's Columns option winning over the editor's; undo-step labels; static/dynamic defaults when switching from none (unprobed); bullets and lists (S)
+      caret at a soft break between ideographs; triangle width/height grips;
       parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
       defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)

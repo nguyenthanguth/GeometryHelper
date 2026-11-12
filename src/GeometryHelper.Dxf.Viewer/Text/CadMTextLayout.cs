@@ -434,9 +434,10 @@ namespace GeometryHelper.Dxf.Viewer
                     double unit = times ? _h : 1.0;
                     bool tabs = false;
 
-                    foreach (string raw in (times ? value.Substring(1) : value).Split(','))
+                    // A decimal stop on a comma is written D, before its place, so the items are not split at that comma.
+                    foreach (string raw in CadMTextParagraphFormat.Items(times ? value.Substring(1) : value))
                     {
-                        string item = raw.Trim();
+                        string item = raw;
 
                         if (item.Length == 0)
                         {
@@ -452,12 +453,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (tabs)
                         {
-                            char kind = item.Length > 0 && "lcrd".IndexOf(item[0]) >= 0 ? item[0] : 'l';
-                            string stop = item.Length > 0 && "lcrd".IndexOf(item[0]) >= 0 ? item.Substring(1) : item;
-
-                            if (Number(stop, out double place) && place > 0.0)
+                            // A decimal stop is kept as the separator it is set on: d and D. as a period, D, as a comma.
+                            if (CadMTextParagraphFormat.TryStop(item, unit, out CadMTextTabStop stop))
                             {
-                                format.Tabs.Add(new KeyValuePair<double, char>(place * unit, kind));
+                                format.Tabs.Add(
+                                    new KeyValuePair<double, char>(
+                                        stop.Position,
+                                        stop.Kind == 'd' ? stop.DecimalSeparator : stop.Kind
+                                    )
+                                );
                             }
 
                             continue;
@@ -926,6 +930,9 @@ namespace GeometryHelper.Dxf.Viewer
                     double inkRight = 0.0;
                     bool inked = false;
                     double point = double.NaN;
+                    KeyValuePair<double, char> stop =
+                        tab != null ? Stop(format, pen) : default(KeyValuePair<double, char>);
+                    char separator = "., ".IndexOf(stop.Value) >= 0 ? stop.Value : '.';
 
                     while (
                         k < atoms.Count
@@ -944,11 +951,11 @@ namespace GeometryHelper.Dxf.Viewer
                             inked = true;
                         }
 
-                        if (double.IsNaN(point) && w.Kind == Kind.Word && w.Text.IndexOf('.') >= 0)
+                        if (double.IsNaN(point) && w.Kind == Kind.Word && w.Text.IndexOf(separator) >= 0)
                         {
                             Span(
                                 w.Ink,
-                                w.Text.Substring(0, w.Text.IndexOf('.')),
+                                w.Text.Substring(0, w.Text.IndexOf(separator)),
                                 w.H,
                                 w.Wf,
                                 w.Track,
@@ -981,14 +988,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (tab != null)
                     {
-                        KeyValuePair<double, char> stop = Stop(format, pen);
-
                         // A word at a left stop stands with its ink on the stop, and the pen goes on as if it began there.
                         after = stop.Value == 'l' ? stop.Key + advance : double.NaN;
                         start =
                             stop.Value == 'c' ? stop.Key - ((inkLeft + inkRight) / 2.0)
                             : stop.Value == 'r' ? stop.Key - inkRight
-                            : stop.Value == 'd' ? stop.Key - (double.IsNaN(point) ? advance : point)
+                            : "., ".IndexOf(stop.Value) >= 0 ? stop.Key - (double.IsNaN(point) ? advance : point)
                             : stop.Key - inkLeft;
                     }
 
