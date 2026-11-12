@@ -244,7 +244,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Keywords.Count > 0)
                 {
-                    text.Append(Kind == CadPromptKind.Keyword ? " [" : " or [")
+                    text.Append(Kind == CadPromptKind.Keyword || _noOr ? " [" : " or [")
                         .Append(string.Join("/", Keywords))
                         .Append(']');
                 }
@@ -256,6 +256,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 return _noColon ? text.ToString() : text.Append(':').ToString();
             }
+        }
+
+        // Whether the keywords follow the message with no "or", as AutoCAD writes TEXTALIGN's "Select text objects to align [alIgnment/Options]:".
+        private bool _noOr;
+
+        /// <summary>Makes the prompt's keywords follow its message with no "or", as AutoCAD writes TEXTALIGN's.</summary>
+        internal CadPrompt WithoutOr()
+        {
+            _noOr = true;
+            return this;
         }
 
         // Whether the text ends without a colon, as AutoCAD's "of" of a point filter.

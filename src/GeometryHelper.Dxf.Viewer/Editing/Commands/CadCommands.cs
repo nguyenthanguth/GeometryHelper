@@ -162,6 +162,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("FIND", Find, true));
             registry.Add(new CadCommand("DRAWORDER", DrawOrder, true));
             registry.Add(new CadCommand("TEXTTOFRONT", TextToFront));
+            AddAnnotation2To(registry);
             registry.Add(new CadCommand("GROUP", Group, true));
             registry.Add(new CadCommand("-GROUP", GroupTyped));
             registry.Add(new CadCommand("UNGROUP", Ungroup, true));

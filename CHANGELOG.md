@@ -64,6 +64,22 @@ Visible off; a save writes them shown).
 small for them: AutoCAD 2021 draws them only where the radius is over twice the mark (a circle of 5.01 under -2.5 has
 them, one of 5 or 4 the cross alone), where the presenter drew them wherever the radius was over the mark.
 
+**NEW.** DIMOVERRIDE (DOV, DIMOVER) in the presenter, as AutoCAD 2021's (its prompts, defaults and refusals probed in its console):
+the dimension variables typed one by one, "Enter new value for dimension variable <1.0000>:", written as overrides of the
+dimension style on the dimensions, leaders and feature control frames selected, each dimension drawn anew, one undo step;
+Clear overrides takes them away. The variables of R2007 and after (DIMJOGANG, DIMLTYPE, DIMTFILL and the rest) say `Variable
+"..." not found.` as AutoCAD does, a whole number out of range `Requires an integer between 0 and 4.`, a size below nought
+`Value must be positive.`.
+**NEW.** TEXTALIGN (TA): TEXT and MTEXT lined up on the text picked or on a line of two points by an edge, a middle or a
+corner of their boxes (Left, Center, Right, TL ... BR), moving across (Current Vertical), up or down (Current Horizontal),
+stacked a gap apart (Set spacing) or spaced evenly (Distribute), with AutoCAD's prompts and settings.
+**NEW.** MLEADEREDIT (MLE) adds leader lines to a multileader and takes them away; MLEADERALIGN (MLA) moves the content of
+multileaders onto a line through the content of one, keeping their spacing, a set gap apart or evenly between two points
+(the gap between the content points; make leader segments parallel and MLEADERCOLLECT are not built).
+**NEW.** ATTIPEDIT (ATI): the value of an attribute edited in place over it on the canvas, one undo step. SPELL (SP): the
+words of TEXT, MTEXT and attributes checked against a small built-in English list and a custom dictionary file, each unknown word offered with
+the words nearest it (Ignore, ignore all, Add, Change, a replacement typed, Stop), the command line form of Check Spelling.
+MLINE, MLSTYLE and MLEDIT are not built.
 **NEW.** The grips on the clip boundary of a clipped block reference or external reference in the presenter, as AutoCAD 2021's
 `GetGripPoints` gives them (probed in accoreconsole): a selected reference has its insertion grip, an arrow at the middle of the
 boundary's first side and a grip at each corner of the rectangle or vertex of the polygon (`CadGripKind.ClipFlip` and

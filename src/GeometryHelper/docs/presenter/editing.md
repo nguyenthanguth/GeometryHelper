@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 201 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 207 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -207,6 +207,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
+| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
@@ -986,10 +987,66 @@ where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT as
 [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.
 
+### Annotation commands
+
+DIMOVERRIDE (DOV, DIMOVER) asks as AutoCAD 2021's does (probed in its console): "Enter dimension variable name to override
+or [Clear overrides]:", then "Enter new value for dimension variable <current>:" for each name, "Enter dimension variable name
+to override:" after the first, Enter, and "Select objects:". The current value is the drawing's own, to four places: DIMSCALE
+`<1.0000>`, a flag `<On>` or `<Off>`, a whole number `<0>`, a colour `<BYBLOCK>`, an arrowhead `<ClosedFilled>`. A name AutoCAD
+does not know says `Variable "XYZ" not found.`, and so do the variables of R2007 and after (DIMJOGANG, DIMLTYPE, DIMLTEX1,
+DIMLTEX2, DIMFXL, DIMFXLON, DIMTFILL, DIMTFILLCLR, DIMARCSYM); a whole number out of its range says `Requires an integer
+between 0 and 4.` (DIMTAD 7), a size below nought `Value must be positive.`, a flag that is neither On nor Off `Invalid option
+keyword.`, and each asks again. The values are written one at a time in the order of their groups as overrides of the dimension
+style on the dimensions, leaders and feature control frames selected, each dimension drawn anew, one undo step: DIMTAD 0 and
+DIMSCALE 2 typed in that order give a linear dimension of the overrides `40 77`, and its words 5 high where they were 2.5.
+Clear overrides takes every override of the objects selected away, as `SetFromStyle` does; objects of another kind are left
+alone. Enter at a value keeps the one shown and writes no override.
+
+TEXTALIGN (TA) keeps AutoCAD's settings: "Current settings: Align = Left, Spacing Mode = Current Vertical" and "Select text
+objects to align [alIgnment/Options]:". alIgnment asks "Select alignment direction [Left/Center/Right/TL/TC/TR/ML/MC/MR/BL/BC/BR]
+<Left>:", Options "Enter an option [Distribute/Set spacing/current Vertical/current Horizontal] <current Vertical>:" (Set spacing
+asks "Set spacing <0.000000>:"). After the TEXT and MTEXT are selected (others are filtered out, `1 was filtered out.`),
+"Select text object to align to [Point]:" takes the text they line up with, or Point two points that give a line ("Pick first
+point", "Pick second point or [Options]:"). The texts move by the boxes they are drawn in: Left, Center and Right line up an
+edge or the middle across, the two-letter ones a corner or the middle of a side. Current Vertical keeps each text's height and
+moves it across, so that its edge lies on the text picked or on the line; Current Horizontal keeps its place along and moves it
+up or down; Set spacing stacks them a gap apart above and below the text picked, which stays; Distribute spaces them evenly
+between the top one and the bottom one. A line within a degree of the way the texts cannot reach (a level one with Current
+Vertical) says `The base line is near horizontal or vertical, aligned texts may be out of available area, alignment is
+discarded.` and moves nothing. Three texts 5 high at (0, 0), (10, 20) and (30, 50) lined up on the left edge of the first have
+that edge in common. The settings stay for the next run in the same window; the Left, Center and Right alignments stand at
+the middle of the box when the texts move up or down.
+
+MLEADEREDIT (MLE) takes "Select a multileader:", then "Specify leader arrowhead location or [Remove leaders]:": each point
+adds a leader line whose arrowhead stands there (`DxfMLeader.AddLeaderLine`), Enter ends; under Remove leaders "Select leader to
+remove or [Add leaders]:" takes the leader line nearest the point within the pick aperture away (`No leader line there.` where
+none is), and the last line of a multileader is kept (`A multileader keeps at least one leader line.`). Each change is a step
+of the one undo step. MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
+"Select multileader to align to or [Options]:" and "Specify direction:": the content of each (its words' attachment point, or
+its block's position) moves with its landing onto the line through the content of the one picked along the direction, the
+arrowheads staying. Options asks "Enter an option [Distribute/make leader segments Parallel/specify Spacing/Use current
+spacing] <Use current spacing>:": Use current spacing keeps each content's place along the line, specify Spacing ("Specify
+spacing <0.0000>:") puts them that far apart along it in the order they stand, the one picked staying, and Distribute asks two
+points ("Specify first point or [Options]:", "Specify second point:") and spaces the contents evenly between them. The gaps are
+measured between the content points, not their extents; make leader segments Parallel says `Make leader segments parallel is
+not built here: the mode stays as it was.` MLEADERCOLLECT, which joins block multileaders into one, is not built.
+
+ATTIPEDIT (ATI) asks "Select an attribute:" and edits the one clicked (that of the block drawn nearest the click, as -ATTEDIT
+takes it; the first of a block given by its handle) in place, in the box over it on the canvas, writing its value as one undo
+step; a click on the block's own lines says `Selected object is not an attribute.` An attribute of several lines is not edited
+here. SPELL (SP) is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or
+All every TEXT, MTEXT and attribute of the space, and Dictionary "Enter custom dictionary file <none>:", a text file of words one
+to a line (`Cannot read custom dictionary.` where it cannot be read). Each word not in the built-in list (about 700 English
+words and drafting terms, the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; words in capitals, with a digit or of
+one letter are passed over, as AutoCAD's settings pass uppercase words and words with numbers) is written with the words
+nearest it, `Not in dictionary: "wrold". Suggestions: world`, and "Enter replacement or [Ignore/ignore aLl/Add/Change/Stop]
+<Ignore>:" takes a replacement typed, Change (the first suggestion), Add (to the custom dictionary and its file), Ignore, ignore
+all, or Stop. The words changed of a text are written together, the format codes of an MTEXT kept in it, and the whole
+check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and MLEDIT are not built.
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 198 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 202 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 205 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 209 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
