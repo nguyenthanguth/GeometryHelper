@@ -20,6 +20,23 @@ step that keeps the drawing keeps 20 MB and takes 205 ms to undo. An undo of ano
 settings changed since on it. New `CadDocument.ApplySetting(name, property, read, change, replay, joinsPrevious)` makes such
 a step, and `CadCommandSession.OpenUndoStep()` opens the undo step of the command running, for a window that changes a
 setting while a command asks.
+**NEW.** `SheetPacker.Pack` takes groups of `GeoPolygon2` as well as of `GeoRectangle2`, for views cut to a polygon by
+VPCLIP: the polygons are packed by their own shape, so that an L- or U-shaped view lets another stand in its notch, with the
+same `Sheet`, `PackOptions` and `PackResult` (`Pack(IReadOnlyList<GeoPolygon2[]>, Sheet)` and `Pack(..., PackOptions)`).
+Each polygon goes where its top is highest, then furthest left, honouring `StartCorner`, inside the usable area and clear
+of those already there: found from the no-fit polygon of each pair, made once and moved, with Clipper2; `Spacing` and
+`GroupSpacing` are clear gaps between the polygons themselves; a group laid out afresh is packed together first and placed
+as one block by the shape of each polygon in it, a group kept as drawn moves as one. Nine views of a drawing (an L-shaped
+plan, a U, a pentagon, a hexagon, two more L-shapes and boxes) take one A3 where their boxes take two; 200 views of up to
+168 by 119 take 3 A1 sheets against 4 by their boxes (61.7 % filled against 46.3 %), in 0.3 s on .NET Framework 4.8; 200
+boxes given as polygons take the sheets the rectangle overload takes, and fewer with spacings (6 against 7). A null
+polygon, one not at finite coordinates, one with no area and one that crosses itself are refused with an
+`ArgumentException`; one larger than the usable area is not placed. The result is judged polygon by polygon from the
+polygons as moved (new `PolygonJudge`), within the tolerance of the options. `PackPlacement.ViewPolygon` is the polygon
+moved, and for a box its four corners; `PackPlacement` has a new constructor taking it, and the old one stays. The
+rectangle overload is untouched: 1 000 boxes in their order, tight, and in groups of 3 give the same translations to the bit.
+A call that passes a bare `null` for the groups no longer compiles, two overloads fitting it: cast it to the type meant. The
+guide, `docs/packing.md`, has the pictures.
 
 **NEW.** GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32,
 48 and 256 pixels, on the exe, the taskbar and Alt+Tab, and an icon for the drawing files associated with it; both are

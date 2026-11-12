@@ -5,17 +5,21 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Packing
 {
     /// <summary>
-    /// Where one box goes: which sheet, how far it moves, and the box moved there.
+    /// Where one box or polygon goes: which sheet, how far it moves, and the shape moved there.
     /// </summary>
     /// <remarks>
-    /// Boxes are only moved, never turned or resized. The move is the same for every point of what the box stands for,
-    /// so adding <see cref="Translation"/> to any point of it, the origin of a drawing view or the insertion point of
-    /// a block, puts it where its box goes, as long as the box was given in the same coordinates as that point.
+    /// Boxes and polygons are only moved, never turned or resized. The move is the same for every point of what the
+    /// shape stands for, so adding <see cref="Translation"/> to any point of it, the origin of a drawing view or the
+    /// insertion point of a block, puts it where its shape goes, as long as the shape was given in the same coordinates
+    /// as that point.
     /// </remarks>
     public readonly struct PackPlacement : IEquatable<PackPlacement>
     {
+        private readonly GeoPolygon2 _viewPolygon;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="PackPlacement"/> struct.
+        /// Initializes a new instance of the <see cref="PackPlacement"/> struct for a box, whose
+        /// <see cref="ViewPolygon"/> is then the box itself as a polygon of four points.
         /// </summary>
         /// <param name="sheetIndex">Which sheet the box goes on, the first nought; -1 when it goes on none.</param>
         /// <param name="translation">How far the box moves.</param>
@@ -27,6 +31,30 @@ namespace GeometryHelper.Packing
             Translation = translation;
             ViewBox = viewBox;
             Placed = placed;
+            _viewPolygon = null;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PackPlacement"/> struct for a polygon.
+        /// </summary>
+        /// <param name="sheetIndex">Which sheet the polygon goes on, the first nought; -1 when it goes on none.</param>
+        /// <param name="translation">How far the polygon moves.</param>
+        /// <param name="viewBox">The upright box round the polygon, moved.</param>
+        /// <param name="viewPolygon">The polygon, moved.</param>
+        /// <param name="placed">Whether the polygon found a place.</param>
+        public PackPlacement(
+            int sheetIndex,
+            GeoVector2 translation,
+            GeoRectangle2 viewBox,
+            GeoPolygon2 viewPolygon,
+            bool placed
+        )
+        {
+            SheetIndex = sheetIndex;
+            Translation = translation;
+            ViewBox = viewBox;
+            Placed = placed;
+            _viewPolygon = viewPolygon;
         }
 
         /// <summary>
@@ -48,6 +76,20 @@ namespace GeometryHelper.Packing
         public GeoRectangle2 ViewBox { get; }
 
         /// <summary>
+        /// Gets the shape moved by <see cref="Translation"/>: the polygon given to
+        /// <see cref="SheetPacker.Pack(System.Collections.Generic.IReadOnlyList{GeoPolygon2[]}, Sheet, PackOptions)"/>,
+        /// moved, whose <see cref="ViewBox"/> is the upright box round it; for a box, its four corners, lower left first
+        /// and counter-clockwise, so that a result of either kind is read the same way. The shape as given for one
+        /// that goes on none.
+        /// </summary>
+        public GeoPolygon2 ViewPolygon =>
+            _viewPolygon
+            ?? new GeoPolygon2(
+                new[] { ViewBox.LowerLeft, ViewBox.LowerRight, ViewBox.UpperRight, ViewBox.UpperLeft },
+                4
+            );
+
+        /// <summary>
         /// Gets whether the box found a place: inside the usable area of its sheet and clear of every other box, but the
         /// boxes of its own group kept as they stood. False for a box larger than the usable area of a sheet, or not at
         /// finite coordinates.
@@ -55,7 +97,8 @@ namespace GeometryHelper.Packing
         public bool Placed { get; }
 
         /// <summary>
-        /// Indicates whether this placement is the same as another: the same sheet, move, box and verdict, exactly.
+        /// Indicates whether this placement is the same as another: the same sheet, move, box, shape and verdict,
+        /// exactly.
         /// </summary>
         /// <param name="other">The placement to compare with.</param>
         /// <returns>true if the two are the same; otherwise, false.</returns>
@@ -63,7 +106,8 @@ namespace GeometryHelper.Packing
             SheetIndex == other.SheetIndex
             && Translation.Equals(other.Translation)
             && ViewBox.Equals(other.ViewBox)
-            && Placed == other.Placed;
+            && Placed == other.Placed
+            && ((_viewPolygon == null && other._viewPolygon == null) || ViewPolygon.Equals(other.ViewPolygon));
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is PackPlacement other && Equals(other);

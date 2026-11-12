@@ -7,7 +7,8 @@ namespace GeometryHelper.Packing
     /// </summary>
     /// <remarks>
     /// The gaps are in millimetres on paper, as the offsets of a <see cref="Sheet"/> are, and are multiplied by its
-    /// <see cref="Sheet.Scale"/>.
+    /// <see cref="Sheet.Scale"/>. They apply to polygons as to boxes: for polygons a gap is the least distance between
+    /// the polygons themselves, not between their boxes.
     /// </remarks>
     public sealed class PackOptions
     {
