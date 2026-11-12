@@ -292,9 +292,14 @@ ATTDEF, ALIGN, AREA and ARRAY, the others below.
 - **AutoCorrect.** A name no command has, followed by a command, is noted: LIEN typed three times, each followed by LINE,
   has LINE offered first, marked AutoCorrect, the next time LIEN is typed. The corrections are kept in the settings file.
 - **Search Content.** Below the commands and variables, under a rule, come the drawing's named objects, as AutoCAD
-  2021's: its blocks, layers, hatch patterns, text styles and dimension styles, in that order, each kind by name with
-  the names that begin with the letters first, and the kind at the right. WAL typed in a drawing of the block WALL_TAG
-  and the layers WALLS and WALL-FINISH lists `WALL_TAG Block`, `WALL-FINISH Layer` and `WALLS Layer`. A kind's keyword
+  2021's: its blocks, layers, hatch patterns, text styles and dimension styles, in that order, each kind under a header
+  row with its count at the right (Blocks, Layers, Hatch Patterns, Text Styles, Dimension Styles) and its names indented
+  below by name, those that begin with the letters first. WAL typed in a drawing of the block WALL_TAG and the layers
+  WALLS and WALL-FINISH lists `Blocks 1` over `WALL_TAG`, and `Layers 2` over `WALL-FINISH` and `WALLS`. Every kind
+  opens expanded; a click on its header, or Enter or Space with the header chosen (the arrows walk over the headers
+  too), collapses it to the one row and keeps the list open, and again expands it. A kind collapsed stays collapsed in
+  the lists after while the app runs. The pointer over a hatch pattern shows its thumbnail beside the list, 96 pixels
+  square, drawn by the app from its own pattern lines (design CmdContentSection). A kind's keyword
   lists every name of the kind: BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or STYLE, DIMSTYLE. Choosing a layer makes it
   current through CLAYER, a block runs -INSERT with its name, which asks the insertion point, a hatch pattern starts
   HATCH with it, and a text style or a dimension style is made current. The content is searched at the command line
@@ -314,12 +319,15 @@ command line), **Copy History** (every line written), **Paste** (the first line 
 
 **Input Search Options** (INPUTSEARCHOPTIONS) is AutoCAD 2021's dialog of the same name: Enable AutoComplete, with
 Enable mid-string search and the order of the suggestions, According to frequency of usage or Alphabetically; Enable
-AutoCorrect, with Remember corrections after 2 to 10 mistypes (3 by default); Search system variables, with Separate
-commands and system variables, which lists the variables last, below a rule of their own; the suggestion list's delay,
-100 to 10 000 milliseconds; and Search content at command line, with the Content type list (Block, Layer, Hatch, Visual
+AutoCorrect, with Remember corrections after 1 to 50 mistypes (3 by default), as AutoCAD 2021's dialog takes; Search
+system variables, with Separate commands and system variables, which lists the variables last under a collapsed header
+of their own, `System Variables` and their count, below a rule: as AutoCAD 2021's help says, "you need to press Tab to
+display the list", so Tab expands the header and chooses the first variable, and each new list starts collapsed again;
+the suggestion list's delay, 100 to 10 000 milliseconds; and Search content at command line, with the Content type list (Block, Layer, Hatch, Visual
 Style, Text Style, Dim Style), each kind ticked or not and moved up or down to set the order Search Content lists them
 in. An option under a switch that is off is greyed. OK keeps the settings in the settings file; a number out of range
-keeps the dialog open with the reason under it. The app's drawings have no visual styles, so Visual Style finds
+keeps the dialog open with the reason under it, in AutoCAD 2021's words: `Invalid input. Mistypes value must be between 1
+and 50`, `Invalid input. Delay time must be between 100 and 10000 milliseconds`. The app's drawings have no visual styles, so Visual Style finds
 nothing.
 
 -INPUTSEARCHOPTIONS asks the same on the command line, word for word as AutoCAD 2021's console: `Current settings:

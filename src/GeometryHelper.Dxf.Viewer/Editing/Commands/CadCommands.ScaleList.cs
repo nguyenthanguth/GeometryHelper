@@ -252,14 +252,18 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The default list of scales Reset puts back, as AutoCAD 2021's console resets it: the 17 metric scales 1:1 to 100:1,
-        /// or, where the drawing's header has MEASUREMENT 0 (imperial), the 16 imperial ones from 1/128" = 1'-0" (0.0078125 to
-        /// 12) to 1'-0" = 1'-0" (12 to 12). A drawing with no MEASUREMENT in its header takes the metric list.
+        /// or, where the drawing's header has MEASUREMENT 0 (imperial), 1:1 and the 16 imperial ones from 1/128" = 1'-0" (0.0078125 to
+        /// 12) to 1'-0" = 1'-0" (12 to 12). A drawing with no MEASUREMENT in its header takes the imperial list, as AutoCAD 2021
+        /// reads such a header as MEASUREMENT 0.
         /// </summary>
         internal static List<CadScaleListRow> DefaultScales(DxfDatabase database)
         {
             var scales = new List<CadScaleListRow>();
 
-            if (database?.GetHeader("$MEASUREMENT") != null && database.Measurement == DxfMeasurementValue.English)
+            if (
+                database != null
+                && (database.GetHeader("$MEASUREMENT") == null || database.Measurement == DxfMeasurementValue.English)
+            )
             {
                 string[] inches =
                 {
@@ -297,6 +301,9 @@ namespace GeometryHelper.Dxf.Viewer
                     3,
                     6,
                 };
+
+                // 1:1 first, as AutoCAD's list after Reset has it, then the 16 imperial scales: 17 in all.
+                scales.Add(new CadScaleListRow("1:1", 1, 1));
 
                 for (int i = 0; i < inches.Length; i++)
                 {

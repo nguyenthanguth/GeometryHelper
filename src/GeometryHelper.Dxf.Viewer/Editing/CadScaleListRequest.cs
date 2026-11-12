@@ -117,7 +117,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the default list Reset puts back, as AutoCAD 2021's: the metric scales 1:1 to 100:1 (17), or, in a drawing in
-        /// imperial units (MEASUREMENT 0), the imperial ones 1/128" = 1'-0" to 1'-0" = 1'-0" (16).
+        /// imperial units (MEASUREMENT 0, or none in its header, as AutoCAD reads it), 1:1 and the imperial ones 1/128" = 1'-0"
+        /// to 1'-0" = 1'-0" (17).
         /// </summary>
         public IReadOnlyList<CadScaleListRow> Defaults { get; }
 

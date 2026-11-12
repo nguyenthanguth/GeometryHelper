@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In the presenter the command line's Search Content lists each kind of named object under a header row with its
+count, as AutoCAD 2021's suggestion list groups its content (design CmdContentSection): WAL typed in a drawing of the
+block WALL_TAG and the layers WALLS and WALL-FINISH shows `Blocks 1` over WALL_TAG and `Layers 2` over the two layers.
+A click on a header, or Enter or Space with it chosen, collapses or expands the kind and keeps the list open; a kind
+collapsed stays so while the app runs. The pointer over a hatch pattern shows a thumbnail of it, 96 pixels square, drawn
+by the app from its own pattern lines. New `CommandSuggestionViewModel.IsHeader`, `IsExpanded`, `Chevron`, `IsIndented`,
+`HasThumbnail`, `Thumbnail` and `ThumbnailSize`, and `MainViewModel.ToggleSuggestionGroup`.
+**CHANGED.** With Separate commands and system variables on, the system variables wait under a collapsed `System
+Variables` header after the commands until Tab expands it and chooses the first of them, as AutoCAD 2021's Input Search
+Options says ("you need to press Tab to display the list"); they used to be listed at once below a rule. New
+`MainViewModel.TabSuggestions`.
+**CHANGED.** Input Search Options takes Remember corrections after 1 to 50 mistypes, as AutoCAD 2021's dialog does
+(its message, read from AcWindows.dll for reference, is now the presenter's: `Invalid input. Mistypes value must be
+between 1 and 50`); it took 2 to 10. `GlobalSettings.AutoCorrectMistypes` takes 1 to 50. The delay out of range is
+refused with `Invalid input. Delay time must be between 100 and 10000 milliseconds`.
+**FIXED.** -SCALELISTEDIT's Reset and Edit Drawing Scales' Reset put back the imperial scales in a drawing whose header
+has no $MEASUREMENT, as AutoCAD 2021 reads such a header as MEASUREMENT 0 (probed: Database.DxfIn of a DXF without it
+gives English, with `$MEASUREMENT 1` Metric); they put back the metric ones. The imperial list now starts with 1:1, 17
+in all, as AutoCAD's list after Reset, so that a drawing holding no 1:1 gets it back too.
+
 **NEW.** In the presenter showing another space is an undo step, as AutoCAD 2021's U takes it, probed in its console:
 a tab clicked, LAYOUT Set and TILEMODE are a step each, named LAYOUT, so that after Model, Layout1 and Layout2 two U go back
 to Layout1 and to Model, each layout keeping the view it had, and REDO goes forward. The step keeps no copy of the drawing

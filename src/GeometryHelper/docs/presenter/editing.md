@@ -1198,9 +1198,9 @@ entered in the following format: "1:1"`), and for a name the list has asks `GH a
 takes one scale (`GH scale deleted.`, `Scale NOSUCH not found.`) or `*` every one in no use, and keeps the unit scale, the
 current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`); Reset, after
 `Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the default list after the
-ones kept: the metric 1:1 to 100:1, or, where the header's MEASUREMENT is 0 (imperial), the 16 imperial scales
-`1/128" = 1'-0"` (0.0078125 to 12) to `1'-0" = 1'-0"`, as AutoCAD 2021's console resets them (a drawing with no MEASUREMENT
-takes the metric list). The command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
+ones kept: the metric 1:1 to 100:1, or, where the header's MEASUREMENT is 0 (imperial), 1:1 and the 16 imperial scales
+`1/128" = 1'-0"` (0.0078125 to 12) to `1'-0" = 1'-0"`, as AutoCAD 2021's console resets them. A drawing with no
+MEASUREMENT in its header takes the imperial list, as AutoCAD 2021 reads such a header as MEASUREMENT 0. The command is one undo step. AutoCAD's console accepts a ratio of 0:1, which the presenter refuses, and its Reset leaves 1:1
 alone there, having no profile's default list. Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
 its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.

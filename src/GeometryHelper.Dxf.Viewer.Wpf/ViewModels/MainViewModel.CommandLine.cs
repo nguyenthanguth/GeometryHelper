@@ -2,17 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Media;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// A row of the command line's AutoComplete list: a command, a synonym of one or a system variable whose name holds what is
-    /// typed, the letters typed marked in it.
+    /// typed, the letters typed marked in it; a named object of Search Content; or the header of a group of them.
     /// </summary>
     public sealed class CommandSuggestionViewModel : ObservableObject
     {
+        private readonly Lazy<ImageSource> _thumbnail;
         private bool _isSelected;
+        private bool _isExpanded;
 
         internal CommandSuggestionViewModel(
             string name,
@@ -26,9 +29,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string iconKey,
             string contentType = null,
             bool startsContent = false,
-            Action run = null
+            Action run = null,
+            bool isHeader = false,
+            Func<ImageSource> thumbnail = null
         )
         {
+            IsHeader = isHeader;
+            _thumbnail = thumbnail == null ? null : new Lazy<ImageSource>(thumbnail);
             Name = name;
             Command = command;
             IsVariable = isVariable;
@@ -57,14 +64,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets the kind of named object the row is, as Search Content lists them: "Block", "Layer", "Hatch", "Text Style" or
-        /// "Dim Style"; null for a command, a synonym or a variable.
+        /// "Dim Style"; null for a command, a synonym, a variable or a header.
         /// </summary>
         public string ContentType { get; }
 
-        /// <summary>Gets whether the row is the first named object of the list, drawn below a rule.</summary>
+        /// <summary>Gets whether the row is the header of the first kind of named object, drawn below a rule.</summary>
         public bool StartsContent { get; }
 
-        /// <summary>Gets whether a rule is drawn above the row: the first of the names with the letters inside, or the first named object.</summary>
+        /// <summary>Gets whether a rule is drawn above the row: the first of the names with the letters inside, the header of the variables listed apart, or the header of the first kind of named object.</summary>
         public bool StartsGroup => StartsMidString || StartsContent;
 
         /// <summary>What choosing a named object does: the layer made current, the block inserted; null for any other row.</summary>
@@ -73,7 +80,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the row is a system variable, drawn with {x}.</summary>
         public bool IsVariable { get; }
 
-        /// <summary>Gets the words at the right: "alias LA", "system variable", "AutoCorrect"; empty for none.</summary>
+        /// <summary>Gets the words at the right: "alias LA", "system variable", "AutoCorrect", a header's count; empty for none.</summary>
         public string Note { get; }
 
         /// <summary>Gets the command a synonym runs, in brackets after its name: " (FILLET)"; empty for a row that is no synonym.</summary>
@@ -101,6 +108,53 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _isSelected, value);
         }
 
+        /// <summary>The width and height in pixels of a hatch pattern's thumbnail: 96.</summary>
+        public const int ThumbnailSize = 96;
+
+        /// <summary>
+        /// Gets whether the row is the header of a group: of a kind of named object of Search Content ("Layers"), or of the
+        /// system variables listed apart ("System Variables"), its count in <see cref="Note"/>. Choosing it collapses or
+        /// expands the group rather than running anything.
+        /// </summary>
+        public bool IsHeader { get; }
+
+        /// <summary>Gets whether a header's group shows its rows; false for a row that is no header.</summary>
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            internal set
+            {
+                if (Set(ref _isExpanded, value))
+                {
+                    Raise(nameof(Chevron));
+                }
+            }
+        }
+
+        /// <summary>Gets the chevron drawn before a header: ▾ expanded, ▸ collapsed; empty for a row that is no header.</summary>
+        public string Chevron =>
+            !IsHeader ? string.Empty
+            : _isExpanded ? "▾"
+            : "▸";
+
+        /// <summary>Gets whether the row stands in a header's group, drawn indented.</summary>
+        public bool IsIndented => Header != null;
+
+        /// <summary>Gets whether the row has a thumbnail to show when the pointer is over it: a hatch pattern's.</summary>
+        public bool HasThumbnail => _thumbnail != null;
+
+        /// <summary>
+        /// Gets the thumbnail of a hatch pattern's row, <see cref="ThumbnailSize"/> pixels square, drawn the first time it is
+        /// asked for from the app's own pattern lines; null for any other row, or where the pattern cannot be drawn.
+        /// </summary>
+        public ImageSource Thumbnail => _thumbnail?.Value;
+
+        /// <summary>The header whose group the row is in; null for a row of no group, or a header.</summary>
+        internal CommandSuggestionViewModel Header { get; set; }
+
+        /// <summary>The kind of named object a header stands for ("Layer"); null for the system variables' header and any other row.</summary>
+        internal string GroupKind { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() => Name + Synonym;
     }
@@ -121,8 +175,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <para>
     /// With <see cref="GlobalSettings.SearchContent"/> on and the list at the command line, below another rule come the named
     /// objects of the drawing, as AutoCAD 2021's Search Content: its blocks, layers, hatch patterns, text styles and dimension
-    /// styles, each with its kind at the right. Choosing one acts on it: a layer, a text style or a dimension style is made
-    /// current, a block is inserted, a hatch pattern is taken by HATCH.
+    /// styles, each kind under a header with its count (design CmdContentSection): a click on the header, or Enter on it,
+    /// collapses or expands the kind, and a kind collapsed stays so while the app runs. A hatch pattern's row shows a thumbnail
+    /// of the pattern when the pointer is over it. Choosing a name acts on it: a layer, a text style or a dimension style is
+    /// made current, a block is inserted, a hatch pattern is taken by HATCH. With Separate commands and system variables on,
+    /// the variables wait under a collapsed header of their own after the commands until Tab expands it
+    /// (<see cref="TabSuggestions"/>), as AutoCAD 2021 shows them.
     /// </para>
     /// <para>
     /// The synonyms built in: ROUND for FILLET, BEVEL for CHAMFER, DELETE and REMOVE for ERASE, DUPLICATE for COPY, FLIP for
@@ -213,7 +271,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["DSETTINGS"] = "GhIconGear",
         };
 
+        private readonly HashSet<string> _collapsedKinds = new HashSet<string>(StringComparer.Ordinal);
         private IReadOnlyList<CommandSuggestionViewModel> _suggestions = Array.Empty<CommandSuggestionViewModel>();
+        private IReadOnlyList<CommandSuggestionViewModel> _allSuggestions = Array.Empty<CommandSuggestionViewModel>();
         private string _lastUnknown;
 
         /// <summary>Gets the rows of the AutoComplete list, empty while it is closed.</summary>
@@ -274,16 +334,99 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 rows.AddRange(SuggestContent(typed, rows.Count == 0));
             }
 
-            if (rows.Count > 0)
+            _allSuggestions = rows;
+            ShowGroups(null);
+        }
+
+        /// <summary>
+        /// Tab with the list open, or with a name typed: where the system variables are listed apart (Separate commands and
+        /// system variables) and wait under their collapsed header, expands it and chooses its first variable, as AutoCAD
+        /// 2021 shows them only after Tab. Each new list starts with them collapsed again.
+        /// </summary>
+        /// <returns>Whether the variables were shown; false where there are none waiting.</returns>
+        public bool TabSuggestions()
+        {
+            if (
+                _settings.SeparateSystemVariables
+                && _settings.SearchSystemVariables
+                && !IsSuggestionListOpen
+                && !IsCommandRunning
+                && CommandText.Trim().Length > 0
+            )
             {
-                rows[0].IsSelected = true;
+                ShowSuggestions();
             }
 
-            Suggestions = rows;
+            CommandSuggestionViewModel header = _allSuggestions.FirstOrDefault(r =>
+                r.IsHeader && r.GroupKind == null && !r.IsExpanded
+            );
+
+            if (header == null || !IsSuggestionListOpen)
+            {
+                return false;
+            }
+
+            header.IsExpanded = true;
+            ShowGroups(_allSuggestions.FirstOrDefault(r => r.Header == header) ?? header);
+            return true;
+        }
+
+        /// <summary>
+        /// Collapses a header's group, or expands it, as a click on the header or Enter on it does; the header stays chosen and
+        /// the list open. A kind of named object collapsed stays collapsed in the lists after, while the app runs.
+        /// </summary>
+        /// <param name="header">The header; a row that is no header is passed over.</param>
+        public void ToggleSuggestionGroup(CommandSuggestionViewModel header)
+        {
+            if (header == null || !header.IsHeader || !_allSuggestions.Contains(header))
+            {
+                return;
+            }
+
+            header.IsExpanded = !header.IsExpanded;
+
+            if (header.GroupKind != null)
+            {
+                if (header.IsExpanded)
+                {
+                    _collapsedKinds.Remove(header.GroupKind);
+                }
+                else
+                {
+                    _collapsedKinds.Add(header.GroupKind);
+                }
+            }
+
+            ShowGroups(header);
+        }
+
+        /// <summary>The rows of the list shown: every row but those of a collapsed group, the row given chosen, else the first.</summary>
+        private void ShowGroups(CommandSuggestionViewModel chosen)
+        {
+            List<CommandSuggestionViewModel> shown = _allSuggestions
+                .Where(r => r.Header == null || r.Header.IsExpanded)
+                .ToList();
+
+            if (chosen == null || !shown.Contains(chosen))
+            {
+                chosen = shown.FirstOrDefault();
+            }
+
+            foreach (CommandSuggestionViewModel row in _allSuggestions)
+            {
+                row.IsSelected = row == chosen;
+            }
+
+            Suggestions = shown;
+            Raise(nameof(SelectedSuggestion));
         }
 
         /// <summary>Closes the AutoComplete list, as Esc does.</summary>
-        public void CloseSuggestions() => Suggestions = Array.Empty<CommandSuggestionViewModel>();
+        public void CloseSuggestions()
+        {
+            _allSuggestions = Array.Empty<CommandSuggestionViewModel>();
+            Suggestions = Array.Empty<CommandSuggestionViewModel>();
+        }
 
         /// <summary>Moves the row chosen down or up the list, as the arrows do, stopping at either end.</summary>
         /// <param name="step">1 for down, -1 for up.</param>
@@ -307,12 +450,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(SelectedSuggestion));
         }
 
-        /// <summary>Runs a row of the list, or the row chosen where none is given, as Enter, Space or a click does; the list closes.</summary>
+        /// <summary>
+        /// Runs a row of the list, or the row chosen where none is given, as Enter, Space or a click does; the list closes. A
+        /// header is collapsed or expanded instead (<see cref="ToggleSuggestionGroup"/>), the list kept open.
+        /// </summary>
         /// <param name="row">The row; null for the one chosen.</param>
         /// <returns>False where there is no row to run.</returns>
         public bool RunSuggestion(CommandSuggestionViewModel row = null)
         {
             row = row ?? SelectedSuggestion;
+
+            if (row != null && row.IsHeader)
+            {
+                ToggleSuggestionGroup(row);
+                return true;
+            }
+
             CloseSuggestions();
 
             if (row == null)
@@ -762,11 +915,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 AddInside(named);
             }
 
-            // The variables apart, below a rule: those that begin with the letters, then those with them inside.
+            // The variables apart, under a header of their own below a rule, collapsed until Tab: those that begin with the
+            // letters, then those with them inside.
             if (apart)
             {
                 List<Candidate> variables = candidates.Where(c => c.IsVariable).ToList();
-                bool rule = rows.Count > 0;
                 int before = rows.Count;
 
                 foreach (
@@ -775,20 +928,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         .OrderBy(c => c.Name, StringComparer.Ordinal)
                 )
                 {
-                    Add(candidate, 0, null, rule && rows.Count == before);
+                    Add(candidate, 0, null, false);
                 }
 
                 if (_settings.MidStringSearch)
                 {
-                    AddInside(variables);
+                    AddInside(variables, false);
+                }
+
+                if (rows.Count > before)
+                {
+                    var header = new CommandSuggestionViewModel(
+                        "System Variables",
+                        string.Empty,
+                        false,
+                        0,
+                        0,
+                        (rows.Count - before).ToString(CultureInfo.InvariantCulture),
+                        null,
+                        before > 0,
+                        null,
+                        isHeader: true
+                    );
+
+                    for (int i = before; i < rows.Count; i++)
+                    {
+                        rows[i].Header = header;
+                    }
+
+                    rows.Insert(before, header);
                 }
             }
 
             return rows;
 
-            void AddInside(List<Candidate> from)
+            void AddInside(List<Candidate> from, bool rule = true)
             {
-                bool first = true;
+                bool first = rule;
 
                 foreach (
                     Candidate candidate in from.Where(c =>
@@ -872,6 +1048,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .Where(k => k != null)
                 .ToList();
 
+            int listed = 0;
+
             foreach (ContentKind kind in ordered)
             {
                 bool every = kind.Keywords.Contains(key);
@@ -887,22 +1065,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         )
                         : Enumerable.Empty<string>();
 
-                foreach (
-                    string name in begin
-                        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-                        .ThenBy(n => n, StringComparer.Ordinal)
-                        .Concat(
-                            inside
-                                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-                                .ThenBy(n => n, StringComparer.Ordinal)
-                        )
+                List<string> found = begin
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(n => n, StringComparer.Ordinal)
+                    .Concat(
+                        inside.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal)
+                    )
+                    .Take(MostRows - listed)
+                    .ToList();
+
+                if (found.Count == 0)
+                {
+                    continue;
+                }
+
+                // The kind's header: its name, its count at the right, expanded unless the user collapsed the kind.
+                var header = new CommandSuggestionViewModel(
+                    kind.Plural,
+                    string.Empty,
+                    false,
+                    0,
+                    0,
+                    found.Count.ToString(CultureInfo.InvariantCulture),
+                    null,
+                    false,
+                    kind.IconKey,
+                    null,
+                    !first && rows.Count == 0,
+                    null,
+                    true
                 )
                 {
-                    if (rows.Count == MostRows)
-                    {
-                        return rows;
-                    }
+                    GroupKind = kind.Name,
+                    IsExpanded = !_collapsedKinds.Contains(kind.Name),
+                };
+                rows.Add(header);
 
+                foreach (string name in found)
+                {
                     int hit = Math.Max(0, name.IndexOf(key, StringComparison.OrdinalIgnoreCase));
                     int length = name.IndexOf(key, StringComparison.OrdinalIgnoreCase) < 0 ? 0 : key.Length;
                     string chosen = name;
@@ -918,14 +1118,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             false,
                             kind.IconKey,
                             kind.Name,
-                            !first && rows.Count == 0,
-                            () => ActOnContent(kind.Name, chosen)
+                            false,
+                            () => ActOnContent(kind.Name, chosen),
+                            false,
+                            kind.Name == "Hatch" ? () => HatchThumbnail(chosen) : (Func<ImageSource>)null
                         )
+                        {
+                            Header = header,
+                        }
                     );
+                }
+
+                listed += found.Count;
+
+                if (listed == MostRows)
+                {
+                    break;
                 }
             }
 
             return rows;
+        }
+
+        /// <summary>
+        /// The thumbnail of a hatch pattern of the app's own set, shown when the pointer is over its row: a square of 25 units
+        /// hatched with the pattern at scale 1, drawn by the canvas's renderer on the dark of the dialogs.
+        /// </summary>
+        private static ImageSource HatchThumbnail(string pattern)
+        {
+            try
+            {
+                var settings = new CadHatchSettings { Type = CadHatchType.Pattern, PatternName = pattern };
+                return HatchSettingsViewModel.Render(
+                    settings.Preview(null),
+                    CommandSuggestionViewModel.ThumbnailSize,
+                    CommandSuggestionViewModel.ThumbnailSize
+                );
+            }
+            catch (Exception e) when (e is InvalidOperationException || e is ArgumentException)
+            {
+                GeometryHelperLog.Debug(
+                    "MainViewModel: the thumbnail of " + pattern + " was not drawn (" + e.Message + ")."
+                );
+                return null;
+            }
         }
 
         /// <summary>
@@ -999,6 +1235,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             public string Name { get; }
+
+            /// <summary>The name of the kind's header: Blocks, Layers, Hatch Patterns, Text Styles, Dimension Styles.</summary>
+            public string Plural =>
+                Name == "Hatch" ? "Hatch Patterns"
+                : Name == "Dim Style" ? "Dimension Styles"
+                : Name + "s";
 
             public string[] Keywords { get; }
 

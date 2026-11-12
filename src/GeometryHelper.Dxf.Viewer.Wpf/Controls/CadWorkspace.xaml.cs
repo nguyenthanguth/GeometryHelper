@@ -394,6 +394,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 modifiers == ModifierKeys.None
                 && key == Key.Tab
                 && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
+                && !_model.IsCommandRunning
+                && _model.TabSuggestions()
+            )
+            {
+                // Tab shows the system variables listed apart, as AutoCAD 2021's Separate commands and system variables.
+                _suggest.Stop();
+                BringChosenIntoView();
+                e.Handled = true;
+            }
+            else if (
+                modifiers == ModifierKeys.None
+                && key == Key.Tab
+                && (Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView)
                 && _model.TabDynamicInput()
             )
             {
