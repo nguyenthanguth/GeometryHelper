@@ -123,18 +123,20 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                // AutoCAD 2021 (DIMCONTINUEMODE 1) draws the row in the style of the dimension it goes on from, with its overrides,
-                // and DIMCONTINUE each linear and angular dimension of it with DIMTMOVE 1 where that is nought, written first
-                // (279 1, then 41 and 176 the base has): words too wide for a short one stand over its line past a leader.
+                // AutoCAD 2021 (DIMCONTINUEMODE 1) draws the row in the style of the dimension it goes on from, with its overrides
+                // and its DIMSCALE, on its layer whatever layer is current or DIMLAYER names, and DIMCONTINUE each linear and
+                // angular dimension of it with DIMTMOVE 1 where that is nought, written first (279 1, then 40, 41 and 176 the base
+                // has): words too wide for a short one stand over its line past a leader.
                 DxfDimStyleTableRecord style = RowStyle(c, chain.Base);
                 DxfDimStyleTableRecord moving = RowStyle(c, chain.Base);
+                string layer = chain.Base?.Layer;
 
                 if (!baseline && moving.Dimtmove == 0)
                 {
                     moving.Keep(DxfDimVariable.Named("Dimtmove"), 1);
                 }
 
-                double spacing = baseline ? style.Dimdli * (Dimscale(c) > 0.0 ? Dimscale(c) : 1.0) : 0.0;
+                double spacing = baseline ? style.Dimdli * DrawnScale(c, style) : 0.0;
                 Chain from = chain;
 
                 // The dimension the point at the cursor would add to the row, as it is added.
@@ -212,7 +214,8 @@ namespace GeometryHelper.Dxf.Viewer
                             next.LeaderEnd,
                             null,
                             null,
-                            true
+                            true,
+                            layer
                         );
                     }
                     else if (chain.Angular)
@@ -225,7 +228,8 @@ namespace GeometryHelper.Dxf.Viewer
                             c.Input.Point,
                             next.Radius,
                             true,
-                            first
+                            first,
+                            layer
                         );
                     }
                     else
@@ -238,7 +242,8 @@ namespace GeometryHelper.Dxf.Viewer
                             c.Input.Point,
                             next.Line,
                             true,
-                            first
+                            first,
+                            layer
                         );
                     }
 
@@ -484,8 +489,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Makes a rotated dimension from one origin to another along a direction, its line through a point, as DIMLINEAR makes
         /// one; "Dimension text = ..." written where <paramref name="echo"/> says, the override of the group
-        /// <paramref name="first"/> written before the rest. The handle of the dimension, or null where it measures nothing or
-        /// was not made.
+        /// <paramref name="first"/> written before the rest, on <paramref name="layer"/> where one is given, as a row goes on its
+        /// base's. The handle of the dimension, or null where it measures nothing or was not made.
         /// </summary>
         private static string LinearDimension(
             CadCommandContext c,
@@ -495,7 +500,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 p2,
             GeoPoint2 onLine,
             bool echo,
-            int first = 0
+            int first = 0,
+            string layer = null
         )
         {
             List<DxfEntity> picture = LinearDimensionMade(
@@ -524,7 +530,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Dimension text = " + words);
             }
 
-            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first));
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first, onLayer: layer));
         }
 
         /// <summary>The picture of the rotated dimension <see cref="LinearDimension"/> makes, and the dimension; null where it measures nothing.</summary>
@@ -554,13 +560,13 @@ namespace GeometryHelper.Dxf.Viewer
             made = new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), string.Empty, null);
             words = Words(style, made, measured, null, string.Empty);
             double textHeight = TextHeight(c, style);
-            return Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words);
+            return Linear(style, DrawnScale(c, style), textHeight, p1, p2, q1, q2, words);
         }
 
         /// <summary>
         /// Makes a three-point angular dimension about a vertex between two points, of the smaller of the two angles they make,
-        /// its arc at a radius, the override of the group <paramref name="first"/> written before the rest; the handle of the
-        /// dimension, or null where it measures nothing.
+        /// its arc at a radius, the override of the group <paramref name="first"/> written before the rest, on
+        /// <paramref name="layer"/> where one is given; the handle of the dimension, or null where it measures nothing.
         /// </summary>
         private static string AngularDimension(
             CadCommandContext c,
@@ -570,7 +576,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 b,
             double radius,
             bool echo,
-            int first = 0
+            int first = 0,
+            string layer = null
         )
         {
             List<DxfEntity> picture = AngularDimensionMade(
@@ -599,7 +606,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Dimension text = " + words);
             }
 
-            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first));
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, first, onLayer: layer));
         }
 
         /// <summary>The picture of the angular dimension <see cref="AngularDimension"/> makes, and the dimension; null where it measures nothing.</summary>
@@ -644,7 +651,7 @@ namespace GeometryHelper.Dxf.Viewer
             made = new DxfPoint3AngularDimension(P3(vertex), P3(a), P3(b), P3(arc), string.Empty, null);
             words = Words(style, made, sweep, null, string.Empty);
             double textHeight = TextHeight(c, style);
-            return Angular(style, Dimscale(c), textHeight, vertex, radius, from, sweep, near, far, words);
+            return Angular(style, DrawnScale(c, style), textHeight, vertex, radius, from, sweep, near, far, words);
         }
 
         /// <summary>

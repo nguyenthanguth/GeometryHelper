@@ -237,7 +237,7 @@ read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its l
 point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
 a landing on to the words. Words DIMTOH keeps level stand DIMEXE, half DIMGAP and their height out instead, square off
 the middle of the line and level at any angle of it: that "4" 6.5625 below, and the "0.5000" of a continued dimension
-of 0.5 in acad.dwt's Standard on a leader straight up from the middle to 0.4088 (txt.shx's 0.1838 high words), a level
+of 0.5 in acad.dwt's Standard on a leader straight up from the middle to 0.4088 (Arial's 0.1838 high words, acad.dwt's Standard text style being Arial), a level
 landing two gaps long on away from the line, the words a gap past it; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
 the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
 DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
@@ -249,7 +249,9 @@ DIMLINEAR asks `Specify dimension line location or [Mtext/Text/Angle/Horizontal/
 text:`), and Rotated sets the line's angle (`Specify angle of dimension line <0>:`): 0,0 to 100,0 rotated 30 measures
 86.6025. Words turned by Angle stand centred on the line whatever DIMTAD says, the line broken where their turned box
 and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65 each side of the middle. Every dimension
-made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block.
+made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block; words the
+fit puts past a leader under DIMTMOVE 1 are written by their start, level with their middle, as AutoCAD 2021 writes
+them: that "0.5000" of a continued dimension of 0.5, its middle at (100.8933, 20.4088), as (100.52, 20.4088).
 DIMTFILL draws a mask behind the words, the MTEXT's background 1.25 times their height, of the drawing's background for 1
 and of DIMTFILLCLR for 2; DIMTXTDIRECTION, words read from right to left, turns them half round where they stand, a
 level dimension's to 180 degrees and an upright one's to 270, as AutoCAD 2021 writes them into its block; under DIMTMOVE
@@ -321,8 +323,10 @@ dimension is drawn by the header all the same, in the style fallen back on (Stan
 than that style's written; a leader is compared with the same style. DIMSCALE 0 draws at 1 in model
 space and, through a viewport, at one over the viewport's scale, as a leader does: 2 through one of 1:2, written as
 `1070 40, 1040 2`, every kind of dimension alike. As AutoCAD 2021 (DIMCONTINUEMODE 1), DIMCONTINUE and DIMBASELINE draw
-in the style of the dimension they go on from, with its overrides, whatever style is current: based on a dimension made
-with DIMASZ 4 over ISO-25, a dimension writes `41` again though DIMASZ is back to 2.5. DIMCONTINUE draws each linear
+in the style of the dimension they go on from, with its overrides and its DIMSCALE, on its layer, whatever style, scale
+and layer are current and whatever DIM's LAyer names: based on a dimension made with DIMASZ 4 over ISO-25, a dimension
+writes `41` again though DIMASZ is back to 2.5, and based on one made on L1 at DIMSCALE 2, it goes on L1 and writes
+`1070 40, 1040 2`, DIMBASELINE's line twice DIMDLI further out. DIMCONTINUE draws each linear
 and angular dimension with DIMTMOVE 1 where that is nought and writes it first (`279 41` from that base): words too wide
 for a continued dimension of 0.5 stand over its line past a leader from its middle. DIMBASELINE adds nothing of its own,
 nor do the rows of ordinate dimensions and QDIM; a style that holds DIMTMOVE 1 already gets no `279`. DIMRADIUS and

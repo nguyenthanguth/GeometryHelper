@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A linear dimension the presenter makes with its words past a leader under DIMTMOVE 1 writes their start as
+group 11, level with their middle, as AutoCAD 2021 writes it, where the presenter wrote their middle: the "0.5000" of the
+dimension of 0.5 DIMCONTINUE adds after one of 100 in acad.dwt's Standard, its middle at (100.8933, 20.4088), is written
+as (100.52, 20.4088). Words of DIMTMOVE 0 and 2, words too near the line for a leader, and those of the other kinds keep
+their middle, as in AutoCAD.
+
+**FIXED.** DIMCONTINUE and DIMBASELINE draw at the DIMSCALE of the dimension they go on from and put the new dimensions on
+its layer, as AutoCAD 2021 does under DIMCONTINUEMODE 1, where the presenter took the current DIMSCALE and layer (and DIM's
+LAyer): from a dimension made on L1 at DIMSCALE 2 they go on L1 and write `1070 40, 1040 2` with L2 current at 1, a
+baseline row twice DIMDLI further out each time; linear, angular and ordinate rows alike.
+
 **CHANGED.** A hook of the presenter's LEADER and QLEADER has a vertex of its own wherever AutoCAD 2021 writes one: on a
 leader to a frame, new or copied, and on any leader made in a UCS other than the world's, DIMASZ short of the end along
 the UCS's X, where these leaders kept the two points picked. `{\Fgdt;j}%%v0.1` copied to a leader from (200, 40) to
