@@ -15,6 +15,15 @@ place until it stops, and a `using` block stops it when the work throws. `CadDoc
 `CadDocument.SaveAs(path, progress)` and `CadDrawingFile.Open(path, progress)` tell any `IProgress<double>` how far they
 have got, from 0 to 1 and never back: a DWG of 100 000 lines about a hundred times in whole percent, with the same bytes
 written and read and the same times as without.
+**NEW.** In the presenter Ctrl+2 shows the Drawings list when it is hidden and hides it when it is shown. It is a
+default key of the Shortcuts page of Global settings, under DRAWINGS, and can be given another key like any other. A
+settings file saved before keeps its own table of keys, and now lists the default keys it has seen (`knownDefaultKeys`);
+a default key not on the list is added once when its key is free and no key is bound to its command, so an old file
+with Ctrl+1 and F3 alone has Ctrl+2 after it is read, while a Ctrl+2 cleared or given to another command stays so.
+
+**FIXED.** In the presenter Ctrl+1 only showed Properties; as AutoCAD's does, it now hides it when it is shown and shows
+it when it is hidden, so that one key runs both ways. PROPERTIES typed still shows Properties and PROPERTIESCLOSE still
+hides it.
 
 **NEW.** In a layout of the presenter, every viewport whose grid is on draws it in its frame, whether it is worked
 through or not, on the paper and through another viewport, as AutoCAD 2021 keeps a grid by viewport. Only the grid of

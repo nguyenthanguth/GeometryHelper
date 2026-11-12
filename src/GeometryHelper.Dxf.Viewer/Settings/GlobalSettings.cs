@@ -1024,6 +1024,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.Close();
+            w.OpenList("knownDefaultKeys");
+
+            foreach (string key in CadShortcuts.Default.Keys.Keys)
+            {
+                w.Value(null, key);
+            }
+
+            w.CloseList();
             w.Close();
             w.Open("saveAndExport");
             w.Value("saveFolder", _saveFolder);
@@ -1369,6 +1377,7 @@ namespace GeometryHelper.Dxf.Viewer
                         Pairs(shortcuts.Element("aliases")) ?? _s.Aliases,
                         Pairs(shortcuts.Element("keys")) ?? _s.Keys
                     );
+                    MergeNewDefaultKeys(shortcuts.Element("knownDefaultKeys"));
                 }
                 catch (ArgumentException exception)
                 {
@@ -1379,6 +1388,43 @@ namespace GeometryHelper.Dxf.Viewer
                             + exception.Message.Split('\n')[0].Trim()
                             + "); AutoCAD's are used."
                     );
+                }
+            }
+
+            /// <summary>
+            /// Gives the file the default keys added since it was saved. The file lists the default keys it has seen
+            /// (<c>knownDefaultKeys</c>); one not on the list is added when its key is free and no key is bound to its command
+            /// yet, so a key the user cleared or gave away is never put back. A file with no list has seen the defaults but Ctrl+2,
+            /// DRAWINGS, which gets it once: a file saved with Ctrl+1 and F3 alone also has Ctrl+2 after it is read.
+            /// </summary>
+            private void MergeNewDefaultKeys(XElement known)
+            {
+                IReadOnlyDictionary<string, string> defaults = CadShortcuts.Default.Keys;
+                var seen = new HashSet<string>(
+                    known != null
+                        ? known.Elements().Select(e => e.Value)
+                        : defaults.Keys.Where(k => !string.Equals(k, "Ctrl+2", StringComparison.OrdinalIgnoreCase)),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                var keys = _s.Keys.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+                bool added = false;
+
+                foreach (KeyValuePair<string, string> pair in defaults)
+                {
+                    if (
+                        !seen.Contains(pair.Key)
+                        && !keys.ContainsKey(pair.Key)
+                        && !keys.Values.Contains(pair.Value, StringComparer.OrdinalIgnoreCase)
+                    )
+                    {
+                        keys[pair.Key] = pair.Value;
+                        added = true;
+                    }
+                }
+
+                if (added)
+                {
+                    _s.SetShortcuts(_s.Aliases, keys);
                 }
             }
 
