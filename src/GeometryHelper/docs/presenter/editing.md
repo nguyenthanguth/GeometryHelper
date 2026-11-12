@@ -219,7 +219,9 @@ is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away f
 (4); DIMJUST puts them in the middle, next to an extension line or over one; and where the words and the arrowheads do
 not both fit, DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL say what moves outside, DIMTIH and DIMTOH whether the words stay
 level. With ISO-25's sizes a dimension of 100 has its words "100" in the middle, one of 5 its words inside and its
-arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. The line starts
+arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. The arrowheads
+need two lengths and two gaps between the extension lines, 6.25 with those sizes (outside at 6.24, inside at 6.26), and
+words their width and a gap each side, above the line as on it. The line starts
 at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small, Dot small blank, Integral and None,
 which take no room and never move out. Words on the line (DIMTAD 0) fit between the arrowheads with two gaps each side:
 "9" of ghsimplex, 1.548 wide, moves out of a dimension of 9. Under DIMATFIT 3 words wider than the arrowheads' room stay
@@ -233,7 +235,10 @@ clear of them, and run on to a gap short of them past an end). Under 2 the fit p
 points, DIMEXE, one and a half DIMGAP and half their height out (their height more where they stand below it as they
 read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its line; DIMTEDIT puts their middle at the
 point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
-a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
+a landing on to the words. Words DIMTOH keeps level stand DIMEXE, half DIMGAP and their height out instead, square off
+the middle of the line and level at any angle of it: that "4" 6.5625 below, and the "0.5000" of a continued dimension
+of 0.5 in acad.dwt's Standard on a leader straight up from the middle to 0.4088 (txt.shx's 0.1838 high words), a level
+landing two gaps long on away from the line, the words a gap past it; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
 the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
 DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
 top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
@@ -315,12 +320,14 @@ red line, and writes `1070 41, 1040 5` then `1070 176, 1070 1`. Where the drawin
 dimension is drawn by the header all the same, in the style fallen back on (Standard, else the first), each variable other
 than that style's written; a leader is compared with the same style. DIMSCALE 0 draws at 1 in model
 space and, through a viewport, at one over the viewport's scale, as a leader does: 2 through one of 1:2, written as
-`1070 40, 1040 2`, every kind of dimension alike. As AutoCAD 2021, each linear and angular dimension DIMCONTINUE and
-DIMBASELINE make is drawn with DIMTMOVE 1 where it is nought and writes it, DIMCONTINUE first (`279 41 176` with DIMASZ
-and DIMCLRD typed), DIMBASELINE in the order of the groups (`41 176 279`): words too wide for a continued dimension of 0.5
-stand over its line past a leader from its middle. DIMRADIUS and DIMDIAMETER write DIMUPT 1 (`1070 288, 1070 1`), and
-DIMJOGGED writes DIMJOGANG whatever the style has (`1070 50, 1040 45`), so that a change of the style's jog angle leaves
-it as it was made.
+`1070 40, 1040 2`, every kind of dimension alike. As AutoCAD 2021 (DIMCONTINUEMODE 1), DIMCONTINUE and DIMBASELINE draw
+in the style of the dimension they go on from, with its overrides, whatever style is current: based on a dimension made
+with DIMASZ 4 over ISO-25, a dimension writes `41` again though DIMASZ is back to 2.5. DIMCONTINUE draws each linear
+and angular dimension with DIMTMOVE 1 where that is nought and writes it first (`279 41` from that base): words too wide
+for a continued dimension of 0.5 stand over its line past a leader from its middle. DIMBASELINE adds nothing of its own,
+nor do the rows of ordinate dimensions and QDIM; a style that holds DIMTMOVE 1 already gets no `279`. DIMRADIUS and
+DIMDIAMETER write DIMUPT 1 (`1070 288, 1070 1`) where the style has it off, and DIMJOGGED writes DIMJOGANG whatever the
+style has (`1070 50, 1040 45`), so that a change of the style's jog angle leaves it as it was made.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
