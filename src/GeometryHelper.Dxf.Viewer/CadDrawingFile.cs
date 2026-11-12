@@ -113,24 +113,53 @@ namespace GeometryHelper.Dxf.Viewer
         /// was or the file is a DXF. A drawing the DWG writer fails on is refused with a <see cref="NotSupportedException"/>
         /// that says why, as the save commands catch it, and the file is not touched.
         /// </summary>
-        internal static string Save(DxfDatabase database, string path) => Save(database, path, null);
+        internal static string Save(DxfDatabase database, string path) => Save(database, path, null, null, null);
 
         /// <summary>
         /// Saves a database as <see cref="Save(DxfDatabase, string)"/> does, telling how far it has got as a share from 0 to 1:
         /// in thousandths, never going back, 0 first and 1 at the end. A DWG tells it as its text is taken apart and its objects
-        /// written; a DXF, written at once from its bytes, tells 0 and 1.
+        /// written; a DXF, written at once from its bytes, tells 0 and 1. A DXF is written in the version given, as
+        /// <see cref="DxfDatabase.Save(string, string)"/> writes it, what could not be written there told in <paramref name="told"/>;
+        /// in its own version where none is given. A DWG is written as AutoCAD 2018 only.
         /// </summary>
-        internal static string Save(DxfDatabase database, string path, IProgress<double> progress)
+        /// <exception cref="NotSupportedException">Thrown when a version other than AutoCAD 2018 is given for a DWG.</exception>
+        internal static string Save(
+            DxfDatabase database,
+            string path,
+            string version,
+            IList<string> told,
+            IProgress<double> progress
+        )
         {
             progress?.Report(0.0);
 
             if (!IsDwgName(path))
             {
-                database.Save(path);
+                if (version == null)
+                {
+                    database.Save(path);
+                }
+                else
+                {
+                    foreach (string sentence in database.Save(path, version))
+                    {
+                        told?.Add(sentence);
+                    }
+                }
+
                 progress?.Report(1.0);
                 return string.Empty;
             }
 
+            if (
+                version != null
+                && !string.Equals(version, DwgWriter.DefaultVersion, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                throw new NotSupportedException(
+                    "A DWG is written as AutoCAD 2018 (" + DwgWriter.DefaultVersion + ") only, not as " + version + "."
+                );
+            }
             byte[] bytes;
             IDictionary<string, int> left;
 

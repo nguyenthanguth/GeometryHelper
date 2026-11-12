@@ -11,7 +11,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 {
     /// <summary>
     /// DWG in the window, as AutoCAD 2021 takes it: a DWG opened, listed with the DWGs of its folder and saved back as a DWG;
-    /// Save As offering AutoCAD 2018 Drawing (*.dwg) first, then the drawing's own DXF; FILEDIA 0 asking on the command line
+    /// Save As offering AutoCAD 2018 Drawing (*.dwg) first, then a DXF of each version; FILEDIA 0 asking on the command line
     /// the file of QSAVE of a new drawing and of the Blocks palette's Browse…; a DWG that cannot be read said, not recovered.
     /// </summary>
     public class DwgFileWindowTests
@@ -27,6 +27,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         private static string Magic(string path) => Encoding.ASCII.GetString(File.ReadAllBytes(path), 0, 6);
+
+        /// <summary>The types of Save Drawing As: the DWG of AutoCAD 2018, then a DXF of each version, the newest first.</summary>
+        private static readonly string[] DxfTypes =
+        {
+            "AutoCAD 2018 Drawing (*.dwg)",
+            "AutoCAD 2018 DXF (*.dxf)",
+            "AutoCAD 2013/LT2013 DXF (*.dxf)",
+            "AutoCAD 2010/LT2010 DXF (*.dxf)",
+            "AutoCAD 2007/LT2007 DXF (*.dxf)",
+            "AutoCAD 2004/LT2004 DXF (*.dxf)",
+            "AutoCAD 2000/LT2000 DXF (*.dxf)",
+        };
 
         [Fact]
         public void ADwgOpened_IsShownWithTheDrawingFilesOfItsFolder_AndSavedBackAsADwg()
@@ -63,7 +75,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void SaveAs_OffersTheDwgOfAutoCad2018First_ThenTheDrawingsOwnDxf_TheTypeOfItsFileChosen()
+        public void SaveAs_OffersTheDwgOfAutoCad2018First_ThenADxfOfEachVersion_TheTypeOfItsFileChosen()
         {
             using (var folder = new TestFolder())
             {
@@ -74,17 +86,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 CadExportJob job = model.CreateSaveAsJob();
 
                 Assert.Equal("Save Drawing As", job.Title);
-                Assert.Equal(new[] { "AutoCAD 2018 Drawing (*.dwg)", "AutoCAD 2018 DXF (*.dxf)" }, job.FileTypes);
+                Assert.Equal(DxfTypes, job.FileTypes);
                 Assert.Equal(CadExportJob.Dwg, job.FileType);
                 Assert.Equal(Path.Combine(folder.FullPath, "plan.dwg"), job.FileName);
 
                 model.NewDrawing();
                 job = model.CreateSaveAsJob();
 
-                Assert.Equal(
-                    new[] { "AutoCAD 2018 Drawing (*.dwg)", "AutoCAD 2013/LT2013 DXF (*.dxf)" },
-                    job.FileTypes
-                );
+                Assert.Equal(DxfTypes, job.FileTypes);
                 // A new drawing is a DWG as in AutoCAD, whose DWGNAME of a new drawing is Drawing1.dwg.
                 Assert.Equal(CadExportJob.Dwg, job.FileType);
                 Assert.Equal("Drawing1.dwg", job.FileName);

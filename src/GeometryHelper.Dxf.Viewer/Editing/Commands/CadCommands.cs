@@ -295,6 +295,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write("Left out of the DWG, not written yet: " + c.Document.LeftOutOfDwg + ".");
             }
+
+            foreach (string sentence in c.Document.LeftOutOfDxf)
+            {
+                c.Write(sentence);
+            }
         }
 
         private static IEnumerable<CadPrompt> Regen(CadCommandContext c)

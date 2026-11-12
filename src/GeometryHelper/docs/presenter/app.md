@@ -149,13 +149,23 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   the window opens; the file list lists the DWG and DXF files of the folder. A file is read as a DWG where its first bytes
   say so ("AC1032" of AutoCAD 2018), whatever its name; a DWG of a version not read, R14 among them, is said on the command
   line, "Cannot open old.dwg: The DWG version AC1014 (R14) is not read yet; …", and not opened as a recovered DXF.
-- Save As (Ctrl+Shift+S, SAVEAS) shows Save Drawing As with AutoCAD 2018 Drawing (*.dwg) first and the DXF of the
-  drawing's own version after it, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for a new drawing; the type of the drawing's file is
-  chosen first. A name ending in .dwg is written as a DWG, any other as a DXF; the DXF is written in the drawing's own
-  version, since the presenter does not convert a drawing to another. Save (Ctrl+S, QSAVE) of a drawing opened from a DWG
-  writes it back as a DWG.
+- Save As (Ctrl+Shift+S, SAVEAS) shows Save Drawing As with AutoCAD 2018 Drawing (*.dwg) first and a DXF of each version after it,
+  the newest first, as AutoCAD 2021 names them: AutoCAD 2018 DXF, AutoCAD 2013/LT2013 DXF, 2010/LT2010, 2007/LT2007,
+  2004/LT2004 and 2000/LT2000 (*.dxf); the type of the drawing's file is chosen first, the DXF of the version it was last
+  saved as or of its own version, and DWG for a drawing opened from a DWG and for a new one. The type chosen is what is written:
+  `CadDocument.SaveAs(path, version, progress)` turns the drawing into that version, as `DxfDatabase.Save(path, version)`
+  does, and Save (Ctrl+S, QSAVE) writes it so again (`CadDocument.SaveVersion`), as AutoCAD's QSAVE keeps the format of the
+  last Save As. A name ending in .dwg is written as a DWG, of AutoCAD 2018 only, any other as a DXF; a DXF type chosen for a
+  name ending in .dwg is refused, "Cannot save a.dwg: A DWG is written as AutoCAD 2018 (AC1032) only, not as AC1024." Save of a
+  drawing opened from a DWG writes it back as a DWG. A drawing of R14, which the list has no type for, is offered "DXF (*.dxf)"
+  as well, its own. With FILEDIA 0 the file is asked and the version is the one last chosen, the drawing's own where none was.
+  R12 (AutoCAD R12/LT2 DXF) is not offered: the library does not write it yet.
+- What the version could not hold is said after "Saved plan.dxf.", a sentence each (`CadDocument.LeftOutOfDxf`): "Left out of
+  the drawing, which AC1015 cannot hold as it is: 3DSOLID 2, VISUALSTYLE 24." or "Replaced by the block each is drawn with,
+  written as AC1015 cannot write it: ACAD_TABLE 2.".
 - What the DWG writer does not write yet is left out of the file and said after "Saved plan.dwg.": "Left out of the DWG,
-  not written yet: RASTERVARIABLES 1." (`CadDocument.LeftOutOfDwg` holds it). Saved as a DXF, nothing is left out.
+  not written yet: RASTERVARIABLES 1." (`CadDocument.LeftOutOfDwg` holds it). Saved as a DXF of the drawing's own version,
+  nothing is left out.
 - A DWG is attached by XATTACH, -XREF and the External References palette, and inserted by INSERT, -INSERT and the Blocks
   palette's Other drawing, as a DXF is; WBLOCK writes a DWG where the file named ends in .dwg.
 - Autosave keeps its copies of a DWG as DXF files beside it, the DWG's extension kept in their name:

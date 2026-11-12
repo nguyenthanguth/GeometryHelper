@@ -199,6 +199,122 @@ namespace GeometryHelper.Dxf
         public void Save(Stream stream) => File.Save(stream);
 
         /// <summary>
+        /// Saves the drawing to a path in a version of AutoCAD, as AutoCAD's <c>SaveAs(path, version)</c> does, replacing whatever
+        /// is there: R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032). The drawing
+        /// in the memory stays as it is, of its own version; <see cref="Filename"/> is the path from then on.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="version">The version, as <see cref="Version"/> names it, letters of either case.</param>
+        /// <returns>What could not be written in the version, a sentence each: the kinds left out and the kinds written another way;
+        /// empty where nothing was.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path or the version is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those six.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the drawing is of R12 to R14 and the version is not its own: its
+        /// records are not those of R2000 and later, and are saved as they are.</exception>
+        /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
+        /// <remarks>
+        /// <para>
+        /// A drawing saved in its own version is written as <see cref="Save(string)"/> writes it, byte for byte. Saved in another,
+        /// every kind of entity and object stays, as AutoCAD keeps them when it saves an older version, with the groups the version
+        /// has: the header variables, the true colours and transparency before R2004, the background of an MTEXT, the gradient of
+        /// a hatch, the lighting of a viewport and the other groups a later version brought are left out, and the counts of each
+        /// class of objects, which AutoCAD opens no drawing from R2004 on without, are made. A drawing of R2000 saved as R2018
+        /// is given what R2018 writes that it did not hold, and no more.
+        /// </para>
+        /// <para>
+        /// What cannot be given the form of the older version is left out or written another way, and said in the result: a table,
+        /// whose cells are in a form of their own on either side of R2007, is written as the block it is drawn with; the visual
+        /// styles, which have a form of their own in each version but R2013 and R2018, are left out, and AutoCAD makes its own
+        /// on opening; the ACIS body of a solid of R2013 or later, binary, cannot be written as the text of R2010 and before; the
+        /// columns of an MTEXT and the lines of an attribute, which R2018 holds in an object embedded in it, are written as R2013
+        /// writes them. Text beyond the code page of a drawing before R2007 is written as the escapes <c>\U+XXXX</c>, as
+        /// <see cref="Parse(string)"/> keeps it.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<string> Save(string path, string version)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            DxfFile converted = Converted(version, out IReadOnlyList<string> said);
+
+            if (converted == null)
+            {
+                Save(path);
+            }
+            else
+            {
+                converted.Save(path);
+                _filename = Path.GetFullPath(path);
+            }
+
+            return said;
+        }
+
+        /// <summary>
+        /// Saves the drawing to a stream, where it stands, in a version of AutoCAD, as <see cref="Save(string, string)"/> saves it.
+        /// </summary>
+        /// <param name="stream">The stream; it is written to and left open.</param>
+        /// <param name="version">The version, as <see cref="Version"/> names it.</param>
+        /// <returns>What could not be written in the version, a sentence each; empty where nothing was.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the stream or the version is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those six.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the drawing is of R12 to R14 and the version is not its own.</exception>
+        public IReadOnlyList<string> Save(Stream stream, string version)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            DxfFile converted = Converted(version, out IReadOnlyList<string> said);
+            (converted ?? File).Save(stream);
+            return said;
+        }
+
+        /// <summary>The drawing in the version, as a file of its own; null where it is the drawing's own version, which is saved as it stands.</summary>
+        private DxfFile Converted(string version, out IReadOnlyList<string> said)
+        {
+            if (version == null)
+            {
+                throw new ArgumentNullException(nameof(version));
+            }
+
+            int target = DxfVersions.Number(version);
+
+            if (!DxfVersions.IsWritten(target))
+            {
+                throw new ArgumentException(
+                    "A drawing is saved as AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); "
+                        + version
+                        + " is none of them.",
+                    nameof(version)
+                );
+            }
+
+            said = Array.Empty<string>();
+
+            if (DxfVersions.Number(File.Version) == target)
+            {
+                return null;
+            }
+
+            var told = new List<string>();
+            string text = DxfVersionConverter.Convert(File.ToText(), target, told);
+            said = told.AsReadOnly();
+            GeometryHelperLog.Info(
+                "DxfDatabase: saved as "
+                    + DxfVersions.Name(target)
+                    + " from "
+                    + (File.Version ?? "no version")
+                    + (told.Count == 0 ? "." : ": " + string.Join(" ", told))
+            );
+            return DxfFile.Parse(text);
+        }
+
+        /// <summary>
         /// Gets the text of the drawing as it would be saved, read as <see cref="DxfReader"/> reads it from its bytes: UTF-8 from
         /// R2007 on, the code page of its header before, the mark of UTF-8 at its start left out.
         /// </summary>

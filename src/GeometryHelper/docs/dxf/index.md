@@ -51,6 +51,23 @@ line.Erase();
 db.Save("copy.dxf");                                                 // every other record the same bytes
 ```
 
+A drawing is saved as another version of AutoCAD with `db.Save("plan2010.dxf", "AC1024")`, or `Save(stream, version)`:
+R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) and R2018 (AC1032), as AutoCAD 2021's `SaveAs`
+writes one; the drawing in the memory stays of its own version, and its `Filename` is the path. A drawing saved in its own
+version is the bytes `Save(path)` writes. A drawing of R12 to R14 is saved as it is only, and a version that is none of the six
+is refused. Every kind of entity and object stays, as AutoCAD keeps them: a drawing of 1 300 lines, 130 hatches, 2 tables
+and 15 multileaders saved as R2000 has them all, with the header variables, the groups of each record and the counts of the
+classes (which AutoCAD opens no drawing of R2004 or later without) of that version; of its 785 records that carry a handle,
+735 are group for group, value for value, what AutoCAD 2021 wrote of the same drawing as R2000, and the others are what
+AutoCAD adds to remember what R2000 cannot hold. A true colour or a transparency, the background of an MTEXT, the gradient of a
+hatch (left filled solid with its first colour before R2004), a viewport's lighting, the visual styles a version writes in
+a form of its own and the other groups a later version brought are left out of an older one; text beyond the code page of a
+version before R2007 is written as `\U+XXXX`. What cannot be given the form of the older version is left out or written
+another way, and the call gives it back as sentences: a table, whose cells are written in a form of its own before R2007,
+becomes the INSERT of the block it is drawn with; a solid of R2013 or later, whose ACIS data is binary in the data store, has
+no text to write for R2010 and before and is left out; the visual styles are left out unless both versions are R2013 or later,
+and AutoCAD makes its own on opening.
+
 There is no `ObjectId` and no transaction. An object is used directly, as AutoCAD's is once a transaction has opened it:
 an object read from the drawing is the same object each time it is reached, a change to it is written at once, and an
 object erased stays erased, `IsErased` true, refusing to be changed or copied. What AutoCAD gives as an `ObjectId` the

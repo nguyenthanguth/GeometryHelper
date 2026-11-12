@@ -96,6 +96,23 @@ reads back to the same records.
 cursor inside the box of a grip (its square, or the bar of a polyline's segment middle) draws the crosshair with its centre on
 the grip's point and the status bar shows that point, so that a click starts the grip edit at exactly it; outside the box the
 crosshair is under the pointer again, which the system's own pointer always is.
+**NEW.** A drawing is saved as another version of AutoCAD: `DxfDatabase.Save(path, version)` and `Save(stream, version)`
+write it as R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as AutoCAD
+2021's `SaveAs` does, and give back what the version could not hold, a sentence each. Every kind of entity and object stays, as
+AutoCAD keeps them when it saves an older version; the header variables, the groups of each record (a true colour and a
+transparency before R2004, the background of an MTEXT, the gradient of a hatch, the lighting of a viewport, the handles of a
+dimension style's line types, the proxy graphics' size in 92 or 160) and the counts of the classes are those of the
+version, read from AutoCAD 2021's own DXF of one drawing of 1 300 lines, 130 hatches, 2 tables and 15 multileaders in each
+version: converted from R2018, 735 of its 785 records that carry a handle are group for group what AutoCAD wrote as R2000. A
+table becomes the INSERT of its block before R2007, a solid of R2013 or later is left out before R2013, and the visual styles
+unless both versions are R2013 or later; AutoCAD 2021 opens each of the six, reads each as the version asked, and audits them
+at 0 errors. Saved in its own version a drawing is the bytes `Save(path)` writes; a drawing of R12 to R14 is saved as it is only,
+and R12 is not written yet.
+**NEW.** The presenter's Save Drawing As lists AutoCAD 2018 Drawing (*.dwg) and a DXF of each of those six versions
+as AutoCAD 2021 names them, the drawing's own chosen first, and writes the type chosen: `CadDocument.SaveAs(path, version,
+progress)`, kept in `CadDocument.SaveVersion` for Save (Ctrl+S, QSAVE) as AutoCAD's QSAVE keeps the last format, and what the
+version could not hold in `CadDocument.LeftOutOfDxf`, said on the command line. It offered the DXF of the drawing's own
+version alone, and the DXF was written in that version whatever the drawing was.
 
 **NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is

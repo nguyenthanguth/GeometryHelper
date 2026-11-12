@@ -206,8 +206,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Shows the Save Drawing As dialog of <see cref="MainViewModel.CreateSaveAsJob"/>, AutoCAD 2018 Drawing (*.dwg) and the
-        /// drawing's DXF, and saves the drawing to the file chosen.
+        /// Shows the Save Drawing As dialog of <see cref="MainViewModel.CreateSaveAsJob"/>, AutoCAD 2018 Drawing (*.dwg) and a DXF of
+        /// each version, and saves the drawing to the file chosen, in the version of the type chosen.
         /// </summary>
         public void ShowSaveAsDialog()
         {
@@ -222,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (job.FileName != null)
             {
-                _model.SaveAs(job.FileName);
+                _model.SaveAs(job.FileName, job.FileType);
             }
         }
 
