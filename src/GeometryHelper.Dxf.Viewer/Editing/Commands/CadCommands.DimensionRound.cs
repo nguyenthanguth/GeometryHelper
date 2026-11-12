@@ -33,6 +33,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// runs through them. Words put past the rim stand no nearer it than two arrowheads and the gap and half their width (two
         /// arrowheads where they are level), so acad.dwt's "R20.0000" put 20.5 out stands 20.979 out; on a line exactly level the level words
         /// stand along it with no landing, and on an exactly upright one the landing runs left where the line runs down.
+        /// Level words (DIMTAD 1 and 4) off a line that runs down keep the height of the words more room past two arrowheads, outside
+        /// the rim and in; level words on a line within 15 degrees of level stand past the point with no landing, inside as outside.
         /// </remarks>
         internal static List<DxfEntity> Radial(
             DxfDimStyleTableRecord style,
@@ -47,8 +49,46 @@ namespace GeometryHelper.Dxf.Viewer
             string words,
             bool placed = false,
             bool free = false
+        ) =>
+            RadialLaidOut(
+                style,
+                dimscale,
+                textHeight,
+                center,
+                radius,
+                chord,
+                far,
+                location,
+                diameter,
+                words,
+                placed,
+                free,
+                out _
+            );
+
+        /// <summary>
+        /// <see cref="Radial"/>, and whether its words stand where the line was put, which AutoCAD 2021 records by flag 128 of
+        /// group 70 (164 and 163 against 36 and 35). They do not where the fit (DIMATFIT 0 to 2 under DIMTMOVE 0) or DIMTIX put
+        /// them, nor where the room next to the rim pushed them out: "R20" put 20.3 out of a circle of 20 stands 20.979 out, and
+        /// is a 36. Words put inside are recorded as put even where they are held back from the rim.
+        /// </summary>
+        internal static List<DxfEntity> RadialLaidOut(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 center,
+            double radius,
+            GeoPoint2 chord,
+            GeoPoint2 far,
+            GeoPoint2 location,
+            bool diameter,
+            string words,
+            bool placed,
+            bool free,
+            out bool atPoint
         )
         {
+            atPoint = false;
             Sizes(
                 style,
                 dimscale,
@@ -74,6 +114,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (free)
             {
+                atPoint = !style.Dimtix;
                 return FreeRadial(
                     style,
                     picture,
@@ -112,6 +153,11 @@ namespace GeometryHelper.Dxf.Viewer
             bool pastRim = along >= radius - 1E-10;
             bool flatLine = Math.Abs(u.Y) <= 1E-9;
 
+            // Level words off a line that runs down, DIMTAD 1 or 4: AutoCAD 2021 keeps room for one more line of words, their height,
+            // past two arrowheads outside the rim and inside it, where DIMTAD 0 and a line running up keep the two: "R20" of Arial
+            // 0.18 high put 20.3 out straight down, level, DIMTAD 1, has its landing 20.5438 out.
+            bool lower = (style.Dimtad == 1 || style.Dimtad == 4) && u.Y < -1E-9;
+
             if (pastRim && !fitted)
             {
                 arrowOut = true;
@@ -120,9 +166,18 @@ namespace GeometryHelper.Dxf.Viewer
                 // keeps "R25" put 25.25 out where it stands put 33.9 out, its arrowhead and two gaps clear of the rim.
                 at = placed
                     ? along
-                    : Math.Max(along, radius + 2.0 * arrow + (style.Dimtoh && !flatLine ? 0.0 : words2.Beside));
+                    : Math.Max(
+                        along,
+                        radius
+                            + (
+                                style.Dimtoh && !flatLine
+                                    ? 2.0 * arrow + (lower ? height : 0.0)
+                                    : 2.0 * arrow + words2.Beside
+                            )
+                    );
                 farArrow = diameter && style.Dimtofl;
                 farOut = true;
+                atPoint = !style.Dimtix && at <= along + 1E-9;
             }
             else if (!placed && style.Dimtix)
             {
@@ -132,15 +187,24 @@ namespace GeometryHelper.Dxf.Viewer
                 farArrow = diameter;
                 farOut = true;
             }
-            else if (placed || style.Dimatfit == 3 || (!diameter && style.Dimtmove == 1))
+            else if (placed || style.Dimatfit == 3 || style.Dimtmove == 1)
             {
                 arrowOut = false;
                 textOut = false;
                 single = true;
-                at = Math.Min(along, radius - 2.0 * arrow - (style.Dimtih && !flatLine ? 0.0 : gap + width / 2.0));
+                at = Math.Min(
+                    along,
+                    radius
+                        - (
+                            style.Dimtih && !flatLine
+                                ? 2.0 * arrow + (lower ? height : 0.0)
+                                : 2.0 * arrow + gap + width / 2.0
+                        )
+                );
 
                 // AutoCAD 2021 draws no arrowhead on a radius whose words stand inside next to the first extension line.
                 nearArrow = diameter || style.Dimjust != 1;
+                atPoint = !style.Dimtix;
             }
             else if (!diameter)
             {
@@ -552,9 +616,10 @@ namespace GeometryHelper.Dxf.Viewer
                         lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, bend));
                     }
 
-                    // Outside on a line within 15 degrees of level, as AutoCAD 2021 draws them: words on it have no landing,
-                    // standing a gap past the bend, and words off it the landing under them; both are recorded by the bend.
-                    bool nearlyLevel = outside && Math.Abs(way.Y) <= Math.Sin(Math.PI / 12.0) + 1E-12;
+                    // On a line within 15 degrees of level (not exactly 15), outside or inside for words on the line, as AutoCAD 2021
+                    // draws them: words on it have no landing, standing a gap past the bend, and words off it the landing under them;
+                    // both are recorded by the bend.
+                    bool nearlyLevel = (outside || on) && Math.Abs(way.Y) < Math.Sin(Math.PI / 12.0) - 1E-9;
 
                     if (nearlyLevel && on)
                     {

@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** In the presenter a radius or a diameter is written as AutoCAD 2021 writes the one DIMRADIUS or DIMDIAMETER
+makes, probed in its console over 192 combinations of DIMATFIT, DIMTMOVE, DIMTIX and the point: group 40 (the leader's
+length) is nought, and group 70 is 164 (radius) or 163 (diameter), flag 128 set, where the words stand at the point
+given, group 11 the point of the line they stand by, and 36 or 35, group 11 the middle of the words, where the fit or the
+room next to the rim put them (DIMATFIT 0 to 2 under DIMTMOVE 0, DIMTIX, or a point put past the rim within two
+arrowheads, the gap and half the words' width: "R20" of a circle of 20 about the origin put at (35, 12) writes 164 and
+(35, 12) under DIMATFIT 3, 36 and (9.3153, 3.3861) under DIMATFIT 0). Before, the leader held the distance from the rim
+and the flag was clear, so that AutoCAD's own regeneration of the file laid the words and lines out elsewhere: of 480
+radii and diameters in 12 styles 179 differed after it, 20 do now (diameters of a circle of 8 whose "%%c16" the fonts
+measure differently). DIMTEDIT to a point leaves a leader of nought, and its Home writes 36 and stands the words as
+DIMRADIUS does for a point on the rim. The words of a diameter put inside under DIMTMOVE 1 stand on the line with one
+arrowhead, as a radius's do.
+
+**FIXED.** A radius or a diameter laid out in the presenter differed from the one AutoCAD 2021 makes in three corners,
+probed against 3 090 made in its console: 480 in 12 styles (36 differed, 24 do: the same diameters of 8), 1 920 with
+the point at the centre, on the rim, 0.985, 0.7 and 1.015 of the radius out, on lines from level to upright, level
+words or not (50 differed, 16 do: points exactly on the rim of an axis, which AutoCAD decides by the rounding of its own
+coordinates) and 690 on lines every few degrees round the circle for DIMTAD 0, 1 and 4 (214 differed, 28 do: lines exactly
+15 degrees from level, likewise). Level words (DIMTOH, DIMTIH), DIMTAD 1 or 4, off a line that runs down keep the room of
+one more line of words past two arrowheads, outside the rim and in ("R20" of Arial 0.18 high put 20.3 out straight down
+has its landing 20.5438 out, not 20.36); level words on a line within 15 degrees of level stand inside with no landing,
+as outside, a gap and half their width past the point ("R20" put 14 out at 3 degrees: line end (13.9808, 0.7327), words'
+middle (13.3614, 0.7327)); and a line exactly 15 degrees from level has its landing, inside and out.
+
 **NEW.** In the presenter the command line's Search Content lists each kind of named object under a header row with its
 count, as AutoCAD 2021's suggestion list groups its content (design CmdContentSection): WAL typed in a drawing of the
 block WALL_TAG and the layers WALLS and WALL-FINISH shows `Blocks 1` over WALL_TAG and `Layers 2` over the two layers.

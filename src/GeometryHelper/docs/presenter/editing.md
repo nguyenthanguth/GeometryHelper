@@ -279,7 +279,7 @@ on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" mo
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
-A radius put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
+A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,
 to the rim, else DIMCEN marks the centre: "R20" put 1 out under ISO-25, and in acad.dwt's Standard "R20" put 19.4 to
@@ -300,6 +300,21 @@ down does the same for level words outside its line.
 A radius or a diameter records its words (group 11) as AutoCAD 2021 does: under DIMTMOVE 1 and 2 by the point they were
 put at, under 0 by the point of the line or landing they stand by, their middle without DIMTAD's lift: "R20" put 40 out
 at 30 degrees under DIMTAD 1 writes (34.641, 20), its middle 0.18 above the line.
+A radius or a diameter is written with a leader of nought (group 40) and, where its words stand at the point it was put
+at, as one put by hand: group 70 of 164 for a radius and 163 for a diameter (flag 128), group 11 the point they were put
+at. Where the fit or the room next to the rim put them, group 70 is 36 and 35 and group 11 the middle of the words as
+laid out. That is DIMATFIT 0 to 2 under DIMTMOVE 0, DIMTIX, and a point put past the rim within the room of an arrowhead
+(DIMTMOVE 0 or 1): in acad.dwt's Standard with DIMTAD 1, "R20" of a circle of 20 about the origin put at (35, 12) writes
+164 and (35, 12) under DIMATFIT 3, 36 and (9.3153, 3.3861) under DIMATFIT 0, and put at (20.3, 0.1) writes 36 and
+(20.9782, 0.2852). AutoCAD's own regeneration of such a file keeps the words where they stand, as the presenter draws
+them. DIMTEDIT's Home on a radius or a diameter writes 36 and a leader of nought, and sets the words as DIMRADIUS does
+for a point on the rim.
+Level words (DIMTAD 1 or 4) off a line that runs down keep the room of one more line of words, their height, past two
+arrowheads, outside the rim and in: "R20" of Arial 0.18 high, a circle of 20, put 20.3 out straight down has its landing
+20.5438 out, not 20.36, and put 19.6 out 19.4562. Level words on a line within 15 degrees of level (but not exactly
+15 or exactly level), inside as outside, have no landing: "R20" put 14 out at 3 degrees in a circle of 20 about the
+origin, DIMTIH on, DIMTAD 0, has its line end at the point itself, (13.9808, 0.7327), which is group 11, and its words'
+middle (13.3614, 0.7327), a gap and half their width past it.
 The words are measured in the font of the dimension's text style, laid out as the canvas lays out an MTEXT, as AutoCAD
 measures them: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, "100" of ghsimplex 6.071 wide and widened 1.5
 times 9.107. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on the document

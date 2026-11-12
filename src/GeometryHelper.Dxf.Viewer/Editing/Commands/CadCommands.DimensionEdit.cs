@@ -99,6 +99,17 @@ namespace GeometryHelper.Dxf.Viewer
                     case "Home":
                         d.UsingDefaultTextPosition = true;
                         d.TextRotation = 0.0;
+
+                        // A radius or a diameter is back at its default place with a leader of nought, its words next to the rim.
+                        if (d is DxfRadialDimension radial)
+                        {
+                            radial.LeaderLength = 0.0;
+                        }
+                        else if (d is DxfDiametricDimension diametric)
+                        {
+                            diametric.LeaderLength = 0.0;
+                        }
+
                         break;
                     case "New":
                         d.DimensionText = text;
@@ -685,7 +696,8 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 chord = center + (at - center) / (at - center).Length * radius;
                         radial.ChordPoint = P3(chord);
-                        radial.LeaderLength = (at - chord).Length;
+                        // AutoCAD 2021 keeps group 40 at nought; the words' own point (group 11) says where they stand.
+                        radial.LeaderLength = 0.0;
                     }
 
                     break;
@@ -700,7 +712,7 @@ namespace GeometryHelper.Dxf.Viewer
                         GeoVector2 way = (at - middle) / (at - middle).Length;
                         diametric.ChordPoint = P3(middle + way * half);
                         diametric.FarChordPoint = P3(middle - way * half);
-                        diametric.LeaderLength = (at - (middle + way * half)).Length;
+                        diametric.LeaderLength = 0.0;
                     }
 
                     break;
