@@ -255,7 +255,7 @@ the ones wanted.
 - [x] Table editing follow-ups 2: decimals, 1e3, fractions and points typed as AutoCAD stores them, series in each source's format; AutoCAD offers a perpendicular back onto the base point (pinned)
 - [ ] Table editing follow-ups 3: band and size-field sides of up-flowing tables (needs a screenshot of AutoCAD); the in-place editor opening a value as AutoCAD's ForEditing text (1.5, not 1.5000); RealText rounding through Fixed; thousands (%th), feet-inches, dates and times typed; text typed over a number (AutoCAD refuses); the table-drag-only perpendicular filter (AutoCAD offers it in prompts) (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
-- [ ] Tables follow-ups: the row growing live while a cell is typed (the canvas must redraw the table during the edit);
+- [ ] Tables follow-ups (the row growing live while a cell is typed: done 2026-11-12):
       a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

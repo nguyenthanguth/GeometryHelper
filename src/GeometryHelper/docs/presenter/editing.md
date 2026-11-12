@@ -478,7 +478,14 @@ TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:Geometr
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
 Tab goes to the next cell, Shift+Tab to the one before, Enter to the one below and Esc ends. Tab in the last cell adds a
 row under it, as AutoCAD's table editor does, of the cell styles and the height of the last row and empty, and goes to its
-first cell; the row is an undo step of its own. Five columns 63.5 wide and
+first cell; the row is an undo step of its own. While a cell is typed in, its row grows to hold the lines as they come and
+shrinks back as they are taken out, never below the height it stood at, and the rows under it move down with it, as
+AutoCAD's in-place editor shows them: in AutoCAD's Standard style a data cell typed with two lines makes its row 15.07
+high instead of 9, with three lines 22.57, and the editor stands where the cell now is. The table is drawn anew from a
+preview of the words ([`CadTableLive`](xref:GeometryHelper.Dxf.Viewer.CadTableLive)) only while a row differs from what it
+stood at, and costs one cell's layout a key (1.4 ms in a table of 50 rows by 20 columns, against 89 ms to lay the whole
+table out); nothing is written to the drawing until the editor closes, which is one undo step with the rows the preview
+showed, and Esc leaves the table as it was. Five columns 63.5 wide and
 four rows of data of AutoCAD's Standard make a table 317.5 wide and 56 high, its title 11 high and its other rows 9.
 A table is drawn with its first row in the Title cell style of its table style, its second in the Header and the rest in
 the Data, each look a cell does not give of its own; where the table or its style leaves the title out, the first row is

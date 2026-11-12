@@ -557,7 +557,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// its cell, its words written as one undo step, then the next cell along (Tab), the one before (Shift+Tab) or the one
         /// below (Enter), a block of merged cells as its top left cell; Tab in the last cell adds a row under it, of the cell
         /// styles and height of the last row, and goes to its first cell. The editing ends at Esc, a click away, or Enter or
-        /// Shift+Tab past the table's end.
+        /// Shift+Tab past the table's end. The prompt carries a preview of the table's rows for the words typed
+        /// (<see cref="CadInPlaceEdit.TableLive"/>), which grows and shrinks the cell's row as the lines come and go; the
+        /// words are written once, when the editor closes.
         /// </summary>
         internal static IEnumerable<CadPrompt> EditCells(CadCommandContext c, string handle, int row, int column)
         {
@@ -578,6 +580,7 @@ namespace GeometryHelper.Dxf.Viewer
                 row = block.TopRow;
                 column = block.LeftColumn;
                 CadInPlaceEdit edit = CellEdit(table, row, column);
+                edit.TableLive = new CadTableLive(c.Document, handle, row, column);
                 yield return CadPrompt.ForInPlaceEdit("Edit table cell " + CadTableEditor.CellName(row, column), edit);
 
                 if (c.Input.Kind == CadInputKind.Text)

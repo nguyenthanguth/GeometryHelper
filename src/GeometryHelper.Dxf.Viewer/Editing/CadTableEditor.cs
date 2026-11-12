@@ -854,7 +854,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     needs[r] = Math.Max(
                         needs[r],
-                        CellNeeds(document, table, style, r, c, block, hMargin) + 2.0 * vMargin
+                        CellNeeds(document, table, style, r, c, block, hMargin, table.TextString(r, c)) + 2.0 * vMargin
                     );
                 }
             }
@@ -991,8 +991,7 @@ namespace GeometryHelper.Dxf.Viewer
                 heights[r] = table.RowHeight(r);
             }
 
-            var wanted = (double[])heights.Clone();
-            var tall = new List<KeyValuePair<DxfCellRange, double>>();
+            var needs = new List<KeyValuePair<DxfCellRange, double>>();
 
             for (int r = 0; r < rows; r++)
             {
@@ -1009,22 +1008,77 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    double need = CellNeeds(document, table, style, r, c, block, hMargin) + 2.0 * vMargin;
+                    needs.Add(
+                        new KeyValuePair<DxfCellRange, double>(
+                            block,
+                            CellNeeds(document, table, style, r, c, block, hMargin, table.TextString(r, c))
+                                + 2.0 * vMargin
+                        )
+                    );
+                }
+            }
 
-                    if (block.BottomRow == r)
-                    {
-                        wanted[r] = Math.Max(wanted[r], need);
-                    }
-                    else
-                    {
-                        tall.Add(new KeyValuePair<DxfCellRange, double>(block, need));
-                    }
+            double[] wanted = Wanted(heights, needs);
+
+            for (int r = 0; r < rows; r++)
+            {
+                if (wanted[r] > heights[r])
+                {
+                    table.SetRowHeight(r, wanted[r]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The height the block of merged cells whose top left cell is given needs to hold words, the margins above and below
+        /// in, as <see cref="FitRows"/> counts it for the words the cell holds: what an editor typing in the cell asks of its
+        /// rows. Null for a block cell, which <see cref="FitRows"/> leaves as it is.
+        /// </summary>
+        internal static double? BlockNeeds(CadDocument document, DxfTable table, int row, int column, string words)
+        {
+            if (table.CellType(row, column) == DxfTableCellType.BlockCell)
+            {
+                return null;
+            }
+
+            return CellNeeds(
+                    document,
+                    table,
+                    table.TableStyle as DxfTableStyle,
+                    row,
+                    column,
+                    table.GetMergeRange(row, column),
+                    table.HorizontalCellMargin,
+                    words
+                )
+                + 2.0 * table.VerticalCellMargin;
+        }
+
+        /// <summary>
+        /// The height each row is wanted at, given the heights it stands at and the height each block of merged cells needs (its
+        /// margins in): a block of one row raises it to what the block needs; a block across rows gives its last row what the
+        /// rows it spans lack.
+        /// </summary>
+        internal static double[] Wanted(double[] heights, List<KeyValuePair<DxfCellRange, double>> needs)
+        {
+            var wanted = (double[])heights.Clone();
+
+            foreach (KeyValuePair<DxfCellRange, double> block in needs)
+            {
+                if (block.Key.BottomRow == block.Key.TopRow)
+                {
+                    wanted[block.Key.TopRow] = Math.Max(wanted[block.Key.TopRow], block.Value);
                 }
             }
 
             // A block across rows: what the rows it spans lack goes to its last row.
-            foreach (KeyValuePair<DxfCellRange, double> block in tall)
+            foreach (KeyValuePair<DxfCellRange, double> block in needs)
             {
+                if (block.Key.BottomRow == block.Key.TopRow)
+                {
+                    continue;
+                }
+
                 double spanned = 0.0;
 
                 for (int r = block.Key.TopRow; r <= block.Key.BottomRow; r++)
@@ -1038,16 +1092,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            for (int r = 0; r < rows; r++)
-            {
-                if (wanted[r] > heights[r])
-                {
-                    table.SetRowHeight(r, wanted[r]);
-                }
-            }
+            return wanted;
         }
 
-        /// <summary>The height a cell's content needs, margins left out: its words laid out as an MTEXT as wide as the cell less its margins, one line of its text height at least.</summary>
+        /// <summary>The height a cell's words need, margins left out: laid out as an MTEXT as wide as the cell less its margins, one line of the cell's text height at least.</summary>
         private static double CellNeeds(
             CadDocument document,
             DxfTable table,
@@ -1055,13 +1103,13 @@ namespace GeometryHelper.Dxf.Viewer
             int row,
             int column,
             DxfCellRange block,
-            double hMargin
+            double hMargin,
+            string words
         )
         {
             DxfRowType kind = table.RowType(row);
             double height = TextHeightOf(table, style, row, column, kind);
             double oneLine = height * 4.0 / 3.0;
-            string words = table.TextString(row, column);
 
             if (words.Length == 0)
             {

@@ -388,6 +388,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Draws display items that are not in the drawing over what the canvas holds, each as the scene draws it: the table a
+        /// cell of which is typed in, laid out for the words typed.
+        /// </summary>
+        /// <param name="canvas">The canvas holding the scene.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space shown.</param>
+        /// <param name="view">The view the scene was drawn at.</param>
+        /// <param name="options">How the scene was drawn.</param>
+        /// <param name="items">The items.</param>
+        internal void RenderItems(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyList<DisplayItem2> items
+        )
+        {
+            Affine2 m = view.DrawingToScreen;
+            double zoom = m.Scale;
+
+            if (zoom <= 0.0 || items.Count == 0)
+            {
+                return;
+            }
+
+            int background = options.BackgroundOf(space);
+
+            using (var stroke = NewStroke())
+            using (var fill = NewFill())
+            {
+                foreach (DisplayItem2 item in items)
+                {
+                    DrawItem(canvas, document, item, m, zoom, options, stroke, fill, false, false, background);
+                }
+            }
+        }
+
         /// <summary>The display items of entities that the view shows, in the order of the drawing, each once.</summary>
         private static List<DisplayItem2> VisibleItems(
             CadDocument document,

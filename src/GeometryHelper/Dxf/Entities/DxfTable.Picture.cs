@@ -262,8 +262,31 @@ namespace GeometryHelper.Dxf
             return groups;
         }
 
-        /// <summary>The entities the table is drawn with, in no file, in the system of the block placed at the table's point: fills, then lines, then texts and blocks.</summary>
-        private List<DxfEntity> Picture()
+        /// <summary>
+        /// The entities the table would be drawn with were its rows the heights given and the words of one cell left out, in no
+        /// file and not in its block, in the system of the block placed at the table's point: what an editor typing in that cell
+        /// previews, the table itself untouched. A table of rows 10, 9 and 9 given 10, 30 and 9, the words of its cell (1, 0)
+        /// left out, is drawn with its second row 30 high and the third 21 lower than it stands.
+        /// </summary>
+        /// <param name="rowHeights">The height of each row, as many as the table has.</param>
+        /// <param name="row">The row of the cell whose words are left out.</param>
+        /// <param name="column">The column of the cell whose words are left out.</param>
+        internal List<DxfEntity> PicturePreview(IReadOnlyList<double> rowHeights, int row, int column)
+        {
+            Guard.Argument(
+                rowHeights != null && rowHeights.Count == NumRows,
+                nameof(rowHeights),
+                "A height is given for each row."
+            );
+            return Picture(rowHeights, row, column);
+        }
+
+        /// <summary>
+        /// The entities the table is drawn with, in no file, in the system of the block placed at the table's point: fills, then
+        /// lines, then texts and blocks; where heights are given, with those for the rows', and with the words of the cell
+        /// (<paramref name="skipRow"/>, <paramref name="skipColumn"/>) left out.
+        /// </summary>
+        private List<DxfEntity> Picture(IReadOnlyList<double> heights = null, int skipRow = -1, int skipColumn = -1)
         {
             Layout layout = Read();
             DxfDatabase database = Item.File.Database;
@@ -291,7 +314,7 @@ namespace GeometryHelper.Dxf
 
             for (int r = 0; r < rows; r++)
             {
-                ys[r + 1] = ys[r] + Real(layout.Groups, layout.RowAt[r]);
+                ys[r + 1] = ys[r] + (heights != null ? heights[r] : Real(layout.Groups, layout.RowAt[r]));
             }
 
             // The top left cell of the block of merged cells each cell is in, by row * columns + column.
@@ -441,7 +464,7 @@ namespace GeometryHelper.Dxf
 
                 string words = DxfReader.Decode(cell.Text());
 
-                if (words.Length == 0)
+                if (words.Length == 0 || (r0 == skipRow && c0 == skipColumn))
                 {
                     continue;
                 }
