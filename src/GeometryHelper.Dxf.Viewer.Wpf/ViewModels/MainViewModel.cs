@@ -830,9 +830,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Shows a space of the document: model space or a layout. The command running ends and the selection, which belongs to a space, is cleared.</summary>
+        /// <summary>Shows a space of the document: model space or a layout. The command running ends and the selection, which belongs to a space, is cleared. A click on a tab is an undo step and a change of the drawing; the program showing a space of its own accord (a sheet shown as a drawing is opened, a space asked for on the command line of the app) passes <paramref name="asStep"/> false and leaves the drawing as it was.</summary>
         /// <param name="space">The space.</param>
-        public void SelectSpace(CadSpace space)
+        /// <param name="asStep">Whether the switch is an undo step, as a tab clicked; false for a switch the user did not make.</param>
+        public void SelectSpace(CadSpace space, bool asStep = true)
         {
             if (
                 _current == null
@@ -846,7 +847,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _current.Session.Escape();
-            _current.Document.ShowSpace(space);
+            if (asStep)
+            {
+                _current.Document.ShowSpace(space);
+            }
+            else
+            {
+                _current.Document.CurrentSpace = space;
+                _current.Document.Selection.Clear();
+            }
 
             foreach (SpaceTabViewModel tab in SpaceTabs)
             {

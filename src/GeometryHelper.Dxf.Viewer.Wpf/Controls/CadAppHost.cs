@@ -517,7 +517,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return 2;
                 }
 
-                model.SelectSpace(space);
+                model.SelectSpace(space, asStep: false);
             }
 
             FrameworkElement root;

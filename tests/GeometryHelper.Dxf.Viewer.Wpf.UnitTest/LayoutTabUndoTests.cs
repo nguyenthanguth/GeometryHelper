@@ -32,5 +32,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal("PAPER", model.SpaceLabel);
             }
         }
+
+        [Fact]
+        public void OpeningADrawingThatShowsItsLayout_IsNotModified_AndHasNothingToUndo()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel();
+                model.Open(folder.Write("room.dxf", TestFiles.Room(out _, out _)));
+                CadSpace layout = model.Document.Spaces.Single(s => s.Name == "Layout1");
+
+                // The program showing the sheet of a drawing it opened, as the Drawing app does: no step, no change.
+                model.SelectSpace(layout, asStep: false);
+
+                Assert.Same(layout, model.Space);
+                Assert.True(model.SpaceTabs[1].IsActive);
+                Assert.False(model.Document.CanUndo);
+                Assert.False(model.Document.IsModified);
+                Assert.False(model.HasUnsavedChanges);
+                Assert.Equal("room.dxf · Layout1", model.Title);
+            }
+        }
     }
 }
