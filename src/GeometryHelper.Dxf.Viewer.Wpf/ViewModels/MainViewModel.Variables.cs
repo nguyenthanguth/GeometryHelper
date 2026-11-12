@@ -163,6 +163,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     v => ChangeSettings(s => s.TableIndicator = v != 0)
                 )
             );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "SHORTCUTMENU",
+                    0,
+                    31,
+                    () => _settings.ShortcutMenu,
+                    v => ChangeSettings(s => s.ShortcutMenu = v)
+                )
+            );
         }
 
         /// <summary>

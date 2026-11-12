@@ -101,10 +101,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
             // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip. A right-click shows
-            // AutoCAD's Default, Edit, Command or Grips menu, the Edit menu offering Reset Block for a dynamic block.
+            // AutoCAD's Default, Edit, Command or Grips menu, the Edit menu offering Reset Block for a dynamic block; with no
+            // command running and SHORTCUTMENU giving no menu, Enter.
             CanvasView.CustomGripClicked += (s, e) =>
                 ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
-            CanvasView.ShortcutMenuRequested += (s, e) => ShowMenu(_model?.CanvasMenu(), CanvasView);
+            CanvasView.ShortcutMenuRequested += (s, e) =>
+            {
+                System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items = _model?.CanvasMenu();
+
+                if (items == null)
+                {
+                    _model?.Enter();
+                }
+                else
+                {
+                    ShowMenu(items, CanvasView);
+                }
+            };
 
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
@@ -990,6 +1003,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 .FromColorIndex(DxfColorMethod.ByAci, (short)settings.GripDynamicColor)
                 .ColorValue;
             CanvasView.TableIndicator = settings.TableIndicator;
+            CanvasView.ShortcutMenu = settings.ShortcutMenu;
             CanvasView.TableIndicatorColor = settings.TableIndicatorColor;
             CanvasView.CrosshairPercent = settings.CrosshairPercent;
 

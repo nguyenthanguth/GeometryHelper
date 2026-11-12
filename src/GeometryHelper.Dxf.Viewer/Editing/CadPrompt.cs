@@ -232,12 +232,15 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
-        /// <summary>Gets the whole text the command line shows: <c>Specify base point or [Displacement] &lt;Displacement&gt;:</c>.</summary>
+        /// <summary>
+        /// Gets the whole text the command line shows: <c>Specify base point or [Displacement] &lt;Displacement&gt;:</c>; after
+        /// "&gt;&gt;" for a command run inside another, as 'ZOOM's <c>&gt;&gt;Specify first corner:</c>.
+        /// </summary>
         public string Text
         {
             get
             {
-                var text = new StringBuilder(Message);
+                var text = new StringBuilder(_transparent ? ">>" : string.Empty).Append(Message);
 
                 if (Keywords.Count > 0)
                 {
@@ -262,6 +265,16 @@ namespace GeometryHelper.Dxf.Viewer
         internal CadPrompt WithoutColon()
         {
             _noColon = true;
+            return this;
+        }
+
+        // Whether the prompt is a transparent command's, written after ">>".
+        private bool _transparent;
+
+        /// <summary>Makes the prompt's text start with "&gt;&gt;", as AutoCAD writes the prompts of 'PAN and 'ZOOM.</summary>
+        internal CadPrompt Transparently()
+        {
+            _transparent = true;
             return this;
         }
 

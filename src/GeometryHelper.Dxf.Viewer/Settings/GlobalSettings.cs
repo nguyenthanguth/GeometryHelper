@@ -109,6 +109,7 @@ namespace GeometryHelper.Dxf.Viewer
         private double _crosshairPercent = 5.0;
         private int _pickboxPixels = 5;
         private int _aperturePixels = 10;
+        private int _shortcutMenu = 11;
         private double _polarAngle = 90.0;
         private int _polarMode;
         private string _polarAddedAngles = string.Empty;
@@ -287,6 +288,20 @@ namespace GeometryHelper.Dxf.Viewer
         {
             get => _aperturePixels;
             set => _aperturePixels = (int)Range(value, 2, 50, nameof(AperturePixels));
+        }
+
+        /// <summary>
+        /// Gets or sets what a right-click on the canvas shows, as AutoCAD's SHORTCUTMENU, kept on this machine as AutoCAD keeps
+        /// it in the registry, 0 to 31 as AutoCAD 2021 takes it: 1 the Default menu with nothing selected, 2 the Edit menu with
+        /// objects selected, 4 the Command menu whenever a command runs, 8 the Command menu only where the prompt offers
+        /// options, 16 a menu only for a right-click held a quarter of a second or longer, a shorter one Enter. A right-click
+        /// no bit gives a menu is Enter. 11 by default, as AutoCAD 2021 starts: Default, Edit, and Command where it has options.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int ShortcutMenu
+        {
+            get => _shortcutMenu;
+            set => _shortcutMenu = (int)Range(value, 0, 31, nameof(ShortcutMenu));
         }
 
         /// <summary>
@@ -906,6 +921,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Close();
             w.Open("canvas");
             w.Value("wheelZoomFactor", _wheelZoomFactor);
+            w.Value("shortcutMenu", _shortcutMenu);
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
             w.Value("aperturePixels", _aperturePixels);
             w.Value("polarAngle", _polarAngle);
@@ -1144,6 +1160,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("appearance", "grid", v => _s.Grid = v);
                 Flag("appearance", "showLineWeights", v => _s.ShowLineWeights = v);
                 Number("canvas", "wheelZoomFactor", v => _s.WheelZoomFactor = v);
+                Number("canvas", "shortcutMenu", v => _s.ShortcutMenu = Whole(v));
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
                 Number("canvas", "polarAngle", v => _s.PolarAngle = v);

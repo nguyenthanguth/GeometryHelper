@@ -22,6 +22,31 @@ anywhere cleared it everywhere.
 **FIXED.** U and REDO in the presenter show the snap and grid the drawing holds again, of model space and of each
 viewport: after a line drawn and GRID 50 typed through a viewport, U shows that viewport's grid off and of the spacing it
 had, as the drawing read back holds it. SNAP, GRID and their spacings stayed as they were before the undo.
+**NEW.** The canvas's Edit menu takes in AutoCAD 2021's object menus for the objects selected, as AutoCAD merges them:
+those of its menu file by kind, the one for a single object or the one for several of a kind, none for objects of two
+kinds. One text gives Edit..., one polyline Polyline (Close, Open, Join, Reverse, Width, Curve Fit, Spline Fit and
+Decurve, each PEDIT run on it), dimensions Dimension Style and Precision (0 to 0.000000, set as Properties sets it), one
+table AutoCAD's table menu (Size Columns Equally: a table of columns 100, 40 and 40 wide gets three of 60, one undo
+step; Size Rows Equally, Remove All Property Overrides, Table Indicator Color...), viewports Display Viewport Objects,
+Display Locked and Remove Viewport Overrides for All Layers, and hatches, block references, xrefs and images theirs; what
+the presenter does not build (Annotative Object Scale, Table Style, Export..., the spline menu) is grey, "Not built
+yet.". The Command menu offers Recent Input, the points or numbers typed at prompts of the kind asked, newest first.
+
+**NEW.** PAN and ZOOM run inside a command, typed as 'PAN and 'ZOOM or chosen from the Command menu, whose Pan and Zoom
+are no longer grey: their prompts after ">>", then "Resuming LINE command." and the command's prompt again, the objects
+"Select objects:" gathered kept, as AutoCAD 2021 runs them (probed in its console); one nests in the other. Another
+command typed with an apostrophe gets "** That command may not be invoked transparently **".
+`CadCommandSession.IsTransparent` and `CadCommandSession.RecentInput` are new.
+
+**NEW.** SHORTCUTMENU, AutoCAD's bits 0 to 31, 11 by default, kept in the settings file as
+`GlobalSettings.ShortcutMenu`: 1 the Default menu, 2 the Edit menu, 4 the Command menu at every prompt, 8 where the
+prompt offers options, 16 a right click held a quarter of a second for a menu and a shorter one Enter. The canvas and
+`MainViewModel.CanvasMenu` honour it; `CadCanvas.ShortcutMenu` and `CadPicking.WantsCommandMenu(session, shortcutMenu)`
+are new.
+
+**FIXED.** A point typed at "Select objects:" is written after the prompt, "Select objects: 50,0" then "1 found"; one on
+nothing gives "0 found" and asks again, as AutoCAD 2021 does, where a script stopped at it. Point Filters of the
+Shift+right-click menu draws AutoCAD's line after .Z.
 
 **NEW.** `DwgReader` reads the detail and section view styles every drawing of AutoCAD 2013 and later holds, in every
 version AutoCAD saves them, and the manager of the persistent names of subentities AutoCAD keeps beside solids, each as

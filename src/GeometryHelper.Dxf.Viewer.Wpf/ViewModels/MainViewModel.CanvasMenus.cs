@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -16,17 +17,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// cells of a table are selected (<see cref="TableCellViewModel.Menu"/>), the Edit menu where objects are selected, the
         /// Default menu where none is; while a grip edit runs, the Grips menu; while a command runs whose prompt offers options,
         /// the Command menu. A prompt with no options, as "Specify first point:" or "Select objects:", has none: a right-click
-        /// there is Enter, as AutoCAD's SHORTCUTMENU 11 has it.
+        /// there is Enter, as AutoCAD's SHORTCUTMENU 11 has it. SHORTCUTMENU (<see cref="GlobalSettings.ShortcutMenu"/>) set
+        /// otherwise is weighed as AutoCAD weighs it: without 1 no Default menu, without 2 no Edit or cell menu, with 4 the
+        /// Command menu at every prompt, with neither 4 nor 8 none; no menu is Enter.
         /// <para>
         /// The Default menu: Repeat and the command run last (once one has run), Clipboard (Cut, Copy, Copy with Base Point,
         /// Paste, Paste as Block, Paste to Original Coordinates), Isolate, Undo, Redo, Pan, Zoom, SteeringWheels, Action
         /// Recorder, Convert PS to MS, Quick Select..., QuickCalc, Find... and Options.... The Edit menu: Repeat, the items of
-        /// the objects selected (Reset Block for a dynamic block, Table Indicator Color for a table, <see cref="ShortcutMenu"/>),
+        /// the object menu AutoCAD merges in for the objects selected (Edit... for one text, Polyline for one polyline, Size
+        /// Columns Equally and the rest for one table, Display Locked for viewports; none for objects of more than one kind),
         /// Clipboard, Isolate, Erase, Move, Copy Selection, Scale, Rotate, Draw Order, Group, Add Selected, Select Similar,
         /// Deselect All, Quick Select..., QuickCalc, Find..., Properties and Quick Properties. The Command menu: Enter, Cancel,
-        /// the prompt's options ("Close" and "Undo" at LINE's third point), Osnap Overrides (the items of
-        /// <see cref="SnapOverrideMenu"/>, grey where no point is asked), Pan, Zoom, SteeringWheels and QuickCalc. The Grips
-        /// menu: Enter, Stretch, Move, Rotate, Scale, Mirror, Base Point, Copy, Reference (in ROTATE and SCALE), Undo and Exit.
+        /// Recent Input (the answers typed at prompts of the kind asked, <see cref="CadCommandSession.RecentInput"/>, where there
+        /// are any), the prompt's options ("Close" and "Undo" at LINE's third point), Osnap Overrides (the items of
+        /// <see cref="SnapOverrideMenu"/>, grey where no point is asked), Pan and Zoom, which run 'PAN and 'ZOOM inside the
+        /// command (grey in ZOOM), SteeringWheels and QuickCalc. The Grips menu: Enter, Stretch, Move, Rotate, Scale, Mirror,
+        /// Base Point, Copy, Reference (in ROTATE and SCALE), Undo and Exit.
         /// </para>
         /// </summary>
         /// <returns>The items, made anew each time the menu opens; null for no menu.</returns>
@@ -38,12 +44,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadCommandSession session = _current.Session;
+            int shown = _settings.ShortcutMenu;
 
             if (session.IsRunning)
             {
-                return session.IsGripEditing ? GripsMenu(session)
-                    : CadPicking.WantsCommandMenu(session) ? CommandMenu(session)
-                    : null;
+                return !CadPicking.WantsCommandMenu(session, shown) ? null
+                    : session.IsGripEditing ? GripsMenu(session)
+                    : CommandMenu(session);
+            }
+
+            bool selected = _tableCell != null || _current.Document.Selection.Count > 0;
+
+            if ((shown & (selected ? 2 : 1)) == 0)
+            {
+                return null;
             }
 
             if (_tableCell != null)
@@ -51,7 +65,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _tableCell.Menu();
             }
 
-            return _current.Document.Selection.Count > 0 ? EditMenu(session) : DefaultMenu(session);
+            return selected ? EditMenu(session) : DefaultMenu(session);
         }
 
         /// <summary>AutoCAD's Default menu (POP501), with nothing selected and no command running.</summary>
@@ -92,10 +106,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private List<CadMenuItemViewModel> EditMenu(CadCommandSession session)
         {
             List<CadMenuItemViewModel> items = RepeatItems(session);
-            IReadOnlyList<CadMenuItemViewModel> objects = ShortcutMenu();
+            List<CadMenuItemViewModel> objects = ObjectMenu();
 
             // The items of the objects selected come before the clipboard, as AutoCAD puts its object menus.
-            if (objects != null)
+            if (objects.Count > 0)
             {
                 items.AddRange(objects);
                 items.Add(CadMenuItemViewModel.Separator());
@@ -158,24 +172,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 new CadMenuItemViewModel("Enter", Enter, accessKey: 'E'),
                 new CadMenuItemViewModel("Cancel", Escape, accessKey: 'C'),
-                CadMenuItemViewModel.Separator(),
             };
+            IReadOnlyList<string> recent = session.RecentInput;
 
-            foreach (string keyword in session.Prompt.Keywords)
+            // The answers typed before at prompts of this kind, newest first, as AutoCAD fills Recent Input as it runs.
+            if (recent.Count > 0)
+            {
+                items.Add(
+                    new CadMenuItemViewModel(
+                        "Recent Input",
+                        true,
+                        recent.Select(t => new CadMenuItemViewModel(t, () => ChooseOption(t))).ToList()
+                    )
+                );
+            }
+
+            items.Add(CadMenuItemViewModel.Separator());
+            IReadOnlyList<string> keywords = session.Prompt?.Keywords ?? Array.Empty<string>();
+
+            foreach (string keyword in keywords)
             {
                 string chosen = keyword;
                 items.Add(new CadMenuItemViewModel(keyword, () => ChooseOption(chosen)));
             }
 
-            items.Add(CadMenuItemViewModel.Separator());
+            if (keywords.Count > 0)
+            {
+                items.Add(CadMenuItemViewModel.Separator());
+            }
+
             items.Add(
                 new CadMenuItemViewModel("Osnap Overrides", CadPicking.WantsPoint(session), SnapOverrideItems(), 'v')
             );
             items.Add(CadMenuItemViewModel.Separator());
 
-            // AutoCAD pans and zooms inside a command; the presenter's PAN and ZOOM are commands of their own.
-            items.Add(NotBuilt("Pan", 'P'));
-            items.Add(NotBuilt("Zoom", 'Z'));
+            // 'PAN and 'ZOOM inside the command, as AutoCAD's; grey in ZOOM, as its menu file greys them there.
+            bool zooming = session.Current != null && session.Current.Name == "ZOOM";
+            items.Add(new CadMenuItemViewModel("Pan", () => ChooseOption("'PAN"), !zooming, accessKey: 'P'));
+            items.Add(new CadMenuItemViewModel("Zoom", () => ChooseOption("'ZOOM"), !zooming, accessKey: 'Z'));
             items.Add(NotBuilt("SteeringWheels"));
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(NotBuilt("QuickCalc"));
