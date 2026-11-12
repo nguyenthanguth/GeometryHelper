@@ -291,6 +291,10 @@ namespace GeometryHelper.Dxf.Viewer
                     ["DIV"] = "DIVIDE",
                     ["ME"] = "MEASURE",
                     ["DCE"] = "DIMCENTER",
+                    ["VIEWPORTS"] = "VPORTS",
+                    ["FI"] = "FILTER",
+                    ["QC"] = "QUICKCALC",
+                    ["QP"] = "QUICKPROPERTIES",
                     ["R"] = "REDRAW",
                     ["RA"] = "REDRAWALL",
                     ["REA"] = "REGENALL",
@@ -323,6 +327,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["Ctrl+P"] = "PLOT",
                     ["Ctrl+Shift+A"] = "PICKSTYLE",
                     ["Ctrl+W"] = "SELECTIONCYCLING",
+                    ["Ctrl+Shift+P"] = "QPMODE",
                 }
             );
 

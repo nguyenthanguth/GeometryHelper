@@ -320,6 +320,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given QPMODE (Ctrl+Shift+P) switches the Quick Properties panel on or off, as AutoCAD's.
+            if (target == "QPMODE")
+            {
+                ToggleQuickPropertiesMode();
+                return true;
+            }
+
             if (target == "DRAWINGS")
             {
                 IsFileListShown = !IsFileListShown;

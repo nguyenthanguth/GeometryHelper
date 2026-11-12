@@ -913,6 +913,7 @@ namespace GeometryHelper.Dxf.Viewer
             string full = Path.GetFullPath(path);
             _shownState = null;
             _ucs?.WriteTo(Database);
+            _tiles?.WriteTo(Database);
             var said = new List<string>();
             List<DxfEntity> hidden = ShowIsolated();
 
@@ -971,6 +972,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _ucs?.WriteTo(Database);
+            _tiles?.WriteTo(Database);
 
             using (var stream = new MemoryStream())
             {

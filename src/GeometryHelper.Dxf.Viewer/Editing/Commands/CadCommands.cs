@@ -171,6 +171,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
             AddXrefsTo(registry);
             AddShapesBatchTo(registry);
+            AddViewUtilityTo(registry);
             AddVariablesTo(registry);
             AddPgpBasicsTo(registry);
         }

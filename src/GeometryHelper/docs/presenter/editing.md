@@ -194,17 +194,17 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 215 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 221 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
-| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?) |
+| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
@@ -212,7 +212,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
-| selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
+| selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 
@@ -255,6 +255,61 @@ its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks
 the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command. Fit data, Join and Refine are
 not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT (the classic dialog
 is not in the presenter's design).
+
+**Viewports, filters, QuickCalc and Quick Properties (batch 4 of acad.pgp).**
+
+VPORTS (`VIEWPORTS`) shows the Viewports dialog in model space: New Viewports applies a standard configuration (Single, Two:
+Vertical and Horizontal, Three: Right, Left, Above, Below, Vertical and Horizontal, Four: Equal, Right and Left) to the whole
+display or to the current viewport, previewed, and saves the result under the new name where one is typed; Named Viewports
+restores a configuration saved, or deletes it. -VPORTS asks AutoCAD 2021's `Enter an option
+[Save/Restore/Delete/Join/SIngle/?/2/3/4/Toggle/MOde] <3>:`; 2 asks `Enter a configuration option [Horizontal/Vertical]
+<Vertical>:`, 3 `Enter a configuration option [Horizontal/Vertical/Above/Below/Left/Right] <Right>:`, and each splits the
+current viewport. The viewport that stays current is the one AutoCAD keeps (probed in accoreconsole): the right half of 2
+Vertical, the top of 2 Horizontal, the big one of 3 Right, the lower right of 4; the new ones take the next free numbers
+(CVPORT 3, 4, 5). Every new viewport shows the whole of what the one split showed, its centre kept, fitted to its own shape:
+a view 100 wide and 100 high split by 2 Vertical on a square area is 100 wide and 200 high in each half. SIngle keeps the
+current viewport alone (nothing where it is alone already); Save asks `Enter name for new viewport configuration or [?]:`
+and, for a name in use, `Viewport configuration "A" already exists.  Replace it? <N>`; Restore asks `Enter name of viewport
+configuration to restore or [?]:` and says `Cannot find viewport configuration "NOPE".` before asking again; Delete takes
+names and wild cards (`Deleted 2 viewport configurations.`, `Deleted one viewport configuration.`, `No matching viewport
+configurations found.`); ? writes `Current configuration:`, each `id# 2` with its `   corners: 0.5000,0.0000
+1.0000,1.0000`, and each configuration named; Toggle shows the current viewport alone and brings the others back the next
+time, as AutoCAD keeps them under `*Multiple`; Join asks `Select dominant viewport <current viewport>:` and `Select viewport to
+join:`, a viewport picked by a click in it, and refuses two that make no rectangle (`The selected viewports do not form a
+rectangle.`). Each change is one undo step. In a layout VPORTS and -VPORTS ask MVIEW's prompts, as AutoCAD's do. The tiles are
+[`CadDocument.TiledViewports`](xref:GeometryHelper.Dxf.Viewer.CadTiledViewports), read from the `*Active` records of the
+drawing's VPORT table and written back when it is saved: the current viewport into the first `*Active` record, which keeps
+the snap and grid, the others and each configuration as copies of it with their own corners (10, 20, 11, 21) and views (12,
+22, 40, 41). A drawing never split is saved with its VPORT table as it was. The window lays the canvas over the current
+viewport, framed in the accent, and draws the others beside it with their own views; a click in one makes it current. MOde
+is not built, nor Change view to and Visual Style of the dialog (a 2D presenter has one view and one style).
+
+FILTER (`FI`) shows the Object Selection Filters dialog: a list of lines, each `Object = Line`, `Layer = WALLS` (wild cards
+taken), `Color = 1 - Red` (an index, ByLayer 256 or ByBlock 0; 300 says `Invalid Color number.`) or `Linetype = DASHED`,
+which an object has to pass all of; Add to List, Substitute, Add Selected Object (the dialog closes while one object is
+picked, and its kind, layer, colour and linetype join the list), Edit Item, Delete, Clear List, and named lists saved for the
+session (`Null Filter name not allowed.`, `Cannot delete *unnamed Filter list.`). Apply writes `Applying filter to
+selection.`, asks `Select objects:`, says how many `were filtered out`, and keeps what passed as the Previous set, so the next
+command takes it with P, then `Exiting filtered selection.`. AutoCAD's AND, OR, XOR and NOT groups and the tests of points,
+radii and other values are not built.
+
+QUICKCALC (`QC`) shows the QuickCalc palette, which stays open while commands run: the input, evaluated by Enter or =, the
+history (a line double-clicked comes back), the number pad with its memory (MC, MR, MS, M+, M-), Scientific (sin, cos, tan
+as `tang`, log, 10^x, asin, acos, atan, ln, e^x, r2d, d2r, abs, rnd, trunc), Clear, Clear History, Paste value to command
+line, and the buttons that pick in the drawing: Get Coordinates, Distance Between Two Points, Angle of Line Defined by Two
+Points, Intersection of Two Lines Defined by Four Points, each asking `>> Enter a point:` through CAL and putting the value
+into the input (refused while a command runs, `Acquiring points from the drawing area is not possible during a command`).
+CAL asks `>> Expression:` and writes the value as AutoCAD's does: `1+2*3` is 7, `sqrt(16)+2` 6.0, `dist([0,0],[300,400])`
+500.0, `ang([0,0],[300,400])` 53.1301, `[100,50]+[20,30]` (120.0 80.0 0.0); each `cur` asks a point first; a wrong expression
+writes `Error:` and AutoCAD's reason (`Operators '+', '-' require operands of the same type`, `Division by 0`) and asks
+again. The calculator is [`CadCalculator`](xref:GeometryHelper.Dxf.Viewer.CadCalculator); Units Conversion, Variables, feet and
+inches, and CAL's object snap functions (`end`, `mid` and the rest) are not built.
+
+QUICKPROPERTIES (`QP`) shows the Quick Properties panel near the cursor over the objects selected (asking `Select objects:`
+where none are): the kind and count, then Color, Layer and Linetype, edited as in Properties, one undo step each. QPMODE starts
+at -1, as AutoCAD 2021's does; above nought the panel comes up whenever objects are picked with no command running, and
+Ctrl+Shift+P switches its sign, saying `<Quick Properties panel on>` or `<Quick Properties panel off>`. The panel's
+customization (the CUI's lists by object kind) and QPLOCATION are not built; QPMODE lasts for the session.
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -1087,9 +1142,9 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 213 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 217 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
-Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
+AutoCAD's: the 217 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 221 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 24 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
+Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING, Ctrl+Shift+P QPMODE (switches the Quick Properties panel)). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters. A settings file written before an alias joined the defaults gets it once: the file lists the
 default aliases it has seen (`knownDefaultAliases`, beside `knownDefaultKeys`), and one that is not on the list is added

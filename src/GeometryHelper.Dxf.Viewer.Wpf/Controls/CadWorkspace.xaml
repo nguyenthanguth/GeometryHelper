@@ -4570,7 +4570,9 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Grid Background="{StaticResource GhCanvas}" ClipToBounds="True">
+                <!-- Model space in tiles (VPORTS): the other tiles drawn behind, the canvas laid over the current one. -->
+                <local:CadTilesView x:Name="TilesView" />
+                <Grid x:Name="ActiveTile" Background="{StaticResource GhCanvas}" ClipToBounds="True">
                     <local:CadCanvas
                         x:Name="CanvasView"
                         Session="{Binding Session}"

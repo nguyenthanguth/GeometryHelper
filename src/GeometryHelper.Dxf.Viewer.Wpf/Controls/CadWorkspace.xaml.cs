@@ -685,6 +685,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPageSetupManager = manager => PageSetupManagerWindow.Show(Window.GetWindow(this), manager);
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
+                AttachViewUtility();
                 MainViewModel shown = _model;
                 _model.ShowExternalReferences = palette =>
                     ExternalReferencesWindow.ShowPalette(Window.GetWindow(this), shown, palette);
