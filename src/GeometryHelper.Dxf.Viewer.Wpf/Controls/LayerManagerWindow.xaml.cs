@@ -24,7 +24,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Height = model.WindowHeight;
             model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
             model.PickLinetype = dialog => SelectLinetypeWindow.Pick(this, dialog);
-            model.ShowMessage = message => CadQuestionWindow.ShowMessage(this, message);
+            model.ShowMessage = message =>
+            {
+                if (message == CadQuestionTexts.RenameRefused)
+                {
+                    CadQuestionWindow.ShowMessage(
+                        this,
+                        CadQuestionTexts.RenameRefusedTitle,
+                        message,
+                        CadQuestionTexts.RenameRefusedDetail
+                    );
+                }
+                else
+                {
+                    CadQuestionWindow.ShowMessage(this, message);
+                }
+            };
             Closed += (s, e) => Model.Dispose();
         }
 

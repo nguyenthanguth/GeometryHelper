@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Edit Drawing Scales in the presenter now works as AutoCAD 2021's. Reset's question offers the three buttons AutoCAD's
+task dialog has, Metric scales (1:1 to 100:1, 17 scales), Imperial scales (1:1 and `1/128" = 1'-0"` to `1'-0" = 1'-0"`, 17)
+and Metric and Imperial scales (the metric ones then the 16 imperial ones that are not 1:1, 33), where it offered the
+drawing's own list only; `ScaleListEditViewModel.ConfirmReset` now answers a `ScaleListResetChoice` (Cancel, Metric,
+Imperial, MetricAndImperial) and `ResetChoice` is gone, and `CadScaleListRequest` has `MetricDefaults`, `ImperialDefaults` and
+`MetricAndImperialDefaults` beside `Defaults`. The list takes several scales chosen at once: Delete is live while the choice
+holds a scale the drawing does not keep, and over one that holds a scale in use asks `Scales in use cannot be deleted.
+Delete selected scales not in use?` before it deletes the others (`ConfirmDeleteInUse`), or says `The scale list must
+contain at least one scale.` over a choice that would empty the list (`ShowMessage`); Edit…, Move Up and Move Down stay
+for one scale, and the line under the list says `Varies: multiple scales selected.` over several.
+**FIXED.** The other questions the presenter's windows asked in words of their own now say what AutoCAD 2021 says, read from
+its task dialogs and messages. Purge with Confirm each item asks `Purge - Confirm Purge`, `You are about to purge layer TMP.
+What do you want to do?` (the PURGEITEM payload of the command is that sentence now) with Purge this item, Skip this item
+and Cancel; a block of a used name asks `Block - Redefine Block`, `"GB" is already defined as a block in this drawing, would
+you like to redefine this block reference?` with Redefine block and Don't redefine "GB" (the Block dialog's message box
+asks it too); New View over a used name `View - Already Exists`, `Stair core already exists.  Do you want to replace it?`
+with Replace and Cancel; New Layer State to Save over a used name `Layer - Overwrite Layer State`, `Do you want to overwrite
+Plan with the drawing's current layer state?`; the Block Attribute Manager `The attributes in the current block have been
+changed.` and `Do you want to save these changes?`; Write Block `<file> already exists.  Do you want to replace it?`; the
+Text Style dialog `The current style has been modified.` and `Do you want to save your changes?`; and the Layer manager
+refuses to rename layer 0 or a layer of an xref with `Layer - Rename`, `The selected layer cannot be renamed.` and the layers
+that cannot be renamed. The words are in the new `CadQuestionTexts`.
 **FIXED.** A new drawing in the presenter (NEW, Ctrl+N) now has the layers of Global settings > Layers, colours and lines:
 Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet and Viewport by default, each with its colour, linetype,
 lineweight and plot flag (Hidden `#9AA4B1` in HIDDEN at 0.18 mm, Centre `#F85149` in CENTER at 0.18 mm, Viewport not

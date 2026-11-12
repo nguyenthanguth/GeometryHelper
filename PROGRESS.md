@@ -143,7 +143,8 @@ the ones wanted.
 - [x] SCALELISTEDIT dialog, in-place layer rename, Edit Layer State with Description, Input Search Options (designed, checked against AutoCAD 2021)
 - [x] Dialog follow-ups: system variables after Tab; Remember corrections 1-50 (AutoCAD's own range); a drawing without $MEASUREMENT resets to the imperial list (probed)
 - [x] Dialog follow-ups 2: the Reset/duplicate-scale texts as AutoCAD 2021's (redefine on Add, Reset task dialog)
-- [ ] Dialog follow-ups 3: Reset's "Metric and Imperial scales" button; multi-select Delete with AutoCAD's in-use question; the other hand-written CadQuestionWindow texts (purge, layer state, attribute changes, block and view redefine) checked; visual style content once visual styles exist (S)
+- [x] Dialog follow-ups 3: Reset's "Metric and Imperial scales" button; multi-select Delete with AutoCAD's in-use question; 8 hand-written question texts as AutoCAD's task dialogs
+- [ ] Dialog follow-ups 4 (need the GUI): the Metric and Imperial list order; the save-on-close dialog (acadres 47128 or TaskDialog_Core3); the View Manager's replace question; the "Large Number of Scales" trigger; the choice window's width; visual style content once visual styles exist (S)
 - [x] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)

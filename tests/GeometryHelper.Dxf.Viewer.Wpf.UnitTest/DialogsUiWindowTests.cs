@@ -116,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // Delete 1:100; Reset's question answered No leaves the list.
                 dialog.Selected = dialog.Scales.Single(s => s.Name == "1:100");
                 Assert.True(dialog.Delete());
-                dialog.ConfirmReset = () => false;
+                dialog.ConfirmReset = () => ScaleListResetChoice.Cancel;
                 Assert.False(dialog.Reset());
                 Assert.Equal(17, dialog.Scales.Count);
                 dialog.Ok();
@@ -143,7 +143,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     return scale.Ok();
                 };
                 dialog.Add();
-                dialog.ConfirmReset = () => true;
+                dialog.ConfirmReset = () => ScaleListResetChoice.Metric;
                 Assert.True(dialog.Reset());
                 Assert.DoesNotContain(dialog.Scales, s => s.Name == "GH");
                 Assert.Equal(17, dialog.Scales.Count);
@@ -177,7 +177,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     "Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the scale list will be lost.",
                     ScaleListEditViewModel.ResetDetail
                 );
-                Assert.Equal("Metric scales", dialog.ResetChoice);
+                Assert.Equal("Metric scales", ScaleListEditViewModel.ResetMetric);
+                Assert.Equal("Imperial scales", ScaleListEditViewModel.ResetImperial);
+                Assert.Equal("Metric and Imperial scales", ScaleListEditViewModel.ResetMetricAndImperial);
+                Assert.Equal(17, dialog.Request.Defaults.Count);
+                Assert.DoesNotContain(dialog.Request.Defaults, s => s.Name.IndexOf('\'') >= 0);
 
                 // Add Scale: no name, a number that is not one, a scale an object points at, then one it may redefine.
                 dialog.AskScale = scale =>
@@ -238,7 +242,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.Document.Database.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "0"));
             model.ShowScaleList = dialog =>
             {
-                Assert.Equal("Imperial scales", dialog.ResetChoice);
+                Assert.Equal(17, dialog.Request.Defaults.Count);
+                Assert.Contains(dialog.Request.Defaults, s => s.Name.IndexOf('\'') >= 0);
                 dialog.Cancel();
                 return true;
             };
@@ -260,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(manager.RenameCommand.CanExecute(null));
             Assert.False(manager.BeginRename());
             Assert.False(zero.IsRenaming);
-            Assert.Equal("Cannot rename layer \"0\".", shown.Last());
+            Assert.Equal("The selected layer cannot be renamed.", shown.Last());
 
             // Defpoints can be renamed, as AutoCAD's -RENAME renames it.
             manager.SelectedRow = manager.Rows.Single(r => r.Name == "Defpoints");

@@ -121,8 +121,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Purges the objects the dialog gives, one undo step: the geometry of no length and the empty texts first where the
-        /// options say so; then each object asked about where Confirm says so (the window's question PURGEITEM, Yes or No, null
-        /// stopping), purged; then, with Purge nested, what that left unused, again until a pass purges nothing. The lists are
+        /// options say so; then each object asked about where Confirm says so (the window's question PURGEITEM, "You are about
+        /// to purge layer TMP. What do you want to do?" as AutoCAD 2021's Confirm Purge puts it, Yes or No, null stopping),
+        /// purged; then, with Purge nested, what that left unused, again until a pass purges nothing. The lists are
         /// read again. How many named objects were purged.
         /// </summary>
         private static int PurgeItems(CadCommandContext c, CadPurgeRequest request, IReadOnlyList<CadPurgeItem> items)
@@ -159,7 +160,7 @@ namespace GeometryHelper.Dxf.Viewer
                         CadUiRequestEventArgs asked = c.Session.Ask(
                             "PURGEITEM",
                             c.Document,
-                            "Purge " + item.Key[1] + " \"" + item.Value + "\"?"
+                            "You are about to purge " + item.Key[1] + " " + item.Value + ". What do you want to do?"
                         );
 
                         if (asked.Handled && asked.Answer == null)

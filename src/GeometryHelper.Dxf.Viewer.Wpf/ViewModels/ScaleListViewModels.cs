@@ -199,12 +199,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             && !double.IsInfinity(value);
     }
 
+    /// <summary>The answer to Reset's question of Edit Drawing Scales: the default list to restore, or none.</summary>
+    public enum ScaleListResetChoice
+    {
+        /// <summary>Cancel: the list stays as it is.</summary>
+        Cancel = 0,
+
+        /// <summary>Metric scales: 1:1 to 100:1 (17 scales).</summary>
+        Metric = 1,
+
+        /// <summary>Imperial scales: 1:1 and 1/128" = 1'-0" to 1'-0" = 1'-0" (17 scales).</summary>
+        Imperial = 2,
+
+        /// <summary>Metric and Imperial scales: both lists in one (33 scales).</summary>
+        MetricAndImperial = 3,
+    }
+
     /// <summary>
     /// AutoCAD 2021's Edit Drawing Scales of SCALELISTEDIT over the request its command hands the window: the drawing's scale
-    /// list, Add…, Edit… (a double click too), Move Up, Move Down, Delete and Reset, and the scale chosen with its units. Delete
-    /// is greyed for a scale the drawing keeps (the unit scale, the current annotation scale, one in use); Reset asks first,
-    /// then deletes every scale the drawing does not keep and adds the default ones it lacks. OK writes every change as one
-    /// undo step; Cancel drops them all.
+    /// list, Add…, Edit… (a double click too), Move Up, Move Down, Delete and Reset, and the scale chosen with its units. Scales
+    /// are chosen several at a time, as AutoCAD's list lets one: Delete is live while the choice holds a scale the drawing does
+    /// not keep (a scale it keeps is the unit scale, the current annotation scale or one in use), and over a choice that holds
+    /// one it keeps asks "Scales in use cannot be deleted. Delete selected scales not in use?" before it deletes the others;
+    /// Edit…, Move Up and Move Down are live for one scale only. Reset asks first, which default list to restore (Metric scales,
+    /// Imperial scales or Metric and Imperial scales), then deletes every scale the drawing does not keep and adds the default
+    /// ones it lacks. OK writes every change as one undo step; Cancel drops them all.
     /// </summary>
     public sealed class ScaleListEditViewModel : ObservableObject
     {
@@ -219,7 +238,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public const string ResetDetail =
             "Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the scale list will be lost.";
 
+        /// <summary>The label of Reset's button that restores the metric scales, as AutoCAD 2021's task dialog has it.</summary>
+        public const string ResetMetric = "Metric scales";
+
+        /// <summary>The label of Reset's button that restores the imperial scales, as AutoCAD 2021's task dialog has it.</summary>
+        public const string ResetImperial = "Imperial scales";
+
+        /// <summary>The label of Reset's button that restores both lists, as AutoCAD 2021's task dialog has it.</summary>
+        public const string ResetMetricAndImperial = "Metric and Imperial scales";
+
+        /// <summary>
+        /// The question Delete asks over a choice that holds scales in use, as AutoCAD 2021's message box has it: two lines, the
+        /// first ending in a space, the lines parted by a line break.
+        /// </summary>
+        public const string DeleteInUseQuestion =
+            "Scales in use cannot be deleted. \r\nDelete selected scales not in use?";
+
+        /// <summary>The message Delete gives over a choice that would leave the list with no scale, AutoCAD 2021's "deleteLast".</summary>
+        public const string DeleteLastMessage = "The scale list must contain at least one scale.";
+
+        /// <summary>The line the box under the list shows over several scales chosen, as AutoCAD 2021's "Varies".</summary>
+        public const string Varies = "Varies: multiple scales selected.";
+
         private ScaleRowViewModel _selected;
+        private IReadOnlyList<ScaleRowViewModel> _chosen = new ScaleRowViewModel[0];
 
         /// <summary>Makes the dialog over a request.</summary>
         /// <param name="request">The request of SCALELISTEDIT.</param>
@@ -229,6 +271,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Request = request ?? throw new ArgumentNullException(nameof(request));
             Scales = new ObservableCollection<ScaleRowViewModel>(request.Scales.Select(s => new ScaleRowViewModel(s)));
             _selected = Scales.FirstOrDefault();
+            _chosen = _selected == null ? _chosen : new[] { _selected };
         }
 
         /// <summary>Gets the request.</summary>
@@ -237,20 +280,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the window shows Add Scale or Edit Scale: true for OK.</summary>
         public Func<ScaleEditViewModel, bool> AskScale { get; set; }
 
-        /// <summary>Gets or sets how the window asks Reset's question: true for Yes. With none set, Reset resets.</summary>
-        public Func<bool> ConfirmReset { get; set; }
+        /// <summary>
+        /// Gets or sets how the window asks Reset's question: the default list to restore, or Cancel. With none set, Reset
+        /// restores the drawing's own default list, the metric or the imperial one as its MEASUREMENT asks.
+        /// </summary>
+        public Func<ScaleListResetChoice> ConfirmReset { get; set; }
 
         /// <summary>
-        /// Gets the label of the button of Reset's question that restores the default list: "Metric scales", or "Imperial
-        /// scales" where the default list is the imperial one, as AutoCAD 2021's task dialog words its buttons.
+        /// Gets or sets how the window asks Delete's question over a choice that holds scales in use: true for Yes, which
+        /// deletes the others. With none set, they are deleted without asking.
         /// </summary>
-        public string ResetChoice =>
-            Request.Defaults.Any(s => s.Name.IndexOf('\'') >= 0) ? "Imperial scales" : "Metric scales";
+        public Func<bool> ConfirmDeleteInUse { get; set; }
+
+        /// <summary>Gets or sets how the window shows Delete's message over a choice that would leave no scale; null for none.</summary>
+        public Action<string> ShowMessage { get; set; }
 
         /// <summary>Gets the scales, in the order of the list.</summary>
         public ObservableCollection<ScaleRowViewModel> Scales { get; }
 
-        /// <summary>Gets or sets the scale chosen.</summary>
+        /// <summary>
+        /// Gets or sets the scale chosen, the only one: set, it is the whole choice. Where several are chosen, the first of them
+        /// in the list.
+        /// </summary>
         public ScaleRowViewModel Selected
         {
             get => _selected;
@@ -258,39 +309,60 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _selected, value))
                 {
+                    _chosen = value == null ? new ScaleRowViewModel[0] : new[] { value };
                     RaiseChosen();
                 }
             }
         }
 
+        /// <summary>Gets the scales chosen, in the order of the list.</summary>
+        public IReadOnlyList<ScaleRowViewModel> Chosen => _chosen;
+
+        /// <summary>Gets whether one scale alone is chosen, which Edit…, Move Up, Move Down and the units under the list need.</summary>
+        private bool IsOne => _chosen.Count == 1;
+
         /// <summary>Gets the legend of the box under the list: "Selected scale: 1:50".</summary>
-        public string SelectedTitle => "Selected scale: " + (_selected?.Name ?? string.Empty);
+        public string SelectedTitle => "Selected scale: " + (IsOne ? _chosen[0].Name : string.Empty);
 
-        /// <summary>Gets the paper units of the scale chosen.</summary>
-        public string PaperUnits =>
-            _selected == null ? string.Empty : CadScaleListRow.Number(_selected.Scale.PaperUnits);
+        /// <summary>Gets the paper units of the scale chosen; none over several.</summary>
+        public string PaperUnits => IsOne ? CadScaleListRow.Number(_chosen[0].Scale.PaperUnits) : string.Empty;
 
-        /// <summary>Gets the drawing units of the scale chosen.</summary>
-        public string DrawingUnits =>
-            _selected == null ? string.Empty : CadScaleListRow.Number(_selected.Scale.DrawingUnits);
+        /// <summary>Gets the drawing units of the scale chosen; none over several.</summary>
+        public string DrawingUnits => IsOne ? CadScaleListRow.Number(_chosen[0].Scale.DrawingUnits) : string.Empty;
 
-        /// <summary>Gets the line of the scale chosen: "1 paper unit = 50 drawing units".</summary>
-        public string Sentence => _selected?.Scale.Sentence() ?? string.Empty;
+        /// <summary>Gets the line of the scale chosen: "1 paper unit = 50 drawing units"; <see cref="Varies"/> over several.</summary>
+        public string Sentence =>
+            IsOne ? _chosen[0].Scale.Sentence()
+            : _chosen.Count > 1 ? Varies
+            : string.Empty;
 
         /// <summary>Gets the line at the foot: "18 scales".</summary>
         public string Summary => MainViewModel.Count(Scales.Count) + (Scales.Count == 1 ? " scale" : " scales");
 
-        /// <summary>Gets whether Edit… is live: a scale chosen.</summary>
-        public bool CanEdit => _selected != null;
+        /// <summary>Gets whether Edit… is live: one scale chosen.</summary>
+        public bool CanEdit => IsOne;
 
-        /// <summary>Gets whether Move Up is live: a scale chosen that is not the first.</summary>
-        public bool CanMoveUp => _selected != null && Scales.IndexOf(_selected) > 0;
+        /// <summary>Gets whether Move Up is live: one scale chosen that is not the first.</summary>
+        public bool CanMoveUp => IsOne && Scales.IndexOf(_chosen[0]) > 0;
 
-        /// <summary>Gets whether Move Down is live: a scale chosen that is not the last.</summary>
-        public bool CanMoveDown => _selected != null && Scales.IndexOf(_selected) < Scales.Count - 1;
+        /// <summary>Gets whether Move Down is live: one scale chosen that is not the last.</summary>
+        public bool CanMoveDown => IsOne && Scales.IndexOf(_chosen[0]) < Scales.Count - 1;
 
-        /// <summary>Gets whether Delete is live: a scale chosen that the drawing does not keep.</summary>
-        public bool CanDelete => _selected != null && !_selected.Scale.IsKept;
+        /// <summary>Gets whether Delete is live: the choice holds a scale that the drawing does not keep.</summary>
+        public bool CanDelete => _chosen.Any(s => !s.Scale.IsKept);
+
+        /// <summary>
+        /// The scales the window has chosen in its list taken as the choice, as the list changes it: those of the list only, in
+        /// its order.
+        /// </summary>
+        /// <param name="rows">The rows chosen.</param>
+        public void Choose(IEnumerable<ScaleRowViewModel> rows)
+        {
+            var set = new HashSet<ScaleRowViewModel>(rows ?? Enumerable.Empty<ScaleRowViewModel>());
+            _chosen = Scales.Where(set.Contains).ToList();
+            _selected = _chosen.Count == 0 ? null : _chosen[0];
+            RaiseChosen();
+        }
 
         /// <summary>
         /// Add…: Add Scale shown, its scale added at the end of the list and chosen; or, where its name is another scale's and
@@ -330,12 +402,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether the scale was changed.</returns>
         public bool Edit()
         {
-            if (_selected == null)
+            if (!IsOne)
             {
                 return false;
             }
 
-            ScaleRowViewModel row = _selected;
+            ScaleRowViewModel row = _chosen[0];
             var dialog = new ScaleEditViewModel(Scales.Where(s => s != row).Select(s => s.Name), row.Scale);
 
             if (AskScale == null || !AskScale(dialog) || dialog.Result == null)
@@ -354,8 +426,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Move Down: the scale chosen one place down the list.</summary>
         public void MoveDown() => Move(1);
 
-        /// <summary>Delete: the scale chosen taken out, the next one chosen; nothing for one the drawing keeps.</summary>
-        /// <returns>Whether it was taken out.</returns>
+        /// <summary>
+        /// Delete: the scales chosen that the drawing does not keep taken out, as AutoCAD's does, the one that stands where the
+        /// first of those chosen stood chosen then. A choice that holds a scale the drawing keeps first asks
+        /// <see cref="DeleteInUseQuestion"/> and takes the others out on Yes only; one that would leave the list with no scale
+        /// says <see cref="DeleteLastMessage"/> and takes nothing out. Nothing for a choice of scales the drawing keeps.
+        /// </summary>
+        /// <returns>Whether any was taken out.</returns>
         public bool Delete()
         {
             if (!CanDelete)
@@ -363,9 +440,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            int at = Scales.IndexOf(_selected);
-            Scales.RemoveAt(at);
-            _selected = Scales.Count == 0 ? null : Scales[Math.Min(at, Scales.Count - 1)];
+            if (_chosen.Any(s => s.Scale.IsKept) && ConfirmDeleteInUse != null && !ConfirmDeleteInUse())
+            {
+                return false;
+            }
+
+            List<ScaleRowViewModel> doomed = _chosen.Where(s => !s.Scale.IsKept).ToList();
+
+            if (doomed.Count == Scales.Count)
+            {
+                ShowMessage?.Invoke(DeleteLastMessage);
+                return false;
+            }
+
+            int at = Scales.IndexOf(_chosen[0]);
+
+            foreach (ScaleRowViewModel row in doomed)
+            {
+                Scales.Remove(row);
+            }
+
+            at = Math.Min(at, Scales.Count - 1);
+            _selected = Scales[at];
+            _chosen = new[] { _selected };
             Raise(nameof(Selected));
             Raise(nameof(Summary));
             RaiseChosen();
@@ -373,17 +470,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Reset, once its question is answered Yes: every scale the drawing does not keep taken out, and the default scales
-        /// the list lacks added after those kept, as AutoCAD's Reset and -SCALELISTEDIT Reset do.
+        /// Reset, once its question is answered with a list: every scale the drawing does not keep taken out, and the scales of
+        /// the list chosen that the list lacks added after those kept, as AutoCAD's Reset and -SCALELISTEDIT Reset do. Cancel
+        /// leaves it as it is.
         /// </summary>
         /// <returns>Whether the list was reset.</returns>
         public bool Reset()
         {
-            if (ConfirmReset != null && !ConfirmReset())
+            ScaleListResetChoice choice = ConfirmReset?.Invoke() ?? ScaleListResetChoice.Metric;
+
+            if (choice == ScaleListResetChoice.Cancel)
             {
                 return false;
             }
 
+            IReadOnlyList<CadScaleListRow> defaults =
+                ConfirmReset == null ? Request.Defaults
+                : choice == ScaleListResetChoice.Metric ? Request.MetricDefaults
+                : choice == ScaleListResetChoice.Imperial ? Request.ImperialDefaults
+                : Request.MetricAndImperialDefaults;
             string chosen = _selected?.Name;
 
             foreach (ScaleRowViewModel row in Scales.Where(s => !s.Scale.IsKept).ToList())
@@ -391,7 +496,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Scales.Remove(row);
             }
 
-            foreach (CadScaleListRow scale in Request.Defaults)
+            foreach (CadScaleListRow scale in defaults)
             {
                 if (!Scales.Any(s => string.Equals(s.Name, scale.Name, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -401,6 +506,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             _selected = Scales.FirstOrDefault(s => string.Equals(s.Name, chosen, StringComparison.OrdinalIgnoreCase))
                 ?? Scales.FirstOrDefault();
+            _chosen = _selected == null ? new ScaleRowViewModel[0] : new[] { _selected };
             Raise(nameof(Selected));
             Raise(nameof(Summary));
             RaiseChosen();
@@ -419,7 +525,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void Move(int step)
         {
-            int at = _selected == null ? -1 : Scales.IndexOf(_selected);
+            int at = IsOne ? Scales.IndexOf(_chosen[0]) : -1;
             int to = at + step;
 
             if (at < 0 || to < 0 || to >= Scales.Count)

@@ -94,6 +94,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     Assert.False(request.Scales.Single(r => r.Name == "1:50").IsKept);
                     Assert.Equal(17, request.Defaults.Count);
 
+                    // Reset's three buttons: the metric list, the imperial one, and both in one without 1:1 twice.
+                    Assert.Equal(17, request.MetricDefaults.Count);
+                    Assert.Equal("100:1", request.MetricDefaults.Last().Name);
+                    Assert.Equal(17, request.ImperialDefaults.Count);
+                    Assert.Equal("1:1", request.ImperialDefaults[0].Name);
+                    Assert.Equal("1'-0\" = 1'-0\"", request.ImperialDefaults.Last().Name);
+                    Assert.Equal(33, request.MetricAndImperialDefaults.Count);
+                    Assert.Equal(
+                        request
+                            .MetricDefaults.Select(r => r.Name)
+                            .Concat(request.ImperialDefaults.Skip(1).Select(r => r.Name)),
+                        request.MetricAndImperialDefaults.Select(r => r.Name)
+                    );
+
                     // 1:2 and 1:4 swap names, 1:50 goes first, 1:100 is deleted, 1:25 is added at the end.
                     var rows = request.Scales.Where(r => r.Name != "1:100").ToList();
                     int two = rows.FindIndex(r => r.Name == "1:2");

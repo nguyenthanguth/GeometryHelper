@@ -191,6 +191,8 @@
                             x:Name="List"
                             ItemsSource="{Binding Scales}"
                             SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            SelectionMode="Extended"
+                            SelectionChanged="OnSelectionChanged"
                             Background="Transparent"
                             BorderThickness="0"
                             ItemContainerStyle="{StaticResource ScaleRow}"

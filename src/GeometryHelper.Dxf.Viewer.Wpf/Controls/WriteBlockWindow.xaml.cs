@@ -78,7 +78,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 File.Exists(Model.FileName)
                 && MessageBox.Show(
                     this,
-                    Model.FileName + " already exists. Do you want to replace it?",
+                    CadQuestionTexts.FileExists(Model.FileName),
                     "Write Block",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning

@@ -186,7 +186,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets or sets how the window shows why a rename is refused, as AutoCAD's Layer manager shows a message: given the
-        /// message, "Cannot rename layer "0"."; null to say it on the command line.
+        /// message, "The selected layer cannot be renamed." for layer 0 and a layer of an xref, as AutoCAD 2021's task dialog
+        /// "Layer - Rename" says it; null to say it on the command line.
         /// </summary>
         public Action<string> ShowMessage { get; set; }
 
@@ -198,7 +199,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Opens the name cell of a layer, as F2, a slow second click on the chosen name, a double click on it or Rename Layer
         /// open it, the whole name chosen. Layer 0 and a layer of an xref are refused at once, the message shown and the cell
-        /// left shut: <c>Cannot rename layer "0".</c>
+        /// left shut: <c>The selected layer cannot be renamed.</c>
         /// </summary>
         /// <param name="row">The row; null for the chosen one.</param>
         /// <returns>Whether the cell was opened.</returns>
@@ -211,19 +212,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            if (row.Name == "0")
+            if (row.Name == "0" || IsXrefLayer(row.Name))
             {
-                Tell("Cannot rename layer \"0\".");
-                return false;
-            }
-
-            if (IsXrefLayer(row.Name))
-            {
-                Tell(
-                    "Layer \""
-                        + row.Name
-                        + "\" belongs to an external reference: it is renamed in its own drawing, or once the reference is bound."
-                );
+                Tell(CadQuestionTexts.RenameRefused);
                 return false;
             }
 

@@ -559,10 +559,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            bool? answer =
-                AskSave == null
-                    ? false
-                    : AskSave("The current style has been modified. Do you want to save your changes?");
+            bool? answer = AskSave == null ? false : AskSave(CadQuestionTexts.TextStyleModified);
 
             if (answer == null)
             {

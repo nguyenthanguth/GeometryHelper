@@ -113,7 +113,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(closed);
             Assert.Equal(5.0, document.Database.TextStyleTable["GH_NOTES"].TextSize);
             Assert.Equal(4, asked.Count);
-            Assert.Equal("The current style has been modified. Do you want to save your changes?", asked[0]);
+            Assert.Equal("The current style has been modified.\nDo you want to save your changes?", asked[0]);
         }
 
         [Fact]

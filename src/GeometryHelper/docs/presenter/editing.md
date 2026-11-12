@@ -739,7 +739,9 @@ holds nothing, named or unnamed (`Deleting group "*A1".`), whether it was never 
 erased; with "Verify each name to be purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
 unused, so that a block OUTER inserted nowhere, holding the only INSERT of INNER, takes INNER with it, and the layer only
 INNER's circle was on; a name answered No is not asked again. PURGE shows the Purge dialog where there is a window (the
-typed form otherwise): the named objects nothing uses by kind, with Confirm each item, Purge nested items, the geometry
+typed form otherwise): the named objects nothing uses by kind, with Confirm each item (which asks of each object in
+AutoCAD 2021's task dialog `Purge - Confirm Purge`, `You are about to purge layer TMP. What do you want to do?`, with
+Purge this item, Skip this item and Cancel), Purge nested items, the geometry
 of no length and the empty texts, and a preview of the item chosen: a block, or a text, dimension or multileader style
 drawn as its dialog draws it, white on black, or a table style drawn on white as the Table Style dialog draws it; and in
 Find Non-Purgeable Items the objects in use with the reasons, `Layer WALLS is the
@@ -912,7 +914,8 @@ and the INSERTs keep their attributes until Sync runs ATTSYNC's logic on every o
 to existing references" in its Settings. A block GB of GRID, LEVEL and REV with LEVEL moved up and synced gives each INSERT
 LEVEL then GRID, their values kept. Move Up and Move Down are greyed on a constant attribute, as AutoCAD's are. Another
 block chosen in the list, or Select block, with changes not yet written asks first, as AutoCAD's manager does:
-`Save changes to the attributes of block GB?`, Yes writing them and No dropping them. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
+`The attributes in the current block have been changed.` and `Do you want to save these changes?` (AutoCAD's Block
+Attribute Manager Alert), Yes writing them and No dropping them. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
 makes INSERT and -INSERT ask the values of the attributes in the Edit Attributes dialog, eight a page in the block's
 order, the constant ones left out and a value to be verified asked once; Cancel places the defaults.
 
@@ -1249,9 +1252,15 @@ object points at the scale, or it is the unit scale, it says `1:50 already exist
 enter a different scale name.`. Reset asks in AutoCAD's task dialog, `Scale List - Reset`, `Resetting will restore a
 default list of scales for the drawing. Which default scale list do you want to restore?`, with the detail
 `Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the
-scale list will be lost.` and the buttons Metric scales (Imperial scales in an imperial drawing) and Cancel; AutoCAD's
-third button, Metric and Imperial scales, is not offered. Reset then deletes every scale the drawing does
-not keep and adds the default ones it lacks. OK writes the list as it stands as one undo step: the scales taken out
+scale list will be lost.` and the buttons Metric scales, Imperial scales, Metric and Imperial scales and Cancel; the list
+chosen is the metric 1:1 to 100:1 (17 scales), the imperial 1:1 and `1/128" = 1'-0"` to `1'-0" = 1'-0"` (17), or the metric
+ones then the 16 imperial ones that are not 1:1 (33, `CadScaleListRequest.MetricAndImperialDefaults`). Reset then deletes
+every scale the drawing does not keep and adds the ones of that list it lacks. The list takes several scales chosen at
+once (Ctrl and Shift), as AutoCAD's does: Delete is live while the choice holds a scale the drawing does not keep, Edit…,
+Move Up and Move Down for one scale only, and the line under the list says `Varies: multiple scales selected.`. Delete
+over a choice that holds a scale the drawing keeps asks `Scales in use cannot be deleted. Delete selected scales not in
+use?` and, on Yes, deletes the others, the scale that stands where the first of them stood chosen then; over a choice that
+would leave the list empty it says `The scale list must contain at least one scale.`. OK writes the list as it stands as one undo step: the scales taken out
 deleted, the ones renamed or given other units changed, the new ones added, each in its place (Move Up and Move Down
 move the entry of ACAD_SCALELIST, the SCALE and its handle kept); Cancel writes nothing. With no window to show the
 dialog, SCALELISTEDIT asks -SCALELISTEDIT's prompts. VPSCALE writes `PS:MS == 1:20` and asks
@@ -1270,6 +1279,16 @@ MEASUREMENT in its header takes the imperial list, as AutoCAD 2021 reads such a 
 alone there, having no profile's default list. Beside it the padlock locks and unlocks the viewport's display, one undo step; a locked viewport's scale is grey and
 its list greyed. On the paper with no viewport selected neither shows; on the Model tab the place shows the annotation
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
+The windows ask in AutoCAD 2021's own words, read from its task dialogs and messages. A block of another drawing, or one
+typed in Block, whose name the drawing uses asks `Block - Redefine Block`, `"GB" is already defined as a block in this
+drawing, would you like to redefine this block reference?` with Redefine block and Don't redefine "GB". New View over a name
+used asks `View - Already Exists`, `Stair core already exists.  Do you want to replace it?` with Replace and Cancel. New
+Layer State to Save over a name used asks `Layer - Overwrite Layer State`, `Do you want to overwrite Plan with the drawing's
+current layer state?`. The Layer manager refuses to rename layer 0 or a layer of an xref with `Layer - Rename`, `The
+selected layer cannot be renamed.` and the layers that cannot be: `Layer 0`, `Xref-dependent layers`. Write Block over a
+file asks `C:\blocks\gb.dwg already exists.  Do you want to replace it?`, and the Text Style dialog, with a change not
+applied, `The current style has been modified.` and `Do you want to save your changes?`. The question of the plugin outside
+the trusted folders, and the one over a file that cannot be read, are the presenter's own.
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
 names. A viewport whose view is not a plan is not entered. One whose view is twisted, as DVIEW TWist leaves it (group 51),
