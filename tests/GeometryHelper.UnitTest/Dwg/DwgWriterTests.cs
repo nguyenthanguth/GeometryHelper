@@ -16,8 +16,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </summary>
     public class DwgWriterTests
     {
-        /// <summary>The types of AutoCAD's new drawing of R2018 that the writer does not write yet.</summary>
-        private static readonly string[] NotWritten = { "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE" };
+        /// <summary>The types of AutoCAD's new drawing of R2018 that the writer does not write yet: none since the view styles.</summary>
+        private static readonly string[] NotWritten = { };
 
         private static byte[] Written(DxfDatabase database)
         {
@@ -136,7 +136,7 @@ namespace GeometryHelper.UnitTest.Dwg
                     }
                 };
 
-                Written(Source("curves_AC1032"));
+                Written(Source("solids_AC1032"));
             }
             finally
             {
@@ -144,8 +144,9 @@ namespace GeometryHelper.UnitTest.Dwg
                 GeometryHelperLog.Enable = enabled;
             }
 
+            // The drawing of solids holds a SHAPE, which the writer leaves out.
             string line = Assert.Single(lines);
-            Assert.Contains("ACDBDETAILVIEWSTYLE 1", line);
+            Assert.Contains("SHAPE 1", line);
             Assert.DoesNotContain("VISUALSTYLE", line);
             Assert.DoesNotContain("MATERIAL", line);
         }

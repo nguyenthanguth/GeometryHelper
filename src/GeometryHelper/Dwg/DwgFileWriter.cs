@@ -288,6 +288,15 @@ namespace GeometryHelper.Dwg
             int maintenance = _number >= 1032 ? 174 : 0;
             var container = new DwgContainerWriter(_version, maintenance, codePage);
             byte[] objectBytes = objects.ToArray();
+            byte[] store = DwgDataStoreWriter.Write(
+                _drawing.AcisData.FindAll(data => _written.Contains(data.Key) && IsAcis(_drawing.Find(data.Key)))
+            );
+
+            if (store != null)
+            {
+                container.Add("AcDb:AcDsPrototype_1b", store, 11, 0x7400, true);
+            }
+
             container.Add("AcDb:Preview", Preview(), 9, 0x400, false);
             container.Add("AcDb:AppInfo", AppInfo(), 10, 0x180, false);
             container.Add(
@@ -306,6 +315,10 @@ namespace GeometryHelper.Dwg
             container.Add("AcDb:Header", Header(), 1, 0x7400, true);
             return container.ToArray();
         }
+
+        /// <summary>Whether a record is a REGION, a 3DSOLID or a BODY, whose ACIS data the data store holds.</summary>
+        private static bool IsAcis(DwgRecord record) =>
+            record != null && (record.Type == "REGION" || record.Type == "3DSOLID" || record.Type == "BODY");
 
         private static int CodePageNumber(string name)
         {

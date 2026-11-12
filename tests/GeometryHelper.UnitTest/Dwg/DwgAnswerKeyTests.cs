@@ -20,11 +20,8 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
         private static readonly string[] NotReadYet =
         {
-            "ACDBDETAILVIEWSTYLE",
-            "ACDBSECTIONVIEWSTYLE",
             "CELLSTYLEMAP",
             "TABLESTYLE",
-            "ACDBASSOCPERSSUBENTMANAGER",
             "SHAPE",
             // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
             // R2007 its TABLECONTENT and TABLEGEOMETRY are read.
@@ -500,7 +497,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void TheTypesNotReadYet_AreCountedInOneDebugLine_AndTheCallInOneInfoLine()
         {
-            DwgReader.ToDxf(DwgAnswerKey.Dwg("later"));
+            // The table of R2000 keeps its content for a round trip in a TABLECONTENT and ACDBDATATABLEs, not read.
+            DwgReader.ToDxf(DwgAnswerKey.Dwg("table_AC1015"));
 
             string skipped = Assert
                 .Single(_written, line =>
@@ -510,7 +508,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 .Message;
             Assert.DoesNotContain(" HATCH ", skipped);
             Assert.DoesNotContain(" LEADER ", skipped);
-            Assert.Contains("ACDBDETAILVIEWSTYLE 1", skipped);
+            Assert.Contains("TABLECONTENT 1", skipped);
+            Assert.DoesNotContain("VIEWSTYLE", skipped);
             Assert.DoesNotContain("MATERIAL", skipped);
 
             string summary = Assert

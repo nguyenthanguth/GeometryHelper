@@ -18,17 +18,21 @@ namespace GeometryHelper.Dwg
     /// and the objects. Written are the tables and their records, the blocks, LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE,
     /// RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and polyface mesh, TEXT, MTEXT,
     /// ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION,
-    /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT and ACAD_TABLE, and of the objects
-    /// DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES,
-    /// WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE (of the form of R2013 and later, its 58 properties), the TABLECONTENT and
-    /// TABLEGEOMETRY a table keeps for a round trip, and the small ones a new drawing holds. A table goes in the form of
+    /// VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, and REGION, 3DSOLID and BODY
+    /// with their ACIS data in the data store of the file, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP,
+    /// MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE
+    /// (of the form of R2013 and later, its 58 properties), the detail and section view styles, the manager of the
+    /// persistent names of subentities beside solids, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip,
+    /// and the small ones a new drawing holds, so that a new drawing is written whole. A table goes in the form of
     /// R2010: its cells, their overrides and borders, merged ranges, sizes and
     /// style from the groups DXF keeps of R2007, the cell styles of its rows, columns and whole from the TABLECONTENT it
     /// keeps for a round trip or else from its own overrides (93 to 96), and its table style's cell styles from the
     /// style's rows, then those of its own (101 on) from the CELLSTYLEMAP AutoCAD writes in DXF alone; that map, and the
     /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
-    /// A record of another type, 3DSOLID and REGION among them, is left out, every handle to it written as 0 and every
-    /// dictionary entry naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/> counts them by type.
+    /// A REGION, 3DSOLID or BODY is written where the section ACDSDATA holds its SAB data, as a DXF of R2013 and later
+    /// gives it; one of SAT text, as a DXF of an older version gives it, is left out. A record of another type, SHAPE
+    /// among them, is left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one
+    /// Warn line of <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
     /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in. The same bytes come of the same
