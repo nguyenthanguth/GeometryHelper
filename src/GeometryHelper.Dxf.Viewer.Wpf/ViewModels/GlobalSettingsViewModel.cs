@@ -626,6 +626,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["QSAVE"] = "Save the drawing",
             ["LAYMCUR"] = "The layer of an object becomes current",
             ["LAYMCH"] = "Objects go onto the layer of another",
+            ["LAYERP"] = "Undo the last change to layer settings",
             ["PLUGINLOAD"] = "Load a plugin .dll from any folder",
             ["PLUGINUNLOAD"] = "Unload a plugin",
             ["PLUGINRELOAD"] = "Reload a plugin after rebuilding it",

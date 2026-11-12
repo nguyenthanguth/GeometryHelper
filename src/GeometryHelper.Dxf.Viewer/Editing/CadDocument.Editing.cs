@@ -264,6 +264,7 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             var scope = new CadEditScope(this, handled);
+            CadLayerSnapshot layersBefore = BeginLayerCapture(planned);
             List<CadEditRecord> followed;
 
             try
@@ -288,6 +289,7 @@ namespace GeometryHelper.Dxf.Viewer
             records.AddRange(scope.Records);
             records.AddRange(followed);
             KeepHandles(records, scope);
+            EndLayerCapture(layersBefore);
             _entityCount = null;
 
             if (records.Exists(r => r.Kind == CadEditRecordKind.TableChanged))
@@ -619,6 +621,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            if (_layerSetDepth == 0)
+            {
+                KeepLayerSet(true);
+            }
+
             List<CadEditRecord> records = _groupRecords;
             string name = _groupName;
             bool failed = _groupFailed;
@@ -632,6 +639,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
+                _layerMade = null;
                 ReadAround();
             }
         }
@@ -651,6 +659,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool made = !_groupFailed && _groupRecords.Count > 0;
             string name = _groupName;
             _groupDepth = 0;
+            _layerBefore = _layerSetDepth == 0 ? null : _layerBefore;
             _groupRecords = null;
             _groupName = null;
             _groupFailed = false;
@@ -805,6 +814,7 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (CadUndoStep step in steps)
             {
                 MoveViews(step.Records, undo);
+                MoveLayerSets(step, undo);
 
                 if (shared)
                 {
@@ -992,6 +1002,7 @@ namespace GeometryHelper.Dxf.Viewer
             ForgetRedo();
 
             var step = new CadUndoStep(name, records.ToArray());
+            TieLayerSets(step);
             _steps.Add(step);
             _states.Add(Keep());
             _position++;

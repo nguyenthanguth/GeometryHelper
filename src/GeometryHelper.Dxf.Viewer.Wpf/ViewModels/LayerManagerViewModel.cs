@@ -65,6 +65,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _searchText = string.Empty;
         private LayerRowViewModel _selected;
         private string _summary = string.Empty;
+        private bool _disposed;
 
         /// <summary>Makes the Layer manager of a document.</summary>
         /// <param name="document">The document.</param>
@@ -82,6 +83,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RenameCommand = _rename;
             Document.Changed += OnChanged;
             Document.ActiveViewportChanged += OnActiveViewportChanged;
+
+            // Everything changed while the dialog is open is one set for LAYERP, as AutoCAD's Layer Properties Manager makes one.
+            Document.BeginLayerSet();
             Refresh();
         }
 
@@ -286,6 +290,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Document.Changed -= OnChanged;
             Document.ActiveViewportChanged -= OnActiveViewportChanged;
+
+            if (!_disposed)
+            {
+                _disposed = true;
+                Document.EndLayerSet();
+            }
         }
 
         /// <summary>Reads the layer table again.</summary>

@@ -8,7 +8,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The layer commands of the Layers panel that act on the layer of an object picked: LAYOFF and LAYFRZ, a layer for each
     /// pick until Enter; LAYLCK and LAYULK, one; LAYISO, every layer but those of the objects selected off; and those that act
-    /// on all: LAYON, LAYTHW, and LAYUNISO, which turns on what LAYISO turned off. Each run is one undo step.
+    /// on all: LAYON, LAYTHW, and LAYUNISO, which turns on what LAYISO turned off; and LAYERP, which puts back the last change to
+    /// the settings of layers, and LAYERPMODE, which turns keeping them on or off. Each run is one undo step.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -209,6 +210,39 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Write("Layers isolated by LAYISO have been restored.");
+        }
+
+        /// <summary>
+        /// LAYERP: the last change or set of changes to the settings of layers undone, as AutoCAD 2021 words it; one undo step.
+        /// </summary>
+        private static IEnumerable<CadPrompt> LayerPrevious(CadCommandContext c)
+        {
+            var notes = new List<string>();
+            CadEditResult result = c.Document.RestorePreviousLayers(notes);
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+                yield break;
+            }
+
+            c.Write("Restored previous layer status.");
+
+            foreach (string note in notes)
+            {
+                c.Write(note);
+            }
+        }
+
+        /// <summary>LAYERPMODE: turns the tracking of layer changes on or off, as AutoCAD 2021's command does; the mode it has is the default.</summary>
+        private static IEnumerable<CadPrompt> LayerPreviousMode(CadCommandContext c)
+        {
+            yield return CadPrompt.ForKeyword(
+                "Enter LAYERP mode",
+                new[] { "ON", "OFF" },
+                c.Document.LayerPreviousMode ? "ON" : "OFF"
+            );
+            c.Document.LayerPreviousMode = c.Input.Is("ON");
         }
 
         /// <summary>The layer of the object the last prompt picked, by its name in the table; null where none was picked.</summary>

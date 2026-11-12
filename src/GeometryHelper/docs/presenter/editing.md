@@ -202,7 +202,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
-| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
+| layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
@@ -950,11 +950,14 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 120 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
+AutoCAD's: 134 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, `1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF as acad.pgp has them, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
-alias of the same letters.
+alias of the same letters. A settings file written before an alias joined the defaults gets it once: the file lists the
+default aliases it has seen (`knownDefaultAliases`, beside `knownDefaultKeys`), and one that is not on the list is added
+when the file has no alias of that name, so that an old file read now also has `1`, `2`, `22` and `3`, and an alias of the
+user's own with such a name, or one he cleared, is never overwritten or put back.
 
 ### System variables
 
@@ -1552,6 +1555,21 @@ Layer manager and the LAYER command make, each one undo step, refused where Auto
 | `SetColor`, `SetLinetype`, `SetLineWeight` | the look | |
 | `Delete` | the layer | objects are on it: `Layer "Steel" cannot be deleted: objects are on it.` |
 | `Rename(document, name, newName)` | the name, with every object on the layer; the spaces around it taken off, letters of another case taken | layer 0: `Cannot rename layer "0".`; a name used, either case: `A layer named "DIM" already exists.`; an empty name, a character a name cannot hold (&lt; &gt; / \ " : ; ? * \| , = and the backquote) or a layer of an xref: `Invalid layer name.` |
+
+LAYERP (alias `2`, the Previous button of Home › Layers) puts back the last change or set of changes made to the settings of
+layers, and nothing else: on or off, frozen, locked, plot, colour, linetype, lineweight, transparency and the current layer.
+Repeated, it goes back one set at a time. A set is what one command does (LAYISO turning off nine layers and moving the
+current one is one set), everything the Layer manager changed between its opening and its closing, or one change made on
+its own, as the layer box makes one. A layer added, renamed or deleted is not a setting: it stays, and a layer renamed or
+deleted since is left out. The words are AutoCAD 2021's: `Restored previous layer status.`, then where they apply `*Warning*
+The current layer is turned off.`, `*Note* The previously current layer was not set because it no longer exists.` and `*Note*
+The linetype of one or more layers could not be restored because the linetype is no longer loaded.`; with nothing kept
+`*No previous layer status*`. LAYERP is one undo step, so U after it brings the change back, and the next LAYERP takes it
+again; a layer edit undone with U is taken out of the sets with it. LAYERPMODE asks `Enter LAYERP mode [ON/OFF] <ON>:`: with
+OFF changes are no longer kept and LAYERP says `Layer-Previous is disabled. Use LAYERPMODE to turn it on.`; the mode is
+`CadDocument.LayerPreviousMode`, and `BeginLayerSet` and `EndLayerSet` make everything between them one set, as the Layer
+manager does. At most 100 sets are kept. LAYERPMODE is a command in AutoCAD 2021 and not a system variable (SETVAR says
+`Unknown variable name.`), and here too. The viewport overrides of a layer (VP Freeze and the rest) are not kept.
 
 The Layer manager renames a layer in place: F2, a slow second click on the chosen name, a double click on it, or Rename
 Layer (F2) of its right-click menu opens the name cell with the whole name chosen; Enter or a click elsewhere keeps the

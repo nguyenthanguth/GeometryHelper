@@ -3950,6 +3950,15 @@
                                             Command="{Binding MatchLayerCommand}"
                                             ToolTip="Objects go onto the layer of another (LAYMCH)"
                                         />
+                                        <Button
+                                            Style="{StaticResource SmallButton}"
+                                            Tag="{StaticResource GhIconLayerPrevious}"
+                                            Content="Previous"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="LAYERP"
+                                            ToolTip="Undoes the last change or set of changes made to layer settings (LAYERP)"
+                                        />
                                     </WrapPanel>
                                     <ComboBox
                                         x:Name="LayerBox"

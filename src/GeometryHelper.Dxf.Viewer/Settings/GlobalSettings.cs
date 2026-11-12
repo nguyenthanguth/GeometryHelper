@@ -1066,6 +1066,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.CloseList();
+            w.OpenList("knownDefaultAliases");
+
+            foreach (string alias in CadShortcuts.Default.Aliases.Keys)
+            {
+                w.Value(null, alias);
+            }
+
+            w.CloseList();
             w.Close();
             w.Open("saveAndExport");
             w.Value("saveFolder", _saveFolder);
@@ -1415,6 +1423,7 @@ namespace GeometryHelper.Dxf.Viewer
                         Pairs(shortcuts.Element("keys")) ?? _s.Keys
                     );
                     MergeNewDefaultKeys(shortcuts.Element("knownDefaultKeys"));
+                    MergeNewDefaultAliases(shortcuts.Element("knownDefaultAliases"));
                 }
                 catch (ArgumentException exception)
                 {
@@ -1468,6 +1477,46 @@ namespace GeometryHelper.Dxf.Viewer
                     _s.SetShortcuts(_s.Aliases, keys);
                 }
             }
+
+            /// <summary>
+            /// Gives the file the default aliases added since it was saved, as <see cref="MergeNewDefaultKeys"/> does for keys.
+            /// The file lists the default aliases it has seen (<c>knownDefaultAliases</c>); one not on the list is added when the
+            /// file has no alias of that name, so an alias the user cleared, or gave to another command, is never put back or
+            /// overwritten. A file with no list has seen the defaults but 1 LAYISO, 2 LAYERP, 22 LAYON and 3 LAYOFF, which get
+            /// them once: a file saved with the one alias M also has those four after it is read.
+            /// </summary>
+            private void MergeNewDefaultAliases(XElement known)
+            {
+                IReadOnlyDictionary<string, string> defaults = CadShortcuts.Default.Aliases;
+                var seen = new HashSet<string>(
+                    known != null
+                        ? known.Elements().Select(e => e.Value)
+                        : defaults.Keys.Where(a => !NewInLayerp.Contains(a)),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                var aliases = _s.Aliases.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+                bool added = false;
+
+                foreach (KeyValuePair<string, string> pair in defaults)
+                {
+                    if (!seen.Contains(pair.Key) && !aliases.ContainsKey(pair.Key))
+                    {
+                        aliases[pair.Key] = pair.Value;
+                        added = true;
+                    }
+                }
+
+                if (added)
+                {
+                    _s.SetShortcuts(aliases, _s.Keys);
+                }
+            }
+
+            /// <summary>The default aliases a file saved before the list <c>knownDefaultAliases</c> has not seen.</summary>
+            private static readonly HashSet<string> NewInLayerp = new HashSet<string>(
+                new[] { "1", "2", "22", "3" },
+                StringComparer.OrdinalIgnoreCase
+            );
 
             /// <summary>The members of an object of the JSON, the name of each held in the item attribute where it is no XML name.</summary>
             private static IEnumerable<KeyValuePair<string, string>> Pairs(XElement element) =>
