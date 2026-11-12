@@ -306,7 +306,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "DIM");
             Assert.Equal(
-                "Select objects or specify first extension line origin or [Angular/Baseline/Continue/Ordinate/aLign/Distribute/LAyer/Undo]:",
+                "Select objects or specify first extension line origin or [Angular/Baseline/Continue/Ordinate/aliGn/Distribute/Layer/Undo]:",
                 session.PromptText
             );
             Run(session, P(50, 0));
@@ -353,7 +353,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "DIM", P(20, 0));
             Assert.Equal(
-                "Specify diameter dimension location or [Radius/Angular/Mtext/Text/text aNgle/Undo]:",
+                "Specify diameter dimension location or [Radius/Mtext/Text/text aNgle/Undo]:",
                 session.PromptText
             );
             Run(session, P(30, 30), P(-20, 0), "R", P(-30, -30));
@@ -386,7 +386,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DIM", "LA", "DIMS", P(0, 0), P(100, 0), P(50, -30), "U");
             Assert.Empty(All<DxfRotatedDimension>(document.ModelSpace));
             Run(session, P(0, 0), P(100, 0), P(50, -30));
-            Run(session, "C", P(200, 0), Enter, Enter);
+            Run(session, "C", P(100, -15), P(200, 0), Enter, Enter);
             Run(session, "O", P(300, 40), P(300, 80));
             Run(session, Enter);
             Assert.False(session.IsRunning);
@@ -408,7 +408,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "DLI", P(0, 0), P(200, 0), P(50, -50));
             List<DxfRotatedDimension> dimensions = All<DxfRotatedDimension>(document.ModelSpace);
 
-            Run(session, "DIM", "L", new[] { dimensions[0].Handle }, new[] { dimensions[1].Handle }, Enter);
+            Run(session, "DIM", "G", new[] { dimensions[0].Handle }, new[] { dimensions[1].Handle }, Enter);
             Assert.Equal(-30, Entity<DxfRotatedDimension>(document, dimensions[1].Handle).DimLinePoint.Y, 9);
 
             Run(

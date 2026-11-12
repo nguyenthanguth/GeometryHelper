@@ -30,7 +30,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// stay where they are put along the line. <paramref name="free"/> says they were put off it under DIMTMOVE 2: they stand
         /// at <paramref name="location"/> itself, turned along the line, and the line is drawn inside as though they were not
         /// there, from the centre (the back of the far arrowhead) to the back of the arrowhead inside the rim, broken where it
-        /// runs through them.
+        /// runs through them. Words put past the rim stand no nearer it than two arrowheads and the gap and half their width (two
+        /// arrowheads where they are level), so acad.dwt's "R20.0000" put 20.5 out stands 20.979 out; on a line exactly level the level words
+        /// stand along it with no landing, and on an exactly upright one the landing runs left where the line runs down.
         /// </remarks>
         internal static List<DxfEntity> Radial(
             DxfDimStyleTableRecord style,
@@ -105,13 +107,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out the line was put, as AutoCAD 2021
             // draws them: "R20" put 35 out stands in the middle of the radius.
-            bool fitted = !placed && !diameter && !style.Dimtix && style.Dimatfit != 3 && style.Dimtmove == 0;
+            bool fitted = !placed && !style.Dimtix && style.Dimatfit != 3 && style.Dimtmove == 0;
 
-            if (along > radius + 1E-9 && !fitted)
+            bool pastRim = along >= radius - 1E-10;
+            bool flatLine = Math.Abs(u.Y) <= 1E-9;
+
+            if (pastRim && !fitted)
             {
                 arrowOut = true;
                 textOut = true;
-                at = along;
+                // Words put within the arrowhead's room of the rim stand where the fit would put them past it: AutoCAD 2021
+                // keeps "R25" put 25.25 out where it stands put 33.9 out, its arrowhead and two gaps clear of the rim.
+                at = placed
+                    ? along
+                    : Math.Max(along, radius + 2.0 * arrow + (style.Dimtoh && !flatLine ? 0.0 : words2.Beside));
                 farArrow = diameter && style.Dimtofl;
                 farOut = true;
             }
@@ -128,7 +137,7 @@ namespace GeometryHelper.Dxf.Viewer
                 arrowOut = false;
                 textOut = false;
                 single = true;
-                at = Math.Min(along, radius - 2.0 * arrow - gap - width / 2.0);
+                at = Math.Min(along, radius - 2.0 * arrow - (style.Dimtih && !flatLine ? 0.0 : gap + width / 2.0));
 
                 // AutoCAD 2021 draws no arrowhead on a radius whose words stand inside next to the first extension line.
                 nearArrow = diameter || style.Dimjust != 1;
@@ -160,13 +169,14 @@ namespace GeometryHelper.Dxf.Viewer
                 farOut = arrowOut;
             }
 
-            bool level = textOut ? style.Dimtoh : style.Dimtih;
+            // Words kept level on a line exactly level are the words that stand along it: no landing, as AutoCAD 2021 draws them.
+            bool level = (textOut ? style.Dimtoh : style.Dimtih) && !flatLine;
             GeoPoint2 knee = center + u * at;
             GeoPoint2 back = arrowOut ? chord + u * trim : chord - u * trim;
             GeoPoint2 wordsAt;
             double angle = aligned;
 
-            if (textOut && !(along > radius + 1E-9))
+            if (textOut && !pastRim)
             {
                 // Moved out past the rim: the line from the rim (or the back of an arrowhead outside) to the words.
                 double clear = arrowOut ? 2.0 * arrow : trim;
@@ -311,10 +321,10 @@ namespace GeometryHelper.Dxf.Viewer
             double lineAngle = Math.Atan2(u.Y, u.X);
             double half = style.Dimtih ? Chord(width, height, gap, angle - lineAngle) : width / 2.0 + gap;
             // Over a rim from outside, or inside reaching the rim (a diameter's the back of its arrowhead); over a radius's
-            // centre by half their width and the gap, level or not.
+            // centre by half their width, the gap and an arrowhead, level or not (AutoCAD 2021 pushes "R25" put 6 out under DIMASZ 2.5, not 7).
             bool overRim = along - half <= reach && along + half >= (diameter ? reach - trim : reach);
             bool overFarRim = diameter && along + half >= -reach && along - half <= -(reach - farTrim);
-            bool pushed = onLine && (overRim || overFarRim || (!diameter && along - width / 2.0 - gap <= 0.0));
+            bool pushed = onLine && (overRim || overFarRim || (!diameter && along - width / 2.0 - gap <= trim));
 
             if (pushed)
             {
@@ -527,7 +537,13 @@ namespace GeometryHelper.Dxf.Viewer
                 if (level)
                 {
                     angle = 0.0;
-                    double flat = way.X < -1E-9 ? -1.0 : 1.0;
+                    // On an upright line the landing runs left where the line runs down, right where it runs up, as AutoCAD 2021
+                    // lands it.
+                    double flat =
+                        way.X < -1E-9 ? -1.0
+                        : way.X > 1E-9 ? 1.0
+                        : way.Y < 0.0 ? -1.0
+                        : 1.0;
                     var x = new GeoVector2(flat, 0.0);
                     var up = new GeoVector2(0.0, 1.0);
 

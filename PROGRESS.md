@@ -120,7 +120,8 @@ the ones wanted.
 - [x] Dimension overrides follow-ups 2: words moved out under DIMTOH as AutoCAD, arrowhead and word fit thresholds, chains in the base's style, 279 only on DIMCONTINUE, 288/50 confirmed
 - [x] Dimension follow-ups 3: group 11 by the words' start under DIMTMOVE 1, rows at the base's DIMSCALE on its layer; txt.shx measuring was right (the 0.1838 was Arial)
 - [x] Dimension follow-ups 4: SHX ink as AutoCAD (13 fonts), DIMCONTINUEMODE, radial group 11 and DIMTMOVE 2 pictures, the 15-degree no-landing rule
-- [ ] Dimension follow-ups 5: DIM's radial and continue (full AutoCAD); radius/diameter under DIMTOFL 1 with words within an arrowhead of the rim (148 of 672 differ); vertical-line landing direction; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
+- [x] Dimension follow-ups 5: DIM's radial and continue/baseline prompts (AcDimRes strings); radius/diameter words near the rim (941 of 2742 differing down to 31); upright-line landing direction (8 of 448 down to 0)
+- [ ] Dimension follow-ups 6: radius/diameter with words put by hand written as AutoCAD writes them (type 164/163, leader length 0; DECIDED by recommendation 2026-11-12: follow AutoCAD so its regen keeps the words); the 31 left (point on the rim, centre, level words inside near the rim); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; DIM Offset under DIMSCALE; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
