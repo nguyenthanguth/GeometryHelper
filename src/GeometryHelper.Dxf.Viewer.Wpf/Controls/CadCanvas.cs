@@ -1021,6 +1021,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var o = Options;
             DisplayBox paper = space.PaperBounds;
             CadUcs ucs = document.Ucs.WorkingOf(space);
+            List<DxfViewport> grids = ViewportsWithGrid(space, Through).ToList();
             string numbers = string.Join(
                 "|",
                 new object[]
@@ -1062,6 +1063,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     CadImageCache.Version,
                     Through == null,
                     OwnGridKey(space),
+                    string.Join("|", grids.Select(v => GridKey(v, true))),
                 }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture))
             );
             var key = new SceneKey(document.GetDisplay(space), numbers);
@@ -1079,8 +1081,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 surface.Canvas.Flush();
             }
 
-            // The grid of model space and the Block Editor, of a layout's paper space, or of the viewport worked through.
-            bool dense = ShowGrid && DrawGrid(_scene, view, scale, ucs, space);
+            // In a layout, the grid of each viewport whose grid is on, each in its frame, as AutoCAD keeps a grid by viewport;
+            // then the grid of model space and the Block Editor, of a layout's paper space, or of the viewport worked through.
+            foreach (DxfViewport other in grids)
+            {
+                DrawGrid(_scene, view, scale, ucs, space, other);
+            }
+
+            bool dense = ShowGrid && DrawGrid(_scene, view, scale, ucs, space, Through);
 
             // As AutoCAD says it, once as the grid comes on or the view goes to where it is too dense, not at each redraw.
             if (dense && !_gridTooDense && Session != null)
@@ -1104,12 +1112,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             DxfViewport through = space.IsModel ? null : Through;
             DxfViewport own = space.IsModel ? null : through ?? SheetViewport(space);
+            return own == null ? string.Empty : GridKey(own, through != null);
+        }
 
-            if (own == null)
-            {
-                return string.Empty;
-            }
-
+        /// <summary>
+        /// The snap and grid of a viewport as the kept picture's key holds them, with where it lies and looks for one whose grid
+        /// is drawn through it: the one worked through, or another whose grid is on (<see cref="ViewportsWithGrid"/>), so that a
+        /// grid switched or set in one of them, or its view changed, draws them again.
+        /// </summary>
+        private static string GridKey(DxfViewport own, bool through)
+        {
             GeoVector2 grid = own.GridIncrement;
             GeoVector2 snap = own.SnapIncrement;
             GeoPoint2 origin = own.SnapBasePoint;
@@ -1129,21 +1141,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 own.SnapIsoPair,
             };
 
-            if (through != null)
+            if (through)
             {
-                GeoPoint3 centre = through.CenterPoint;
-                GeoPoint2 middle = through.ViewCenter;
+                GeoPoint3 centre = own.CenterPoint;
+                GeoPoint2 middle = own.ViewCenter;
                 numbers.AddRange(
                     new object[]
                     {
                         centre.X,
                         centre.Y,
-                        through.Width,
-                        through.Height,
+                        own.Width,
+                        own.Height,
                         middle.X,
                         middle.Y,
-                        through.ViewHeight,
-                        through.TwistAngle,
+                        own.ViewHeight,
+                        own.TwistAngle,
                     }
                 );
             }
@@ -1956,7 +1968,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     if (job.Handles == null && ShowGrid && (job.Space.IsModel || job.Space.IsBlockEditor))
                     {
-                        DrawGrid(picture, view, PixelScale, Document.Ucs.WorkingOf(job.Space), job.Space);
+                        DrawGrid(picture, view, PixelScale, Document.Ucs.WorkingOf(job.Space), job.Space, null);
                     }
 
                     File.WriteAllBytes(job.FileName, CadRasterWriter.Encode(picture, job.Format));
@@ -2025,14 +2037,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// space the grid of its sheet, as AutoCAD 2021 draws it apart from model space's: the spacing, major lines, GRIDDISPLAY
         /// bits, base point, angle and isometric plane of the layout's viewport 1 (those of this canvas where it has none),
         /// within the layout's limits without GRIDDISPLAY 1, on the paper 8 and 18 per cent darker than it. Through a viewport
-        /// (MSPACE) that viewport's own grid, laid in model space as the viewport shows it and drawn inside its frame alone,
-        /// within the limits of model space without GRIDDISPLAY 1; the sheet's is not drawn then.
+        /// (MSPACE), or another whose grid is on, that viewport's own grid, laid in model space as the viewport shows it and
+        /// drawn inside its frame alone, within the limits of model space without GRIDDISPLAY 1, turned with a twisted view,
+        /// and in dots where <see cref="GridStyle"/> asks them for 2D model space (1), which it shows; the sheet's is not
+        /// drawn while one is worked through.
         /// </summary>
+        /// <param name="picture">The picture drawn into.</param>
+        /// <param name="view">The view of the space shown.</param>
+        /// <param name="scale">The pixels of the picture to a pixel of the screen.</param>
+        /// <param name="ucs">The UCS the space shown works in.</param>
+        /// <param name="space">The space shown.</param>
+        /// <param name="through">The viewport of the layout whose grid is drawn through it; null for the space's own.</param>
         /// <returns>Whether the grid was left out as too dense to display, its lines closer than 6 pixels without GRIDDISPLAY 2.</returns>
-        private bool DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs, CadSpace space)
+        private bool DrawGrid(
+            SKBitmap picture,
+            CadView view,
+            double scale,
+            CadUcs ucs,
+            CadSpace space,
+            DxfViewport through
+        )
         {
             bool paper = !space.IsModel;
-            DxfViewport through = paper ? Through : null;
+            through = paper ? through : null;
             DxfViewport own = paper ? through ?? SheetViewport(space) : null;
             CadView sheetView = view;
 
@@ -2056,7 +2083,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoPoint2 snapBase = own != null ? own.SnapBasePoint : SnapBase;
             int dottedIn =
                 space.IsBlockEditor ? 2
-                : space.IsModel ? 1
+                : space.IsModel || through != null ? 1
                 : 4;
             bool dots = (GridStyle & dottedIn) != 0;
 
@@ -2124,7 +2151,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             void Put()
             {
-                if (limited)
+                if (limited && Math.Abs(Math.IEEERemainder(view.Twist, 2.0 * Math.PI)) > tolerance.EqualAngleRad)
+                {
+                    KeepWithinTurnedLimits(
+                        pixels,
+                        before,
+                        width,
+                        height,
+                        stride,
+                        view,
+                        onSheet ? layout.Limits.MinPoint : database.Limmin,
+                        onSheet ? layout.Limits.MaxPoint : database.Limmax
+                    );
+                }
+                else if (limited)
                 {
                     KeepWithinLimits(
                         pixels,
@@ -2231,6 +2271,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             space.Layout?.GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased);
 
         /// <summary>
+        /// The viewports of a layout whose own grid is drawn in their frames besides the space's: each switched on, showing a
+        /// plan, with its grid on (GRIDMODE kept in it), but the one worked through, in the order the layout holds them; none
+        /// in model space and the Block Editor.
+        /// </summary>
+        private static IEnumerable<DxfViewport> ViewportsWithGrid(CadSpace space, DxfViewport through) =>
+            space.IsModel || space.Layout == null
+                ? Enumerable.Empty<DxfViewport>()
+                : space
+                    .Layout.GetViewports()
+                    .Where(v => !ReferenceEquals(v, through) && CadViewports.CanWorkThrough(v) && v.On && v.GridOn);
+
+        /// <summary>
         /// The GRIDDISPLAY of a viewport, a layout's viewport 1 or one worked through, as AutoCAD reads it from its flags: 1
         /// beyond the limits, 2 adaptive, 4 subdivided, 8 following the UCS.
         /// </summary>
@@ -2311,6 +2363,76 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 for (int ix = 0; ix < width; ix++)
                 {
                     if (!rowIn || ix < left || ix > right)
+                    {
+                        int at = iy * stride + ix;
+                        pixels[at] = before[at];
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The pixels of the grid outside the limits of model space put back as they were before the grid, where the view is
+        /// twisted, as a viewport turned by DVIEW TWist shows them: the limits a turned rectangle on the screen, each pixel kept
+        /// that lies inside it or within half a pixel of its edges, as <see cref="KeepWithinLimits"/> keeps those of a level
+        /// view.
+        /// </summary>
+        private static void KeepWithinTurnedLimits(
+            int[] pixels,
+            int[] before,
+            int width,
+            int height,
+            int stride,
+            CadView view,
+            GeoPoint2 least,
+            GeoPoint2 most
+        )
+        {
+            var xs = new double[4];
+            var ys = new double[4];
+            view.DrawingToPixel(least.X, least.Y, out xs[0], out ys[0]);
+            view.DrawingToPixel(most.X, least.Y, out xs[1], out ys[1]);
+            view.DrawingToPixel(most.X, most.Y, out xs[2], out ys[2]);
+            view.DrawingToPixel(least.X, most.Y, out xs[3], out ys[3]);
+
+            // Each edge as a line ax + by + c = 0 whose a and b are of unit length and whose value is above nought inside.
+            double turn = (xs[1] - xs[0]) * (ys[2] - ys[1]) - (ys[1] - ys[0]) * (xs[2] - xs[1]);
+            double sign = turn >= 0.0 ? 1.0 : -1.0;
+            var a = new double[4];
+            var b = new double[4];
+            var c = new double[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                int j = (i + 1) % 4;
+                double dx = xs[j] - xs[i];
+                double dy = ys[j] - ys[i];
+                double length = Math.Sqrt(dx * dx + dy * dy);
+
+                if (!(length > 0.0))
+                {
+                    // Limits of no size: the grid kept nowhere.
+                    Array.Copy(before, pixels, pixels.Length);
+                    return;
+                }
+
+                a[i] = -dy / length * sign;
+                b[i] = dx / length * sign;
+                c[i] = -(a[i] * xs[i] + b[i] * ys[i]);
+            }
+
+            for (int iy = 0; iy < height; iy++)
+            {
+                for (int ix = 0; ix < width; ix++)
+                {
+                    bool inside = true;
+
+                    for (int i = 0; i < 4 && inside; i++)
+                    {
+                        inside = a[i] * ix + b[i] * iy + c[i] >= -0.5;
+                    }
+
+                    if (!inside)
                     {
                         int at = iy * stride + ix;
                         pixels[at] = before[at];

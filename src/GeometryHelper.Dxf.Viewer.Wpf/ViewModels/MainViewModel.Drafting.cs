@@ -297,6 +297,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseDrafting();
         }
 
+        /// <summary>
+        /// The drawing shown read back by undo, redo or a command taken back: SNAP, GRID and their spacings shown as it now
+        /// holds them, model space's from its <c>*Active</c> viewport and those of a layout from its viewports, as AutoCAD's
+        /// UNDO takes back a snap or grid set; after a line drawn and GRID 50 typed through a viewport, U shows that viewport's
+        /// grid off again. A drawing with no <c>*Active</c> viewport keeps the window's.
+        /// </summary>
+        private void ReloadDrafting()
+        {
+            if (ActiveViewport(_current.Document) != null)
+            {
+                _current.Drafting.TakeSnapAndGrid(ReadDrafting(_current.Document));
+            }
+
+            LoadDrafting();
+        }
+
         private void RaiseDrafting()
         {
             DraftingState layout = Layout;
@@ -327,7 +343,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (toggle.Name)
             {
                 case "SNAP":
-                    _snapModeTwo = false;
+                    SnapModeTwo.Remove(SnapModeSpace());
 
                     if (WriteSpaceToggle("SNAPMODE", v => v.SnapOn = toggle.IsOn, s => s.Snap = toggle.IsOn))
                     {
@@ -600,6 +616,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public int Isoplane { get; set; }
 
             public int GridDisplay { get; set; } = 3;
+
+            // The spaces whose SNAPMODE was set to 2, which they read back while SNAP stays on: see SnapModeSpace.
+            public HashSet<string> SnapModeTwo { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+            /// <summary>The snap and grid of another state taken, as undo reads them back from the drawing; ORTHO and the lineweights left.</summary>
+            public void TakeSnapAndGrid(DraftingState other)
+            {
+                Snap = other.Snap;
+                Grid = other.Grid;
+                SnapX = other.SnapX;
+                SnapY = other.SnapY;
+                GridX = other.GridX;
+                GridY = other.GridY;
+                SnapBase = other.SnapBase;
+                SnapAngle = other.SnapAngle;
+                GridMajor = other.GridMajor;
+                Isometric = other.Isometric;
+                Isoplane = other.Isoplane;
+                GridDisplay = other.GridDisplay;
+            }
 
             // The paper-space snap and grid of the layouts, by name, that have no viewport 1 to keep them.
             private readonly Dictionary<string, DraftingState> _papers = new Dictionary<string, DraftingState>(

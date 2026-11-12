@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In a layout of the presenter, every viewport whose grid is on draws it in its frame, whether it is worked
+through or not, on the paper and through another viewport, as AutoCAD 2021 keeps a grid by viewport. Only the grid of
+the viewport worked through was drawn.
+
+**FIXED.** Through a viewport the presenter's grid is model space's, drawn in dots by GRIDSTYLE 1 (2D model space)
+rather than by 4 (layouts), and a twisted viewport keeps it within LIMMIN and LIMMAX as they are turned on the sheet:
+through a viewport at 1:500 twisted by 30 degrees, with limits 2 000 by 2 000 about the middle of its frame, the line
+900 above the middle is drawn, where it was cut off by the level box of two corners of the limits.
+
+**FIXED.** SNAPMODE 2 in the presenter is kept by each space, as AutoCAD 2021 keeps it by viewport: set in model space,
+it reads 2 there again after SNAPMODE 1 is set on the paper of Layout1. It was one value for the window, and 1 set
+anywhere cleared it everywhere.
+
+**FIXED.** U and REDO in the presenter show the snap and grid the drawing holds again, of model space and of each
+viewport: after a line drawn and GRID 50 typed through a viewport, U shows that viewport's grid off and of the spacing it
+had, as the drawing read back holds it. SNAP, GRID and their spacings stayed as they were before the undo.
+
 **NEW.** `DwgReader` reads the detail and section view styles every drawing of AutoCAD 2013 and later holds, in every
 version AutoCAD saves them, and the manager of the persistent names of subentities AutoCAD keeps beside solids, each as
 AutoCAD's DXF of it gives: a section view style of its own, its identifier 0.33 high, bend lines overshooting by 0.11 and
