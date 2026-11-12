@@ -132,25 +132,6 @@ namespace GeometryHelper.Dxf.Viewer
             && record.Handle == null
             && string.Equals(record.Property, SpaceViewProperty, StringComparison.Ordinal);
 
-        /// <summary>Whether a step changes the view of spaces and nothing in the drawing.</summary>
-        private static bool IsViewOnly(IReadOnlyList<CadEditRecord> records)
-        {
-            if (records.Count == 0)
-            {
-                return false;
-            }
-
-            foreach (CadEditRecord record in records)
-            {
-                if (!IsSpaceView(record))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         /// <summary>The records of a step joined by a move of the view straight after it: the same space's view, moved twice, is one record from the first before to the last after.</summary>
         private static CadEditRecord[] JoinViews(IReadOnlyList<CadEditRecord> first, IReadOnlyList<CadEditRecord> next)
         {

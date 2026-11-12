@@ -245,7 +245,8 @@ the ones wanted.
 - [x] Snap follow-ups 2: SNAP Legacy, paper-space grid toggle and drawing, GRIDDISPLAY 8 and SNAPMODE 2 probed, a number as a distance at point SETVARs, the dialog's negative POLARDIST, "Grid too dense to display"
 - [x] Snap follow-ups 3: snap and grid per viewport and paper space, a viewport's grid drawn through it, LASTPOINT kept at SETVAR, SNAPGRIDLEGACY in the settings file
 - [x] Snap follow-ups 4: every viewport's grid drawn, GRIDSTYLE through a viewport, twisted limits, SNAPMODE 2 per space, undo reloading snap/grid, the SNAPBASE puzzle (a running snap, no change)
-- [ ] Snap follow-ups 5: snap/grid SETVAR and F7 as undo steps of their own (no full snapshot); non-rectangular viewport clips (read the clip entity, clip content and grid, VPCLIP); viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot (S)
+- [x] Snap follow-ups 5: snap/grid SETVAR, GRID/SNAP and F7/F8/F9 as cheap undo steps (F7 joins the previous command as AutoCAD 2021 does, DECIDED by recommendation 2026-11-12)
+- [ ] Snap follow-ups 6: non-rectangular viewport clips (read the clip entity, clip content and grid, VPCLIP); viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot (S)
 - [x] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)

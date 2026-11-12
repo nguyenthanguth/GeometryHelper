@@ -39,6 +39,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// touched are drawn again. An undo asked before its drawing is read waits for it. An edit stops the readings still
     /// running, so that it does not share the processor with them, and the drawings wanted after it are read then.
     /// </para>
+    /// <para>
+    /// A step that moves the view of a space, or changes a setting kept in the drawing (the snap and grid of a viewport,
+    /// <see cref="ApplySetting"/>), shares the drawing kept before it and keeps none of its own: undoing it moves the view or
+    /// writes the setting back and reads nothing. The drawing read back for another step lacks the settings changed since the
+    /// drawing it was kept at, so they are written on it again in order.
+    /// </para>
     /// </remarks>
     public sealed partial class CadDocument
     {
@@ -649,6 +655,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (made)
             {
                 Reload(_states[_position].Bytes, null);
+                ReplaySettings();
                 Changed?.Invoke(
                     this,
                     new CadDocumentChangedEventArgs(
@@ -680,7 +687,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             EnsureStart();
             int kept = _groupRecords.Count;
-            return new CadGroupMark(kept == 0 ? _states[_position].Bytes : Snapshot(), kept);
+            return new CadGroupMark(kept == 0 && !HasSettingsRun() ? _states[_position].Bytes : Snapshot(), kept);
         }
 
         /// <summary>Reads the drawing back to a savepoint <see cref="MarkGroup"/> took in the group still open, the records made since dropped.</summary>
@@ -711,12 +718,21 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            CadUndoStep step = _steps[_position - 1];
+            // A step that joins the one before it (F7 pressed after a LINE) is taken back with it, as AutoCAD's U takes both.
+            var undone = new List<CadUndoStep> { _steps[_position - 1] };
+            _position--;
+
+            while (undone[undone.Count - 1].JoinsPrevious && _position > UndoFloor)
+            {
+                undone.Add(_steps[_position - 1]);
+                _position--;
+            }
+
             _realTimeStep = null;
             _realTimeViewStep = null;
-            _position--;
-            Move(step, true);
-            Announce(CadChangeKind.Undo, step.Name, step.Records);
+            IReadOnlyList<CadEditRecord> records = RecordsOf(undone);
+            Move(undone, records, true);
+            Announce(CadChangeKind.Undo, undone[0].Name, records);
             return true;
         }
 
@@ -729,31 +745,69 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            CadUndoStep step = _steps[_position];
+            var redone = new List<CadUndoStep> { _steps[_position] };
+            _position++;
+
+            while (_position < _steps.Count && _steps[_position].JoinsPrevious)
+            {
+                redone.Add(_steps[_position]);
+                _position++;
+            }
+
             _realTimeStep = null;
             _realTimeViewStep = null;
-            _position++;
-            Move(step, false);
-            Announce(CadChangeKind.Redo, step.Name, step.Records);
+            IReadOnlyList<CadEditRecord> records = RecordsOf(redone);
+            Move(redone, records, false);
+            Announce(CadChangeKind.Redo, redone[0].Name, records);
             return true;
         }
 
-        /// <summary>
-        /// Brings the drawing and the views to where an undo or a redo of a step goes: the drawing read from the state the new
-        /// position holds, unless the step changed only the view of spaces, which leaves the drawing as it is and moves the views.
-        /// </summary>
-        private void Move(CadUndoStep step, bool undo)
+        /// <summary>The records of steps taken back or put again together, in the order given.</summary>
+        private static IReadOnlyList<CadEditRecord> RecordsOf(List<CadUndoStep> steps)
         {
-            if (IsViewOnly(step.Records))
+            if (steps.Count == 1)
+            {
+                return steps[0].Records;
+            }
+
+            var records = new List<CadEditRecord>();
+
+            foreach (CadUndoStep step in steps)
+            {
+                records.AddRange(step.Records);
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Brings the drawing, its settings and the views to where an undo or a redo of steps goes: the drawing read from the
+        /// state the new position holds, with the settings changed since that state put on it again, unless the steps changed
+        /// only the view of spaces and settings kept in the drawing, which leave the drawing as it is and put those back.
+        /// </summary>
+        private void Move(List<CadUndoStep> steps, IReadOnlyList<CadEditRecord> records, bool undo)
+        {
+            bool shared = steps.TrueForAll(s => SharesState(s.Records));
+
+            if (shared)
             {
                 ReadAround();
             }
             else
             {
-                Reload(_states[_position], step.Records);
+                Reload(_states[_position], records);
+                ReplaySettings();
             }
 
-            MoveViews(step.Records, undo);
+            foreach (CadUndoStep step in steps)
+            {
+                MoveViews(step.Records, undo);
+
+                if (shared)
+                {
+                    MoveSettings(step.Records, undo);
+                }
+            }
         }
 
         /// <summary>Saves the drawing to the file it was opened from or last saved as.</summary>
@@ -869,9 +923,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Makes the edits one step: the drawing after them kept, the steps undone before forgotten.</summary>
         private void Commit(string name, List<CadEditRecord> records)
         {
-            // A zoom or a pan of a space's view changes nothing in the drawing: its step shares the state before it, so
-            // that no drawing is saved for it, and a real-time one straight after another joins that step.
-            if (IsViewOnly(records))
+            // A zoom or a pan of a space's view changes nothing in the drawing, and a setting kept in the drawing is put back by
+            // its own records: such a step shares the state before it, so that no drawing is saved for it, and a real-time zoom
+            // or pan straight after another joins that step.
+            if (SharesState(records))
             {
                 CommitView(name, records);
                 return;
@@ -921,8 +976,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Makes the moves of the views of spaces one step, or joins them to the step before where it is a real-time one; the drawing is as the state before kept it.</summary>
-        private void CommitView(string name, List<CadEditRecord> records)
+        /// <summary>
+        /// Makes the moves of the views of spaces and the settings changed one step, or joins the views to the step before where
+        /// it is a real-time one; the drawing is as the state before kept it. A step that joins the one before it (see
+        /// <see cref="ApplySetting"/>) carries its name, and is taken back and put again with it.
+        /// </summary>
+        private void CommitView(string name, List<CadEditRecord> records, bool joinsPrevious = false)
         {
             if (
                 _realTimeView
@@ -942,7 +1001,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             ForgetRedo();
 
-            var step = new CadUndoStep(name, records.ToArray());
+            bool joins = joinsPrevious && _position > UndoFloor;
+            var step = new CadUndoStep(joins ? _steps[_position - 1].Name : name, records.ToArray(), joins);
             _steps.Add(step);
             _states.Add(_states[_position]);
             _position++;
@@ -955,6 +1015,7 @@ namespace GeometryHelper.Dxf.Viewer
         private void TakeBack()
         {
             Reload(_states[_position].Bytes, null);
+            ReplaySettings();
 
             if (_groupDepth > 0)
             {

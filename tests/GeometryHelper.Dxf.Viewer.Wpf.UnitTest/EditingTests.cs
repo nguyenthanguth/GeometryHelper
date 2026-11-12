@@ -50,7 +50,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal(0.0, Line(model, bottom).StartPoint.X, 9);
                 Assert.Equal(0.0, Line(model, bottom).StartPoint.Y, 9);
-                Assert.False(model.HasUnsavedChanges);
+
+                // F9 pressed before the move is a step of its own, and stays done: the drawing still counts as changed.
+                Assert.True(model.HasUnsavedChanges);
+                Assert.True(model.Toggles.Single(t => t.Name == "SNAP").IsOn);
                 Assert.Equal("MOVE", model.History.Last());
 
                 Assert.True(model.Redo());
