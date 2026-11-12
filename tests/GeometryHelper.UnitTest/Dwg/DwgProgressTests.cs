@@ -36,7 +36,7 @@ namespace GeometryHelper.UnitTest.Dwg
             {
                 File.WriteAllBytes(path, told);
                 var reading = new List<double>();
-                DxfDatabase read = DwgReader.Open(path, new Recorder(reading));
+                DxfDatabase read = DwgReader.Open(path, null, new Recorder(reading));
                 Assert.Equal(DwgReader.Open(path).ToText(), read.ToText());
                 AssertRuns(reading);
             }

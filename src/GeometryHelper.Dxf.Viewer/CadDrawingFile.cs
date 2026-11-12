@@ -95,7 +95,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (IsDwg(path))
             {
-                return DwgReader.Open(path, progress);
+                return DwgReader.Open(path, null, progress);
             }
 
             progress?.Report(0.0);

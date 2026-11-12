@@ -130,11 +130,11 @@ namespace GeometryHelper.Dwg
         public static DxfDatabase Open(Stream stream) => Open(BytesOf(stream), null);
 
         /// <summary>
-        /// Opens a DWG file from a path as <see cref="Open(string)"/> does, how far it has got told to
+        /// Opens a DWG file from a path as <see cref="Open(string, DxfReadOptions)"/> does, how far it has got told to
         /// <paramref name="progress"/> as a share from 0 to 1, in thousandths, never going back, and 1 once opened: the DWG
         /// made into its DXF to 0.9, that DXF read to 1.
         /// </summary>
-        internal static DxfDatabase Open(string path, IProgress<double> progress)
+        internal static DxfDatabase Open(string path, DxfReadOptions options, IProgress<double> progress)
         {
             if (path == null)
             {
@@ -143,7 +143,7 @@ namespace GeometryHelper.Dwg
 
             ProgressSteps steps = ProgressSteps.Of(progress);
             steps?.Within(0.0, 0.9);
-            byte[] dxf = ToDxf(File.ReadAllBytes(path), progress: steps);
+            byte[] dxf = ToDxf(File.ReadAllBytes(path), options?.SupportFolders, steps);
             steps?.Within(0.9, 1.0);
             steps?.Stage(0.0, 1.0);
             DxfDatabase database;
