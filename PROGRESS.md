@@ -197,7 +197,8 @@ the ones wanted.
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
 - [x] Angle follow-ups: ATTSYNC keeps XData and names the dynamic block, the angle override in the DYN field, LIST of ellipses and dimensions as AutoCAD
 - [x] ATTSYNC and LIST follow-ups: *U INSERTs synced, LIST names, jogged radius, UCS rotations, Y ordinate and associative pinned
-- [ ] LIST/blocks follow-ups: "dimension style overrides:" lines in LIST; BCLOSE leaving *U blocks stale (AutoCAD's UpdateAnonymousBlocks); ATTSYNC placement for *U unprobed (ATTSYNC not in the console) (S)
+- [x] LIST/blocks follow-ups: BSAVE works out *U blocks again as UpdateAnonymousBlocks, LIST dimension style overrides, DIMJOGANG override in radians
+- [ ] LIST/blocks follow-ups 2: ATTSYNC placement for *U unprobed (ATTSYNC not in the console); LUNITS 2 at high LUPREC (1.000500E+03); linetype override naming no linetype; ATTRIBs under UpdateAnonymousBlocks; parameters added or removed in the Block Editor; setters skipping overrides equal to the style (AutoCAD writes them) (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual

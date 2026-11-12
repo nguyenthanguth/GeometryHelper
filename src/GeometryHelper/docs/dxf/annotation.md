@@ -341,6 +341,8 @@ in world coordinates (`XLine1Point`, `DimLinePoint`, `Center`, `ChordPoint`, `Ar
 dimension of (0, 0, 0) and (100, 20, 0) along 30 degrees measures 96.60, the angle of a level line and one at 45 degrees
 pi / 4. A variable of the style reads as the dimension draws with it, its override (the list DSTYLE of its extended data of
 ACAD) or its style's, and set is written as an override, the style kept: `dim.Dimasz = 4.5` writes `1070 41, 1040 4.5`.
+The override of `Dimjogang` is in radians, as AutoCAD 2021 keeps it, where a style's record holds degrees: 30 degrees
+writes `1070 50, 1040 0.5235987755982988`.
 An ordinate measures along the user's axes its 51 gives (the negative of their angle from the x of the normal's system),
 which a move or a turn carries, so its measurement stays. `Dimtxtdirection` is DIMTXTDIRECTION, the override 1070 294 from
 R2010.

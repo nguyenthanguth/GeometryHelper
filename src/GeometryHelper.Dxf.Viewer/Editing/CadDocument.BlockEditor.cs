@@ -15,7 +15,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// block was opened or last saved in. Save Block (BSAVE) makes them final: the steps of the session so far become one,
     /// "BEDIT", and every INSERT of the block is drawn anew; closing without saving reads the drawing back as it stood when the
     /// block was opened or last saved. After the editor closes, one undo takes back the whole session. A door of 4 objects
-    /// opened, given a fifth line and saved, is one step "BEDIT" that every INSERT of the door shows with its five.
+    /// opened, given a fifth line and saved, is one step "BEDIT" that every INSERT of the door shows with its five; a dynamic
+    /// panel given a circle and saved has each INSERT of Width 150 or 200 placing a new *U block, stretched to its width,
+    /// with the circle.
     /// </remarks>
     public sealed partial class CadDocument
     {
@@ -218,8 +220,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Saves the block open in the Block Editor, as BSAVE: its edits made final, every INSERT of it drawn anew (their
-        /// attributes are not synchronised, as AutoCAD's ATTSYNC is not run), and the steps of the session so far one undo
-        /// step, "BEDIT". Undo inside the editor then stops here. For &lt;Current Drawing&gt; model space keeps its edits.
+        /// attributes are not synchronised, as AutoCAD's ATTSYNC is not run), the anonymous *U blocks the INSERTs of a dynamic
+        /// block place worked out anew from it at their values, as AutoCAD's <c>UpdateAnonymousBlocks</c> works them, and the
+        /// steps of the session so far one undo step, "BEDIT". Undo inside the editor then stops here. For &lt;Current Drawing&gt;
+        /// model space keeps its edits.
         /// </summary>
         /// <returns>What came of it: refused where the editor is not open or a command's group of edits is; done with no
         /// record where nothing was changed since the block was opened or last saved.</returns>
@@ -239,12 +243,63 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }
 
+            UpdateAnonymousBlocks(editor);
             var redrawn = new CadEditRecord(CadEditRecordKind.TableChanged, null, "Redefine block", null, editor.Name);
             Merge(editor.Start, "BEDIT", redrawn);
             editor.Saved();
             Announce(CadChangeKind.Edit, "BSAVE", new[] { redrawn });
             GeometryHelperLog.Info("CadDocument: the Block Editor saved " + editor.Name + ".");
             return CadEditResult.Done(new[] { redrawn });
+        }
+
+        /// <summary>
+        /// Works out anew the anonymous *U blocks the INSERTs of a dynamic block place, from the block as it is saved, as
+        /// AutoCAD's <c>UpdateAnonymousBlocks</c> does when its Block Editor saves one: each INSERT keeps its values and places a
+        /// new *U block, those that shared one sharing the new one. A step of its own, which the save merges into "BEDIT". A
+        /// block the library does not work out keeps its *U blocks as they were.
+        /// </summary>
+        private void UpdateAnonymousBlocks(CadBlockEditor editor)
+        {
+            if (editor.IsCurrentDrawing || !editor.Space.Block.IsDynamicBlock)
+            {
+                return;
+            }
+
+            string name = editor.Name;
+            ApplyEdit(
+                "BSAVE",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Update anonymous blocks", null, name),
+                },
+                s =>
+                {
+                    try
+                    {
+                        List<string> made = DxfDynamicBlockRepresentation.UpdateAnonymous(s.Database.BlockTable[name]);
+
+                        if (made.Count > 0)
+                        {
+                            GeometryHelperLog.Debug(
+                                "CadDocument: the anonymous blocks of "
+                                    + name
+                                    + " made anew: "
+                                    + string.Join(", ", made)
+                                    + "."
+                            );
+                        }
+                    }
+                    catch (NotSupportedException exception)
+                    {
+                        GeometryHelperLog.Debug(
+                            "CadDocument: the anonymous blocks of "
+                                + name
+                                + " were left as they were: "
+                                + exception.Message
+                        );
+                    }
+                }
+            );
         }
 
         /// <summary>

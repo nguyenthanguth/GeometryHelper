@@ -362,6 +362,27 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// The value of the text of a dimension's override of the variable, as <see cref="Read"/> gives it, but an angle in
+        /// radians: AutoCAD 2021 keeps DIMJOGANG so in a dimension's list DSTYLE, 0.5235987755982988 for 30 degrees, though a
+        /// DIMSTYLE record holds degrees (plugin GhAl3).
+        /// </summary>
+        internal object FromOverride(string text)
+        {
+            if (Kind != DxfDimKind.Angle)
+            {
+                return Read(text);
+            }
+
+            return Numbers.TryRead(text, out double angle) && Guard.IsFinite(angle)
+                ? angle
+                : double.Parse(Fallback, CultureInfo.InvariantCulture) * (Math.PI / 180.0);
+        }
+
+        /// <summary>The text of a dimension's override of a value of the variable, as <see cref="Write"/> writes it, but an angle in radians, as <see cref="FromOverride"/> reads it.</summary>
+        internal string ToOverride(object value) =>
+            Kind == DxfDimKind.Angle ? Numbers.Exact((double)value + 0.0) : Write(value);
+
         /// <summary>Whether two values of the variable are the same: numbers to the bit, references the same object.</summary>
         internal bool SameValue(object a, object b)
         {

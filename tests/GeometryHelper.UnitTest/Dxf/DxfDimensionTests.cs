@@ -327,6 +327,28 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(2.5, read.DimStyleTable["Standard"].Dimtxt);
         }
 
+        /// <summary>
+        /// AutoCAD 2021 keeps a dimension's DIMJOGANG override in radians, though a DIMSTYLE record holds degrees: its API set to
+        /// 30 degrees wrote <c>1070 50, 1040 0.5235987755982988</c>, which it read back as 0.5236 and LIST wrote as 30 (plugins
+        /// GhAl1 and GhAl3).
+        /// </summary>
+        [Fact]
+        public void ADimjogangOverride_IsKeptInRadians_AsAutoCADKeepsIt()
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
+            DxfRotatedDimension dim = Dim<DxfRotatedDimension>(db, "4D");
+
+            dim.Dimjogang = Math.PI / 6.0;
+
+            string saved = db.ToText();
+            Assert.Contains(
+                "1070\n50\n1040\n0.5235987755982988\n",
+                Records(saved).Single(r => HandleOf(r) == "4D"),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(Math.PI / 6.0, Dim<DxfRotatedDimension>(DxfDatabase.Parse(saved), "4D").Dimjogang);
+        }
+
         [Fact]
         public void TheStyleSet_IsWrittenByName_AndOneTheDrawingHasNotIsRefused()
         {

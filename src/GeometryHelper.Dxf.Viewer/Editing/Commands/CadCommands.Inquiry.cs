@@ -405,12 +405,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The lines LIST writes of a dimension, as AutoCAD 2021 writes them: whether it is associative, its type, its defining
-        /// points, its obliquing and text angles where it has them, its text position and text, its style and whether it is
-        /// annotative. The rotation of a rotated dimension is an amount turned, counted the way ANGDIR counts from the X axis (30
-        /// reads 330 with ANGDIR 1, whatever ANGBASE is); the obliquing and text angles are directions, counted from ANGBASE (30
-        /// reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD writes them. In a turned UCS the points are the UCS's and the
-        /// rotation and obliquing angle are counted from its X axis (a dimension turned 30 is horizontal in a UCS turned 30), the
-        /// text angle left as it is. A jogged radius writes its centre, chord point, override centre and jog point.
+        /// points, its obliquing and text angles where it has them, its text position and text, its style, the overrides of
+        /// its style (<see cref="ListedOverrides"/>) and whether it is annotative. The rotation of a rotated dimension is an
+        /// amount turned, counted the way ANGDIR counts from the X axis (30 reads 330 with ANGDIR 1, whatever ANGBASE is); the
+        /// obliquing and text angles are directions, counted from ANGBASE (30 reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD
+        /// writes them. In a turned UCS the points are the UCS's and the rotation and obliquing angle are counted from its X axis
+        /// (a dimension turned 30 is horizontal in a UCS turned 30), the text angle left as it is. A jogged radius writes its centre, chord point, override centre and jog point.
         /// </summary>
         private static IEnumerable<string> ListedDimension(CadCommandContext c, DxfDimension dimension)
         {
@@ -514,7 +514,130 @@ namespace GeometryHelper.Dxf.Viewer
                 ? "default text"
                 : "dimension text modifier: " + dimension.DimensionText;
             yield return "dimension style: \"" + dimension.DimensionStyleName + "\"";
+
+            foreach (string line in ListedOverrides(c, dimension))
+            {
+                yield return line;
+            }
+
             yield return "Annotative: " + (dimension.Annotative == DxfAnnotativeStates.True ? "Yes" : "No");
+        }
+
+        // The variables whose real values LIST writes as plain numbers, not as distances in the drawing's units.
+        private static readonly HashSet<string> Scalars = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Dimscale",
+            "Dimaltf",
+            "Dimlfac",
+            "Dimtvp",
+            "Dimtfac",
+        };
+
+        private static readonly string[] ColourNames = { "red", "yellow", "green", "cyan", "blue", "magenta", "white" };
+
+        /// <summary>
+        /// The lines LIST writes of the overrides of a dimension's style, as AutoCAD 2021 writes them: "dimension style
+        /// overrides:", then one line for each variable overridden, by name in alphabetical order, the name set in twelve places
+        /// after a space: " DIMASZ      5.0000". Distances in the drawing's units, nought feet and nought inches after whole
+        /// feet left out (5", 1', 1'-3 1/2"); DIMSCALE, DIMALTF, DIMLFAC, DIMTVP and DIMTFAC as numbers to $LUPREC places;
+        /// DIMJOGANG in the drawing's angle units; colours as "1 (red)", "8", BYBLOCK or BYLAYER; flags On or Off; arrowheads
+        /// by AutoCAD's names (Dot, ArchTick, ClosedFilled for none); linetypes and text styles by name; lineweights and whole
+        /// numbers as numbers. None where the dimension overrides nothing.
+        /// </summary>
+        private static IEnumerable<string> ListedOverrides(CadCommandContext c, DxfDimension dimension)
+        {
+            var lines = new List<KeyValuePair<string, string>>();
+
+            foreach (KeyValuePair<DxfDimVariable, object> pair in dimension.OverriddenVariables())
+            {
+                string name =
+                    pair.Key.Name == "Dimfxlen" ? "DIMFXL"
+                    : pair.Key.Name == "DimfxlenOn" ? "DIMFXLON"
+                    : pair.Key.Name.ToUpperInvariant();
+                lines.Add(new KeyValuePair<string, string>(name, Overridden(c, pair.Key, pair.Value)));
+            }
+
+            if (lines.Count == 0)
+            {
+                yield break;
+            }
+
+            lines.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            yield return "dimension style overrides:";
+
+            foreach (KeyValuePair<string, string> line in lines)
+            {
+                yield return line.Value.Length == 0 ? " " + line.Key : " " + line.Key.PadRight(12) + line.Value;
+            }
+        }
+
+        /// <summary>The value of an override as LIST writes it, by what the variable holds.</summary>
+        private static string Overridden(CadCommandContext c, DxfDimVariable variable, object value)
+        {
+            DxfDatabase database = c.Database;
+
+            switch (variable.Kind)
+            {
+                case DxfDimKind.Real:
+                    return Scalars.Contains(variable.Name)
+                        ? ((double)value).ToString(
+                            "F" + Math.Max(0, Math.Min(8, database.Luprec)).ToString(CultureInfo.InvariantCulture),
+                            CultureInfo.InvariantCulture
+                        )
+                        : Distance(c, (double)value);
+                case DxfDimKind.Angle:
+                    return CadUnits.Angle((double)value, database.Aunits, database.Auprec);
+                case DxfDimKind.Flag:
+                    return (bool)value ? "On" : "Off";
+                case DxfDimKind.Text:
+                    return (string)value;
+                case DxfDimKind.Colour:
+                    int index = ((DxfColor)value).ColorIndex;
+                    return index == 0 ? "BYBLOCK"
+                        : index == 256 ? "BYLAYER"
+                        : index >= 1 && index <= 7
+                            ? index.ToString(CultureInfo.InvariantCulture) + " (" + ColourNames[index - 1] + ")"
+                        : index.ToString(CultureInfo.InvariantCulture);
+                case DxfDimKind.Weight:
+                    return ((int)(DxfLineWeight)value).ToString(CultureInfo.InvariantCulture);
+                case DxfDimKind.Letter:
+                    return ((char)value).ToString();
+                case DxfDimKind.Block:
+                    return CadArrowheads.ListedName(value as DxfBlockTableRecord);
+                case DxfDimKind.Linetype:
+                case DxfDimKind.TextStyle:
+                    return (value as DxfSymbolTableRecord)?.Name ?? string.Empty;
+                default:
+                    return ((int)value).ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        /// <summary>
+        /// A distance of an override as LIST writes it, in the drawing's units ($LUNITS, $LUPREC); in engineering and
+        /// architectural units nought feet left out, and nought inches after whole feet: 5", 1', -1 1/4", 1'-3 1/2", 0".
+        /// </summary>
+        private static string Distance(CadCommandContext c, double value)
+        {
+            int units = c.Database.Lunits;
+            string text = CadUnits.Length(value, units, c.Database.Luprec);
+            int mark = text.IndexOf("'-", StringComparison.Ordinal);
+
+            if ((units != 3 && units != 4) || mark < 0 || !text.EndsWith("\"", StringComparison.Ordinal))
+            {
+                return text;
+            }
+
+            string sign = text.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
+            string feet = text.Substring(sign.Length, mark - sign.Length);
+            string inches = text.Substring(mark + 2, text.Length - mark - 3);
+            bool noFeet = feet.TrimStart('0').Length == 0;
+            bool noInches = inches.IndexOfAny("123456789".ToCharArray()) < 0;
+
+            // A fraction of no whole inch is written alone: 1/16", not 0 1/16".
+            return noFeet
+                    ? sign + (inches.StartsWith("0 ", StringComparison.Ordinal) ? inches.Substring(2) : inches) + "\""
+                : noInches ? sign + feet + "'"
+                : text;
         }
 
         /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>
