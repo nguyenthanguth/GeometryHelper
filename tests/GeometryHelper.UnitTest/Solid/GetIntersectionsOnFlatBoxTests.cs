@@ -5,9 +5,9 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Solid
 {
     /// <summary>
-    /// The crossings of a triangle, a polygon, a face or a plane with a box flat on some axis, or with an empty box, are
-    /// none, as the <c>Try</c> methods answer false for them; they threw "A box with a zero size on some axis has no faces
-    /// to build", or "An empty bounding box has no shape to convert". A box with its faces is crossed as before.
+    /// The crossings of a triangle, a polygon, a face or a plane with a box flat on some axis are those of its rectangle or
+    /// its segment, and with an empty box none; they threw "A box with a zero size on some axis has no faces to build", or
+    /// "An empty bounding box has no shape to convert". A box with its faces is crossed as before.
     /// </summary>
     public class GetIntersectionsOnFlatBoxTests
     {
@@ -40,31 +40,48 @@ namespace GeometryHelper.UnitTest.Solid
         private static readonly GeoPlane3 Plane = new GeoPlane3(new GeoPoint3(20, 0, 0), new GeoVector3(1, 0, 0));
 
         [Fact]
-        public void ARegionOrAPlaneAgainstABoxFlatOnSomeAxis_CrossesNothing_NotAThrow()
+        public void ARegionOrAPlaneAgainstABoxFlatOnSomeAxis_CrossesItsRectangleOrItsSegment_NotAThrow()
         {
             var face = new GeoFace3(Polygon);
 
-            foreach (GeoObb3 box in new[] { Sheet(), Stick(), Film() })
+            // The rectangle (0, 0, 0) to (100, 100, 0) is crossed in x = 20 on its edges y = 100 and y = 0.
+            foreach (GeoObb3 box in new[] { Sheet(), Film() })
             {
-                Assert.Empty(Triangle.GetIntersections(box, Tol));
-                Assert.Empty(Polygon.GetIntersections(box, Tol));
-                Assert.Empty(face.GetIntersections(box, Tol));
-                Assert.Empty(Plane.GetIntersections(box, Tol));
-                Assert.Empty(box.GetIntersections(Triangle, Tol));
-                Assert.Empty(box.GetIntersections(Polygon, Tol));
-                Assert.Empty(box.GetIntersections(face, Tol));
-                Assert.Empty(box.GetIntersections(Plane, Tol));
+                Assert.Equal(2, Triangle.GetIntersections(box, Tol).Length);
+                Assert.Equal(2, Polygon.GetIntersections(box, Tol).Length);
+                Assert.Equal(2, face.GetIntersections(box, Tol).Length);
+                Assert.Equal(2, Plane.GetIntersections(box, Tol).Length);
+                Assert.Equal(2, box.GetIntersections(Triangle, Tol).Length);
+                Assert.Equal(2, box.GetIntersections(Polygon, Tol).Length);
+                Assert.Equal(2, box.GetIntersections(face, Tol).Length);
+                Assert.Equal(2, box.GetIntersections(Plane, Tol).Length);
+                Assert.True(Plane.GetIntersections(box, Tol)[0].IsEqualTo(new GeoPoint3(20, 100, 0), Tol));
+                Assert.True(Plane.GetIntersections(box, Tol)[1].IsEqualTo(new GeoPoint3(20, 0, 0), Tol));
             }
+
+            // The segment (0, 200, 0) to (100, 200, 0) passes through the triangle and the plane at (20, 200, 0), and
+            // misses the square, which stops at y = 110.
+            Assert.True(Triangle.GetIntersections(Stick(), Tol)[0].IsEqualTo(new GeoPoint3(20, 200, 0), Tol));
+            Assert.True(Plane.GetIntersections(Stick(), Tol)[0].IsEqualTo(new GeoPoint3(20, 200, 0), Tol));
+            Assert.Empty(Polygon.GetIntersections(Stick(), Tol));
+            Assert.Empty(face.GetIntersections(Stick(), Tol));
         }
 
         [Fact]
-        public void ARegionOrAPlaneAgainstAnAxisAlignedBoxFlatOrEmpty_CrossesNothing_NotAThrow()
+        public void ARegionOrAPlaneAgainstAnAxisAlignedBoxFlatOrEmpty_CrossesItsRectangleOrNothing_NotAThrow()
         {
             var face = new GeoFace3(Polygon);
             var flat = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 0));
             GeoAabb3 empty = GeoAabb3.FromPoints(new GeoPoint3[0]);
 
-            foreach (GeoAabb3 box in new[] { flat, empty })
+            Assert.Equal(2, Triangle.GetIntersections(flat, Tol).Length);
+            Assert.Equal(2, Polygon.GetIntersections(flat, Tol).Length);
+            Assert.Equal(2, face.GetIntersections(flat, Tol).Length);
+            Assert.Equal(2, Plane.GetIntersections(flat, Tol).Length);
+            Assert.Equal(2, flat.GetIntersections(Triangle, Tol).Length);
+            Assert.Equal(2, flat.GetIntersections(Plane, Tol).Length);
+
+            foreach (GeoAabb3 box in new[] { empty })
             {
                 Assert.Empty(Triangle.GetIntersections(box, Tol));
                 Assert.Empty(Polygon.GetIntersections(box, Tol));

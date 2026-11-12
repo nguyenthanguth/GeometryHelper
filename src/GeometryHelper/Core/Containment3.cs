@@ -341,7 +341,8 @@ namespace GeometryHelper.Core
         /// </summary>
         /// <remarks>
         /// The point is taken into the local frame of the box first, which turns the oriented problem into
-        /// three independent comparisons against the extents.
+        /// three independent comparisons against the extents. A point that is not a number is outside, as it is outside
+        /// the box's body; it was inside.
         /// </remarks>
         public static PointLocation Locate(GeoObb3 box, GeoPoint3 point, Tolerance tolerance)
         {
@@ -357,7 +358,7 @@ namespace GeometryHelper.Core
             double overY = Math.Abs(local.Y) - box.ExtentY;
             double overZ = Math.Abs(local.Z) - box.ExtentZ;
 
-            if (overX > t || overY > t || overZ > t)
+            if (!(overX <= t) || !(overY <= t) || !(overZ <= t))
             {
                 return PointLocation.OutSide;
             }

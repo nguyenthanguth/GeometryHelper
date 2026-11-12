@@ -82,19 +82,26 @@ namespace GeometryHelper.UnitTest.Solid
             var flatAabb = new GeoAabb3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 100, 0));
             GeoAabb3 empty = GeoAabb3.FromPoints(new GeoPoint3[0]);
 
+            // A box flat on some axis is read as its rectangle or its segment: the triangle in the floor holds the sheet
+            // and the stick without crossing them; the square and the plane in x = 20 cross the sheet on its edges and the
+            // plane crosses the stick at (20, 200, 0).
             foreach (GeoObb3 box in new[] { Sheet(), Stick() })
             {
                 Assert.False(triangle.TryIntersectWith(box, out GeoPoint3[] a, Tol));
                 Assert.Empty(a);
-                Assert.False(polygon.TryIntersectWith(box, out GeoPoint3[] b, Tol));
-                Assert.Empty(b);
-                Assert.False(face.TryIntersectWith(box, out GeoPoint3[] c, Tol));
-                Assert.Empty(c);
-                Assert.False(plane.TryIntersectWith(box, out GeoPoint3[] d, Tol));
-                Assert.Empty(d);
+                Assert.True(plane.TryIntersectWith(box, out GeoPoint3[] d, Tol));
+                Assert.NotEmpty(d);
             }
 
-            foreach (GeoAabb3 box in new[] { flatAabb, empty })
+            Assert.True(polygon.TryIntersectWith(Sheet(), out GeoPoint3[] b, Tol));
+            Assert.Equal(2, b.Length);
+            Assert.True(face.TryIntersectWith(Sheet(), out GeoPoint3[] c, Tol));
+            Assert.Equal(2, c.Length);
+            Assert.False(polygon.TryIntersectWith(Stick(), out _, Tol));
+            Assert.True(polygon.TryIntersectWith(flatAabb, out _, Tol));
+            Assert.True(plane.TryIntersectWith(flatAabb, out _, Tol));
+
+            foreach (GeoAabb3 box in new[] { empty })
             {
                 Assert.False(triangle.TryIntersectWith(box, out _, Tol));
                 Assert.False(polygon.TryIntersectWith(box, out _, Tol));

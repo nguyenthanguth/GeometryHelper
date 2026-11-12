@@ -19,7 +19,13 @@ namespace GeometryHelper.Core
     /// </para>
     /// <para>
     /// A box is read through its body: each crossing with a box is the crossing with <see cref="GeoObb3.ToSolid"/>, or
-    /// with <c>ToObb().ToSolid()</c> for an axis-aligned one, so it is exactly the answer the body would give.
+    /// with <c>ToObb().ToSolid()</c> for an axis-aligned one, so it is exactly the answer the body would give. A box flat
+    /// on some axis, or no thicker than the point tolerance on two, has no body and is read as the shape it has become,
+    /// as <c>CollidesWith</c> and <c>DistanceTo</c> read it: flat on one axis it is its rectangle, crossed as a polygon
+    /// is; on two its segment, and on all three its centre, crossed where the segment meets the other shape, one place
+    /// at most. The plane x = 30 crosses the box 100 by 100 by 0 about (50, 50, 0) at (30, 100, 0) and (30, 0, 0), the
+    /// ends of the segment they share, on its edges, and the box 100 by 0.000002 by 0.000002 about (50, 0, 0) at
+    /// (30, 0, 0); both were crossed nowhere.
     /// </para>
     /// </remarks>
     public static partial class Intersection3
@@ -390,8 +396,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// triangle with corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the triangle
+        /// with corners (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoObb3 box) =>
@@ -403,12 +411,17 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// triangle with corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the triangle
+        /// with corners (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoObb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(triangle, body, tolerance) : new GeoPoint3[0];
+            !FlatOf(box, tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? GetIntersections(triangle, BodyOf(box), tolerance)
+            : rectangle != null ? GetIntersections(triangle, rectangle, tolerance)
+            : Crossing(segment, triangle, tolerance);
 
         /// <summary>
         /// Tries to find where a triangle and the surface of an oriented box cross, using the default tolerance.
@@ -416,8 +429,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a triangle wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the triangle with corners
+        /// (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at two points, and the answer is
+        /// true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static bool TryIntersectWith(GeoTriangle3 triangle, GeoObb3 box, out GeoPoint3[] intersections) =>
@@ -429,8 +444,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a triangle wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the triangle with corners
+        /// (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at two points, and the answer is
+        /// true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static bool TryIntersectWith(
@@ -438,10 +455,12 @@ namespace GeometryHelper.Core
             GeoObb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(triangle, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(triangle, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where a triangle and the surface of an axis-aligned box cross, using the default tolerance.
@@ -449,8 +468,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the triangle with
         /// corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the triangle
+        /// with corners (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at
+        /// (30, 0, 0). An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoAabb3 box) =>
             GetIntersections(triangle, box, Tolerance.Global);
@@ -461,11 +483,14 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the triangle with
         /// corners (-50, -50, 50), (300, -50, 50) and (-50, 300, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the triangle
+        /// with corners (30, -50, -50), (30, 300, -50) and (30, -50, 300) standing across it cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at
+        /// (30, 0, 0). An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoTriangle3 triangle, GeoAabb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(triangle, body, tolerance) : new GeoPoint3[0];
+            box.IsEmpty ? new GeoPoint3[0] : GetIntersections(triangle, box.ToObb(), tolerance);
 
         /// <summary>
         /// Tries to find where a triangle and the surface of an axis-aligned box cross, using the default tolerance.
@@ -473,8 +498,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a triangle wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the triangle with corners (30, -50, -50),
+        /// (30, 300, -50) and (30, -50, 300) standing across it cross at two points, and the answer is true. An empty
+        /// box is crossed nowhere, and the answer is false.
         /// </remarks>
         public static bool TryIntersectWith(GeoTriangle3 triangle, GeoAabb3 box, out GeoPoint3[] intersections) =>
             TryIntersectWith(triangle, box, out intersections, Tolerance.Global);
@@ -485,18 +512,22 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoTriangle3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a triangle wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the triangle with corners (30, -50, -50),
+        /// (30, 300, -50) and (30, -50, 300) standing across it cross at two points, and the answer is true. An empty
+        /// box is crossed nowhere, and the answer is false.
         /// </remarks>
         public static bool TryIntersectWith(
             GeoTriangle3 triangle,
             GeoAabb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(triangle, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(triangle, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where a polygon and the surface of an oriented box cross, using the default tolerance.
@@ -504,8 +535,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// square 200 by 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10) cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoObb3 box) =>
@@ -517,12 +550,17 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: a box 100 by 100 by 100 with a corner at the origin and the
         /// square 200 by 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10) cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(polygon, body, tolerance) : new GeoPoint3[0];
+            !FlatOf(box, tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? GetIntersections(polygon, BodyOf(box), tolerance)
+            : rectangle != null ? GetIntersections(polygon, rectangle, tolerance)
+            : Crossing(segment, polygon, tolerance);
 
         /// <summary>
         /// Tries to find where a polygon and the surface of an oriented box cross, using the default tolerance.
@@ -530,8 +568,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a square wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10) cross at two points, and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static bool TryIntersectWith(GeoPolygon3 polygon, GeoObb3 box, out GeoPoint3[] intersections) =>
@@ -543,8 +582,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a square wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10) cross at two points, and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon or the box is null.</exception>
         public static bool TryIntersectWith(
@@ -552,10 +592,12 @@ namespace GeometryHelper.Core
             GeoObb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(polygon, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(polygon, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where a polygon and the surface of an axis-aligned box cross, using the default tolerance.
@@ -563,8 +605,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the square 200 by
         /// 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10) cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at
+        /// (30, 0, 0). An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoAabb3 box) =>
@@ -576,12 +621,15 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the box from the origin to (100, 100, 100) and the square 200 by
         /// 200 from (-50, -50, 50) to (150, 150, 50) cross at four points at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10) cross at (30, 100, 0) and
+        /// (30, 0, 0), and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at
+        /// (30, 0, 0). An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPolygon3 polygon, GeoAabb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(polygon, body, tolerance) : new GeoPoint3[0];
+            box.IsEmpty ? new GeoPoint3[0] : GetIntersections(polygon, box.ToObb(), tolerance);
 
         /// <summary>
         /// Tries to find where a polygon and the surface of an axis-aligned box cross, using the default tolerance.
@@ -589,8 +637,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a square wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10) cross at two points, and the answer is true. An empty box is
+        /// crossed nowhere, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool TryIntersectWith(GeoPolygon3 polygon, GeoAabb3 box, out GeoPoint3[] intersections) =>
@@ -602,8 +652,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The answer of <see cref="TryIntersectWith(GeoPolygon3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a square wholly inside the box crosses nothing, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10) cross at two points, and the answer is true. An empty box is
+        /// crossed nowhere, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         public static bool TryIntersectWith(
@@ -611,10 +663,12 @@ namespace GeometryHelper.Core
             GeoAabb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(polygon, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(polygon, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where the material of a face and the surface of an oriented box cross, using the default
@@ -624,8 +678,11 @@ namespace GeometryHelper.Core
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50)
         /// with a hole 150 by 150 in its middle, around a box 100 by 100 by 100 with a corner at the origin, crosses
         /// nothing.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about
+        /// (30, 50, 0), cross at (30, 60, 0) and (30, 40, 0) on the rim of the hole, then (30, 100, 0) and (30, 0, 0),
+        /// and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoObb3 box) =>
@@ -638,12 +695,18 @@ namespace GeometryHelper.Core
         /// The crossings with <see cref="GeoObb3.ToSolid"/>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50)
         /// with a hole 150 by 150 in its middle, around a box 100 by 100 by 100 with a corner at the origin, crosses
         /// nothing.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about
+        /// (30, 50, 0), cross at (30, 60, 0) and (30, 40, 0) on the rim of the hole, then (30, 100, 0) and (30, 0, 0),
+        /// and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoObb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(face, body, tolerance) : new GeoPoint3[0];
+            !FlatOf(box, tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? GetIntersections(face, BodyOf(box), tolerance)
+            : rectangle != null ? GetIntersections(face, rectangle, tolerance)
+            : Crossing(segment, face, tolerance);
 
         /// <summary>
         /// Tries to find where the material of a face and the surface of an oriented box cross, using the default
@@ -653,8 +716,10 @@ namespace GeometryHelper.Core
         /// The answer of <see cref="TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a face around the box with a hole it passes through crosses nothing, and the
         /// answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about (30, 50, 0), cross at four points,
+        /// and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static bool TryIntersectWith(GeoFace3 face, GeoObb3 box, out GeoPoint3[] intersections) =>
@@ -667,8 +732,10 @@ namespace GeometryHelper.Core
         /// The answer of <see cref="TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <see cref="GeoObb3.ToSolid"/>: a face around the box with a hole it passes through crosses nothing, and the
         /// answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about (30, 50, 0), cross at four points,
+        /// and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face or the box is null.</exception>
         public static bool TryIntersectWith(
@@ -676,10 +743,12 @@ namespace GeometryHelper.Core
             GeoObb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(face, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(face, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where the material of a face and the surface of an axis-aligned box cross, using the default
@@ -688,8 +757,12 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with
         /// a hole 150 by 150 in its middle, around the box from the origin to (100, 100, 100), crosses nothing.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about
+        /// (30, 50, 0), cross at (30, 60, 0) and (30, 40, 0) on the rim of the hole, then (30, 100, 0) and (30, 0, 0),
+        /// and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at (30, 0, 0).
+        /// An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoAabb3 box) =>
@@ -702,12 +775,16 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The crossings with <c>ToObb().ToSolid()</c>: the square 200 by 200 from (-50, -50, 50) to (150, 150, 50) with
         /// a hole 150 by 150 in its middle, around the box from the origin to (100, 100, 100), crosses nothing.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the square
+        /// 120 by 20 standing upright in x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about
+        /// (30, 50, 0), cross at (30, 60, 0) and (30, 40, 0) on the rim of the hole, then (30, 100, 0) and (30, 0, 0),
+        /// and the box from (0, -0.000001, -0.000001) to (100, 0.000001, 0.000001), its segment along X, at (30, 0, 0).
+        /// An empty box is crossed nowhere, and the answer is empty.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoFace3 face, GeoAabb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(face, body, tolerance) : new GeoPoint3[0];
+            box.IsEmpty ? new GeoPoint3[0] : GetIntersections(face, box.ToObb(), tolerance);
 
         /// <summary>
         /// Tries to find where the material of a face and the surface of an axis-aligned box cross, using the default
@@ -717,8 +794,10 @@ namespace GeometryHelper.Core
         /// The answer of <see cref="TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a face around the box with a hole it passes through crosses nothing, and the answer
         /// is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about (30, 50, 0), cross at four points,
+        /// and the answer is true. An empty box is crossed nowhere, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool TryIntersectWith(GeoFace3 face, GeoAabb3 box, out GeoPoint3[] intersections) =>
@@ -731,8 +810,10 @@ namespace GeometryHelper.Core
         /// The answer of <see cref="TryIntersectWith(GeoFace3, GeoSolid3, out GeoPoint3[], Tolerance)"/> for
         /// <c>ToObb().ToSolid()</c>: a face around the box with a hole it passes through crosses nothing, and the answer
         /// is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the square 120 by 20 standing upright in
+        /// x = 30 from (30, -10, -10) to (30, 110, 10), with a hole 20 by 10 about (30, 50, 0), cross at four points,
+        /// and the answer is true. An empty box is crossed nowhere, and the answer is false.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool TryIntersectWith(
@@ -740,10 +821,12 @@ namespace GeometryHelper.Core
             GeoAabb3 box,
             out GeoPoint3[] intersections,
             Tolerance tolerance
-        ) =>
-            Faced(box, tolerance, out GeoSolid3 body)
-                ? TryIntersectWith(face, body, out intersections, tolerance)
-                : Nothing(out intersections);
+        )
+        {
+            intersections = GetIntersections(face, box, tolerance);
+
+            return intersections.Length > 0;
+        }
 
         /// <summary>
         /// Gets the points where a plane cuts the edges of an oriented box, using the default tolerance.
@@ -751,8 +834,10 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <see cref="GeoObb3.ToSolid"/>:
         /// the plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the plane x
+        /// = 30 cross at (30, 100, 0) and (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its
+        /// segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoObb3 box) =>
@@ -764,12 +849,17 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <see cref="GeoObb3.ToSolid"/>:
         /// the plane z = 50 cuts the four upright edges of a box 100 by 100 by 100 standing on the floor, at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box 100 by 100 by 0 about (50, 50, 0) and the plane x
+        /// = 30 cross at (30, 100, 0) and (30, 0, 0), and the box 100 by 0.000002 by 0.000002 about (50, 0, 0), its
+        /// segment along X, at (30, 0, 0).
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoObb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(plane, body, tolerance) : new GeoPoint3[0];
+            !FlatOf(box, tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment)
+                ? GetIntersections(plane, BodyOf(box), tolerance)
+            : rectangle != null ? GetIntersections(plane, rectangle, tolerance)
+            : Crossing(segment, plane, tolerance);
 
         /// <summary>
         /// Tries to find where a plane cuts the edges of an oriented box, using the default tolerance.
@@ -777,8 +867,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The plane z = 50 cuts a box 100 by 100 by 100 standing on the floor at four points; the plane z = 150 misses
         /// it, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the plane x = 30 cross at two points,
+        /// and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static bool TryIntersectWith(GeoPlane3 plane, GeoObb3 box, out GeoPoint3[] intersections) =>
@@ -795,8 +886,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The plane z = 50 cuts a box 100 by 100 by 100 standing on the floor at four points; the plane z = 150 misses
         /// it, and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box 100 by 100 by 0 about (50, 50, 0) and the plane x = 30 cross at two points,
+        /// and the answer is true.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public static bool TryIntersectWith(
@@ -806,12 +898,7 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
-            if (!Faced(box, tolerance, out GeoSolid3 body))
-            {
-                return Nothing(out intersections);
-            }
-
-            intersections = GetIntersections(plane, body, tolerance);
+            intersections = GetIntersections(plane, box, tolerance);
 
             return intersections.Length > 0;
         }
@@ -822,8 +909,11 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <c>ToObb().ToSolid()</c>: the
         /// plane z = 50 cuts the four upright edges of the box from the origin to (100, 100, 100), at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the plane x =
+        /// 30 cross at (30, 100, 0) and (30, 0, 0), and the box from (0, -0.000001, -0.000001) to
+        /// (100, 0.000001, 0.000001), its segment along X, at (30, 0, 0). An empty box is crossed nowhere, and the
+        /// answer is empty.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoAabb3 box) =>
             GetIntersections(plane, box, Tolerance.Global);
@@ -834,11 +924,14 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The points of <see cref="GetIntersections(GeoPlane3, GeoSolid3, Tolerance)"/> for <c>ToObb().ToSolid()</c>: the
         /// plane z = 50 cuts the four upright edges of the box from the origin to (100, 100, 100), at height 50.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is empty.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point, and crossed where they are: the box from the origin to (100, 100, 0) and the plane x =
+        /// 30 cross at (30, 100, 0) and (30, 0, 0), and the box from (0, -0.000001, -0.000001) to
+        /// (100, 0.000001, 0.000001), its segment along X, at (30, 0, 0). An empty box is crossed nowhere, and the
+        /// answer is empty.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoPlane3 plane, GeoAabb3 box, Tolerance tolerance) =>
-            Faced(box, tolerance, out GeoSolid3 body) ? GetIntersections(plane, body, tolerance) : new GeoPoint3[0];
+            box.IsEmpty ? new GeoPoint3[0] : GetIntersections(plane, box.ToObb(), tolerance);
 
         /// <summary>
         /// Tries to find where a plane cuts the edges of an axis-aligned box, using the default tolerance.
@@ -846,8 +939,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The plane z = 50 cuts the box from the origin to (100, 100, 100) at four points; the plane z = 150 misses it,
         /// and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the plane x = 30 cross at two points, and
+        /// the answer is true. An empty box is crossed nowhere, and the answer is false.
         /// </remarks>
         public static bool TryIntersectWith(GeoPlane3 plane, GeoAabb3 box, out GeoPoint3[] intersections) =>
             TryIntersectWith(plane, box, out intersections, Tolerance.Global);
@@ -863,8 +957,9 @@ namespace GeometryHelper.Core
         /// <remarks>
         /// The plane z = 50 cuts the box from the origin to (100, 100, 100) at four points; the plane z = 150 misses it,
         /// and the answer is false.
-        /// A box empty, flat on some axis or no thicker than the point tolerance on two has no body: it is crossed
-        /// nowhere, and the answer is false.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, is read as its rectangle, its
+        /// segment or its point: the box from the origin to (100, 100, 0) and the plane x = 30 cross at two points, and
+        /// the answer is true. An empty box is crossed nowhere, and the answer is false.
         /// </remarks>
         public static bool TryIntersectWith(
             GeoPlane3 plane,
@@ -873,47 +968,38 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
-            if (!Faced(box, tolerance, out GeoSolid3 body))
-            {
-                return Nothing(out intersections);
-            }
-
-            intersections = GetIntersections(plane, body, tolerance);
+            intersections = GetIntersections(plane, box, tolerance);
 
             return intersections.Length > 0;
         }
 
         /// <summary>
-        /// The body of an oriented box, as <see cref="BodyOf"/> gives it, or false for a box flat on some axis or no thicker
-        /// than the point tolerance on two, which <see cref="FlatOf"/> reads and which has none.
+        /// Where a segment, or a point where it has no length, meets a triangle: the one place
+        /// <see cref="TryIntersectWith(GeoLine3, GeoTriangle3, out GeoPoint3, Tolerance)"/> finds, or none.
         /// </summary>
-        private static bool Faced(GeoObb3 box, Tolerance tolerance, out GeoSolid3 body)
-        {
-            if (box == null)
-            {
-                throw new ArgumentNullException(nameof(box));
-            }
-
-            body = box.IsBody(tolerance) ? box.ToSolid() : null;
-            return body != null;
-        }
+        private static GeoPoint3[] Crossing(GeoLine3 segment, GeoTriangle3 triangle, Tolerance tolerance) =>
+            TryIntersectWith(segment, triangle, out GeoPoint3 at, tolerance) ? new[] { at } : new GeoPoint3[0];
 
         /// <summary>
-        /// The body of an axis-aligned box, as <c>ToObb().ToSolid()</c> gives it, or false for a box empty, flat on some axis
-        /// or no thicker than the point tolerance on two, which has none.
+        /// Where a segment, or a point where it has no length, meets a polygon: the one place
+        /// <see cref="TryIntersectWith(GeoLine3, GeoPolygon3, out GeoPoint3, Tolerance)"/> finds, or none.
         /// </summary>
-        private static bool Faced(GeoAabb3 box, Tolerance tolerance, out GeoSolid3 body)
-        {
-            body = null;
-            return !box.IsEmpty && Faced(box.ToObb(), tolerance, out body);
-        }
+        private static GeoPoint3[] Crossing(GeoLine3 segment, GeoPolygon3 polygon, Tolerance tolerance) =>
+            TryIntersectWith(segment, polygon, out GeoPoint3 at, tolerance) ? new[] { at } : new GeoPoint3[0];
 
-        /// <summary>No points, and false: the answer for a box with no body.</summary>
-        private static bool Nothing(out GeoPoint3[] intersections)
-        {
-            intersections = new GeoPoint3[0];
-            return false;
-        }
+        /// <summary>
+        /// Where a segment, or a point where it has no length, meets the material of a face: the one place
+        /// <see cref="TryIntersectWith(GeoLine3, GeoFace3, out GeoPoint3, Tolerance)"/> finds, or none.
+        /// </summary>
+        private static GeoPoint3[] Crossing(GeoLine3 segment, GeoFace3 face, Tolerance tolerance) =>
+            TryIntersectWith(segment, face, out GeoPoint3 at, tolerance) ? new[] { at } : new GeoPoint3[0];
+
+        /// <summary>
+        /// Where a segment, or a point where it has no length, meets a plane: the one place
+        /// <see cref="TryIntersectWith(GeoLine3, GeoPlane3, out GeoPoint3, Tolerance)"/> finds, or none.
+        /// </summary>
+        private static GeoPoint3[] Crossing(GeoLine3 segment, GeoPlane3 plane, Tolerance tolerance) =>
+            TryIntersectWith(segment, plane, out GeoPoint3 at, tolerance) ? new[] { at } : new GeoPoint3[0];
 
         /// <summary>
         /// Gets the body of an oriented box, refusing a box that is not there by the name of the argument.

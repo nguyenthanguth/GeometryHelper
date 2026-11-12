@@ -2408,10 +2408,26 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Determines whether a ray holds more than the point tolerance of a part of the line along it lying level over a face of
-        /// a box or along one of its edges, as a ray is read against each face as a flat region.
+        /// a box or along one of its edges, as a ray is read against each face as a flat region. A box flat on some axis has
+        /// no body to read: flat on one it is its rectangle, and flat on two or three a segment or a point, over which no ray
+        /// lies level.
         /// </summary>
         private static bool LiesAlong(GeoRay3 ray, GeoObb3 box, Tolerance tolerance)
         {
+            if (!box.HasFaces)
+            {
+                GeoPolygon3[] faces = box.GetFacesWithArea();
+
+                return faces.Length > 0
+                    && HoldsLevelPart(
+                        ray,
+                        XLine3.CutPast(new GeoXLine3(ray.Origin, ray.Direction), box, tolerance),
+                        Gap3.Region.Of(faces[0]),
+                        true,
+                        tolerance
+                    );
+            }
+
             GeoSolid3 body = box.ToSolid();
             GeoLine3 line = XLine3.CutPast(new GeoXLine3(ray.Origin, ray.Direction), box, tolerance);
 

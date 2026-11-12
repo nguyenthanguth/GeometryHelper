@@ -108,17 +108,20 @@ namespace GeometryHelper.UnitTest.Solid
         }
 
         [Fact]
-        public void ABoxThinnerThanTheToleranceOnTwoAxes_IsCrossedNowhereAsItsSegmentIs()
+        public void ABoxThinnerThanTheToleranceOnTwoAxes_IsCrossedWhereItsSegmentIs()
         {
-            foreach (GeoObb3 box in new[] { Rod(), Wire(), Speck() })
+            foreach (GeoObb3 box in new[] { Rod(), Wire() })
             {
-                Assert.Empty(SquareAcross.GetIntersections(box, Tol));
-                Assert.Empty(PlaneAcross.GetIntersections(box, Tol));
-                Assert.False(SquareAcross.TryIntersectWith(box, out GeoPoint3[] points, Tol));
-                Assert.Empty(points);
+                Assert.True(SquareAcross.GetIntersections(box, Tol)[0].IsEqualTo(new GeoPoint3(30, 0, 0), Tol));
+                Assert.True(PlaneAcross.GetIntersections(box, Tol)[0].IsEqualTo(new GeoPoint3(30, 0, 0), Tol));
+                Assert.True(SquareAcross.TryIntersectWith(box, out GeoPoint3[] points, Tol));
+                Assert.Single(points);
             }
 
-            Assert.Empty(PlaneAcross.GetIntersections(RodAabb(), Tol));
+            // The speck at (50, 0, 0) is its centre, which the square and the plane in x = 30 miss.
+            Assert.Empty(SquareAcross.GetIntersections(Speck(), Tol));
+            Assert.Empty(PlaneAcross.GetIntersections(Speck(), Tol));
+            Assert.Single(PlaneAcross.GetIntersections(RodAabb(), Tol));
         }
 
         [Fact]
