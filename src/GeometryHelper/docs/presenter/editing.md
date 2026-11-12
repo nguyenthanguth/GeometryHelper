@@ -815,7 +815,20 @@ Each reference the drawing places is followed by those its drawing attaches, nes
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
 under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
 Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
-Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The window
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The palette's
+Unload, Reload and Detach act on every row selected (Ctrl or Shift), the references in one -XREF and the images in one
+-IMAGE, so that grid and axes selected and unloaded are one undo step, and a selection of a reference and an image detached
+is one too; a nested row in the selection is left out of Unload and Reload, and Detach names it to -XREF, which refuses it
+as AutoCAD 2021 does ("Xref column has multiple references. Not detached." and the reference that places it, `"plan"`,
+quoted). A selection of nested rows alone leaves all three greyed. The palette gives -XREF and -IMAGE each name with a
+back quote before every character AutoCAD reads as a wildcard (`# @ . * ? ~ [ ] -` and the back quote), as AutoCAD's own
+palette must: `a#1` unloads only a#1 (typed as `a#1` it matches nothing, "No matching xref names found.", and `a.b` also
+takes `a-b`), and `~t` is the name and not "anything but t". The same back quote works typed (``-XREF Unload a`#1,`~t``).
+-XREF Unload, Reload and Detach answer "No matching xref names found." for a name that matches no reference, and Unload
+"No matching and loaded xref names found." where every reference it matches is unloaded already (one that is loaded among
+unloaded ones is the only one unloaded and written). A drawing with a reference bound is saved as a DXF or a DWG that
+AutoCAD 2021's AUDIT finds no error in (BINDTYPE 0 and 1, a reference nested in another bound with it, another left
+attached): no record of the reference is dependent any more. The window
 watches the folders of the files read; one changed on disk is said once on its drawing's command line, where AutoCAD
 2021 shows a balloon over its status bar: "External Reference Files Have Changed: grid needs reloading. Reload it with
 -XREF Reload or in the External References palette." It is said again only once the reference was reloaded and its file

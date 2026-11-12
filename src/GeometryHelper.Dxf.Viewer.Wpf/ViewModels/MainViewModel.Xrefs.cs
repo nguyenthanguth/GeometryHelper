@@ -215,7 +215,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             int written = session.History.Count;
-            RunWithAnswers("-XREF", "B", string.Join(",", names));
+            RunWithAnswers("-XREF", "B", string.Join(",", names.Select(ExternalReferencesViewModel.Pattern)));
             var refused = new List<string>();
 
             for (int i = written; i < session.History.Count; i++)

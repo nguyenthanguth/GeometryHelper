@@ -244,13 +244,26 @@ namespace GeometryHelper.Dxf.Viewer
                     ListXrefs(c, blocks);
                     break;
                 case "Detach":
-                    DetachXrefs(c, blocks);
+                    DetachXrefs(c, blocks, names);
                     break;
                 case "Bind":
                     BindXrefs(c, blocks, names);
                     break;
                 case "Unload":
-                    foreach (DxfBlockTableRecord block in blocks)
+                    // Only a reference loaded is unloaded; "No matching and loaded xref names found." where all those named are not.
+                    List<DxfBlockTableRecord> loaded = blocks.FindAll(b => !c.Document.Xrefs.IsUnloaded(b.Name));
+
+                    if (loaded.Count == 0)
+                    {
+                        c.Write(
+                            blocks.Count == 0
+                                ? "No matching xref names found."
+                                : "No matching and loaded xref names found."
+                        );
+                        break;
+                    }
+
+                    foreach (DxfBlockTableRecord block in loaded)
                     {
                         c.Write("Xref \"" + block.Name + "\": " + block.PathName);
                         c.Document.Xrefs.SetUnloaded(block.Name, true);
@@ -278,9 +291,14 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Write("\"" + block.Name + "\" is unloaded.");
                     }
 
-                    Redisplay(c, blocks.Count);
+                    Redisplay(c, loaded.Count);
                     break;
                 case "Reload":
+                    if (blocks.Count == 0)
+                    {
+                        c.Write("No matching xref names found.");
+                    }
+
                     foreach (DxfBlockTableRecord block in blocks)
                     {
                         ReloadXref(c, block);
@@ -356,12 +374,59 @@ namespace GeometryHelper.Dxf.Viewer
             c.Write("Total Xref(s): " + blocks.Count.ToString(CultureInfo.InvariantCulture));
         }
 
-        /// <summary>-XREF Detach: each external reference detached as AutoCAD's DetachXref detaches it, in one undo step; its INSERTs in the spaces asked through the owner gate.</summary>
-        private static void DetachXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        /// <summary>
+        /// -XREF Detach: each external reference detached as AutoCAD's DetachXref detaches it, in one undo step; its INSERTs in
+        /// the spaces asked through the owner gate. A nested reference, which the drawing of another places, is not detached:
+        /// "Xref column has multiple references. Not detached." and the reference that places it, quoted, as AutoCAD 2021 says.
+        /// </summary>
+        private static void DetachXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks, string patterns)
         {
+            string[] wanted = patterns.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+            IReadOnlyList<CadExternalReference> references = c.Document.Xrefs.GetReferences();
+            var nested = new List<string>();
+
+            foreach (CadExternalReference reference in references)
+            {
+                if (
+                    reference.IsNested
+                    && !reference.IsImage
+                    && !nested.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+                    && !references.Any(r =>
+                        !r.IsNested
+                        && !r.IsImage
+                        && string.Equals(r.Name, reference.Name, StringComparison.OrdinalIgnoreCase)
+                    )
+                    && wanted.Any(p => CadWildcard.IsMatch(reference.Name, p, true))
+                )
+                {
+                    nested.Add(reference.Name);
+                }
+            }
+
+            foreach (string name in nested)
+            {
+                c.Write("Xref " + name + " has multiple references. Not detached.");
+
+                foreach (
+                    string parent in references
+                        .Where(r => r.IsNested && string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase))
+                        .Select(r => r.ParentName)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                )
+                {
+                    c.Write("\"" + parent + "\"");
+                }
+            }
+
+            blocks = blocks.FindAll(b => !nested.Contains(b.Name, StringComparer.OrdinalIgnoreCase));
+
             if (blocks.Count == 0)
             {
-                c.Write("No matching xref names found.");
+                if (nested.Count == 0)
+                {
+                    c.Write("No matching xref names found.");
+                }
+
                 return;
             }
 

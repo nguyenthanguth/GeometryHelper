@@ -304,7 +304,8 @@ the ones wanted.
       palette (list and tree); a changed referenced file said on the command line
 - [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,
       Plot and Description; VISRETAIN 1 and 0 as AutoCAD; "Needs Reloading" as the 2021 help (S)
-- [ ] Xrefs follow-ups: -XREF Bind done (Bind and Insert types); palette Bind... and its dialog done; Unload/Reload/Detach on every selected row; Bind... for Unreferenced rows?; names with wildcard characters escaped; screenshot mode for the two windows; AUDIT of a saved bound drawing and its DWG save; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
+- [x] Xrefs follow-ups: Unload/Reload/Detach on every selected row (one step); names with wildcard characters escaped; AUDIT of a saved bound drawing and its DWG save (0 errors, 4 files)
+- [ ] Xrefs follow-ups 2: Bind... for Unreferenced rows?; Unload/Reload of nested names as AutoCAD's -XREF (orphaned wording); -IMAGE no-match messages; screenshot mode for the two windows; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
       design) (S)
 - [x] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [x] Managers: PURGE previews of table and multileader styles (the managers had them; Groups kind was done); BATTMAN asks before dropping changes, constants do not move

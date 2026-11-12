@@ -25,6 +25,20 @@ refused with `Invalid input. Delay time must be between 100 and 10000 millisecon
 has no $MEASUREMENT, as AutoCAD 2021 reads such a header as MEASUREMENT 0 (probed: Database.DxfIn of a DXF without it
 gives English, with `$MEASUREMENT 1` Metric); they put back the metric ones. The imperial list now starts with 1:1, 17
 in all, as AutoCAD's list after Reset, so that a drawing holding no 1:1 gets it back too.
+**NEW.** In the presenter the External References palette's Unload, Reload and Detach act on every row selected, as
+AutoCAD 2021's palette does: grid and axes selected and unloaded are unloaded by one -XREF and are one undo step, and a
+reference and an image detached together are one step too. A nested row in the selection is left out of Unload and
+Reload, and Detach refuses it in AutoCAD's words, probed in its console: "Xref column has multiple references. Not
+detached." and `"plan"`, the reference that places it; -XREF Detach typed says the same.
+**FIXED.** The palette's Unload, Reload, Detach, Change Path and Bind… give -XREF and -IMAGE a name with a back quote
+before each character AutoCAD reads as a wildcard (`# @ . * ? ~ [ ] -`), so that a reference named `a#1`, `a.b` or `~t`
+acts on itself and not on every name the pattern would match: `a#1` matched nothing and `~t` matched every other
+reference, and `a.b` also took `a-b`. Typed, the back quote already worked.
+**FIXED.** -XREF Unload, Reload and Detach answer "No matching xref names found." for a name that matches no reference,
+and Unload "No matching and loaded xref names found." where each reference it matches is unloaded already (it no longer
+writes "is unloaded" for them again), as AutoCAD 2021 answers. AUDIT of AutoCAD 2021 on a drawing with references bound
+(BINDTYPE 0 and 1, a reference nested in another bound with it, one left attached), saved as a DXF and as a DWG, found 0
+errors; four tests keep it so.
 
 **NEW.** In the presenter showing another space is an undo step, as AutoCAD 2021's U takes it, probed in its console:
 a tab clicked, LAYOUT Set and TILEMODE are a step each, named LAYOUT, so that after Model, Layout1 and Layout2 two U go back
