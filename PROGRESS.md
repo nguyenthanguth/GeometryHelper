@@ -82,7 +82,8 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] Global settings (settings-ui, design v133): Shortcuts keys captured as key presses; Import acad.pgp left of "Reset to AutoCAD defaults"; wheel zoom factor default 1.5; UI font as an editable font combo (or Windows font dialog); "Fonts" renamed "Folder preference" with only the folder paths, Font not found and Font mapping moved to "Text and fonts"; Drawing defaults, Data sources and Drawing text removed from Dxf.Viewer (they belong to the Tekla drawing part) (M)
 - [x] New drawing gets the default layers of Global settings > Layers, colour and lines; Ctrl+3 toggles the ribbon area like Ctrl+1/Ctrl+2 (RIBBON/RIBBONCLOSE)
 - [ ] Save Drawing As listing each DXF version plainly (2018, 2013, 2010, 2007, 2004, 2000, R12): needs a DXF version converter in the core (records a version lacks dropped or turned as AutoCAD's SAVEAS does); DWG stays 2018 only until older DWG writers exist (DECIDED by recommendation 2026-11-12) (M)
-- [ ] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
+- [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
+- [ ] XCLIP follow-ups: grips on the clip frame to edit the boundary; EXPLODE of a clipped block (what AutoCAD keeps); REFEDIT; Clipdepth planes drawn in 3D views; a look at the grip crosshair pull in the running app (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):

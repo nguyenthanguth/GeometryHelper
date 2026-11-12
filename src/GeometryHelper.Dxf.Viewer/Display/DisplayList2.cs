@@ -67,9 +67,31 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(item));
             }
 
+            if (_clip != null && item.BlockClip == null)
+            {
+                item.BlockClip = _clip;
+            }
+
             _items.Add(item);
-            _bounds = _bounds.Union(item is DisplayRay2 ray ? DisplayBox.Empty.Add(ray.X, ray.Y) : item.Bounds);
+            _bounds = _bounds.Union(item is DisplayRay2 ray ? DisplayBox.Empty.Add(ray.X, ray.Y) : item.VisibleBounds);
         }
+
+        // The region every item added is given while a clipped block reference is being drawn; null at any other time.
+        private DisplayClipRegion _clip;
+
+        /// <summary>
+        /// Starts clipping the items added from now on to a ring, within the clip already in force, until <see cref="PopClip"/>:
+        /// the items of a clipped block reference are drawn between the two.
+        /// </summary>
+        internal DisplayClipRegion PushClip(DisplayClip2 outline)
+        {
+            DisplayClipRegion before = _clip;
+            _clip = new DisplayClipRegion(outline, before);
+            return before;
+        }
+
+        /// <summary>Ends the clip <see cref="PushClip"/> started, back to the one it returned.</summary>
+        internal void PopClip(DisplayClipRegion before) => _clip = before;
 
         /// <summary>
         /// The insertion points of an entity, as the snap Insertion takes them: of an INSERT its insertion point and those of

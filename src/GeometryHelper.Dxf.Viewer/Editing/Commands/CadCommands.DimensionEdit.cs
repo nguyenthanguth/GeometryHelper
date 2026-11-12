@@ -559,6 +559,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (entity is DxfBlockReference insert && added is DxfBlockReference made)
                 {
                     made.KeepRepresentationOf(insert);
+
+                    // A clipped block's copy is clipped the same, as AutoCAD's COPY and MIRROR keep a clip.
+                    made.KeepClipOf(insert);
                 }
 
                 return added;

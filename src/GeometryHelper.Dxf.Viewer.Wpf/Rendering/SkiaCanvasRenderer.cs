@@ -1044,6 +1044,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         continue;
                     }
 
+                    // The frame of a clip boundary is plotted only where XCLIPFRAME is 1.
+                    if (_plot != null && item.IsNotPlotted)
+                    {
+                        continue;
+                    }
+
                     bool isSelected = selected != null && item.Handle != null && selected.Contains(item.Handle);
                     bool isHover =
                         hover != null && string.Equals(item.Handle, hover, StringComparison.OrdinalIgnoreCase);
@@ -1126,7 +1132,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Color(rgb, 255);
         }
 
+        /// <summary>
+        /// Draws an item. Of a block reference clipped (XCLIP) it draws what lies inside the boundary alone: the canvas is clipped
+        /// to the ring of the item's <see cref="DisplayItem2.BlockClip"/>, and to the ring of each block it stands in, for the drawing.
+        /// </summary>
         private void DrawItem(
+            SKCanvas canvas,
+            CadDocument document,
+            DisplayItem2 item,
+            Affine2 m,
+            double zoom,
+            CanvasOptions options,
+            SKPaint stroke,
+            SKPaint fill,
+            bool isSelected,
+            bool isHover,
+            int background
+        )
+        {
+            if (item.BlockClip == null)
+            {
+                DrawWhole(canvas, document, item, m, zoom, options, stroke, fill, isSelected, isHover, background);
+                return;
+            }
+
+            int saved = canvas.Save();
+
+            try
+            {
+                for (DisplayClipRegion region = item.BlockClip; region != null; region = region.Parent)
+                {
+                    using (SKPath ring = RingsPath(new[] { region.Ring }, m))
+                    {
+                        canvas.ClipPath(ring, SKClipOperation.Intersect, true);
+                    }
+                }
+
+                DrawWhole(canvas, document, item, m, zoom, options, stroke, fill, isSelected, isHover, background);
+            }
+            finally
+            {
+                canvas.RestoreToCount(saved);
+            }
+        }
+
+        private void DrawWhole(
             SKCanvas canvas,
             CadDocument document,
             DisplayItem2 item,

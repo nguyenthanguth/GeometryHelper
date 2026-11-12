@@ -387,6 +387,12 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                // Of a block clipped (XCLIP) only what is shown is picked.
+                if (item.BlockClip != null && !item.BlockClip.Reaches(x, y, tolerance))
+                {
+                    continue;
+                }
+
                 double distance = item.DistanceTo(x, y);
 
                 if (distance <= tolerance && (!best.TryGetValue(item.Handle, out double known) || distance < known))
@@ -447,7 +453,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (int i in PlacesOf(handle))
                 {
-                    if (!_list.Items[i].IsInside(box))
+                    DisplayItem2 item = _list.Items[i];
+
+                    // A block clipped (XCLIP) is as big as what is shown of it: its items outside the boundary count for nothing.
+                    if (item.BlockClip != null)
+                    {
+                        DisplayBox shown = item.VisibleBounds;
+
+                        if (!shown.IsEmpty && !box.Contains(shown))
+                        {
+                            all = false;
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    if (!item.IsInside(box))
                     {
                         all = false;
                         break;
@@ -479,7 +501,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DisplayItem2 item = _list.Items[i];
 
-                if (!string.IsNullOrEmpty(item.Handle) && !found.Contains(item.Handle) && item.Touches(box))
+                if (
+                    !string.IsNullOrEmpty(item.Handle)
+                    && !found.Contains(item.Handle)
+                    && item.Touches(box)
+                    && (item.BlockClip == null || item.BlockClip.Meets(box))
+                )
                 {
                     found.Add(item.Handle);
                 }
@@ -507,7 +534,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DisplayItem2 item = _list.Items[i];
 
-                if (!string.IsNullOrEmpty(item.Handle) && item.Bounds.Intersects(box))
+                if (
+                    !string.IsNullOrEmpty(item.Handle)
+                    && item.Bounds.Intersects(box)
+                    && (item.BlockClip == null || item.BlockClip.Meets(box))
+                )
                 {
                     indices.Add(i);
                 }

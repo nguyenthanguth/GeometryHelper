@@ -3366,7 +3366,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 session.PickAperture = pick;
             }
 
-            CursorMoved?.Invoke(this, new CadCursorEventArgs(x, y, band.X, band.Y));
+            // Over a grip's box the crosshair sits on the grip, and the status bar shows its point, as AutoCAD's.
+            int pulled = GripUnder(view, scale, p);
+
+            if (pulled >= 0)
+            {
+                GeoPoint2 at = _grips[pulled].Grip.Point;
+                CursorMoved?.Invoke(this, new CadCursorEventArgs(at.X, at.Y, at.X, at.Y));
+            }
+            else
+            {
+                CursorMoved?.Invoke(this, new CadCursorEventArgs(x, y, band.X, band.Y));
+            }
 
             // A prompt that follows the cursor, as REVCLOUD's Freehand, takes each point the cursor moves to.
             if (session != null && session.Prompt != null && session.Prompt.Tracks && !_panFrom.HasValue)
@@ -3470,19 +3481,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            int hot = -1;
-
-            if (!IsRunning)
-            {
-                for (int i = 0; i < _grips.Count; i++)
-                {
-                    if (OnGrip(view, scale, _grips[i], p))
-                    {
-                        hot = i;
-                        break;
-                    }
-                }
-            }
+            int hot = GripUnder(view, scale, p);
 
             if (hot != _hotGrip)
             {
@@ -4457,7 +4456,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The crosshair at the cursor, as AutoCAD draws it: two lines across a share of the canvas, in the colour that shows on
         /// its background, and the pickbox square at their meeting while no point is asked for and no window or lasso is being
-        /// dragged: the cursor of a window being dragged is the cross alone, as AutoCAD's.
+        /// dragged: the cursor of a window being dragged is the cross alone, as AutoCAD's. Over the box of a grip it is drawn with
+        /// its centre on the grip's point, as AutoCAD pulls it there.
         /// </summary>
         private void DrawCrosshair(DrawingContext dc)
         {
@@ -4476,6 +4476,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Pen pen = luminance < 0.5 ? CrossPenLight : CrossPenDark;
             Point at = _mouse.Value;
+
+            // Over a grip's box the crosshair is drawn on the grip, as AutoCAD pulls it; the pointer of the system stays put.
+            CadView work = WorkView;
+
+            if (work != null)
+            {
+                double pixel = PixelScale;
+                int pulled = GripUnder(work, pixel, at);
+
+                if (pulled >= 0)
+                {
+                    at = ToScreen(work, _grips[pulled].Grip.Point, pixel);
+                }
+            }
+
             double half = _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
             double box = PickboxPixels;
             bool windowing = (_boxing && _boxFrom.HasValue) || _lasso != null;

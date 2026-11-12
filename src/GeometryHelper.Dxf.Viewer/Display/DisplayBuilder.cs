@@ -1264,6 +1264,7 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = own.Rotation;
             double cos = Math.Cos(rotation);
             double sin = Math.Sin(rotation);
+            IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
 
             for (int r = 0; r < rows; r++)
             {
@@ -1272,11 +1273,111 @@ namespace GeometryHelper.Dxf.Viewer
                     double dx = c * columnSpacing;
                     double dy = r * rowSpacing;
                     Affine2 placed = own.Then(Affine2.Translation(dx * cos - dy * sin, dx * sin + dy * cos));
-                    DrawBlock(block, placed, reference, frame, list, handle, layerName, style);
+
+                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it.
+                    DisplayClipRegion before = null;
+                    DisplayClip2 ring = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+
+                    if (ring != null)
+                    {
+                        before = list.PushClip(ring);
+                    }
+
+                    try
+                    {
+                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style);
+                    }
+                    finally
+                    {
+                        if (ring != null)
+                        {
+                            list.PopClip(before);
+                            DrawClipFrame(ring, list, handle, layerName, style);
+                        }
+                    }
                 }
             }
 
+            if (clip != null)
+            {
+                DisplayClipRegion before = list.PushClip(WorldRing(clip, own.Then(frame.Matrix)));
+
+                try
+                {
+                    DrawAttributes(reference, frame, list, handle, layerName, style);
+                }
+                finally
+                {
+                    list.PopClip(before);
+                }
+
+                return;
+            }
+
             DrawAttributes(reference, frame, list, handle, layerName, style);
+        }
+
+        /// <summary>
+        /// The boundary a block reference is clipped to (XCLIP) as a ring in the coordinates of its block, null where it has none or
+        /// its clip is off.
+        /// </summary>
+        private static IReadOnlyList<GeoPoint2> ClipOf(DxfBlockReference reference)
+        {
+            DxfSpatialFilter filter = reference.DrawnFilter;
+            return filter != null && filter.IsEnabled ? reference.ClipOutline : null;
+        }
+
+        /// <summary>A ring of a block carried by a placing into drawing units, its edges straight.</summary>
+        private static DisplayClip2 WorldRing(IReadOnlyList<GeoPoint2> ring, Affine2 placing)
+        {
+            int n = ring.Count;
+            var xy = new double[2 * n];
+
+            for (int i = 0; i < n; i++)
+            {
+                xy[2 * i] = placing.X(ring[i].X, ring[i].Y);
+                xy[2 * i + 1] = placing.Y(ring[i].X, ring[i].Y);
+            }
+
+            return new DisplayClip2(xy, new double[n]);
+        }
+
+        /// <summary>
+        /// The frame of a clip boundary, drawn over what the reference shows in the reference's own look while XCLIPFRAME is not
+        /// 0: a closed chain along the ring, picked as the reference, and left out of a plot where XCLIPFRAME is 2.
+        /// </summary>
+        private void DrawClipFrame(
+            DisplayClip2 ring,
+            DisplayList2 list,
+            string handle,
+            string layerName,
+            DisplayStyle style
+        )
+        {
+            int shown;
+
+            try
+            {
+                shown = _database.XclipFrame;
+            }
+            catch (Exception)
+            {
+                shown = 0;
+            }
+
+            if (shown == 0)
+            {
+                return;
+            }
+
+            double[] xy = ring.Flatten(1.0);
+            list.Add(
+                new DisplayPolyline2(xy, true, style, handle, layerName)
+                {
+                    IsClipFrame = true,
+                    IsNotPlotted = shown == 2,
+                }
+            );
         }
 
         /// <summary>
@@ -1355,7 +1456,28 @@ namespace GeometryHelper.Dxf.Viewer
                 inner.BlockLayer = layerName;
                 inner.BlockRgb = style.Rgb;
                 inner.BlockLineWeight = style.LineWeight;
-                builder.DrawReferenced(inner, list);
+                IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+
+                if (clip == null)
+                {
+                    builder.DrawReferenced(inner, list);
+                    return;
+                }
+
+                // Clipped (XCLIP), the drawing shows inside the boundary alone, and the frame of the boundary is drawn over it.
+                DisplayClip2 ring = WorldRing(clip, own.Then(frame.Matrix));
+                DisplayClipRegion before = list.PushClip(ring);
+
+                try
+                {
+                    builder.DrawReferenced(inner, list);
+                }
+                finally
+                {
+                    list.PopClip(before);
+                }
+
+                DrawClipFrame(ring, list, handle, layerName, style);
             }
             finally
             {

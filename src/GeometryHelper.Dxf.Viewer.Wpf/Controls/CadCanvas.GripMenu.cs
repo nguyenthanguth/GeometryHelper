@@ -84,6 +84,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// The first grip a point of the canvas is on (<see cref="OnGrip"/>), as the grip the cursor is over: none while a command
+        /// runs, a box is dragged or the view pans, as AutoCAD pulls the crosshair onto a grip only while none of them does.
+        /// </summary>
+        /// <returns>The index into the grips drawn, or -1.</returns>
+        private int GripUnder(CadView view, double scale, Point p)
+        {
+            if (IsRunning || _boxFrom.HasValue || _panFrom.HasValue)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < _grips.Count; i++)
+            {
+                if (OnGrip(view, scale, _grips[i], p))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// A plain grip: a square, or for the middle of a polyline segment a bar along it. The grip colour edged in dark; under
         /// the cursor or clicked, its colour and no edge. Placed on whole pixels where it is square to the screen.
         /// </summary>

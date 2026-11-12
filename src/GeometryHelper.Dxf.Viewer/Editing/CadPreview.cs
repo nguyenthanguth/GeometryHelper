@@ -293,6 +293,11 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             DisplayItem2 moved = item.Moved(m.E, m.F);
 
+                            if (moved != null && item.BlockClip != null)
+                            {
+                                moved.BlockClip = item.BlockClip.Moved(m.E, m.F);
+                            }
+
                             if (moved == null)
                             {
                                 items.RemoveRange(start, items.Count - start);

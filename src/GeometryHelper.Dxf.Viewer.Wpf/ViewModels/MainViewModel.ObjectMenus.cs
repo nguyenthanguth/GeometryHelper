@@ -131,7 +131,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     items.Add(OnSelection("Open Xref", "XOPEN", 'X'));
-                    items.Add(NotBuilt("Clip Xref", 'i'));
+                    items.Add(OnSelection("Clip Xref", "XCLIP", 'i'));
                     items.Add(MenuCommand("External References...", "EXTERNALREFERENCES", 'n'));
                     break;
                 case "VIEWPORT":

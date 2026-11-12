@@ -200,6 +200,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["PU"] = "PURGE",
                     ["-PU"] = "-PURGE",
                     ["XA"] = "XATTACH",
+                    ["XC"] = "XCLIP",
                     ["XR"] = "XREF",
                     ["-XR"] = "-XREF",
                     ["ER"] = "EXTERNALREFERENCES",
