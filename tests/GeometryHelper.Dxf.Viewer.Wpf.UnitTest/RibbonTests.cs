@@ -154,7 +154,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(model.Snap.GridSnap);
                 Assert.Equal(25.0, model.Snap.GridX, 12);
                 Assert.Equal(25.0, model.Snap.GridY, 12);
-                Assert.False(model.Document.IsModified);
+
+                // ORTHO, GRID and SNAP typed are undo steps that change the drawing's settings, as AutoCAD's DBMOD 4 says.
+                Assert.True(model.Document.IsModified);
             }
         }
 

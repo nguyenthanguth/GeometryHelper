@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In the presenter the snap and grid are undo steps, as AutoCAD 2021's U takes them, probed in its console: GRID,
+SNAP, SETVAR and a snap or grid variable typed alone (GRIDMODE, SNAPMODE, ORTHOMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY,
+SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR) are a step each, named by the command, so that after a line, GRID 50
+and SNAP 25 the first U takes SNAP 25 back, the second GRID 50 and the third the line (the three used to go with the
+line in one U, and an edit undone used to take a snap or grid set before it along). F7, F9, F8 and F5 pressed at the prompt,
+and the status bar's SNAP, GRID and ORTHO buttons, join the step of the command before them, one U for both under that
+command's name, and are a step of their own where no command came before. The Drafting Settings dialog's OK is one step,
+DSETTINGS. A drawing counts as changed after one, as AutoCAD's does (DBMOD 4). Such a step keeps no copy of the drawing:
+it holds the viewport's snap and grid as they were and as they became, and an undo or a redo of it writes those back,
+reading nothing again; in a drawing of 100 000 lines F7 takes 0.3 ms and its U 0.2 ms with a few kilobytes kept, where a
+step that keeps the drawing keeps 20 MB and takes 205 ms to undo. An undo of another step reads the drawing and puts the
+settings changed since on it. New `CadDocument.ApplySetting(name, property, read, change, replay, joinsPrevious)` makes such
+a step, and `CadCommandSession.OpenUndoStep()` opens the undo step of the command running, for a window that changes a
+setting while a command asks.
+
 **NEW.** GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32,
 48 and 256 pixels, on the exe, the taskbar and Alt+Tab, and an icon for the drawing files associated with it; both are
 written from their vector drawing by `Icons/make-icons.ps1`. `--register` associates .dxf and .dwg files with the app for

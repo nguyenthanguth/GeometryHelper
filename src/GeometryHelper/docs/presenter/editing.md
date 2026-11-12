@@ -913,7 +913,8 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
-| the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
+| the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
+| the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
@@ -924,6 +925,19 @@ toggles of the drawing shown, and writes each switched into that drawing: ORTHO 
 [the app](app.md)); in a layout's paper space the snap and grid variables are the layout's own, kept in the viewport 1 of
 its sheet, and through a viewport that viewport's, as AutoCAD 2021 keeps them. A point typed at SETVAR leaves the last
 point (LASTPOINT) where it was.
+
+A snap or grid variable changed is an undo step that keeps no copy of the drawing: it holds the viewport's snap and grid
+as they were and as they became, and U and REDO write those back, reading the drawing again no more than ZOOM does (an
+F7 pressed and undone in a drawing of 100 000 lines takes 0.3 ms and 0.2 ms and keeps a few kilobytes, where a step that
+keeps the drawing keeps 20 MB and takes 205 ms to undo). AutoCAD 2021's console, probed,
+undoes them so: GRID, SNAP, SETVAR and a variable typed alone (GRIDMODE, SNAPUNIT, GRIDUNIT) are a step each, named by the
+command, so that after a line, GRID 50 and SNAP 25 the first U takes SNAP 25 back, the second GRID 50 and the third the
+line; F7, F9, F8 and F5 pressed at the prompt, and the status bar's SNAP, GRID and ORTHO buttons, join the step of the
+command before them, one U for both under that command's name (F7 after a LINE is taken back with the line, and a second
+line drawn after it leaves the grid as F7 left it when U takes that line back), and are a step of their own where no
+command came before them. A drawing counts as changed after one, as AutoCAD's does (DBMOD 4). The Drafting Settings
+dialog's OK is one step, DSETTINGS. LWDISPLAY and the variables kept in the settings file (OSMODE, GRIDSTYLE, ...) are
+still not steps.
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
 selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
 adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,

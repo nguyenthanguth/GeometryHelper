@@ -82,7 +82,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.Snap.Tracking);
             Assert.Equal(Math.PI / 4.0, model.Snap.PolarAngle, 12);
             Assert.False(model.DynamicInput.IsOn);
-            Assert.False(model.Document.CanUndo);
+
+            // ORTHOMODE, GRIDMODE and SNAPMODE typed are undo steps, as AutoCAD's U takes them back; the rest are the window's.
+            Assert.True(model.Document.CanUndo);
 
             // The window's ORTHO answers ORTHOMODE, and is written to the drawing's $ORTHOMODE too, as AutoCAD saves it there.
             Assert.True(model.Document.Database.Orthomode);

@@ -275,15 +275,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadSnapModes modes = Modes.Where(r => r.IsChecked).Aggregate(CadSnapModes.None, (all, r) => all | r.Mode);
-            _model.SnapModes = modes;
-            _model.Toggles.First(t => t.Name == "OSNAP").IsOn = _isSnapOn;
-            _model.Toggles.First(t => t.Name == "SNAP").IsOn = _isGridSnapOn;
-            _model.Toggles.First(t => t.Name == "GRID").IsOn = _isGridOn;
-            _model.Toggles.First(t => t.Name == "POLAR").IsOn = _isPolarOn;
-            _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
-            ApplySnap(snap);
-            _model.SetPolarAngle(degrees);
-            ApplyPolar();
+
+            // The snap and grid it changes are one undo step, DSETTINGS, as one command's are.
+            _model.RunAsOneStep("DSETTINGS", () =>
+            {
+                _model.SnapModes = modes;
+                _model.Toggles.First(t => t.Name == "OSNAP").IsOn = _isSnapOn;
+                _model.Toggles.First(t => t.Name == "SNAP").IsOn = _isGridSnapOn;
+                _model.Toggles.First(t => t.Name == "GRID").IsOn = _isGridOn;
+                _model.Toggles.First(t => t.Name == "POLAR").IsOn = _isPolarOn;
+                _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
+                ApplySnap(snap);
+                _model.SetPolarAngle(degrees);
+                ApplyPolar();
+            });
             Notice = string.Empty;
             return true;
         }

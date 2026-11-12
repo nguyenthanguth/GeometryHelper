@@ -165,7 +165,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// written into its <c>*Active</c> viewport, in a layout written into its viewport 1 or the viewport worked through, as
         /// AutoCAD saves it; the snaps, the grid and the crosshair follow at once.
         /// </summary>
+        /// <remarks>
+        /// It is an undo step (see <see cref="RecordDrafting"/>), named by the command that runs, else by the variable;
+        /// <paramref name="joinsPrevious"/> makes a key pressed at the prompt (F5) join the step before it.
+        /// </remarks>
         private void ChangeDrafting(
+            string name,
+            Action<DraftingState> change,
+            Action<DxfViewportTableRecord> write,
+            Action<DxfViewport> writeViewport,
+            bool joinsPrevious = false
+        ) => RecordDrafting(name, joinsPrevious, () => WriteDrafting(name, change, write, writeViewport));
+
+        /// <summary>The change of <see cref="ChangeDrafting"/> made: in the window, and in the drawing where the space shown keeps it.</summary>
+        private void WriteDrafting(
             string name,
             Action<DraftingState> change,
             Action<DxfViewportTableRecord> write,
@@ -206,7 +219,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool CycleIsoplane()
         {
             int next = (Layout.Isoplane + 1) % 3;
-            ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = next, v => v.SnapPair = next, v => v.SnapIsoPair = next);
+            ChangeDrafting(
+                "SNAPISOPAIR",
+                s => s.Isoplane = next,
+                v => v.SnapPair = next,
+                v => v.SnapIsoPair = next,
+                true
+            );
+
             if (_current != null)
             {
                 _current.Session.Write("<Isoplane " + (CadIsoplane)next + ">");
@@ -231,18 +251,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (active != null)
             {
-                state.Snap = active.SnapEnabled;
-                state.Grid = active.GridEnabled;
-                state.SnapX = active.SnapIncrements.X;
-                state.SnapY = active.SnapIncrements.Y;
-                state.GridX = active.GridIncrements.X;
-                state.GridY = active.GridIncrements.Y;
-                state.SnapBase = active.SnapBase;
-                state.SnapAngle = active.SnapAngle;
-                state.GridMajor = active.GridMajor;
-                state.Isometric = active.IsometricSnapEnabled;
-                state.Isoplane = active.SnapPair;
-                state.GridDisplay = active.GridDisplay;
+                state.TakeSnapAndGrid(ActiveSnapGrid(active));
             }
 
             if (document.Database.GetHeader("$ORTHOMODE") != null)
@@ -310,6 +319,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _current.Drafting.TakeSnapAndGrid(ReadDrafting(_current.Document));
             }
 
+            // ORTHO is read back with them, off where the drawing has no $ORTHOMODE, as when it was opened.
+            DxfDatabase database = _current.Document.Database;
+            _current.Drafting.Ortho = database.GetHeader("$ORTHOMODE") != null && database.Orthomode;
+
             LoadDrafting();
         }
 
@@ -329,7 +342,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(ShowLineWeights));
         }
 
-        /// <summary>SNAP, GRID or ORTHO switched: kept for the drawing shown and written into it, as AutoCAD saves it there.</summary>
+        /// <summary>
+        /// SNAP, GRID or ORTHO switched: kept for the drawing shown and written into it, as AutoCAD saves it there, and an
+        /// undo step that joins the step before it (see <see cref="RecordDrafting"/>), as F7, F9 and F8 do in AutoCAD.
+        /// </summary>
         private void WriteDraftingToggle(StatusToggleViewModel toggle)
         {
             if (_loadingDrafting || _current?.Document == null)
@@ -337,6 +353,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            string property =
+                toggle.Name == "SNAP" ? "SNAPMODE"
+                : toggle.Name == "GRID" ? "GRIDMODE"
+                : toggle.Name == "ORTHO" ? "ORTHOMODE"
+                : null;
+
+            if (property != null)
+            {
+                RecordDrafting(property, true, () => WriteToggle(toggle));
+            }
+        }
+
+        /// <summary>The toggle written: kept for the window and, where the space shown keeps it in the drawing, written there.</summary>
+        private void WriteToggle(StatusToggleViewModel toggle)
+        {
             DraftingState state = _current.Drafting;
             DxfDatabase database = _current.Document.Database;
 

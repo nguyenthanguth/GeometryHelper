@@ -100,9 +100,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(frame.GridOn);
             Assert.False(model.GridOn);
 
-            // A line drawn through the viewport, then GRID 50 typed there: U takes the drawing back to before the line, the
-            // viewport's grid off and of the spacing it had, and the toggle and the spacing shown follow it, as AutoCAD's
-            // UNDO takes back a grid set there.
+            // A line drawn through the viewport, then GRID 50 and SNAP 25 typed there: U takes SNAP 25 back, a second U GRID
+            // 50 and a third the line, as AutoCAD's U takes a GRID and a SNAP each (a step of their own), and the toggle and
+            // the spacing shown follow the viewport's.
             model.Execute("LINE");
             model.Execute("1000,1000");
             model.Execute("2000,1000");
@@ -114,18 +114,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(25.0, model.Snap.GridX);
 
             model.Execute("U");
-            Assert.False(Frame(model, viewport).GridOn);
-            Assert.False(model.GridOn);
+            Assert.True(Frame(model, viewport).GridOn);
             Assert.False(model.Snap.GridSnap);
-            Assert.NotEqual(50.0, model.GridSpacingX);
+            Assert.Equal(50.0, model.GridSpacingX);
             Assert.NotEqual(25.0, model.Snap.GridX);
 
-            // A second line drawn with the grid on keeps it in the drawing; switched off after, REDO of that line shows it on.
+            model.Execute("U");
+            Assert.False(Frame(model, viewport).GridOn);
+            Assert.False(model.GridOn);
+            Assert.NotEqual(50.0, model.GridSpacingX);
+
+            model.Execute("U");
+
+            // GRID ON is a step of its own, so that U after a second line takes the line and leaves the grid on; the next U
+            // takes the grid off, and REDO shows it on.
             model.Execute("GRID ON");
             model.Execute("LINE");
             model.Execute("1000,2000");
             model.Execute("2000,2000");
             model.Enter();
+            model.Execute("U");
+            Assert.True(model.GridOn);
             model.Execute("U");
             Assert.False(model.GridOn);
             model.Execute("REDO");

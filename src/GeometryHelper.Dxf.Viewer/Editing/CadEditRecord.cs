@@ -86,6 +86,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal bool IsLayerLook { get; set; }
 
+        /// <summary>
+        /// Gets or sets how a setting kept in the drawing is put back or forward without reading the drawing again (see
+        /// <see cref="CadDocument.ApplySetting"/>): called with true to make the setting as it is after the edit, with false as
+        /// it was before; null for every other record.
+        /// </summary>
+        internal Action<CadDocument, bool> Replay { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() =>
             Kind
@@ -96,10 +103,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>One step of the undo list: the edits of one command, of one Properties change or of one grip dragged.</summary>
     public sealed class CadUndoStep
     {
-        internal CadUndoStep(string name, IReadOnlyList<CadEditRecord> records)
+        internal CadUndoStep(string name, IReadOnlyList<CadEditRecord> records, bool joinsPrevious = false)
         {
             Name = name;
             Records = records;
+            JoinsPrevious = joinsPrevious;
         }
 
         /// <summary>Gets the name of what made the step: a command's name, as MOVE, or "Properties" or "Grip".</summary>
@@ -107,6 +115,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the edits of the step in the order they were made.</summary>
         public IReadOnlyList<CadEditRecord> Records { get; }
+
+        /// <summary>
+        /// Gets whether the step is taken back and put again together with the step before it, as AutoCAD's U takes F7 pressed
+        /// after a LINE back with the line: one U for both, under the name of the line.
+        /// </summary>
+        internal bool JoinsPrevious { get; }
 
         /// <inheritdoc/>
         public override string ToString() => Name + " (" + Records.Count + ")";

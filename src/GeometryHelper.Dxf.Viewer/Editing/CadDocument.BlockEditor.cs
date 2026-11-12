@@ -530,9 +530,17 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            // The drawing after the last step merged is kept whole where that step is of settings alone, which share the state
+            // before them and put their settings on it again.
+            bool keepWhole = SharesState(_steps[_position - 1].Records) && HasSettings(records);
             _steps.RemoveRange(from, count);
             _steps.Add(new CadUndoStep(name, records.ToArray()));
             _states.RemoveRange(from + 1, count - 1);
+
+            if (keepWhole)
+            {
+                _states[from + 1] = Keep();
+            }
 
             if (_savedPosition == _position)
             {
@@ -572,6 +580,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Read as an undo reads it: the drawing read ahead taken where it is the one, and those of the new place read ahead.
             Reload(state, null);
+            ReplaySettings();
             Changed?.Invoke(
                 this,
                 new CadDocumentChangedEventArgs(

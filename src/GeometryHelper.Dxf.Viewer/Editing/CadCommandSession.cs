@@ -989,6 +989,19 @@ namespace GeometryHelper.Dxf.Viewer
                 ? new GeoVector2(dx, dy)
                 : (GeoVector2?)null;
 
+        /// <summary>
+        /// Opens the undo step of the command running now, so that a setting changed through
+        /// <see cref="CadDocument.ApplySetting"/> by the window while the command asks (GRID turning the grid on after its
+        /// spacing) joins the command's step; does nothing where no command runs.
+        /// </summary>
+        public void OpenUndoStep()
+        {
+            if (IsRunning)
+            {
+                EnsureGroup(Current.Name);
+            }
+        }
+
         internal void EnsureGroup(string name)
         {
             if (!_grouped)
