@@ -75,12 +75,14 @@ namespace GeometryHelper.Dwg
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
+        private readonly ProgressSteps _progress;
         private readonly bool _doubleByte;
         private readonly int _version;
 
-        private DwgTranscoder(DwgContainer container)
+        private DwgTranscoder(DwgContainer container, ProgressSteps progress)
         {
             _container = container;
+            _progress = progress;
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
@@ -117,9 +119,13 @@ namespace GeometryHelper.Dwg
             };
             int broken = 0;
             string firstFault = null;
+            int read = 0;
+            progress?.Stage(0.05, 0.6);
 
             foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
             {
+                progress?.Report(read++, _container.ObjectMap.Count);
+
                 try
                 {
                     DwgObject one = reader.Read(entry.Key, entry.Value);
@@ -168,12 +174,26 @@ namespace GeometryHelper.Dwg
         /// <see cref="FormatException"/> for a file that is not a DWG or is broken where nothing can be read past it, and
         /// <see cref="NotSupportedException"/> for a DWG of a version that is not read.
         /// </summary>
-        public static byte[] ToDxf(byte[] file) => ToDxf(DwgContainer.Read(file));
+        public static byte[] ToDxf(byte[] file) => ToDxf(file, null);
+
+        /// <summary>
+        /// The DXF of the DWG in <paramref name="file"/>, as <see cref="ToDxf(byte[])"/>, how far it has got told to
+        /// <paramref name="progress"/> (null for none): its parts unpacked to 0.05, its objects read to 0.6, and the DXF of
+        /// them written to 1.
+        /// </summary>
+        public static byte[] ToDxf(byte[] file, ProgressSteps progress)
+        {
+            progress?.Stage(0.0, 0.05);
+            return ToDxf(DwgContainer.Read(file), progress);
+        }
 
         /// <summary>The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[])"/>.</summary>
-        public static byte[] ToDxf(DwgContainer container)
+        public static byte[] ToDxf(DwgContainer container) => ToDxf(container, null);
+
+        private static byte[] ToDxf(DwgContainer container, ProgressSteps progress)
         {
-            var transcoder = new DwgTranscoder(container);
+            var transcoder = new DwgTranscoder(container, progress);
+            progress?.Stage(0.6, 1.0);
             transcoder.WriteHeader();
             transcoder.WriteClasses();
             transcoder.WriteTables();
@@ -182,6 +202,7 @@ namespace GeometryHelper.Dwg
             transcoder.WriteDataStore();
             transcoder._dxf.Write(0, "EOF");
             transcoder.LogSummary();
+            progress?.Report(1.0);
             return transcoder._dxf.ToArray();
         }
 
@@ -804,6 +825,8 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            _progress?.Report(_written.Count, _objects.Count);
+
             if (!entity.Decoded)
             {
                 return;
@@ -1173,6 +1196,8 @@ namespace GeometryHelper.Dwg
             {
                 return;
             }
+
+            _progress?.Report(_written.Count, _objects.Count);
 
             WriteHead(one, one.Name, one.Owner);
             Write(one.Body);

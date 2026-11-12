@@ -81,15 +81,7 @@ namespace GeometryHelper.Dwg
         /// <exception cref="FormatException">Thrown when the file is not a DWG, is cut short, or has a wrong check sum where nothing can be read past it.</exception>
         /// <exception cref="NotSupportedException">Thrown when the DWG is of a version that is not read; the message names it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
-        public static DxfDatabase Open(string path)
-        {
-            if (path == null)
-            {
-                throw new ArgumentNullException(nameof(path));
-            }
-
-            return Open(File.ReadAllBytes(path));
-        }
+        public static DxfDatabase Open(string path) => Open(path, null);
 
         /// <summary>
         /// Opens a DWG file from a stream, from where the stream stands to its end, as a drawing database.
@@ -102,14 +94,44 @@ namespace GeometryHelper.Dwg
         public static DxfDatabase Open(Stream stream) => Open(BytesOf(stream));
 
         /// <summary>
+        /// Opens a DWG file from a path as <see cref="Open(string)"/> does, how far it has got told to
+        /// <paramref name="progress"/> as a share from 0 to 1, in thousandths, never going back, and 1 once opened: the DWG
+        /// made into its DXF to 0.9, that DXF read to 1.
+        /// </summary>
+        internal static DxfDatabase Open(string path, IProgress<double> progress)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            ProgressSteps steps = ProgressSteps.Of(progress);
+            steps?.Within(0.0, 0.9);
+            byte[] dxf = ToDxf(File.ReadAllBytes(path), steps);
+            steps?.Within(0.9, 1.0);
+            steps?.Stage(0.0, 1.0);
+            DxfDatabase database;
+
+            using (var stream = new MemoryStream(dxf, false))
+            {
+                database = DxfDatabase.Open(stream);
+            }
+
+            steps?.Done();
+            return database;
+        }
+
+        /// <summary>
         /// The DXF that says what the DWG in <paramref name="file"/> says, as the bytes of a text DXF file in the drawing's
         /// code page.
         /// </summary>
-        internal static byte[] ToDxf(byte[] file)
+        internal static byte[] ToDxf(byte[] file) => ToDxf(file, null);
+
+        private static byte[] ToDxf(byte[] file, ProgressSteps progress)
         {
             try
             {
-                return DwgTranscoder.ToDxf(file);
+                return DwgTranscoder.ToDxf(file, progress);
             }
             catch (Exception fault)
                 when (!(fault is FormatException)

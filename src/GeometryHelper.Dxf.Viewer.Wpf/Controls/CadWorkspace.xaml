@@ -5514,19 +5514,102 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <!-- A drawing opening in the background: how far it has got, and a button that stops it, as Esc does. -->
+                    <!-- The progress meter, as AutoCAD's (design v128, StatusProgress): what runs, a bar 160 by 10, the percent, and
+                         while a drawing opens in the background a button that stops it, as Esc does. A meter with no limit sweeps. -->
                     <StackPanel
+                        x:Name="ProgressMeter"
                         Orientation="Horizontal"
                         Margin="0,0,12,0"
                         VerticalAlignment="Center"
-                        Visibility="{Binding IsOpening, Converter={StaticResource Shown}}"
+                        Visibility="{Binding IsProgressShown, Converter={StaticResource Shown}}"
                     >
                         <TextBlock
-                            Text="{Binding OpeningText}"
+                            Text="{Binding ProgressLabel}"
                             Foreground="{StaticResource GhText}"
+                            MaxWidth="220"
+                            TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center"
+                        />
+                        <ProgressBar
+                            x:Name="ProgressMeterBar"
+                            Width="160"
+                            Height="10"
+                            Margin="8,0,0,0"
+                            Minimum="0"
+                            Maximum="100"
+                            Value="{Binding ProgressPercent, Mode=OneWay}"
+                            IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}"
+                            VerticalAlignment="Center"
+                            Focusable="False"
+                        >
+                            <ProgressBar.Template>
+                                <ControlTemplate TargetType="ProgressBar">
+                                    <Border
+                                        BorderBrush="{StaticResource GhBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        Background="{StaticResource GhPanel}"
+                                        ClipToBounds="True"
+                                    >
+                                        <Grid x:Name="PART_Track">
+                                            <Rectangle
+                                                x:Name="PART_Indicator"
+                                                HorizontalAlignment="Left"
+                                                Fill="{StaticResource GhAccent}"
+                                            />
+                                            <Rectangle
+                                                x:Name="Sweep"
+                                                Width="48"
+                                                HorizontalAlignment="Left"
+                                                Fill="{StaticResource GhAccent}"
+                                                Visibility="Collapsed"
+                                            >
+                                                <Rectangle.RenderTransform>
+                                                    <TranslateTransform X="-48" />
+                                                </Rectangle.RenderTransform>
+                                            </Rectangle>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsIndeterminate" Value="True">
+                                            <Setter
+                                                TargetName="PART_Indicator"
+                                                Property="Visibility"
+                                                Value="Collapsed"
+                                            />
+                                            <Setter TargetName="Sweep" Property="Visibility" Value="Visible" />
+                                            <Trigger.EnterActions>
+                                                <BeginStoryboard x:Name="Sweeping">
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetName="Sweep"
+                                                            Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                            From="-48"
+                                                            To="160"
+                                                            Duration="0:0:1.4"
+                                                        />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.EnterActions>
+                                            <Trigger.ExitActions>
+                                                <StopStoryboard BeginStoryboardName="Sweeping" />
+                                            </Trigger.ExitActions>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ProgressBar.Template>
+                        </ProgressBar>
+                        <TextBlock
+                            Text="{Binding ProgressPercentText}"
+                            Foreground="{StaticResource GhTextMuted}"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            FontSize="11"
+                            Width="34"
+                            TextAlignment="Right"
                             VerticalAlignment="Center"
                         />
                         <Button
+                            Visibility="{Binding IsOpening, Converter={StaticResource Shown}}"
                             Style="{StaticResource GhFlatButton}"
                             Content="Stop"
                             Command="{Binding CancelOpeningCommand}"

@@ -193,6 +193,10 @@ its load log, the settings of each plugin, load at startup, install and uninstal
 load outside the trusted folders. Its settings are drawn by the window from the `CadSetting` attributes; the plugin knows
 none of it.
 
+A command that works long shows it on the status bar's progress meter through `c.Progress`:
+`using (var meter = c.Progress.Start("Checking blocks")) { meter.SetLimit(n); ... meter.MeterProgress(); }`, as
+[the app](app.md#the-progress-meter) describes.
+
 ## See also
 
 - [Editing as AutoCAD does](editing.md): the command line, `CadCommand` and the undo steps a plugin runs in.

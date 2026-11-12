@@ -178,6 +178,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // The window answers while a drawing is read and drawn; the drawing given here is shown once the window runs.
             model.OpensInBackground = true;
 
+            // The progress meter is seen to move while SAVE writes a drawing on the window's thread.
+            model.RepaintsProgress = true;
+
             if (file != null)
             {
                 model.Open(file);

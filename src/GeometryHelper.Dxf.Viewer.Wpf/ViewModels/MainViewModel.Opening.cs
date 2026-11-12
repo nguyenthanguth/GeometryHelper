@@ -28,8 +28,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsOpening => _opening != null;
 
         /// <summary>
-        /// Gets what the status bar says of the drawing opening in the background, as "Opening plan.dxf: drawing 45 %"; empty
-        /// with none.
+        /// Gets how far the drawing opening in the background has got, as "Opening plan.dxf: drawing 45 %"; empty with none.
+        /// The status bar shows it on its progress meter (<see cref="Progress"/>).
         /// </summary>
         public string OpeningText
         {
@@ -138,13 +138,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            var started = new Opening(full, Dispatcher.CurrentDispatcher, RaiseOpening);
+            var started = new Opening(full, Dispatcher.CurrentDispatcher, RaiseOpening)
+            {
+                Meter = Progress.Start("Opening " + System.IO.Path.GetFileName(full)),
+            };
             opening = started;
             _opening = started;
             RaiseOpening();
             CancellationToken stop = started.Cancel.Token;
 
-            Task.Run(() => CadDocument.Open(full), stop)
+            Task.Run(() => CadDocument.Open(full, started.Reading), stop)
                 .ContinueWith(
                     read => started.Post(() => Read(started, read)),
                     CancellationToken.None,
@@ -236,6 +239,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 );
             }
 
+            opening.Meter.Report(1.0);
             End(opening);
 
             if (_files.TryGetValue(opening.Path, out KnownFile known) && known.Document != null)
@@ -258,6 +262,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void End(Opening opening)
         {
+            opening.Meter.Stop();
+
             if (_opening == opening)
             {
                 _opening = null;
@@ -287,9 +293,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Path = path;
                 _dispatcher = dispatcher;
                 _changed = changed;
+
+                // The share of the status bar's meter the reading takes, the drawing the rest, as a drawing of 100 000 lines
+                // takes them: a DWG is read in about the time it is drawn, a DXF in a fifth of it.
+                _reading = path.EndsWith(".dwg", StringComparison.OrdinalIgnoreCase) ? 0.5 : 0.2;
+                Reading = new Share(value => Meter.Report(value * _reading));
             }
 
+            private readonly double _reading;
+
             public string Path { get; }
+
+            /// <summary>Gets or sets the meter of the status bar the opening moves.</summary>
+            public CadProgressMeter Meter { get; set; }
+
+            /// <summary>Gets what the reading of the file tells how far it has got, its share of the meter.</summary>
+            public IProgress<double> Reading { get; }
 
             public CancellationTokenSource Cancel { get; } = new CancellationTokenSource();
 
@@ -304,6 +323,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             public void Report(double value)
             {
+                Meter.Report(_reading + (1.0 - _reading) * value);
                 int percent = (int)Math.Floor(Math.Max(0.0, Math.Min(1.0, value)) * 100.0);
 
                 if (Interlocked.Exchange(ref _percent, percent) != percent)
@@ -314,6 +334,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             /// <summary>Runs something on the window's thread.</summary>
             public void Post(Action action) => _dispatcher.BeginInvoke(action);
+        }
+
+        /// <summary>A progress that hands each share on.</summary>
+        private sealed class Share : IProgress<double>
+        {
+            private readonly Action<double> _report;
+
+            public Share(Action<double> report) => _report = report;
+
+            public void Report(double value) => _report(value);
         }
     }
 }

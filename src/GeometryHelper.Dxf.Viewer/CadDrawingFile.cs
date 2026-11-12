@@ -77,7 +77,32 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
         /// <exception cref="FormatException">Thrown when the file is a DWG that cannot be read.</exception>
         /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read, R14 among them; the message names it.</exception>
-        public static DxfDatabase Open(string path) => IsDwg(path) ? DwgReader.Open(path) : DxfDatabase.Open(path);
+        public static DxfDatabase Open(string path) => Open(path, null);
+
+        /// <summary>
+        /// Reads a drawing file as a database, as <see cref="Open(string)"/> does, telling how far it has got as a share from
+        /// 0 to 1: in thousandths, never going back, 0 first and 1 once read. A DWG of 100 000 lines tells it some 1 000 times
+        /// as its objects are read and its DXF made; a DXF, read at once from its bytes, tells 0 and 1.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="progress">What is told how far it has got, on the thread that reads; null for nothing.</param>
+        /// <returns>The drawing.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
+        /// <exception cref="FormatException">Thrown when the file is a DWG that cannot be read.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read, R14 among them; the message names it.</exception>
+        public static DxfDatabase Open(string path, IProgress<double> progress)
+        {
+            if (IsDwg(path))
+            {
+                return DwgReader.Open(path, progress);
+            }
+
+            progress?.Report(0.0);
+            DxfDatabase database = DxfDatabase.Open(path);
+            progress?.Report(1.0);
+            return database;
+        }
 
         /// <summary>Whether a name ends in .dwg, of either case.</summary>
         internal static bool IsDwgName(string path) => HasExtension(path, ".dwg");
@@ -88,11 +113,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// was or the file is a DXF. A drawing the DWG writer fails on is refused with a <see cref="NotSupportedException"/>
         /// that says why, as the save commands catch it, and the file is not touched.
         /// </summary>
-        internal static string Save(DxfDatabase database, string path)
+        internal static string Save(DxfDatabase database, string path) => Save(database, path, null);
+
+        /// <summary>
+        /// Saves a database as <see cref="Save(DxfDatabase, string)"/> does, telling how far it has got as a share from 0 to 1:
+        /// in thousandths, never going back, 0 first and 1 at the end. A DWG tells it as its text is taken apart and its objects
+        /// written; a DXF, written at once from its bytes, tells 0 and 1.
+        /// </summary>
+        internal static string Save(DxfDatabase database, string path, IProgress<double> progress)
         {
+            progress?.Report(0.0);
+
             if (!IsDwgName(path))
             {
                 database.Save(path);
+                progress?.Report(1.0);
                 return string.Empty;
             }
 
@@ -101,7 +136,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                bytes = DwgWriter.ToDwg(database.ToText(), DwgWriter.DefaultVersion, out left);
+                bytes = DwgWriter.ToDwg(database.ToText(), DwgWriter.DefaultVersion, out left, progress);
             }
             catch (Exception exception)
                 when (!(exception is OutOfMemoryException || exception is NotSupportedException))

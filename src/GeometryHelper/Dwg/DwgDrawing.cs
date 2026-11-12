@@ -66,14 +66,26 @@ namespace GeometryHelper.Dwg
         /// Takes apart the text of a DXF file: pairs of lines, a group code and a value. Throws
         /// <see cref="FormatException"/> where a group code is not a number.
         /// </summary>
-        public static DwgDrawing Parse(string text)
+        public static DwgDrawing Parse(string text) => Parse(text, null);
+
+        /// <summary>
+        /// Takes apart the text of a DXF file as <see cref="Parse(string)"/>, how far it has got told to
+        /// <paramref name="progress"/> (null for none): the lines read to 0.45 of the whole, the records made of them to 0.55.
+        /// </summary>
+        public static DwgDrawing Parse(string text, ProgressSteps progress)
         {
             var drawing = new DwgDrawing();
             var groups = new List<KeyValuePair<int, string>>();
             int at = 0;
+            progress?.Stage(0.0, 0.45);
 
             while (at < text.Length)
             {
+                if ((groups.Count & 4095) == 0)
+                {
+                    progress?.Report(at, text.Length);
+                }
+
                 string codeLine = Line(text, ref at);
 
                 if (at >= text.Length && codeLine.Trim().Length == 0)
@@ -91,7 +103,9 @@ namespace GeometryHelper.Dwg
                 groups.Add(new KeyValuePair<int, string>(code, Line(text, ref at)));
             }
 
+            progress?.Stage(0.45, 0.55);
             drawing.Read(groups);
+            progress?.Report(1.0);
             return drawing;
         }
 

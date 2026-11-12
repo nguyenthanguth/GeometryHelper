@@ -1218,7 +1218,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return false;
                 }
 
-                _current.Document.SaveAs(path);
+                using (CadProgressMeter meter = Progress.Start("Saving " + System.IO.Path.GetFileName(target)))
+                {
+                    _current.Document.SaveAs(path, meter);
+                }
             }
             catch (Exception ex)
                 when (ex is IOException
@@ -1571,6 +1574,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
             file.Session.Clipboard = _clipboard;
+            file.Session.Progress = Progress;
             ApplyTextDefaults(file.Session);
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
             document.SupportFolders = _settings.SupportSearchFolders;

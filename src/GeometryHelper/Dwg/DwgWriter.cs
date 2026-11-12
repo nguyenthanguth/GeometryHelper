@@ -160,11 +160,26 @@ namespace GeometryHelper.Dwg
         /// The bytes of the DWG file of the DXF <paramref name="text"/> in <paramref name="version"/>, with the types of record
         /// left out, each with how many, in ordinal order of the type.
         /// </summary>
-        internal static byte[] ToDwg(string text, string version, out IDictionary<string, int> leftOut)
+        internal static byte[] ToDwg(string text, string version, out IDictionary<string, int> leftOut) =>
+            ToDwg(text, version, out leftOut, null);
+
+        /// <summary>
+        /// The bytes of the DWG file of the DXF <paramref name="text"/>, as <see cref="ToDwg(string, string, out IDictionary{string, int})"/>,
+        /// how far it has got told to <paramref name="progress"/> as a share from 0 to 1, in thousandths, never going back:
+        /// the text taken apart to 0.55, the objects written to 0.95, the file put together to 1.
+        /// </summary>
+        internal static byte[] ToDwg(
+            string text,
+            string version,
+            out IDictionary<string, int> leftOut,
+            IProgress<double> progress
+        )
         {
             string named = Check(version);
-            DwgDrawing drawing = DwgDrawing.Parse(text);
-            byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer);
+            ProgressSteps steps = ProgressSteps.Of(progress);
+            DwgDrawing drawing = DwgDrawing.Parse(text, steps);
+            byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer, steps);
+            steps?.Done();
             leftOut = writer.LeftOut;
             int left = 0;
 

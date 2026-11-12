@@ -736,7 +736,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Saves the drawing to the file it was opened from or last saved as.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no file yet (it was opened from a stream or
-        /// given in memory) or a group of edits is open; use <see cref="SaveAs"/>.</exception>
+        /// given in memory) or a group of edits is open; use <see cref="SaveAs(string)"/>.</exception>
         public void Save()
         {
             if (!_hasPath)
@@ -754,7 +754,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
-        public void SaveAs(string path)
+        public void SaveAs(string path) => SaveAs(path, null);
+
+        /// <summary>
+        /// Saves the drawing to a file as <see cref="SaveAs(string)"/> does, telling how far the writing has got as a share
+        /// from 0 to 1: in thousandths, never going back, 0 first and 1 at the end. A DWG tells it some 1 000 times; a DXF,
+        /// written at once from its bytes, 0 and 1. A <see cref="CadProgressMeter"/> is such a progress.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="progress">What is told how far it has got, on this thread; null for nothing.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
+        public void SaveAs(string path, IProgress<double> progress)
         {
             if (path == null)
             {
@@ -769,7 +780,7 @@ namespace GeometryHelper.Dxf.Viewer
             string full = Path.GetFullPath(path);
             _shownState = null;
             _ucs?.WriteTo(Database);
-            LeftOutOfDwg = CadDrawingFile.Save(Database, full);
+            LeftOutOfDwg = CadDrawingFile.Save(Database, full, progress);
             _ucs?.Saved();
             FileName = full;
             _hasPath = true;
