@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -22,9 +23,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         // DYNMODE as last set, its sign aside: which of pointer and dimensional input F12 brings back.
         private int _dynamicMode = 3;
-
-        // Whether SNAPMODE was set to 2, which it reads back while SNAP stays on.
-        private bool _snapModeTwo;
 
         /// <summary>Adds the variables of the window to a command line's registry, ORTHOMODE and LWDISPLAY of the drawing replaced by those the window draws by.</summary>
         private void AddWindowVariables(CadCommandRegistry registry)
@@ -169,18 +167,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// SNAPMODE as AutoCAD 2021 reads it: 0 off, 1 on, and 2, which AutoCAD takes and reads back though its help lists only
-        /// 0 and 1, kept while SNAP stays on as it was set.
+        /// 0 and 1, kept while SNAP stays on as it was set, by each space apart as AutoCAD keeps it by viewport: model space,
+        /// a layout's paper and each viewport worked through.
         /// </summary>
         private int SnapMode() =>
             !FindToggle("SNAP").IsOn ? 0
-            : _snapModeTwo ? 2
+            : SnapModeTwo.Contains(SnapModeSpace()) ? 2
             : 1;
 
-        /// <summary>SNAPMODE set: SNAP on for 1 and 2, off for 0.</summary>
+        /// <summary>SNAPMODE set: SNAP on for 1 and 2, off for 0, and 2 kept for the space shown alone.</summary>
         private void SetSnapMode(int value)
         {
             FindToggle("SNAP").IsOn = value != 0;
-            _snapModeTwo = value == 2;
+
+            if (value == 2)
+            {
+                SnapModeTwo.Add(SnapModeSpace());
+            }
+            else
+            {
+                SnapModeTwo.Remove(SnapModeSpace());
+            }
+        }
+
+        /// <summary>The spaces of the drawing shown, or of the window where none is open, whose SNAPMODE was set to 2.</summary>
+        private HashSet<string> SnapModeTwo => (_current?.Drafting ?? _windowDrafting).SnapModeTwo;
+
+        /// <summary>
+        /// The space whose SNAPMODE is read and set, as AutoCAD keeps it by viewport: the handle of the viewport whose snap the
+        /// space shown has (the one worked through, or a layout's viewport 1), the layout's name for one with no viewport 1,
+        /// empty for model space and the Block Editor.
+        /// </summary>
+        private string SnapModeSpace()
+        {
+            DxfViewport own = DraftingViewport();
+
+            if (own != null)
+            {
+                return own.Handle;
+            }
+
+            CadSpace paper = PaperShown();
+            return paper != null ? "Layout " + paper.Name : string.Empty;
         }
 
         /// <summary>

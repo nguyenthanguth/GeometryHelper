@@ -1848,6 +1848,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Raise(nameof(CurrentLayer));
             }
 
+            // The drawing read back holds the snap and grid it had then, of model space and of every viewport.
+            if (e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo || e.Kind == CadChangeKind.Rollback)
+            {
+                ReloadDrafting();
+            }
+
             RaiseCurrentColor();
             RaiseCurrentLinetype();
             RaiseStyles();
