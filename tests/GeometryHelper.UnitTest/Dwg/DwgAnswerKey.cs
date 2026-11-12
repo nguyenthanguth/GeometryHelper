@@ -32,12 +32,14 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </para>
     /// <para>
     /// A true colour does not exist in R2000: AutoCAD keeps it as round-trip data, extended data that starts with
-    /// <c>RTT</c> on an entity and an extension dictionary holding <c>ACAD_XREC_ROUNDTRIP</c> on a table record, and
+    /// <c>RTT</c> on an entity and an extension dictionary holding <c>ACAD_XREC_ROUNDTRIP</c> on a table record (and an
+    /// R2004 file keeps the material of an entity as extended data <c>RTMaterial</c>), and
     /// takes that data away again when it reads the file. The reader leaves it where the file has it.
     /// </para>
     /// <para>
     /// A letter beyond the code page is <c>\U+00B0</c> in one file and the letter in the other. The order of the
-    /// OBJECTS section is not compared. A record of a type the reader does not read is missing, and so is what such a
+    /// OBJECTS and ACDSDATA sections is not compared (AutoCAD gives the records of ACIS data in the order of its store in
+    /// one version and by handle in another). A record of a type the reader does not read is missing, and so is what such a
     /// record owns; both sides must agree on the count of each type left under one. A class the key has and the reader
     /// has not is counted as missing under <c>CLASS</c> and its name.
     /// </para>
@@ -179,6 +181,16 @@ namespace GeometryHelper.UnitTest.Dwg
                 else if (one.Type == "ENDTAB")
                 {
                     return;
+                }
+                else if (one.Section == "ACDSDATA")
+                {
+                    // A schema of the data store by its number, a record of ACIS data by the handle of its entity.
+                    int code = one.Type == "ACDSSCHEMA" ? 90 : 320;
+                    one.Key =
+                        "D:"
+                        + one.Type
+                        + ":"
+                        + one.Groups.Where(g => g.Key == code).Select(g => g.Value).FirstOrDefault();
                 }
                 else
                 {
@@ -520,11 +532,21 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             List<string> keyOrder = keyList
-                .Where(r => r.Section != "OBJECTS" && keyToGot.TryGetValue(r.Key, out string g) && g == r.Key)
+                .Where(r =>
+                    r.Section != "OBJECTS"
+                    && r.Section != "ACDSDATA"
+                    && keyToGot.TryGetValue(r.Key, out string g)
+                    && g == r.Key
+                )
                 .Select(r => r.Key)
                 .ToList();
             List<string> gotOrder = gotList
-                .Where(r => r.Section != "OBJECTS" && gotToKey.TryGetValue(r.Key, out string g) && g == r.Key)
+                .Where(r =>
+                    r.Section != "OBJECTS"
+                    && r.Section != "ACDSDATA"
+                    && gotToKey.TryGetValue(r.Key, out string g)
+                    && g == r.Key
+                )
                 .Select(r => r.Key)
                 .ToList();
 
@@ -668,8 +690,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 data >= 0
                 && data + 1 < groups.Count
                 && groups[data + 1].Key == 1000
-                && groups[data + 1].Value.StartsWith("RTT", StringComparison.Ordinal)
-                && !a.Groups.Any(g => g.Key == 1000 && g.Value.StartsWith("RTT", StringComparison.Ordinal))
+                && IsRoundTrip(groups[data + 1].Value)
+                && !a.Groups.Any(g => g.Key == 1000 && IsRoundTrip(g.Value))
             )
             {
                 int end = groups.FindIndex(data + 1, g => g.Key == 1001);
@@ -678,6 +700,10 @@ namespace GeometryHelper.UnitTest.Dwg
 
             return groups;
         }
+
+        /// <summary>Whether extended data of ACAD is round-trip data: of a true colour (RTT...) in R2000, of a material (RTMaterial) in R2004.</summary>
+        private static bool IsRoundTrip(string value) =>
+            value.StartsWith("RTT", StringComparison.Ordinal) || value == "RTMaterial";
 
         /// <summary>The groups without the extended data of ACAD that starts with DBColXD, to their end.</summary>
         private static List<KeyValuePair<int, string>> WithoutBookData(List<KeyValuePair<int, string>> groups)

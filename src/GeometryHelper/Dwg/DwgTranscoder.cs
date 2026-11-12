@@ -179,6 +179,7 @@ namespace GeometryHelper.Dwg
             transcoder.WriteTables();
             transcoder.WriteBlocks();
             transcoder.WriteObjects();
+            transcoder.WriteDataStore();
             transcoder._dxf.Write(0, "EOF");
             transcoder.LogSummary();
             return transcoder._dxf.ToArray();
@@ -1084,6 +1085,83 @@ namespace GeometryHelper.Dwg
             foreach (DwgObject one in _objects)
             {
                 WriteObject(one);
+            }
+
+            _dxf.Write(0, "ENDSEC");
+        }
+
+        /// <summary>
+        /// The schemas AutoCAD writes in the section ACDSDATA for the ACIS data of the solids, as pairs of a group and its
+        /// value: the schema of the records of ACIS data, an ID and the data, and the four schemas of their attributes.
+        /// </summary>
+        private static readonly string[] AcisSchemas =
+        {
+            "0|ACDSSCHEMA|90|0|1|AcDb3DSolid_ASM_Data|2|AcDbDs::ID|280|10|91|8|2|ASM_Data|280|15|91|0|101|ACDSRECORD|95|0|90|1"
+                + "|2|AcDbDs::TreatedAsObjectData|280|1|291|1|101|ACDSRECORD|95|0|90|2|2|AcDbDs::Legacy|280|1|291|1"
+                + "|101|ACDSRECORD|1|AcDbDs::ID|90|3|2|AcDs:Indexable|280|1|291|1"
+                + "|101|ACDSRECORD|1|AcDbDs::ID|90|4|2|AcDbDs::HandleAttribute|280|7|282|1",
+            "0|ACDSSCHEMA|90|1|1|AcDbDs::TreatedAsObjectDataSchema|2|AcDbDs::TreatedAsObjectData|280|1|91|0",
+            "0|ACDSSCHEMA|90|2|1|AcDbDs::LegacySchema|2|AcDbDs::Legacy|280|1|91|0",
+            "0|ACDSSCHEMA|90|3|1|AcDbDs::IndexedPropertySchema|2|AcDs:Indexable|280|1|91|0",
+            "0|ACDSSCHEMA|90|4|1|AcDbDs::HandleAttributeSchema|2|AcDbDs::HandleAttribute|280|7|91|1|284|1",
+        };
+
+        /// <summary>
+        /// From R2013 the section ACDSDATA, where the data store of the file holds ACIS data: the store's version, the
+        /// schemas AutoCAD writes for that data, and a record for each entity written, its handle (320) and its SAB bytes
+        /// (94 and 310). None where the store holds no record; a store that cannot be read is left out with a Warn line.
+        /// </summary>
+        private void WriteDataStore()
+        {
+            if (_container.DataStore == null)
+            {
+                return;
+            }
+
+            DwgDataStore store;
+
+            try
+            {
+                store = DwgDataStore.Read(_container.DataStore);
+            }
+            catch (FormatException fault)
+            {
+                GeometryHelperLog.Warn("DwgReader: the data store of the ACIS data was left out: " + fault.Message);
+                return;
+            }
+
+            List<KeyValuePair<ulong, byte[]>> records = store.Records.FindAll(r => _written.Contains(r.Key));
+
+            if (records.Count == 0)
+            {
+                return;
+            }
+
+            _dxf.Write(0, "SECTION");
+            _dxf.Write(2, "ACDSDATA");
+            _dxf.Write(70, store.Version);
+            _dxf.Write(71, store.Flags);
+
+            foreach (string schema in AcisSchemas)
+            {
+                string[] parts = schema.Split('|');
+
+                for (int i = 0; i + 1 < parts.Length; i += 2)
+                {
+                    _dxf.Write(int.Parse(parts[i], CultureInfo.InvariantCulture), parts[i + 1]);
+                }
+            }
+
+            foreach (KeyValuePair<ulong, byte[]> record in records)
+            {
+                _dxf.Write(0, "ACDSRECORD");
+                _dxf.Write(90, 0);
+                _dxf.Write(2, "AcDbDs::ID");
+                _dxf.Write(280, 10);
+                _dxf.Write(320, record.Key.ToString("X", CultureInfo.InvariantCulture));
+                _dxf.Write(2, "ASM_Data");
+                _dxf.Write(280, 15);
+                WriteBinary(94, record.Value);
             }
 
             _dxf.Write(0, "ENDSEC");

@@ -56,7 +56,7 @@ each.
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, MATERIAL, VISUALSTYLE, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 
 A layout's viewports come numbered (group 69) as AutoCAD numbers them, which the file does not say: from AutoCAD 2004
@@ -65,9 +65,23 @@ itself is number 1 and the others follow in the order they were made. Their froz
 DXF of AutoCAD 2000 and 331 later, and `DxfViewport.GetFrozenLayers` reads both.
 
 A REGION, 3DSOLID or BODY carries its ACIS data as DXF does. An AutoCAD 2000 file keeps it as SAT text, which comes
-out line for line. From AutoCAD 2013 the data is in a store of the file that DXF writes in a section of its own
-(ACDSDATA), which is not written yet: the entity comes with the GUID of its record but without its shape. AutoCAD 2004
-to 2010 keep it as SAB, binary ACIS, where DXF wants SAT text; those entities are not read.
+out line for line. From AutoCAD 2013 the data is in a store of the file that DXF writes in a section of its own,
+ACDSDATA, and it comes out there as AutoCAD writes it: the five schemas AutoCAD gives ACIS data, then a record for each
+REGION, 3DSOLID or BODY read, the handle of its entity (320) and its SAB bytes (94 and 310), the entity itself carrying
+the GUID of its record. A box 30 by 20 by 10, a sphere, a cylinder and a region of a circle give four records; a plate
+400 by 400 with 400 holes gives one of 515 873 bytes, which the store keeps in a page of its own past 256 KB. AutoCAD
+gives the records in the order of its store in a file of AutoCAD 2018 and by handle in one of AutoCAD 2013; the reader
+gives them in the order of the store. AutoCAD 2004 to 2010 keep the data as SAB, binary ACIS, where DXF wants SAT text;
+those entities are not read.
+
+A MATERIAL and a VISUALSTYLE come out with the groups AutoCAD's DXF of them gives. Of a material that is what differs
+from a new material's values: a material of its own red, RGB 200, 30, 30 at 0.8, glossy at 0.3 and seen through at
+0.7, gives its colours (90, 91, 92 with the way of each), 44, 140 and nothing of the maps it has not; one of a picture
+in each map gives each file, blend, projection, tiling and matrix where they differ. The settings of AutoCAD 2010 on
+(colour bleed, luminance, the normal map) are records of the material's extension dictionary, read as any record. A
+visual style comes in the form of its version: each property in a group of its own before AutoCAD 2010, each followed
+by how it is applied (176) in AutoCAD 2010, and from AutoCAD 2013 the 58 properties after their count (70 58), a
+whole number, a real, a colour (257 for none), a yes or no or a text each.
 
 Texts come back as they were typed, "Tiếng Việt café 日本語" letter for letter: before AutoCAD 2007 they are in the
 drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 they are UTF-16 in the file and UTF-8 in
@@ -81,13 +95,13 @@ palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
 [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) names the types with the count of each
-(`DwgReader: types that are not read yet were left out: MATERIAL 3 VISUALSTYLE 24 …`), and one Info line sums the
+(`DwgReader: types that are not read yet were left out: ACDBDETAILVIEWSTYLE 1 ACDBSECTIONVIEWSTYLE 1 …`), and one Info line sums the
 call.
 
 - Entities: SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
   3DSOLID and BODY of AutoCAD 2004 to 2010 (see above), the OLE frames, proxies, and every entity of a class the list
   above does not name.
-- Objects: MATERIAL, VISUALSTYLE, the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
+- Objects: the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
   AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the detail and section view
   styles, the data of dynamic blocks, and the other objects of classes. AutoCAD makes most of these anew in a drawing
   that lacks them. A TABLECONTENT that holds a cell linked to data, the attributes of a block, fields or a cell's
@@ -115,7 +129,9 @@ call.
 - A true colour does not exist in the format of AutoCAD 2000. AutoCAD keeps one as round-trip data: extended data of
   the application `ACAD` that starts with `RTT` on an entity, and an extension dictionary holding `ACAD_XREC_ROUNDTRIP`
   on a layer. That data is passed on as the file has it; it is not turned into the entity's true colour, so the entity
-  shows the indexed colour AutoCAD chose as the nearest.
+  shows the indexed colour AutoCAD chose as the nearest. In the same way an AutoCAD 2004 file keeps the material of an
+  entity, which its format has no place for, as extended data of `ACAD` starting with `RTMaterial` and the handle of
+  the material; it is passed on as the file has it.
 - `$TDCREATE` and `$TDUPDATE` are not given: the file holds the two times as universal time, and they are given as
   `$TDUCREATE` and `$TDUUPDATE`.
 - The normal (210) of a planar SPLINE that is not drawn in the XY plane is worked out from its points, its sign by the
@@ -191,15 +207,21 @@ drawing gives the same bytes every time.
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE of AutoCAD 2013 and later, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
-each (`DwgWriter: types that are not written yet were left out: MATERIAL 3 VISUALSTYLE 24 …`). Every handle to a record
+each (`DwgWriter: types that are not written yet were left out: ACDBDETAILVIEWSTYLE 1 ACDBSECTIONVIEWSTYLE 1 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
-with it. Left out so far: MATERIAL, VISUALSTYLE and the detail and section view styles, which the reader does not read
-either and AutoCAD makes anew in a drawing that lacks them; and of the types the reader does read, REGION, 3DSOLID,
-BODY and SHAPE.
+with it. Left out so far: the detail and section view styles, which the reader does not read either and AutoCAD makes
+anew in a drawing that lacks them; a VISUALSTYLE of the form before AutoCAD 2013, as a DXF of an older version gives
+it; and of the types the reader does read, REGION, 3DSOLID, BODY (with the section ACDSDATA) and SHAPE.
+
+A MATERIAL and a VISUALSTYLE are written from the groups their DXF gives, a group not given taking a new material's
+value. Of AutoCAD's new drawing the 24 visual styles and the three materials are AutoCAD's own bits but the last bit of
+the matrices of the materials, 1/48 written in DXF to 16 places; so are a material of colours of its own and one of a
+picture in every map. AutoCAD opens the drawing of these (accoreconsole), `AUDIT` finds 0 errors, and its own DXF of it
+is the DXF it was written from but the detail and section view styles it makes anew.
 
 A table is written in the form of AutoCAD 2010, its content inside the ACAD_TABLE, made of the groups DXF keeps of
 AutoCAD 2007: the sizes of its rows and columns, each cell's value, and a merged range for each cell that spans others

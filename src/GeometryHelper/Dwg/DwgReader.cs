@@ -20,10 +20,11 @@ namespace GeometryHelper.Dwg
     /// the header variables, the classes, the nine tables, the blocks, the entities and the objects. Read are LINE, POINT,
     /// CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and
     /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE and
-    /// DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE and the small ones a new drawing
-    /// holds; each with its layer, linetype, colour, lineweight, owner, reactors, extension dictionary and extended
-    /// data. The types not read yet, HATCH and LEADER among them, are left out and counted by type in one Debug line of
-    /// <see cref="GeometryHelperLog"/>.
+    /// DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MATERIAL, VISUALSTYLE and the small
+    /// ones a new drawing holds (see the guide for the full list); from AutoCAD 2013 the ACIS data of the solids in the
+    /// data store of the file comes as the section ACDSDATA; each with its layer, linetype, colour, lineweight, owner,
+    /// reactors, extension dictionary and extended data. The types not read yet, SHAPE and the objects of dynamic blocks
+    /// among them, are left out and counted by type in one Debug line of <see cref="GeometryHelperLog"/>.
     /// </para>
     /// <para>
     /// The check sums of the file are checked. A wrong one in the file header, the header variables, the classes or the

@@ -17,13 +17,7 @@ namespace GeometryHelper.UnitTest.Dwg
     public class DwgWriterTests
     {
         /// <summary>The types of AutoCAD's new drawing of R2018 that the writer does not write yet.</summary>
-        private static readonly string[] NotWritten =
-        {
-            "ACDBDETAILVIEWSTYLE",
-            "ACDBSECTIONVIEWSTYLE",
-            "MATERIAL",
-            "VISUALSTYLE",
-        };
+        private static readonly string[] NotWritten = { "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE" };
 
         private static byte[] Written(DxfDatabase database)
         {
@@ -46,6 +40,7 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("leaders_AC1032")]
         [InlineData("images_AC1032")]
         [InlineData("mline_AC1032")]
+        [InlineData("matvis_AC1032")]
         public void ADrawingWrittenAsDwg_ReadsBackToTheSameRecords_ButForTheTypesNotWritten(string name)
         {
             byte[] dwg = Written(Source(name));
@@ -53,11 +48,8 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal("AC1032", DwgContainer.VersionOf(dwg));
             DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(name), DwgReader.ToDxf(dwg));
 
-            // What differs is what the types left out lead to: the dictionaries that listed them, and the material the header
-            // names, which is a MATERIAL.
-            Assert.All(result.Differences, difference =>
-                Assert.True(difference.Contains("$CMATERIAL") || difference.Contains("OBJECTS DICTIONARY"), difference)
-            );
+            // What differs is what the types left out lead to: the dictionaries that listed them.
+            Assert.All(result.Differences, difference => Assert.Contains("OBJECTS DICTIONARY", difference));
             Assert.All(result.Missing.Keys, type => Assert.Contains(type, NotWritten));
             Assert.True(result.Paired > 300, result.Paired + " records paired");
         }
@@ -153,8 +145,9 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             string line = Assert.Single(lines);
-            Assert.Contains("VISUALSTYLE 24", line);
-            Assert.Contains("MATERIAL 3", line);
+            Assert.Contains("ACDBDETAILVIEWSTYLE 1", line);
+            Assert.DoesNotContain("VISUALSTYLE", line);
+            Assert.DoesNotContain("MATERIAL", line);
         }
     }
 }

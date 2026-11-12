@@ -142,7 +142,7 @@ namespace GeometryHelper.Dwg
 
             if (_classes.TryGetValue(type, out int number) && Encoder(type) != null)
             {
-                return number;
+                return type == "VISUALSTYLE" && !IsListedVisualStyle(record) ? -1 : number;
             }
 
             switch (type)
@@ -367,6 +367,10 @@ namespace GeometryHelper.Dwg
                     return WriteMultiLeaderStyle;
                 case "IMAGEDEF_REACTOR":
                     return () => _data.BitLong(_record.Of("AcDbRasterImageDefReactor").Int(90, 2));
+                case "MATERIAL":
+                    return R2007Plus ? WriteMaterial : (Action)null;
+                case "VISUALSTYLE":
+                    return R2013Plus ? WriteVisualStyle : (Action)null;
                 default:
                     return null;
             }

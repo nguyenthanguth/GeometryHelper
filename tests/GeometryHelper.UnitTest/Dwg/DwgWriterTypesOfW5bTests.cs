@@ -19,13 +19,7 @@ namespace GeometryHelper.UnitTest.Dwg
     public class DwgWriterTypesOfW5bTests
     {
         /// <summary>The types of AutoCAD's new drawing of R2018 that the writer still leaves out.</summary>
-        private static readonly string[] StillLeftOut =
-        {
-            "ACDBDETAILVIEWSTYLE",
-            "ACDBSECTIONVIEWSTYLE",
-            "MATERIAL",
-            "VISUALSTYLE",
-        };
+        private static readonly string[] StillLeftOut = { "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE" };
 
         private static byte[] Written(DxfDatabase database)
         {
