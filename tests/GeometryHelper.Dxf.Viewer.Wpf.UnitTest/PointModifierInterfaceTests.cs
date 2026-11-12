@@ -35,7 +35,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             );
             CadMenuItemViewModel filters = items.Single(i => i.Header == "Point Filters");
             Assert.False(filters.IsSeparator);
-            Assert.Equal(new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }, filters.Items.Select(i => i.Header));
+            Assert.Equal(
+                new[] { ".X", ".Y", ".Z", string.Empty, ".XY", ".XZ", ".YZ" },
+                filters.Items.Select(i => i.Header)
+            );
             Assert.True(items[4].IsSeparator);
         }
 

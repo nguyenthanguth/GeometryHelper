@@ -106,6 +106,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The snap of the point being fed by Feed(CadSnapResult), which the point answer carries; null otherwise.
         private CadSnapResult _snapFed;
+
+        // The prompt and the point typed at "Select objects:", written in place of the prompt alone as the point picks; null else.
+        private string _typedPick;
         private CadCommand _gripCommand;
         private bool _grouped;
         private List<string> _script;
@@ -232,6 +235,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             string name = (typed ?? string.Empty).Trim();
             Write("Command: " + name);
+
+            // 'PAN and 'ZOOM at the Command prompt are PAN and ZOOM.
+            name = WithoutApostrophe(name) ?? name;
             CadCommand command = Registry.Find(name);
 
             // A system variable's name typed alone asks its new value, as SETVAR does, where no command has the name.
@@ -395,7 +401,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (_multiple != null && Prompt.Kind == CadPromptKind.Selection)
             {
                 // Multiple: the points are kept, and the objects at them found at Enter.
-                Write(Prompt.Text);
+                Write(_typedPick ?? Prompt.Text);
                 _multiple.Add(point);
                 Changed();
                 return true;
@@ -415,7 +421,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (picked.Count == 0)
                     {
-                        Write(Prompt.Text);
+                        Write(_typedPick ?? Prompt.Text);
                         Write(Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found");
                         Changed();
                         return false;
@@ -430,7 +436,7 @@ namespace GeometryHelper.Dxf.Viewer
                                 Shift = shift,
                                 IsPickedAt = true,
                             },
-                            Prompt.Text,
+                            _typedPick ?? Prompt.Text,
                             null
                         );
                     }
@@ -473,8 +479,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// every object of the space, Window, Crossing and BOX by two corners, Fence, WPolygon and CPolygon by points until
         /// Enter, Last the object made last, Previous the objects the command before took, Group by name, Remove and Add to
         /// take out and put in, Undo the last change, Multiple points until Enter, SIngle to end with the first objects taken,
-        /// AUto; anything else is "*Invalid selection*" with the options listed.
+        /// AUto; a point typed there picks as a click does, "Select objects: -50,-50" then "0 found" where it hits nothing,
+        /// starting no window; anything else is "*Invalid selection*" with the options listed.
         /// A point modifier, FROM, M2P, TT, TK or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
+        /// 'PAN or 'ZOOM typed at any prompt but one for text runs inside the command waiting (<see cref="IsTransparent"/>).
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>Whether it was taken.</returns>
@@ -489,6 +497,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (Prompt == null)
             {
                 return Start(text);
+            }
+
+            if (TryTransparent(text))
+            {
+                return true;
             }
 
             if (_option != null)
@@ -546,7 +559,18 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (TryPoint(typed, out GeoPoint2 pickedAt))
                     {
-                        return Feed(pickedAt);
+                        // A point typed picks as a click does, written after the prompt as typed; one on nothing finds
+                        // none and asks again, starting no window, as AutoCAD 2021's "Select objects: -50,-50 0 found".
+                        _typedPick = echo;
+
+                        try
+                        {
+                            return Feed(pickedAt) || Prompt?.Kind == CadPromptKind.Selection;
+                        }
+                        finally
+                        {
+                            _typedPick = null;
+                        }
                     }
 
                     return Prompt.Kind == CadPromptKind.Selection
@@ -733,7 +757,7 @@ namespace GeometryHelper.Dxf.Viewer
             // A box that ends the implied window was written with the window's prompt (EndWindow).
             if (!_windowWritten)
             {
-                Write(Prompt.Text);
+                Write(_typedPick ?? Prompt.Text);
             }
 
             _windowWritten = false;
@@ -1125,6 +1149,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         private bool Answer(CadInput input, string echo, GeoPoint2? point)
         {
+            RememberTyped(input);
+
             // "Specify second point:" of a distance or an angle given by two points hands the prompt that asked its answer.
             if (_secondFor != null && _modifiers.Count == 0)
             {
@@ -1191,6 +1217,12 @@ namespace GeometryHelper.Dxf.Viewer
             Prompt = _body.Current
                 ?? throw new InvalidOperationException("The command " + Current.Name + " asked a null prompt.");
 
+            // A transparent command's prompts are written after ">>", as AutoCAD's.
+            if (_suspended.Count > 0)
+            {
+                Prompt.Transparently();
+            }
+
             if (Prompt.Kind == CadPromptKind.Selection)
             {
                 ResetOptions();
@@ -1204,7 +1236,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeometryHelperLog.Warn("CadCommandSession: the command " + Current.Name + " failed.", exception);
             Write("*Error* " + exception.Message);
 
-            if (_grouped)
+            if (_grouped && !SharesGroup)
             {
                 Document.CancelGroup();
                 _grouped = false;
@@ -1215,6 +1247,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         private void Finish(CadCommandOutcome outcome)
         {
+            // A transparent command gives the prompt back to the command it interrupted.
+            if (_suspended.Count > 0)
+            {
+                EndTransparent(outcome);
+                return;
+            }
+
             if (_grouped)
             {
                 Document.EndGroup();

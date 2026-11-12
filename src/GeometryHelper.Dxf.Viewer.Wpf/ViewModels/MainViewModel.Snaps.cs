@@ -287,8 +287,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new CadMenuItemViewModel(
                     "Point Filters",
                     true,
-                    new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
-                        .Select(f => new CadMenuItemViewModel(f, () => ModifyPoint(f)))
+                    // A line after .Z, as AutoCAD's menu parts the one-coordinate filters from the two-coordinate ones.
+                    new[] { ".X", ".Y", ".Z", string.Empty, ".XY", ".XZ", ".YZ" }
+                        .Select(f =>
+                            f.Length == 0
+                                ? CadMenuItemViewModel.Separator()
+                                : new CadMenuItemViewModel(f, () => ModifyPoint(f))
+                        )
                         .ToList(),
                     't'
                 ),

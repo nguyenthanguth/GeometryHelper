@@ -1516,6 +1516,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Focus();
             Point p = e.ChangedButton == MouseButton.Left ? OnLegacyGrid(PositionOf(e)) : PositionOf(e);
 
+            if (e.ChangedButton == MouseButton.Right)
+            {
+                _rightPressedAt = e.Timestamp;
+            }
+
             if (TableMouseDown(e.ChangedButton, p))
             {
                 e.Handled = true;
@@ -1788,12 +1793,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (
                 e.ChangedButton == MouseButton.Right
-                && IsRunning
-                && (ShortcutMenuRequested == null || !CadPicking.WantsCommandMenu(Session))
+                && (
+                    IsQuickRightClick(e)
+                    || (
+                        IsRunning
+                        && (ShortcutMenuRequested == null || !CadPicking.WantsCommandMenu(Session, ShortcutMenu))
+                    )
+                )
             )
             {
-                // A right click is Enter while a command runs and its prompt offers no options, as AutoCAD's SHORTCUTMENU 11.
-                Session.Enter();
+                // A right click is Enter while a command runs and SHORTCUTMENU gives its prompt no menu, as with AutoCAD's
+                // 11 where it offers no options; with SHORTCUTMENU's 16 a click shorter than a quarter of a second is Enter.
+                Session?.Enter();
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }
@@ -1804,6 +1815,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 e.Handled = true;
             }
         }
+
+        /// <summary>
+        /// Gets or sets what a right-click shows, as AutoCAD's SHORTCUTMENU (<see cref="GlobalSettings.ShortcutMenu"/>): while a
+        /// command runs, the Command or Grips menu with 4, or with 8 where the prompt offers options, else Enter; with 16 a
+        /// click shorter than a quarter of a second is Enter whatever runs. With no command running the window's handler of
+        /// <see cref="ShortcutMenuRequested"/> weighs 1 and 2. 11 until set, as AutoCAD 2021 starts.
+        /// </summary>
+        public int ShortcutMenu { get; set; } = 11;
+
+        // When the right button was last pressed, by the event's clock in milliseconds; null before any press.
+        private int? _rightPressedAt;
+
+        // How long SHORTCUTMENU's 16 wants the right button held for a menu, as AutoCAD 2021's SHORTCUTMENUDURATION 250.
+        private const int MenuHold = 250;
+
+        /// <summary>Whether SHORTCUTMENU's 16 makes a right-click let go of before <see cref="MenuHold"/> Enter.</summary>
+        private bool IsQuickRightClick(MouseButtonEventArgs e) =>
+            (ShortcutMenu & 16) != 0
+            && (!_rightPressedAt.HasValue || unchecked(e.Timestamp - _rightPressedAt.Value) < MenuHold);
 
         /// <inheritdoc/>
         protected override void OnMouseLeave(MouseEventArgs e)

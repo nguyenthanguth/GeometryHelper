@@ -270,6 +270,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         "Enter",
                         "Cancel",
+                        "Recent Input",
                         string.Empty,
                         "Undo",
                         string.Empty,
@@ -284,11 +285,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Headers(items)
                 );
                 Assert.Equal(
-                    new[] { 'E', 'C', '\0', '\0', '\0', 'v', '\0', 'P', 'Z', '\0', '\0', '\0' },
+                    new[] { 'E', 'C', '\0', '\0', '\0', '\0', 'v', '\0', 'P', 'Z', '\0', '\0', '\0' },
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "Pan", "Zoom", "SteeringWheels", "QuickCalc" },
+                    new[] { "SteeringWheels", "QuickCalc" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
 

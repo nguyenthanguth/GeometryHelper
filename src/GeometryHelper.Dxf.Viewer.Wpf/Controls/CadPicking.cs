@@ -105,6 +105,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             && (session.IsGripEditing || (session.Prompt != null && session.Prompt.Keywords.Count > 0));
 
         /// <summary>
+        /// Gets whether a right-click while a command runs shows a menu rather than being Enter, by AutoCAD's SHORTCUTMENU
+        /// (<see cref="GlobalSettings.ShortcutMenu"/>): with its 4 always, with its 8 where <see cref="WantsCommandMenu(CadCommandSession)"/>
+        /// says so, with neither never; SHORTCUTMENU 11 asks as that does, 15 gives "Specify first point:" the Command menu too.
+        /// </summary>
+        /// <param name="session">The command line; false where it is null or runs nothing.</param>
+        /// <param name="shortcutMenu">SHORTCUTMENU, 0 to 31.</param>
+        /// <returns>Whether the menu is shown.</returns>
+        public static bool WantsCommandMenu(CadCommandSession session, int shortcutMenu) =>
+            session != null
+            && session.IsRunning
+            && ((shortcutMenu & 4) != 0 || ((shortcutMenu & 8) != 0 && WantsCommandMenu(session)));
+
+        /// <summary>
         /// Gets the point a click at the cursor takes, snapped from the prompt's base point (perpendicular and tangent from
         /// <paramref name="drawnFrom"/> where it has none, <see cref="CadPrompt.SnapFrom"/>), the grid, ortho and polar along the
         /// space's UCS; null where no snap is given.
