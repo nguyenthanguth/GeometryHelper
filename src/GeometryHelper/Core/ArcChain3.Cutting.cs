@@ -45,8 +45,18 @@ namespace GeometryHelper.Core
             var cuts = new List<GeoPoint3>(at);
             var runs = new List<List<GeoEdge3>>();
             var current = new List<GeoEdge3>();
+            var all = new List<GeoEdge3>(edges);
 
-            foreach (GeoEdge3 edge in edges)
+            // A chain with a corner that is not a finite point is cut nowhere, and gives no runs to put back together.
+            foreach (GeoEdge3 edge in all)
+            {
+                if (!edge.StartPoint.IsValid || !edge.EndPoint.IsValid)
+                {
+                    return runs;
+                }
+            }
+
+            foreach (GeoEdge3 edge in all)
             {
                 var along = new List<double>();
 
@@ -433,7 +443,8 @@ namespace GeometryHelper.Core
 
             pieces = CutLoop(loop, cuts, tolerance);
 
-            return true;
+            // None only for a loop with a corner that is not a finite point, which is cut nowhere.
+            return pieces.Length > 0;
         }
 
         /// <summary>

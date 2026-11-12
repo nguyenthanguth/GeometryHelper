@@ -120,7 +120,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or this circle when the method returns false.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public bool TryOffset(double distance, out GeoCircle2 result) =>
             Offset2.TryOffset(this, distance, out result, Tolerance.Global);
 
@@ -130,7 +130,7 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or this circle when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public bool TryOffset(double distance, out GeoCircle2 result, Tolerance tolerance) =>
             Offset2.TryOffset(this, distance, out result, tolerance);
 

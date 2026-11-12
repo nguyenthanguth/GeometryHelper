@@ -648,13 +648,8 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Refuses a radius that is not a positive number.
         /// </summary>
-        private static void RequirePositive(double value, string name)
-        {
-            if (double.IsNaN(value) || value <= 0.0)
-            {
-                throw new ArgumentOutOfRangeException(name, "A radius has to be a positive number.");
-            }
-        }
+        private static void RequirePositive(double value, string name) =>
+            Guard.Positive(value, name, "A radius has to be a positive number.");
 
         /// <summary>
         /// Refuses a list of radii that holds something no corner could take.
@@ -668,13 +663,11 @@ namespace GeometryHelper.Core
 
             foreach (double radius in radii)
             {
-                if (double.IsNaN(radius) || radius < 0.0)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(radii),
-                        "A radius cannot be negative, and nought means the corner is left alone."
-                    );
-                }
+                Guard.NonNegative(
+                    radius,
+                    nameof(radii),
+                    "A radius cannot be negative, and nought means the corner is left alone."
+                );
             }
         }
 

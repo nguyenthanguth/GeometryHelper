@@ -101,7 +101,10 @@ and chains and loops of arcs against all of them. Measured at a thousandth:
   so a ray, a line and a chain, whose corner touching it is given. One with no crossing of the plane to give, lying level
   over the material within the planar tolerance of the region's plane at both its ends, running in over the rim among
   them, is given none, and so is one lying along a side of the rim within that of the side's line, as a segment lying
-  along an edge of a box is. A segment has no crossing where it climbs no more than the planar tolerance from end to
+  along an edge of a box is: the segment from (-50, 20, 0) to (50, 20, 0) and the square 100 by 100 in the floor with a
+  corner at the origin collide and are given no point, since they meet along a stretch that names no one place; an arc
+  lying in the plane is given the points where it cuts the outline instead. A segment has no crossing where it climbs no
+  more than the planar tolerance from end to
   end, and is read level by its own two ends. A line without ends has none where the segment it is cut to, a millimetre
   past the region, climbs no more than that. A ray is read as the line without ends along it is, and given what that
   line meets at its origin or ahead of it: the ray from 0.0005 over a square 100 by 100, falling 1E-5 for each unit

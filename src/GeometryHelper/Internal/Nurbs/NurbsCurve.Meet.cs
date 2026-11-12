@@ -982,6 +982,16 @@ namespace GeometryHelper.Internal.Nurbs
         /// </remarks>
         internal List<Contact> GetMeetings(IList<Partner> partners, double reach)
         {
+            // A partner with a coordinate that is not a finite number meets nothing; under .NET Framework the hunt over it
+            // never ended.
+            for (int i = 0; i < partners.Count; i++)
+            {
+                if (!(Math.Abs(partners[i].Scale) <= double.MaxValue))
+                {
+                    return new List<Contact>();
+                }
+            }
+
             Hunt hunt = Begin(partners, false, reach);
 
             for (int i = 0; i < partners.Count; i++)

@@ -437,7 +437,7 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public static bool TryOffset(GeoCircle2 circle, double distance, out GeoCircle2 result) =>
             TryOffset(circle, distance, out result, Tolerance.Global);
 
@@ -448,7 +448,7 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance deciding when a radius is too small to keep.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static bool TryOffset(GeoCircle2 circle, double distance, out GeoCircle2 result, Tolerance tolerance)
         {
@@ -456,7 +456,7 @@ namespace GeometryHelper.Core
             result = circle;
             double radius = circle.Radius + distance;
 
-            if (radius <= tolerance.EqualPoint)
+            if (radius <= tolerance.EqualPoint || !circle.Center.IsValid)
             {
                 return false;
             }
@@ -472,7 +472,7 @@ namespace GeometryHelper.Core
         /// <param name="rectangle">The rectangle.</param>
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or the rectangle unchanged when the method returns false.</param>
-        /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a rectangle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public static bool TryOffset(GeoRectangle2 rectangle, double distance, out GeoRectangle2 result) =>
             TryOffset(rectangle, distance, out result, Tolerance.Global);
 
@@ -485,7 +485,7 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or the rectangle unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance deciding when a side is too short to keep.</param>
-        /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a rectangle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static bool TryOffset(
             GeoRectangle2 rectangle,
@@ -499,7 +499,7 @@ namespace GeometryHelper.Core
             double width = rectangle.Width + 2.0 * distance;
             double height = rectangle.Height + 2.0 * distance;
 
-            if (width <= tolerance.EqualPoint || height <= tolerance.EqualPoint)
+            if (width <= tolerance.EqualPoint || height <= tolerance.EqualPoint || !rectangle.Center.IsValid)
             {
                 return false;
             }

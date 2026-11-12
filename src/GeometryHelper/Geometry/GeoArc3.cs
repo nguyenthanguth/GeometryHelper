@@ -473,12 +473,12 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far to move it: outward from the centre when positive, inward when negative.</param>
         /// <param name="result">The offset arc, or this arc when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the offset arc has a positive radius; otherwise, false.</returns>
+        /// <returns>true if the offset arc has a positive radius; otherwise, false, as for an arc about a centre, or a distance, that is not a finite number.</returns>
         public bool TryOffset(double distance, out GeoArc3 result, Tolerance tolerance)
         {
             double radius = Radius + distance;
 
-            if (radius <= tolerance.EqualPoint)
+            if (!(radius > tolerance.EqualPoint) || !Guard.IsFinite(radius) || !Center.IsValid)
             {
                 result = this;
                 return false;

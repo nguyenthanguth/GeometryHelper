@@ -360,7 +360,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// The share of the longest side squared within which twice the area is the rounding of the cross product.
         /// </summary>
-        private const double NormalRounding = 1E-15;
+        internal const double NormalRounding = 1E-15;
 
         #region Barycentric coordinates
 
@@ -375,7 +375,8 @@ namespace GeometryHelper.Geometry
         /// false when the triangle has no area by <see cref="IsDegenerate(Tolerance)"/> at the global tolerance, its height over
         /// its longest side within the point tolerance, in which case all three weights are zero: the triangle 100 long and
         /// 0.0005 high gives false at the default tolerance, where twice its area, 0.05, read against the vector tolerance gave
-        /// true. The containment of a point in a triangle reads it at the tolerance it is asked within instead.
+        /// true. The containment of a point in a triangle reads it at the tolerance it is asked within instead. A point with a
+        /// coordinate that is not a finite number gives false too, where it was given weights of NaN.
         /// </returns>
         /// <remarks>
         /// The point is projected onto the triangle plane first, so a point off the plane gets the
@@ -384,7 +385,7 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public bool TryGetBarycentric(GeoPoint3 point, out double u, out double v, out double w)
         {
-            if (IsDegenerate(Tolerance.Global))
+            if (IsDegenerate(Tolerance.Global) || !point.IsValid)
             {
                 u = 0.0;
                 v = 0.0;

@@ -67,6 +67,12 @@ namespace GeometryHelper.Core
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoPlane3 plane, Tolerance tolerance)
         {
+            // An ellipse or a plane through a point that is not a finite one meets nothing, rather than at points of NaN.
+            if (!ellipse.Center.IsValid || !plane.Origin.IsValid)
+            {
+                return new GeoPoint3[0];
+            }
+
             if (IsCoplanar(ellipse, plane, tolerance))
             {
                 return new GeoPoint3[0];

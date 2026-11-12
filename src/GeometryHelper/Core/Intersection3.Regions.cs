@@ -1533,7 +1533,12 @@ namespace GeometryHelper.Core
             if ((from < 0.0 && to > 0.0) || (from > 0.0 && to < 0.0))
             {
                 at = edge.StartPoint.Add(edge.StartPoint.GetVectorTo(edge.EndPoint).Multiply(from / (from - to)));
-                return true;
+
+                // An end at infinity reaches the plane at no finite point.
+                if (at.IsValid)
+                {
+                    return true;
+                }
             }
 
             bool startOn = !(from < 0.0 || from > 0.0);

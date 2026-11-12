@@ -746,7 +746,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far to move it: outward from the centre when positive, inward when negative.</param>
         /// <param name="result">The offset arc, or this arc when the method returns false.</param>
-        /// <returns>true if the offset arc has a positive radius; otherwise, false.</returns>
+        /// <returns>true if the offset arc has a positive radius; otherwise, false, as for an arc about a centre, or a distance, that is not a finite number.</returns>
         public bool TryOffset(double distance, out GeoArc2 result) => TryOffset(distance, out result, Tolerance.Global);
 
         /// <summary>
@@ -755,7 +755,7 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far to move it: outward from the centre when positive, inward when negative.</param>
         /// <param name="result">The offset arc, or this arc when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if the offset arc has a positive radius; otherwise, false.</returns>
+        /// <returns>true if the offset arc has a positive radius; otherwise, false, as for an arc about a centre, or a distance, that is not a finite number.</returns>
         /// <remarks>
         /// The offset of an arc is exactly an arc: same centre, same angles, a different radius. An offset
         /// inward by more than the radius would turn it inside out, which is refused rather than answered.
@@ -764,7 +764,7 @@ namespace GeometryHelper.Geometry
         {
             double radius = Radius + distance;
 
-            if (radius <= tolerance.EqualPoint)
+            if (!(radius > tolerance.EqualPoint) || !Guard.IsFinite(radius) || !Center.IsValid)
             {
                 result = this;
                 return false;

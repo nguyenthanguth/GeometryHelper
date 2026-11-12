@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DistanceTo` of a `GeoTriangle3` and a point measured a triangle nearly on one line by a foot along a normal
+that is the rounding of its cross product: the point 5E-14 from two corners 1E-13 apart, of the triangle (35, 54, -67),
+(88, 96, -11), (88, 96.0000000000001, -11), was measured 2.12 away. Such a triangle, no higher than about 3E-8 of its
+length, is measured to its sides now, within its height. `GetClosestPointOnBoundary` and `GetShortestLineTo` of a point
+check the point the Voronoi regions find on a long thin triangle against that gap and replace it where it is further
+off than the triangle is high: from a point 0.00004 from a triangle 9 000 long and 0.0024 high the point given was 2.08
+away. Of 400 000 triangles and points of a fuzz, every distance of a triangle with an area at a thousandth is the same
+bit for bit, and 3 174 closest points changed, each one 1E-8 to 26 too far before and none further off now.
+
+**FIXED.** `Fillet` and `TryFilletAt` of `Corner3` took a radius of infinity, alone or in a list; they refuse it with
+an `ArgumentOutOfRangeException`, as the corners in the plane do.
+
+**FIXED.** A shape with a coordinate that is not a finite number meets nothing, in the plane and in space:
+`GetIntersections` gives no points and the `Try` members answer false, where 352 members gave points of NaN to a fuzz
+that gave one shape a NaN or an infinite coordinate. The segment from (NaN, 20) to (150, 30) crosses no side of a
+triangle, a polygon, a face or a rectangle; a segment, a ray, a line, a chain or an edge of NaN in space meets no plane,
+triangle, polygon, face or segment, nor does a plane of NaN; an arc, a circle or an ellipse about a centre of NaN meets
+no flat shape or plane; and `TryOffset` of an arc, a circle or a rectangle about such a centre, or of an arc by a
+distance of NaN, `TrySplitAtDistance`, `TryChamferAt`, `TrySplitBy` of a curved chain, `TryExtendTo` and
+`TryTrimExtendToCorner` in space and `TryGetBarycentric` of a point of NaN answer false. A spline in the plane and a chain
+or a triangle with a corner of NaN or at infinity meet nowhere, where under .NET Framework 4.8 the search never ended
+(24 members of the fuzz hung). Every finite answer is the same bit for bit.
+
 **FIXED.** A dynamic block saved from the presenter's Block Editor (BSAVE, or BCLOSE with Save) has the anonymous *U
 blocks its INSERTs place worked out anew from the new definition, at each INSERT's values, as AutoCAD 2021's
 `UpdateAnonymousBlocks` works them: GH_PANEL, whose INSERTs of Width 150 and 200 placed *U1 and *U2, given a circle of

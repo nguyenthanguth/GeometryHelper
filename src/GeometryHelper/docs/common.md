@@ -137,6 +137,20 @@ a point of NaN, and so for its crossings with a ray, a line, a circle, an arc, a
 triangle, for `TrySplitAtDistance`, `TryExtendTo` a point and `TryTrimExtendToCorner`. A loop with a vertex or a bulge of
 NaN no longer throws from `TryIntersectWith` of a segment.
 
+The same holds for the other shapes, in the plane and in space: a shape with a coordinate that is not a finite number
+meets nothing, so `GetIntersections` gives no points and the `Try` members answer false, where 352 members of a fuzz
+that gave one shape a NaN or an infinite coordinate gave points of NaN. The segment from (NaN, 20) to (150, 30) crosses
+no side of a triangle, a polygon, a face or a rectangle; a segment, a ray, a line, a chain or an edge of NaN in space
+meets no plane, triangle, polygon, face or other segment, and nor does a plane of NaN; an arc, a circle or an ellipse
+about a centre of NaN meets no flat shape or plane. `TryOffset` of an arc, a circle or a rectangle about a centre of NaN,
+and of an arc by a distance of NaN, `TrySplitAtDistance` of a segment, a chain or an arc, `TryChamferAt` of a chain or
+a polygon with a vertex of NaN, `TrySplitBy` of a curved chain with one, `TryExtendTo` a point or a plane in space,
+`TryTrimExtendToCorner` in space and `TryGetBarycentric` of a point of NaN answer false. A spline in the plane and a chain
+or a triangle with a corner of NaN or at infinity meet nowhere, where under .NET Framework 4.8 the search for where they
+meet never ended. Every finite answer is the same bit for bit. Some members still throw an `ArgumentException` from
+inside for such a shape, naming a radius, a box size or a control point of their own working rather than the shape
+given.
+
 ## Angle
 
 An angle stored in radians and readable as either unit. There is deliberately no public constructor

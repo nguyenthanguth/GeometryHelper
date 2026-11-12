@@ -280,7 +280,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or this one when the method returns false.</param>
-        /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a rectangle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public bool TryOffset(double distance, out GeoRectangle2 result) =>
             Offset2.TryOffset(this, distance, out result, Tolerance.Global);
 
@@ -291,7 +291,7 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How far each side moves: outward when positive.</param>
         /// <param name="result">The rectangle with the same center and angle, or this one when the method returns false.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true if a rectangle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a rectangle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public bool TryOffset(double distance, out GeoRectangle2 result, Tolerance tolerance) =>
             Offset2.TryOffset(this, distance, out result, tolerance);
 

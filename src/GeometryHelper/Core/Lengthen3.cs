@@ -201,6 +201,12 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (!line.IsValid || !point.IsValid)
+            {
+                result = line;
+                return false;
+            }
+
             return TryMove(line, end, tolerance, true, out result, (reach, found) =>
                 found.Add(reach.Anchor.GetVectorTo(point).DotProduct(reach.Unit))
             );
@@ -273,6 +279,12 @@ namespace GeometryHelper.Core
             Tolerance tolerance
         )
         {
+            if (!line.IsValid || !plane.Origin.IsValid)
+            {
+                result = line;
+                return false;
+            }
+
             return TryMove(line, end, tolerance, true, out result, (reach, found) =>
                 AddPlaneCrossing(found, reach, plane, tolerance)
             );
@@ -668,7 +680,8 @@ namespace GeometryHelper.Core
 
             GeoLine3 bridge = Projection3.GetShortestLineTo(line1, line2, LineExtension.Both, tolerance);
 
-            if (bridge.Length > tolerance.EqualPoint)
+            // Written as what a corner needs, so that a segment of NaNs or infinities has none.
+            if (!(bridge.Length <= tolerance.EqualPoint) || !bridge.MidPoint.IsValid)
             {
                 return false;
             }

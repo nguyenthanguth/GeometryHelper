@@ -52,6 +52,11 @@ namespace GeometryHelper.Core
         {
             pieces = new[] { line };
 
+            if (!line.IsValid || !Guard.IsFinite(distance))
+            {
+                return false;
+            }
+
             if (distance <= tolerance.EqualPoint || distance >= line.Length - tolerance.EqualPoint)
             {
                 return false;
@@ -235,6 +240,11 @@ namespace GeometryHelper.Core
             }
 
             pieces = new[] { polyline };
+
+            if (!Guard.AreValid(polyline.Vertices) || !Guard.IsFinite(distance))
+            {
+                return false;
+            }
 
             GeoPolyline3[] result = SplitAtDistances(polyline, new[] { distance }, tolerance);
 

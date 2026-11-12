@@ -569,7 +569,7 @@ namespace GeometryHelper.Core
         /// <param name="circle">The circle.</param>
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         public static bool TryOffset(GeoCircle3 circle, double distance, out GeoCircle3 result) =>
             TryOffset(circle, distance, out result, Tolerance.Global);
 
@@ -581,7 +581,7 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far the circumference moves: outward when positive.</param>
         /// <param name="result">The concentric circle, or the circle unchanged when the method returns false.</param>
         /// <param name="tolerance">The tolerance deciding when a radius is too small to keep.</param>
-        /// <returns>true if a circle is left; false if it shrinks to nothing.</returns>
+        /// <returns>true if a circle is left; false if it shrinks to nothing, or its centre is not a finite point.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static bool TryOffset(GeoCircle3 circle, double distance, out GeoCircle3 result, Tolerance tolerance)
         {
@@ -589,7 +589,7 @@ namespace GeometryHelper.Core
             result = circle;
             double radius = circle.Radius + distance;
 
-            if (radius <= tolerance.EqualPoint)
+            if (radius <= tolerance.EqualPoint || !circle.Center.IsValid)
             {
                 return false;
             }
