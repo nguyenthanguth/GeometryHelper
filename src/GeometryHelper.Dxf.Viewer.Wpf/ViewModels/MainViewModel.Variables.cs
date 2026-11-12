@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
     /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), the snap's SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL and
-    /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport, SNAPTYPE,
+    /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport (in a layout's
+    /// paper space into its viewport 1, through a viewport into that viewport, as AutoCAD 2021 keeps them), SNAPTYPE,
     /// POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
     /// PICKBOX, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
     /// Input Search Options, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
@@ -71,32 +72,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 CadSystemVariable.Point(
                     "SNAPBASE",
                     () => SnapBase,
-                    v => ChangeDrafting("SNAPBASE", s => s.SnapBase = v, a => a.SnapBase = v)
+                    v => ChangeDrafting("SNAPBASE", s => s.SnapBase = v, a => a.SnapBase = v, p => p.SnapBasePoint = v)
                 )
             );
             registry.AddVariable(
                 CadSystemVariable.Angle(
                     "SNAPANG",
                     () => SnapAngle,
-                    v => ChangeDrafting("SNAPANG", s => s.SnapAngle = v, a => a.SnapAngle = v)
+                    v => ChangeDrafting("SNAPANG", s => s.SnapAngle = v, a => a.SnapAngle = v, p => p.SnapAngle = v)
                 )
             );
-            registry.AddVariable(
-                CadSystemVariable.Integer(
-                    "GRIDMAJOR",
-                    1,
-                    100,
-                    () => GridMajor,
-                    v => ChangeDrafting("GRIDMAJOR", s => s.GridMajor = v, a => a.GridMajor = v)
-                )
-            );
+            registry.AddVariable(CadSystemVariable.Integer("GRIDMAJOR", 1, 100, () => GridMajor, v => SetGridMajor(v)));
             registry.AddVariable(
                 CadSystemVariable.Integer(
                     "SNAPSTYL",
                     0,
                     1,
                     () => Layout.Isometric ? 1 : 0,
-                    v => ChangeDrafting("SNAPSTYL", s => s.Isometric = v != 0, a => a.IsometricSnapEnabled = v != 0)
+                    v => SetIsometricSnap(v != 0)
                 )
             );
             registry.AddVariable(
@@ -105,7 +98,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     0,
                     2,
                     () => Layout.Isoplane,
-                    v => ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = v, a => a.SnapPair = v)
+                    v => ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = v, a => a.SnapPair = v, p => p.SnapIsoPair = v)
                 )
             );
             registry.AddVariable(CadSystemVariable.Real("POLARANG", 360.0, () => _settings.PolarAngle, SetPolarAngle));

@@ -21,6 +21,19 @@ where a long one ran into it ("MULTILEADERLayer:"): MULTILEADER, LWPOLYLINE for 
 one, BLOCK REFERENCE for a MINSERT, ACAD_TABLE, 3D FACE, the record's type for the others (IMAGE, MLINE, 3DSOLID). Its Y
 ordinates, its rotations of 180 and 270 degrees and "associative: yes" were already AutoCAD's, and are now pinned by tests.
 
+**FIXED.** In a layout's paper space of the presenter, the snap and grid variables typed (GRIDUNIT, GRIDDISPLAY,
+GRIDMAJOR, SNAPUNIT, SNAPMODE, SNAPBASE, SNAPANG, SNAPSTYL, SNAPISOPAIR) and SNAP and GRID set the layout's own, kept in
+its viewport 1 as AutoCAD 2021 keeps them, and the snap on the paper steps by that viewport's spacing: GRIDUNIT 3,3 typed
+in Layout1 writes 3 by 3 into its viewport 1 and leaves model space's 4 by 6 as it was. They changed model space's.
+
+**NEW.** Through a viewport (MSPACE) the snap and grid of the presenter are that viewport's own, as AutoCAD 2021 keeps
+them: GRID, SNAP and their variables typed there write into it, and its grid is drawn inside its frame, laid in model
+space as the viewport shows it. A viewport of the room at 1:500 with a grid of 1 000 draws a line every 2 units of paper
+in its frame alone. Model space's snap and grid were used, and no grid was drawn through a viewport.
+
+**FIXED.** A point typed at a SETVAR of the presenter, as SNAPBASE 3,4 or GRIDUNIT 6,7, leaves the last point where it
+was, as AutoCAD 2021 leaves LASTPOINT: after ID 10,20 and SNAPBASE 3,4, SNAPUNIT @2,3 is 12,23. It was 5,7.
+
 **CHANGED.** A hook of the presenter's LEADER and QLEADER has a vertex of its own wherever AutoCAD 2021 writes one: on a
 leader to a frame, new or copied, and on any leader made in a UCS other than the world's, DIMASZ short of the end along
 the UCS's X, where these leaders kept the two points picked. `{\Fgdt;j}%%v0.1` copied to a leader from (200, 40) to

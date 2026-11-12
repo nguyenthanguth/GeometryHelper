@@ -653,10 +653,14 @@ namespace GeometryHelper.Dxf.Viewer
             Func<GeoPoint2, bool> take
         )
         {
+            GeoPoint2 last = c.Session.LastPoint;
             yield return CadPrompt
                 .ForPoint(variable.Message, null, null, Show(P3(get()), false))
                 .MeasuringFromLastPoint()
                 .Refusing("Invalid 2D point.");
+
+            // The point typed is the variable's value, not a point given: AutoCAD 2021 leaves LASTPOINT where it was.
+            c.Session.LastPoint = last;
 
             if (c.Input.IsPoint && !take(c.Input.Point))
             {
@@ -674,12 +678,16 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             GeoPoint3 old = get(c.Session);
+            GeoPoint2 last = c.Session.LastPoint;
             CadPrompt prompt = CadPrompt
                 .ForPoint(variable.Message, null, null, Show(old, withZ))
                 .MeasuringFromLastPoint();
 
             // A point of two coordinates is refused as AutoCAD refuses SNAPBASE abc.
             yield return withZ ? prompt : prompt.Refusing("Invalid 2D point.");
+
+            // The point typed is the variable's value, not a point given: AutoCAD 2021 leaves LASTPOINT where it was.
+            c.Session.LastPoint = last;
 
             if (!c.Input.IsPoint)
             {

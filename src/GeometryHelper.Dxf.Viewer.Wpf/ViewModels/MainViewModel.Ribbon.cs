@@ -517,7 +517,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     c.Input.Is("Left") ? 0
                     : c.Input.Is("Top") ? 1
                     : 2;
-                ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = taken, v => v.SnapPair = taken);
+                ChangeDrafting(
+                    "SNAPISOPAIR",
+                    s => s.Isoplane = taken,
+                    v => v.SnapPair = taken,
+                    v => v.SnapIsoPair = taken
+                );
                 c.Write("Current isoplane: " + (CadIsoplane)taken);
             }
         }

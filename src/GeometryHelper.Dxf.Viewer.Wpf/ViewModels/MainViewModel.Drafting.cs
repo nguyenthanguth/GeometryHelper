@@ -12,8 +12,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// (SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR, GRIDDISPLAY), ORTHO
     /// from <c>$ORTHOMODE</c> and the lineweights from <c>$LWDISPLAY</c>. A drawing that has no such value takes the
     /// window's: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switched, each is written
-    /// into the drawing, as AutoCAD saves it. A layout's paper space has a GRID of its own, kept in the viewport 1 of its
-    /// sheet as AutoCAD keeps it, so that GRID switched on in Layout1 leaves model space's as it was. POLAR, OTRACK, OSNAP,
+    /// into the drawing, as AutoCAD saves it. A layout's paper space has a snap and a grid of their own, kept in the viewport
+    /// 1 of its sheet as AutoCAD keeps them, and a viewport worked through (MSPACE) has its own, kept in it: GRID switched on
+    /// or GRIDUNIT 3,3 set in Layout1 leaves model space's as it was. POLAR, OTRACK, OSNAP,
     /// DYN, SNAPTYPE, POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY stay the window's, as AutoCAD keeps them in the registry.
     /// </summary>
     public sealed partial class MainViewModel
@@ -27,17 +28,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public bool ShowLineWeights => _current?.Drafting.LineWeights ?? _settings.ShowLineWeights;
 
-        /// <summary>Gets the spacing of the grid across: the drawing's GRIDUNIT, its snap spacing where that is nought, 10 with no drawing.</summary>
-        public double GridSpacingX =>
-            _current == null ? 10.0
-            : _current.Drafting.GridX > 0.0 ? _current.Drafting.GridX
-            : _current.Drafting.SnapX;
+        /// <summary>
+        /// Gets the spacing of the grid across: the GRIDUNIT of the space shown (model space's, a layout's viewport 1's or the
+        /// viewport worked through), its snap spacing where that is nought, 10 with no drawing.
+        /// </summary>
+        public double GridSpacingX
+        {
+            get
+            {
+                if (_current == null)
+                {
+                    return 10.0;
+                }
 
-        /// <summary>Gets the spacing of the grid up: the drawing's GRIDUNIT, its snap spacing where that is nought, 10 with no drawing.</summary>
-        public double GridSpacingY =>
-            _current == null ? 10.0
-            : _current.Drafting.GridY > 0.0 ? _current.Drafting.GridY
-            : _current.Drafting.SnapY;
+                DraftingState layout = Layout;
+                return layout.GridX > 0.0 ? layout.GridX : layout.SnapX;
+            }
+        }
+
+        /// <summary>
+        /// Gets the spacing of the grid up: the GRIDUNIT of the space shown (model space's, a layout's viewport 1's or the
+        /// viewport worked through), its snap spacing where that is nought, 10 with no drawing.
+        /// </summary>
+        public double GridSpacingY
+        {
+            get
+            {
+                if (_current == null)
+                {
+                    return 10.0;
+                }
+
+                DraftingState layout = Layout;
+                return layout.GridY > 0.0 ? layout.GridY : layout.SnapY;
+            }
+        }
 
         /// <summary>
         /// Gets the point the snap and the grid are laid from, in the coordinates of the UCS: the drawing's SNAPBASE, the
@@ -63,18 +88,102 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // The snap and grid of the window while no drawing is open, which the variables set then.
         private readonly DraftingState _windowDrafting = new DraftingState();
 
-        /// <summary>The snap and grid of the drawing shown, or of the window where none is.</summary>
-        private DraftingState Layout => _current?.Drafting ?? _windowDrafting;
+        /// <summary>
+        /// The snap and grid of the space shown: through a viewport that viewport's, in a layout's paper space its viewport
+        /// 1's (or the window's for the layout where it has none), elsewhere the drawing's; the window's where none is open.
+        /// </summary>
+        private DraftingState Layout
+        {
+            get
+            {
+                DxfViewport own = DraftingViewport();
+
+                if (own != null)
+                {
+                    return ViewportDrafting(own);
+                }
+
+                CadSpace paper = PaperShown();
+                return paper != null ? _current.Drafting.Paper(paper.Name) : _current?.Drafting ?? _windowDrafting;
+            }
+        }
 
         /// <summary>
-        /// A value of the snap or the grid set: kept for the drawing shown and written into its <c>*Active</c> viewport, as
+        /// The viewport whose snap and grid the space shown has, as AutoCAD 2021 keeps them: the one worked through (MSPACE),
+        /// or in a layout's paper space its viewport 1; null in model space, the Block Editor, or a layout with no viewport 1.
+        /// </summary>
+        private DxfViewport DraftingViewport()
+        {
+            CadDocument document = _current?.Document;
+            CadSpace space = document?.CurrentSpace;
+
+            if (space == null || space.IsModel || space.IsBlockEditor)
+            {
+                return null;
+            }
+
+            return document.ActiveViewport ?? SheetViewport(space);
+        }
+
+        /// <summary>The snap and grid a viewport keeps, read as the drawing's are from its <c>*Active</c> viewport.</summary>
+        private static DraftingState ViewportDrafting(DxfViewport viewport)
+        {
+            GeoVector2 snap = viewport.SnapIncrement;
+            GeoVector2 grid = viewport.GridIncrement;
+            return new DraftingState
+            {
+                Snap = viewport.SnapOn,
+                Grid = viewport.GridOn,
+                SnapX = snap.X,
+                SnapY = snap.Y,
+                GridX = grid.X,
+                GridY = grid.Y,
+                SnapBase = viewport.SnapBasePoint,
+                SnapAngle = viewport.SnapAngle,
+                GridMajor = viewport.GridMajor,
+                Isometric = viewport.SnapIsometric,
+                Isoplane = viewport.SnapIsoPair,
+                GridDisplay =
+                    (viewport.GridBoundToLimits ? 0 : 1)
+                    | (viewport.GridAdaptive ? 2 : 0)
+                    | (viewport.GridSubdivisionRestricted ? 0 : 4)
+                    | (viewport.GridFollow ? 8 : 0),
+            };
+        }
+
+        /// <summary>GRIDDISPLAY written into a viewport, as AutoCAD keeps it in its flags.</summary>
+        private static void WriteGridDisplay(DxfViewport viewport, int bits)
+        {
+            viewport.GridBoundToLimits = (bits & 1) == 0;
+            viewport.GridAdaptive = (bits & 2) != 0;
+            viewport.GridSubdivisionRestricted = (bits & 4) == 0;
+            viewport.GridFollow = (bits & 8) != 0;
+        }
+
+        /// <summary>
+        /// A value of the snap or the grid set where the space shown keeps it: in model space kept for the drawing shown and
+        /// written into its <c>*Active</c> viewport, in a layout written into its viewport 1 or the viewport worked through, as
         /// AutoCAD saves it; the snaps, the grid and the crosshair follow at once.
         /// </summary>
-        private void ChangeDrafting(string name, Action<DraftingState> change, Action<DxfViewportTableRecord> write)
+        private void ChangeDrafting(
+            string name,
+            Action<DraftingState> change,
+            Action<DxfViewportTableRecord> write,
+            Action<DxfViewport> writeViewport
+        )
         {
+            DxfViewport own = DraftingViewport();
+
+            if (own != null)
+            {
+                WriteToDrawing(name, () => writeViewport(own));
+                RaiseDrafting();
+                return;
+            }
+
             change(Layout);
 
-            if (_current?.Document != null)
+            if (_current?.Document != null && PaperShown() == null)
             {
                 WriteToDrawing(name, () =>
                 {
@@ -97,7 +206,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool CycleIsoplane()
         {
             int next = (Layout.Isoplane + 1) % 3;
-            ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = next, v => v.SnapPair = next);
+            ChangeDrafting("SNAPISOPAIR", s => s.Isoplane = next, v => v.SnapPair = next, v => v.SnapIsoPair = next);
             if (_current != null)
             {
                 _current.Session.Write("<Isoplane " + (CadIsoplane)next + ">");
@@ -163,17 +272,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Shows the toggles and spacings of the drawing now shown, writing nothing back into it.</summary>
+        /// <summary>
+        /// Shows the toggles and spacings of the drawing now shown, writing nothing back into it: SNAP, GRID and the snap's
+        /// spacing those of the space shown, ORTHO the drawing's.
+        /// </summary>
         private void LoadDrafting()
         {
-            DraftingState state = _current.Drafting;
+            DraftingState state = Layout;
             _loadingDrafting = true;
 
             try
             {
                 FindToggle("SNAP").IsOn = state.Snap;
-                FindToggle("GRID").IsOn = ShownGrid();
-                FindToggle("ORTHO").IsOn = state.Ortho;
+                FindToggle("GRID").IsOn = state.Grid;
+                FindToggle("ORTHO").IsOn = _current.Drafting.Ortho;
                 Snap.GridX = state.SnapX;
                 Snap.GridY = state.SnapY;
             }
@@ -216,6 +328,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case "SNAP":
                     _snapModeTwo = false;
+
+                    if (WriteSpaceToggle("SNAPMODE", v => v.SnapOn = toggle.IsOn, s => s.Snap = toggle.IsOn))
+                    {
+                        break;
+                    }
+
                     state.Snap = toggle.IsOn;
                     WriteToDrawing("SNAPMODE", () =>
                     {
@@ -228,11 +346,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     });
                     break;
                 case "GRID":
-                    CadSpace paper = PaperShown();
-
-                    if (paper != null)
+                    if (WriteSpaceToggle("GRIDMODE", v => v.GridOn = toggle.IsOn, s => s.Grid = toggle.IsOn))
                     {
-                        WritePaperGrid(paper, toggle.IsOn);
                         break;
                     }
 
@@ -257,9 +372,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The layout whose paper space is shown, not through one of its viewports: its sheet has a grid of its own, as AutoCAD
-        /// 2021 keeps GRIDMODE in a layout apart from model space's; null in model space, the Block Editor or through a
-        /// viewport.
+        /// SNAP or GRID switched where the space shown keeps its own, as AutoCAD 2021 does: written into the viewport worked
+        /// through or the layout's viewport 1, or kept for the window where the layout has none; false in model space and the
+        /// Block Editor, which keep the drawing's.
+        /// </summary>
+        private bool WriteSpaceToggle(string name, Action<DxfViewport> write, Action<DraftingState> keep)
+        {
+            DxfViewport own = DraftingViewport();
+
+            if (own != null)
+            {
+                WriteToDrawing(name, () => write(own));
+                return true;
+            }
+
+            CadSpace paper = PaperShown();
+
+            if (paper == null)
+            {
+                return false;
+            }
+
+            keep(_current.Drafting.Paper(paper.Name));
+            return true;
+        }
+
+        /// <summary>
+        /// The layout whose paper space is shown, not through one of its viewports: its sheet has a snap and a grid of their
+        /// own, as AutoCAD 2021 keeps them in a layout apart from model space's; null in model space, the Block Editor or
+        /// through a viewport.
         /// </summary>
         private CadSpace PaperShown()
         {
@@ -270,70 +411,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : null;
         }
 
-        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its grid (flag 0x200); null where it has none.</summary>
+        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its snap and grid; null where it has none.</summary>
         private static DxfViewport SheetViewport(CadSpace space) =>
             space.Layout?.GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased);
 
         /// <summary>
-        /// Whether the grid is on where the drawing shown is: in a layout's paper space the sheet's own, kept in its viewport 1
-        /// (or for the window, where the layout has none yet), off until switched on there; elsewhere the drawing's GRIDMODE.
-        /// </summary>
-        private bool ShownGrid()
-        {
-            CadSpace paper = PaperShown();
-
-            if (paper == null)
-            {
-                return _current.Drafting.Grid;
-            }
-
-            DxfViewport sheet = SheetViewport(paper);
-            return sheet != null ? sheet.GridOn : _current.Drafting.PaperGrids.Contains(paper.Name);
-        }
-
-        /// <summary>GRID shown as the space now shown has it: a layout's own in its paper space, model space's elsewhere.</summary>
-        private void LoadGridToggle()
-        {
-            if (_current == null)
-            {
-                return;
-            }
-
-            _loadingDrafting = true;
-
-            try
-            {
-                FindToggle("GRID").IsOn = ShownGrid();
-            }
-            finally
-            {
-                _loadingDrafting = false;
-            }
-        }
-
-        /// <summary>GRID switched in a layout's paper space: kept in its viewport 1, as AutoCAD keeps it, or for the window where it has none.</summary>
-        private void WritePaperGrid(CadSpace paper, bool on)
-        {
-            if (on)
-            {
-                _current.Drafting.PaperGrids.Add(paper.Name);
-            }
-            else
-            {
-                _current.Drafting.PaperGrids.Remove(paper.Name);
-            }
-
-            DxfViewport sheet = SheetViewport(paper);
-
-            if (sheet != null)
-            {
-                WriteToDrawing("GRIDMODE", () => sheet.GridOn = on);
-            }
-        }
-
-        /// <summary>
-        /// The snap spacing set, by SNAP or Drafting Settings: the snaps step by it, and the drawing shown keeps it as its
-        /// SNAPUNIT, the grid following where its GRIDUNIT is nought.
+        /// The snap spacing set, by SNAP or Drafting Settings: the snaps step by it, and the space shown keeps it as its
+        /// SNAPUNIT (model space's, a layout's viewport 1's or the viewport worked through), the grid following where its
+        /// GRIDUNIT is nought.
         /// </summary>
         internal void SetSnapSpacing(double x, double y)
         {
@@ -345,18 +430,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            _current.Drafting.SnapX = x;
-            _current.Drafting.SnapY = y;
-            WriteToDrawing("SNAPUNIT", () =>
-            {
-                DxfViewportTableRecord active = ActiveViewport(_current.Document);
-
-                if (active != null)
+            ChangeDrafting(
+                "SNAPUNIT",
+                s =>
                 {
-                    active.SnapIncrements = new GeoVector2(x, y);
-                }
-            });
-            RaiseDrafting();
+                    s.SnapX = x;
+                    s.SnapY = y;
+                },
+                a => a.SnapIncrements = new GeoVector2(x, y),
+                v => v.SnapIncrement = new GeoVector2(x, y)
+            );
         }
 
         /// <summary>The grid spacing as the drawing shown holds it (GRIDUNIT), nought along an axis that takes the snap's; 10 by 10 with none.</summary>
@@ -386,20 +469,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     s.GridX = x;
                     s.GridY = y;
                 },
-                a => a.GridIncrements = new GeoVector2(x, y)
+                a => a.GridIncrements = new GeoVector2(x, y),
+                v => v.GridIncrement = new GeoVector2(x, y)
             );
 
         /// <summary>SNAPSTYL set by Drafting Settings: the isometric snap on or off, its spacing kept as it is, as SNAPSTYL typed keeps it.</summary>
         internal void SetIsometricSnap(bool on) =>
-            ChangeDrafting("SNAPSTYL", s => s.Isometric = on, a => a.IsometricSnapEnabled = on);
+            ChangeDrafting(
+                "SNAPSTYL",
+                s => s.Isometric = on,
+                a => a.IsometricSnapEnabled = on,
+                v => v.SnapIsometric = on
+            );
 
         /// <summary>GRIDMAJOR set by Drafting Settings: a major line every so many lines of the grid.</summary>
         internal void SetGridMajor(int every) =>
-            ChangeDrafting("GRIDMAJOR", s => s.GridMajor = every, a => a.GridMajor = every);
+            ChangeDrafting(
+                "GRIDMAJOR",
+                s => s.GridMajor = every,
+                a => a.GridMajor = every,
+                v => v.GridMajor = (short)every
+            );
 
-        /// <summary>GRIDDISPLAY set by Drafting Settings: kept for the drawing shown, as AutoCAD saves it there.</summary>
+        /// <summary>GRIDDISPLAY set by Drafting Settings: kept for the space shown, as AutoCAD saves it there.</summary>
         internal void SetGridDisplay(int bits) =>
-            ChangeDrafting("GRIDDISPLAY", s => s.GridDisplay = bits, a => a.GridDisplay = bits);
+            ChangeDrafting(
+                "GRIDDISPLAY",
+                s => s.GridDisplay = bits,
+                a => a.GridDisplay = bits,
+                v => WriteGridDisplay(v, bits)
+            );
 
         /// <summary>SNAPTYPE set by Drafting Settings: PolarSnap or the grid; the window keeps it in the settings file, as AutoCAD keeps it in the registry.</summary>
         internal void SetPolarSnap(bool on)
@@ -502,8 +601,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             public int GridDisplay { get; set; } = 3;
 
-            // The layouts, by name, whose paper-space grid is on where the layout has no viewport 1 to keep it.
-            public HashSet<string> PaperGrids { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // The paper-space snap and grid of the layouts, by name, that have no viewport 1 to keep them.
+            private readonly Dictionary<string, DraftingState> _papers = new Dictionary<string, DraftingState>(
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            /// <summary>The snap and grid the window keeps for a layout's paper space where the layout has no viewport 1: grid off at first.</summary>
+            public DraftingState Paper(string layout)
+            {
+                if (!_papers.TryGetValue(layout, out DraftingState paper))
+                {
+                    paper = new DraftingState();
+                    _papers.Add(layout, paper);
+                }
+
+                return paper;
+            }
         }
     }
 }
