@@ -40,7 +40,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// AutoCAD 2021's Add Scale and Edit Scale of Edit Drawing Scales: Name appearing in scale list, and Scale properties,
     /// Paper units = Drawing units. Edit Scale opens on the scale chosen; the units of a scale an object points at are greyed,
     /// as AutoCAD's are. OK refuses an empty name, a name another scale of the list has (letters of either case the same) and
-    /// units that are not numbers above nought.
+    /// units that are not numbers above nought, each in AutoCAD's words. Add Scale given the name of a scale an object
+    /// points at refuses it ("1:50 already exists and is a referenced scale. Please enter a different scale name."); given
+    /// the name of another scale it asks "1:25 already exists.  Would you like to redefine this scale?" and, on Yes, gives
+    /// that scale the units. Edit Scale given a name another scale has says "1:25 already exists."
     /// </summary>
     public sealed class ScaleEditViewModel : ObservableObject
     {
@@ -92,6 +95,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the units can be changed: not for a scale an object points at, as AutoCAD's Edit Scale greys them.</summary>
         public bool CanChangeUnits => Scale == null || !Scale.IsInUse;
 
+        /// <summary>
+        /// Gets or sets how the window asks Add Scale's question over a name another scale has: "1:25 already exists.  Would
+        /// you like to redefine this scale?", true for Yes. With none set, a scale is redefined without asking.
+        /// </summary>
+        public Func<string, bool> ConfirmRedefine { get; set; }
+
         /// <summary>Gets why OK was refused; empty where it was not.</summary>
         public string Message
         {
@@ -102,28 +111,72 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the scale OK made; null until then.</summary>
         public CadScaleListRow Result { get; private set; }
 
+        /// <summary>Gets the scale of the list that Add Scale's OK redefined, answered Yes to; null where it added a scale.</summary>
+        public CadScaleListRow Redefined { get; private set; }
+
+        /// <summary>The scales of the list Add Scale may redefine, with whether an object points at them; null for none.</summary>
+        internal IReadOnlyList<CadScaleListRow> Existing { get; set; }
+
+        /// <summary>The question Add Scale asks over a name used: "1:25 already exists.  Would you like to redefine this scale?".</summary>
+        /// <param name="name">The name of the scale.</param>
+        /// <returns>The question.</returns>
+        public static string RedefineQuestion(string name) =>
+            name + " already exists.  Would you like to redefine this scale?";
+
         /// <summary>OK: the name and units checked, <see cref="Result"/> made from them.</summary>
         /// <returns>Whether the dialog may close.</returns>
         public bool Ok()
         {
             string name = _name.Trim();
+            Redefined = null;
 
-            if (name.Length == 0 || name.Any(char.IsControl))
+            if (name.Length == 0)
             {
-                Message = "Give the scale a name.";
+                Message = "No name specified for this scale.  Please enter a name.";
                 return false;
             }
 
-            if (_others.Any(o => string.Equals(o, name, StringComparison.OrdinalIgnoreCase)))
+            if (name.Any(char.IsControl))
             {
-                Message = "A scale named " + name + " already exists. Choose another name.";
+                Message = "Must enter a valid name.";
+                return false;
+            }
+
+            string used = _others.FirstOrDefault(o => string.Equals(o, name, StringComparison.OrdinalIgnoreCase));
+            CadScaleListRow existing =
+                Scale == null
+                    ? Existing?.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase))
+                    : null;
+
+            if (used != null && existing == null)
+            {
+                Message = used + " already exists.";
+                return false;
+            }
+
+            if (existing != null && existing.IsKept)
+            {
+                Message =
+                    existing.Name + " already exists and is a referenced scale. Please enter a different scale name.";
                 return false;
             }
 
             if (!TryUnits(_paper, out double paper) || !TryUnits(_drawing, out double drawing))
             {
-                Message = "Paper units and drawing units are numbers above zero.";
+                Message = "Invalid scale number.";
                 return false;
+            }
+
+            if (existing != null)
+            {
+                if (ConfirmRedefine != null && !ConfirmRedefine(existing.Name))
+                {
+                    Message = string.Empty;
+                    return false;
+                }
+
+                Redefined = existing;
+                name = existing.Name;
             }
 
             if (!CanChangeUnits)
@@ -133,7 +186,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Message = string.Empty;
-            Result = Scale == null ? new CadScaleListRow(name, paper, drawing) : Scale.With(name, paper, drawing);
+            Result =
+                Redefined != null ? Redefined.With(name, paper, drawing)
+                : Scale == null ? new CadScaleListRow(name, paper, drawing)
+                : Scale.With(name, paper, drawing);
             return true;
         }
 
@@ -152,6 +208,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class ScaleListEditViewModel : ObservableObject
     {
+        /// <summary>The heading of Reset's question, as the task dialog of AutoCAD 2021's Edit Drawing Scales has it.</summary>
+        public const string ResetTitle = "Scale List - Reset";
+
+        /// <summary>The line of Reset's question, as AutoCAD 2021's task dialog has it.</summary>
+        public const string ResetQuestion =
+            "Resetting will restore a default list of scales for the drawing. Which default scale list do you want to restore?";
+
+        /// <summary>The detail of Reset's question, which AutoCAD 2021's task dialog shows under Show details.</summary>
+        public const string ResetDetail =
+            "Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the scale list will be lost.";
+
         private ScaleRowViewModel _selected;
 
         /// <summary>Makes the dialog over a request.</summary>
@@ -172,6 +239,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets how the window asks Reset's question: true for Yes. With none set, Reset resets.</summary>
         public Func<bool> ConfirmReset { get; set; }
+
+        /// <summary>
+        /// Gets the label of the button of Reset's question that restores the default list: "Metric scales", or "Imperial
+        /// scales" where the default list is the imperial one, as AutoCAD 2021's task dialog words its buttons.
+        /// </summary>
+        public string ResetChoice =>
+            Request.Defaults.Any(s => s.Name.IndexOf('\'') >= 0) ? "Imperial scales" : "Metric scales";
 
         /// <summary>Gets the scales, in the order of the list.</summary>
         public ObservableCollection<ScaleRowViewModel> Scales { get; }
@@ -218,15 +292,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether Delete is live: a scale chosen that the drawing does not keep.</summary>
         public bool CanDelete => _selected != null && !_selected.Scale.IsKept;
 
-        /// <summary>Add…: Add Scale shown, its scale added at the end of the list and chosen.</summary>
+        /// <summary>
+        /// Add…: Add Scale shown, its scale added at the end of the list and chosen; or, where its name is another scale's and
+        /// the question to redefine it was answered Yes, that scale given the units and chosen.
+        /// </summary>
         /// <returns>Whether a scale was added.</returns>
         public bool Add()
         {
-            var dialog = new ScaleEditViewModel(Scales.Select(s => s.Name));
+            var dialog = new ScaleEditViewModel(Scales.Select(s => s.Name))
+            {
+                Existing = Scales.Select(s => s.Scale).ToList(),
+            };
 
             if (AskScale == null || !AskScale(dialog) || dialog.Result == null)
             {
                 return false;
+            }
+
+            if (dialog.Redefined != null)
+            {
+                ScaleRowViewModel redefined = Scales.First(s => s.Scale == dialog.Redefined);
+                redefined.Scale = dialog.Result;
+                Selected = redefined;
+                RaiseChosen();
+                return true;
             }
 
             var row = new ScaleRowViewModel(dialog.Result);

@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The texts of -SCALELISTEDIT and of Edit Drawing Scales are AutoCAD 2021's own, read from its resource files
+and probed in its console, where they had been written by hand. -SCALELISTEDIT: an empty name says `Must enter a valid
+name.`, a name of 65 characters or more `Scale name too long.` (64 are taken), and the name is asked again (the empty name
+used to end Add without a word); deleting the only scale left says `Scale list must contain at least one scale. 1:1 not
+deleted.`, where it said the scale was referenced. Edit Drawing Scales: Add Scale and Edit Scale say `No name specified
+for this scale.  Please enter a name.` and `Invalid scale number.`; Edit Scale given a name used says `1:25 already
+exists.`; Add Scale given a name used asks `1:25 already exists.  Would you like to redefine this scale?` and on Yes
+gives that scale the units (it refused the name), or says `1:50 already exists and is a referenced scale. Please enter a
+different scale name.` for a scale an object points at; Reset asks in the words of AutoCAD's task dialog (`Scale List -
+Reset`, `Resetting will restore a default list of scales for the drawing. Which default scale list do you want to
+restore?`) with the button Metric scales or Imperial scales, and Cancel. New `ScaleEditViewModel.ConfirmRedefine`,
+`Redefined` and `RedefineQuestion`, `ScaleListEditViewModel.ResetChoice`, `ResetTitle`, `ResetQuestion` and
+`ResetDetail`; `CadQuestionWindow.AskResetScaleList` takes the label of the button, and `CadQuestionWindow.AskRedefineScale`
+is new.
 **NEW.** In the presenter the command line's Search Content lists each kind of named object under a header row with its
 count, as AutoCAD 2021's suggestion list groups its content (design CmdContentSection): WAL typed in a drawing of the
 block WALL_TAG and the layers WALLS and WALL-FINISH shows `Blocks 1` over WALL_TAG and `Layers 2` over the two layers.

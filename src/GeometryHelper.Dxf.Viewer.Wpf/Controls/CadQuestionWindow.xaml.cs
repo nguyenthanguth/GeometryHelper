@@ -212,15 +212,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : null;
         }
 
-        /// <summary>Asks Reset's question of Edit Drawing Scales: "Reset the scale list to the default entries?".</summary>
+        /// <summary>
+        /// Asks Reset's question of Edit Drawing Scales in the words of AutoCAD 2021's task dialog: "Scale List - Reset",
+        /// "Resetting will restore a default list of scales for the drawing. Which default scale list do you want to
+        /// restore?", the detail on unreferenced scales, then the default list's button and Cancel.
+        /// </summary>
         /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="choice">The label of the button that restores the default list, "Metric scales" or "Imperial scales".</param>
         /// <returns>Whether to reset.</returns>
-        public static bool AskResetScaleList(Window owner) =>
+        public static bool AskResetScaleList(Window owner, string choice) =>
             Shown(
                 owner,
                 new CadQuestionWindow(
-                    "Reset the scale list to the default entries?",
-                    "Every scale you added is deleted, except a scale in use, and the default scales come back in their order.",
+                    ScaleListEditViewModel.ResetTitle,
+                    ScaleListEditViewModel.ResetQuestion,
+                    ScaleListEditViewModel.ResetDetail,
+                    choice,
+                    "Cancel"
+                )
+            ) == true;
+
+        /// <summary>Asks Add Scale's question of Edit Drawing Scales over a name used: "1:25 already exists.  Would you like to redefine this scale?".</summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="name">The name of the scale.</param>
+        /// <returns>Whether to redefine it.</returns>
+        public static bool AskRedefineScale(Window owner, string name) =>
+            Shown(
+                owner,
+                new CadQuestionWindow(
+                    ScaleEditViewModel.RedefineQuestion(name),
+                    string.Empty,
                     string.Empty,
                     "Yes",
                     "No"

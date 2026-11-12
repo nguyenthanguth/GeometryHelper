@@ -11,6 +11,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private const string InvalidRatio = "Invalid entry. Expects a ratio entered in the following format: \"1:1\"";
 
+        /// <summary>The longest name AutoCAD 2021's -SCALELISTEDIT takes for a scale: 64 characters (65 is "Scale name too long.").</summary>
+        private const int MaxScaleNameLength = 64;
+
         /// <summary>
         /// -SCALELISTEDIT, word for word as AutoCAD 2021's console asks it: ? lists the scales with their units, Add asks a name
         /// and a ratio (1:3, 2.5:1) and redefines a scale of that name where asked, Delete takes one out or * every one in no
@@ -69,12 +72,25 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForString("Enter name for new scale");
-                string name = (c.Input.Text ?? string.Empty).Trim();
+                string name;
 
-                if (name.Length == 0)
+                while (true)
                 {
-                    continue;
+                    yield return CadPrompt.ForString("Enter name for new scale");
+                    name = (c.Input.Text ?? string.Empty).Trim();
+
+                    if (name.Length == 0)
+                    {
+                        c.Write("Must enter a valid name.");
+                    }
+                    else if (name.Length > MaxScaleNameLength)
+                    {
+                        c.Write("Scale name too long.");
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
 
                 DxfAnnotationScale existing = Scales(c.Database)
@@ -204,6 +220,12 @@ namespace GeometryHelper.Dxf.Viewer
             if (found == null)
             {
                 c.Write("Scale " + name + " not found.");
+                return;
+            }
+
+            if (Scales(c.Database).Count == 1)
+            {
+                c.Write("Scale list must contain at least one scale. " + found.Name + " not deleted.");
                 return;
             }
 
