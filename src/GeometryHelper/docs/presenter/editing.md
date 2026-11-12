@@ -1226,17 +1226,28 @@ SCALELISTEDIT shows AutoCAD 2021's Edit Drawing Scales: the drawing's list in it
 Edit Scale: Name appearing in scale list, Paper units = Drawing units), Move Up, Move Down, Delete and Reset, and the
 scale chosen under the list, `1 paper unit = 50 drawing units`. Delete is greyed for a scale the drawing keeps (the unit
 scale, the current annotation scale, one an object points at); Edit Scale greys the units of a scale an object points at,
-as AutoCAD's help says; a name another scale has is refused. Reset asks first, then deletes every scale the drawing does
+as AutoCAD's help says. Their messages are AutoCAD 2021's, read from its resources: an empty name says `No name
+specified for this scale.  Please enter a name.`, units that are not numbers `Invalid scale number.`, and Edit Scale
+given a name another scale has `1:25 already exists.`. Add Scale given a name of the list asks `1:25 already exists.
+Would you like to redefine this scale?` (two spaces after the full stop) and, on Yes, gives that scale the units; where an
+object points at the scale, or it is the unit scale, it says `1:50 already exists and is a referenced scale. Please
+enter a different scale name.`. Reset asks in AutoCAD's task dialog, `Scale List - Reset`, `Resetting will restore a
+default list of scales for the drawing. Which default scale list do you want to restore?`, with the detail
+`Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the
+scale list will be lost.` and the buttons Metric scales (Imperial scales in an imperial drawing) and Cancel; AutoCAD's
+third button, Metric and Imperial scales, is not offered. Reset then deletes every scale the drawing does
 not keep and adds the default ones it lacks. OK writes the list as it stands as one undo step: the scales taken out
 deleted, the ones renamed or given other units changed, the new ones added, each in its place (Move Up and Move Down
 move the entry of ACAD_SCALELIST, the SCALE and its handle kept); Cancel writes nothing. With no window to show the
 dialog, SCALELISTEDIT asks -SCALELISTEDIT's prompts. VPSCALE writes `PS:MS == 1:20` and asks
 a new scale, as 1:37.5. -SCALELISTEDIT asks as AutoCAD 2021's console does, word for word: `Enter option
 [?/Add/Delete/Reset/Exit] <Add>:`; ? lists each scale with its paper and drawing units and the scale they give; Add asks
-`Enter name for new scale:` and `Enter scale ratio:` (1:3 or 2.5:1; anything else answers `Invalid entry. Expects a ratio
+`Enter name for new scale:` (an empty name says `Must enter a valid name.` and one of more than 64 characters `Scale name
+too long.`, and the name is asked again) and `Enter scale ratio:` (1:3 or 2.5:1; anything else answers `Invalid entry. Expects a ratio
 entered in the following format: "1:1"`), and for a name the list has asks `GH already exists.  Redefine scale?`; Delete
 takes one scale (`GH scale deleted.`, `Scale NOSUCH not found.`) or `*` every one in no use, and keeps the unit scale, the
-current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`); Reset, after
+current annotation scale and one an object points at (`Scale 1:1 is referenced so it cannot be deleted.`), and the last
+scale of the list (`Scale list must contain at least one scale. 1:1 not deleted.`); Reset, after
 `Reset scale list to defaults? [Yes/No] <No>:`, takes out every scale in no use and adds back the default list after the
 ones kept: the metric 1:1 to 100:1, or, where the header's MEASUREMENT is 0 (imperial), 1:1 and the 16 imperial scales
 `1/128" = 1'-0"` (0.0078125 to 12) to `1'-0" = 1'-0"`, as AutoCAD 2021's console resets them. A drawing with no

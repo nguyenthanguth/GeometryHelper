@@ -81,8 +81,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal("1", scale.PaperUnits);
                     scale.Name = "1:50";
                     scale.DrawingUnits = "25";
+                    scale.ConfirmRedefine = name => false;
                     Assert.False(scale.Ok());
-                    Assert.Equal("A scale named 1:50 already exists. Choose another name.", scale.Message);
+                    Assert.Equal(string.Empty, scale.Message);
                     scale.Name = "1:25 site plan";
                     scale.DrawingUnits = "0";
                     Assert.False(scale.Ok());
@@ -152,6 +153,96 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             object undo = model.Document.NextUndo;
             model.Execute("SCALELISTEDIT");
             Assert.Same(undo, model.Document.NextUndo);
+        }
+
+        [Fact]
+        public void EditDrawingScales_AddEditAndReset_SayWhatAutoCAD2021Says()
+        {
+            MainViewModel model = Opened();
+            model.Execute("-SCALELISTEDIT");
+            model.Execute("R");
+            model.Execute("Y");
+            model.Execute("E");
+            var asked = new List<string>();
+
+            model.ShowScaleList = dialog =>
+            {
+                // Reset's task dialog: its heading, line and detail, and the button of the drawing's default list.
+                Assert.Equal("Scale List - Reset", ScaleListEditViewModel.ResetTitle);
+                Assert.Equal(
+                    "Resetting will restore a default list of scales for the drawing. Which default scale list do you want to restore?",
+                    ScaleListEditViewModel.ResetQuestion
+                );
+                Assert.Equal(
+                    "Unreferenced scales will be purged from the drawing and the default scales will be added. Any changes you made to the scale list will be lost.",
+                    ScaleListEditViewModel.ResetDetail
+                );
+                Assert.Equal("Metric scales", dialog.ResetChoice);
+
+                // Add Scale: no name, a number that is not one, a scale an object points at, then one it may redefine.
+                dialog.AskScale = scale =>
+                {
+                    scale.Name = "  ";
+                    Assert.False(scale.Ok());
+                    Assert.Equal("No name specified for this scale.  Please enter a name.", scale.Message);
+
+                    scale.Name = "1:25 site plan";
+                    scale.PaperUnits = "abc";
+                    Assert.False(scale.Ok());
+                    Assert.Equal("Invalid scale number.", scale.Message);
+                    scale.PaperUnits = "1";
+
+                    scale.Name = "1:1";
+                    Assert.False(scale.Ok());
+                    Assert.Equal(
+                        "1:1 already exists and is a referenced scale. Please enter a different scale name.",
+                        scale.Message
+                    );
+
+                    scale.Name = "1:50";
+                    scale.DrawingUnits = "60";
+                    scale.ConfirmRedefine = name =>
+                    {
+                        asked.Add(name);
+                        return true;
+                    };
+                    Assert.True(scale.Ok());
+                    return true;
+                };
+                Assert.True(dialog.Add());
+                Assert.Equal(new[] { "1:50" }, asked);
+                Assert.Equal(
+                    "1:50 already exists.  Would you like to redefine this scale?",
+                    ScaleEditViewModel.RedefineQuestion("1:50")
+                );
+                Assert.Equal(17, dialog.Scales.Count);
+                Assert.Equal("1:50", dialog.Selected.Name);
+                Assert.Equal("1 paper unit = 60 drawing units", dialog.Sentence);
+
+                // Edit Scale: a name another scale has.
+                dialog.Selected = dialog.Scales.Single(s => s.Name == "1:100");
+                dialog.AskScale = scale =>
+                {
+                    scale.Name = "1:20";
+                    Assert.False(scale.Ok());
+                    Assert.Equal("1:20 already exists.", scale.Message);
+                    return false;
+                };
+                Assert.False(dialog.Edit());
+                dialog.Cancel();
+                return true;
+            };
+            model.Execute("SCALELISTEDIT");
+
+            // An imperial drawing: the same question over the imperial list.
+            model.Document.Database.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "0"));
+            model.ShowScaleList = dialog =>
+            {
+                Assert.Equal("Imperial scales", dialog.ResetChoice);
+                dialog.Cancel();
+                return true;
+            };
+            model.Execute("SCALELISTEDIT");
         }
 
         // ---- Rename in the Layer manager

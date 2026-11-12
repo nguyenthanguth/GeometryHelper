@@ -31,8 +31,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="owner">The window it is shown over; null for none.</param>
         /// <param name="model">The view model.</param>
         /// <returns>True for OK.</returns>
-        public static bool Ask(Window owner, ScaleEditViewModel model) =>
-            new ScaleEditWindow(model) { Owner = owner }.ShowDialog() == true;
+        public static bool Ask(Window owner, ScaleEditViewModel model)
+        {
+            var window = new ScaleEditWindow(model) { Owner = owner };
+            model.ConfirmRedefine = name => CadQuestionWindow.AskRedefineScale(window, name);
+            return window.ShowDialog() == true;
+        }
 
         private void OnOk(object sender, RoutedEventArgs e)
         {

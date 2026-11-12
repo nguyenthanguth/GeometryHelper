@@ -82,6 +82,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Add_ABlankNameOrOneTooLong_IsRefusedInAutoCADsWords_AndTheNameAskedAgain()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            // AutoCAD 2021's console: an empty name gives "Must enter a valid name." and asks the name again; 65 characters are
+            // too long and 64 are taken.
+            Run(session, "-SCALELISTEDIT", "A", Enter);
+            Assert.Equal("Must enter a valid name.", session.History.Last());
+            Assert.Equal("Enter name for new scale:", session.PromptText);
+
+            Run(session, new string('Q', 65));
+            Assert.Equal("Scale name too long.", session.History.Last());
+            Assert.Equal("Enter name for new scale:", session.PromptText);
+
+            Run(session, new string('Q', 64), "1:3");
+            Assert.Contains(new string('Q', 64), Names(document));
+        }
+
+        [Fact]
+        public void Delete_TheOnlyScaleLeft_SaysTheListMustKeepOne_AsAutoCADsConsoleDoes()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            Run(session, "-SCALELISTEDIT", "R", "Y", "D", "*");
+            Assert.Equal(new[] { "1:1" }, Names(document));
+
+            Run(session, "D", "1:1");
+            Assert.Equal("Scale list must contain at least one scale. 1:1 not deleted.", session.History.Last());
+            Assert.Equal(new[] { "1:1" }, Names(document));
+        }
+
+        [Fact]
         public void Reset_AsksFirst_ThenPutsBackTheDefaultScales_KeepingThoseInUse()
         {
             CadDocument document = Blank();

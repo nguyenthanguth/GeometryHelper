@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
             model.AskScale = dialog => ScaleEditWindow.Ask(this, dialog);
-            model.ConfirmReset = () => CadQuestionWindow.AskResetScaleList(this);
+            model.ConfirmReset = () => CadQuestionWindow.AskResetScaleList(this, model.ResetChoice);
         }
 
         /// <summary>Gets the view model.</summary>
