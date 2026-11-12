@@ -262,6 +262,7 @@ namespace GeometryHelper.Geometry
         /// that touches the triangle within the point tolerance without crossing it is given the point of it nearest the triangle, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0), is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment lying in the plane of the triangle, both ends within the planar tolerance of it, is given none even where it crosses the outline: it meets the triangle along a stretch, which names no one place, as a segment lying in a plane names none. The segment from (-50, 20, 0) to (50, 20, 0) and the triangle with corners (0, 0, 0), (100, 0, 0) and (0, 100, 0) collide and are given no point; an arc lying in that plane is given the points where it cuts the outline.
         /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
         /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>
@@ -286,6 +287,7 @@ namespace GeometryHelper.Geometry
         /// that touches the polygon within the point tolerance without crossing it is given the point of it nearest the polygon, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the square 100 by 100 in the floor with a corner at the origin, is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment lying in the plane of the polygon, both ends within the planar tolerance of it, is given none even where it crosses the outline: it meets the polygon along a stretch, which names no one place, as a segment lying in a plane names none. The segment from (-50, 20, 0) to (50, 20, 0) and the square 100 by 100 in the floor with a corner at the origin collide and are given no point; an arc lying in that plane is given the points where it cuts the outline.
         /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
         /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>
@@ -310,6 +312,7 @@ namespace GeometryHelper.Geometry
         /// that touches the face within the point tolerance without crossing it is given the point of it nearest the face, and
         /// none where it lies level over the material, within the planar tolerance of its plane at both ends:
         /// the segment from (20, 20, 0.0005) to (20, 20, 5), ending 0.0005 over the material of the square 100 by 100 in the floor with a hole 40 by 40 in its middle, is given (20, 20, 0.0005), where it collided and was given nothing.
+        /// A segment lying in the plane of the face, both ends within the planar tolerance of it, is given none even where it crosses the outline: it meets the face along a stretch, which names no one place, as a segment lying in a plane names none. The segment from (-50, 20, 0) to (50, 20, 0) and the square 100 by 100 in the floor with a corner at the origin collide and are given no point; an arc lying in that plane is given the points where it cuts the outline.
         /// A segment no longer than the point tolerance is read as its start unless it truly crosses: given its start where that
         /// lies within the point tolerance, as a point lying that close meets the shape, and nothing where it does not.
         /// </remarks>

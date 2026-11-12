@@ -117,7 +117,8 @@ namespace GeometryHelper.Core
         {
             GeoLine3 join = Projection3.Closest(ray, line, tolerance, onLine);
 
-            if (join.Length > tolerance.EqualPoint || ray.IsParallelTo(line, tolerance))
+            // Written as what a meeting needs, so that a segment of NaNs meets nothing.
+            if (!(join.Length <= tolerance.EqualPoint) || ray.IsParallelTo(line, tolerance))
             {
                 return new GeoPoint3[0];
             }

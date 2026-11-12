@@ -87,9 +87,13 @@ namespace GeometryHelper.Core
 
             if (squared > 0.0)
             {
-                double height = normal.DotProduct(a.GetVectorTo(point));
+                GeoVector3 reach = a.GetVectorTo(point);
+                double height = normal.DotProduct(reach);
 
-                if (TriangleCovers(a, b, c, normal, point.Add(normal.Multiply(-height / squared))))
+                if (
+                    TriangleCovers(a, b, c, normal, point.Add(normal.Multiply(-height / squared)))
+                    && !TiltsByRounding(a, b, c, squared, reach)
+                )
                 {
                     return Math.Abs(height) / Math.Sqrt(squared);
                 }
@@ -99,6 +103,122 @@ namespace GeometryHelper.Core
                 PointToSegment(point, a, b),
                 Math.Min(PointToSegment(point, b, c), PointToSegment(point, c, a))
             );
+        }
+
+        /// <summary>
+        /// Gets the point of a triangle nearest a point, as <see cref="PointToTriangle(GeoTriangle3, GeoPoint3)"/> measures
+        /// the gap: the foot along the normal where it lands on the triangle and the normal holds at that reach, otherwise the
+        /// nearest point of its sides, the first side of the nearest ones.
+        /// </summary>
+        internal static GeoPoint3 PointOnTriangle(GeoTriangle3 triangle, GeoPoint3 point)
+        {
+            GeoPoint3 a = triangle.A,
+                b = triangle.B,
+                c = triangle.C;
+            GeoVector3 normal = PlaneNormal(a, b, c);
+            double squared = normal.DotProduct(normal);
+
+            if (squared > 0.0)
+            {
+                GeoVector3 reach = a.GetVectorTo(point);
+                GeoPoint3 foot = point.Add(normal.Multiply(-normal.DotProduct(reach) / squared));
+
+                if (TriangleCovers(a, b, c, normal, foot) && !TiltsByRounding(a, b, c, squared, reach))
+                {
+                    return foot;
+                }
+            }
+
+            GeoPoint3 best = PointOnSegment(point, a, b);
+            double nearest = best.GetDistanceSquaredTo(point);
+
+            foreach (GeoPoint3 candidate in new[] { PointOnSegment(point, b, c), PointOnSegment(point, c, a) })
+            {
+                double distance = candidate.GetDistanceSquaredTo(point);
+
+                if (distance < nearest)
+                {
+                    nearest = distance;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Checks the point of a triangle found nearest a point by the Voronoi regions, whose products cancel on a triangle
+        /// nearly on one line: kept where the triangle is at least a hundredth as high as it is long, or as the point is far from
+        /// its first corner, or where it is as far from the point as <see cref="PointToTriangle(GeoTriangle3, GeoPoint3)"/>
+        /// measures the gap to within the triangle's height, or a billionth of the reach where that is less; otherwise
+        /// replaced by <see cref="PointOnTriangle"/>.
+        /// </summary>
+        internal static GeoPoint3 CheckedOnTriangle(
+            GeoTriangle3 triangle,
+            GeoPoint3 point,
+            GeoPoint3 found,
+            GeoVector3 normal,
+            double longest
+        )
+        {
+            // Twice the area against the longest side times the further of it and the reach: a height of a hundredth of
+            // that or more leaves the regions' products a few parts in 1E12 of it at worst.
+            if (normal.DotProduct(normal) >= 1E-4 * longest * Math.Max(longest, triangle.A.GetDistanceSquaredTo(point)))
+            {
+                return found;
+            }
+
+            // The gap is measured within the triangle's height over its longest side, so the point found is kept where it is
+            // as far as that, or a billionth of the reach where the triangle is higher, plus the rounding of the reach.
+            double gap = PointToTriangle(triangle, point);
+            double reach = Math.Sqrt(longest) + gap;
+            double height = Math.Sqrt(normal.DotProduct(normal) / longest);
+
+            // Written as what replaces the point, so that one of NaNs is kept as it was found.
+            return Math.Abs(found.DistanceTo(point) - gap) > Math.Min(height, 1E-9 * reach) + 1E-13 * reach
+                ? PointOnTriangle(triangle, point)
+                : found;
+        }
+
+        /// <summary>
+        /// Gets the point of a segment nearest a point, where <see cref="PointToSegment"/> measures it from.
+        /// </summary>
+        private static GeoPoint3 PointOnSegment(GeoPoint3 point, GeoPoint3 from, GeoPoint3 to)
+        {
+            double dx = to.X - from.X;
+            double dy = to.Y - from.Y;
+            double dz = to.Z - from.Z;
+            double length = dx * dx + dy * dy + dz * dz;
+            double t =
+                length > 0.0
+                    ? Clamp(((point.X - from.X) * dx + (point.Y - from.Y) * dy + (point.Z - from.Z) * dz) / length)
+                    : 0.0;
+
+            return new GeoPoint3(from.X + dx * t, from.Y + dy * t, from.Z + dz * t);
+        }
+
+        /// <summary>
+        /// Whether the normal of a triangle nearly on one line can lean, by the rounding of the cross product it comes from,
+        /// further at the reach of a point than the triangle is high over its longest side: the foot along it can then land
+        /// anywhere, and the gap is read from the sides, which are no further than that height from any point of the
+        /// triangle. The normal of the triangle (35, 54, -67), (88, 96, -11), (88, 96.0000000000001, -11) leans by its rounding
+        /// alone, and the point 5E-14 from its corner was measured 2.1 from it.
+        /// </summary>
+        /// <param name="a">The corner the normal and the reach are taken from.</param>
+        /// <param name="b">The second corner.</param>
+        /// <param name="c">The third corner.</param>
+        /// <param name="squared">The square of the length of the normal, twice the area squared.</param>
+        /// <param name="reach">From the first corner to the point.</param>
+        private static bool TiltsByRounding(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, double squared, GeoVector3 reach)
+        {
+            // The rounding of the cross product is a share of the longest side squared, as GeoTriangle3.IsFormed reads it,
+            // and turns the normal by that over its length; carried out to the reach, against the height |normal| / longest.
+            double longest = Math.Max(
+                a.GetDistanceSquaredTo(b),
+                Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a))
+            );
+
+            return !(squared > GeoTriangle3.NormalRounding * longest * Math.Sqrt(longest * reach.DotProduct(reach)));
         }
 
         private static bool TriangleCovers(GeoPoint3 a, GeoPoint3 b, GeoPoint3 c, GeoVector3 normal, GeoPoint3 point) =>

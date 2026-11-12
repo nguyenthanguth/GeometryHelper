@@ -195,6 +195,12 @@ namespace GeometryHelper.Core
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoTriangle3 triangle, Tolerance tolerance)
         {
+            // An arc about a centre that is not a finite point meets nothing, rather than at points of NaN.
+            if (!arc.Center.IsValid)
+            {
+                return new GeoPoint3[0];
+            }
+
             List<GeoPoint3> found;
 
             // A triangle with no area is the segment it has collapsed to, crossed where its sides are, and touched alone where
@@ -330,6 +336,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(polygon));
             }
 
+            // An arc about a centre that is not a finite point meets nothing, rather than at points of NaN.
+            if (!arc.Center.IsValid)
+            {
+                return new GeoPoint3[0];
+            }
+
             List<GeoPoint3> found = CrossingsOf(arc, polygon, tolerance);
 
             if (found.Count > 0)
@@ -453,6 +465,12 @@ namespace GeometryHelper.Core
             if (face == null)
             {
                 throw new ArgumentNullException(nameof(face));
+            }
+
+            // An arc about a centre that is not a finite point meets nothing, rather than at points of NaN.
+            if (!arc.Center.IsValid)
+            {
+                return new GeoPoint3[0];
             }
 
             GeoPoint3[] crossings = CutsOf(arc, face, tolerance);

@@ -259,6 +259,13 @@ namespace GeometryHelper.Core
                 intersection = line1.GetPointAtParameter(t);
             }
 
+            // A segment with a coordinate that is not a finite number crosses nothing: every test above is false for NaN.
+            if (!intersection.IsValid)
+            {
+                intersection = new GeoPoint2(0, 0);
+                return false;
+            }
+
             return true;
         }
 
@@ -629,9 +636,11 @@ namespace GeometryHelper.Core
         {
             double d = Distance2.DistanceTo(c1.Center, c2.Center);
 
-            // Separate circles, one inside the other, one circle, or two about one centre.
+            // Separate circles, one inside the other, one circle, or two about one centre; or a centre of NaN, which meets
+            // nothing.
             if (
-                d > c1.Radius + c2.Radius + tolerance.EqualPoint
+                double.IsNaN(d)
+                || d > c1.Radius + c2.Radius + tolerance.EqualPoint
                 || d < Math.Abs(c1.Radius - c2.Radius) - tolerance.EqualPoint
                 || (d <= tolerance.EqualPoint && AboutOneCentre(d, Scale(c1, c2), c1.Radius, c2.Radius, tolerance))
             )

@@ -129,20 +129,60 @@ namespace GeometryHelper.Core
         /// per vertex, one per edge, and the interior — and each is recognised by the signs of a handful
         /// of dot products before any division happens. Solving the barycentric system directly instead
         /// would divide by a determinant that vanishes for a degenerate triangle, which is exactly the
-        /// input the fallback at the end of this method handles.
+        /// input the fallback at the end of this method handles. On a long thin triangle the products the regions are told
+        /// apart by cancel, and the point found is checked against the gap <see cref="Distance3.DistanceTo(GeoTriangle3, GeoPoint3)"/>
+        /// measures: one further off it than the triangle is high, or a billionth of the triangle's reach where it is higher, is
+        /// replaced by the point that gap is measured to. From a point 0.00004 from the triangle (-2385.64, -1816.731,
+        /// -2875.223), (1513.515, -1634.873, 3521.065), (3037.692, -1563.784, 6021.375), 9 000 long and 0.0024 high, the point
+        /// found was 2.08 away; it is 0.00004 away now. A triangle at least a hundredth as high as it is long, or as the point is
+        /// far from its first corner where that is further, is answered as before, bit for bit, and so is every point the
+        /// regions found right.
         /// </remarks>
         public static GeoPoint3 ProjectToTriangle(GeoTriangle3 triangle, GeoPoint3 point)
         {
             GeoPoint3 a = triangle.A;
             GeoPoint3 b = triangle.B;
             GeoPoint3 c = triangle.C;
+            GeoVector3 normal = a.GetVectorTo(b).CrossProduct(a.GetVectorTo(c));
+            double longest = Math.Max(
+                a.GetDistanceSquaredTo(b),
+                Math.Max(b.GetDistanceSquaredTo(c), c.GetDistanceSquaredTo(a))
+            );
 
-            // Corners on one line to rounding have no interior, and the regions the signs below tell apart are the rounding
-            // of the products: the answer is on an edge.
-            if (Gap3.PlaneNormal(a, b, c).LengthSquared == 0.0)
+            // As ProjectToTriangleByRegions reads corners on one line to rounding, with the normal kept for the check.
+            if (!GeoTriangle3.IsFormed(normal.Length, longest))
             {
                 return ClosestPointOnEdges(triangle, point);
             }
+
+            return Gap3.CheckedOnTriangle(triangle, point, ByRegions(triangle, point), normal, longest);
+        }
+
+        /// <summary>
+        /// Projects a point onto a triangle by the Voronoi regions alone, as <see cref="ProjectToTriangle"/> did before it
+        /// checked a sliver's answer: what the clash reads for the nearest triangles of two bodies, and keeps as it was.
+        /// </summary>
+        internal static GeoPoint3 ProjectToTriangleByRegions(GeoTriangle3 triangle, GeoPoint3 point)
+        {
+            // Corners on one line to rounding have no interior, and the regions the signs below tell apart are the rounding
+            // of the products: the answer is on an edge.
+            if (Gap3.PlaneNormal(triangle.A, triangle.B, triangle.C).LengthSquared == 0.0)
+            {
+                return ClosestPointOnEdges(triangle, point);
+            }
+
+            return ByRegions(triangle, point);
+        }
+
+        /// <summary>
+        /// Finds the region of a triangle with an interior that a point falls in, and the point of the triangle nearest it
+        /// there.
+        /// </summary>
+        private static GeoPoint3 ByRegions(GeoTriangle3 triangle, GeoPoint3 point)
+        {
+            GeoPoint3 a = triangle.A;
+            GeoPoint3 b = triangle.B;
+            GeoPoint3 c = triangle.C;
 
             GeoVector3 ab = a.GetVectorTo(b);
             GeoVector3 ac = a.GetVectorTo(c);

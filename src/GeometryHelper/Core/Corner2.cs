@@ -191,6 +191,12 @@ namespace GeometryHelper.Core
 
             result = polygon;
 
+            // A corner among vertices that are not all finite points has no room for a cut.
+            if (!Guard.AreValid(polygon.Vertices))
+            {
+                return false;
+            }
+
             if (
                 !TryCut(
                     polygon.Vertices,
@@ -284,6 +290,12 @@ namespace GeometryHelper.Core
             RequirePositive(distance2, nameof(distance2));
 
             result = polyline;
+
+            // A corner among vertices that are not all finite points has no room for a cut.
+            if (!Guard.AreValid(polyline.Vertices))
+            {
+                return false;
+            }
 
             // The ends of a chain are not corners: nothing turns there.
             if (index == 0 || index == polyline.VertexCount - 1)

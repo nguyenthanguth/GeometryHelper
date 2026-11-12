@@ -97,7 +97,8 @@ namespace GeometryHelper.Core
 
             GeoLine3 bridge = Projection3.Closest(line1, line2, tolerance);
 
-            if (bridge.Length > tolerance.EqualPoint)
+            // Written as what a meeting needs, so that a segment of NaNs meets nothing.
+            if (!(bridge.Length <= tolerance.EqualPoint))
             {
                 return false;
             }
@@ -198,7 +199,8 @@ namespace GeometryHelper.Core
                     ? Projection3.Closest(line1, line2, tolerance)
                     : Projection3.GetShortestLineTo(line1, line2, extension, tolerance);
 
-            if (bridge.Length > tolerance.EqualPoint)
+            // Written as what a meeting needs, so that a segment of NaNs meets nothing.
+            if (!(bridge.Length <= tolerance.EqualPoint))
             {
                 return false;
             }
@@ -327,7 +329,7 @@ namespace GeometryHelper.Core
             GeoVector3 direction = line.Direction;
             double length = direction.Length;
 
-            if (length <= tolerance.EqualPoint)
+            if (!(length > tolerance.EqualPoint))
             {
                 return false;
             }
@@ -351,12 +353,21 @@ namespace GeometryHelper.Core
             // segment reach far beyond its own endpoint.
             double slack = tolerance.EqualPoint / length;
 
-            if (parameter < -slack || parameter > 1.0 + slack)
+            // Written as what a crossing needs, so that a segment or a plane of NaNs crosses nothing.
+            if (!(parameter >= -slack && parameter <= 1.0 + slack))
             {
                 return false;
             }
 
-            intersection = Parametrization3.GetPointAtParameter(line, Math.Max(0.0, Math.Min(1.0, parameter)));
+            GeoPoint3 point = Parametrization3.GetPointAtParameter(line, Math.Max(0.0, Math.Min(1.0, parameter)));
+
+            // An end at infinity reaches the plane at no finite point.
+            if (!point.IsValid)
+            {
+                return false;
+            }
+
+            intersection = point;
             return true;
         }
 
@@ -398,12 +409,11 @@ namespace GeometryHelper.Core
 
             if ((atStart < 0.0 && atEnd > 0.0) || (atStart > 0.0 && atEnd < 0.0))
             {
-                return new[]
-                {
-                    line.StartPoint.Add(
-                        line.StartPoint.GetVectorTo(line.EndPoint).Multiply(atStart / (atStart - atEnd))
-                    ),
-                };
+                GeoPoint3 between = line.StartPoint.Add(
+                    line.StartPoint.GetVectorTo(line.EndPoint).Multiply(atStart / (atStart - atEnd))
+                );
+
+                return IsFinite(ref between) ? new[] { between } : new GeoPoint3[0];
             }
 
             if (startOn || endOn)
@@ -438,7 +448,22 @@ namespace GeometryHelper.Core
             GeoPlane3 plane,
             out GeoPoint3 intersection,
             Tolerance tolerance
-        ) => TryCrossPlane(ray, plane, out intersection, tolerance, false);
+        ) => TryCrossPlane(ray, plane, out intersection, tolerance, false) && IsFinite(ref intersection);
+
+        /// <summary>
+        /// Whether a point found is a finite one, and the origin in its place where it is not: what a shape with a coordinate
+        /// that is not a finite number is given, so that it meets nothing rather than at a point of NaN.
+        /// </summary>
+        private static bool IsFinite(ref GeoPoint3 point)
+        {
+            if (point.IsValid)
+            {
+                return true;
+            }
+
+            point = GeoPoint3.Origin;
+            return false;
+        }
 
         /// <summary>
         /// The sine below which a ray starting within the planar tolerance of a plane reads as level with it: rounding,

@@ -137,6 +137,12 @@ namespace GeometryHelper.Core
 
             result = polyline;
 
+            // A corner among vertices that are not all finite points has no room for a cut.
+            if (!Guard.AreValid(polyline.Vertices))
+            {
+                return false;
+            }
+
             if (index == 0 || index == polyline.VertexCount - 1)
             {
                 return false;
@@ -260,6 +266,12 @@ namespace GeometryHelper.Core
             RequirePositiveDistance(distance2, nameof(distance2));
 
             result = polygon;
+
+            // A corner among vertices that are not all finite points has no room for a cut.
+            if (!Guard.AreValid(polygon.Vertices))
+            {
+                return false;
+            }
 
             if (
                 !TryCutOne(
@@ -397,6 +409,12 @@ namespace GeometryHelper.Core
             RequirePositiveDistance(distance2, nameof(distance2));
 
             result = chain;
+
+            // A corner among vertices that are not all finite points has no room for a cut.
+            if (!Guard.AreValid(chain.Vertices))
+            {
+                return false;
+            }
 
             if (index == 0 || index == chain.VertexCount - 1)
             {

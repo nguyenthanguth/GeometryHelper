@@ -14,6 +14,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the closest point on this triangle to a target point.
         /// </summary>
+        /// <remarks>
+        /// On a long thin triangle the point is checked against <see cref="DistanceTo(GeoPoint3)"/>, as
+        /// <see cref="Projection3.ProjectToTriangle(GeoTriangle3, GeoPoint3)"/> says: from a point 0.00004 from a triangle 9 000
+        /// long and 0.0024 high the point given was 2.08 away.
+        /// </remarks>
         public GeoPoint3 GetClosestPointOnBoundary(GeoPoint3 point) => Projection3.ProjectToTriangle(this, point);
 
         /// <summary>

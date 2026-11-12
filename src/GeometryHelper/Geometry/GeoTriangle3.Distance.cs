@@ -14,6 +14,11 @@ namespace GeometryHelper.Geometry
         /// Calculates the shortest distance from this triangle to a point.
         /// </summary>
         /// <returns>Nought only where they truly meet, otherwise the gap, measured exactly.</returns>
+        /// <remarks>
+        /// A triangle so nearly on one line that the rounding of its normal could lean the foot further than it is high is
+        /// measured to its sides, within that height: the point 5E-14 from two corners 1E-13 apart was measured 2.12 away; see
+        /// <see cref="Distance3.DistanceTo(GeoTriangle3, GeoPoint3)"/>.
+        /// </remarks>
         public double DistanceTo(GeoPoint3 point) => Distance3.DistanceTo(this, point);
 
         /// <summary>

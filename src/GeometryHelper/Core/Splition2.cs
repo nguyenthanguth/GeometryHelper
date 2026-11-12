@@ -232,6 +232,11 @@ namespace GeometryHelper.Core
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
 
+            if (!Guard.AreValid(polyline.Vertices) || !Guard.IsFinite(distance))
+            {
+                return false;
+            }
+
             double[] cuts = NormalizeCuts(polyline.Length, new[] { distance }, tolerance);
             if (cuts.Length != 1)
             {

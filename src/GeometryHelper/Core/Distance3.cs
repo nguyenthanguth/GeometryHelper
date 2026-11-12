@@ -79,21 +79,26 @@ namespace GeometryHelper.Core
         /// The triangle counts as a filled surface, so a point sitting directly above its interior is
         /// measured to the surface rather than out to the nearest edge, and a point on the surface is at
         /// distance zero. The gap is measured from the triangle's own corners and plane, so a point on a sliver 0.0001 wide
-        /// and 100 long reads nought, where the closest point found by projection can be 0.0005 away.
+        /// and 100 long reads nought, where the closest point found by projection could be 0.0005 away. Where the triangle is
+        /// so nearly on one line that the rounding of its normal could lean the foot further at the reach of the point than
+        /// the triangle is high, the gap is measured to its sides, which no point of it is further from than that height: from
+        /// the triangle (35, 54, -67), (88, 96, -11), (88, 96.0000000000001, -11) the point 5E-14 from its second corner is
+        /// 5E-14 away, where it was measured 2.12 away. Such a triangle is no higher than about 3E-8 of its length, for a point
+        /// no further from it than that length.
         /// </remarks>
         public static double DistanceTo(GeoTriangle3 triangle, GeoPoint3 point) =>
             Gap3.PointToTriangle(triangle, point);
 
         /// <summary>
         /// Calculates the shortest distance from a triangle to a point as the closest-point search of
-        /// <see cref="Projection3.ProjectToTriangle(GeoTriangle3, GeoPoint3)"/> finds it.
+        /// <see cref="Projection3.ProjectToTriangleByRegions(GeoTriangle3, GeoPoint3)"/> finds it, its answer on a sliver unchecked.
         /// </summary>
         /// <remarks>
         /// This is what the search for the nearest triangles of two bodies and the collision of two triangles ask, which the
         /// clash reads and keeps as it was. <see cref="DistanceTo(GeoTriangle3, GeoPoint3)"/> measures a sliver where it is.
         /// </remarks>
         internal static double DistanceToByProjection(GeoTriangle3 triangle, GeoPoint3 point) =>
-            DistanceTo(Projection3.ProjectToTriangle(triangle, point), point);
+            DistanceTo(Projection3.ProjectToTriangleByRegions(triangle, point), point);
 
         #endregion
 

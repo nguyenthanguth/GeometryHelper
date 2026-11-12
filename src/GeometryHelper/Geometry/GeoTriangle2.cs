@@ -243,7 +243,7 @@ namespace GeometryHelper.Geometry
         /// <param name="u">Weight of vertex <see cref="A"/>.</param>
         /// <param name="v">Weight of vertex <see cref="B"/>.</param>
         /// <param name="w">Weight of vertex <see cref="C"/>.</param>
-        /// <returns>false when the triangle is degenerate, in which case all three weights are nought.</returns>
+        /// <returns>false when the triangle is degenerate, or it or the point has a coordinate that is not a finite number, in which case all three weights are nought.</returns>
         /// <remarks>
         /// The three weights always add up to one, and all three are positive or nought exactly when the point lies
         /// within the triangle.
@@ -252,7 +252,7 @@ namespace GeometryHelper.Geometry
         {
             double cross = Cross;
 
-            if (IsDegenerate())
+            if (IsDegenerate() || !IsValid || !point.IsValid)
             {
                 u = 0.0;
                 v = 0.0;

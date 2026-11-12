@@ -108,6 +108,22 @@ namespace GeometryHelper
         }
 
         /// <summary>
+        /// Determines whether every point is a valid one, its three coordinates finite numbers.
+        /// </summary>
+        internal static bool AreValid(IReadOnlyList<Geometry.GeoPoint3> points)
+        {
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (!points[i].IsValid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Determines whether a vector is of unit length, as a constructor that normalises leaves it.
         /// </summary>
         internal static bool IsUnit(Geometry.GeoVector2 vector) => Math.Abs(vector.Length - 1.0) <= 1E-9;
