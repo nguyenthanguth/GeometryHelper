@@ -489,7 +489,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = PixelScale;
             Point[] range = Array.ConvertAll(outline[0], q => ToScreen(view, q, scale));
-            double reach = GripSize * 0.75;
+            double reach = GripSquare * 0.75;
 
             if (Math.Abs(range[2].X - p.X) + Math.Abs(range[2].Y - p.Y) <= 7.0 + 2.0)
             {
@@ -532,7 +532,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (gripsShown)
             {
-                double half = GripSize / 2.0;
+                double half = GripSquare / 2.0;
 
                 for (int k = 0; k < 4; k++)
                 {
@@ -541,7 +541,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     dc.DrawRectangle(
                         k == _cellGripHot ? HotGripBrush : CellBrush,
                         null,
-                        new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSize, GripSize)
+                        new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSquare, GripSquare)
                     );
                 }
 
@@ -766,8 +766,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else
                 {
-                    double half = GripSize / 2.0;
-                    dc.DrawRectangle(HotGripBrush, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
+                    double half = GripSquare / 2.0;
+                    dc.DrawRectangle(HotGripBrush, null, new Rect(at.X - half, at.Y - half, GripSquare, GripSquare));
                 }
             }
 

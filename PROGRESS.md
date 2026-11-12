@@ -79,7 +79,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 ### In progress
 
 User note 2026-11-12 (basic features first, advanced later):
-- [ ] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
+- [x] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
+- [ ] Grips follow-ups: MTEXT triangle and table grips sized from GRIPSIZE like the squares (look on screen at g 5) and their hover pink; Remove Vertex next to an arc and Add Vertex on an arc checked in AutoCAD; Undo inside Add Vertex; a clicked polyline vertex saying ** STRETCH VERTEX **; later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)
 - [x] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
 - [x] Progress meter on the status bar for open/save, callable by commands and plugins (CadProgress, design v128) (M)
 

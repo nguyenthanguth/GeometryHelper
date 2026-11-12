@@ -905,7 +905,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -926,7 +926,11 @@ default, makes it ask them in the Edit Attributes dialog where there is a window
 dimensional input whichever of 1 to 3 is set. GRIPDYNCOLOR, the colour of a dynamic block's custom grips, takes an
 index of AutoCAD's colours from 1 to 255, 140 (#00BFFF) by default as AutoCAD 2021 starts; AutoCAD keeps it in the
 registry and writes none into a drawing (probe GhDb1), and the window keeps it in the settings file
-(`"gripDynamicColor": 140`). The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
+(`"gripDynamicColor": 140`). GRIPSIZE, 1 to 255 and 5 by default, is the size of the grips (`"gripSize": 5`): a plain grip is a
+square 2 × size + 5 pixels across, 15 at 5 and 25 at 10 (see [Hover menus](#hover-menus)).
+GRIPMULTIFUNCTIONAL, 0 to 3 and 3 by default (`"gripMultifunctional": 3`), turns the hover menu of a multi-functional
+grip on with its bit 2; bit 1 is AutoCAD's Ctrl cycling, which the presenter keeps in the variable but does not act on.
+The window keeps PICKBOX, GRIPSIZE, APERTURE, LWDISPLAY and POLARANG in
 the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`, and POLARMODE too: its 2 runs
 the lines of object snap tracking on every polar angle (0, AutoCAD's default, runs them level and upright alone), and its 8
 acquires a point only with Shift held; its 1 counts the polar angles from the last segment drawn, a line or the end of
@@ -1049,7 +1053,7 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | LINE | two ends, the middle | an end moves it; the middle moves the line |
 | CIRCLE | the centre, four quadrants | the centre moves it; a quadrant changes the radius |
 | ARC | two ends, the middle, the centre | the middle bends the arc through the point |
-| polylines | each vertex, the middle of each segment | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it |
+| polylines | each vertex (a square), the middle of each segment (a bar along the segment) | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it; the cursor resting on either opens a menu (see below) |
 | TEXT, INSERT | the insertion point | moves it |
 | MTEXT | the location and the corners of its box (top left, top right, bottom left, bottom right; the location first where it is at none of them); the location alone for an MTEXT of no width or in columns | the location moves it; a corner takes its two sides of the box to the point, which sets the defined width and height, the location staying at the point of the new box the attachment names |
 | VIEWPORT | four corners, the middle | a corner resizes the frame, the opposite corner, the scale and the centre of the view kept |
@@ -1191,6 +1195,49 @@ with Ctrl held turns Copy on. Shift+click makes several grips hot, and they stre
 whole, and a circle's centre and a quadrant move it keeping its radius. A grip pressed and let go elsewhere is stretched
 there, as before. The whole grip edit is one undo step, named GRIP, and Enter after it runs the command run last. Of two
 lines from (0, 0), the grip at (0, 0) and MO to (10, 20) moves both; RO 90 then turns them a quarter turn about (10, 20).
+
+### Hover menus
+
+A polyline's grips are AutoCAD 2021's multi-functional ones. A vertex is a square, `2 × GRIPSIZE + 5` pixels across (15 at
+the default of 5); the middle of a segment is a bar along it, 22 by 6 at 5 (37 by 10 at 10, 10 by 3 at 1), lying along the
+chord of an arc segment, which is the tangent at the arc's middle; a rotated view turns the bar with its segment. A grip
+under the cursor is pink (`#FF7F7F`, AutoCAD's GRIPHOVER) and a clicked one red, both unedged; the others are the grip
+colour with a 1 pixel dark edge. The grip is hit within its own square, the bar within its length by the square's side.
+
+Once the cursor has rested 400 milliseconds on a grip, with GRIPMULTIFUNCTIONAL's bit 2 set, no command running and no
+second grip hot, its menu opens 19 pixels right of the grip and 24 below it (left and above where it would leave the
+canvas): a light popup, rows of 22 pixels, the row under the cursor highlighted, an item that cannot be chosen grey.
+
+| Grip | Items |
+|---|---|
+| vertex | Stretch Vertex, Add Vertex, Remove Vertex |
+| middle of a straight segment | Stretch, Add Vertex, Convert to Arc |
+| middle of an arc segment | Stretch, Add Vertex, Convert to Line |
+
+The menu closes when the cursor leaves both the grip and the menu, on Esc, on a click elsewhere, and when the selection
+or the command changes. A click on the grip itself is the grip edit as before, `** STRETCH **`. Choosing a row calls
+[`session.StartGripAction(handle, gripIndex, action)`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession); the items of a
+grip are [`CadGripMenus.Of(document, handle, gripIndex)`](xref:GeometryHelper.Dxf.Viewer.CadGripMenus). Each item is one
+undo step named GRIP, and Esc at its prompt changes nothing:
+
+- Stretch Vertex is the grip edit with the command line saying `** STRETCH VERTEX **`; Stretch moves a straight segment
+  by the offset, both ends, or bends an arc segment through the point.
+- Add Vertex says `** ADD VERTEX **` and asks `Specify new vertex point or [Base point/Copy/eXit]:` with the polyline
+  drawn with the vertex at the cursor. The vertex goes after the vertex of the grip (after the last vertex of an open
+  polyline it extends the end); a segment split keeps its widths, the width at the point being where the point falls along
+  it. A straight segment splits in two straight ones; an arc segment in two arcs of the arc through its start, the new
+  point and its end: a half circle from (0, 0) to (20, 0), given (10, -10), becomes two quarter circles of bulge 0.4142.
+  Copy on keeps asking, each vertex after the one just made, until eXit, Enter or Esc.
+- Remove Vertex takes the vertex out at once; the segment that now joins its neighbours is straight. It is grey on a
+  polyline of two vertices, and a closed polyline of three keeps two.
+- Convert to Arc says `** CONVERT TO ARC **` and asks `Specify the arc midpoint:`, the polyline drawn bent through the
+  cursor; a chord of 100 with the point 20 off its middle gets a bulge of 0.4 (the sagitta over half the chord), above
+  nought where the point is to the right of the way the segment runs. A point on the line of the segment is refused.
+- Convert to Line makes an arc segment straight at once.
+
+The static members are `CadGrips.AddVertex`, `RemoveVertex`, `ConvertToArc` and `ConvertToLine`, each one undo step.
+Other grips (LINE, ARC, SPLINE, HATCH, dimension text) have no menu yet, and Ctrl cycling through a grip's options is not
+built: Ctrl held as the first point is picked still turns Copy on.
 
 ## Properties
 

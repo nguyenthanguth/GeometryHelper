@@ -24,6 +24,23 @@ with Ctrl+1 and F3 alone has Ctrl+2 after it is read, while a Ctrl+2 cleared or 
 **FIXED.** In the presenter Ctrl+1 only showed Properties; as AutoCAD's does, it now hides it when it is shown and shows
 it when it is hidden, so that one key runs both ways. PROPERTIES typed still shows Properties and PROPERTIESCLOSE still
 hides it.
+**NEW.** A polyline's grips in the presenter are AutoCAD 2021's multi-functional ones. The grip in the middle of a
+segment is a bar along it, 22 by 6 pixels at the default size (along the chord of an arc segment, turning with the
+view), the vertices squares 15 across; a grip under the cursor is pink, as AutoCAD's GRIPHOVER, and a clicked one red.
+The cursor resting 400 milliseconds on a vertex opens a menu of Stretch Vertex, Add Vertex and Remove Vertex; on the
+middle of a segment Stretch, Add Vertex and Convert to Arc (Convert to Line on an arc segment). Add Vertex puts the
+vertex after the grip's, the polyline drawn with it at the cursor, and splits an arc segment into two arcs of the arc
+through the new point; Convert to Arc asks for the arc's midpoint (a chord of 100 with the point 20 off its middle gets a
+bulge of 0.4); Remove Vertex is grey on a polyline of two vertices. Each is one undo step, with AutoCAD's prompts, and Esc
+changes nothing. New in the library: `CadGripMenus.Of`, `CadGripAction`, `CadCommandSession.StartGripAction` and
+`CadGrips.AddVertex`, `RemoveVertex`, `ConvertToArc` and `ConvertToLine`; a segment middle's `CadGrip.Direction` is now
+the way the segment runs. Ctrl cycling through a grip's options is not built, and the other entities' grips have no menu yet.
+
+**NEW.** Global settings › Appearance › Cursor has a Grip size row, right below Pickbox, and the system variables
+GRIPSIZE (1 to 255, 5 by default; a plain grip is a square 2 × size + 5 pixels across, 15 at 5 and 25 at 10) and
+GRIPMULTIFUNCTIONAL (0 to 3, 3 by default; bit 2 turns the hover menu on) are kept in the settings file
+(`"gripSize"`, `"gripMultifunctional"`). The grips of tables, MTEXT and dynamic blocks scale with the size, so at the
+default they are about twice as large as the fixed 8 pixels they had.
 
 **NEW.** In a layout of the presenter, every viewport whose grid is on draws it in its frame, whether it is worked
 through or not, on the paper and through another viewport, as AutoCAD 2021 keeps a grid by viewport. Only the grid of

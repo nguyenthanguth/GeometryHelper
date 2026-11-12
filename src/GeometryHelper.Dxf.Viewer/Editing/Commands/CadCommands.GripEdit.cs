@@ -24,7 +24,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static IEnumerable<CadPrompt> GripEdit(
             CadCommandContext c,
-            IReadOnlyList<KeyValuePair<string, int>> hot
+            IReadOnlyList<KeyValuePair<string, int>> hot,
+            string stretchName = null
         )
         {
             List<string> objects = GripObjects(c, hot);
@@ -60,7 +61,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                c.Write("** " + GripModes[mode] + (copy ? " (multiple)" : string.Empty) + " **");
+                c.Write(
+                    "** "
+                        + (mode == 0 && stretchName != null ? stretchName : GripModes[mode])
+                        + (copy ? " (multiple)" : string.Empty)
+                        + " **"
+                );
                 CadPrompt asked = GripPrompt(mode, basePoint);
                 yield return mode == 0 && reshaped != null ? asked.Previewing(reshaped) : asked;
                 CadInput input = c.Input;

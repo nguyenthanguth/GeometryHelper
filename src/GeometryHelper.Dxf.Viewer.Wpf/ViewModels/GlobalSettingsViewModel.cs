@@ -970,6 +970,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         Number("Crosshair size", "% of screen", () => s.CrosshairPercent, v => s.CrosshairPercent = v),
                         Number("Pickbox", "px", () => s.PickboxPixels, v => s.PickboxPixels = Whole(v)),
+                        Number("Grip size", "px", () => s.GripSize, v => s.GripSize = Whole(v)),
                     }
                 ),
                 new GlobalSettingSection(

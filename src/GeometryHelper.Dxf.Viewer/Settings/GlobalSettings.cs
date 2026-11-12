@@ -108,6 +108,8 @@ namespace GeometryHelper.Dxf.Viewer
         private int _gripDynamicColor = 140;
         private double _crosshairPercent = 5.0;
         private int _pickboxPixels = 5;
+        private int _gripSize = 5;
+        private int _gripMultifunctional = 3;
         private int _aperturePixels = 10;
         private int _shortcutMenu = 11;
         private double _polarAngle = 90.0;
@@ -261,6 +263,29 @@ namespace GeometryHelper.Dxf.Viewer
         {
             get => _pickboxPixels;
             set => _pickboxPixels = (int)Range(value, 1, 50, nameof(PickboxPixels));
+        }
+
+        /// <summary>
+        /// Gets or sets the size of the grips, 1 to 255: 5 by default, as AutoCAD's GRIPSIZE. A grip is a square 2 × size + 5
+        /// pixels across (15 at the default, 25 at 10), the bar on the middle of a polyline segment 22 by 6 at the default.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int GripSize
+        {
+            get => _gripSize;
+            set => _gripSize = (int)Range(value, 1, 255, nameof(GripSize));
+        }
+
+        /// <summary>
+        /// Gets or sets which of the ways to the options of a multi-functional grip are on, 0 to 3: 3 by default, as AutoCAD's
+        /// GRIPMULTIFUNCTIONAL. Bit 2 shows the hover menu when the cursor rests on the grip; bit 1 is AutoCAD's Ctrl cycling,
+        /// which the presenter keeps but does not act on (Ctrl on the first click turns Copy on, as before).
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int GripMultifunctional
+        {
+            get => _gripMultifunctional;
+            set => _gripMultifunctional = (int)Range(value, 0, 3, nameof(GripMultifunctional));
         }
 
         /// <summary>Gets or sets whether the canvas shows its dot grid at start (F7): off by default.</summary>
@@ -916,6 +941,8 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("gripDynamicColor", _gripDynamicColor);
             w.Value("crosshairPercent", _crosshairPercent);
             w.Value("pickboxPixels", _pickboxPixels);
+            w.Value("gripSize", _gripSize);
+            w.Value("gripMultifunctional", _gripMultifunctional);
             w.Value("grid", Grid);
             w.Value("showLineWeights", ShowLineWeights);
             w.Close();
@@ -1165,6 +1192,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("appearance", "gripDynamicColor", v => _s.GripDynamicColor = Whole(v));
                 Number("appearance", "crosshairPercent", v => _s.CrosshairPercent = v);
                 Number("appearance", "pickboxPixels", v => _s.PickboxPixels = Whole(v));
+                Number("appearance", "gripSize", v => _s.GripSize = Whole(v));
+                Number("appearance", "gripMultifunctional", v => _s.GripMultifunctional = Whole(v));
                 Flag("appearance", "grid", v => _s.Grid = v);
                 Flag("appearance", "showLineWeights", v => _s.ShowLineWeights = v);
                 Number("canvas", "wheelZoomFactor", v => _s.WheelZoomFactor = v);

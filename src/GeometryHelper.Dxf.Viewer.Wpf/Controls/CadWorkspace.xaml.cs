@@ -994,6 +994,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.FontName = settings.DrawingFont;
             CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
             CanvasView.PickboxPixels = settings.PickboxPixels;
+            CanvasView.GripSize = settings.GripSize;
+            CanvasView.GripMultifunctional = settings.GripMultifunctional;
             CanvasView.AperturePixels = settings.AperturePixels;
             CanvasView.SelectByDragging = settings.SelectByDragging;
             CanvasView.Options.VisibleLineColor = settings.VisibleLines;

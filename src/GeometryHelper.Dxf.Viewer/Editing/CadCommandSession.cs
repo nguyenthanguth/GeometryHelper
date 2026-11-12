@@ -340,6 +340,43 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
+        /// <summary>
+        /// Starts an item of a multi-functional grip's hover menu (<see cref="CadGripMenus.Of"/>), as a choice in AutoCAD 2021's
+        /// menu starts it. Stretch and Stretch Vertex are the grip edit of <see cref="StartGripEdit"/>, the vertex's asking
+        /// "** STRETCH VERTEX **". Add Vertex asks "** ADD VERTEX **" and "Specify new vertex point or
+        /// [Base point/Copy/eXit]:", the polyline drawn with the vertex at the cursor, and puts the vertex after the grip's
+        /// vertex (with Copy on it asks again, each vertex after the last, until eXit or Enter). Convert to Arc asks "** CONVERT
+        /// TO ARC **" and "Specify the arc midpoint:" and makes the segment the arc through the point. Remove Vertex and Convert
+        /// to Line are done at once. Every item is one undo step, and Esc at a prompt changes nothing.
+        /// </summary>
+        /// <param name="handle">The handle of the polyline.</param>
+        /// <param name="gripIndex">The index of its grip, as <see cref="CadGrips.Of"/> gives it.</param>
+        /// <param name="action">The item.</param>
+        /// <returns>False, starting nothing, where a command is running or the grip's menu has no such item or has it grey.</returns>
+        public bool StartGripAction(string handle, int gripIndex, CadGripAction action)
+        {
+            if (IsRunning)
+            {
+                return false;
+            }
+
+            bool offered = false;
+
+            foreach (CadGripMenuItem item in CadGripMenus.Of(Document, handle, gripIndex))
+            {
+                offered |= item.Action == action && item.Enabled;
+            }
+
+            if (!offered)
+            {
+                return false;
+            }
+
+            _gripCommand = new CadCommand("GRIP", c => CadCommands.GripAction(c, handle, gripIndex, action));
+            Run(_gripCommand, Array.Empty<string>());
+            return true;
+        }
+
         /// <summary>Gets whether the command running is a grip edit (<see cref="StartGripEdit"/>), whose hot grips the canvas keeps showing.</summary>
         public bool IsGripEditing => Current != null && ReferenceEquals(Current, _gripCommand);
 
