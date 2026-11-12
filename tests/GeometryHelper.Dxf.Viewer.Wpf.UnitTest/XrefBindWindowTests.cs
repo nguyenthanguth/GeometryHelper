@@ -385,7 +385,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             GlobalSettingsViewModel dialog = new MainViewModel().CreateGlobalSettings("Text and fonts");
 
             Assert.Equal(
-                "Fonts of the app and of the drawings. Hidden messages: the answer kept when Always perform my current choice was ticked (AutoCAD’s Hidden Message Settings); set it back to Ask, or Reset to defaults, to be asked again.",
+                "The font of the app, what draws a font of a drawing not found (FONTALT, the font mapping file and the substitutions), and the answers of hidden messages (AutoCAD’s Hidden Message Settings): set one back to Ask, or Reset to defaults, to be asked again. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default.",
                 dialog.Intro
             );
             GlobalSettingSection hidden = Assert.Single(dialog.Sections, s => s.Title == "Hidden messages");

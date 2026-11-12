@@ -28,7 +28,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(0x3D9BFF, settings.Selection);
             Assert.Equal(5, settings.PickboxPixels);
             Assert.Equal(10, settings.AperturePixels);
-            Assert.Equal(1.2, settings.WheelZoomFactor);
+            Assert.Equal(1.5, settings.WheelZoomFactor);
             Assert.Equal(CadSnapModes.All & ~CadSnapModes.Nearest, settings.Snaps);
             Assert.Equal(CadShortcuts.Default.Aliases, settings.Aliases);
             Assert.Equal(CadShortcuts.Default.Keys, settings.Keys);
@@ -176,7 +176,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 new[] { "Visible", "Hidden", "Centre", "Hatch", "Dimension", "Mark", "Sheet" },
                 read.Layers.Select(l => l.Name)
             );
-            Assert.Equal(1.2, read.WheelZoomFactor);
+            Assert.Equal(1.5, read.WheelZoomFactor);
         }
 
         [Fact]
@@ -345,7 +345,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         {
                             "Appearance",
                             "Layers, colours and lines",
-                            "Data sources",
+                            "Text and fonts",
+                            "Folder preference",
                             "Shortcuts",
                         }
                     )

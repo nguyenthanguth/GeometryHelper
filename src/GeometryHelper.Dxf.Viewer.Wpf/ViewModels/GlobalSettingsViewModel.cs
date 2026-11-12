@@ -31,6 +31,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>A value shown, not edited.</summary>
         Info,
+
+        /// <summary>A font family: typed, or chosen from the families installed on Windows, each shown in its own face.</summary>
+        Font,
     }
 
     /// <summary>A check box of a row of Global settings, as a snap of Snap to.</summary>
@@ -104,7 +107,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the unit after a number; empty for none.</summary>
         public string Unit { get; }
 
-        /// <summary>Gets the values a choice offers, or the named colours of a colour.</summary>
+        /// <summary>Gets the values a choice offers, the named colours of a colour, or the font families of a font.</summary>
         public IReadOnlyList<string> Options { get; }
 
         /// <summary>Gets the check boxes of a row of checks.</summary>
@@ -203,6 +206,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether the row only shows a value.</summary>
         public bool IsInfo => Kind == GlobalSettingKind.Info;
+
+        /// <summary>Gets whether the row is a font family, its <see cref="Options"/> the families installed.</summary>
+        public bool IsFont => Kind == GlobalSettingKind.Font;
 
         /// <summary>Reads the value again from the settings, as after the units changed an example.</summary>
         internal void Refresh()
@@ -359,13 +365,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
     }
 
-    /// <summary>A command of the Shortcuts page: its aliases and keys, typed parted by commas, and what clashes with them.</summary>
+    /// <summary>
+    /// A command of the Shortcuts page: its aliases, typed parted by commas, its keys, taken by pressing them in the Keys cell,
+    /// and what clashes with them.
+    /// </summary>
     public sealed class ShortcutRowViewModel : ObservableObject
     {
         private readonly Action _changed;
         private string _aliases;
         private string _keys;
         private string _conflict = string.Empty;
+        private string _keysBefore;
 
         internal ShortcutRowViewModel(string command, string aliases, string keys, string description, Action changed)
         {
@@ -424,6 +434,73 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether something clashes, drawn red.</summary>
         public bool HasConflict => _conflict.Length > 0;
 
+        /// <summary>Gets whether the Keys cell is taking the keys pressed, from <see cref="BeginKeyCapture"/> until Esc or <see cref="EndKeyCapture"/>.</summary>
+        public bool IsCapturingKeys => _keysBefore != null;
+
+        /// <summary>Starts taking the keys pressed, as the Keys cell does when it is entered; Esc gives back the keys it has now.</summary>
+        public void BeginKeyCapture()
+        {
+            _keysBefore = _keys;
+            Raise(nameof(IsCapturingKeys));
+        }
+
+        /// <summary>Stops taking the keys pressed, keeping what was taken, as the Keys cell does when it is left.</summary>
+        public void EndKeyCapture()
+        {
+            if (_keysBefore != null)
+            {
+                _keysBefore = null;
+                Raise(nameof(IsCapturingKeys));
+            }
+        }
+
+        /// <summary>
+        /// Takes a key pressed in the Keys cell, as AutoCAD's Customize User Interface and the hot key boxes of Windows do:
+        /// Ctrl+Shift+D pressed shows Ctrl+Shift+D in place of the keys the command had; Backspace or Delete clears them; Esc
+        /// gives back those it had when the cell was entered and stops. A key with Ctrl or Alt, or F1 to F24 with any, is a
+        /// shortcut; a modifier alone waits for the rest, and a key alone or with Shift alone, which is typing, is not taken.
+        /// </summary>
+        /// <param name="key">The key, the system key where Alt is held.</param>
+        /// <param name="modifiers">The modifiers held.</param>
+        /// <returns>Whether the cell took the key, so that it goes no further; false for Tab, which leaves the cell, and while not taking keys.</returns>
+        public bool PressKey(Key key, ModifierKeys modifiers)
+        {
+            if (!IsCapturingKeys || (key == Key.Tab && (modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == 0))
+            {
+                return false;
+            }
+
+            if (modifiers == ModifierKeys.None && key == Key.Escape)
+            {
+                Keys = _keysBefore;
+                EndKeyCapture();
+            }
+            else if (modifiers == ModifierKeys.None && (key == Key.Back || key == Key.Delete))
+            {
+                Keys = string.Empty;
+            }
+            else if (
+                !IsModifier(key)
+                && ((modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) != 0 || (key >= Key.F1 && key <= Key.F24))
+            )
+            {
+                Keys = CadWorkspace.Gesture(key, modifiers);
+            }
+
+            return true;
+        }
+
+        private static bool IsModifier(Key key) =>
+            key == Key.LeftCtrl
+            || key == Key.RightCtrl
+            || key == Key.LeftAlt
+            || key == Key.RightAlt
+            || key == Key.LeftShift
+            || key == Key.RightShift
+            || key == Key.LWin
+            || key == Key.RWin
+            || key == Key.System;
+
         internal IEnumerable<string> AliasList => Split(_aliases);
 
         internal IEnumerable<string> KeyList => Split(_keys);
@@ -435,7 +512,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public override string ToString() => Command;
     }
 
-    /// <summary>A folder fonts are looked for in, as the Fonts page lists it: D:\Fonts\Shx.</summary>
+    /// <summary>A folder fonts or support files are looked for in, as the Folder preference page lists it: D:\Fonts\Shx.</summary>
     public sealed class FontFolderRow : ObservableObject
     {
         private string _folder;
@@ -456,7 +533,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public override string ToString() => _folder;
     }
 
-    /// <summary>A font drawn in another, as the Fonts page's table lists it: romans.shx drawn in isocp.shx.</summary>
+    /// <summary>A font drawn in another, as the table of the Text and fonts page lists it: romans.shx drawn in isocp.shx.</summary>
     public sealed class FontSubstitutionRow : ObservableObject
     {
         private string _font;
@@ -487,8 +564,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// Global settings, as the design draws it: ten categories at the left, the rows of the one chosen at the right, the
-    /// layer table, the font folders and substitutions, the model sources and the shortcuts on their own pages; Reset to defaults, Cancel, Apply and OK. It edits a
+    /// Global settings, as the design draws it: eight categories at the left, the rows of the one chosen at the right, the
+    /// layer table, the font substitutions, the search folders and the shortcuts on their pages; Reset to defaults, Cancel, Apply and OK. It edits a
     /// copy of the window's settings: Apply gives them to the window at once, OK applies and saves them to its file, Cancel
     /// drops them.
     /// </summary>
@@ -538,6 +615,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["U"] = "Undo the last step",
             ["REDO"] = "Redo the step undone",
             ["PROPERTIES"] = "Show or hide Properties",
+            ["RIBBON"] = "Show or hide the ribbon",
             ["DRAWINGS"] = "Show or hide the Drawings list",
             ["MATCHPROP"] = "Copy properties from one object to others",
             ["LAYER"] = "Open the Layer manager",
@@ -596,11 +674,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     "How the canvas zooms, picks and snaps, as AutoCAD does by default."
                 ),
                 new GlobalSettingCategory(
-                    "Drawing defaults",
-                    true,
-                    "For drawings made from a model (the MODEL categories). Used when a new drawing is made; each drawing keeps its own settings afterwards."
-                ),
-                new GlobalSettingCategory(
                     "Units and rounding",
                     false,
                     "Units are millimetres throughout; these settings change how values are shown."
@@ -613,22 +686,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new GlobalSettingCategory(
                     "Text and fonts",
                     false,
-                    "Fonts of the app and of the drawings. Hidden messages: the answer kept when Always perform my current choice was ticked (AutoCAD’s Hidden Message Settings); set it back to Ask, or Reset to defaults, to be asked again."
+                    "The font of the app, what draws a font of a drawing not found (FONTALT, the font mapping file and the substitutions), and the answers of hidden messages (AutoCAD’s Hidden Message Settings): set one back to Ask, or Reset to defaults, to be asked again. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."
                 ),
                 new GlobalSettingCategory(
-                    "Fonts",
+                    "Folder preference",
                     false,
-                    "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. The folder of the drawing is looked in first, then the folders listed here; AutoCAD's own folders are not looked in unless listed. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."
-                ),
-                new GlobalSettingCategory(
-                    "Data sources",
-                    true,
-                    "For drawings made from a model (the MODEL categories). Where drawings get their objects."
+                    "Where the files a drawing names are looked for, as AutoCAD's support file search path. The folder of the drawing is looked in first, then the folders listed here in order; AutoCAD's own folders are not looked in unless listed."
                 ),
                 new GlobalSettingCategory(
                     "Shortcuts",
                     false,
-                    "Commands, aliases and keys default to AutoCAD's. Type a command's aliases and keys parted by commas; a key or an alias used twice is shown in red."
+                    "Commands, aliases and keys default to AutoCAD's. Click a Keys cell and press the keys (Backspace or Delete clears it, Esc gives the old ones back); type aliases parted by commas. Import acad.pgp… takes the aliases of an acad.pgp you pick. A key or an alias used twice is shown in red."
                 ),
                 new GlobalSettingCategory(
                     "Save and export",
@@ -643,6 +711,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             );
             ResetCommand = new DelegateCommand(_ => Reset());
             ResetShortcutsCommand = new DelegateCommand(_ => FillShortcuts(true));
+            ImportPgpCommand = new DelegateCommand(_ =>
+            {
+                string path = BrowsePgpFile?.Invoke();
+
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    ImportPgp(path);
+                }
+            });
             AddLayerCommand = new DelegateCommand(_ => AddLayer());
             RemoveLayerCommand = new DelegateCommand(p => RemoveLayer(p as GlobalLayerRow));
             AddFontFolderCommand = new DelegateCommand(p => FontFolders.Add(new FontFolderRow(p as string)));
@@ -698,14 +775,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the layer table is shown.</summary>
         public bool IsLayersPage => _category.Name == "Layers, colours and lines";
 
-        /// <summary>Gets whether the model sources are shown.</summary>
-        public bool IsSourcesPage => _category.Name == "Data sources";
-
         /// <summary>Gets whether the shortcuts are shown.</summary>
         public bool IsShortcutsPage => _category.Name == "Shortcuts";
 
-        /// <summary>Gets whether the font folders and the substitution table are shown.</summary>
-        public bool IsFontsPage => _category.Name == "Fonts";
+        /// <summary>Gets whether Text and fonts is shown, with the table of the fonts drawn in others under its rows.</summary>
+        public bool IsTextAndFontsPage => _category.Name == "Text and fonts";
+
+        /// <summary>Gets whether Folder preference is shown: the font search folders and the support file search folders.</summary>
+        public bool IsFolderPreferencePage => _category.Name == "Folder preference";
 
         /// <summary>Gets the layers of the default table, edited in place.</summary>
         public ObservableCollection<GlobalLayerRow> Layers { get; } = new ObservableCollection<GlobalLayerRow>();
@@ -737,9 +814,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command that takes a support folder out of the list, given its row.</summary>
         public ICommand RemoveSupportFolderCommand { get; }
-
-        /// <summary>Gets the model sources the host gives, with their state.</summary>
-        public IReadOnlyList<CadSourceInfo> Sources => _model.SettingsSources;
 
         /// <summary>Gets the commands of the Shortcuts page, as the search finds them.</summary>
         public ObservableCollection<ShortcutRowViewModel> Shortcuts { get; } =
@@ -778,6 +852,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of Reset to AutoCAD defaults on the Shortcuts page.</summary>
         public ICommand ResetShortcutsCommand { get; }
+
+        /// <summary>Gets the command of Import acad.pgp… on the Shortcuts page: a file asked for through <see cref="BrowsePgpFile"/>, then <see cref="ImportPgp"/>.</summary>
+        public ICommand ImportPgpCommand { get; }
+
+        /// <summary>Gets or sets how the window asks for a .pgp file: its path, or null where none was chosen.</summary>
+        public Func<string> BrowsePgpFile { get; set; }
 
         /// <summary>Gets the command of Add layer.</summary>
         public ICommand AddLayerCommand { get; }
@@ -1063,35 +1143,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
             };
 
-            _pages["Drawing defaults"] = new[]
-            {
-                new GlobalSettingSection(
-                    "New drawings",
-                    new[]
-                    {
-                        Choice("Preset", GlobalSettings.Presets, () => s.DefaultPreset, v => s.DefaultPreset = v),
-                        Choice(
-                            "Sheet size",
-                            GlobalSettings.SheetSizes,
-                            () => s.DefaultSheetSize,
-                            v => s.DefaultSheetSize = v
-                        ),
-                        Choice(
-                            "Orientation",
-                            new[] { "Landscape", "Portrait" },
-                            () => s.DefaultOrientation,
-                            v => s.DefaultOrientation = v
-                        ),
-                        Choice(
-                            "Projection",
-                            new[] { "Third angle", "First angle" },
-                            () => s.DefaultProjection,
-                            v => s.DefaultProjection = v
-                        ),
-                    }
-                ),
-            };
-
             GlobalSettingRow lengthExample = Info("Example", null, () =>
                 s.FormatNumber(12345.678, s.CoordinateDecimals) + " mm"
             );
@@ -1150,17 +1201,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
             };
 
+            // The font of drawing text, its height and width factor are the defaults of drawings made from a model, kept in the
+            // file for GeometryHelper.Drawing and not shown here, as Drawing defaults and Data sources.
             _pages["Text and fonts"] = new[]
             {
-                new GlobalSettingSection("Interface", new[] { Text("UI font", () => s.UiFont, v => s.UiFont = v) }),
                 new GlobalSettingSection(
-                    "Drawing text",
+                    "Interface",
                     new[]
                     {
-                        Text("Font where a style's is missing", () => s.DrawingFont, v => s.DrawingFont = v),
-                        Number("Text height", "mm", () => s.TextHeight, v => s.TextHeight = v),
-                        Number("Title text height", "mm", () => s.TitleTextHeight, v => s.TitleTextHeight = v),
-                        Number("Width factor", null, () => s.WidthFactor, v => s.WidthFactor = v),
+                        new GlobalSettingRow(
+                            GlobalSettingKind.Font,
+                            "UI font",
+                            null,
+                            () => s.UiFont,
+                            v => s.UiFont = v,
+                            Changed,
+                            InstalledFontFamilies.Value
+                        ),
                     }
                 ),
                 new GlobalSettingSection(
@@ -1183,37 +1240,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         ),
                     }
                 ),
-            };
-
-            _pages["Fonts"] = new[]
-            {
                 new GlobalSettingSection(
                     "Font not found",
                     new[]
                     {
                         Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
-                        Info("Where it is not found either", "Font where a style's is missing (Text and fonts)"),
+                        Info("Where it is not found either", null, () => s.DrawingFont),
                     }
                 ),
                 new GlobalSettingSection(
                     "Font mapping",
                     new[] { Text("Font mapping file (FONTMAP)", () => s.FontMapFile, v => s.FontMapFile = v) }
-                ),
-            };
-
-            _pages["Data sources"] = new[]
-            {
-                new GlobalSettingSection(
-                    "Model changes",
-                    new[]
-                    {
-                        Toggle(
-                            "Check for model changes",
-                            () => s.CheckForModelChanges,
-                            v => s.CheckForModelChanges = v
-                        ),
-                        Number("Check every", "s", () => s.CheckEverySeconds, v => s.CheckEverySeconds = Whole(v)),
-                    }
                 ),
             };
 
@@ -1316,6 +1353,169 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             return merged;
         }
+
+        /// <summary>
+        /// Imports the aliases of an acad.pgp file into the Shortcuts page, as AutoCAD reads them, its entries winning: an alias
+        /// new is added to its command, one of another command is moved, and one whose command this app does not have is
+        /// skipped; the notice says how many. Nothing is applied until Apply or OK.
+        /// </summary>
+        /// <param name="path">The .pgp file.</param>
+        /// <returns>Whether the file was read; false, said in the notice, where it was not.</returns>
+        public bool ImportPgp(string path)
+        {
+            string name = Path.GetFileName(path ?? string.Empty);
+            string[] lines;
+
+            try
+            {
+                lines = File.ReadAllLines(path);
+            }
+            catch (Exception ex)
+                when (ex is IOException
+                    || ex is UnauthorizedAccessException
+                    || ex is ArgumentException
+                    || ex is NotSupportedException
+                    || ex is System.Security.SecurityException
+                )
+            {
+                Notice = name + " was not read: " + ex.Message;
+                return false;
+            }
+
+            List<KeyValuePair<string, string>> aliases = ReadPgp(lines, out int unread);
+            var rows = new Dictionary<string, ShortcutRowViewModel>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (ShortcutRowViewModel row in _allShortcuts)
+            {
+                rows[row.Command] = row;
+            }
+
+            int added = 0,
+                changed = 0,
+                same = 0,
+                skipped = 0;
+
+            foreach (KeyValuePair<string, string> pair in aliases)
+            {
+                if (!rows.TryGetValue(pair.Value, out ShortcutRowViewModel target))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                ShortcutRowViewModel owner = _allShortcuts.FirstOrDefault(r =>
+                    r.AliasList.Contains(pair.Key, StringComparer.OrdinalIgnoreCase)
+                );
+
+                if (owner == target)
+                {
+                    same++;
+                    continue;
+                }
+
+                if (owner == null)
+                {
+                    added++;
+                }
+                else
+                {
+                    changed++;
+                    owner.Aliases = string.Join(
+                        ", ",
+                        owner.AliasList.Where(a => !string.Equals(a, pair.Key, StringComparison.OrdinalIgnoreCase))
+                    );
+                }
+
+                target.Aliases = string.Join(", ", target.AliasList.Concat(new[] { pair.Key }));
+            }
+
+            Notice =
+                name
+                + ": "
+                + Count(added, "alias", "aliases")
+                + " added, "
+                + changed.ToString(CultureInfo.InvariantCulture)
+                + " changed, "
+                + same.ToString(CultureInfo.InvariantCulture)
+                + " unchanged"
+                + (
+                    skipped > 0
+                        ? "; "
+                            + skipped.ToString(CultureInfo.InvariantCulture)
+                            + (skipped == 1 ? " skipped, its command" : " skipped, their commands")
+                            + " not in this app"
+                        : string.Empty
+                )
+                + (unread > 0 ? "; " + Count(unread, "line", "lines") + " not read" : string.Empty)
+                + ". Apply or OK takes them.";
+            return true;
+        }
+
+        /// <summary>
+        /// The aliases of the lines of a .pgp file, in their order, as AutoCAD reads them: <c>ALIAS, *COMMAND</c>, written in
+        /// capitals, a hyphen kept (<c>-LA, *-LAYER</c>); a semicolon starts a comment, and a blank line or an external command
+        /// (<c>NOTEPAD, START NOTEPAD, 1,*File to edit: ,</c>) is passed over. A line that is none of these, as an alias with a
+        /// space or a command with no star, is counted in <paramref name="unread"/>.
+        /// </summary>
+        internal static List<KeyValuePair<string, string>> ReadPgp(IEnumerable<string> lines, out int unread)
+        {
+            var aliases = new List<KeyValuePair<string, string>>();
+            unread = 0;
+
+            foreach (string line in lines)
+            {
+                int semicolon = line.IndexOf(';');
+                string text = (semicolon < 0 ? line : line.Substring(0, semicolon)).Trim();
+
+                if (text.Length == 0)
+                {
+                    continue;
+                }
+
+                string[] fields = text.Split(',');
+
+                if (fields.Skip(2).Any(f => f.Trim().Length > 0))
+                {
+                    continue;
+                }
+
+                string alias = fields[0].Trim();
+                string command = fields.Length > 1 ? fields[1].Trim() : string.Empty;
+
+                if (
+                    alias.Length == 0
+                    || !command.StartsWith("*", StringComparison.Ordinal)
+                    || alias.Any(char.IsWhiteSpace)
+                    || (command = command.Substring(1).Trim()).Length == 0
+                    || command.Any(char.IsWhiteSpace)
+                )
+                {
+                    unread++;
+                    continue;
+                }
+
+                aliases.Add(new KeyValuePair<string, string>(alias.ToUpperInvariant(), command.ToUpperInvariant()));
+            }
+
+            return aliases;
+        }
+
+        private static string Count(int count, string one, string many) =>
+            count.ToString(CultureInfo.InvariantCulture) + " " + (count == 1 ? one : many);
+
+        /// <summary>The font families installed on Windows, by name, ordered without case; read once.</summary>
+        private static readonly Lazy<IReadOnlyList<string>> InstalledFontFamilies = new Lazy<IReadOnlyList<string>>(
+            () =>
+                System
+                    .Windows.Media.Fonts.SystemFontFamilies.Select(f =>
+                        f.Source.Substring(f.Source.LastIndexOf('#') + 1).Trim()
+                    )
+                    .Where(n => n.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(n => n, StringComparer.Ordinal)
+                    .ToList()
+        );
 
         private void OnShortcutChanged()
         {
@@ -1434,10 +1634,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Intro));
             Raise(nameof(Sections));
             Raise(nameof(IsLayersPage));
-            Raise(nameof(IsSourcesPage));
             Raise(nameof(IsShortcutsPage));
-            Raise(nameof(IsFontsPage));
-            Raise(nameof(Sources));
+            Raise(nameof(IsTextAndFontsPage));
+            Raise(nameof(IsFolderPreferencePage));
             RaiseErrors();
         }
 

@@ -27,19 +27,32 @@ spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
-The nine categories are those of the Global settings dialog, and of the JSON.
+The presenter's Global settings dialog has eight categories. The JSON keeps three more groups, the defaults of drawings made
+from a model, which GeometryHelper.Drawing reads and which that dialog does not show: Drawing defaults, Data sources, and the
+font, height and width factor of drawing text. A file that holds them keeps them, and OK writes them back as they were.
 
 | Category | Holds | Defaults |
 |---|---|---|
 | Appearance | the colours of the canvas, paper, visible and hidden lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, hidden lines `#9AA4B1`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
-| Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.2 a notch (1.01 to 4, ZOOMWHEEL turns it round), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
-| Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
+| Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.5 a notch (1.01 to 4, ZOOMWHEEL turns it round; a file saved with 1.2 keeps 1.2), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |
-| Text and fonts | the fonts, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height; what Esc in the MTEXT editor with changes does (Hidden messages) | UI font Inter, drawing font Arial, text 2.5, titles 5, width factor 0.8, Esc asks |
-| Data sources | whether the sources of a model are asked for changes, and how often | on, every 30 seconds (5 to 3 600) |
+| Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, no mapping file, no substitutions |
+| Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order | none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
 | Save and export | the save folder, autosave, backups, the layout of an export | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups, `LayoutAndViewports` |
+| Drawing defaults (file only) | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
+| Data sources (file only) | whether the sources of a model are asked for changes, and how often | on, every 30 seconds (5 to 3 600) |
+| Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
+
+On the Shortcuts page a Keys cell takes the keys pressed in it, as the shortcut key box of AutoCAD's Customize User
+Interface does: Ctrl+Shift+D pressed shows `Ctrl+Shift+D` in place of the command's keys, Backspace or Delete clears them,
+and Esc gives back those it had when the cell was entered. A key with Ctrl or Alt, or F1 to F24, is taken; a letter alone or
+with Shift alone is typing and is not. Aliases are still typed, parted by commas. **Import acad.pgp…**, left of Reset to
+AutoCAD defaults, reads the aliases of a `.pgp` file you pick as AutoCAD does (`ALIAS, *COMMAND`, a hyphen kept, `;` starting
+a comment, external commands passed over) and merges them, the file's winning: a file of `ZZ, *ZOOM`, `L, *PLINE`,
+`C, *CIRCLE`, `QQ, *NOSUCHCOMMAND` and one line of nonsense says "acad.pgp: 1 alias added, 1 changed, 1 unchanged; 1 skipped,
+its command not in this app; 1 line not read." No acad.pgp is shipped; nothing is taken until Apply or OK.
 
 The defaults are AutoCAD's where it has one. Numbers show as the units say: `FormatNumber(12345.678, 2)` is `12 345.68`, and
 with a comma for the thousands `12,345.68`. The thousands cannot be parted by the decimal separator: `ThousandsSeparator =
@@ -471,7 +484,7 @@ preset and shows it, `--tab Drawing` shows its tab, `--pick view|dimension|mark|
 drawing that draws one, `--hand-edit` moves its first dimension 25 up by hand, and `--dialog
 new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin` draws a dialog of the model drawing.
 
-Fonts are looked for in the folder of the drawing, then in Global settings > Fonts > Font search folders in order, a bare name taking `.shx` and a full path used as it is; the list is empty by default, and AutoCAD's own Fonts folders are never looked in unless you add them there. A TrueType file is also looked for in the Windows Fonts folder. A style naming `romans.shx` is drawn as the single strokes of romans, read from the file: shapes, unifont and big fonts, every pen code; a TEXT of romans.shx `ABC123` 10 high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it. A style naming Arial is drawn by the canvas. A font named in the substitution table, or in the font mapping file (an `.fmp` file of `oldfont;newfont` lines, as FONTMAP), is drawn in the font given for it. A font not found is drawn in the replacement font (as FONTALT): by default GeometryHelper Simplex (`ghsimplex`), the presenter's own single-stroke font after the Hershey Roman Simplex letters, its capitals as high as the text. Write `simplex.shx,gbcbig.shx` to give a big font for big fonts not found too. On opening, the command line lists the missing SHX files once, each with what it is drawn in: `Missing SHX files: romans.shx drawn in GeometryHelper Simplex.` The Chinese, Japanese and Korean code pages of the big fonts are registered by the app at start.
+Fonts are looked for in the folder of the drawing, then in Global settings > Folder preference > Font search folders in order, a bare name taking `.shx` and a full path used as it is; the list is empty by default, and AutoCAD's own Fonts folders are never looked in unless you add them there. A TrueType file is also looked for in the Windows Fonts folder. A style naming `romans.shx` is drawn as the single strokes of romans, read from the file: shapes, unifont and big fonts, every pen code; a TEXT of romans.shx `ABC123` 10 high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it. A style naming Arial is drawn by the canvas. A font named in the substitution table, or in the font mapping file (an `.fmp` file of `oldfont;newfont` lines, as FONTMAP), is drawn in the font given for it. A font not found is drawn in the replacement font (as FONTALT): by default GeometryHelper Simplex (`ghsimplex`), the presenter's own single-stroke font after the Hershey Roman Simplex letters, its capitals as high as the text. Write `simplex.shx,gbcbig.shx` to give a big font for big fonts not found too. On opening, the command line lists the missing SHX files once, each with what it is drawn in: `Missing SHX files: romans.shx drawn in GeometryHelper Simplex.` The Chinese, Japanese and Korean code pages of the big fonts are registered by the app at start.
 
 ## The ribbon
 

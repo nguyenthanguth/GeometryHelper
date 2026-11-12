@@ -1283,7 +1283,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>
-        private static string Gesture(Key key, ModifierKeys modifiers)
+        internal static string Gesture(Key key, ModifierKeys modifiers)
         {
             string name =
                 key >= Key.D0 && key <= Key.D9

@@ -1168,12 +1168,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 "Appearance",
                 "Canvas and cursor",
-                "Drawing defaults",
                 "Units and rounding",
                 "Layers, colours and lines",
                 "Text and fonts",
-                "Fonts",
-                "Data sources",
+                "Folder preference",
                 "Shortcuts",
                 "Save and export",
             };

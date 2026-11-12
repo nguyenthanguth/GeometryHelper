@@ -8,7 +8,7 @@ using Xunit;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 {
-    /// <summary>The font settings: their defaults, the JSON file, the Fonts page of Global settings, and the fonts given to the drawings open.</summary>
+    /// <summary>The font settings: their defaults, the JSON file, the Folder preference and Text and fonts pages of Global settings, and the fonts given to the drawings open.</summary>
     public sealed class FontSettingsTests : IDisposable
     {
         private readonly TestFolder _folder = new TestFolder();
@@ -94,12 +94,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheFontsPageEditsTheFoldersTheReplacementAndTheTable_AndApplyTakesThem()
+        public void FolderPreferenceEditsTheFolders_TextAndFontsTheReplacementAndTheTable_AndApplyTakesThem()
         {
             var model = new MainViewModel();
-            GlobalSettingsViewModel dialog = model.CreateGlobalSettings("Fonts");
+            GlobalSettingsViewModel dialog = model.CreateGlobalSettings("Folder preference");
 
-            Assert.True(dialog.IsFontsPage);
+            Assert.True(dialog.IsFolderPreferencePage);
             Assert.Equal(model.Settings.FontSearchFolders, dialog.FontFolders.Select(r => r.Folder));
             dialog.AddFontFolderCommand.Execute(@"D:\OldFonts");
             dialog.AddFontFolderCommand.Execute(@"D:\MyFonts");
@@ -110,7 +110,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             dialog.FontSubstitutions[0].Font = "romans.shx";
             dialog.FontSubstitutions[0].DrawnIn = "isocp.shx";
             dialog.AddFontSubstitutionCommand.Execute(null);
-            dialog.Row("Fonts", "Replacement font (FONTALT)").Value = "txt.shx";
+            dialog.Row("Text and fonts", "Replacement font (FONTALT)").Value = "txt.shx";
 
             Assert.True(dialog.Apply());
 
