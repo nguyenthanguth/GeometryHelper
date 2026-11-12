@@ -93,6 +93,7 @@ namespace GeometryHelper.Dxf.Viewer
         private const string Unknown = "Unknown command \"{0}\".  Press F1 for help.";
 
         private readonly List<string> _history = new List<string>();
+        private CadPlotStamp _plotStamp = new CadPlotStamp();
         private readonly SortedSet<string> _gathered = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<KeyValuePair<string, GeoPoint2>> _clicks = new List<KeyValuePair<string, GeoPoint2>>();
         private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -968,6 +969,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public Dictionary<string, double> Remembered { get; } =
             new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets or sets the plot stamp -PLOTSTAMP sets, off until <see cref="CadPlotStamp.On"/> is set; PLOT, -PLOT, EXPORTPDF
+        /// and -EXPORT hand a copy of it to the PDF they write while it is on, as AutoCAD stamps every plot. A session starts
+        /// with a stamp of its own; a host that has several drawings gives them one to share.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the stamp set is null.</exception>
+        public CadPlotStamp PlotStamp
+        {
+            get => _plotStamp;
+            set => _plotStamp = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         /// <summary>
         /// Gets whether a command asks the window for a file by its file dialog, as AutoCAD's FILEDIA 1, the default; FILEDIA 0

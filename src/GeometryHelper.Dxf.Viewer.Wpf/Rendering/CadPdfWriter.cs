@@ -11,7 +11,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The presenter's plotter, GeometryHelper PDF: writes a plot as one page of a PDF through SkiaSharp's
     /// <c>SKDocument.CreatePdf</c>, in vectors, from the display list the canvas draws. Lines keep their lineweights, hatches
     /// and solids are filled, and the text of a TrueType font is written as text with its font embedded, so that a reader
-    /// finds and copies it; the text of an SHX font is its strokes, as the canvas draws it, and is not found.
+    /// finds and copies it; the text of an SHX font is its strokes, as the canvas draws it, and is not found unless the
+    /// settings carry PDFSHX (<see cref="CadPlotSettings.PdfShx"/>), which writes the words again over the strokes in letters
+    /// no eye sees. A plot stamp the settings carry (<see cref="CadPlotSettings.PlotStamp"/>) is drawn in a corner of the sheet
+    /// as text, and its line added to the stamp's log file.
     /// </summary>
     /// <remarks>
     /// The page is the sheet as it lies, to a ten-thousandth of a point: ISO A3 on its side is 1 190.5512 by 841.8898 points
@@ -43,8 +46,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(path));
             }
 
-            byte[] pdf = Make(document, space, settings, display, out CadPlotPage page);
+            byte[] pdf = Make(
+                document,
+                space,
+                settings,
+                display,
+                out CadPlotPage page,
+                out IReadOnlyList<string> stamped
+            );
             File.WriteAllBytes(path, pdf);
+            LogStamp(settings.PlotStamp, stamped, path);
             GeometryHelperLog.Info(
                 "CadPdfWriter: "
                     + space.Name
@@ -83,9 +94,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            byte[] pdf = Make(document, space, settings, display, out CadPlotPage page);
+            byte[] pdf = Make(document, space, settings, display, out CadPlotPage page, out _);
             stream.Write(pdf, 0, pdf.Length);
             return page;
+        }
+
+        /// <summary>
+        /// The words of the plot stamp added to its log file, a line each, where the stamp writes one; a log that cannot be
+        /// written is logged and does not fail the plot.
+        /// </summary>
+        private static void LogStamp(CadPlotStamp stamp, IReadOnlyList<string> stamped, string plotFile)
+        {
+            if (stamp == null || !stamp.WriteLog || stamped.Count == 0)
+            {
+                return;
+            }
+
+            string log = stamp.LogPath(plotFile);
+
+            try
+            {
+                File.AppendAllText(log, CadPlotStamp.LogLine(stamped) + "\n");
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            {
+                GeometryHelperLog.Warn("CadPdfWriter: the plot stamp was not written to " + log + ".", exception);
+            }
         }
 
         private static byte[] Make(
@@ -93,7 +127,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadSpace space,
             CadPlotSettings settings,
             DisplayBox display,
-            out CadPlotPage page
+            out CadPlotPage page,
+            out IReadOnlyList<string> stamped
         )
         {
             page = CadPlotPage.Compute(
@@ -108,6 +143,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new InvalidOperationException("Nothing to plot: the plot area of " + space.Name + " is empty.");
             }
 
+            stamped =
+                settings.PlotStamp == null
+                    ? Array.Empty<string>()
+                    : settings.PlotStamp.Lines(document, space, settings, page, DateTime.Now, Environment.UserName);
             double width = page.SheetWidthPoints;
             double height = page.SheetHeightPoints;
 
@@ -134,7 +173,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         SKCanvas canvas = pdf.BeginPage(roundedWidth, roundedHeight);
                         canvas.Translate(0f, (float)(roundedHeight - height));
-                        renderer.RenderPlot(canvas, document, space, page, settings, SheetToPoints(page));
+                        renderer.RenderPlot(
+                            canvas,
+                            document,
+                            space,
+                            page,
+                            settings,
+                            SheetToPoints(page),
+                            shxText: settings.PdfShx
+                        );
+
+                        if (settings.PlotStamp != null)
+                        {
+                            CadPlotStampPainter.Draw(canvas, settings.PlotStamp, stamped, page, SheetToPoints(page));
+                        }
+
                         pdf.EndPage();
                         pdf.Close();
                     }

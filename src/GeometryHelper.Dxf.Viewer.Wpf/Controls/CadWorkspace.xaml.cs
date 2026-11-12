@@ -753,21 +753,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Export Data of EXPORT, or Save As PDF of -EXPORT: the standard Save dialog of the job's types, its type chosen first;
-        /// the file and the type chosen put into the job, the file null where it is cancelled.
+        /// Export Data of EXPORT, Save As PDF of -EXPORT and EXPORTPDF, or Import File of IMPORT: the standard Save dialog of the
+        /// job's types, its type chosen first, an Open dialog where the job <see cref="CadExportJob.Opens"/>; the file and the
+        /// type chosen put into the job, the file null where it is cancelled.
         /// </summary>
         private void AskExportFile(CadExportJob job)
         {
             string Filter(string type) =>
                 type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
-            string folder = Path.GetDirectoryName(job.FileName);
-            var dialog = new SaveFileDialog
-            {
-                Title = job.Title,
-                Filter = string.Join("|", job.FileTypes.Select(Filter)),
-                FilterIndex = job.FileTypes.ToList().IndexOf(job.FileType) + 1,
-                FileName = Path.GetFileName(job.FileName),
-            };
+            string folder = job.FileName == null ? null : Path.GetDirectoryName(job.FileName);
+            FileDialog dialog = job.Opens
+                ? new OpenFileDialog { CheckFileExists = true }
+                : (FileDialog)new SaveFileDialog();
+            dialog.Title = job.Title;
+            dialog.Filter = string.Join("|", job.FileTypes.Select(Filter));
+            dialog.FilterIndex = job.FileTypes.ToList().IndexOf(job.FileType) + 1;
+            dialog.FileName = job.FileName == null ? string.Empty : Path.GetFileName(job.FileName);
 
             if (folder != null && Directory.Exists(folder))
             {

@@ -320,6 +320,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool PlotTransparency { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether the text of an SHX font is also written to a PDF as text no eye can see, over its strokes, so
+        /// that a reader's search finds it: AutoCAD's PDFSHX. Only the PDF writer reads it; the commands set it from PDFSHX,
+        /// and a drawing keeps it nowhere. Off by default.
+        /// </summary>
+        public bool PdfShx { get; set; }
+
+        /// <summary>
+        /// Gets or sets the plot stamp the plot carries, null for none. The commands set a copy of the session's stamp
+        /// (<see cref="CadCommandSession.PlotStamp"/>) where it is on; only the PDF writer reads it, and a drawing keeps it
+        /// nowhere. Null by default.
+        /// </summary>
+        public CadPlotStamp PlotStamp { get; set; }
+
         /// <summary>Gets the plot style table the colours are plotted by: <see cref="StyleTable"/>, or none where <see cref="PlotWithPlotStyles"/> is off.</summary>
         public CadPlotStyleTable EffectiveStyleTable => PlotWithPlotStyles ? StyleTable : CadPlotStyleTable.None;
 
@@ -328,7 +342,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Makes a copy that changes apart from this one.</summary>
         /// <returns>The copy.</returns>
-        public CadPlotSettings Clone() => (CadPlotSettings)MemberwiseClone();
+        public CadPlotSettings Clone()
+        {
+            var copy = (CadPlotSettings)MemberwiseClone();
+            copy.PlotStamp = PlotStamp?.Clone();
+            return copy;
+        }
 
         /// <summary>
         /// Reads how a space is plotted from the drawing, as AutoCAD's Plot dialog opens on a layout's page setup: the plot
