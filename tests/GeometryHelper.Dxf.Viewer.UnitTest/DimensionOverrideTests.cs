@@ -167,7 +167,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021, acad.dwt's Standard (DIMTOH on, arrowheads 0.18, DIMGAP 0.09, DIMEXE 0.18): the dimension of 0.5
             // DIMCONTINUE adds has its arrowheads outside, on lines from 99.82 to 99.64 and from 100.68 to 100.86, the line
             // between the extension lines drawn for the leader, the leader straight up from (100.25, 20) DIMEXE, half DIMGAP
-            // and the words' height (0.1838 in txt.shx: to y 20.4088), the landing two gaps on to x 100.43 and the words a gap
+            // and the words' height (0.1838 in Arial, acad.dwt's Standard: to y 20.4088), the landing two gaps on to x 100.43 and the words a gap
             // past it, on its level. The arrowheads need twice their length and twice DIMGAP, 0.54, between the lines.
             CadDocument document = Blank();
             StandardCurrent(document.Database);
@@ -246,6 +246,132 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDimension continued = All<DxfDimension>(document.ModelSpace).Last();
             Assert.Equal("Other", continued.DimensionStyleName);
             Assert.Equal("279", Groups(continued));
+        }
+
+        [Fact]
+        public void ARowGoesOnAtTheDimscaleAndOnTheLayerOfItsBase_WhateverIsCurrent_AsAutoCad()
+        {
+            // AutoCAD 2021 (DIMCONTINUEMODE 1, probe GHD4C): a dimension made on L1 with DIMSCALE 2 and DIMASZ 0.3 writes 40 41;
+            // with L2 current and DIMSCALE back to 1, DIMCONTINUE from it goes on L1 at 2 writing 279 40 41, and DIMBASELINE
+            // from that one on L1 at 2 writing 40 41 279, its line DIMDLI 0.38 times 2 further out.
+            CadDocument document = Blank();
+            DxfDatabase db = document.Database;
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "L1" });
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "L2" });
+            StandardCurrent(db);
+            CadCommandSession session = Session(document);
+            db.Clayer = "L1";
+            db.Dimscale = 2.0;
+            db.Dimasz = 0.3;
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+            db.Clayer = "L2";
+            db.Dimscale = 1.0;
+            db.Dimasz = 0.18;
+
+            Run(session, "DCO", P(200, 0), Enter, Enter);
+            Run(session, "DBA", P(300, 0), Enter, Enter);
+
+            List<DxfDimension> made = All<DxfDimension>(document.ModelSpace);
+            Assert.Equal(new[] { "40 41", "279 40 41", "40 41 279" }, made.Select(Groups));
+            Assert.All(made, d => Assert.Equal("L1", d.Layer));
+            Assert.All(made, d => Assert.Equal(2.0, d.Dimscale, 9));
+            Near(new GeoPoint3(200, 20.76, 0), made[2].TextPosition, 1E-9);
+            // The arrowheads are drawn 0.3 x 2 long.
+            Assert.Equal(
+                0.6,
+                made[1].DimBlock.OfType<DxfSolid>().Select(s => Math.Abs(s.GetPointAt(0).X - s.GetPointAt(2).X)).Max(),
+                9
+            );
+        }
+
+        [Fact]
+        public void TheWordsDimcontinuePutsPastALeader_AreRecordedByTheirStart_AsAutoCadWritesGroup11()
+        {
+            // AutoCAD 2021, acad.dwt, whose Standard text style is Arial (probe GHD4B): the "0.5000" of the dimension of 0.5
+            // DIMCONTINUE adds after one of 100 is 0.746644 wide and 0.183806 high, past a leader up to (100.25, 20.408806),
+            // its middle at (100.893322, 20.408806); the dimension writes their start, (100.52, 20.408806), as group 11, and
+            // the dimension of 100 the middle of its words.
+            CadDocument document = Blank();
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            StandardCurrent(document.Database);
+            CadCommandSession session = Session(document);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+
+            Run(session, "DCO", P(100.5, 0), Enter, Enter);
+
+            List<DxfRotatedDimension> made = All<DxfRotatedDimension>(document.ModelSpace);
+            Near(new GeoPoint3(50, 20, 0), made[0].TextPosition, 1E-9);
+            Near(new GeoPoint3(100.893322, 20.408806, 0), made[1].DimBlock.OfType<DxfMText>().Single().Location, 1E-6);
+            Near(new GeoPoint3(100.52, 20.408806, 0), made[1].TextPosition, 1E-6);
+        }
+
+        [Fact]
+        public void WordsPastALeaderUnderDimtmove1_AreRecordedByTheirStart_OthersByTheirMiddle_AsAutoCad()
+        {
+            // AutoCAD 2021, acad.dwt's Standard with Arial (probes GHD4B and GHD4F): a dimension of 0.5 under DIMTMOVE 1 writes
+            // the start of words past a leader, level with their middle, whichever way they read and whatever DIMTAD; under
+            // DIMTMOVE 2, or where the words stand too near the line for a leader, their middle.
+            var along = new GeoVector2(Math.Cos(Math.PI / 6.0), Math.Sin(Math.PI / 6.0));
+            DxfDimension made = Made(
+                s =>
+                {
+                    s.Dimtmove = 1;
+                    s.Dimtoh = false;
+                },
+                "DAL",
+                P(0, 0),
+                P(0, 0) + along * 0.5,
+                P(-10, 20)
+            );
+            Near(new GeoPoint3(-10.48435, 20.190212, 0), made.DimBlock.OfType<DxfMText>().Single().Location, 1E-6);
+            Near(new GeoPoint3(-10.807656, 20.003551, 0), made.TextPosition, 1E-6);
+
+            made = Made(
+                s =>
+                {
+                    s.Dimtmove = 1;
+                    s.Dimtad = 1;
+                },
+                "DLI",
+                P(0, 0),
+                P(0.5, 0),
+                P(0.25, -20)
+            );
+            Near(new GeoPoint3(0.34, -20.410709, 0), made.TextPosition, 1E-6);
+
+            made = Made(s => s.Dimtmove = 2, "DLI", P(0, 0), P(0.5, 0), P(0.25, 20));
+            Near(new GeoPoint3(0.25, 20.408806, 0), made.TextPosition, 1E-6);
+
+            made = Made(
+                s =>
+                {
+                    s.Dimtmove = 1;
+                    s.Dimexe = 0.0;
+                    s.Dimasz = 1.0;
+                    s.Dimgap = 0.2;
+                    s.Dimtxt = 1.0;
+                    s.Dimatfit = 3;
+                },
+                "DLI",
+                P(0, 0),
+                P(0.5, 0),
+                P(0.25, 20)
+            );
+            Near(new GeoPoint3(0.85, 21.121146, 0), made.TextPosition, 1E-6);
+        }
+
+        /// <summary>
+        /// The dimension a command makes in a blank drawing whose Standard text style is Arial, as acad.dwt's, with Standard's
+        /// variables set as given.
+        /// </summary>
+        private static DxfDimension Made(Action<DxfDimStyleTableRecord> set, params object[] inputs)
+        {
+            CadDocument document = Blank();
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            set(document.Database.DimStyleTable["Standard"]);
+            StandardCurrent(document.Database);
+            Run(Session(document), inputs);
+            return All<DxfDimension>(document.ModelSpace).Last();
         }
 
         /// <summary>Whether a line runs between the two points, either way, to 1E-9.</summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -18,6 +19,10 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     internal static partial class CadCommands
     {
+        /// <summary>The start of words a linear picture stands past a leader, kept with their MTEXT for <see cref="Recorded"/>.</summary>
+        private static readonly ConditionalWeakTable<DxfMText, StrongBox<GeoPoint3>> WordsStarts =
+            new ConditionalWeakTable<DxfMText, StrongBox<GeoPoint3>>();
+
         private static IEnumerable<CadPrompt> DimLinear(CadCommandContext c) => DimLine(c, false);
 
         private static IEnumerable<CadPrompt> DimAligned(CadCommandContext c) => DimLine(c, true);
@@ -1228,6 +1233,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             picture.Add(text);
+
+            if (layout.Start.HasValue)
+            {
+                WordsStarts.Add(mtext, new StrongBox<GeoPoint3>(P3(layout.Start.Value)));
+            }
+
             AddFrame(picture, style, layout.At, mtext.Rotation, width, height, gap);
             picture.Add(Definition(p1));
             picture.Add(Definition(p2));
@@ -1240,6 +1251,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             /// <summary>The middle of the words.</summary>
             public GeoPoint2 At { get; set; }
+
+            /// <summary>Where words past a leader start, level with their middle, which AutoCAD records as their point; null for others.</summary>
+            public GeoPoint2? Start { get; set; }
 
             /// <summary>The angle the words are turned to, in radians.</summary>
             public double Angle { get; set; }
@@ -1492,6 +1506,7 @@ namespace GeometryHelper.Dxf.Viewer
                     )
                 );
                 layout.At = knee + landing * (start2 + width / 2.0) + upward * offLine;
+                layout.Start = knee + landing * start2 + upward * offLine;
 
                 if (arrowsOut)
                 {
@@ -2011,7 +2026,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Writes into a dimension the middle of its words (group 11), where they stand at their default place, and its
         /// measurement (42), as AutoCAD 2021 writes them with the block it draws: a DIMLINEAR of 0,0 to 100,0 with its line 20
-        /// above and DIMTAD 0 has 50,20 and 100. A dimension whose words were put somewhere keeps their point.
+        /// above and DIMTAD 0 has 50,20 and 100. Words of a linear dimension the fit moves past a leader under DIMTMOVE 1 are
+        /// written by their start instead, level with their middle: the "0.5000" of a continued dimension of 0.5 in acad.dwt's
+        /// Standard, its middle at (100.8933, 20.4088), writes (100.52, 20.4088). A dimension whose words were put somewhere
+        /// keeps their point.
         /// </summary>
         private static void Recorded(DxfDimension dimension, List<DxfEntity> picture)
         {
@@ -2021,7 +2039,9 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (entity is DxfMText words)
                     {
-                        dimension.TextPosition = words.Location;
+                        dimension.TextPosition = WordsStarts.TryGetValue(words, out StrongBox<GeoPoint3> start)
+                            ? start.Value
+                            : words.Location;
                         dimension.UsingDefaultTextPosition = true;
                         break;
                     }
@@ -2061,11 +2081,21 @@ namespace GeometryHelper.Dxf.Viewer
         private static double Dimscale(CadCommandContext c) => LeaderScale(c);
 
         /// <summary>
+        /// The DIMSCALE a dimension drawn by <paramref name="style"/> is drawn by: the style's, where it is above nought, as
+        /// <see cref="DimStyle"/> gives the current one and a row its base's (DIMCONTINUE from a dimension of DIMSCALE 2 draws
+        /// at 2 whatever is current); else the current one (<see cref="Dimscale"/>).
+        /// </summary>
+        private static double DrawnScale(CadCommandContext c, DxfDimStyleTableRecord style) =>
+            style.Dimscale > 0.0 ? style.Dimscale : Dimscale(c);
+
+        /// <summary>
         /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
         /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, and each variable it is
         /// drawn by (<paramref name="style"/>, the text height given) written as an override where it is not its style's;
         /// the variable of the group <paramref name="first"/> written before the rest, and that of <paramref name="always"/>
-        /// written whatever the style has, as AutoCAD 2021's DIMCONTINUE writes DIMTMOVE and DIMJOGGED DIMJOGANG.
+        /// written whatever the style has, as AutoCAD 2021's DIMCONTINUE writes DIMTMOVE and DIMJOGGED DIMJOGANG. The dimension
+        /// goes on the current layer, or DIM's LAyer; on <paramref name="onLayer"/> where one is given, as a row goes on its
+        /// base's.
         /// </summary>
         private static CadEditResult Place(
             CadCommandContext c,
@@ -2074,12 +2104,13 @@ namespace GeometryHelper.Dxf.Viewer
             DxfDimension dimension,
             List<DxfEntity> picture,
             int first = 0,
-            int always = 0
+            int always = 0,
+            string onLayer = null
         )
         {
             CadSpace space = c.Space;
-            string layer = c.Session.DimLayer;
-            double scale = Dimscale(c);
+            string layer = onLayer ?? c.Session.DimLayer;
+            double scale = DrawnScale(c, style);
             Dressed(style, picture);
             return c.Apply(null, s =>
             {
@@ -2103,7 +2134,8 @@ namespace GeometryHelper.Dxf.Viewer
                 space.Block.AppendEntity(dimension);
                 dimension.SetDatabaseDefaults(s.Database);
 
-                // DIM's LAyer (AutoCAD's DIMLAYER) puts it on a layer of its own where that layer is still in the drawing.
+                // DIM's LAyer (AutoCAD's DIMLAYER), or a row's base, puts it on a layer of its own where that layer is still in
+                // the drawing.
                 if (!string.IsNullOrEmpty(layer) && s.Database.LayerTable.Has(layer))
                 {
                     dimension.Layer = layer;

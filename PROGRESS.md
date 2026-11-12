@@ -111,7 +111,8 @@ the ones wanted.
 - [x] Dimension overrides: every differing variable written in group order (where $DIMSTYLE names a style the drawing has), DIMSCALE 0 through a viewport, arrowhead pictures in the style dialogs
 - [x] Dimension overrides follow-ups: blank DxfDatabase holds ISO-25 as acadiso, header drives every dimension and leader, AutoCAD's 279/288/50 extras
 - [x] Dimension overrides follow-ups 2: words moved out under DIMTOH as AutoCAD, arrowhead and word fit thresholds, chains in the base's style, 279 only on DIMCONTINUE, 288/50 confirmed
-- [ ] Dimension follow-ups 3: DIM's radial and continue (need full AutoCAD); group 11 under DIMTMOVE 1 is the words' start in AutoCAD; txt.shx measuring (0.1838 x 0.7466 vs ours 0.18 x 0.756); rows taking the base's DIMSCALE and layer; the leader distance rule on slanting lines (S)
+- [x] Dimension follow-ups 3: group 11 by the words' start under DIMTMOVE 1, rows at the base's DIMSCALE on its layer; txt.shx measuring was right (the 0.1838 was Arial)
+- [ ] Dimension follow-ups 4: DIM's radial and continue (full AutoCAD); words DIMTOH keeps level with no leader on slanting lines (240 of 1152 placed differently: parked after 2 attempts); DIMCONTINUEMODE 0 (rows in the current style and layer); radial group 11 under DIMTMOVE 1; SHX gaps: isocp/isocp2/isoct arcs (31/94 letters narrower), monotxt '1', italic ink left of the pen, zero-width words measured 0 (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

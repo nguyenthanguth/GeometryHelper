@@ -147,7 +147,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Makes an ordinate dimension of a point from an origin, along the X (or the Y) axis of a system turned by
         /// <paramref name="turn"/>, its leader ending at a point; its words given or the measurement, turned where
-        /// <paramref name="textAngle"/> says. The handle of the dimension, or null where it was not made.
+        /// <paramref name="textAngle"/> says; on <paramref name="layer"/> where one is given, as a row goes on its base's. The
+        /// handle of the dimension, or null where it was not made.
         /// </summary>
         private static string OrdinateDimension(
             CadCommandContext c,
@@ -159,7 +160,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 end,
             string text,
             double? textAngle,
-            bool echo
+            bool echo,
+            string layer = null
         )
         {
             if ((end - feature).Length <= c.Session.Tolerance.EqualPoint)
@@ -191,7 +193,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("Dimension text = " + words);
             }
 
-            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture, onLayer: layer));
         }
 
         /// <summary>
@@ -230,7 +232,7 @@ namespace GeometryHelper.Dxf.Viewer
             double textHeight = TextHeight(c, style);
             return WithTextAngle(
                 made,
-                Ordinate(style, Dimscale(c), textHeight, origin, feature, end, xDatum, turn, words),
+                Ordinate(style, DrawnScale(c, style), textHeight, origin, feature, end, xDatum, turn, words),
                 textAngle
             );
         }
