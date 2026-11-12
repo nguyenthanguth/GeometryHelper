@@ -251,6 +251,39 @@ namespace GeometryHelper.Dxf.Viewer
         internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities) =>
             BuildLoose(entities, Affine2.Identity);
 
+        /// <summary>
+        /// Draws a table with other entities than its block holds, as the block is drawn at the table's point: the layer, colour
+        /// and lineweight of the table for what the entities leave by block, and the table's handle on every item. A table
+        /// previewed at other row heights is drawn so.
+        /// </summary>
+        internal IReadOnlyList<DisplayItem2> BuildTable(DxfTable table, IEnumerable<DxfEntity> picture)
+        {
+            var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
+            var root = new Frame(Affine2.Identity);
+            string layerName = LayerOf(table, root);
+            DisplayStyle style = StyleOf(table, root, layerName);
+            GeoPoint3 at = table.Position;
+            Frame inner = root.Child(Affine2.Translation(at.X, at.Y).Then(root.Matrix));
+            inner.RootHandle = table.Handle;
+            inner.BlockLayer = layerName;
+            inner.BlockRgb = style.Rgb;
+            inner.BlockLineWeight = style.LineWeight;
+
+            foreach (DxfEntity entity in picture)
+            {
+                try
+                {
+                    Draw(entity, inner, list, null);
+                }
+                catch (Exception)
+                {
+                    // One entity that cannot be drawn never stops the others.
+                }
+            }
+
+            return list.Items;
+        }
+
         /// <summary>Draws entities as <see cref="BuildLoose(IEnumerable{DxfEntity})"/> does, each moved by a transformation, as the objects of a paste are drawn where the cursor would put them.</summary>
         internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities, Affine2 under)
         {

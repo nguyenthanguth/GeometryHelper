@@ -596,6 +596,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
                 _model.StyleDialogRequested -= OnStyleDialogRequested;
                 _model.InPlaceEditChanged -= OnInPlaceEditChanged;
+                _model.TableLiveChanged -= OnTableLiveChanged;
                 _model.TableCellChanged -= OnTableCellChanged;
                 _model.PropertyChanged -= OnModelPropertyChanged;
             }
@@ -660,6 +661,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowColumnSettings = dialog => ColumnSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
+                _model.TableLiveChanged += OnTableLiveChanged;
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
                 _model.AskPlotFile = AskPlotFile;
@@ -1584,6 +1586,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnInPlaceEditChanged(object sender, EventArgs e) => PlaceInPlace(true);
 
+        /// <summary>The rows of a table whose cell is typed in moved: the table is drawn anew and the editor stands where its cell now is.</summary>
+        private void OnTableLiveChanged(object sender, EventArgs e)
+        {
+            CanvasView.RefreshTableLive();
+            PlaceInPlace(false);
+        }
+
         /// <summary>
         /// Puts the editor of the text edited in place over it: the edit box of a single-line text with its baseline on the
         /// text's, as high as the text on the canvas and turned with it, its words all selected; the MTEXT editor's frame with
@@ -1615,7 +1624,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
             double unit = view.PixelsPerUnit / scale;
-            view.DrawingToPixel(edit.Location.X, edit.Location.Y, out double px, out double py);
+            // A cell of a table typed in stands where its row has grown to: the point its text is attached at moves with it.
+            GeoVector2 moved = edit.TableLive?.Shift(edit.Attachment) ?? new GeoVector2(0.0, 0.0);
+            view.DrawingToPixel(edit.Location.X + moved.X, edit.Location.Y + moved.Y, out double px, out double py);
             double x = px / scale;
             double y = py / scale;
             double degrees = -edit.Rotation * 180.0 / Math.PI;

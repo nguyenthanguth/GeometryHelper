@@ -71,6 +71,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Raised when the words typed in a cell of a table lay its rows out otherwise (<see cref="CadTableLive"/>), so that the window draws the table, the cell selected and the editor where the rows now are.</summary>
+        public event EventHandler TableLiveChanged;
+
+        internal void RaiseTableLiveChanged() => TableLiveChanged?.Invoke(this, EventArgs.Empty);
+
         /// <summary>Gets the text edited in place now, as the prompt of the command running asks it; null for none.</summary>
         public CadInPlaceEdit InPlaceEdit => _inPlace;
 

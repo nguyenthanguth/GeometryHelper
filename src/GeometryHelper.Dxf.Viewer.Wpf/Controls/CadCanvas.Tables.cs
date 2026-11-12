@@ -154,6 +154,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Draws the table anew whose cell is typed in, its rows as the words typed lay them out (<see cref="CadTableLive"/>);
+        /// the window calls it when they moved. Nothing is written to the drawing.
+        /// </summary>
+        public void RefreshTableLive() => RequestRender();
+
+        /// <summary>
         /// Starts the drag of a grip of the cells selected as though it had been clicked, as Columns › Resize and Rows › Resize
         /// start it: 1 the right edge grip, 2 the bottom one, and the others as <see cref="CellGripPressed"/> numbers them. The
         /// line follows the cursor; a click, Enter or a size typed makes it, Esc drops it.

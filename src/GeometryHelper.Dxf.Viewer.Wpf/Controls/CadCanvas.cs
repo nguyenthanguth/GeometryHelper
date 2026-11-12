@@ -1256,6 +1256,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
             IReadOnlyList<string> faded = Faded();
+            CadTableLive live = Through == null && IsRunning ? session.Prompt?.InPlace?.TableLive : null;
+            IReadOnlyList<DisplayItem2> typed = live != null ? live.Items : Array.Empty<DisplayItem2>();
             string marking = string.Join(
                 "|",
                 Options.SelectionColor,
@@ -1263,7 +1265,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 IsRunning,
                 document.Selection.Count,
                 session?.Gathering.Count ?? 0,
-                faded.Count
+                faded.Count,
+                typed.Count > 0 ? live.Version : -1
             );
 
             if (
@@ -1285,9 +1288,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 highlighted = kept;
             }
 
+            if (typed.Count > 0)
+            {
+                // The table drawn from the words typed is not drawn again, highlighted, from the table in the drawing.
+                var kept = new HashSet<string>(highlighted, StringComparer.OrdinalIgnoreCase);
+                kept.Remove(live.Handle);
+                highlighted = kept;
+            }
+
             Options.Selected = highlighted;
 
-            if (faded.Count > 0)
+            if (typed.Count > 0)
+            {
+                // A table whose cell is typed in: its rows as the words typed lay them out, drawn over the table blanked out.
+                Fit(ref _marked, info);
+
+                using (SKSurface surface = SKSurface.Create(info, _marked.GetPixels(), _marked.RowBytes))
+                using (SKPixmap pixels = _marked.PeekPixels())
+                {
+                    Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
+                    _renderer.RenderFaded(surface.Canvas, document, Space, View, Options, new[] { live.Handle }, 0.0);
+                    _renderer.RenderItems(surface.Canvas, document, Space, View, Options, typed);
+                    Highlight(surface.Canvas, document, highlighted, false, pixels);
+                    surface.Canvas.Flush();
+                }
+            }
+            else if (faded.Count > 0)
             {
                 Fit(ref _marked, info);
 

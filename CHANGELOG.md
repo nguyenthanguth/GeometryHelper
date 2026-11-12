@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In the presenter the row of a table cell grows while the cell is typed in, as AutoCAD 2021's in-place editor
+shows it: each line typed makes the row as high as the words need (in the Standard table style a data cell of two lines
+15.07 high instead of 9, of three 22.57), the lines taken out shrink it back, never below the height it stood at, the
+rows under it move down with it and the editor stands where the cell now is. The table is drawn from a preview of the
+words, `CadTableLive` (`CadInPlaceEdit.TableLive`), and nothing is written to the drawing until the editor closes, which
+is one undo step with the rows the preview showed; Esc leaves the table as it was. A key costs the layout of the one cell
+(1.4 ms in a table of 50 rows by 20 columns, where laying the whole table out takes 89 ms), and a key that leaves the row
+as it was draws nothing anew.
+
 **NEW.** In the presenter the wheel and the middle button go on the ZOOM Previous list, on the paper of a layout, in
 model space and through a viewport alike, as AutoCAD 2021's: the rolls and drags made before the view is still are one
 entry of the list of the space or the viewport (20 each), and ZOOM Previous goes back through them with the typed ones. A

@@ -94,7 +94,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 styleIsShx,
                 "lcr"[column]
             );
-            Editor.Changed += (s, e) => Refresh();
+            Editor.Changed += (s, e) =>
+            {
+                Refresh();
+                LayTableOut();
+            };
             Fonts = new[] { styleFont ?? "Arial" }
                 .Concat(CadTrueTypeFonts.Families)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -982,6 +986,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (choice?.Value is double factor)
             {
                 Editor.SetFormat(f => f.WithLineSpacing('m', factor));
+            }
+        }
+
+        /// <summary>A cell of a table typed in: its row laid out again for the words typed so far, the window told where the rows moved.</summary>
+        private void LayTableOut()
+        {
+            CadTableLive live = Edit.TableLive;
+
+            if (live == null)
+            {
+                return;
+            }
+
+            int was = live.Version;
+            live.Update(Editor.Contents);
+
+            if (live.Version != was)
+            {
+                _model?.RaiseTableLiveChanged();
             }
         }
 

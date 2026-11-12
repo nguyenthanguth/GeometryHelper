@@ -119,6 +119,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the column of the table cell edited, from nought; -1 for any other text.</summary>
         public int TableColumn { get; internal set; } = -1;
 
+        /// <summary>
+        /// Gets the preview of the table's rows for the words typed in the cell edited, which the window updates with each key
+        /// and draws the table from; null for any other text. The drawing is not written until the editor closes.
+        /// </summary>
+        public CadTableLive TableLive { get; internal set; }
+
         /// <summary>Gets whether a table cell is edited.</summary>
         public bool IsTableCell => TableRow >= 0 && TableColumn >= 0;
 
