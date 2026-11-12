@@ -56,7 +56,7 @@ each.
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, MATERIAL, VISUALSTYLE, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 
 A layout's viewports come numbered (group 69) as AutoCAD numbers them, which the file does not say: from AutoCAD 2004
@@ -83,6 +83,17 @@ visual style comes in the form of its version: each property in a group of its o
 by how it is applied (176) in AutoCAD 2010, and from AutoCAD 2013 the 58 properties after their count (70 58), a
 whole number, a real, a colour (257 for none), a yes or no or a text each.
 
+Every drawing of AutoCAD 2013 and later holds a detail view style and a section view style, and AutoCAD saves them in
+the older versions too. Each comes out in the groups of its DXF, in its parts marked 71 0 to 71 4: of a section view
+style the identifier and the arrows, the cutting plane and its bends, the view label, then the hatch with its angles.
+The file keeps them in an order of its own, which the reader puts back. A section view style of its own, its identifier
+0.33 high, arrows 0.43, bend lines 0.37 long overshooting by 0.11, ANSI37 at a scale of 2.5 and 60 % seen through at
+0.1, 0.2 and 0.3, comes out as AutoCAD's DXF of it in each version; a colour comes as its index, with 420 for a true
+colour, from AutoCAD 2004, and not at all in a DXF of AutoCAD 2000, as AutoCAD writes it. Before AutoCAD 2018 the
+display name of a style is not in the style but in a record of its extension dictionary (`ACAD_XREC_ROUNDTRIP`), read as
+any record. Beside solids AutoCAD keeps a manager of the persistent names of their subentities: of AutoCAD 2013 and later
+its DXF gives the count of the names it gave out as 0 and no names, as AutoCAD writes it, though the file holds them.
+
 Texts come back as they were typed, "Tiếng Việt café 日本語" letter for letter: before AutoCAD 2007 they are in the
 drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 they are UTF-16 in the file and UTF-8 in
 the DXF, as AutoCAD's DXF of those versions is.
@@ -95,15 +106,15 @@ palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
 [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) names the types with the count of each
-(`DwgReader: types that are not read yet were left out: ACDBDETAILVIEWSTYLE 1 ACDBSECTIONVIEWSTYLE 1 …`), and one Info line sums the
+(`DwgReader: types that are not read yet were left out: ACDBDATATABLE 2 TABLECONTENT 1 …`), and one Info line sums the
 call.
 
 - Entities: SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
   3DSOLID and BODY of AutoCAD 2004 to 2010 (see above), the OLE frames, proxies, and every entity of a class the list
   above does not name.
 - Objects: the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
-  AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the detail and section view
-  styles, the data of dynamic blocks, and the other objects of classes. AutoCAD makes most of these anew in a drawing
+  AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the data of dynamic blocks,
+  and the other objects of classes. AutoCAD makes most of these anew in a drawing
   that lacks them. A TABLECONTENT that holds a cell linked to data, the attributes of a block, fields or a cell's
   geometry is left out too: no test drawing has shown AutoCAD's DXF of those yet.
 - An ACAD_TABLE from AutoCAD 2010 holds its content itself, rows, columns, cells, merged ranges; it is given in the
@@ -206,22 +217,39 @@ drawing gives the same bytes every time.
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE of AutoCAD 2013 and later, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE of AutoCAD 2013 and later, the detail and section view styles, the manager of the persistent names of subentities, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
-each (`DwgWriter: types that are not written yet were left out: ACDBDETAILVIEWSTYLE 1 ACDBSECTIONVIEWSTYLE 1 …`). Every handle to a record
+each (`DwgWriter: types that are not written yet were left out: SHAPE 1 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
-with it. Left out so far: the detail and section view styles, which the reader does not read either and AutoCAD makes
-anew in a drawing that lacks them; a VISUALSTYLE of the form before AutoCAD 2013, as a DXF of an older version gives
-it; and of the types the reader does read, REGION, 3DSOLID, BODY (with the section ACDSDATA) and SHAPE.
+with it. Left out so far: a VISUALSTYLE of the form before AutoCAD 2013 and a REGION, 3DSOLID or BODY of SAT text, as a
+DXF of an older version gives them; and of the types the reader does read, SHAPE. A new drawing of AutoCAD 2018 is
+written whole: nothing of it is left out.
+
+A REGION, 3DSOLID or BODY is written where the section ACDSDATA of its DXF holds its SAB data, as a DXF of AutoCAD 2013
+and later gives it: the entity with the GUID of its data, and the data in the data store of the file, the section
+AcDb:AcDsPrototype_1b, laid out as AutoCAD lays it out. The records go in the order of the section ACDSDATA, one data
+segment holding them all; a record past 256 KB goes in pages of its own, of at most 1 048 496 bytes each; the search
+segment lists the handles in their order, each with the place of its record. A box 30 by 20 by 10, a sphere, a
+cylinder and a region of a circle are written as AutoCAD's own bits, entity for entity, and their store of 11 520 bytes
+too, but the 12 bytes after the index of the segments that AutoCAD leaves as its memory held them; so is the store of
+a plate 400 by 400 with 400 holes, its 515 873 bytes of SAB in a page of its own. AutoCAD opens both, `AUDIT` finds 0
+errors, and its own DXF of each is the DXF it was written from, the SAB data byte for byte.
 
 A MATERIAL and a VISUALSTYLE are written from the groups their DXF gives, a group not given taking a new material's
 value. Of AutoCAD's new drawing the 24 visual styles and the three materials are AutoCAD's own bits but the last bit of
 the matrices of the materials, 1/48 written in DXF to 16 places; so are a material of colours of its own and one of a
 picture in every map. AutoCAD opens the drawing of these (accoreconsole), `AUDIT` finds 0 errors, and its own DXF of it
-is the DXF it was written from but the detail and section view styles it makes anew.
+is the DXF it was written from.
+
+The detail and section view styles are written from the groups of their DXF, a group not given taking the value of
+AutoCAD's style of a new drawing. The detail view style of AutoCAD's new drawing is AutoCAD's own bits; its section
+view style, and a detail and a section view style of every property their own, are too but the last bit of a double
+DXF writes to 16 places (an angle of the hatch, 1.570796326794896). AutoCAD opens the
+drawing of these, `AUDIT` finds 0 errors, and its own DXF of it is the DXF it was written from. The manager of the
+persistent names of subentities is written as its DXF gives it.
 
 A table is written in the form of AutoCAD 2010, its content inside the ACAD_TABLE, made of the groups DXF keeps of
 AutoCAD 2007: the sizes of its rows and columns, each cell's value, and a merged range for each cell that spans others

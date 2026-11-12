@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgReader` reads the detail and section view styles every drawing of AutoCAD 2013 and later holds, in every
+version AutoCAD saves them, and the manager of the persistent names of subentities AutoCAD keeps beside solids, each as
+AutoCAD's DXF of it gives: a section view style of its own, its identifier 0.33 high, bend lines overshooting by 0.11 and
+a hatch of ANSI37 60 % seen through at three angles, comes out as AutoCAD wrote it in AutoCAD 2000 to 2018. The Debug
+line of the types not read no longer names them.
+
+**NEW.** `DwgWriter` writes the detail and section view styles and the manager of subentities, so a new drawing of
+AutoCAD 2018 is written whole, with nothing left out; and REGION, 3DSOLID and BODY with their ACIS data, where the
+section ACDSDATA of the DXF holds it as SAB (a DXF of AutoCAD 2013 and later): the data store of the file is laid out as
+AutoCAD lays it out, a record past 256 KB in pages of its own. A box, a sphere, a cylinder and a region, and a plate of 400 holes of
+515 873 bytes of SAB, are written in AutoCAD's own bits but 12 bytes AutoCAD leaves unset; AutoCAD opens them with
+`AUDIT` 0 and its DXF of each is the DXF they were written from. A solid of SAT text, as a DXF of an older version gives
+it, is still left out, and so is SHAPE.
+
 **NEW.** The presenter's canvas shows AutoCAD 2021's right-click menus, as its default SHORTCUTMENU 11 has them, their
 items, order and access keys read from AutoCAD's own menu file: with nothing selected the Default menu (Repeat LINE,
 Clipboard, Undo, Redo, Pan, Zoom, Quick Select..., Find..., Options...), with objects selected the Edit menu (the items of

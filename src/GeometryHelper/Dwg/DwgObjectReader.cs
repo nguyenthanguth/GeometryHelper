@@ -1091,6 +1091,15 @@ namespace GeometryHelper.Dwg
                 case "VISUALSTYLE":
                     ReadVisualStyle();
                     return true;
+                case "ACDBDETAILVIEWSTYLE":
+                    ReadDetailViewStyle();
+                    return true;
+                case "ACDBSECTIONVIEWSTYLE":
+                    ReadSectionViewStyle();
+                    return true;
+                case "ACDBASSOCPERSSUBENTMANAGER":
+                    ReadAssocPersSubentManager();
+                    return true;
                 default:
                     return false;
             }

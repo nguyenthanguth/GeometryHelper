@@ -53,6 +53,12 @@ namespace GeometryHelper.Dwg
         /// <summary>Of each block record, its BLOCK and its ENDBLK.</summary>
         public readonly Dictionary<ulong, DwgRecord[]> BlockEnds = new Dictionary<ulong, DwgRecord[]>();
 
+        /// <summary>
+        /// The ACIS data of the section ACDSDATA, in the order of the file: of each ACDSRECORD the handle of its entity
+        /// (320) and its SAB bytes (94 and 310), the first of a handle given twice.
+        /// </summary>
+        public readonly List<KeyValuePair<ulong, byte[]>> AcisData = new List<KeyValuePair<ulong, byte[]>>();
+
         /// <summary>The version the file names, <c>$ACADVER</c>.</summary>
         public string Version => HeaderText("ACADVER", "AC1032");
 
@@ -128,6 +134,10 @@ namespace GeometryHelper.Dwg
                 if (section == "HEADER")
                 {
                     ReadHeader(groups, i, end);
+                }
+                else if (section == "ACDSDATA")
+                {
+                    ReadAcisData(groups, i, end);
                 }
                 else
                 {
@@ -214,6 +224,52 @@ namespace GeometryHelper.Dwg
                 else if (current != null)
                 {
                     current.Add(groups[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The records of ACIS data of the section ACDSDATA: each ACDSRECORD that names an entity (320) and gives bytes (94,
+        /// then 310 in hex); the schemas and the records of anything else are passed over.
+        /// </summary>
+        private void ReadAcisData(List<KeyValuePair<int, string>> groups, int from, int to)
+        {
+            for (int i = from; i < to; i++)
+            {
+                if (groups[i].Key != 0 || groups[i].Value.Trim() != "ACDSRECORD")
+                {
+                    continue;
+                }
+
+                ulong handle = 0;
+                int size = -1;
+                var bytes = new List<byte>();
+
+                for (i++; i < to && groups[i].Key != 0; i++)
+                {
+                    switch (groups[i].Key)
+                    {
+                        case 320:
+                            handle = DwgRecord.Hex(groups[i].Value);
+                            break;
+                        case 94:
+                            size = DwgRecord.Int(groups[i].Value);
+                            break;
+                        case 310:
+                            if (size >= 0)
+                            {
+                                bytes.AddRange(DwgObjectWriter.Unhex(groups[i].Value));
+                            }
+
+                            break;
+                    }
+                }
+
+                i--;
+
+                if (handle != 0 && size > 0 && bytes.Count >= size && !AcisData.Exists(data => data.Key == handle))
+                {
+                    AcisData.Add(new KeyValuePair<ulong, byte[]>(handle, bytes.GetRange(0, size).ToArray()));
                 }
             }
         }

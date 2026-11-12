@@ -183,6 +183,12 @@ namespace GeometryHelper.Dwg
                     return 0x20;
                 case "VIEWPORT":
                     return 0x22;
+                case "REGION":
+                    return HasAcisData(record) ? 0x25 : -1;
+                case "3DSOLID":
+                    return HasAcisData(record) ? 0x26 : -1;
+                case "BODY":
+                    return HasAcisData(record) ? 0x27 : -1;
                 case "LEADER":
                     return 0x2D;
                 case "TOLERANCE":
@@ -371,6 +377,12 @@ namespace GeometryHelper.Dwg
                     return R2007Plus ? WriteMaterial : (Action)null;
                 case "VISUALSTYLE":
                     return R2013Plus ? WriteVisualStyle : (Action)null;
+                case "ACDBDETAILVIEWSTYLE":
+                    return R2018Plus ? WriteDetailViewStyle : (Action)null;
+                case "ACDBSECTIONVIEWSTYLE":
+                    return R2018Plus ? WriteSectionViewStyle : (Action)null;
+                case "ACDBASSOCPERSSUBENTMANAGER":
+                    return WriteAssocPersSubentManager;
                 default:
                     return null;
             }
@@ -786,7 +798,8 @@ namespace GeometryHelper.Dwg
 
             if (R2013Plus)
             {
-                _data.Bit(false);
+                // Whether the entity's data is in the data store: an ACIS entity's is.
+                _data.Bit(_record.Type == "REGION" || _record.Type == "3DSOLID" || _record.Type == "BODY");
             }
 
             if (!R2004Plus)
@@ -1075,6 +1088,13 @@ namespace GeometryHelper.Dwg
                     return;
                 case 0x22:
                     WriteViewport();
+                    return;
+                case 0x25:
+                case 0x27:
+                    WriteModelerGeometry(false);
+                    return;
+                case 0x26:
+                    WriteModelerGeometry(true);
                     return;
                 case 0x2D:
                     WriteLeader();

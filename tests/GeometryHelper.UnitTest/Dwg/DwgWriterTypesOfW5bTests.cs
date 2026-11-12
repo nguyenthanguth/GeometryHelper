@@ -18,8 +18,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </summary>
     public class DwgWriterTypesOfW5bTests
     {
-        /// <summary>The types of AutoCAD's new drawing of R2018 that the writer still leaves out.</summary>
-        private static readonly string[] StillLeftOut = { "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE" };
+        /// <summary>The types of AutoCAD's new drawing of R2018 that the writer still leaves out: none since the view styles.</summary>
+        private static readonly string[] StillLeftOut = { };
 
         private static byte[] Written(DxfDatabase database)
         {
@@ -165,7 +165,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 GeometryHelperLog.Enable = enabled;
             }
 
-            Assert.Equal(3, lines.Count);
+            // Since the view styles are written, these drawings leave nothing out and give no such line.
+            Assert.Empty(lines);
 
             foreach (string type in new[] { "MULTILEADER", "MLEADERSTYLE", "TABLESTYLE", "ACAD_TABLE", "CELLSTYLEMAP" })
             {

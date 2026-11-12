@@ -22,12 +22,7 @@ namespace GeometryHelper.UnitTest.Dwg
     public class DwgTableOverridesTests
     {
         /// <summary>The types of AutoCAD's new drawing of R2018 that the reader and the writer still leave out.</summary>
-        private static readonly string[] StillLeftOut =
-        {
-            "ACDBDETAILVIEWSTYLE",
-            "ACDBSECTIONVIEWSTYLE",
-            "CLASS CELLSTYLEMAP",
-        };
+        private static readonly string[] StillLeftOut = { "CLASS CELLSTYLEMAP" };
 
         private static byte[] Written(DxfDatabase database)
         {
