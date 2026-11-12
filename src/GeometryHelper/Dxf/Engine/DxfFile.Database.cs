@@ -3389,7 +3389,7 @@ namespace GeometryHelper.Dxf
         /// a DIMSTYLE, the version of the variable of the group, its handles (340 to 347) R2000 at the earliest, its second 70
         /// being DIMTFILLCLR of R2007, and DIMTXTDIRECTION (294) R2010. Nought for any other group, every version of R13 on having it.
         /// </summary>
-        private static int SinceOf(string table, int code, bool second)
+        internal static int SinceOf(string table, int code, bool second)
         {
             if (table == "LAYER")
             {
