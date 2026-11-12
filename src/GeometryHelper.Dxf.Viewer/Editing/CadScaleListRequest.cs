@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -107,6 +108,11 @@ namespace GeometryHelper.Dxf.Viewer
             Document = document ?? throw new ArgumentNullException(nameof(document));
             Scales = scales;
             Defaults = defaults;
+            MetricDefaults = CadCommands.MetricScales();
+            ImperialDefaults = CadCommands.ImperialScales();
+            MetricAndImperialDefaults = MetricDefaults
+                .Concat(ImperialDefaults.Where(s => !MetricDefaults.Any(m => m.Name == s.Name)))
+                .ToList();
         }
 
         /// <summary>Gets the document.</summary>
@@ -121,6 +127,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// to 1'-0" = 1'-0" (17).
         /// </summary>
         public IReadOnlyList<CadScaleListRow> Defaults { get; }
+
+        /// <summary>Gets the list Reset's Metric scales puts back: 1:1 to 100:1 (17 scales).</summary>
+        public IReadOnlyList<CadScaleListRow> MetricDefaults { get; }
+
+        /// <summary>Gets the list Reset's Imperial scales puts back: 1:1 and 1/128" = 1'-0" to 1'-0" = 1'-0" (17 scales).</summary>
+        public IReadOnlyList<CadScaleListRow> ImperialDefaults { get; }
+
+        /// <summary>
+        /// Gets the list Reset's Metric and Imperial scales puts back: the 17 metric scales, then the 16 imperial ones that are
+        /// not 1:1 (33 scales).
+        /// </summary>
+        public IReadOnlyList<CadScaleListRow> MetricAndImperialDefaults { get; }
 
         /// <summary>Gets or sets what the dialog was closed with: OK writes <see cref="Scales"/>; Cancel until set.</summary>
         public CadDialogAction Action { get; set; } = CadDialogAction.Cancel;

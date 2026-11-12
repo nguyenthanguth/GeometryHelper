@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -20,7 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             InitializeComponent();
             DataContext = model;
             model.AskScale = dialog => ScaleEditWindow.Ask(this, dialog);
-            model.ConfirmReset = () => CadQuestionWindow.AskResetScaleList(this, model.ResetChoice);
+            model.ConfirmReset = () => CadQuestionWindow.AskResetScaleList(this);
+            model.ConfirmDeleteInUse = () => CadQuestionWindow.AskDeleteScalesInUse(this);
+            model.ShowMessage = message => CadQuestionWindow.ShowMessage(this, message);
         }
 
         /// <summary>Gets the view model.</summary>
@@ -46,6 +50,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DragMove();
             }
         }
+
+        private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) =>
+            Model.Choose(List.SelectedItems.OfType<ScaleRowViewModel>());
 
         private void OnRowDoubleClick(object sender, MouseButtonEventArgs e) => Model.Edit();
 

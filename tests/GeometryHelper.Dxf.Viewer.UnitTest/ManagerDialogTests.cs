@@ -404,7 +404,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(reached);
             Assert.False(session.IsRunning);
             Assert.Equal(3, purged);
-            Assert.Equal(new[] { "Purge block \"OUTER\"?", "Purge block \"INNER\"?", "Purge layer \"DEEP\"?" }, asked);
+            Assert.Equal(
+                new[]
+                {
+                    "You are about to purge block OUTER. What do you want to do?",
+                    "You are about to purge block INNER. What do you want to do?",
+                    "You are about to purge layer DEEP. What do you want to do?",
+                },
+                asked
+            );
             Assert.False(document.Database.BlockTable.Has("INNER"));
             Assert.False(document.Database.LayerTable.Has("DEEP"));
             Assert.True(document.Database.LayerTable.Has("TMP"));

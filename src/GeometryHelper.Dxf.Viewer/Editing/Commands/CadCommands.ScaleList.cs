@@ -278,63 +278,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// 12) to 1'-0" = 1'-0" (12 to 12). A drawing with no MEASUREMENT in its header takes the imperial list, as AutoCAD 2021
         /// reads such a header as MEASUREMENT 0.
         /// </summary>
-        internal static List<CadScaleListRow> DefaultScales(DxfDatabase database)
+        internal static List<CadScaleListRow> DefaultScales(DxfDatabase database) =>
+            database != null
+            && (database.GetHeader("$MEASUREMENT") == null || database.Measurement == DxfMeasurementValue.English)
+                ? ImperialScales()
+                : MetricScales();
+
+        /// <summary>The 17 metric scales Reset's Metric scales puts back: 1:1, 1:2, 1:4, 1:5, 1:8, 1:10, 1:16, 1:20, 1:30, 1:40, 1:50, 1:100, 2:1, 4:1, 8:1, 10:1 and 100:1.</summary>
+        internal static List<CadScaleListRow> MetricScales()
         {
             var scales = new List<CadScaleListRow>();
-
-            if (
-                database != null
-                && (database.GetHeader("$MEASUREMENT") == null || database.Measurement == DxfMeasurementValue.English)
-            )
-            {
-                string[] inches =
-                {
-                    "1/128",
-                    "1/64",
-                    "1/32",
-                    "1/16",
-                    "3/32",
-                    "1/8",
-                    "3/16",
-                    "1/4",
-                    "3/8",
-                    "1/2",
-                    "3/4",
-                    "1",
-                    "1-1/2",
-                    "3",
-                    "6",
-                };
-                double[] paper =
-                {
-                    0.0078125,
-                    0.015625,
-                    0.03125,
-                    0.0625,
-                    0.09375,
-                    0.125,
-                    0.1875,
-                    0.25,
-                    0.375,
-                    0.5,
-                    0.75,
-                    1,
-                    1.5,
-                    3,
-                    6,
-                };
-
-                // 1:1 first, as AutoCAD's list after Reset has it, then the 16 imperial scales: 17 in all.
-                scales.Add(new CadScaleListRow("1:1", 1, 1));
-
-                for (int i = 0; i < inches.Length; i++)
-                {
-                    scales.Add(new CadScaleListRow(inches[i] + "\" = 1'-0\"", paper[i], 12));
-                }
-
-                scales.Add(new CadScaleListRow("1'-0\" = 1'-0\"", 12, 12));
-                return scales;
-            }
 
             foreach (string name in CadViewports.StandardScales)
             {
@@ -348,6 +301,59 @@ namespace GeometryHelper.Dxf.Viewer
                 );
             }
 
+            return scales;
+        }
+
+        /// <summary>The 17 scales Reset's Imperial scales puts back: 1:1, then 1/128" = 1'-0" (0.0078125 to 12) to 1'-0" = 1'-0" (12 to 12).</summary>
+        internal static List<CadScaleListRow> ImperialScales()
+        {
+            var scales = new List<CadScaleListRow>();
+            string[] inches =
+            {
+                "1/128",
+                "1/64",
+                "1/32",
+                "1/16",
+                "3/32",
+                "1/8",
+                "3/16",
+                "1/4",
+                "3/8",
+                "1/2",
+                "3/4",
+                "1",
+                "1-1/2",
+                "3",
+                "6",
+            };
+            double[] paper =
+            {
+                0.0078125,
+                0.015625,
+                0.03125,
+                0.0625,
+                0.09375,
+                0.125,
+                0.1875,
+                0.25,
+                0.375,
+                0.5,
+                0.75,
+                1,
+                1.5,
+                3,
+                6,
+            };
+
+            // 1:1 first, as AutoCAD's list after Reset has it, then the 16 imperial scales: 17 in all.
+            scales.Add(new CadScaleListRow("1:1", 1, 1));
+
+            for (int i = 0; i < inches.Length; i++)
+            {
+                scales.Add(new CadScaleListRow(inches[i] + "\" = 1'-0\"", paper[i], 12));
+            }
+
+            scales.Add(new CadScaleListRow("1'-0\" = 1'-0\"", 12, 12));
             return scales;
         }
 

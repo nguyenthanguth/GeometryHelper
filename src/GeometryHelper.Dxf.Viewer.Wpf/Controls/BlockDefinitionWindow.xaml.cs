@@ -51,15 +51,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (Model.Exists)
             {
-                MessageBoxResult answer = MessageBox.Show(
-                    this,
-                    Model.Name.Trim() + " is already defined. Do you want to redefine it?",
-                    "Block - Redefine Block",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning
-                );
-
-                if (answer != MessageBoxResult.Yes)
+                if (!CadQuestionWindow.AskRedefineBlock(this, Model.Name.Trim()))
                 {
                     return;
                 }

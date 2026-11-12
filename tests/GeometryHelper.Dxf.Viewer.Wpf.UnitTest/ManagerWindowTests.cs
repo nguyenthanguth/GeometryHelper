@@ -296,7 +296,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     blocks.Children[0].IsChecked = true;
                     purge.Nodes.Single(n => n.Name == "TMP").IsChecked = true;
                     Assert.Equal(2, purge.PurgeChecked());
-                    Assert.Equal(new[] { "Purge block \"OLD\"?", "Purge layer \"TMP\"?" }, asked);
+                    Assert.Equal(
+                        new[]
+                        {
+                            "You are about to purge block OLD. What do you want to do?",
+                            "You are about to purge layer TMP. What do you want to do?",
+                        },
+                        asked
+                    );
                     Assert.Equal(
                         new[] { "TB" },
                         purge.Nodes.Single(n => n.Name == "Blocks").Children.Select(c => c.Name)

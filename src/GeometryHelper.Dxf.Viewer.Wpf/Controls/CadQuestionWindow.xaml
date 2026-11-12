@@ -69,7 +69,7 @@
                 </StackPanel>
             </DockPanel>
             <Border Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <StackPanel x:Name="Buttons" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button
                         x:Name="NoButton"
                         Style="{StaticResource GhDialogButton}"
