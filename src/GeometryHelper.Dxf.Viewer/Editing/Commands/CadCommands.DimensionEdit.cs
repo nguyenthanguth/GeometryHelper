@@ -591,8 +591,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// to run through the point where its DIMTMOVE is 0, the words above it there (on it, the line broken, for DIMTAD 0),
         /// and for 1 and 2 its words by the point, the line staying (see <see cref="PlaceMoved"/>); an angular one's arc through the point where it is 0, the words standing on
         /// the arc there, above it as they read; a radius's or a diameter's words slid along its line, which stays, to where the
-        /// point falls on it for DIMTMOVE 0 and 1, and put at the point itself for 2. A radius of 20 at 30 degrees whose words
-        /// are moved to 50 out at 60 degrees has them 43.3 out along its line.
+        /// point falls on it for DIMTMOVE 0 and 1 under DIMATFIT 3, and put at the point itself for 2; its line turned toward the
+        /// point under DIMATFIT 0 to 2 at DIMTMOVE 0 (see <see cref="SettleRadial"/>); an ordinate's leader run to the words, with
+        /// a jog, for DIMTMOVE 0 and 1. A radius of 20 at 30 degrees whose words are moved to 50 out at 60 degrees has them 43.3
+        /// out along its line under DIMATFIT 3, and its line at 60 degrees under DIMATFIT 0.
         /// </summary>
         internal static void MoveWords(DxfDimension dimension, GeoPoint2 at)
         {
@@ -617,6 +619,19 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
+                case DxfRadialDimension _ when withLine && dimension.Dimatfit != 3:
+                case DxfDiametricDimension _ when withLine && dimension.Dimatfit != 3:
+                    DragWords(dimension, at);
+                    SettleRadial(dimension, at);
+                    return;
+                case DxfOrdinateDimension ordinate:
+                    // Under DIMTMOVE 2 the words stand free, the leader staying where it ends.
+                    if (dimension.Dimtmove != 2)
+                    {
+                        ordinate.LeaderEndPoint = P3(LeaderEndUnder(ordinate, at));
+                    }
+
+                    break;
                 case DxfRadialDimension radial:
                     at = dimension.Dimtmove == 2 ? at : OnLine(P2(radial.Center), P2(radial.ChordPoint), at);
                     break;
@@ -632,6 +647,111 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             dimension.TextPosition = P3(at);
+            SettleRadial(dimension, at);
+        }
+
+        /// <summary>
+        /// Settles the words of a radius or a diameter moved under DIMTMOVE 0 as AutoCAD 2021 does. Under DIMATFIT 3 the point
+        /// within the room next to the rim writes them at their default place: "R20" moved to 25 out of a circle of 20 stands
+        /// 28.75 out and is a 36, where moved to 40 out it is a 164 standing there. The words a fit holds back from the rim
+        /// (11.25 out for 15) or pushes out stand where they are held, their group 11 the point of the line they stand by.
+        /// </summary>
+        private static void SettleRadial(DxfDimension dimension, GeoPoint2 at)
+        {
+            DxfDimStyleTableRecord data = dimension.GetDimstyleData();
+
+            if (data.Dimtmove != 0)
+            {
+                return;
+            }
+
+            GeoPoint2 chord;
+            GeoPoint2 far;
+            GeoPoint2 center;
+            bool diameter = dimension is DxfDiametricDimension;
+
+            if (dimension is DxfRadialDimension radial)
+            {
+                center = P2(radial.Center);
+                chord = P2(radial.ChordPoint);
+                far = center - (chord - center);
+            }
+            else if (dimension is DxfDiametricDimension diametric)
+            {
+                chord = P2(diametric.ChordPoint);
+                far = P2(diametric.FarChordPoint);
+                center = new GeoPoint2((chord.X + far.X) / 2.0, (chord.Y + far.Y) / 2.0);
+            }
+            else
+            {
+                return;
+            }
+
+            double radius = (chord - center).Length;
+
+            if (radius <= 1E-12)
+            {
+                return;
+            }
+
+            List<DxfEntity> picture = RadialLaidOut(
+                data,
+                data.Dimscale,
+                data.Dimtxt,
+                center,
+                radius,
+                chord,
+                far,
+                at,
+                diameter,
+                Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"),
+                true,
+                false,
+                out bool atPoint
+            );
+
+            if (!atPoint)
+            {
+                dimension.UsingDefaultTextPosition = true;
+            }
+            else if (RecordedPoint(picture) is GeoPoint3 recorded)
+            {
+                dimension.TextPosition = recorded;
+            }
+        }
+
+        /// <summary>
+        /// Where an ordinate dimension's leader ends once its words are to stand at a point, as AutoCAD 2021 draws it after DIMTEDIT
+        /// (under DIMTMOVE 0 and 1; under 2 the leader stays):
+        /// the leader runs to the words, ending a gap short of them (DIMTAD 0) or under them (the words beside it, by DIMGAP and half
+        /// their height), jogged where the point is to one side of the feature. "2400" of a point at (2400, 0) with its words moved
+        /// to (2408, 50) has its leader end at (2408, 45.2083), the words' half width and a gap short of them.
+        /// </summary>
+        private static GeoPoint2 LeaderEndUnder(DxfOrdinateDimension ordinate, GeoPoint2 at)
+        {
+            DxfDimStyleTableRecord data = ordinate.GetDimstyleData();
+            double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
+            double turn = -ordinate.HorizontalRotation;
+            bool xDatum = ordinate.UsingXAxis;
+            var square = xDatum
+                ? new GeoVector2(-Math.Sin(turn), Math.Cos(turn))
+                : new GeoVector2(Math.Cos(turn), Math.Sin(turn));
+            GeoPoint2 feature = P2(ordinate.DefiningPoint);
+            GeoVector2 way = (at - feature).X * square.X + (at - feature).Y * square.Y < 0.0 ? -square : square;
+            double gap = Math.Abs(data.Dimgap) * scale;
+            double width = WordsWidth(
+                data,
+                Formatted(ordinate, ordinate.Measurement, string.Empty),
+                data.Dimtxt * scale,
+                out double tall
+            );
+            double angle = turn + (xDatum ? Math.PI / 2.0 : 0.0);
+            var above = new GeoVector2(-Math.Sin(angle), Math.Cos(angle));
+            double lift =
+                data.Dimtad == 0 ? 0.0
+                : data.Dimtad == 4 ? -(gap + tall / 2.0)
+                : gap + tall / 2.0;
+            return at - way * (gap + width / 2.0) - above * lift;
         }
 
         /// <summary>Where a point falls on the line through two points, square to it; the first point where they are one.</summary>

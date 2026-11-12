@@ -78,6 +78,17 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 
 ### In progress
 
+User request 2026-11-13 (acad.pgp):
+- [ ] LAYERP (Layer Previous) with LAYERPMODE and the alias 2 (layerp, running) (S)
+- [ ] Default aliases as the maintainer's acad.pgp: 1 LAYISO, 2 LAYERP, 22 LAYON, 3 LAYOFF (with layerp) (S)
+
+Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap list comes from pgp-cmds1 and may move items between batches; each command with AutoCAD's prompts, one undo step, DXF/DWG as AutoCAD writes it, new dialogs designed first; 3D modelling, mesh, surfaces, render, materials, lights, cameras, point clouds, sheet sets, data links, constraints, animation and cloud commands left out):
+- [ ] Batch 1, drafting basics (pgp-cmds1, running): the exact gap list; missing aliases of commands we have; COLOR, LWEIGHT, DIVIDE, MEASURE, CHANGE, REDRAW/REDRAWALL/REGENALL, RENAME/-RENAME, ISOLATEOBJECTS/UNISOLATEOBJECTS/HIDEOBJECTS, CENTERMARK, CENTERLINE, DIMCENTER (L)
+- [ ] Batch 2, annotation: DIMOVERRIDE, MLEADERALIGN, MLEADERCOLLECT, MLEADEREDIT, TEXTALIGN, ATTIPEDIT, SPELL, MLINE with MLSTYLE and MLEDIT (L)
+- [ ] Batch 3, shapes and hatching: SPLINEDIT, REGION, SOLID (2D), BOUNDARY/-BOUNDARY, -HATCH, GRADIENT, HATCHTOBACK, CLASSICINSERT (L)
+- [ ] Batch 4, view and utility: VPORTS (model tiled viewports), FILTER, QUICKCALC, QUICKPROPERTIES, the command-line forms -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND, SAVE, QUIT, COMMANDLINE, HIDEPALETTES/SHOWPALETTES (M)
+- [ ] Batch 5, output: EXPORTPDF, PLOTSTAMP, PDFSHX, IMPORT (M)
+
 User note 2026-11-12 evening (note.md 1-14):
 - [x] Global settings (settings-ui, design v133): Shortcuts keys captured as key presses; Import acad.pgp left of "Reset to AutoCAD defaults"; wheel zoom factor default 1.5; UI font as an editable font combo (or Windows font dialog); "Fonts" renamed "Folder preference" with only the folder paths, Font not found and Font mapping moved to "Text and fonts"; Drawing defaults, Data sources and Drawing text removed from Dxf.Viewer (they belong to the Tekla drawing part) (M)
 - [x] New drawing gets the default layers of Global settings > Layers, colour and lines; Ctrl+3 toggles the ribbon area like Ctrl+1/Ctrl+2 (RIBBON/RIBBONCLOSE)
@@ -132,7 +143,8 @@ the ones wanted.
 - [x] Dimension follow-ups 4: SHX ink as AutoCAD (13 fonts), DIMCONTINUEMODE, radial group 11 and DIMTMOVE 2 pictures, the 15-degree no-landing rule
 - [x] Dimension follow-ups 5: DIM's radial and continue/baseline prompts (AcDimRes strings); radius/diameter words near the rim (941 of 2742 differing down to 31); upright-line landing direction (8 of 448 down to 0)
 - [x] Dimension follow-ups 6: radius/diameter written as AutoCAD writes them (leader 0; 164/163 only where the words stand at the point given, probed over 192 combinations); AutoCAD's regen of our files differing 723 to 0 on 1920 cases; level-word landings near level
-- [ ] Dimension follow-ups 7: the diameter-with-DIMTIX picture next to the rim; DIMTEDIT on a radius at DIMTMOVE 0 sliding words for type 164; AutoCAD's regen of our moved linear/aligned/angular/ordinate words (36 of 144 differ); points exactly on the rim and lines exactly 15 degrees from level (rounding, parked); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
+- [x] Dimension follow-ups 7: DIMTIX radius/diameter pictures (2 063 of 2 752 differing down to 75); DIMTEDIT at DIMTMOVE 0 by DIMATFIT (625 of 1 024 down to 1); AutoCAD's regen of moved ordinate/linear/aligned/angular words (114 of 289 down to 5)
+- [ ] Dimension follow-ups 8: level words in a tight radius/diameter (603 left of 4 065); the angular leader threshold fit; words exactly on the first extension line; points exactly on the rim and lines exactly 15 degrees from level (rounding, parked); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

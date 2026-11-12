@@ -244,7 +244,16 @@ landing two gaps long on away from the line, the words a gap past it; DIMTEDIT d
 the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
 DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
 top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
-DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line.
+DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line. Under DIMTMOVE 1 words
+put past an end of the line, on its way, have the line run on from the end to them, to the near edge of words on it and
+to the far edge of words above it, a gap past each: "100" 5 wide put 20 past the end of a line 100 long has it run on to
+116.875 on it and 123.125 above it.
+Moved words are drawn by AutoCAD 2021's rules for an ordinate dimension too: DIMTEDIT runs its leader to the words, a gap
+short of them on it (DIMTAD 0) or under them where they stand beside it, jogged where the point is to one side of the
+feature: the point (1200, 0) measuring 1200, its words moved to (1208, 50), has
+its leader up to 35.764, across 8 as it rises 5, then 5 more to 45.764; the first leg is never shorter than two
+arrowheads (words moved to (1192, 15): up to 5, across, up 5 more).
+Under DIMTMOVE 2 the leader stays where it ends and does not run on under the words.
 
 DIMLINEAR asks `Specify dimension line location or [Mtext/Text/Angle/Horizontal/Vertical/Rotated]:` and DIMALIGNED
 `[Mtext/Text/Angle]`, as AutoCAD 2021: Mtext and Text ask for the words, Angle turns them (`Specify angle of dimension
@@ -265,7 +274,13 @@ rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too 
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
 where they fit, else outside past the rim next to it, however far out the line was put: "R20" put 35 out stands 8.75 from
-the centre. On the line (DIMTAD 0) a radius's words take the arrowhead and two gaps more to fit. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+the centre. DIMTIX puts the words outside next to the rim wherever the point was under DIMATFIT 3 (and under DIMTMOVE 1,
+whatever DIMATFIT), a diameter's far arrowhead outside with them and DIMTOFL's line through, or without DIMTOFL the
+centre marked; level words are decided by DIMTIH there and stand on a landing an arrowhead long: with Arial 2.5 high,
+"R20" put 40 out at 30 degrees stands 28.6 out, its line from 22.5 to 32.5. Under DIMATFIT 0 to 2 (and 0 to 2 with DIMTMOVE 2)
+DIMTIX keeps the words inside however tight the radius, the arrowhead going out on its short line where they leave it no
+room: a radius of 5 has its line whole to the rim and the arrowhead outside, and with DIMTOFL off no line and the
+centre marked. On the line (DIMTAD 0) a radius's words take the arrowhead and two gaps more to fit. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
 the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
 through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
 the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
@@ -278,7 +293,16 @@ the extension lines. DIMJUST 1 puts an angle's words next to its second ray, 2 n
 on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" moved 50 out at 30 degrees stands 51.9
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
-stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
+stand at the point under 2, but under DIMTMOVE 0 and DIMATFIT 0 to 2 DIMTEDIT turns the line toward the point: "R20" of a
+circle of 20 put 35 out at 30 degrees, moved to 15 out at 120 degrees, has its line at 120 degrees, its words 15 out on
+it with the line whole to the arrowhead; moved 25 out they stand 28.6 out, the arrowhead outside (inside under DIMATFIT 2,
+the words then 26.25 out). Under DIMATFIT 3 words moved within the room next to the rim are pushed out and written 36, those
+inside held back from the rim as they are put there (15 out stands 11.25 out), group 11 the point of the line they stand by.
+A radius made under 1 or 2 keeps its line through the point the circle was picked at. Words of an angle moved under
+DIMTMOVE 1 or 2 onto the arc break it about them, as words in the middle of it do, and under 0 send the arrowheads outside
+with the arc drawn whole where they cut into an arrowhead's room ("60°" put 6 degrees from the first ray of an angle of
+60 at 35 out); under 1 their leader is drawn only past a distance from the arc, 6.875 with arrowheads and words 2.5 high and a gap of
+0.625, fitted to what AutoCAD 2021 draws.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,

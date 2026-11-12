@@ -20,6 +20,37 @@ two. `CadXClips.TryUninvert` takes a keyhole back to its polygon, wherever the r
 **NEW.** EXPLODE of a clipped block reference is checked against AutoCAD 2021 (probed on a rectangle, a polygon, a clip turned
 inside out and a clip off): it breaks the whole block, the clip applied to no piece, as the presenter does; a test keeps it so.
 
+**FIXED.** A radius or a diameter under DIMTIX is laid out in the presenter as AutoCAD 2021 draws it, probed in its console
+over 2 752 radii and diameters (circles of 3 to 20, DIMATFIT 0 and 3, DIMTAD 0, 1 and 4, DIMTOH and DIMTIH together or apart,
+DIMTOFL on and off, points from the centre to 2 radii out): 2 063 of them differed, 75 do now (level words in a circle too
+small for them, which differ with and without DIMTIX). Under DIMATFIT 3 the words
+stand next to the rim wherever the point was put, where the picture followed the point: "R20" put 40 out at 30 degrees stands
+28.6 out in Arial 2.5 high, its line from 22.5 to 32.5, a diameter's far arrowhead outside with its line only where DIMTOFL
+is on (else the centre is marked), and level words are decided by DIMTIH and stand on a landing an arrowhead long, not above
+the line. Under DIMATFIT 0 to 2 DIMTIX keeps the words inside the radius however tight, as it had them outside: a radius of 5
+has its line whole to the rim and its arrowhead outside on its short line, "%%c6" in a diameter of 6 its arrowheads
+outside; DIMTOFL off leaves no line and marks the centre. Under DIMTMOVE 1 and 2 the point is not heeded either: the words
+stand next to the rim under DIMATFIT 3 (and under 1 whatever DIMATFIT), in the middle under 2 with DIMATFIT 0 to 2.
+**FIXED.** DIMTEDIT on a radius or a diameter at DIMTMOVE 0 does as AutoCAD 2021: under DIMATFIT 0 to 2 it turns the line
+toward the point (the words at the point, the line whole to the arrowhead; moved past the rim they stand where the fit puts
+them, the arrowhead outside but under DIMATFIT 2), and under DIMATFIT 3 it slides the words along the line, as before. Its
+state does not decide it: the 164 or 36 the dimension had, which AutoCAD writes by how the words were put, is no test (a
+radius under DIMATFIT 3 and DIMTIX is a 36 and slides). Under DIMATFIT 3 words moved within the room next to the rim are
+written 36 and pushed out to where DIMRADIUS would put them, and words inside are held back from the rim as they are put
+there, the group 11 of both the point of the line they stand by: "R20" of a circle of 20 moved to 25 out stands 28.6 out and
+is a 36, moved to 15 out stands 11.25 out and is a 164. Of 1 024 radii and diameters made and moved in AutoCAD's console
+(DIMATFIT 0 to 3, DIMTIX, four points and four moves each) 625 differed, 1 does now; of 432 moved twice 300 differed, 1 does.
+**FIXED.** The words of ordinate, linear, aligned and angular dimensions that DIMTEDIT, or the Text position rows, moved are
+drawn as AutoCAD 2021 draws them when it recomputes the file. Of 289 such dimensions (each kind under DIMTMOVE 0, 1 and 2,
+DIMTAD 0 and 1, ten points) 114 differed, 5 do (a point exactly on the first extension line, parked), and of 96 angles with
+their words at 6, 30 and 80 degrees 66 differed, 10 do. An ordinate's leader runs to the words, jogged where they stand to
+one side of the point, a gap short of them or under them beside the leader, and under DIMTMOVE 2 stays where it ends: the
+point (1200, 0) with its words moved to (1208, 50) has its leader up to 35.764, across 8 as it rises 5, up 5 more. A linear
+or aligned dimension whose words are put past an end of its line under DIMTMOVE 1 has the line run on to them, to the near
+edge of words on it and to the far edge of words above it. An angle's words put on its arc under DIMTMOVE 1 or 2 break the
+arc about them, and under 0 send the arrowheads outside, the arc whole, where they cut into an arrowhead's room ("60°" 6
+degrees from the first ray); words put under 1 within 6.875 of the arc (arrowheads and words 2.5 high, DIMGAP 0.625) have no
+leader, a distance fitted to what AutoCAD draws for eight sizes.
 **FIXED.** Edit Drawing Scales in the presenter now works as AutoCAD 2021's. Reset's question offers the three buttons AutoCAD's
 task dialog has, Metric scales (1:1 to 100:1, 17 scales), Imperial scales (1:1 and `1/128" = 1'-0"` to `1'-0" = 1'-0"`, 17)
 and Metric and Imperial scales (the metric ones then the 16 imperial ones that are not 1:1, 33), where it offered the

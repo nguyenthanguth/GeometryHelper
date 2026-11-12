@@ -507,8 +507,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Words of DIMTMOVE 2 stand where put; of 1 where the point falls on a line kept apart from it.
             GeoPoint2 along = center + unit * ((location - center).X * unit.X + (location - center).Y * unit.Y);
-            bool free = move == 2;
-            bool slid = move == 1 && (along - location).Length > c.Session.Tolerance.EqualPoint;
+            // DIMTIX keeps the words at their default place next to the rim wherever the point was put, under DIMTMOVE 1 and 2 as 0.
+            bool free = move == 2 && !style.Dimtix;
+            bool slid = move == 1 && !style.Dimtix && (along - location).Length > c.Session.Tolerance.EqualPoint;
             GeoPoint2 wordsAt = slid ? along : location;
 
             // Words slid onto the line outside the rim still keep the room next to it: AutoCAD 2021 holds "R20" put 20.3 out
@@ -1757,6 +1758,24 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             layout.At = move == 1 ? at + above * offLine : at;
+
+            // Words put past the end of the line, on its way, under DIMTMOVE 1: the line runs on from the end to them, to the near
+            // edge of words on it, and under words off it to their far edge, a gap past each, as AutoCAD 2021 draws it: "100" 5
+            // wide put 20 past the end of a line 100 long has its line run on from 100 to 116.875 (on it), 123.125 (above it).
+            if (move == 1)
+            {
+                double length = (q2 - q1).Length;
+                double reachEnd = onLine ? -half : half;
+
+                if (t > length && t + reachEnd > length)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q2, q1 + along * (t + reachEnd)));
+                }
+                else if (t < 0.0 && t - reachEnd < 0.0)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1 + along * (t - reachEnd), q1));
+                }
+            }
 
             if (crossing && (move == 2 || onLine))
             {
