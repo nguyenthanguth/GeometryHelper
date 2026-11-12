@@ -45,6 +45,25 @@ its layer, as AutoCAD 2021 does under DIMCONTINUEMODE 1, where the presenter too
 LAyer): from a dimension made on L1 at DIMSCALE 2 they go on L1 and write `1070 40, 1040 2` with L2 current at 1, a
 baseline row twice DIMDLI further out each time; linear, angular and ordinate rows alike.
 
+**CHANGED.** `GetIntersections` and `TryIntersectWith` of a triangle, a polygon, a face or a plane with a `GeoObb3` or a
+`GeoAabb3` flat on some axis, or no thicker than the point tolerance on two, read the box as its rectangle, its segment
+or its point, as `CollidesWith` and `DistanceTo` read it, where they gave no points: the plane x = 30 crosses the box
+100 by 100 by 0 about (50, 50, 0) at (30, 100, 0) and (30, 0, 0), on its edges, and the box 100 by 0.000002 by 0.000002
+about (50, 0, 0) at (30, 0, 0). A box with its body is crossed as before, bit for bit (2.38 million calls of a fuzz
+under .NET Framework 4.8 and .NET 10, old against new); an empty box is still crossed nowhere.
+
+**FIXED.** `TryUnion`, `TryIntersect` and `TrySubtract` of a `GeoObb3`, and of a `GeoSolid3` with a box, answer false
+with no result for a box no thicker than the point tolerance on two axes, as for one flat on some axis, where they ran on
+its sliver body: the box 100 by 0.000002 by 0.000002 joined to a cube 40 on a side it runs through was given the cube
+alone, its two ends lost.
+
+**FIXED.** `GetIntersections` of a ray and a box flat on some axis no longer throws "A box with a zero size on some axis
+has no faces to build" for a ray starting within the tolerance of a corner and running away from it: it touches the box
+at its origin, as one beside a box with its body does (456 throws in 200 000 rays of a fuzz, none now).
+
+**FIXED.** `Locate` and `Contains` of a `GeoObb3` or a `GeoAabb3` put a point that is not a number outside the box, as
+a body's `Locate` does; it was inside.
+
 **CHANGED.** A hook of the presenter's LEADER and QLEADER has a vertex of its own wherever AutoCAD 2021 writes one: on a
 leader to a frame, new or copied, and on any leader made in a UCS other than the world's, DIMASZ short of the end along
 the UCS's X, where these leaders kept the two points picked. `{\Fgdt;j}%%v0.1` copied to a leader from (200, 40) to

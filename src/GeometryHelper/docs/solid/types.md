@@ -128,17 +128,21 @@ point tolerance: the plate 0.0015 thick is a box at a tolerance of a thousandth,
 flat, and one 0.0005 thick is flat. A box with a side of nought, as the bounding box of a flat shape, has no faces and
 `GetFaces()` throws, but no `Try` method does: an arc, a circle or an ellipse meets a box flat on one axis where it
 passes the rectangle across it, and a box flat on two axes or three nowhere; a triangle, a polygon, a face or a plane
-against a box flat or empty, and a boolean with a flat box, answer false. `GetIntersections` of a triangle, a polygon,
-a face or a plane with such a box gives no points, as the `Try` method answers, where it threw: the plane x = 20 and
-the box 100 by 100 by 0 cross nowhere. `CollidesWith` and `DistanceTo` of a triangle, a polygon, a face, a plane, a
-solid or another box read a box flat on some axis as the shape it has become, where they threw: flat on one axis its
-rectangle, on two its segment, on all three its point. The box 100 by 100 by 0 about (50, 50, 0) is 20 from the
-triangle with corners (10, 10, 20), (90, 10, 20) and (10, 90, 20), and touched by a square standing upright across it;
-the box 100 by 0 by 0 is the segment along its X axis. A box no thicker than the point tolerance on two axes is read
-the same way by these and by `GetIntersections` of a triangle, a polygon, a face or a plane, since its body is four
-slivers and two ends below the tolerance: the box 100 by 0.000002 by 0.000002 is the segment 100 long down its middle,
-20 from a cube 40 on a side standing 20 over it, where it was measured +Infinity, touching a solid it runs through,
-which it missed, and crossed by the plane x = 30 nowhere, as the segment is; on all three axes it is its centre. A side
+against an empty box answers false, and gives no points. `CollidesWith`, `DistanceTo` and `GetIntersections` of a
+triangle, a polygon, a face or a plane, and `CollidesWith` and `DistanceTo` of a solid or another box, read a box flat
+on some axis as the shape it has become, where they threw: flat on one axis its rectangle, on two its segment, on all
+three its point, crossed where a polygon, a segment or a point is. The box 100 by 100 by 0 about (50, 50, 0) is 20 from
+the triangle with corners (10, 10, 20), (90, 10, 20) and (10, 90, 20), touched by a square standing upright across it,
+and crossed by the plane x = 30 at (30, 100, 0) and (30, 0, 0), the ends of the segment they share, where it was
+crossed nowhere; the box 100 by 0 by 0 is the segment along its X axis. A box no thicker than the point tolerance on
+two axes is read the same way, since its body is four slivers and two ends below the tolerance: the box 100 by
+0.000002 by 0.000002 is the segment 100 long down its middle, 20 from a cube 40 on a side standing 20 over it, where
+it was measured +Infinity, touching a solid it runs through, which it missed, and crossed by the plane x = 30 at
+(30, 0, 0), as the segment is, where it was crossed nowhere; on all three axes it is its centre. A boolean with a box
+flat on some axis, or that thin on two, answers false with no result, rather than running on a sliver body: the box
+100 by 0.000002 by 0.000002 joined to a cube 40 on a side it runs through was given the cube alone, its two ends
+lost. A ray starting within the tolerance of a corner of a flat box and running away from it touches it at its origin,
+where it threw. A point that is not a number is outside every box, as it is outside a body, where it was inside. A side
 no longer than the point tolerance is thin, as `IsDegenerate()` reads it, so a box 100 by 0.001 by 0.001 is a segment
 at the default tolerance and one 100 by 0.0015 by 0.0015 a body. A box thinner than the tolerance on one axis alone,
 the plate 100 by 100 by 0.000002, keeps its body. A box with its faces and at least two sides longer than the point

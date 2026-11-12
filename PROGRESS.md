@@ -259,7 +259,8 @@ the ones wanted.
 - [x] Spline intersections against tiny or huge circles, arcs, ellipses no longer hang (21 cases, now 0.04-4.5 ms;
       ordinary spline intersections 1.89 -> 1.51 s, bit-identical)
 - [x] Try audit follow-ups: GetIntersections on flat/empty boxes, NaN/infinite input false in the segment Try members, fillet radius message
-- [ ] Try audit follow-ups 2: flat boxes in CollidesWith/DistanceTo done (rectangle, segment, point); boxes thinner than the tolerance on two axes give wrong answers through the body path (122 of 1 805 twin calls, e.g. 100 x 2E-6 x 2E-6 gives +Infinity for 20; DECIDED by recommendation 2026-11-12: read them as flat boxes (rectangle/segment/point)); GetFaces/ToSolid of a flat box throw as documented (a TryGetFaces would need the maintainer); non-Try GetIntersections with NaN shapes; Corner3.RequirePositive lets +infinity through; the NaN fuzz over other types' Try members; 1E300 overflow in TryExtendTo/TryTrimTo(GeoCircle2) parked (metre-irrelevant) (S-M)
+- [x] Try audit follow-ups 2: flat and thin boxes crossed as their rectangle/segment/point, their booleans refused, LiesAlong, NaN Locate
+- [ ] Try audit follow-ups 3: GeoTriangle3.DistanceTo wrong for a sliver triangle (B and C 1E-13 apart gives 0.0525 for a point 5E-14 from B); plates thinner than the tolerance on one axis still booleaned as bodies (cube minus a 2E-6 plate gives the cube); a segment in a region's plane crossing its edge gives no point; non-Try GetIntersections with NaN shapes; Corner3.RequirePositive lets +infinity through; the NaN fuzz over other types (S-M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and

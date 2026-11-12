@@ -283,6 +283,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Locates a point relative to this box, within a tolerance.
         /// </summary>
+        /// <remarks>A point that is not a number is outside, as it is outside the box's body; it was inside.</remarks>
         public PointLocation Locate(GeoPoint3 point, Tolerance tolerance)
         {
             if (IsEmpty)
@@ -293,12 +294,12 @@ namespace GeometryHelper.Geometry
             double t = tolerance.EqualPoint;
 
             if (
-                point.X < Min.X - t
-                || point.X > Max.X + t
-                || point.Y < Min.Y - t
-                || point.Y > Max.Y + t
-                || point.Z < Min.Z - t
-                || point.Z > Max.Z + t
+                !(point.X >= Min.X - t)
+                || !(point.X <= Max.X + t)
+                || !(point.Y >= Min.Y - t)
+                || !(point.Y <= Max.Y + t)
+                || !(point.Z >= Min.Z - t)
+                || !(point.Z <= Max.Z + t)
             )
             {
                 return PointLocation.OutSide;
