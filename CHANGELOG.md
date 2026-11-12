@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** XCLIP (alias XC) in the presenter, as AutoCAD 2021's, word for word as its console prints it (probed in accoreconsole):
+`Select objects:` keeps the block references, MINSERTs and external references (`1 was ineligible for clipping.`, `None found.`),
+then `Enter clipping option [ON/OFF/Clipdepth/Delete/generate Polyline/New boundary] <New>:`. ON, OFF and Delete act on each
+reference that has a clip (`No clip boundary found.` where none has), generate Polyline draws a closed polyline along it on
+the current layer, Clipdepth sets a front and a back plane by distance or Remove (`Front clipping plane behind back clipping
+plane.  Clipdepth not applied.`), and New boundary asks `Delete old boundary(s)?` where one exists, then Select polyline,
+Polygonal (refusing a side of no length or one that crosses another), Rectangular or Invert clip (`Inside mode - Objects inside
+boundary will be hidden.`), the boundary taken in the current UCS. One undo step, XCLIP. A reference clipped is drawn, picked,
+windowed and plotted inside its boundary alone, a MINSERT cell by cell and an external reference too, with the frame of the
+boundary drawn over it while the new system variable XCLIPFRAME (0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0 and left out of a plot at
+2; a clip moves, turns, scales and copies with its reference. An external reference's context menu offers Clip Xref.
+**NEW.** `DxfBlockReference.ClipTo(points, worldToClip)`, `RemoveClip()`, `SpatialFilter` and `ClipOutline`, and the class
+`DxfSpatialFilter` (`Points`, `Normal`, `Origin`, `IsEnabled`, `FrontClip`, `BackClip`, `InverseBlockTransform`,
+`WorldToClip`, `GetRing()`): the clip of an INSERT as AutoCAD 2021 keeps it, a SPATIAL_FILTER in the dictionary ACAD_FILTER of the
+INSERT's extension dictionary, its class listed and counted in CLASSES; AutoCAD reads a drawing of it, DXF and DWG, and its AUDIT
+finds nothing. A clip turned inside out is kept as AutoCAD keeps it, a polygon with a slit round the block's extents
+(`CadXClips.Inverted`: the eleven points AutoCAD wrote for a rectangle on a block scaled by 2 and turned by 30 degrees).
+**NEW.** The DWG reader and writer read and write the SPATIAL_FILTER object (R2000 to R2018), so that a clipped INSERT keeps its
+clip in a DWG: AutoCAD 2021's own DWGs of R2004, R2007, R2010 and R2018 read to the same filters, and what the writer writes
+reads back to the same records.
+**NEW.** The crosshair is pulled onto a grip, as AutoCAD pulls it: while no command runs and no box or pan is under way, the
+cursor inside the box of a grip (its square, or the bar of a polyline's segment middle) draws the crosshair with its centre on
+the grip's point and the status bar shows that point, so that a click starts the grip edit at exactly it; outside the box the
+crosshair is under the pointer again, which the system's own pointer always is.
+
 **NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is
 to 16 figures with its zeros and the places of its units left off, so that a cell showing 1.5000 opens as 1.5, a third as

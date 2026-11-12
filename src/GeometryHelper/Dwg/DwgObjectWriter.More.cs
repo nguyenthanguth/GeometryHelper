@@ -155,6 +155,56 @@ namespace GeometryHelper.Dwg
             _data.RawPoint2(definition.Point(11, 1, 1));
         }
 
+        /// <summary>
+        /// A SPATIAL_FILTER from the groups DXF gives, as the reader's <c>ReadSpatialFilter</c> reads them: the points, the normal
+        /// and origin, the flags with the distances of the planes, and the last twenty-four groups 40, the two matrices.
+        /// </summary>
+        private void WriteSpatialFilter()
+        {
+            DwgGroups filter = _record.Of("AcDbSpatialFilter");
+            List<string> xs = filter.Each(10);
+            List<string> ys = filter.Each(20);
+            int count = Math.Min(xs.Count, ys.Count);
+            _data.BitShort(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                _data.RawPoint2(new[] { DwgRecord.Double(xs[i]), DwgRecord.Double(ys[i]) });
+            }
+
+            _data.Point3(filter.Point(210, 0.0, 0.0, 1.0));
+            _data.Point3(filter.Point(11));
+            _data.BitShort(filter.Int(71, 1));
+            bool front = filter.Int(72) != 0;
+            _data.BitShort(front ? 1 : 0);
+
+            if (front)
+            {
+                _data.BitDouble(filter.Double(40));
+            }
+
+            bool back = filter.Int(73) != 0;
+            _data.BitShort(back ? 1 : 0);
+
+            if (back)
+            {
+                _data.BitDouble(filter.Double(41));
+            }
+
+            List<string> matrices = filter.Each(40);
+
+            for (int i = 0; i < 24; i++)
+            {
+                int at = matrices.Count - 24 + i;
+                int cell = i % 12;
+                _data.BitDouble(
+                    at >= 0 ? DwgRecord.Double(matrices[at])
+                    : cell == 0 || cell == 5 || cell == 10 ? 1.0
+                    : 0.0
+                );
+            }
+        }
+
         /// <summary>The RASTERVARIABLES of the drawing: frames shown and pictures finely where its DXF does not say.</summary>
         private void WriteRasterVariables()
         {

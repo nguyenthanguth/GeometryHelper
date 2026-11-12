@@ -516,6 +516,9 @@ namespace GeometryHelper.Dxf
                 case "DIMASSOC":
                     made = new DxfDimAssoc(item);
                     break;
+                case "SPATIAL_FILTER":
+                    made = new DxfSpatialFilter(item);
+                    break;
                 default:
                     made = new DxfUnknownObject(item);
                     break;

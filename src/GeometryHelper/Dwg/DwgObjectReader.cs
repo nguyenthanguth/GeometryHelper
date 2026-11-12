@@ -1079,6 +1079,9 @@ namespace GeometryHelper.Dwg
                 case "RASTERVARIABLES":
                     ReadRasterVariables();
                     return true;
+                case "SPATIAL_FILTER":
+                    ReadSpatialFilter();
+                    return true;
                 case "WIPEOUTVARIABLES":
                     ReadWipeoutVariables();
                     return true;

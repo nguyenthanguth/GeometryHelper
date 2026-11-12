@@ -213,6 +213,17 @@ place of the frame (arcs kept to a tenth of a pixel), draws no frame of its own,
 is drawn as itself, and a pick finds the viewport by the distance to the outline. [`CadViewportClips.OutlineOf(viewport)`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips)
 makes the outline from the viewport. A viewport that is not clipped is drawn as it was, its frame a rectangle.
 
+A block reference or external reference clipped by XCLIP is drawn inside its boundary alone. Each item it draws has a
+`BlockClip`, a [`DisplayClipRegion`](xref:GeometryHelper.Dxf.Viewer.DisplayClipRegion): the boundary as a ring in drawing
+units (`Ring`, `Outline`), within the region of the clipped block the reference stands in (`Parent`), with the box of
+what is shown (`Bounds`) and `Contains`, `Reaches` (inside, or within a distance, as a pick asks) and `Meets` (a box, as a
+crossing asks) answering for a point or a box. The box of the display list is the box of what is shown, and the canvas, a
+plot and the images written clip every item to its region. The frame of the boundary is a closed chain of its own
+(`IsClipFrame`, left out of a plot where XCLIPFRAME is 2, `IsNotPlotted`) that no clip touches. A [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex)
+finds a clipped item only where its region does, a window takes the reference by the box of what is shown, and a crossing and
+the aperture of a snap meet only the part inside. Each cell of a MINSERT is clipped by its own place, and a clip that is
+switched off draws the block whole.
+
 ### Keeping the lists
 
 A display list and its index are kept until an edit touches the space, when its own are dropped and made again the next time

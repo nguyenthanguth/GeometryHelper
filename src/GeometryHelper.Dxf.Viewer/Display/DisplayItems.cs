@@ -54,11 +54,47 @@ namespace GeometryHelper.Dxf.Viewer
         public abstract DisplayBox Bounds { get; }
 
         /// <summary>
+        /// Gets the part of the plane the item is shown in where the block reference it came from is clipped (XCLIP), or one it
+        /// stands in is; null for an item that is shown whole. The canvas draws only what is inside it.
+        /// </summary>
+        public DisplayClipRegion BlockClip { get; internal set; }
+
+        /// <summary>The box that holds what is shown of the item: its <see cref="Bounds"/>, within the box of its <see cref="BlockClip"/> where it has one.</summary>
+        internal DisplayBox VisibleBounds
+        {
+            get
+            {
+                DisplayBox box = Bounds;
+
+                if (BlockClip == null)
+                {
+                    return box;
+                }
+
+                DisplayBox c = BlockClip.Bounds;
+                return box.IsEmpty || c.IsEmpty
+                    ? DisplayBox.Empty
+                    : new DisplayBox(
+                        Math.Max(box.MinX, c.MinX),
+                        Math.Max(box.MinY, c.MinY),
+                        Math.Min(box.MaxX, c.MaxX),
+                        Math.Min(box.MaxY, c.MaxY)
+                    );
+            }
+        }
+
+        /// <summary>
         /// Gets or sets whether the item is a wall, a symbol or words of a feature control frame, which give the snaps no End,
         /// Mid, Center, Quadrant, Nearest or Perpendicular: AutoCAD 2021 gives a frame's End, Mid, Nearest and Perpendicular on
         /// the rectangles of its rows alone (probes GHTQ2 and GHTH2).
         /// </summary>
         internal bool IsFrameInside { get; set; }
+
+        /// <summary>Gets whether the item is the frame of a clip boundary (XCLIP), which is drawn over what the reference shows and not clipped by it.</summary>
+        public bool IsClipFrame { get; internal set; }
+
+        /// <summary>Gets whether the frame of a clip boundary is left out of a plot, as XCLIPFRAME 2 leaves it.</summary>
+        public bool IsNotPlotted { get; internal set; }
 
         /// <summary>
         /// A copy of the item moved along X and Y, as the entity it came from would be drawn moved so; null for an item that

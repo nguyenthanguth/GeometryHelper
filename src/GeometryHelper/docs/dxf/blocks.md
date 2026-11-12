@@ -31,6 +31,28 @@ to `M24 GALV` is an MTEXT of one line `M24 GALV`, still an attribute of several 
 again where the text stands, after the attribute is moved or set from its definition. A MINSERT is a [`DxfMInsertBlock`](xref:GeometryHelper.Dxf.DxfMInsertBlock) with
 its `Columns`, `Rows`, `ColumnSpacing` and `RowSpacing`.
 
+## Clipping an INSERT
+
+An INSERT, a MINSERT and an INSERT of an external reference are clipped as AutoCAD 2021's XCLIP clips them.
+`insert.ClipTo(points, worldToClip)` writes a [`DxfSpatialFilter`](xref:GeometryHelper.Dxf.DxfSpatialFilter), a SPATIAL_FILTER
+named SPATIAL in the dictionary ACAD_FILTER of the INSERT's extension dictionary, both made as AutoCAD makes them (owned hard,
+the filter owned by its dictionary, its class listed and counted in CLASSES). `points` is the boundary in the clip coordinate
+system, the UCS that is current: two points are a rectangle's opposite corners, three or more a polygon, and `worldToClip`
+carries a point of the world into it (`GeoTransform3.Identity` for the world's). The filter keeps, as AutoCAD does, the boundary
+as picked, the matrix from the world into the clip system, the inverse of the INSERT's placing as it stood (a block 100 by 100
+inserted at (1000, 0) clipped to (1010, 10) and (1090, 90) keeps the shift by -1000) and the clip system's origin and normal;
+a clip is kept against the block, so that the INSERT moved, turned, scaled or copied shows the same part of it.
+`insert.ClipOutline` gives the boundary as a ring in the block's own coordinates, a rectangle as its four corners: a block
+whose origin is (10, 20) clipped to the rectangle that covers its lower left corner 40 by 30 is (10, 20), (50, 20), (50, 50),
+(10, 50), whatever the INSERT is moved to. `insert.SpatialFilter` reads the filter, null for an INSERT not clipped: its
+`Points`, `Normal` and `Origin`, the matrices `InverseBlockTransform` and `WorldToClip` (twelve numbers each, row by row), and
+`IsEnabled`, `FrontClip` and `BackClip`, which are set (the clip off, the planes at a distance from the boundary or none).
+`insert.RemoveClip()` takes the filter off, and the dictionary ACAD_FILTER with it where that holds nothing else, leaving the
+extension dictionary as AutoCAD leaves it. A clip turned inside out is kept as a polygon with a slit round the block's
+extents, as AutoCAD keeps it: [`CadXClips.Inverted`](xref:GeometryHelper.Dxf.Viewer.CadXClips) of the presenter makes it. A
+filter is read from and written to a DWG of R2000 and later with the rest of the objects, and AutoCAD 2021 reads both, its AUDIT
+finding nothing. A boundary in a plane tilted to the drawing's is kept whole, and the presenter draws its projection on the drawing's plane.
+
 ## Units and extents
 
 `UnitFactor` takes the block's units to the drawing's (`$INSUNITS`): 25.4 for a block in inches inserted in millimetres, 1

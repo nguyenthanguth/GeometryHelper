@@ -397,6 +397,23 @@ namespace GeometryHelper.Dxf.Viewer
                     .Recorded(CadEditRecordKind.TableChanged)
             );
             registry.AddVariable(
+                CadSystemVariable
+                    .Whole(
+                        "XCLIPFRAME",
+                        true,
+                        0,
+                        2,
+                        s => s.Document.Database.XclipFrame,
+                        (c, v) => c.Database.XclipFrame = v,
+                        "XCLIPFRAME",
+                        (c, v) =>
+                            string.CompareOrdinal(c.Database.Version ?? "AC1032", "AC1018") < 0
+                                ? "Cannot set XCLIPFRAME to that value."
+                                : null
+                    )
+                    .Recorded(CadEditRecordKind.TableChanged)
+            );
+            registry.AddVariable(
                 CadSystemVariable.Whole(
                     "SORTENTS",
                     true,

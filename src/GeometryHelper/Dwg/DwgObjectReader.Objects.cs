@@ -60,6 +60,48 @@ namespace GeometryHelper.Dwg
             _object.Add(330, _object.Owner);
         }
 
+        /// <summary>
+        /// A SPATIAL_FILTER, the clip boundary of a block reference or an external reference: the number of points and the points,
+        /// the normal and the origin of the clip coordinate system, whether the clip is on, the front and back planes where they
+        /// are on, and the two matrices of twelve numbers each.
+        /// </summary>
+        private void ReadSpatialFilter()
+        {
+            int count = Count(_data.BitShort());
+            _object.Add(100, "AcDbFilter");
+            _object.Add(100, "AcDbSpatialFilter");
+            _object.Add(70, count);
+
+            for (int i = 0; i < count; i++)
+            {
+                _object.AddPoint(10, _data.RawPoint2());
+            }
+
+            _object.AddPoint(210, _data.Point3());
+            _object.AddPoint(11, _data.Point3());
+            _object.Add(71, _data.BitShort());
+            bool front = _data.BitShort() != 0;
+            _object.Add(72, front ? 1 : 0);
+
+            if (front)
+            {
+                _object.Add(40, _data.BitDouble());
+            }
+
+            bool back = _data.BitShort() != 0;
+            _object.Add(73, back ? 1 : 0);
+
+            if (back)
+            {
+                _object.Add(41, _data.BitDouble());
+            }
+
+            for (int i = 0; i < 24; i++)
+            {
+                _object.Add(40, _data.BitDouble());
+            }
+        }
+
         /// <summary>The RASTERVARIABLES of the drawing: its class version, whether frames show, the quality and the unit of images.</summary>
         private void ReadRasterVariables()
         {

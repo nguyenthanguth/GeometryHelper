@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 183 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 184 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -212,7 +212,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -947,7 +947,7 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 119 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: 120 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 22 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
@@ -965,7 +965,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
@@ -1306,6 +1306,46 @@ Through the viewport (MSPACE) the cursor, the picks and the snaps work inside th
 and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips) gives
 `WithPartners` and `WhyNotClip`.
 
+### Clipping a block or an external reference
+
+XCLIP (alias XC) clips the block references and external references of the selection as AutoCAD 2021's does, word for word as
+its console prints them. `Select objects:` keeps the references, a MINSERT among them; any other object is `1 was ineligible
+for clipping.`, and a selection of none says `None found.` and ends. Then `Enter clipping option [ON/OFF/Clipdepth/Delete/
+generate Polyline/New boundary] <New>:`. ON and OFF switch the clip of each reference that has one, Delete takes it off
+(the extension dictionary stays, as AutoCAD leaves it), and generate Polyline draws a closed polyline on the current layer
+along it; each says `No clip boundary found.` and asks again where none of the references has a clip. Clipdepth, with no
+clip, says `Xref must contain a clip boundary before specifying a clipdepth.`; else it asks `Specify front clip point or
+[Distance/Remove]:` and `Specify back clip point or [Distance/Remove]:`, a distance from the boundary (a point on the
+screen is on the boundary's plane, 0) or Remove, Enter keeping the plane, and a front plane behind the back one says `Front
+clipping plane behind back clipping plane.  Clipdepth not applied.`. The planes are written and kept, and the flat display
+leaves them out: a clip is drawn as its boundary alone.
+
+New boundary asks `Delete old boundary(s)? [Yes/No] <Yes>:` where a reference has a boundary (No ends the command and
+changes nothing), writes `Outside mode - Objects outside boundary will be hidden.`, and asks `Specify clipping boundary or
+select invert option: [Select polyline/Polygonal/Rectangular/Invert clip] <Rectangular>:`. Rectangular asks `Specify first
+corner:` and `Specify opposite corner:`, the sides along the axes of the current UCS. Polygonal asks `Specify first
+point:` and `Specify next point or [Undo]:` until Enter, refusing a point that makes a side of no length (`Invalid point,
+polygon segment is zero length.`) or crosses another (`Invalid point, polygon segments cannot intersect.`); fewer than three
+points or no area say `Boundaries with zero area are not acceptable.`. Select polyline takes the vertices of a polyline or a
+2D polyline, open or closed, its arcs left out, a rectangle of four corners square to the UCS kept as its two corners, and
+says `Selected object is not a polyline.` for another object. Invert clip says `Inside mode - Objects inside boundary will be
+hidden.` (and the first words again when chosen twice) and keeps the part cut away, as AutoCAD does: a polygon that goes out
+along a slit from the vertex nearest the edge of the block's box, 5 per cent beyond its extents, round it against the turn of
+the polygon, and back in, 4E-5 wide. A rectangle inverted on a block 100 by 100 at (1000, 500), scaled by 2 and turned by 30
+degrees, is the eleven points AutoCAD wrote. The boundary is kept in the UCS that is current, with its matrices, so that
+it goes with the reference when that is moved, turned, scaled or copied, as AutoCAD keeps it. Each run is one undo step,
+XCLIP. The context menu of an external reference offers Clip Xref.
+
+A clipped reference is drawn inside its boundary alone, on screen, in a plot and in the images the presenter writes:
+every item the reference draws carries the region it is shown in ([`DisplayItem2.BlockClip`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2),
+a [`DisplayClipRegion`](xref:GeometryHelper.Dxf.Viewer.DisplayClipRegion)), within the region of a clipped block it stands
+in, and the canvas clips to it. Of a clipped reference a pick, a window and a crossing meet only what is shown: a click on a
+line of the block outside the boundary picks nothing, and a window round the boundary alone takes the reference. Each cell of
+a MINSERT is clipped by its own place, and the attributes of the reference are clipped too. The frame of the boundary is drawn
+over the reference in its colour while XCLIPFRAME (kept in the drawing, 0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0; at 2 it
+is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle` and `Inverted`. A tilted
+UCS's boundary is drawn as its projection on the plane of the drawing, and EXPLODE leaves the block unclipped.
+
 ### Grip modes
 
 A click on a grip makes it hot and starts AutoCAD 2021's grip modes
@@ -1327,7 +1367,10 @@ A polyline's grips are AutoCAD 2021's multi-functional ones. A vertex is a squar
 the default of 5); the middle of a segment is a bar along it, 22 by 6 at 5 (37 by 10 at 10, 10 by 3 at 1), lying along the
 chord of an arc segment, which is the tangent at the arc's middle; a rotated view turns the bar with its segment. A grip
 under the cursor is pink (`#FF7F7F`, AutoCAD's GRIPHOVER) and a clicked one red, both unedged; the others are the grip
-colour with a 1 pixel dark edge. The grip is hit within its own square, the bar within its length by the square's side.
+colour with a 1 pixel dark edge. The grip is hit within its own square, the bar within its length by the square's side. While the cursor is inside that box, with
+no command running and no box or pan under way, the crosshair is drawn with its centre on the grip's point, as AutoCAD pulls it, the
+status bar shows that point, and a click starts the grip edit at exactly it; leaving the box, the crosshair is under the pointer
+again. The pointer of the operating system is not moved.
 The other grips follow the same size and the same colours: the triangles of an MTEXT and of a table's width, height and
 size are 15 across at the default and 25 at GRIPSIZE 10, the table's breaking triangle and the autofill diamond of a
 selected cell (14 across at the default) grow with it too, and a dynamic block's custom grips and a table cell's grips

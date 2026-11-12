@@ -1379,6 +1379,217 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        private const string FilterEntry = "ACAD_FILTER";
+        private const string SpatialEntry = "SPATIAL";
+
+        /// <summary>
+        /// Gets the clip boundary of the reference, as AutoCAD's XCLIP keeps it: the SPATIAL_FILTER under the name SPATIAL in the
+        /// dictionary ACAD_FILTER of its extension dictionary; null where it has none, as one not clipped.
+        /// </summary>
+        public DxfSpatialFilter SpatialFilter =>
+            DxfDynamicProperties.Entry(ExtensionDictionary, FilterEntry) is DxfDBDictionary filters
+                ? DxfDynamicProperties.Entry(filters, SpatialEntry) as DxfSpatialFilter
+                : null;
+
+        /// <summary>
+        /// The clip boundary the display draws by: <see cref="SpatialFilter"/>, looked for only where the INSERT's record opens
+        /// with its extension dictionary, as AutoCAD and ezdxf write it, so that drawing 100 000 references reads no more of each
+        /// than the few groups that open it.
+        /// </summary>
+        internal DxfSpatialFilter DrawnFilter =>
+            IsResident && Item.File.OpensWithExtensionDictionary(Item) ? SpatialFilter : null;
+
+        /// <summary>
+        /// Gets the clip boundary as a ring of points in the coordinates of the block the reference places, those its entities
+        /// have in the block, so that <see cref="BlockTransform"/> carries the ring to where the clip stands in the world: a block
+        /// whose origin is (10, 20) clipped to the rectangle that, as the reference stands, covers its lower left corner 40 by 30
+        /// is the ring (10, 20), (50, 20), (50, 50), (10, 50), whatever the reference is moved, turned or scaled to afterwards. A
+        /// rectangle's two corners are given as the four of a ring. Null where the reference is not clipped; given whether the clip
+        /// is on (<see cref="DxfSpatialFilter.IsEnabled"/>) or off.
+        /// </summary>
+        public IReadOnlyList<GeoPoint2> ClipOutline
+        {
+            get
+            {
+                DxfSpatialFilter filter = SpatialFilter;
+
+                if (filter == null)
+                {
+                    return null;
+                }
+
+                IReadOnlyList<GeoPoint2> ring = filter.GetRing();
+
+                if (ring.Count < 3)
+                {
+                    return null;
+                }
+
+                GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+                var placed = new List<GeoPoint2>(ring.Count);
+
+                foreach (GeoPoint2 point in ring)
+                {
+                    placed.Add(new GeoPoint2(point.X + origin.X, point.Y + origin.Y));
+                }
+
+                return placed.AsReadOnly();
+            }
+        }
+
+        /// <summary>
+        /// Clips the block the reference places to a boundary, as AutoCAD's XCLIP New boundary does: the part of the block outside
+        /// the boundary is no longer shown, and the part inside is. A SPATIAL_FILTER is written into the dictionary ACAD_FILTER of
+        /// the reference's extension dictionary, each made as AutoCAD makes it, with the boundary as given, the matrix that carries
+        /// the world into the clip coordinate system, and the inverse of the reference's placing as it stands now. A clip the
+        /// reference has is replaced. The clip is on, with no clipping planes.
+        /// </summary>
+        /// <param name="boundary">The points of the boundary in the clip coordinate system: two for a rectangle, its opposite
+        /// corners, three or more for a polygon, the last not repeating the first.</param>
+        /// <param name="worldToClip">The transformation that carries a point of the world into the clip coordinate system, which
+        /// is the user coordinate system current when a boundary is picked; the identity for the world's. It stands for a
+        /// rotation and a shift, and the third row of its matrix, the clip system's Z axis, is written as the filter's normal.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the boundary or the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the boundary has fewer than two points or a coordinate that is not a
+        /// finite number, or the transformation flattens space.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the reference is in no file, is erased, or is of a file of R12,
+        /// which has no extension dictionaries.</exception>
+        public void ClipTo(IReadOnlyList<GeoPoint2> boundary, GeoTransform3 worldToClip)
+        {
+            if (boundary == null)
+            {
+                throw new ArgumentNullException(nameof(boundary));
+            }
+
+            if (worldToClip == null)
+            {
+                throw new ArgumentNullException(nameof(worldToClip));
+            }
+
+            Guard.Argument(
+                boundary.Count >= 2 && Guard.AreValid(boundary),
+                nameof(boundary),
+                "A clip boundary has two points, the corners of a rectangle, or three or more, of finite coordinates."
+            );
+
+            double[] clip = DxfSpatialFilter.Rows(worldToClip);
+            Guard.Argument(
+                DxfSpatialFilter.TryInvert(clip, out double[] fromClip),
+                nameof(worldToClip),
+                "The transformation into the clip coordinate system flattens space."
+            );
+
+            // The reference as it stands, the block's origin taken to the origin of the block's own coordinates: the clip keeps
+            // its boundary against that.
+            GeoTransform3 placing = BlockTransform;
+            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 shifted = placing.Transform(origin);
+            double[] placed =
+            {
+                placing[0, 0],
+                placing[0, 1],
+                placing[0, 2],
+                shifted.X,
+                placing[1, 0],
+                placing[1, 1],
+                placing[1, 2],
+                shifted.Y,
+                placing[2, 0],
+                placing[2, 1],
+                placing[2, 2],
+                shifted.Z,
+            };
+
+            DxfFile file = InFile("be clipped");
+            Guard.Argument(
+                DxfSpatialFilter.TryInvert(placed, out double[] inverse),
+                nameof(worldToClip),
+                "The reference is placed flat, which a clip cannot be kept against."
+            );
+
+            RemoveClip();
+            CreateExtensionDictionary();
+            var state = new DxfSpatialFilter.State
+            {
+                Points = new List<GeoPoint2>(boundary),
+                Normal = new GeoVector3(clip[8], clip[9], clip[10]),
+                Origin = new GeoPoint3(fromClip[3], fromClip[7], fromClip[11]),
+                Inverse = inverse,
+                Clip = clip,
+            };
+            DxfItem made = ExtensionDictionary.Add(FilterEntry, "DICTIONARY", b =>
+            {
+                b.Group(100, "AcDbDictionary");
+                b.Group(280, "1");
+                b.Group(281, "1");
+            });
+            var filters = (DxfDBDictionary)DxfDBObject.OfObject(made);
+            List<KeyValuePair<int, string>> groups = state.Groups();
+            filters.Add(SpatialEntry, "SPATIAL_FILTER", b =>
+            {
+                b.Group(100, "AcDbFilter");
+                b.Group(100, "AcDbSpatialFilter");
+
+                foreach (KeyValuePair<int, string> group in groups)
+                {
+                    b.Group(group.Key, group.Value);
+                }
+            });
+
+            // Listed and counted in CLASSES, as AutoCAD 2021 passes over every object of a class it counts 0.
+            file.AddClass("SPATIAL_FILTER", "AcDbSpatialFilter", 0);
+            file.CountClass("SPATIAL_FILTER");
+        }
+
+        /// <summary>
+        /// Takes the clip boundary off the reference, as AutoCAD's XCLIP Delete does: its SPATIAL_FILTER erased, and the dictionary
+        /// ACAD_FILTER with it where that holds nothing else. The extension dictionary stays, as AutoCAD leaves it. Nothing
+        /// where the reference is not clipped.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the reference is erased.</exception>
+        public void RemoveClip()
+        {
+            DxfDBDictionary extension = ExtensionDictionary;
+
+            if (!(DxfDynamicProperties.Entry(extension, FilterEntry) is DxfDBDictionary filters))
+            {
+                return;
+            }
+
+            if (filters.Contains(SpatialEntry))
+            {
+                filters.Remove(SpatialEntry);
+            }
+
+            if (filters.Count == 0)
+            {
+                extension.Remove(FilterEntry);
+            }
+        }
+
+        /// <summary>
+        /// Gives a copy of a clipped reference, added to the reference's own drawing, the clip of the reference, as AutoCAD 2021's
+        /// COPY keeps it: a clip is kept against the block, so that the copy shows the same part of it wherever it stands. The
+        /// filter is copied as it is. Nothing is done where the copy is clipped already, or the reference is not.
+        /// </summary>
+        /// <param name="source">The reference copied.</param>
+        internal void KeepClipOf(DxfBlockReference source)
+        {
+            if (
+                !IsResident
+                || !source.IsResident
+                || source.Item.File != Item.File
+                || !(DxfDynamicProperties.Entry(source.ExtensionDictionary, FilterEntry) is DxfDBDictionary from)
+                || SpatialFilter != null
+            )
+            {
+                return;
+            }
+
+            CreateExtensionDictionary();
+            CopyEntry(ExtensionDictionary, FilterEntry, from);
+        }
+
         /// <summary>
         /// What MIRROR writes an INSERT from, read before it is mirrored (<see cref="FinishMirror"/>): its own factors and angle,
         /// a MINSERT's spacings, and the factors and angle of each of its contexts, in their order.

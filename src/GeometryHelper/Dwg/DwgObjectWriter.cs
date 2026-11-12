@@ -361,6 +361,8 @@ namespace GeometryHelper.Dwg
                     return WriteImageDefinition;
                 case "RASTERVARIABLES":
                     return WriteRasterVariables;
+                case "SPATIAL_FILTER":
+                    return WriteSpatialFilter;
                 case "WIPEOUTVARIABLES":
                     return () => _data.BitShort(_record.Of("AcDbWipeoutVariables").Int(70, 1));
                 case "ACAD_TABLE":
