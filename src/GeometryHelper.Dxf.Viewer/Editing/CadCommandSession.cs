@@ -161,6 +161,12 @@ namespace GeometryHelper.Dxf.Viewer
         public ICadClipboard Clipboard { get; set; } = new CadMemoryClipboard();
 
         /// <summary>
+        /// Gets or sets the progress meter a command shows long work on (<see cref="CadCommandContext.Progress"/>): one of this
+        /// session's own, shown nowhere, until set; the window sets the one of its status bar.
+        /// </summary>
+        public CadProgress Progress { get; set; } = new CadProgress();
+
+        /// <summary>
         /// Gets or sets the properties MATCHPROP copies, as the check boxes of its Property Settings dialog: every one until
         /// changed, as in AutoCAD. With Layer alone left checked, MATCHPROP moves the objects to the source's layer and keeps
         /// their colour.

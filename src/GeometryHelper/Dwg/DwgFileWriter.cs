@@ -215,13 +215,21 @@ namespace GeometryHelper.Dwg
         public int Written => _written.Count;
 
         /// <summary>The bytes of the DWG file of <paramref name="drawing"/> in <paramref name="version"/>.</summary>
-        public static byte[] Write(DwgDrawing drawing, string version, out DwgFileWriter writer)
+        public static byte[] Write(DwgDrawing drawing, string version, out DwgFileWriter writer) =>
+            Write(drawing, version, out writer, null);
+
+        /// <summary>
+        /// The bytes of the DWG file of <paramref name="drawing"/>, as <see cref="Write(DwgDrawing, string, out DwgFileWriter)"/>,
+        /// how far it has got told to <paramref name="progress"/> (null for none): the objects written to 0.95 of the whole,
+        /// the file put together to 1.
+        /// </summary>
+        public static byte[] Write(DwgDrawing drawing, string version, out DwgFileWriter writer, ProgressSteps progress)
         {
             writer = new DwgFileWriter(drawing, version);
-            return writer.Write();
+            return writer.Write(progress);
         }
 
-        private byte[] Write()
+        private byte[] Write(ProgressSteps progress)
         {
             foreach (DwgRecord one in _drawing.Classes)
             {
@@ -268,9 +276,11 @@ namespace GeometryHelper.Dwg
             var objects = new MemoryStream();
             objects.Write(new byte[] { 0xCA, 0x0D, 0x00, 0x00 }, 0, 4);
             var map = new List<KeyValuePair<ulong, long>>();
+            progress?.Stage(0.55, 0.95);
 
             foreach (DwgRecord record in records)
             {
+                progress?.Report(map.Count, records.Count);
                 byte[] bytes = _objects.Write(record);
                 map.Add(new KeyValuePair<ulong, long>(record.Handle, objects.Position));
                 objects.Write(bytes, 0, bytes.Length);
@@ -282,6 +292,7 @@ namespace GeometryHelper.Dwg
                 }
             }
 
+            progress?.Stage(0.95, 1.0);
             ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
             _handseed = Math.Max(_handseed + 1, seed);
             int codePage = CodePageNumber(_drawing.HeaderText("DWGCODEPAGE", "ANSI_1252").Trim());

@@ -304,20 +304,35 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Opens a DWG or DXF file: a DWG of AutoCAD 2000 to 2018 read by <see cref="GeometryHelper.Dwg.DwgReader"/>, as
-        /// <see cref="CadDrawingFile.Open"/> reads it, so that <see cref="Save"/> writes it back as a DWG of AutoCAD 2018.
+        /// <see cref="CadDrawingFile.Open(string)"/> reads it, so that <see cref="Save"/> writes it back as a DWG of AutoCAD 2018.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <returns>The document.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read; the message names it.</exception>
-        public static CadDocument Open(string path)
+        public static CadDocument Open(string path) => Open(path, null);
+
+        /// <summary>
+        /// Opens a DWG or DXF file as <see cref="Open(string)"/> does, telling how far the reading has got as
+        /// <see cref="CadDrawingFile.Open(string, IProgress{double})"/> tells it: a share from 0 to 1, never going back, 1 once
+        /// read. A <see cref="CadProgressMeter"/> is such a progress.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="progress">What is told how far it has got, on the thread that opens; null for nothing.</param>
+        /// <returns>The document.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read; the message names it.</exception>
+        public static CadDocument Open(string path, IProgress<double> progress)
         {
             if (path == null)
             {
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return new CadDocument(WithHandles(CadDrawingFile.Open(path)), Path.GetFullPath(path)) { _hasPath = true };
+            return new CadDocument(WithHandles(CadDrawingFile.Open(path, progress)), Path.GetFullPath(path))
+            {
+                _hasPath = true,
+            };
         }
 
         /// <summary>Opens a DXF from a stream.</summary>

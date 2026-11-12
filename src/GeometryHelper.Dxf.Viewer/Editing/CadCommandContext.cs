@@ -37,6 +37,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the space the command works in: the document's working space, model space while a viewport of the layout shown is worked through.</summary>
         public CadSpace Space => Session.Document.WorkingSpace;
 
+        /// <summary>
+        /// Gets the progress meter of the status bar, for long work: <c>using (var meter = c.Progress.Start("Checking"))</c>,
+        /// then <see cref="CadProgressMeter.SetLimit"/> and <see cref="CadProgressMeter.MeterProgress"/>.
+        /// </summary>
+        public CadProgress Progress => Session.Progress;
+
         /// <summary>Gets the answer to the last prompt.</summary>
         public CadInput Input { get; internal set; }
 

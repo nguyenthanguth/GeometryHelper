@@ -75,6 +75,7 @@ namespace GeometryHelper.Dwg
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
         private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
+        private readonly ProgressSteps _progress;
         private readonly bool _doubleByte;
         private readonly int _version;
 
@@ -90,9 +91,10 @@ namespace GeometryHelper.Dwg
             Dictionary<int, string>
         >(StringComparer.OrdinalIgnoreCase);
 
-        private DwgTranscoder(DwgContainer container)
+        private DwgTranscoder(DwgContainer container, ProgressSteps progress)
         {
             _container = container;
+            _progress = progress;
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
@@ -129,9 +131,13 @@ namespace GeometryHelper.Dwg
             };
             int broken = 0;
             string firstFault = null;
+            int read = 0;
+            progress?.Stage(0.05, 0.6);
 
             foreach (KeyValuePair<ulong, long> entry in _container.ObjectMap)
             {
+                progress?.Report(read++, _container.ObjectMap.Count);
+
                 try
                 {
                     DwgObject one = reader.Read(entry.Key, entry.Value);
@@ -180,16 +186,29 @@ namespace GeometryHelper.Dwg
         /// <see cref="FormatException"/> for a file that is not a DWG or is broken where nothing can be read past it, and
         /// <see cref="NotSupportedException"/> for a DWG of a version that is not read.
         /// </summary>
-        public static byte[] ToDxf(byte[] file, IList<string> supportFolders = null) =>
-            ToDxf(DwgContainer.Read(file), supportFolders);
+        /// <remarks>
+        /// The files of shapes are looked for in <paramref name="supportFolders"/>, in their order. How far it has got is
+        /// told to <paramref name="progress"/> (null for none): its parts unpacked to 0.05, its objects read to 0.6, and the
+        /// DXF of them written to 1.
+        /// </remarks>
+        public static byte[] ToDxf(byte[] file, IList<string> supportFolders = null, ProgressSteps progress = null)
+        {
+            progress?.Stage(0.0, 0.05);
+            return ToDxf(DwgContainer.Read(file), supportFolders, progress);
+        }
 
         /// <summary>
-        /// The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[], IList{string})"/>;
-        /// the files of shapes are looked for in <paramref name="supportFolders"/>, in their order.
+        /// The DXF of the DWG whose parts <paramref name="container"/> holds, as
+        /// <see cref="ToDxf(byte[], IList{string}, ProgressSteps)"/>.
         /// </summary>
-        public static byte[] ToDxf(DwgContainer container, IList<string> supportFolders = null)
+        public static byte[] ToDxf(
+            DwgContainer container,
+            IList<string> supportFolders = null,
+            ProgressSteps progress = null
+        )
         {
-            var transcoder = new DwgTranscoder(container) { _supportFolders = supportFolders };
+            var transcoder = new DwgTranscoder(container, progress) { _supportFolders = supportFolders };
+            progress?.Stage(0.6, 1.0);
             transcoder.WriteHeader();
             transcoder.WriteClasses();
             transcoder.WriteTables();
@@ -198,6 +217,7 @@ namespace GeometryHelper.Dwg
             transcoder.WriteDataStore();
             transcoder._dxf.Write(0, "EOF");
             transcoder.LogSummary();
+            progress?.Report(1.0);
             return transcoder._dxf.ToArray();
         }
 
@@ -920,6 +940,8 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            _progress?.Report(_written.Count, _objects.Count);
+
             if (!entity.Decoded)
             {
                 return;
@@ -1289,6 +1311,8 @@ namespace GeometryHelper.Dwg
             {
                 return;
             }
+
+            _progress?.Report(_written.Count, _objects.Count);
 
             WriteHead(one, one.Name, one.Owner);
             Write(one.Body);

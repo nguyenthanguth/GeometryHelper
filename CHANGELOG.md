@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's status bar has a progress meter, as AutoCAD 2021's: opening a drawing shows "Opening plan.dwg"
+with a bar from 0 to 100 % and Stop, and SAVE, SAVEAS and QSAVE show "Saving plan.dwg", the status bar drawn while the
+save runs. Commands, plugins and hosts start meters of their own with `CadProgress.Start(label)` (on
+`CadCommandContext.Progress`, `CadCommandSession.Progress` or `MainViewModel.Progress`), then `SetLimit` and
+`MeterProgress`, or `Report` with a share; a meter with neither sweeps, a meter started inside another is shown in its
+place until it stops, and a `using` block stops it when the work throws. `CadDocument.Open(path, progress)`,
+`CadDocument.SaveAs(path, progress)` and `CadDrawingFile.Open(path, progress)` tell any `IProgress<double>` how far they
+have got, from 0 to 1 and never back: a DWG of 100 000 lines about a hundred times in whole percent, with the same bytes
+written and read and the same times as without.
+
 **NEW.** In a layout of the presenter, every viewport whose grid is on draws it in its frame, whether it is worked
 through or not, on the paper and through another viewport, as AutoCAD 2021 keeps a grid by viewport. Only the grid of
 the viewport worked through was drawn.

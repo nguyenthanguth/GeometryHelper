@@ -86,8 +86,9 @@ and the copies are not listed in the file list.
 
 The app's window opens a drawing in the background (`MainViewModel.OpensInBackground`, set by the window; `OpenAsync`
 opens one so whatever it says): the file is read and its display list and pick index made on a worker thread, and the
-drawing is shown once they are made. Meanwhile the status bar says how far it has got, "Opening plan.dxf: drawing 45 %",
-with a Stop button, and the window answers: the view shown pans and zooms, another drawing open is shown from the file
+drawing is shown once they are made. Meanwhile the status bar's [progress meter](#the-progress-meter) shows how far it has
+got, "Opening plan.dxf" and its bar, with a Stop button (`OpeningText` still says "Opening plan.dxf: drawing 45 %"), and
+the window answers: the view shown pans and zooms, another drawing open is shown from the file
 list, and Esc or Stop stops the opening, the command line saying "Opening plan.dxf stopped." A command typed or started
 meanwhile is not run, so that none runs on a drawing half drawn: "LINE not run: plan.dxf is still opening. Run it again once
 it is shown, or press Esc to stop opening it." One drawing opens at a time; another asked for meanwhile is refused, and the
@@ -95,6 +96,36 @@ same one asked again waits with it. The extensions are told of the drawing, and 
 between the reading and the drawing, as before. A drawing of 1 000 000 entities that held the window for 15 s, its first
 frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
 the drawing before `Open` returns, as before.
+
+## The progress meter
+
+The status bar has a progress meter, as AutoCAD's: left of the coordinates, what runs, a bar and the percent, and taking
+no room while nothing runs. Opening a drawing in the background shows "Opening plan.dwg", the reading of the file and the
+drawing of it from 0 to 100 %, with Stop; SAVE, SAVEAS and QSAVE show "Saving plan.dwg" while the DXF or DWG is written.
+The window draws the status bar ten times a second at most while a save runs on its thread
+(`MainViewModel.RepaintsProgress`, set by the window), the mouse and keys held back meanwhile.
+
+A command, a plugin or the host starts a meter of its own for any long work, as AutoCAD's ProgressMeter: `Start(label)`,
+then `SetLimit(n)` and `MeterProgress()` once a step, or `Report(share)` with a share of 0 to 1, and `Stop()` or a `using`
+block, which stops it even where the work throws. A meter given neither is indeterminate and sweeps.
+
+```csharp
+using (CadProgressMeter meter = context.Progress.Start("Checking blocks"))   // or model.Progress
+{
+    meter.SetLimit(blocks.Count);
+    foreach (var block in blocks) { Check(block); meter.MeterProgress(); }
+}
+```
+
+- The meter last started and not yet stopped is shown; one started inside another, as a plugin's during SAVE, takes its
+  place, and the outer one comes back when it stops.
+- Meters may be moved on any thread. They count in whole percent, and the status bar is told only when the percent
+  shown changes: a meter moved 100 000 times tells it 100 times.
+- `CadDocument.Open(path, progress)`, `CadDocument.SaveAs(path, progress)` and `CadDrawingFile.Open(path, progress)`
+  take any `IProgress<double>`, a meter among them, and tell it a share from 0 to 1, in thousandths, never going back and
+  ending at 1. A DWG of 100 000 lines tells it about a hundred times in whole percent as its objects are read or written;
+  a DXF, read or written at once from its bytes, tells 0 and 1. Told or not, the files read and written are the same to
+  the byte, and the times the same: that DWG saved in 0.67 s and opened in 0.6 s, before and after.
 
 ## DWG files
 

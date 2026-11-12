@@ -81,7 +81,7 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 User note 2026-11-12 (basic features first, advanced later):
 - [ ] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
 - [ ] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
-- [ ] Progress meter on the status bar for open/save, callable by commands and plugins (in progress: progress-bar) (M)
+- [x] Progress meter on the status bar for open/save, callable by commands and plugins (CadProgress, design v128) (M)
 
 ### AutoCAD parity: High (daily use), in the order of value to a drafter
 

@@ -130,14 +130,42 @@ namespace GeometryHelper.Dwg
         public static DxfDatabase Open(Stream stream) => Open(BytesOf(stream), null);
 
         /// <summary>
+        /// Opens a DWG file from a path as <see cref="Open(string)"/> does, how far it has got told to
+        /// <paramref name="progress"/> as a share from 0 to 1, in thousandths, never going back, and 1 once opened: the DWG
+        /// made into its DXF to 0.9, that DXF read to 1.
+        /// </summary>
+        internal static DxfDatabase Open(string path, IProgress<double> progress)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            ProgressSteps steps = ProgressSteps.Of(progress);
+            steps?.Within(0.0, 0.9);
+            byte[] dxf = ToDxf(File.ReadAllBytes(path), progress: steps);
+            steps?.Within(0.9, 1.0);
+            steps?.Stage(0.0, 1.0);
+            DxfDatabase database;
+
+            using (var stream = new MemoryStream(dxf, false))
+            {
+                database = DxfDatabase.Open(stream);
+            }
+
+            steps?.Done();
+            return database;
+        }
+
+        /// <summary>
         /// The DXF that says what the DWG in <paramref name="file"/> says, as the bytes of a text DXF file in the drawing's
         /// code page; the files of shapes are looked for in <paramref name="supportFolders"/>.
         /// </summary>
-        internal static byte[] ToDxf(byte[] file, IList<string> supportFolders = null)
+        internal static byte[] ToDxf(byte[] file, IList<string> supportFolders = null, ProgressSteps progress = null)
         {
             try
             {
-                return DwgTranscoder.ToDxf(file, supportFolders);
+                return DwgTranscoder.ToDxf(file, supportFolders, progress);
             }
             catch (Exception fault)
                 when (!(fault is FormatException)
