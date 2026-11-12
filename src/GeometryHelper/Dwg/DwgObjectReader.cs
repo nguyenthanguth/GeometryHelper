@@ -928,6 +928,9 @@ namespace GeometryHelper.Dwg
                 case 0x20:
                     ReadSolid();
                     return true;
+                case 0x21:
+                    ReadShape();
+                    return true;
                 case 0x22:
                     ReadViewport();
                     return true;

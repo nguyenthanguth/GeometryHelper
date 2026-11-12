@@ -51,6 +51,27 @@ namespace GeometryHelper.Dwg
     }
 
     /// <summary>
+    /// The shape of a SHAPE, which a DWG keeps as its number in the file of shapes of a text style: the transcoder writes
+    /// its name (group 2) where that file is found in the support folders and names the number, else the number (70), as
+    /// AutoCAD writes a shape whose file it does not find.
+    /// </summary>
+    internal sealed class DwgShapeName
+    {
+        /// <summary>The handle of the text style of the file of shapes.</summary>
+        public readonly ulong Style;
+
+        /// <summary>The number of the shape in that file.</summary>
+        public readonly int Number;
+
+        /// <summary>The shape numbered <paramref name="number"/> in the file of shapes of the style at <paramref name="style"/>.</summary>
+        public DwgShapeName(ulong style, int number)
+        {
+            Style = style;
+            Number = number;
+        }
+    }
+
+    /// <summary>
     /// The colour of an entity that is a colour of a book: the transcoder writes the index, the true colour and the name
     /// (62, 420, 430) of the DBCOLOR object it names, or the index alone where that object is not there.
     /// </summary>

@@ -84,6 +84,38 @@ namespace GeometryHelper.Dwg
             AddNonZero(50, Degrees(angle));
         }
 
+        /// <summary>
+        /// A SHAPE: its place, size, turn, width, slant, thickness and extrusion, and the number of its shape in the file of
+        /// shapes of its text style, which the transcoder writes as the shape's name where it finds that file. DXF leaves
+        /// out a turn, slant and thickness of 0, a width of 1 and the extrusion (0, 0, 1).
+        /// </summary>
+        private void ReadShape()
+        {
+            double[] point = _data.Point3();
+            double size = _data.BitDouble();
+            double rotation = _data.BitDouble();
+            double width = _data.BitDouble();
+            double oblique = _data.BitDouble();
+            double thickness = _data.BitDouble();
+            int number = _data.BitShort();
+            double[] extrusion = _data.Point3();
+            ulong style = H();
+            _object.Add(100, "AcDbShape");
+            AddNonZero(39, thickness);
+            _object.AddPoint(10, point);
+            _object.Add(40, size);
+            _object.Add(2, new DwgShapeName(style, number));
+            AddNonZero(50, Degrees(rotation));
+
+            if (width != 1.0)
+            {
+                _object.Add(41, width);
+            }
+
+            AddNonZero(51, Degrees(oblique));
+            AddExtrusion(extrusion);
+        }
+
         private void ReadEllipse()
         {
             double[] centre = _data.Point3();
@@ -1644,7 +1676,8 @@ namespace GeometryHelper.Dwg
         /// R2013 the data is SAT text in blocks, each character but a line end kept as 0x9F less it, and DXF writes it so,
         /// a line a group 1 (pieces past 255 under 3). From R2013 the data is in the data store of the file, which DXF
         /// writes in its own section; the entity carries its GUID, after the wireframe and silhouettes, which are read past.
-        /// False where the data is SAB (version 2), which DXF before R2013 does not carry.
+        /// From R2004 AutoCAD keeps the data as SAB (version 2), which <see cref="DwgSat"/> turns into the SAT AutoCAD
+        /// writes of it; false where it cannot.
         /// </summary>
         private bool ReadModelerGeometry(bool solid)
         {
@@ -1660,12 +1693,28 @@ namespace GeometryHelper.Dwg
                     _data.Bit();
                     int version = _data.BitShort();
 
-                    if (version != 1)
+                    if (version == 2)
+                    {
+                        // SAB, as AutoCAD keeps it from R2004: turned into the SAT AutoCAD writes of it in DXF.
+                        byte[] sab = DwgSat.Read(_data);
+                        string sat = sab == null ? null : DwgSat.ToSat(sab);
+
+                        if (sat == null)
+                        {
+                            return false;
+                        }
+
+                        foreach (char letter in sat)
+                        {
+                            text.Add(letter > ' ' ? (byte)(159 - letter) : (byte)letter);
+                        }
+                    }
+                    else if (version != 1)
                     {
                         return false;
                     }
 
-                    for (int size = _data.BitLong(); size != 0; size = _data.BitLong())
+                    for (int size = version == 1 ? _data.BitLong() : 0; size != 0; size = _data.BitLong())
                     {
                         if (size < 0 || size * 8L > _data.Remaining)
                         {
@@ -1673,6 +1722,16 @@ namespace GeometryHelper.Dwg
                         }
 
                         text.AddRange(_data.Bytes(size));
+                    }
+
+                    // The SAT of R2000 starts each line that goes on a record with a tab, which AutoCAD writes in DXF
+                    // as a space.
+                    for (int i = 0; i < text.Count; i++)
+                    {
+                        if (text[i] == (byte)'\t' && (i == 0 || text[i - 1] == (byte)'\n'))
+                        {
+                            text[i] = (byte)' ';
+                        }
                     }
                 }
 
@@ -1710,7 +1769,10 @@ namespace GeometryHelper.Dwg
             return true;
         }
 
-        /// <summary>The SAT text of an ACIS entity, a line a group 1 and its pieces past 255 bytes under 3.</summary>
+        /// <summary>
+        /// The SAT text of an ACIS entity, a line a group 1; a line past 255 bytes in pieces of 255, each but the last under
+        /// group 3 and the last under 1, as AutoCAD writes it.
+        /// </summary>
         private void AddSatLines(List<byte> text)
         {
             int start = 0;
@@ -1727,10 +1789,14 @@ namespace GeometryHelper.Dwg
 
                 if (i > start || i < text.Count)
                 {
-                    for (int at = start, code = 1; at < end || code == 1; at += 255, code = 3)
+                    int at = start;
+
+                    for (; end - at > 255; at += 255)
                     {
-                        _object.Add(code, text.GetRange(at, Math.Min(255, end - at)).ToArray());
+                        _object.Add(3, text.GetRange(at, 255).ToArray());
                     }
+
+                    _object.Add(1, text.GetRange(at, end - at).ToArray());
                 }
 
                 start = i + 1;

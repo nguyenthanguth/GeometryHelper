@@ -22,7 +22,6 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             "CELLSTYLEMAP",
             "TABLESTYLE",
-            "SHAPE",
             // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
             // R2007 its TABLECONTENT and TABLEGEOMETRY are read.
             "ACDBDATATABLE",
@@ -115,10 +114,11 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("table_AC1021")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
-            // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
+            // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each. The drawing
+            // of solids holds a SHAPE, named from the file of shapes the tests make.
             DwgAnswerKey.Result result = DwgAnswerKey.Compare(
                 DwgAnswerKey.Key(drawing),
-                DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing))
+                DwgShapeTests.ToDxfWithShapes(DwgAnswerKey.Dwg(drawing))
             );
 
             Assert.Empty(result.Differences);

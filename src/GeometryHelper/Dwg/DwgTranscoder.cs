@@ -78,6 +78,18 @@ namespace GeometryHelper.Dwg
         private readonly bool _doubleByte;
         private readonly int _version;
 
+        /// <summary>The bytes of a text before R2007 read one to a letter, for the name of a file.</summary>
+        private static readonly Encoding Latin1 = Encoding.GetEncoding("iso-8859-1");
+
+        /// <summary>The folders the files of shapes are looked for in, in their order; null or empty for none.</summary>
+        private IList<string> _supportFolders;
+
+        /// <summary>The names of the shapes of each file of shapes looked for, by the file as its style gives it; null where it was not found.</summary>
+        private readonly Dictionary<string, Dictionary<int, string>> _shapeFiles = new Dictionary<
+            string,
+            Dictionary<int, string>
+        >(StringComparer.OrdinalIgnoreCase);
+
         private DwgTranscoder(DwgContainer container)
         {
             _container = container;
@@ -168,12 +180,16 @@ namespace GeometryHelper.Dwg
         /// <see cref="FormatException"/> for a file that is not a DWG or is broken where nothing can be read past it, and
         /// <see cref="NotSupportedException"/> for a DWG of a version that is not read.
         /// </summary>
-        public static byte[] ToDxf(byte[] file) => ToDxf(DwgContainer.Read(file));
+        public static byte[] ToDxf(byte[] file, IList<string> supportFolders = null) =>
+            ToDxf(DwgContainer.Read(file), supportFolders);
 
-        /// <summary>The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[])"/>.</summary>
-        public static byte[] ToDxf(DwgContainer container)
+        /// <summary>
+        /// The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[], IList{string})"/>;
+        /// the files of shapes are looked for in <paramref name="supportFolders"/>, in their order.
+        /// </summary>
+        public static byte[] ToDxf(DwgContainer container, IList<string> supportFolders = null)
         {
-            var transcoder = new DwgTranscoder(container);
+            var transcoder = new DwgTranscoder(container) { _supportFolders = supportFolders };
             transcoder.WriteHeader();
             transcoder.WriteClasses();
             transcoder.WriteTables();
@@ -520,6 +536,93 @@ namespace GeometryHelper.Dwg
         /// <summary>The name of the record at <paramref name="handle"/> as the bytes of the file; null where there is none.</summary>
         private byte[] NameOf(ulong handle) => Find(handle)?.RecordName;
 
+        /// <summary>
+        /// The name of a shape in the file of shapes of its text style (group 3), that file looked for in the support folders
+        /// in their order, by its name alone and with .shx where it has no extension, or where its style gives it whole;
+        /// null where no folder holds a compiled file of shapes of that name, or it names no shape of that number.
+        /// </summary>
+        private string ShapeName(DwgShapeName shape)
+        {
+            byte[] file = null;
+
+            foreach (DwgGroup group in Find(shape.Style)?.Body ?? new List<DwgGroup>())
+            {
+                if (group.Code == 3 && group.Value is byte[] bytes)
+                {
+                    file = bytes;
+                }
+            }
+
+            if (file == null || file.Length == 0 || _supportFolders == null || _supportFolders.Count == 0)
+            {
+                return null;
+            }
+
+            string named = (_version >= 1021 ? Encoding.UTF8 : Latin1).GetString(file);
+
+            if (!_shapeFiles.TryGetValue(named, out Dictionary<int, string> names))
+            {
+                names = ShapeFile(named);
+                _shapeFiles.Add(named, names);
+            }
+
+            return names != null && names.TryGetValue(shape.Number, out string name) ? name : null;
+        }
+
+        /// <summary>The names of the shapes of the file of shapes <paramref name="named"/>, as <see cref="ShapeName"/> looks for it; null where it is not found.</summary>
+        private Dictionary<int, string> ShapeFile(string named)
+        {
+            try
+            {
+                string name = System.IO.Path.GetFileName(named);
+
+                if (!System.IO.Path.HasExtension(name))
+                {
+                    name += ".shx";
+                }
+
+                var paths = new List<string>();
+
+                if (System.IO.Path.IsPathRooted(named))
+                {
+                    paths.Add(named);
+                }
+
+                foreach (string folder in _supportFolders)
+                {
+                    if (!string.IsNullOrEmpty(folder))
+                    {
+                        paths.Add(System.IO.Path.Combine(folder, name));
+                    }
+                }
+
+                foreach (string path in paths)
+                {
+                    Dictionary<int, string> names = System.IO.File.Exists(path)
+                        ? Dxf.DxfSupportFiles.ShapeNames(System.IO.File.ReadAllBytes(path))
+                        : null;
+
+                    if (names != null)
+                    {
+                        return names;
+                    }
+                }
+            }
+            catch (Exception fault)
+                when (fault is System.IO.IOException
+                    || fault is UnauthorizedAccessException
+                    || fault is ArgumentException
+                    || fault is NotSupportedException
+                )
+            {
+                GeometryHelperLog.Warn(
+                    "DwgReader: the file of shapes " + named + " could not be read: " + fault.Message
+                );
+            }
+
+            return null;
+        }
+
         private static bool Same(byte[] name, string text)
         {
             if (name.Length != text.Length)
@@ -583,6 +686,19 @@ namespace GeometryHelper.Dwg
                         ? NameOf(entries[linetype.Index + 2])
                         : null;
                 _dxf.Write(group.Code, named ?? Encoding.ASCII.GetBytes("BYLAYER"));
+            }
+            else if (group.Value is DwgShapeName shape)
+            {
+                string named = ShapeName(shape);
+
+                if (named != null)
+                {
+                    _dxf.Write(2, named);
+                }
+                else
+                {
+                    _dxf.Write(70, shape.Number);
+                }
             }
             else if (group.Value is DwgViewportNumber number)
             {

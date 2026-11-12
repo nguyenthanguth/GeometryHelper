@@ -74,6 +74,71 @@ namespace GeometryHelper.Dwg
             _data.BitDouble(Radians(point.Double(50)));
         }
 
+        private ulong _shapeStyle = ulong.MaxValue;
+
+        /// <summary>
+        /// The number of the shape of a SHAPE: group 70, as AutoCAD writes a shape whose file of shapes it does not find,
+        /// or group 2 where that is a number, as 135; 0 where group 2 names the shape, which is not looked up.
+        /// </summary>
+        private static int ShapeNumber(DwgRecord record)
+        {
+            DwgGroups shape = record.Of("AcDbShape");
+
+            if (shape.Has(70))
+            {
+                return shape.Int(70);
+            }
+
+            return
+                int.TryParse(
+                    shape.Text(2).Trim(),
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int number
+                )
+                && number <= short.MaxValue
+                ? number
+                : 0;
+        }
+
+        /// <summary>
+        /// The text style a SHAPE given by its number is of, which DXF does not say: the first of the table that is of a
+        /// file of shapes (flag 1); 0 where there is none.
+        /// </summary>
+        private ulong ShapeStyle()
+        {
+            if (_shapeStyle == ulong.MaxValue)
+            {
+                _shapeStyle = 0;
+
+                foreach (DwgRecord style in _drawing.Table("STYLE")?.Records ?? new List<DwgRecord>())
+                {
+                    if ((style.Of("AcDbTextStyleTableRecord").Int(70) & 1) != 0)
+                    {
+                        _shapeStyle = style.Handle;
+                        break;
+                    }
+                }
+            }
+
+            return _shapeStyle;
+        }
+
+        /// <summary>A SHAPE: its place, size, turn, width, slant, thickness, number and extrusion, then its text style.</summary>
+        private void WriteShape()
+        {
+            DwgGroups shape = _record.Of("AcDbShape");
+            _data.Point3(shape.Point(10));
+            _data.BitDouble(shape.Double(40));
+            _data.BitDouble(Radians(shape.Double(50)));
+            _data.BitDouble(shape.Double(41, 1.0));
+            _data.BitDouble(Radians(shape.Double(51)));
+            _data.BitDouble(shape.Double(39));
+            _data.BitShort(ShapeNumber(_record));
+            _data.Point3(shape.Point(210, 0, 0, 1));
+            H(5, ShapeStyle());
+        }
+
         private void WriteEllipse()
         {
             DwgGroups ellipse = _record.Of("AcDbEllipse");

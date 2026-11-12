@@ -177,10 +177,10 @@ the ones wanted.
         R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
   - [ ] W4b (done: tables from R2010, TABLECONTENT, CELLSTYLEMAP, RASTERVARIABLES/WIPEOUTVARIABLES since W5b; MATERIAL and
         VISUALSTYLE read in every version and written; ACDSDATA read from R2013; view styles and the subentity manager
-        read and written; REGION/3DSOLID/BODY written from R2013 with their AcDs store, AUDIT 0): SAB to SAT for
-        R2004-R2010 (and SAT to SAB for writing from SAT text); SHAPE names (DECIDED by recommendation 2026-11-12: a
-        support-folder list as a property on DxfReadOptions, which DwgReader.Read already takes, plus an Open overload;
-        with no SHX found, group 2 holds the shape number as text, e.g. "135", so nothing is lost); OLE2FRAME (needs GUI
+        read and written; REGION/3DSOLID/BODY written from R2013 with their AcDs store, AUDIT 0; SAB to SAT for
+        R2004-R2010 byte for byte; SHAPE names via DxfReadOptions.SupportFolders, with no SHX the number under group 70
+        as AutoCAD writes it, DECIDED by recommendation 2026-11-12): advanced, later: SAT to SAB for writing R2018 from
+        SAT text; a SHAPE given by name alone; OLE2FRAME (needs GUI
         samples), proxies, dynamic block data; a _data_ segment past a few records and multi-page blobs unprobed (L)
   - [x] W5 Writing R2018 (AutoCAD 2021's own): `DwgWriter`, our own LZ77; 19 drawings open in AutoCAD with AUDIT 0 and
         round-trip; files 70-75 % of AutoCAD's size (L)
