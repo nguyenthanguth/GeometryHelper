@@ -18,8 +18,10 @@ namespace GeometryHelper.Dxf.Viewer
     /// given a document (<see cref="CadDocument.Fonts"/>) find it, the folder of that document's drawing first, the canvas's
     /// own ghsimplex wherever fonts are on; a TrueType font from the Fonts folders of Windows. The style's width factor and
     /// oblique angle are measured too. Words of a face whose letters are not read (an SHX font with the fonts off or not
-    /// found, a TrueType font with no file), or that the layout gives no width, are not measured: the picture then takes a letter as 0.7 of the
-    /// height wide, as before. The measurements are kept by font, words and height, at most 4096 at once.
+    /// found, a TrueType font with no file), or that the layout gives no ink at all, as words of spaces alone, are not
+    /// measured: the picture then takes a letter as 0.7 of the height wide, as before. Words whose ink has no width are
+    /// measured nought wide, as AutoCAD measures them: "I" of isocp.shx, a single upright stroke. The measurements are kept
+    /// by font, words and height, at most 4096 at once.
     /// </remarks>
     internal static class CadDimensionWords
     {
@@ -50,7 +52,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Measures words of a text style as AutoCAD lays out a dimension's MTEXT of them: their width and their height; false,
-        /// and nothing measured, where the style is null or the layout gives the words no width.
+        /// and nothing measured, where the style is null or the layout gives the words no ink. Words inked in a line up and
+        /// down alone are measured nought wide.
         /// </summary>
         internal static bool TryMeasure(
             DxfTextStyleTableRecord style,
@@ -63,7 +66,7 @@ namespace GeometryHelper.Dxf.Viewer
             width = 0.0;
             tall = 0.0;
 
-            if (style == null || string.IsNullOrEmpty(words) || !(height > 0.0))
+            if (style == null || string.IsNullOrWhiteSpace(words) || !(height > 0.0))
             {
                 return false;
             }
@@ -108,7 +111,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     width = known.Key;
                     tall = known.Value;
-                    return width > 0.0;
+                    return tall > 0.0;
                 }
 
                 Measure(file, bigFile, font.TypeFace, xscale, oblique, words, height, out width, out tall);
@@ -119,7 +122,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 Kept[key] = new KeyValuePair<double, double>(width, tall);
-                return width > 0.0;
+                return tall > 0.0;
             }
         }
 
@@ -185,7 +188,7 @@ namespace GeometryHelper.Dxf.Viewer
                 double measured = layout.ActualWidth;
                 double high = layout.ActualHeight;
 
-                if (measured > 0.0 && high > 0.0 && !double.IsInfinity(measured) && !double.IsInfinity(high))
+                if (measured >= 0.0 && high > 0.0 && !double.IsInfinity(measured) && !double.IsInfinity(high))
                 {
                     width = measured;
                     tall = high;

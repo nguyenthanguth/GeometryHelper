@@ -231,6 +231,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "CMLEADERSTYLE",
                     "DATE",
                     "DIMASSOC",
+                    "DIMCONTINUEMODE",
                     "DIMSCALE",
                     "DIMSTYLE",
                     "DWGNAME",

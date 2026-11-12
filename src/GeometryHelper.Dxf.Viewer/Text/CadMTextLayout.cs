@@ -887,7 +887,7 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The ink of an atom from its own left edge: ink left of the pen is not counted in a TrueType font.</summary>
             private static double LeftOf(Atom atom) =>
                 !atom.HasInk ? 0.0
-                : atom.Ink.IsShx || atom.Kind == Kind.Stack ? atom.Left
+                : atom.Kind == Kind.Stack ? atom.Left
                 : Math.Max(0.0, atom.Left);
 
             /// <summary>Breaks the atoms of a paragraph into lines.</summary>

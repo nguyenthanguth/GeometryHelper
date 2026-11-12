@@ -23,6 +23,13 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly ConditionalWeakTable<DxfMText, StrongBox<GeoPoint3>> WordsStarts =
             new ConditionalWeakTable<DxfMText, StrongBox<GeoPoint3>>();
 
+        /// <summary>Keeps the point a dimension records its words by (group 11), for <see cref="Recorded"/>, where it is not their middle.</summary>
+        private static void RecordWordsBy(DxfMText words, GeoPoint2 point)
+        {
+            WordsStarts.Remove(words);
+            WordsStarts.Add(words, new StrongBox<GeoPoint3>(P3(point)));
+        }
+
         private static IEnumerable<CadPrompt> DimLinear(CadCommandContext c) => DimLine(c, false);
 
         private static IEnumerable<CadPrompt> DimAligned(CadCommandContext c) => DimLine(c, true);
@@ -510,24 +517,35 @@ namespace GeometryHelper.Dxf.Viewer
                 made.UsingDefaultTextPosition = false;
             }
 
-            return WithTextAngle(
-                made,
-                Radial(
-                    style,
-                    Dimscale(c),
-                    textHeight,
-                    center,
-                    radius,
-                    chord,
-                    far,
-                    wordsAt,
-                    diameter,
-                    words,
-                    slid,
-                    free
-                ),
-                textAngle
+            List<DxfEntity> picture = Radial(
+                style,
+                Dimscale(c),
+                textHeight,
+                center,
+                radius,
+                chord,
+                far,
+                wordsAt,
+                diameter,
+                words,
+                slid,
+                free
             );
+
+            // Under DIMTMOVE 1 AutoCAD 2021 records the words by the point they were put at, where the leader ends: "R20" put
+            // 40 out at 30 degrees in acad.dwt's Standard writes (34.641, 20), its words level past a landing.
+            if (move == 1 && !slid)
+            {
+                foreach (DxfEntity entity in picture)
+                {
+                    if (entity is DxfMText mtext)
+                    {
+                        RecordWordsBy(mtext, wordsAt);
+                    }
+                }
+            }
+
+            return WithTextAngle(made, picture, textAngle);
         }
 
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
@@ -1288,7 +1306,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// arrowheads do not both fit between the extension lines, DIMTIX keeps the words inside (DIMSOXD then leaves out
         /// arrowheads that do not fit), else DIMATFIT moves both out (0), the arrowheads first (1), the words first (2), or (3)
         /// the words where the arrowheads fit, else the arrowheads; words outside stand past the second extension line (the
-        /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing. DIMTVP with
+        /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing, or with none
+        /// past the end of a line within 15 degrees of level. DIMTVP with
         /// DIMTAD 0 lifts the words by that many times their height, off the line as DIMTAD 1 puts them from 0.7 up; a DIMGAP
         /// below nought, the box round the words, keeps words above the line clear of it by the gap again. Words turned to an
         /// angle of their own (<paramref name="wordsAngle"/>, DIMLINEAR's Angle) stand centred on the line whatever DIMTAD says,
@@ -1596,7 +1615,15 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 bend = start + away * clear;
                 var flat = new GeoVector2(away.X < -1E-9 ? -1.0 : 1.0, 0.0);
                 var up2 = new GeoVector2(0.0, 1.0);
-                double landing = tad == 0 ? arrow : width + gap + (box ? gap : 0.0);
+
+                // A line within 15 degrees of level has no landing: the words stand a gap past its end, level with it, as
+                // AutoCAD 2021 draws them at 5, 10 and 15 degrees and from 165 to 195; from 15.01 degrees on they stand past an
+                // arrowhead's landing (DIMTAD 0) or over a landing as wide as they are.
+                bool landed = Math.Abs(away.Y) > Math.Sin(Math.PI / 12.0) + 1E-12;
+                double landing =
+                    !landed ? 0.0
+                    : tad == 0 ? arrow
+                    : width + gap + (box ? gap : 0.0);
 
                 if (clear > (arrowsOut ? arrow : 0.0))
                 {
@@ -1605,7 +1632,11 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                 }
 
-                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + flat * landing));
+                if (landed)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + flat * landing));
+                }
+
                 layout.At =
                     tad == 0
                         ? bend + flat * (landing + gap + width / 2.0)
