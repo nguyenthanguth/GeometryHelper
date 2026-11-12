@@ -208,7 +208,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
@@ -287,6 +287,16 @@ to the rim, else DIMCEN marks the centre: "R20" put 1 out under ISO-25, and in a
 inside the circle or out, whatever DIMTOH says, and the line is broken where it runs through their box grown by DIMGAP:
 "R20" of Arial 0.18 high put 10 out at 30 degrees breaks it from 9.636 to 10.364. Words outside kept level on a line
 within 15 degrees of level stand on no landing of their own, a gap past the end of the line, as on a linear dimension.
+Words put past the rim but within the room of the arrowhead stand where the fit would put them: of a radius or a diameter
+under DIMATFIT 3 (and 0 to 2 for a diameter, as for a radius) they stand no nearer the rim than two arrowheads, the gap and
+half their width, or two arrowheads where DIMTOH keeps them level on a landing: "R20.0000" of Arial put 20.2 out from a
+circle of 20 in acad.dwt's Standard stands 20.979 out whether it was put 20.2, 20.5 or 20.9 out, and put 21 out stands at the
+point. A point on the rim is outside it. Under DIMTMOVE 2 words on a radius's line put over its centre push the
+arrowheads out when their near end is within an arrowhead of the centre. On a line exactly level the words DIMTOH or DIMTIH
+keep level are the words that stand along it, with no landing; on an exactly upright line the landing runs left where the
+line runs down and right where it runs up, outside the rim and in: "R20" put 25 out straight down has its landing from
+(-0.18, -25) to (0, -25) and its words' middle at (-0.7994, -25). A linear or aligned dimension whose points run straight
+down does the same for level words outside its line.
 A radius or a diameter records its words (group 11) as AutoCAD 2021 does: under DIMTMOVE 1 and 2 by the point they were
 put at, under 0 by the point of the line or landing they stand by, their middle without DIMTAD's lift: "R20" put 40 out
 at 30 degrees under DIMTAD 1 writes (34.641, 20), its middle 0.18 above the line.
@@ -327,7 +337,12 @@ arrowhead at the rim. Words put on the other side of the rim from the foot of th
 way from that centre to the rim, as AutoCAD 2021 puts them: put 80 out at 14 degrees they stand at (36.38, -15.905). Its
 grips are the chord point, the centre drawn, the jog and the words. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
-dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
+dimension. Its options run the commands of their names, and Layer puts the dimensions made next on a layer. DIM asks as
+AutoCAD 2021's own DIM does: a circle offers Radius or Diameter and no angle ("Specify diameter dimension location or
+[Radius/Mtext/Text/text aNgle/Undo]"), an arc also Angular; Continue asks "Select extension line origin to continue or
+[Baseline]" and Baseline "Select extension line origin as baseline or [Continue]" (each turns into the other), then
+"Specify second extension line origin or [Select/Undo] <Select>", with Offset for the spacing of a baseline row; the
+row goes on from the extension line picked, where DIMCONTINUE and DIMBASELINE go on from the last dimension.
 A new dimension is drawn by the drawing's current dimension variables (its header's), not its style's, and writes each
 that differs from the style as an override, in the order of their groups, as AutoCAD 2021 does: DIMSCALE 10 typed with
 ISO-25 current draws the words of a dimension 25 high and its arrowheads 25 long, and DIMBASELINE puts each next line

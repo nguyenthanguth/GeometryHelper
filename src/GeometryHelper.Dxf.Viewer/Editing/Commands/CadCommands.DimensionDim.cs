@@ -12,7 +12,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// A click on a line dimensions the line, a click on another line then the angle of the two; a click on a circle its
     /// diameter, on an arc its radius; a click on nothing (or a point typed or snapped) starts a linear dimension from that point. The
     /// options run the commands of their names: Angular DIMANGULAR, Baseline DIMBASELINE, Continue DIMCONTINUE, Ordinate
-    /// DIMORDINATE; aLign puts dimensions on the line of a base one, Distribute spaces them evenly or an offset apart, LAyer
+    /// DIMORDINATE; aliGn puts dimensions on the line of a base one, Distribute spaces them evenly or an offset apart, Layer
     /// sets the layer new dimensions go on (AutoCAD's DIMLAYER) and Undo takes back the last dimension made. DIM asks again
     /// after each one until Enter; the whole run is one undo step.
     /// </remarks>
@@ -35,9 +35,9 @@ namespace GeometryHelper.Dxf.Viewer
                 "Baseline",
                 "Continue",
                 "Ordinate",
-                "aLign",
+                "aliGn",
                 "Distribute",
-                "LAyer",
+                "Layer",
                 "Undo",
             };
 
@@ -63,17 +63,17 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Baseline") || c.Input.Is("Continue"))
                 {
-                    step = DimChain(c, c.Input.Is("Baseline"));
+                    step = DimChain(c, c.Input.Is("Baseline"), true);
                 }
                 else if (c.Input.Is("Ordinate"))
                 {
                     step = DimOrdinate(c);
                 }
-                else if (c.Input.Is("aLign") || c.Input.Is("Distribute"))
+                else if (c.Input.Is("aliGn") || c.Input.Is("Distribute"))
                 {
                     step = DimAlign(c, c.Input.Is("Distribute"));
                 }
-                else if (c.Input.Is("LAyer"))
+                else if (c.Input.Is("Layer"))
                 {
                     step = DimLayerOption(c);
                 }
@@ -160,7 +160,17 @@ namespace GeometryHelper.Dxf.Viewer
                     : CadPrompt.ForPoint(
                         diameter ? "Specify diameter dimension location" : "Specify radius dimension location",
                         Center(picked),
-                        new[] { diameter ? "Radius" : "Diameter", "Angular", "Mtext", "Text", "text aNgle", "Undo" }
+                        picked is DxfCircle
+                            ? new[] { diameter ? "Radius" : "Diameter", "Mtext", "Text", "text aNgle", "Undo" }
+                            : new[]
+                            {
+                                diameter ? "Radius" : "Diameter",
+                                "Angular",
+                                "Mtext",
+                                "Text",
+                                "text aNgle",
+                                "Undo",
+                            }
                     );
 
                 if (c.Input.Is("Mtext") || c.Input.Is("Text"))
@@ -195,12 +205,6 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Angular"))
                 {
-                    if (picked is DxfCircle)
-                    {
-                        c.Write("The angle of a circle is not made: pick an arc or two lines.");
-                        continue;
-                    }
-
                     foreach (CadPrompt prompt in DimAngularFrom(c, picked, null))
                     {
                         yield return prompt;
@@ -292,7 +296,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// DIM's aLign and Distribute: a base dimension, then the dimensions to put on its line (aLign), or to space evenly out to
+        /// DIM's aliGn and Distribute: a base dimension, then the dimensions to put on its line (aliGn), or to space evenly out to
         /// the farthest of them (Equal) or an offset apart (Offset), as DIMSPACE spaces them.
         /// </summary>
         private static IEnumerable<CadPrompt> DimAlign(CadCommandContext c, bool distribute)
@@ -382,7 +386,7 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
-        /// <summary>DIM's LAyer: the layer the dimensions made next go on, a layer of the drawing by its name, or Use current (".").</summary>
+        /// <summary>DIM's Layer: the layer the dimensions made next go on, a layer of the drawing by its name, or Use current (".").</summary>
         private static IEnumerable<CadPrompt> DimLayerOption(CadCommandContext c)
         {
             string now = c.Session.DimLayer ?? "use current";

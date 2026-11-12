@@ -68,9 +68,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// DIMCONTINUE and DIMBASELINE: from the last linear or angular dimension of the space, else one selected, a dimension
         /// to each second origin given, continued from the last one's second extension line on the same line, or from the base
-        /// extension line on a line DIMDLI further out each time.
+        /// extension line on a line DIMDLI further out each time. <paramref name="fromDim"/> runs them as DIM's Baseline and
+        /// Continue do, which always ask for the extension line origin to go on from (Baseline and Continue turn one into the
+        /// other there) and give a baseline row an Offset.
         /// </summary>
-        private static IEnumerable<CadPrompt> DimChain(CadCommandContext c, bool baseline)
+        private static IEnumerable<CadPrompt> DimChain(CadCommandContext c, bool baseline, bool fromDim = false)
         {
             if (DimStyle(c) == null)
             {
@@ -78,7 +80,6 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            int first = baseline ? 0 : 279;
             DxfDimension last = null;
 
             foreach (DxfEntity entity in c.Space.Block)
@@ -93,16 +94,32 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            Chain chain = last == null ? null : ChainOf(last, null, baseline);
+            Chain chain = last == null || fromDim ? null : ChainOf(last, null, baseline);
+            double? offset = null;
 
             var made = new List<string>();
             var before = new List<Chain>();
 
             while (true)
             {
+                int first = baseline ? 0 : 279;
+
                 if (chain == null)
                 {
-                    yield return CadPrompt.ForEntity(baseline ? "Select base dimension" : "Select continued dimension");
+                    yield return fromDim
+                        ? CadPrompt.ForEntity(
+                            baseline
+                                ? "Select extension line origin as baseline"
+                                : "Select extension line origin to continue",
+                            new[] { baseline ? "Continue" : "Baseline" }
+                        )
+                        : CadPrompt.ForEntity(baseline ? "Select base dimension" : "Select continued dimension");
+
+                    if (fromDim && (c.Input.Is("Baseline") || c.Input.Is("Continue")))
+                    {
+                        baseline = c.Input.Is("Baseline");
+                        continue;
+                    }
 
                     if (c.Input.Kind != CadInputKind.Selection)
                     {
@@ -139,7 +156,7 @@ namespace GeometryHelper.Dxf.Viewer
                     moving.Keep(DxfDimVariable.Named("Dimtmove"), 1);
                 }
 
-                double spacing = baseline ? style.Dimdli * DrawnScale(c, style) : 0.0;
+                double spacing = baseline ? offset ?? style.Dimdli * DrawnScale(c, style) : 0.0;
                 Chain from = chain;
 
                 // The dimension the point at the cursor would add to the row, as it is added.
@@ -186,9 +203,9 @@ namespace GeometryHelper.Dxf.Viewer
                     chain.Ordinate
                         ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
                         : CadPrompt.ForPoint(
-                            "Specify a second extension line origin",
+                            fromDim ? "Specify second extension line origin" : "Specify a second extension line origin",
                             chain.Origin,
-                            new[] { "Select", "Undo" },
+                            fromDim && baseline ? new[] { "Select", "Offset", "Undo" } : new[] { "Select", "Undo" },
                             "Select"
                         )
                 ).Previewing(shown);
@@ -283,6 +300,15 @@ namespace GeometryHelper.Dxf.Viewer
                     made.RemoveAt(made.Count - 1);
                     chain = before[before.Count - 1];
                     before.RemoveAt(before.Count - 1);
+                }
+                else if (fromDim && baseline && c.Input.Is("Offset"))
+                {
+                    yield return CadPrompt.ForDistance("Specify offset distance");
+
+                    if (c.Input.Kind == CadInputKind.Number && c.Input.Number >= 0.0)
+                    {
+                        offset = c.Input.Number;
+                    }
                 }
                 else if (c.Input.Is("Select"))
                 {

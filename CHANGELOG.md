@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's DIM asks as AutoCAD 2021's own DIM does, read from its resource strings: the options are
+Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer and Undo (G for aliGn, where L was taken for it and LA for
+Layer); a circle clicked offers Radius or Diameter and no Angular ("Specify diameter dimension location or
+[Radius/Mtext/Text/text aNgle/Undo]"), an arc also Angular. Continue asks "Select extension line origin to continue or
+[Baseline]", Baseline "Select extension line origin as baseline or [Continue]" (each turns into the other), then "Specify
+second extension line origin or [Select/Undo] <Select>" with Offset ("Specify offset distance") in a baseline row. The row
+goes on from the extension line picked, where DIMCONTINUE and DIMBASELINE still go on from the last dimension. AutoCAD's
+console runs the old Dim: command for DIM, so these prompts could not be probed there.
+
+**FIXED.** A radius or a diameter whose words are put within the room of an arrowhead of the rim is laid out as AutoCAD
+2021 lays it out, probed with 2 742 of them made by DIMRADIUS and DIMDIAMETER in its console (SHX words, DIMTMOVE 0 to 2,
+DIMTAD, DIMTOH, DIMTIH, DIMATFIT 0 to 3, DIMTOFL, DIMSCALE, circles of 8 to 40): of those 941 differed in lines, arrowheads
+or words, 31 do now (a point exactly on the rim, which AutoCAD decides by the rounding of its own coordinates; a point at the
+centre; level words inside next to the rim on an upright or nearly level line). Words put past the rim stand no nearer than two
+arrowheads and the gap and half their width, or two arrowheads where DIMTOH keeps them level, however near they were put:
+"R20.0000" put 20.2, 20.5 or 20.9 out in acad.dwt's Standard stands 20.979 out, put 21 out at the point; a point on the rim
+is outside it, 1E-7 in is inside. A diameter follows DIMATFIT 0 to 2 as a radius does where the words are put outside it,
+and words put free under DIMTMOVE 2 over a radius's centre push the arrowheads out when their near end is within an
+arrowhead of it (it was at the centre itself). On a line exactly level, the words DIMTOH or DIMTIH keep level stand along
+it with no landing, on an exactly upright one the landing runs left where the line runs down and right where it runs up:
+"R20" put 25 out straight down has its landing from (-0.18, -25) to (0, -25) and its words at (-0.7994, -25), where they
+went right. Aligned and linear dimensions whose points run straight down land level words outside their line the same way,
+448 aligned dimensions of 1.6 and 3.2 at 14 angles and either side: 8 differed, none do now.
+
 **NEW.** In the presenter the snap and grid are undo steps, as AutoCAD 2021's U takes them, probed in its console: GRID,
 SNAP, SETVAR and a snap or grid variable typed alone (GRIDMODE, SNAPMODE, ORTHOMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY,
 SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR) are a step each, named by the command, so that after a line, GRID 50

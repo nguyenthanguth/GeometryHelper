@@ -1613,7 +1613,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (!Parallel(outward2, angle))
             {
                 GeoPoint2 bend = start + away * clear;
-                var flat = new GeoVector2(away.X < -1E-9 ? -1.0 : 1.0, 0.0);
+                // On an upright line the landing runs the way the points run: left where they run down, right where they run up,
+                // on either side of it, as AutoCAD 2021 lands it.
+                var flat = new GeoVector2(
+                    away.X < -1E-9 ? -1.0
+                        : away.X > 1E-9 ? 1.0
+                        : away.Y < 0.0 ? -1.0
+                        : 1.0,
+                    0.0
+                );
                 var up2 = new GeoVector2(0.0, 1.0);
 
                 // A line within 15 degrees of level has no landing: the words stand a gap past its end, level with it, as
