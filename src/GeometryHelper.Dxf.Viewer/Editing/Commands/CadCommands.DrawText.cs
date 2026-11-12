@@ -491,7 +491,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static IEnumerable<CadPrompt> MText(CadCommandContext c)
+        private static IEnumerable<CadPrompt> MText(CadCommandContext c) => MTextBody(c, false);
+
+        /// <summary>
+        /// MTEXT and -MTEXT: the same corners and options; MTEXT has the words written in the editor over the box, -MTEXT asks
+        /// them on the command line, "MText:" a line at a time until a blank one, the lines made paragraphs of one text.
+        /// </summary>
+        private static IEnumerable<CadPrompt> MTextBody(CadCommandContext c, bool onCommandLine)
         {
             string style = TextStyle(c);
             DxfTextStyleTableRecord record = StyleRecord(c, style);
@@ -780,14 +786,39 @@ namespace GeometryHelper.Dxf.Viewer
                     );
             }
 
-            yield return CadPrompt.ForInPlaceEdit("Enter text", edit);
+            string words;
 
-            if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+            if (onCommandLine)
             {
-                yield break;
+                // A blank line ends the words; with none typed AutoCAD 2021 makes an MTEXT of no words, as it did here.
+                var lines = new List<string>();
+
+                while (true)
+                {
+                    yield return CadPrompt.ForString("MText");
+
+                    if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+                    {
+                        break;
+                    }
+
+                    lines.Add(c.Input.Text);
+                }
+
+                words = string.Join("\\P", lines);
+            }
+            else
+            {
+                yield return CadPrompt.ForInPlaceEdit("Enter text", edit);
+
+                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+                {
+                    yield break;
+                }
+
+                words = c.Input.Text;
             }
 
-            string words = c.Input.Text;
             double widthFactor = c.Remembered("text.widthFactor", 1.0);
 
             // Letters of another width open the words with the code AutoCAD writes for them, \W0.8000; for 0.8.

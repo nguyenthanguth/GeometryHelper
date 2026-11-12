@@ -1041,6 +1041,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         IsRibbonShown = false;
                     }
+                    else if (RunWindowCommandWithoutDocument(line.Trim()))
+                    {
+                        // QUIT, COMMANDLINE, HIDEPALETTES and the like are the window's too, and need no drawing.
+                    }
                     else if (!_extensions.Any(e => e.TryRunWithoutDocument(line.Trim())))
                     {
                         Say("No drawing is open: Ctrl+O opens a DXF.");

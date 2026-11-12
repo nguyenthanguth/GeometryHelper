@@ -592,6 +592,76 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Binds named symbols an external reference brought, as AutoCAD's XBIND binds them: each record of the table renamed in its
+        /// place with every | of its name made <c>$0$</c>, the number raised past a name the table has (the layer
+        /// <c>GRID|WALL</c> becomes <c>GRID$0$WALL</c>, or <c>GRID$1$WALL</c> where that is taken), no longer of a reference, a
+        /// layer's <c>AcXRefLayerPropertyOverride</c> data taken out, and what drew by a layer or a linetype drawing by its new
+        /// name. A name the table has no record of, or whose record is no reference's, is left out.
+        /// </summary>
+        /// <param name="table">The table: LAYER, LTYPE, STYLE or DIMSTYLE.</param>
+        /// <param name="names">The names of the records, with their |.</param>
+        /// <returns>How many records were bound.</returns>
+        internal int BindDependentSymbols(string table, IReadOnlyList<string> names)
+        {
+            DxfSymbolTable ours = Table(table);
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var given = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string old in names)
+            {
+                if (!ours.Has(old) || old.IndexOf('|') < 0 || map.ContainsKey(old))
+                {
+                    continue;
+                }
+
+                for (int i = 0; ; i++)
+                {
+                    string name = old.Replace(
+                        "|",
+                        "$" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "$"
+                    );
+
+                    if (!ours.Has(name) && given.Add(name))
+                    {
+                        map[old] = name;
+                        break;
+                    }
+                }
+            }
+
+            if (map.Count == 0)
+            {
+                return 0;
+            }
+
+            RenameRecords(File, table, map);
+
+            if (table == "LAYER")
+            {
+                File.Rename(
+                    new[] { "TABLES", "ENTITIES", "BLOCKS", "OBJECTS" },
+                    (type, code) => code == 8 && type != "XRECORD",
+                    1003,
+                    map
+                );
+
+                foreach (string layer in map.Values)
+                {
+                    if (LayerTable.Has(layer) && LayerTable[layer].GetXDataForApplication(XrefOverrides) != null)
+                    {
+                        LayerTable[layer].XData = new[] { new DxfTypedValue(1001, XrefOverrides) };
+                    }
+                }
+            }
+            else if (table == "LTYPE")
+            {
+                File.Rename(new[] { "TABLES", "ENTITIES", "BLOCKS", "OBJECTS" }, NamesLinetype, -1, map);
+            }
+
+            return map.Count;
+        }
+
         // The application whose extended data says which properties of a layer of an external reference the drawing changed.
         private const string XrefOverrides = "AcXRefLayerPropertyOverride";
 

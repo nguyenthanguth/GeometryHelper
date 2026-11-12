@@ -255,7 +255,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Runs what a key pressed is given in the shortcuts, as "Ctrl+1": a toggle of the status bar, or a command started on the
         /// command line; nothing for a key given nothing, but Ctrl+9, which shows or hides the command line as in AutoCAD,
-        /// Ctrl+R, which works through the next viewport of the layout shown while one is worked through, and F5 and Ctrl+E,
+        /// Ctrl+Shift+H, which hides Properties, the Drawings list and the command line and, pressed again, shows them as they
+        /// were (HIDEPALETTES, SHOWPALETTES), Ctrl+R, which works through the next viewport of the layout shown while one is worked through, and F5 and Ctrl+E,
         /// which turn to the next isometric plane (SNAPISOPAIR), a command running going on.
         /// </summary>
         /// <param name="gesture">The key, as the shortcuts write it: Ctrl+1, F3, Ctrl+Shift+P.</param>
@@ -269,6 +270,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (string.Equals(gesture, "Ctrl+9", StringComparison.OrdinalIgnoreCase))
                 {
                     IsCommandLineShown = !IsCommandLineShown;
+                    return true;
+                }
+
+                if (string.Equals(gesture, "Ctrl+Shift+H", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Hides the palettes shown and, pressed again, shows them as they were, as AutoCAD's Ctrl+Shift+H does.
+                    if (ArePalettesHidden)
+                    {
+                        ShowPalettes();
+                    }
+                    else
+                    {
+                        HidePalettes();
+                    }
+
                     return true;
                 }
 

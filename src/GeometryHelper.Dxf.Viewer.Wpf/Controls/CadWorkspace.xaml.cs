@@ -606,6 +606,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsRequested -= OnSettingsRequested;
                 _model.SettingsApplied -= OnSettingsApplied;
                 _model.CloseRequested -= OnCloseRequested;
+                _model.QuitRequested -= OnQuitRequested;
                 _model.DraftingSettingsRequested -= OnDraftingSettingsRequested;
                 _model.StyleDialogRequested -= OnStyleDialogRequested;
                 _model.InPlaceEditChanged -= OnInPlaceEditChanged;
@@ -627,6 +628,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SettingsRequested += OnSettingsRequested;
                 _model.SettingsApplied += OnSettingsApplied;
                 _model.CloseRequested += OnCloseRequested;
+                _model.QuitRequested += OnQuitRequested;
                 _model.DraftingSettingsRequested += OnDraftingSettingsRequested;
                 _model.StyleDialogRequested += OnStyleDialogRequested;
                 _model.AskSaveChanges = document =>
@@ -954,6 +956,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>CLOSE typed: the drawing shown closed once the command has ended.</summary>
         private void OnCloseRequested(object sender, EventArgs e) =>
             Dispatcher.BeginInvoke(new Action(() => _model?.CloseDocument()));
+
+        /// <summary>QUIT or EXIT typed: the window closed once the command has ended, which asks about the drawings not saved as its x does.</summary>
+        private void OnQuitRequested(object sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(new Action(() => Window.GetWindow(this)?.Close()));
 
         /// <summary>Saves the copies of the drawings with changes once the minutes of Global settings have gone by since the last.</summary>
         private void AutosaveIfDue()

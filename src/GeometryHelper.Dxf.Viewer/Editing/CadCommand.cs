@@ -303,6 +303,16 @@ namespace GeometryHelper.Dxf.Viewer
                     ["EPDFSHX"] = "PDFSHX",
                     ["IMP"] = "IMPORT",
                     ["DDPLOTSTAMP"] = "PLOTSTAMP",
+                    ["-P"] = "-PAN",
+                    ["-T"] = "-MTEXT",
+                    ["-LO"] = "-LAYOUT",
+                    ["XB"] = "XBIND",
+                    ["-XB"] = "-XBIND",
+                    ["-OS"] = "-OSNAP",
+                    ["CLI"] = "COMMANDLINE",
+                    ["POFF"] = "HIDEPALETTES",
+                    ["PON"] = "SHOWPALETTES",
+                    ["EXIT"] = "QUIT",
                 },
                 new Dictionary<string, string>
                 {

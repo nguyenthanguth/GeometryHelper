@@ -194,17 +194,17 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 221 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 227 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
-| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?) |
+| utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
@@ -214,7 +214,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 
@@ -255,6 +255,45 @@ its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks
 the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command. Fit data, Join and Refine are
 not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT (the classic dialog
 is not in the presenter's design).
+
+**The command-line forms and SAVE (batch 4 of acad.pgp).**
+
+The prompts and messages of these were read from AutoCAD 2021 (its resources and accoreconsole probes). -PAN (`-P`) asks
+`Specify base point or displacement:` and `Specify second point:` as PAN does, and refuses Enter at the first, `Requires
+two points, or a displacement followed by ENTER.`, asking again where PAN ends.
+
+-MTEXT (`-T`) asks the corners and the options of MTEXT (`Specify opposite corner or
+[Height/Justify/Line spacing/Rotation/Style/Width/Columns]:`) and then, where MTEXT opens its editor, `MText:` a line at a time
+until a blank one; the lines are the paragraphs of one text (`Hello\PWorld`), and a blank first line makes an MTEXT of no words,
+as AutoCAD 2021 does.
+
+-LAYOUT (`-LO`) asks `Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:`, in the words of AutoCAD,
+where LAYOUT keeps its shorter list. Set asks `Enter layout to make current <Layout1>:` and says `Cannot find layout "X".`
+for a name that is none; `?` writes `Active Layouts:` and a row `Layout: Layout1       Block name: *Paper_Space.` for each
+sheet, by name. New asks `Enter new Layout name <Layout2>:`, the first LayoutN not taken, says nothing when it is made, and
+`Layout "X" already exists, not created.` otherwise. Rename asks the layout and `Enter new layout name:` (a change of letters
+alone is allowed), and says `Layout "Plan" renamed to "Sheet1".`. Copy asks `Enter name of layout to copy <Layout1>:` and `Enter
+layout name for copy <Layout1 (2)>:`, makes a layout of the page settings of the first and a copy of everything in its sheet,
+its viewports among it, and says `Layout "Layout1" copied to "Layout1 (2)".`. Delete asks `Enter name of layout to delete
+<Layout1>:`, takes the layout with its block and what is drawn in it out, and says `Layout "Plan" deleted.`; where it was the
+sheet shown, the next tab is shown, and where it was the last sheet a new Layout1 is made, as AutoCAD leaves a drawing one.
+Model is refused by Copy, Delete and Rename (`May not delete Model tab.`), and a name with one of the characters < > / \ " : ; ? * | , = or a backtick in it, or
+longer than 255 letters, by New, Rename and Copy. Each option is one undo step. Template and SAveas, which read and write a
+template file, are in the list and say they are not built.
+
+-XBIND (`-XB`, XBIND, `XB`) asks `Enter symbol type to bind [Block/Dimstyle/LAyer/LType/Style]:` and `Enter dependent Layer
+name(s):`, names with wildcards parted by commas, and binds what an external reference brought into the drawing, as
+AutoCAD 2021's console does: the layer `grid|WALL` becomes `grid$0$WALL` (`grid$1$WALL` where that is taken) and is the
+drawing's own, with what drew by it and the linetype, text style or dimension style it names following, and `1 Layer(s) bound.`
+or `No matching Layer names found.` (a name the drawing made itself is never matched). Block makes the block `grid$0$BLK` of
+the block BLK of the drawing grid references, with a copy of what it draws, from the file the reference names; the layers and
+styles that drawing uses by name come in under their own names, not as `grid$0$WALL`. The command asks the symbol type again
+until Enter and is one undo step. Nothing opens a dialog: XBIND asks the same questions.
+
+SAVE asks, with FILEDIA 0 or no window, `Save drawing as <file>:` and, where the file is there, `A drawing with this name
+already exists.` and `Do you want to replace it? <N>:`; the drawing is known by the new name afterwards, as after SAVEAS (which
+also asks the format), a name ending in .dwg written as a DWG of AutoCAD 2018 and any other as a DXF. With a window and FILEDIA 1
+it shows the Save Drawing As dialog, as SAVEAS does.
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -1023,7 +1062,7 @@ REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of t
 as AutoCAD 2021 hides them (their Visible off) for the session only: a save writes them shown, and UNISOLATEOBJECTS shows
 them again, saying `1 object(s) unisolated.` or `No objects to unisolate.`. Each is one undo step.
 PROPERTIES, OPTIONS and LAYER ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
-where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT ask it for its file dialog, and with none listening or FILEDIA 0 ask the file on the command line as AutoCAD does (see the application guide). The window adds CLOSE, NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, ISOPLANE, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
+where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT ask it for its file dialog, and with none listening or FILEDIA 0 ask the file on the command line as AutoCAD does (see the application guide). The window adds CLOSE, QUIT, NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, COMMANDLINE, COMMANDLINEHIDE, HIDEPALETTES, SHOWPALETTES, -OSNAP, GRID, SNAP, ORTHO, POLAR, OSNAP, ISOPLANE, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
 [`CadPrompt`](xref:GeometryHelper.Dxf.Viewer.CadPrompt) and reads the answer from [`CadCommandContext`](xref:GeometryHelper.Dxf.Viewer.CadCommandContext)`.Input`, so it reads top
 to bottom as its prompts do, and a [command plugin](plugins.md) is written the same way.
@@ -1087,7 +1126,7 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 219 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 223 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 229 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 233 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an

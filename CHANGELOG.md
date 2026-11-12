@@ -20,6 +20,22 @@ opaque), so that a PDF reader's search finds them. IMPORT asks `Enter import fil
 New: `CadPlotStamp`, `CadPlotStampCorner`, `CadPlotStampUnits`, `CadPlotSettings.PlotStamp` and `PdfShx`,
 `CadCommandSession.PlotStamp`, `CadExportJob.Opens` and `CadExportJob.Drawing`. Not built: the Plot Stamp dialog, the stamp on a
 PNG or JPG plot, EXPORTPDF's Options and a PDF of all layouts.
+**NEW.** Batch 4 (second part) of acad.pgp's commands in the presenter, the command-line forms and the window's own, in the
+words of AutoCAD 2021 (read from its resources and probed in accoreconsole): -PAN (`-P`), -MTEXT (`-T`), -LAYOUT (`-LO`), -XBIND
+(`-XB`), XBIND (`XB`), SAVE, -OSNAP (`-OS`), QUIT (`EXIT`), COMMANDLINE (`CLI`), COMMANDLINEHIDE, HIDEPALETTES (`POFF`) and
+SHOWPALETTES (`PON`): ten aliases and twelve commands more (six in the registry of the commands, six of the window). -PAN
+refuses Enter at its first question as AutoCAD does. -MTEXT asks the corners and options of MTEXT and then `MText:` line by line
+until a blank one. -LAYOUT has Copy (the page settings and a copy of everything in the sheet), Delete (the layout, its block and
+what it holds; the last sheet leaves a new Layout1), New, Rename, Set and `?` in AutoCAD's words, with Template and SAveas listed
+and said to be not built. -XBIND binds the layers, linetypes, text styles, dimension styles and blocks an external reference
+brought: `grid|WALL` becomes `grid$0$WALL`, `1 Layer(s) bound.`. SAVE asks `Save drawing as <file>:` and the drawing takes the new name,
+as AutoCAD's console does. QUIT closes the window through the question about drawings not saved; HIDEPALETTES and Ctrl+Shift+H
+hide Properties, the Drawings list and the command line and remember which were shown, SHOWPALETTES brings them back, the ribbon
+stays; -OSNAP types the object snaps that are on (`END,MID`, `NONe`). New: `MainViewModel.QuitRequested` and
+`MainViewModel.ArePalettesHidden`.
+**FIXED.** Undoing the rename of a layout by letters alone (Layout1 to LAYOUT1) left its tab named LAYOUT1; the tab is renamed
+back.
+
 **NEW.** Batch 3 of acad.pgp's 2D commands in the presenter, in the words of AutoCAD 2021 (read from its resources and probed
 in accoreconsole): SOLID (`SO`), -BOUNDARY (`-BO`), -HATCH (`-H`), GRADIENT (`GD`), HATCHTOBACK (`HB`), REGION (`REG`),
 SPLINEDIT (`SPE`) and CLASSICINSERT (`DDINSERT`), the eight added to the 142 default aliases and to the registry (196
