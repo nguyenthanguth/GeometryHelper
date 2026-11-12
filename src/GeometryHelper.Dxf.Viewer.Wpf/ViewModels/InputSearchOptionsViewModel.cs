@@ -33,7 +33,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// AutoCAD 2021's Input Search Options of INPUTSEARCHOPTIONS, over a copy of the settings: Enable AutoComplete with
     /// Enable mid-string search and the order of the suggestions (According to frequency of usage, Alphabetically); Enable
-    /// AutoCorrect with Remember corrections after 2 to 10 mistypes; Search system variables with Separate commands and system
+    /// AutoCorrect with Remember corrections after 1 to 50 mistypes; Search system variables with Separate commands and system
     /// variables; the suggestion list's delay, 100 to 10 000 milliseconds; and Search content at command line with the Content
     /// type list, each kind ticked or not and moved up or down. An option under one switched off is greyed. OK writes them
     /// into the settings; Cancel leaves the settings as they were.
@@ -123,7 +123,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _autoCorrect, value);
         }
 
-        /// <summary>Gets or sets the count of Remember corrections after … mistypes, as typed: 2 to 10.</summary>
+        /// <summary>Gets or sets the count of Remember corrections after … mistypes, as typed: 1 to 50, as AutoCAD 2021's dialog takes.</summary>
         public string RememberAfter
         {
             get => _rememberAfter;
@@ -189,7 +189,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool CanMoveDown =>
             _searchContent && _selected != null && ContentTypes.IndexOf(_selected) < ContentTypes.Count - 1;
 
-        /// <summary>Gets why OK was refused, as "Remember corrections takes 2 to 10 mistypes."; empty where it was not.</summary>
+        /// <summary>Gets why OK was refused, in AutoCAD 2021's words: "Invalid input. Mistypes value must be between 1 and 50"; empty where it was not.</summary>
         public string Message
         {
             get => _message;
@@ -206,15 +206,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether every value is in range.</returns>
         public bool Ok()
         {
-            if (!TryWhole(_rememberAfter, 2, 10, out _))
+            if (!TryWhole(_rememberAfter, 1, 50, out _))
             {
-                Message = "Remember corrections takes 2 to 10 mistypes.";
+                Message = "Invalid input. Mistypes value must be between 1 and 50";
                 return false;
             }
 
             if (!TryWhole(_delay, 100, 10000, out _))
             {
-                Message = "Requires an integer between 100 and 10000.";
+                Message = "Invalid input. Delay time must be between 100 and 10000 milliseconds";
                 return false;
             }
 
@@ -241,7 +241,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             settings.SearchContent = _searchContent;
             settings.ContentTypes = ContentTypes.Select(t => new GlobalContentType(t.Name, t.IsSearched)).ToList();
 
-            if (TryWhole(_rememberAfter, 2, 10, out int remember))
+            if (TryWhole(_rememberAfter, 1, 50, out int remember))
             {
                 settings.AutoCorrectMistypes = remember;
             }

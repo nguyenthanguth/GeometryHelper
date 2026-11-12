@@ -165,20 +165,21 @@ namespace GeometryHelper.Dxf.Viewer
         public bool SortAlphabetically { get; set; }
 
         /// <summary>
-        /// Gets or sets whether the system variables are listed apart, below every command, under a rule of their own, as
-        /// AutoCAD 2021's Separate commands and system variables of Input Search Options: off by default.
+        /// Gets or sets whether the system variables are listed apart, below every command, under a header of their own that
+        /// Tab expands, as AutoCAD 2021's Separate commands and system variables of Input Search Options: off by default.
         /// </summary>
         public bool SeparateSystemVariables { get; set; }
 
         /// <summary>
         /// Gets or sets after how many mistypes followed by one command AutoCorrect offers it, as Remember corrections after
-        /// <c>n</c> mistypes of AutoCAD 2021's Input Search Options: 3 by default (<see cref="AutoCorrectAfter"/>), 2 to 10.
+        /// <c>n</c> mistypes of AutoCAD 2021's Input Search Options: 3 by default (<see cref="AutoCorrectAfter"/>), 1 to 50, as
+        /// that dialog takes.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public int AutoCorrectMistypes
         {
             get => _autoCorrectMistypes;
-            set => _autoCorrectMistypes = (int)Range(value, 2, 10, nameof(AutoCorrectMistypes));
+            set => _autoCorrectMistypes = (int)Range(value, 1, 50, nameof(AutoCorrectMistypes));
         }
 
         /// <summary>

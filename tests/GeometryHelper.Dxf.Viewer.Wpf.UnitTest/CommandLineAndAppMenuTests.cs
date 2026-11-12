@@ -366,6 +366,79 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void EachKind_StandsUnderAHeaderWithItsCount_ThatAClickCollapsesAndExpands_AndThatStaysCollapsed()
+        {
+            MainViewModel model = Planned();
+
+            model.CommandText = "WAL";
+            model.ShowSuggestions();
+
+            // Design CmdContentSection: Blocks (1) over WALL_TAG, Layers (2) over WALL-FINISH and WALLS, each expanded.
+            IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions;
+            Assert.Equal(new[] { "Blocks", "WALL_TAG", "Layers", "WALL-FINISH", "WALLS" }, rows.Select(r => r.Name));
+            CommandSuggestionViewModel layers = rows[2];
+            Assert.True(layers.IsHeader);
+            Assert.True(layers.IsExpanded);
+            Assert.Equal("2", layers.Note);
+            Assert.Null(layers.ContentType);
+            Assert.False(rows[1].IsHeader);
+            Assert.True(rows[0].IsSelected);
+
+            // A click on the header (or Enter on it) collapses it and keeps the list open, the header chosen.
+            Assert.True(model.RunSuggestion(layers));
+            Assert.True(model.IsSuggestionListOpen);
+            Assert.False(layers.IsExpanded);
+            Assert.Equal(new[] { "Blocks", "WALL_TAG", "Layers" }, model.Suggestions.Select(r => r.Name));
+            Assert.Same(layers, model.SelectedSuggestion);
+            Assert.False(model.IsCommandRunning);
+
+            // Typed again, the kind stays collapsed; a click expands it.
+            model.CommandText = "WALL";
+            model.ShowSuggestions();
+            CommandSuggestionViewModel again = model.Suggestions.Single(r => r.Name == "Layers");
+            Assert.False(again.IsExpanded);
+            Assert.DoesNotContain(model.Suggestions, r => r.ContentType == "Layer");
+            Assert.True(model.RunSuggestion(again));
+            Assert.Equal(2, model.Suggestions.Count(r => r.ContentType == "Layer"));
+
+            // The arrows walk over the headers too.
+            model.MoveSuggestion(-10);
+            Assert.Equal("Blocks", model.SelectedSuggestion.Name);
+            model.MoveSuggestion(1);
+            Assert.Equal("WALL_TAG", model.SelectedSuggestion.Name);
+        }
+
+        [Fact]
+        public void AHatchPatternRow_HasAThumbnailOfItsPattern_AndNoOtherRowHasOne()
+        {
+            MainViewModel model = Planned();
+
+            model.CommandText = "ANSI31";
+            model.ShowSuggestions();
+
+            CommandSuggestionViewModel pattern = model.Suggestions.Single(r => r.ContentType == "Hatch");
+            Assert.True(pattern.HasThumbnail);
+            var picture = Assert.IsAssignableFrom<System.Windows.Media.Imaging.BitmapSource>(pattern.Thumbnail);
+            Assert.Equal(CommandSuggestionViewModel.ThumbnailSize, picture.PixelWidth);
+            Assert.Equal(CommandSuggestionViewModel.ThumbnailSize, picture.PixelHeight);
+
+            // The pattern's lines drawn: pixels of two shades at least, not the bare ground.
+            int stride = picture.PixelWidth * 4;
+            var pixels = new byte[stride * picture.PixelHeight];
+            picture.CopyPixels(pixels, stride, 0);
+            var shades = new HashSet<int>();
+
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                shades.Add(pixels[i] | (pixels[i + 1] << 8) | (pixels[i + 2] << 16));
+            }
+
+            Assert.True(shades.Count > 1);
+            Assert.All(model.Suggestions.Where(r => r != pattern), r => Assert.False(r.HasThumbnail, r.Name));
+            Assert.All(model.Suggestions.Where(r => r != pattern), r => Assert.Null(r.Thumbnail));
+        }
+
+        [Fact]
         public void NoNamedObjectIsListed_WithSearchContentOff_OrInTheBoxAtTheCursor()
         {
             MainViewModel model = Planned();

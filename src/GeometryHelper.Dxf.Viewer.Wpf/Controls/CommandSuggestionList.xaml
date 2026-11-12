@@ -15,7 +15,9 @@
     The command line's AutoComplete list (design CmdAutoComplete): a row per command, synonym or system variable, the letters
     typed in bold accent, the variables with {x}, the names with the letters inside below a rule, and the named objects of
     Search Content below another, their kind at the right. Five rows show at a time, the rest scrolled to. Its data context
-    is the MainViewModel; a click runs a row.
+    is the MainViewModel; a click runs a row. Design CmdContentSection: each kind of named object, and the variables listed
+    apart, under a header (a chevron, the name in semibold, the count at the right) that a click collapses or expands, the
+    rows under it indented; a hatch pattern's thumbnail beside its row while the pointer is over it.
     -->
     <UserControl.Resources>
         <ResourceDictionary>
@@ -58,8 +60,29 @@
                                 MouseLeftButtonUp="OnRowClick"
                                 Cursor="Hand"
                                 AutomationProperties.Name="{Binding Name}"
+                                ToolTipService.IsEnabled="{Binding HasThumbnail}"
+                                ToolTipService.Placement="Right"
+                                ToolTipService.InitialShowDelay="200"
                             >
+                                <Border.ToolTip>
+                                    <ToolTip Padding="0" Background="#1A1E24" BorderBrush="{StaticResource GhBorder}">
+                                        <Image
+                                            Source="{Binding Thumbnail}"
+                                            Width="{x:Static local:CommandSuggestionViewModel.ThumbnailSize}"
+                                            Height="{x:Static local:CommandSuggestionViewModel.ThumbnailSize}"
+                                            AutomationProperties.Name="{Binding Name, StringFormat='Thumbnail of {0}'}"
+                                        />
+                                    </ToolTip>
+                                </Border.ToolTip>
                                 <DockPanel>
+                                    <TextBlock
+                                        Width="10"
+                                        Text="{Binding Chevron}"
+                                        Foreground="{StaticResource GhTextMuted}"
+                                        FontSize="10"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsHeader, Converter={StaticResource Shown}}"
+                                    />
                                     <Grid Width="18" Height="16" Margin="0,0,6,0">
                                         <TextBlock
                                             Text="{}{x}"
@@ -90,6 +113,7 @@
                                         Margin="8,0,0,0"
                                     />
                                     <TextBlock
+                                        x:Name="Label"
                                         FontFamily="{StaticResource GhMonoFont}"
                                         VerticalAlignment="Center"
                                         TextTrimming="CharacterEllipsis"
@@ -110,6 +134,13 @@
                             <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
                             </Trigger>
+                            <DataTrigger Binding="{Binding IsIndented}" Value="True">
+                                <Setter TargetName="Row" Property="Padding" Value="24,3,8,3" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                <Setter TargetName="Label" Property="FontFamily" Value="{DynamicResource GhFont}" />
+                                <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                 <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
                             </DataTrigger>

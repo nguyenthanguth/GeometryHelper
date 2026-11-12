@@ -26,7 +26,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021's console, MEASUREMENT 0 then -SCALELISTEDIT Reset Yes ?: 1:1 (kept), then 1/128" = 1'-0" (0.0078
             // to 12) to 1'-0" = 1'-0" (12 to 12), 17 in all.
             CadDocument document = Blank();
-            document.Database.Measurement = DxfMeasurementValue.Metric;
+            document.Database.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "1"));
             CadCommandSession session = Session(document);
             Run(session, "-SCALELISTEDIT", "R", "Y", "E");
             Assert.Equal(CadViewports.StandardScales, Names(document));
@@ -46,6 +46,24 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ResetInADrawingWithNoMeasurement_PutsBackTheImperialScales_AsAutoCADReadsSuchAHeader()
+        {
+            // AutoCAD 2021 reads a DXF whose header has no $MEASUREMENT as MEASUREMENT 0 (English), as a new Database is
+            // (probe GHCMU1: Database.DxfIn of such a file gives English, of one with $MEASUREMENT 1 gives Metric), so Reset
+            // puts back the imperial list there, not the metric one.
+            CadDocument document = Blank();
+            Assert.Null(document.Database.GetHeader("$MEASUREMENT"));
+            CadCommandSession session = Session(document);
+
+            Run(session, "-SCALELISTEDIT", "R", "Y", "E");
+
+            string[] names = Names(document);
+            Assert.Equal(17, names.Length);
+            Assert.Equal("1/128\" = 1'-0\"", names[1]);
+            Assert.DoesNotContain("1:50", names);
+        }
+
+        [Fact]
         public void ScaleListEdit_WithNoWindow_AsksTheTypedPrompts()
         {
             CadDocument document = Blank();
@@ -60,6 +78,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ScaleListEdit_OkWritesTheDialogsList_DeletedRenamedMovedAndAdded_AsOneUndoStep()
         {
             CadDocument document = Blank();
+            document.Database.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "1"));
             CadCommandSession session = Session(document);
             Run(session, "-SCALELISTEDIT", "R", "Y", "E");
             string[] before = Names(document);

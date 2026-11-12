@@ -21,10 +21,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
         public void Dispose() => _folder.Dispose();
 
-        /// <summary>A drawing of R2013 with the layers 0, WALLS red, DIM green, TEXT and Defpoints, a line on TEXT.</summary>
+        /// <summary>A metric drawing of R2013 with the layers 0, WALLS red, DIM green, TEXT and Defpoints, a line on TEXT.</summary>
         private static DxfDatabase Drawing()
         {
             var db = new DxfDatabase("AC1027");
+            db.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "1"));
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS", ColorIndex = 1 });
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "DIM", ColorIndex = 3 });
             db.LayerTable.Add(new DxfLayerTableRecord { Name = "TEXT", ColorIndex = 4 });
@@ -317,13 +318,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     dialog.ContentTypes.Select(t => t.Name)
                 );
 
-                dialog.RememberAfter = "11";
+                // AutoCAD 2021's dialog takes 1 to 50 mistypes and 100 to 10 000 milliseconds, refusing others in its words.
+                dialog.RememberAfter = "51";
                 Assert.False(dialog.Ok());
-                Assert.Equal("Remember corrections takes 2 to 10 mistypes.", dialog.Message);
-                dialog.RememberAfter = "2";
+                Assert.Equal("Invalid input. Mistypes value must be between 1 and 50", dialog.Message);
+                dialog.RememberAfter = "0";
+                Assert.False(dialog.Ok());
+                dialog.RememberAfter = "50";
+                Assert.True(dialog.Ok());
+                dialog.RememberAfter = "1";
                 dialog.Delay = "50";
                 Assert.False(dialog.Ok());
-                Assert.Equal("Requires an integer between 100 and 10000.", dialog.Message);
+                Assert.Equal("Invalid input. Delay time must be between 100 and 10000 milliseconds", dialog.Message);
                 dialog.Delay = "500";
 
                 dialog.Alphabetically = true;
@@ -346,7 +352,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             GlobalSettings settings = model.Settings;
             Assert.True(settings.SortAlphabetically);
             Assert.True(settings.SeparateSystemVariables);
-            Assert.Equal(2, settings.AutoCorrectMistypes);
+            Assert.Equal(1, settings.AutoCorrectMistypes);
             Assert.Equal(500, settings.AutoCompleteDelay);
             Assert.Equal("Layer", settings.ContentTypes[0].Name);
             Assert.False(settings.ContentTypes.Single(t => t.Name == "Hatch").IsSearched);
@@ -367,7 +373,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             GlobalSettings read = GlobalSettings.Load(path);
             Assert.True(read.SortAlphabetically);
             Assert.True(read.SeparateSystemVariables);
-            Assert.Equal(2, read.AutoCorrectMistypes);
+            Assert.Equal(1, read.AutoCorrectMistypes);
             Assert.Equal(settings.ContentTypes.Select(t => t.ToString()), read.ContentTypes.Select(t => t.ToString()));
         }
 
@@ -447,17 +453,41 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 .ToList();
             Assert.Equal(prefix.OrderBy(n => n, StringComparer.Ordinal), prefix);
 
-            // Separate commands and system variables: the variables at the end, below a rule of their own.
+            // Separate commands and system variables: as AutoCAD 2021, the variables wait under a header of their own at the
+            // end, collapsed, below a rule, until Tab shows them, the first of them chosen.
             settings = model.Settings.Clone();
             settings.SeparateSystemVariables = true;
             settings.SearchContent = false;
             model.ApplySettings(settings);
             model.ShowSuggestions();
             IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions;
+            Assert.DoesNotContain(rows, r => r.IsVariable);
+            CommandSuggestionViewModel header = rows[rows.Count - 1];
+            Assert.True(header.IsHeader);
+            Assert.Equal("System Variables", header.Name);
+            Assert.False(header.IsExpanded);
+            Assert.True(header.StartsGroup);
+            Assert.True(int.Parse(header.Note, System.Globalization.CultureInfo.InvariantCulture) > 0);
+
+            Assert.True(model.TabSuggestions());
+            rows = model.Suggestions;
             int first = rows.ToList().FindIndex(r => r.IsVariable);
-            Assert.True(first > 0);
-            Assert.True(rows[first].StartsGroup);
+            Assert.Equal(rows.ToList().IndexOf(header) + 1, first);
+            Assert.True(header.IsExpanded);
             Assert.All(rows.Skip(first), r => Assert.True(r.IsVariable, r.Name));
+            Assert.Same(rows[first], model.SelectedSuggestion);
+            Assert.False(model.TabSuggestions());
+
+            // A new list starts collapsed again; with Separate off, Tab leaves the list as it is.
+            model.ShowSuggestions();
+            Assert.DoesNotContain(model.Suggestions, r => r.IsVariable);
+            settings = model.Settings.Clone();
+            settings.SeparateSystemVariables = false;
+            model.ApplySettings(settings);
+            model.ShowSuggestions();
+            Assert.Contains(model.Suggestions, r => r.IsVariable);
+            Assert.DoesNotContain(model.Suggestions, r => r.IsHeader);
+            Assert.False(model.TabSuggestions());
 
             // The content types in their order, Hatch not searched: the layers before the blocks.
             settings = model.Settings.Clone();
@@ -495,8 +525,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("LINE", settings.CorrectionOf("lien"));
             settings.AutoCorrectMistypes = 3;
             Assert.Null(settings.CorrectionOf("lien"));
-            Assert.Throws<ArgumentOutOfRangeException>(() => settings.AutoCorrectMistypes = 1);
-            Assert.Throws<ArgumentOutOfRangeException>(() => settings.AutoCorrectMistypes = 11);
+            Assert.Throws<ArgumentOutOfRangeException>(() => settings.AutoCorrectMistypes = 0);
+            Assert.Throws<ArgumentOutOfRangeException>(() => settings.AutoCorrectMistypes = 51);
+            settings.AutoCorrectMistypes = 1;
+            Assert.True(settings.NoteCorrection("CRICLE", "CIRCLE"));
             Assert.Throws<ArgumentException>(() =>
                 settings.ContentTypes = new[] { new GlobalContentType("Layer", true) }
             );

@@ -131,7 +131,8 @@ the ones wanted.
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
 - [x] SCALELISTEDIT dialog, in-place layer rename, Edit Layer State with Description, Input Search Options (designed, checked against AutoCAD 2021)
-- [ ] Dialog follow-ups: AutoCAD lists system variables separately only after Tab (ours below a rule); Remember corrections range 2-10 and the Reset/duplicate-scale texts from the design (unverified); Visual Style content finds nothing (no visual styles); a drawing without $MEASUREMENT resets to the metric list (S)
+- [x] Dialog follow-ups: system variables after Tab; Remember corrections 1-50 (AutoCAD's own range); a drawing without $MEASUREMENT resets to the imperial list (probed)
+- [ ] Dialog follow-ups 2: the Reset/duplicate-scale texts checked against AutoCAD; visual style content once visual styles exist (S)
 - [x] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
@@ -221,8 +222,8 @@ the ones wanted.
 - [ ] LIST/blocks follow-ups 2: ATTSYNC placement for *U unprobed (ATTSYNC not in the console); LUNITS 2 at high LUPREC (1.000500E+03); linetype override naming no linetype; ATTRIBs under UpdateAnonymousBlocks; parameters added or removed in the Block Editor; setters skipping overrides equal to the style (AutoCAD writes them) (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
-- [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual
-      styles (need design); EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
+- [x] Command line follow-ups: collapsible content section, hatch thumbnail on hover (design v132)
+- [ ] Command line follow-ups 2: EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
       layouts (S)
 - [x] Dxf.App: an app icon, file association for .dxf/.dwg (HKCU, --register/--unregister), `--tab Home` in screenshot mode (design v131)
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's

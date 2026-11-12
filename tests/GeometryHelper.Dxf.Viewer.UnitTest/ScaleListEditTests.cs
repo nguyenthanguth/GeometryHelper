@@ -85,6 +85,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void Reset_AsksFirst_ThenPutsBackTheDefaultScales_KeepingThoseInUse()
         {
             CadDocument document = Blank();
+            document.Database.SetHeader("$MEASUREMENT", new DxfTypedValue(70, "1"));
             CadCommandSession session = Session(document);
             Run(session, "-SCALELISTEDIT", "D", "*", "A", "GH", "1:3", "R", Enter);
             Assert.Equal("Scale list not reset.", session.History.Last());
