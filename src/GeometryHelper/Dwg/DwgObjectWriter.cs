@@ -345,6 +345,8 @@ namespace GeometryHelper.Dwg
                     return () => { };
                 case "LAYOUT":
                     return WriteLayout;
+                case "PLOTSETTINGS":
+                    return WritePlotSettings;
                 case "XRECORD":
                     return WriteXRecord;
                 case "LWPOLYLINE":

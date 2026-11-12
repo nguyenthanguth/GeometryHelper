@@ -74,11 +74,27 @@ namespace GeometryHelper.Dxf
         internal DxfPlotSettings(DxfItem item)
             : base(item) { }
 
-        /// <summary>Settings made in code, those of a layout made in code, given their record when it is added to a drawing.</summary>
-        private protected DxfPlotSettings() { }
+        /// <summary>
+        /// Makes page settings in code, as AutoCAD's <c>new PlotSettings(false)</c>, given their record when they are added to the
+        /// page setups of a drawing: <c>db.PlotSettingsDictionary.SetAt("A3 plan", new DxfPlotSettings())</c>. They are those of a
+        /// layout made in code, a sheet of ISO A3, until they are set or copied into (<see cref="CopyFrom"/>).
+        /// </summary>
+        public DxfPlotSettings() { }
 
-        /// <summary>Gets the name of the page setup (group 1), as AutoCAD's <c>PlotSettingsName</c>; empty where it has none.</summary>
-        public string PlotSettingsName => Text(Marker, 1);
+        /// <summary>
+        /// Gets or sets the name of the page setup (group 1), as AutoCAD's <c>PlotSettingsName</c>; empty where it has none. A page
+        /// setup added to the drawing's page setups has the name of its entry; a layout has the name of the page setup copied
+        /// into it last, empty where it has had none.
+        /// </summary>
+        /// <value>Set, the group written as it is; the name it has changes nothing, and the entry that names a page setup is not renamed.</value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public string PlotSettingsName
+        {
+            get => Text(Marker, 1);
+            set => SetText(1, value, "be named");
+        }
 
         /// <summary>Gets or sets the name of the plotter's configuration (group 2), as AutoCAD's <c>PlotConfigurationName</c>, such as <c>DWG To PDF.pc3</c>; empty where it has none.</summary>
         /// <value>
@@ -533,6 +549,95 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Gets whether the settings are those of model space (flag 1024), as AutoCAD's <c>ModelType</c>: true for the layout Model.</summary>
         public bool ModelType => (Flags() & 1024) != 0;
+
+        // The groups CopyFrom copies: those of AcDbPlotSettings but its marker and the handle of a shade plot id.
+        private static readonly int[] CopiedCodes =
+        {
+            1,
+            2,
+            4,
+            6,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            140,
+            141,
+            142,
+            143,
+            70,
+            72,
+            73,
+            74,
+            7,
+            75,
+            76,
+            77,
+            78,
+            147,
+            148,
+            149,
+        };
+
+        /// <summary>
+        /// Copies every setting of other page settings into these, as AutoCAD's <c>CopyFrom</c> does, the name with them: the
+        /// plotter, the sheet and its margins, the origin and turn, what is plotted and its window, the scale, the plot style
+        /// table, the flags of centring, plot styles and lineweights, and the shade plot. What is kept is whether the settings
+        /// are those of model space (flag 1024), so that a page setup copied into the layout Model leaves it model space's. A
+        /// layout's limits follow its sheet again, as <see cref="DxfLayout"/> makes them. Copying a page setup into a layout is
+        /// AutoCAD's Set Current; copying a layout into a new page setup, its New.
+        /// </summary>
+        /// <param name="source">The settings copied, of this drawing or another.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the source is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when these settings or the source are in no drawing, as a page setup made in code before it is added, or are erased.</exception>
+        public void CopyFrom(DxfPlotSettings source)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            DxfFile file = InFile("be copied into");
+
+            if (source.Item == null)
+            {
+                throw new InvalidOperationException("The settings to copy are in no drawing: add them to one first.");
+            }
+
+            int keep = Flags() & 1024;
+            var values = new List<KeyValuePair<int, string>>();
+
+            foreach (int code in CopiedCodes)
+            {
+                string value = source.PartValue(Marker, code);
+
+                if (value == null)
+                {
+                    continue;
+                }
+
+                if (
+                    code == 70
+                    && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
+                )
+                {
+                    value = ((flags & ~1024) | keep).ToString(CultureInfo.InvariantCulture);
+                }
+
+                values.Add(Pair(code, value));
+            }
+
+            if (values.Count > 0)
+            {
+                SetSheet(file, values);
+            }
+        }
 
         /// <summary>Gives the settings as a line for debugging: their type, handle and name.</summary>
         /// <returns>The line, such as <c>PLOTSETTINGS 2F A3 plan</c>.</returns>

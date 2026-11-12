@@ -1,0 +1,115 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PageSetupNameWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Page setup name"
+    Width="400"
+    SizeToContent="Height"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <!-- Add Page Setup, from Add… of the Plot dialog; New Page Setup, from New… of the Page Setup Manager, which also asks what to start with. -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                        IsEnabled="{Binding CanOk}"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <TextBlock Text="New page setup name:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6" />
+                <TextBox
+                    x:Name="NameBox"
+                    Style="{StaticResource BlockBox}"
+                    Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                    AutomationProperties.Name="New page setup name"
+                />
+                <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Margin="0,6,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#F26B3A" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasError}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasStartWith}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="Start with:" Foreground="{StaticResource GhTextMuted}" Margin="0,12,0,6" />
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        ItemsSource="{Binding StartWith}"
+                        SelectedItem="{Binding StartWithChoice, Mode=TwoWay}"
+                        AutomationProperties.Name="Start with"
+                    />
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

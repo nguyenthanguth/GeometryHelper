@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's PLOT prints on the printers of Windows. They are listed in the Printer/plotter list after
+GeometryHelper PDF, PNG and JPG (a network printer marked Windows · network) and can be chosen: the Paper size list is then
+the printer's own, each sheet as its driver names it at its size, with the margins of its imageable area, and the plot's
+sheet stays where the printer has one of its size (ISO A3 on its side becomes the printer's A3, still on its side).
+Number of copies, 1 to 999, is for a printer. OK draws the plot as the PDF writer does, with the same page, scale, offset,
+turn, plot style table and lineweights, at up to 300 dots to the inch (a sheet that would take more than 40 million pixels,
+as A0, at the resolution that keeps it under: 160), and prints it through WPF; "Plot sent to Office printer." or "The plot
+was not printed:" and the reason is written on the command line. A layout's plotter, written by Save changes to layout, is
+chosen again when the computer has the printer. A printer is a `IPlotPrinter`, which a host or a test gives a queue of its
+own for; `WindowsPlotPrinter.Installed()` lists the real ones, and `MainViewModel.WindowsPrinters` takes them.
+**CHANGED.** `PlotDialogViewModel` takes its printers as `IPlotPrinter` objects where it took names with a flag for the
+network, and `MainViewModel.WindowsPrinters` gives them so; the printers of Windows are no longer greyed in the list.
+`CadPlotSettings` has `IsPrinter`, `UsePrinter` and `SavedPlotter`.
+
+**NEW.** Named page setups in the presenter. PAGESETUP opens the Page Setup Manager, as AutoCAD's: the drawing's page setups
+with how each plots, the one the layout is set to, and Set Current, New… (a name and what to start with, then the Page
+Setup dialog), Modify… and Import… (the page setups of another drawing, a name already taken becoming `Name (2)`). Add… of
+the Plot dialog keeps its settings under a name. Each is one undo step named PAGESETUP. In code,
+`CadPlotSettings.SaveAsPageSetup`, `SetCurrentPageSetup`, `CurrentPageSetupName`, `ImportPageSetups`, `PageSetupNames` of
+another drawing and `CheckPageSetupName` do the same with no window. Rename and Delete are not built.
+
+**NEW.** `DxfDBDictionary.SetAt` adds a named page setup, `db.PlotSettingsDictionary.SetAt("A3 plan", new
+DxfPlotSettings())`, written as AutoCAD 2021 writes a PLOTSETTINGS with its class listed in CLASSES; `DxfPlotSettings`
+has a public constructor, a settable `PlotSettingsName` and `CopyFrom`, which copies every setting of other page settings,
+the name with them, as AutoCAD's does (a page setup copied into the layout Model leaves it model space's). A DWG now reads
+and writes the PLOTSETTINGS objects, so that named page setups survive a save as DWG: a drawing with "A3 plan" saved as DWG
+reads back with its sheet, scale and plotter, and AutoCAD 2021 reads both the DXF and the DWG, its AUDIT finding 0 errors.
+
 **NEW.** The presenter's status bar has a progress meter, as AutoCAD 2021's: opening a drawing shows "Opening plan.dwg"
 with a bar from 0 to 100 % and Stop, and SAVE, SAVEAS and QSAVE show "Saving plan.dwg", the status bar drawn while the
 save runs. Commands, plugins and hosts start meters of their own with `CadProgress.Start(label)` (on

@@ -649,7 +649,11 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        private void ReadLayout()
+        /// <summary>
+        /// Reads the part of a LAYOUT or a PLOTSETTINGS that is the page setup, its data and its handles, and gives back what adds
+        /// its groups, AcDbPlotSettings, to the record once the rest of the object has been read.
+        /// </summary>
+        private Action ReadPlotPart()
         {
             byte[] pageSetup = T();
             byte[] printer = T();
@@ -702,6 +706,55 @@ namespace GeometryHelper.Dwg
                 H();
             }
 
+            return () =>
+            {
+                _object.Add(100, "AcDbPlotSettings");
+                _object.Add(1, pageSetup);
+                _object.Add(2, printer);
+                _object.Add(4, paperSize);
+                _object.Add(6, plotView);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    _object.Add(40 + i, margins[i]);
+                }
+
+                _object.Add(44, paperWidth);
+                _object.Add(45, paperHeight);
+                _object.Add(46, originX);
+                _object.Add(47, originY);
+                _object.Add(48, window[0]);
+                _object.Add(49, window[1]);
+                _object.Add(140, window[2]);
+                _object.Add(141, window[3]);
+                _object.Add(142, numerator);
+                _object.Add(143, denominator);
+                _object.Add(70, plotFlags);
+                _object.Add(72, paperUnits);
+                _object.Add(73, rotation);
+                _object.Add(74, plotType);
+                _object.Add(7, styleSheet);
+                _object.Add(75, scaleType);
+                _object.Add(147, scaleFactor);
+
+                if (R2004Plus)
+                {
+                    _object.Add(76, shadeMode);
+                    _object.Add(77, shadeResolution);
+                    _object.Add(78, shadeDpi);
+                }
+
+                _object.Add(148, imageX);
+                _object.Add(149, imageY);
+            };
+        }
+
+        /// <summary>Reads a PLOTSETTINGS, a named page setup: the page setup part of a LAYOUT alone.</summary>
+        private void ReadPlotSettings() => ReadPlotPart()();
+
+        private void ReadLayout()
+        {
+            Action addPlot = ReadPlotPart();
             _object.RecordName = T();
             int tabOrder = _data.BitLong();
             int flags = _data.BitShort();
@@ -738,44 +791,7 @@ namespace GeometryHelper.Dwg
                     viewport = _object.Viewports[0];
                 }
             }
-            _object.Add(100, "AcDbPlotSettings");
-            _object.Add(1, pageSetup);
-            _object.Add(2, printer);
-            _object.Add(4, paperSize);
-            _object.Add(6, plotView);
-
-            for (int i = 0; i < 4; i++)
-            {
-                _object.Add(40 + i, margins[i]);
-            }
-
-            _object.Add(44, paperWidth);
-            _object.Add(45, paperHeight);
-            _object.Add(46, originX);
-            _object.Add(47, originY);
-            _object.Add(48, window[0]);
-            _object.Add(49, window[1]);
-            _object.Add(140, window[2]);
-            _object.Add(141, window[3]);
-            _object.Add(142, numerator);
-            _object.Add(143, denominator);
-            _object.Add(70, plotFlags);
-            _object.Add(72, paperUnits);
-            _object.Add(73, rotation);
-            _object.Add(74, plotType);
-            _object.Add(7, styleSheet);
-            _object.Add(75, scaleType);
-            _object.Add(147, scaleFactor);
-
-            if (R2004Plus)
-            {
-                _object.Add(76, shadeMode);
-                _object.Add(77, shadeResolution);
-                _object.Add(78, shadeDpi);
-            }
-
-            _object.Add(148, imageX);
-            _object.Add(149, imageY);
+            addPlot();
             _object.Add(100, "AcDbLayout");
             _object.Add(1, _object.RecordName);
             _object.Add(70, flags);

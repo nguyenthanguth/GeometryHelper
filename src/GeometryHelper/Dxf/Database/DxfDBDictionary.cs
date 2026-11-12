@@ -167,6 +167,9 @@ namespace GeometryHelper.Dxf
         /// adds a style of AutoCAD's Standard in millimetres. A <see cref="DxfMLeaderStyle"/> is written with every group AutoCAD
         /// 2021 holds of one, its class listed and counted in CLASSES: <c>db.MLeaderStyleDictionary.SetAt("GH_NOTES", new
         /// DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5 })</c> adds a style of words and arrows 2.5 high.
+        /// A <see cref="DxfPlotSettings"/> is a named page setup: <c>db.PlotSettingsDictionary.SetAt("A3 plan", new DxfPlotSettings())</c>
+        /// adds one of an ISO A3 sheet and no plotter, named by its entry, with its class PLOTSETTINGS listed and counted in CLASSES;
+        /// set it, or copy a layout's settings into it (<see cref="DxfPlotSettings.CopyFrom"/>), once it is added.
         /// </para>
         /// <para>
         /// The entries are found by name without reading the record again, and the new one is put into the record's bytes as
@@ -178,7 +181,7 @@ namespace GeometryHelper.Dxf
         /// <param name="newValue">The object, made in code and in no file yet.</param>
         /// <exception cref="ArgumentNullException">Thrown when the name or the object is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty or has a control character in it, or the object is
-        /// in a file already or of a class the library does not add: a <see cref="DxfLayout"/> or one of no class of its own; or
+        /// in a file already or of a class the library does not add: a <see cref="DxfLayout"/>, whose place is the layout dictionary, or one of no class of its own; or
         /// it is a <see cref="DxfRasterImageDef"/> and the name has an entry, as AutoCAD 2021's <c>SetAt</c> erases the
         /// definition there and leaves the images that show it out of the file it writes: add it under the name
         /// <see cref="DxfRasterImageDef.SuggestName"/> gives.</exception>
@@ -271,6 +274,55 @@ namespace GeometryHelper.Dxf
                         }));
                     file.ImageDefWritten();
                     break;
+                case DxfPlotSettings plotSettings when !(plotSettings is DxfLayout):
+                    DxfFile planned = Resident();
+                    bool shaded = planned.Supports(1018);
+                    string pageSetupName = searchKey.Trim();
+                    newValue.Bind(Add(searchKey, "PLOTSETTINGS", b =>
+                        {
+                            // A page setup as a new layout is, an ISO A3 sheet on its side and no plotter, as AutoCAD writes it.
+                            b.Group(100, "AcDbPlotSettings");
+                            b.Group(1, pageSetupName);
+                            b.Group(2, "none_device");
+                            b.Group(4, "ISO_A3_(420.00_x_297.00_MM)");
+                            b.Group(6, string.Empty);
+                            b.Group(40, "7.5");
+                            b.Group(41, "20.0");
+                            b.Group(42, "7.5");
+                            b.Group(43, "20.0");
+                            b.Group(44, "420.0");
+                            b.Group(45, "297.0");
+
+                            foreach (int code in new[] { 46, 47, 48, 49, 140, 141 })
+                            {
+                                b.Group(code, "0.0");
+                            }
+
+                            b.Group(142, "1.0");
+                            b.Group(143, "1.0");
+                            b.Group(70, "688");
+                            b.Group(72, "1");
+                            b.Group(73, "0");
+                            b.Group(74, "5");
+                            b.Group(7, string.Empty);
+                            b.Group(75, "16");
+
+                            if (shaded)
+                            {
+                                b.Group(76, "0");
+                                b.Group(77, "2");
+                                b.Group(78, "300");
+                            }
+
+                            b.Group(147, "1.0");
+                            b.Group(148, "0.0");
+                            b.Group(149, "0.0");
+                        }));
+
+                    // Listed and counted in CLASSES, as AutoCAD 2021 lists it and passes over a class it counts 0.
+                    planned.AddClass("PLOTSETTINGS", "AcDbPlotSettings", 0);
+                    planned.CountClass("PLOTSETTINGS");
+                    break;
                 case DxfTableStyle style:
                     DxfFile styled = Resident();
                     List<KeyValuePair<int, string>> written = style.MadeGroups(styled.Supports(1021));
@@ -303,7 +355,7 @@ namespace GeometryHelper.Dxf
                     break;
                 default:
                     throw new ArgumentException(
-                        "A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef, a DxfTableStyle or a DxfMLeaderStyle made in code: a "
+                        "A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef, a DxfTableStyle, a DxfMLeaderStyle or a DxfPlotSettings made in code: a "
                             + newValue.GetType().Name
                             + " is not added.",
                         nameof(newValue)
