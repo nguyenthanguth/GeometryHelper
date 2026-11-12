@@ -36,6 +36,28 @@ stays; -OSNAP types the object snaps that are on (`END,MID`, `NONe`). New: `Main
 **FIXED.** Undoing the rename of a layout by letters alone (Layout1 to LAYOUT1) left its tab named LAYOUT1; the tab is renamed
 back.
 
+**NEW.** Batch 4 of acad.pgp in the presenter, the commands with a window of their own, designed first in the Design canvas
+(ViewportsDialog, ViewportsNamed, ModelTiles, SelectionFilters, QuickCalc, QuickProperties) and worded as AutoCAD 2021 (its
+resources and accoreconsole probes): VPORTS (`VIEWPORTS`), -VPORTS, FILTER (`FI`), QUICKCALC (`QC`), CAL and QUICKPROPERTIES
+(`QP`), the registry growing by 6 commands, the default aliases by 4 and the keys by Ctrl+Shift+P (QPMODE). VPORTS and -VPORTS
+split model space into tiled viewports: -VPORTS asks `Enter an option [Save/Restore/Delete/Join/SIngle/?/2/3/4/Toggle/MOde]
+<3>:`, splits the current viewport as AutoCAD does (2 Vertical keeps the right half current, 4 the lower right; the new ones
+numbered 3, 4, 5), each new viewport showing the whole of the view it came from, and Save, Restore, Delete, Join, SIngle, ? and
+Toggle keep and bring back configurations in AutoCAD's words, each change one undo step; the Viewports dialog applies the
+twelve standard configurations to the display or the current viewport and restores the named ones. The tiles are
+`CadDocument.TiledViewports` (`CadTiledViewports`), read from the `*Active` records of the VPORT table and written back on
+saving as AutoCAD writes them (corners 10/20 and 11/21, view 12/22, 40 and 41; a drawing never split keeps its table as it
+was); the window lays the canvas over the current viewport and draws the others with their own views, a click making one
+current. FILTER shows Object Selection Filters (Object, Layer, Color and Linetype lines, all of which must hold; Add Selected
+Object; named lists for the session) and keeps what passes as the Previous set (`CadSelectionFilter`). QUICKCALC shows the
+QuickCalc palette (history, number pad with memory, Scientific, Paste value to command line, and Get Coordinates, Distance,
+Angle and Intersection picked in the drawing through CAL); CAL asks `>> Expression:` and evaluates numbers, vectors
+`[x,y,z]`, `+ - * / ^`, the trigonometric functions in degrees, `ln log exp exp10 sqr sqrt abs round trunc r2d d2r pi`,
+`dist`, `ang`, `ill` and `cur` (`CadCalculator`), writing `Error:` and AutoCAD's reason for a wrong expression. QUICKPROPERTIES
+shows the Quick Properties panel (Color, Layer, Linetype, edited in place) near the cursor; QPMODE starts at -1 as AutoCAD
+2021's, Ctrl+Shift+P switching it (`<Quick Properties panel on>`). Not built: -VPORTS MOde; the dialog's Change view to and
+Visual Style; FILTER's AND/OR/XOR/NOT groups and value tests; QuickCalc's Units Conversion and Variables; CAL's object snap
+functions; the CUI lists of Quick Properties and QPLOCATION; QPMODE kept between sessions.
 **NEW.** Batch 3 of acad.pgp's 2D commands in the presenter, in the words of AutoCAD 2021 (read from its resources and probed
 in accoreconsole): SOLID (`SO`), -BOUNDARY (`-BO`), -HATCH (`-H`), GRADIENT (`GD`), HATCHTOBACK (`HB`), REGION (`REG`),
 SPLINEDIT (`SPE`) and CLASSICINSERT (`DDINSERT`), the eight added to the 142 default aliases and to the registry (196

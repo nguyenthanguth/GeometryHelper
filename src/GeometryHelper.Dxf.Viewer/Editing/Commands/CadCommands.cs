@@ -172,6 +172,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddXrefsTo(registry);
             AddShapesBatchTo(registry);
             AddBatchFourBTo(registry);
+            AddViewUtilityTo(registry);
             AddVariablesTo(registry);
             AddPgpBasicsTo(registry);
             AddOutputBatchTo(registry);

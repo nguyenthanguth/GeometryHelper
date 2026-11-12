@@ -1,0 +1,283 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.ViewportsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Viewports"
+    Width="760"
+    Height="560"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shown" />
+            <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design ViewportsDialog and ViewportsNamed: two tabs over one preview; OK applies, Cancel leaves the tiles alone. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Viewports" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap"
+                    />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="22,5"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Top" Padding="16,10,16,0">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="New Viewports"
+                        IsChecked="{Binding IsNewTab, Mode=TwoWay}"
+                        Margin="0,0,6,0"
+                    />
+                    <RadioButton
+                        Style="{StaticResource GhChip}"
+                        Content="Named Viewports"
+                        IsChecked="{Binding IsNamedTab, Mode=TwoWay}"
+                    />
+                </StackPanel>
+            </Border>
+
+            <Border
+                DockPanel.Dock="Bottom"
+                Margin="16,0,16,12"
+                BorderBrush="{StaticResource GhBorder}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10,8"
+            >
+                <DockPanel>
+                    <Ellipse
+                        DockPanel.Dock="Left"
+                        Width="8"
+                        Height="8"
+                        Fill="{StaticResource GhAccent}"
+                        VerticalAlignment="Top"
+                        Margin="0,4,8,0"
+                    />
+                    <TextBlock
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="OK splits the display (or the current viewport) into the configuration picked; every new viewport starts with the current view. A new name saves the result, as -VPORTS Save. Named Viewports restores a configuration saved. One undo step."
+                    />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- New Viewports: the name, the standard list, then Apply to and Setup under both columns. -->
+                <DockPanel
+                    Grid.ColumnSpan="3"
+                    Margin="0,0,0,8"
+                    Visibility="{Binding IsNamedTab, Converter={StaticResource Hidden}}"
+                >
+                    <TextBlock
+                        Text="New name:"
+                        Width="70"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                    <TextBox
+                        Style="{StaticResource StyleBox}"
+                        Width="320"
+                        HorizontalAlignment="Left"
+                        Padding="6,3"
+                        AutomationProperties.Name="New name"
+                        Text="{Binding NewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    />
+                </DockPanel>
+                <DockPanel Grid.Row="1" Visibility="{Binding IsNamedTab, Converter={StaticResource Hidden}}">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="Standard viewports:"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,0,0,6"
+                    />
+                    <ListBox
+                        Background="{StaticResource GhInput}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        Foreground="{StaticResource GhText}"
+                        ItemContainerStyle="{StaticResource StyleListItem}"
+                        AutomationProperties.Name="Standard viewports"
+                        ItemsSource="{Binding Configurations}"
+                        SelectedItem="{Binding Configuration, Mode=TwoWay}"
+                    />
+                </DockPanel>
+                <Grid
+                    Grid.Row="2"
+                    Grid.ColumnSpan="3"
+                    Margin="0,10,0,0"
+                    Visibility="{Binding IsNamedTab, Converter={StaticResource Hidden}}"
+                >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Apply to:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Apply to"
+                            ItemsSource="{Binding ApplyToOptions}"
+                            SelectedItem="{Binding ApplyTo, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Setup:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Setup"
+                            SelectedIndex="0"
+                        >
+                            <ComboBoxItem Content="2D" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" Opacity="0.55">
+                        <TextBlock Text="Change view to:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Change view to"
+                            IsEnabled="False"
+                            SelectedIndex="0"
+                        >
+                            <ComboBoxItem Content="*Current*" />
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="6" Opacity="0.55">
+                        <TextBlock Text="Visual Style:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Visual Style"
+                            IsEnabled="False"
+                            SelectedIndex="0"
+                        >
+                            <ComboBoxItem Content="2D Wireframe" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Named Viewports: the names saved; Delete takes the one picked out of the drawing. -->
+                <DockPanel Grid.Row="1" Visibility="{Binding IsNamedTab, Converter={StaticResource Shown}}">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="Named viewports:"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,0,0,6"
+                    />
+                    <Button
+                        DockPanel.Dock="Bottom"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Delete"
+                        Padding="10,4"
+                        Margin="0,6,0,0"
+                        HorizontalAlignment="Left"
+                        Click="OnDeleteNamed"
+                    />
+                    <ListBox
+                        x:Name="NamedList"
+                        Background="{StaticResource GhInput}"
+                        BorderBrush="{StaticResource GhBorder}"
+                        Foreground="{StaticResource GhText}"
+                        ItemContainerStyle="{StaticResource StyleListItem}"
+                        AutomationProperties.Name="Named viewports"
+                        ItemsSource="{Binding Names}"
+                        SelectedItem="{Binding Named, Mode=TwoWay}"
+                    />
+                </DockPanel>
+
+                <DockPanel Grid.Row="1" Grid.Column="2">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="Preview"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,0,0,6"
+                    />
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="#0F1216"
+                        Padding="3"
+                    >
+                        <local:CadTilePreview Boxes="{Binding Preview}" />
+                    </Border>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

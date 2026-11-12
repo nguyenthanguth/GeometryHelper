@@ -1014,6 +1014,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            // The tiles of model space read the view shown before a command changes them.
+            if (_current != null)
+            {
+                AttachTiles(_current);
+            }
+
             string line = input ?? string.Empty;
 
             if (line.Trim().Length > 0)
@@ -1096,6 +1102,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            AttachTiles(_current);
             string known = _current.Session.Registry.Find(name)?.Name
                 ?? _current.Session.Registry.FindVariable(name)?.Name;
 
@@ -1838,6 +1845,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "QSELECT":
                     OnQuickSelectRequested(e);
                     break;
+                case "VPORTS":
+                case "FILTER":
+                case "QUICKCALC":
+                case "CAL":
+                case "QUICKPROPERTIES":
+                    OnViewUtilityRequested(e);
+                    break;
                 case "FIND":
                     OnFindRequested(e);
                     break;
@@ -2126,6 +2140,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 SelectionLabel = string.Empty;
                 PropertyGroups = Array.Empty<PropertyGroupViewModel>();
                 PropertiesBanner = null;
+                UpdateQuickProperties();
                 return;
             }
 
@@ -2178,6 +2193,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SelectionLabel = info.Label;
             PropertyGroups = groups;
             RaiseViewportScale();
+            UpdateQuickProperties();
         }
 
         /// <summary>The values a row's drop-down offers: the layers, the colours by name, the linetypes, AutoCAD's lineweights, a viewport's standard scales and Yes or No for its display locked.</summary>

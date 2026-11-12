@@ -1,0 +1,233 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.SelectionFiltersWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Object Selection Filters"
+    Width="640"
+    Height="600"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Side" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Padding" Value="8,5" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design SelectionFilters: the list, Select Filter, the list's buttons and Named Filters; Apply asks for the objects. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Object Selection Filters"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                    />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="Apply"
+                            Padding="18,5"
+                            Click="OnApply"
+                            IsDefault="True"
+                        />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <DockPanel Margin="16,12">
+                <ListBox
+                    DockPanel.Dock="Top"
+                    Height="150"
+                    Margin="0,0,0,12"
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    Foreground="{StaticResource GhText}"
+                    FontFamily="{StaticResource GhMonoFont}"
+                    ItemContainerStyle="{StaticResource StyleListItem}"
+                    AutomationProperties.Name="Filter list"
+                    ItemsSource="{Binding Lines}"
+                    SelectedIndex="{Binding SelectedLine, Mode=TwoWay}"
+                />
+
+                <Border
+                    DockPanel.Dock="Bottom"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                    Margin="0,12,0,0"
+                >
+                    <DockPanel>
+                        <Ellipse
+                            DockPanel.Dock="Left"
+                            Width="8"
+                            Height="8"
+                            Fill="{StaticResource GhAccent}"
+                            VerticalAlignment="Top"
+                            Margin="0,4,8,0"
+                        />
+                        <TextBlock
+                            TextWrapping="Wrap"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="Apply closes the dialog and asks &quot;Select objects:&quot;; what passes every line of the list is kept as the Previous set, so the next command takes it with P. The lines all have to hold (AND)."
+                        />
+                    </DockPanel>
+                </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="190" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <StackPanel>
+                            <TextBlock Text="Select Filter" FontWeight="SemiBold" Margin="0,0,0,8" />
+                            <ComboBox
+                                Style="{StaticResource GhComboBox}"
+                                Margin="0,0,0,8"
+                                AutomationProperties.Name="Filter"
+                                ItemsSource="{Binding Properties}"
+                                SelectedItem="{Binding Property, Mode=TwoWay}"
+                            />
+                            <DockPanel Margin="0,0,0,8">
+                                <TextBlock
+                                    Text="X:"
+                                    Width="20"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock
+                                    Text="="
+                                    Width="20"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    IsEditable="True"
+                                    AutomationProperties.Name="Value"
+                                    ItemsSource="{Binding Values}"
+                                    Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                />
+                            </DockPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button
+                                    Style="{StaticResource StylePrimaryButton}"
+                                    Content="Add to List:"
+                                    Padding="10,4"
+                                    Margin="0,0,6,0"
+                                    Click="OnAddToList"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Substitute"
+                                    Padding="10,4"
+                                    Click="OnSubstitute"
+                                />
+                            </StackPanel>
+                            <Button
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Add Selected Object &lt;"
+                                Padding="10,4"
+                                HorizontalAlignment="Left"
+                                Click="OnAddSelected"
+                            />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Column="2">
+                        <Button Style="{StaticResource Side}" Content="Edit Item" Click="OnEditItem" />
+                        <Button Style="{StaticResource Side}" Content="Delete" Click="OnDelete" />
+                        <Button Style="{StaticResource Side}" Content="Clear List" Click="OnClearList" />
+                        <TextBlock Text="Named Filters" FontWeight="SemiBold" Margin="0,8,0,6" />
+                        <TextBlock Text="Current:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Margin="0,0,0,6"
+                            AutomationProperties.Name="Current filter"
+                            ItemsSource="{Binding Names}"
+                            SelectedItem="{Binding CurrentName, Mode=TwoWay}"
+                        />
+                        <DockPanel Margin="0,0,0,6">
+                            <Button
+                                DockPanel.Dock="Left"
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Save As:"
+                                Padding="8,3"
+                                Margin="0,0,6,0"
+                                Click="OnSaveAs"
+                            />
+                            <TextBox
+                                Style="{StaticResource StyleBox}"
+                                Padding="6,3"
+                                AutomationProperties.Name="Filter name"
+                                Text="{Binding SaveName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            />
+                        </DockPanel>
+                        <Button
+                            Style="{StaticResource Side}"
+                            Content="Delete Current Filter List"
+                            Click="OnDeleteFilter"
+                        />
+                    </StackPanel>
+                </Grid>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>
