@@ -793,11 +793,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// right and of their bottom line on the left by default, and a copy of Copy an Object by its middle. Words typed take
         /// DIMCLRT where it is not BYBLOCK. A copy of an INSERT stands at the end with no hook. A feature control frame, from
         /// the Geometric Tolerance dialog or copied, runs along the UCS's X with its insertion point at the end on the right,
-        /// set back its width (its widest row's) on the left, the leader said to have a hook where its last segment is steeper than
-        /// 15 degrees but given no vertex of it, as AutoCAD 2021 writes one (probe GHTOL4: <c>{\Fgdt;j}%%v0.1</c> at DIMTXT
-        /// 0.18 copied to a leader ending at (90, 105) stands at (89.07704, 105)). In a UCS other than the world's,
-        /// as AutoCAD 2021 draws it, the last segment is measured along the UCS's axes, the hook gets no vertex of its own, and
-        /// the words run along its X, DIMGAP along it from the end: up its Y for LEADER's DIMTAD, up the world's Y for QLEADER.
+        /// set back its width (its widest row's) on the left, and takes a hook as words do (probe GHTOL4:
+        /// <c>{\Fgdt;j}%%v0.1</c> at DIMTXT 0.18 copied to a leader ending at (90, 105) stands at (89.07704, 105)). The hook
+        /// has a vertex of its own DIMASZ short of the end along the UCS's X, as AutoCAD 2021 writes the leader (probe GHTH3:
+        /// (209.82, 45) before (210, 45)). In a UCS other than the world's, as AutoCAD 2021 draws it, the last segment is
+        /// measured along the UCS's axes and the words run along its X, DIMGAP along it from the end: up its Y for LEADER's
+        /// DIMTAD, up the world's Y for QLEADER, which writes how far it raised them as group 213.
         /// </summary>
         private static void MakeLeader(
             CadCommandContext c,
@@ -819,6 +820,7 @@ namespace GeometryHelper.Dxf.Viewer
             settings = settings ?? new CadQLeaderSettings();
             bool byAttachment = quick && words?.Middle != true;
             bool leftJustified = false;
+            double raised = 0.0;
 
             // In a UCS other than the world's the last segment is measured along its axes, as AutoCAD 2021 measures it.
             CadUcs ucs = c.Session.Ucs;
@@ -831,20 +833,26 @@ namespace GeometryHelper.Dxf.Viewer
             bool steep = !spline && Math.Abs(along.Y) > LeaderHookSlope * Math.Abs(along.X);
             bool hook = text != null && steep;
 
-            // A frame, new or copied, takes the hook with no vertex of its own, as AutoCAD 2021 writes a leader to one.
+            // A frame, new or copied, takes the hook as words do.
             bool framed =
                 words?.Frame != null || (words?.Copy != null && c.Document.FindEntity(words.Copy) is DxfTolerance);
+            hook = hook || (framed && steep);
             var vertices = new List<GeoPoint2>(points);
-
-            // AutoCAD 2021 adds the hook's own vertex in the world alone: in any other UCS, a moved one too, the leader keeps
-            // the points picked and only says it has a hook.
-            if (hook && world)
-            {
-                vertices.Insert(vertices.Count - 1, new GeoPoint2(end.X - side * db.Dimasz * scale, end.Y));
-            }
-
             GeoVector2 xAxis = ucs.ToWorld(new GeoVector2(1.0, 0.0));
             GeoVector2 yAxis = ucs.ToWorld(new GeoVector2(0.0, 1.0));
+
+            // The hook's own vertex DIMASZ short of the end along the UCS's X, as AutoCAD 2021 writes the leader in any UCS
+            // (probe GHTH3: (209.82, 45) before (210, 45), and three vertices in a UCS turned 30 degrees).
+            if (hook)
+            {
+                double back = side * db.Dimasz * scale;
+                vertices.Insert(
+                    vertices.Count - 1,
+                    world
+                        ? new GeoPoint2(end.X - back, end.Y)
+                        : new GeoPoint2(end.X - back * xAxis.X, end.Y - back * xAxis.Y)
+                );
+            }
 
             // A point of the words: along the UCS's X from the end, then up its Y, or up the world's Y where QLEADER raises
             // them, as AutoCAD 2021 does in a turned UCS.
@@ -879,6 +887,7 @@ namespace GeometryHelper.Dxf.Viewer
                     row == CadQLeaderAttachment.MiddleOfTopLine ? half
                     : row == CadQLeaderAttachment.MiddleOfBottomLine ? -half
                     : 0.0;
+                raised = rise;
                 text.Location = Beside(side * gap, rise, true);
                 text.Attachment = QuickAttachment(row, !left || leftJustified);
             }
@@ -950,6 +959,18 @@ namespace GeometryHelper.Dxf.Viewer
                             : new GeoPoint3(at.X - xAxis.X * across, at.Y - xAxis.Y * across, at.Z);
                     }
 
+                    // QLEADER's words placed by their Attachment write how far the end stands from their point, DIMGAP left
+                    // out, as 213: half DIMTXT down the world's Y for Middle of top line, up for Middle of bottom line, and
+                    // their width along the UCS's X where they are left justified on the left; none with Underline bottom
+                    // line, as AutoCAD 2021 writes it (GHTH4: (0, -0.09, 0) at DIMTXT 0.18, in a turned UCS too).
+                    if (byAttachment && !settings.Underline)
+                    {
+                        double x = leftJustified ? across : 0.0;
+                        leader.AnnotationOffset = world
+                            ? new GeoVector3(x, -raised, 0.0)
+                            : new GeoVector3(xAxis.X * x, xAxis.Y * x - raised, 0.0);
+                    }
+
                     // Reuse Next: these words are the ones reused from now on, the settings turned to Reuse Current.
                     if (quick && settings.Reuse == CadQLeaderReuse.ReuseNext)
                     {
@@ -976,10 +997,29 @@ namespace GeometryHelper.Dxf.Viewer
                     CadToleranceFrame laid = FrameLaidOut(s.Document, frame);
                     double width = laid.Width;
 
-                    // On the left the frame is set back its width, so that its right side meets the leader's end.
-                    if (left)
+                    // On the left the frame is set back its width, so that its right side meets the leader's end. In a UCS
+                    // other than the world's AutoCAD 2021 sets it back along the world's X and then moves the leader's end,
+                    // and the hook's vertex with it, to the frame's right side (probe GHTH5: a UCS turned 30 degrees, the end
+                    // picked at (-163.66025, 263.46788) moved to (-163.78391, 263.92936), the frame at (-164.58321, 263.46788)).
+                    if (left && world)
                     {
                         frame.Location = P3(end).Add(new GeoVector3(xAxis.X, xAxis.Y, 0.0).Multiply(-width));
+                    }
+                    else if (left)
+                    {
+                        frame.Location = new GeoPoint3(end.X - width, end.Y, 0.0);
+                        var moved = new GeoPoint2(end.X - width + xAxis.X * width, end.Y + xAxis.Y * width);
+                        int last = leader.NumVertices - 1;
+                        leader.SetVertexAt(last, P3(moved));
+
+                        if (hook)
+                        {
+                            double back = side * db.Dimasz * scale;
+                            leader.SetVertexAt(
+                                last - 1,
+                                P3(new GeoPoint2(moved.X - back * xAxis.X, moved.Y - back * xAxis.Y))
+                            );
+                        }
                     }
 
                     leader.Annotation = frame;
@@ -1003,7 +1043,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // probes GHTQ1 and GHTQ2: (0.866, 0.5, 0) in a UCS turned 30 degrees), the world's X to none.
                 bool annotated = text != null || framed || block != null || copied != null;
                 leader.SetMade(
-                    hook || (framed && steep),
+                    hook,
                     text != null || framed ? left : block == null && copied == null,
                     height,
                     across,

@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A hook of the presenter's LEADER and QLEADER has a vertex of its own wherever AutoCAD 2021 writes one: on a
+leader to a frame, new or copied, and on any leader made in a UCS other than the world's, DIMASZ short of the end along
+the UCS's X, where these leaders kept the two points picked. `{\Fgdt;j}%%v0.1` copied to a leader from (200, 40) to
+(210, 45) at DIMASZ 0.18 gives (200, 40), (209.82, 45), (210, 45), as AutoCAD writes it. A frame on a leader to the left
+in a turned UCS is set back its width along the world's X and the leader's end moved to its right side, as AutoCAD does.
+
+**FIXED.** QLEADER writes how far it raised its words from the leader's end as group 213, as AutoCAD 2021 writes it in
+any UCS: (0, -0.09, 0) for Middle of top line at DIMTXT 0.18, (0, 0.09, 0) for Middle of bottom line, and their width
+along X as well where Always left justify sets them back on the left. It wrote none.
+
+**FIXED.** The snaps Nearest and Perpendicular take the sides of a frame's rows alone, not its walls or symbols, as
+AutoCAD 2021 gives them. TEXTEDIT reads a frame's row written by hand that leaves a cell out by what its cells hold:
+`{\Fgdt;j}%%v0.1%%vA%%vB` opens as the position, 0.1, to A and B, where A was read as a second tolerance, and `0.1%%vA`
+keeps its 0.1 as the first tolerance, where it was lost.
+
 **NEW.** `DxfTolerance.GeometricExtents` is the box of the frame's rows as AutoCAD 2021 gives it, where the drawing's
 `FontSearchPath` measures its words: each row twice the text height high, each cell its ink and the text height wide,
 `{\Fgdt;j}%%v0.1` at (0, 0, 0) in a style of Arial 0.18 high from (0, -0.18, 0) to (0.92296, 0.18, 0), as AutoCAD

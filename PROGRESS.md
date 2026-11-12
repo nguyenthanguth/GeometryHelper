@@ -106,7 +106,8 @@ the ones wanted.
 - [x] Leader follow-ups: every differing DIM* override in group order, DIMCLRT, hook along the UCS, INSERT copied and reused, LEADER/QLEADER previews, arrow pictures and User Arrow...
 - [x] Leader follow-ups 2: Select Custom Arrow Block dialog, TOLERANCE entity, frame, command and dialogs, LEADER/QLEADER Tolerance, Copy/Reuse of a TOLERANCE
 - [x] Tolerance follow-ups: snaps on row rectangles, overrides, editing (dialog, Properties), GeometricExtents, EXPLODE refused, exact gdt widths, leader set-back and 40/41, QLEADER constraints in a UCS, 211
-- [ ] Tolerance follow-ups 2: hook vertex on a steep leader to a copied frame and on leaders in a UCS (AutoCAD gives 3 vertices; two of our tests assert 2); Near snap on frames; QLEADER MText 213 in a UCS; Properties rows against a screenshot of AutoCAD's palette; word and glyph placement against AutoCAD with graphics; hand-written group 1 not in the dialog's layout (S)
+- [x] Tolerance follow-ups 2: hook vertex as AutoCAD (3 vertices in a UCS and to frames), QLEADER 213, Near/Perp on row rectangles, hand-written group 1
+- [ ] Tolerance follow-ups 3: LEADER and QLEADER Tolerance in a UCS from the dialog (inferred from Copy); Intersection/Extension snaps on frame walls; End snap giving only the picked side's ends; the dialog reading hand-written rows and rows over six cells; Properties rows and word/glyph placement against AutoCAD's GUI (S)
 - [x] Dimension overrides: every differing variable written in group order (where $DIMSTYLE names a style the drawing has), DIMSCALE 0 through a viewport, arrowhead pictures in the style dialogs
 - [x] Dimension overrides follow-ups: blank DxfDatabase holds ISO-25 as acadiso, header drives every dimension and leader, AutoCAD's 279/288/50 extras
 - [ ] Dimension overrides follow-ups 2: narrow DIMCONTINUE under DIMTMOVE 1 laid out as AutoCAD (leader to y 20.4088, words at (100.8933, 20.4088), arrows outside; ours differ); DIMDIAMETER and DIMJOGGED extras to re-probe; ordinate and angular chains, QDIM, DIM's radial for 279/288; 279 when the style already holds DIMTMOVE 1 (S)
@@ -188,11 +189,11 @@ the ones wanted.
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
-- [ ] Previews follow-ups 2: a look by eye in the running app; -ARRAY unit cell previewed as a rectangle only as AutoCAD's corner prompt (an existing preview test shows the copies: decide); text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
+- [ ] Previews follow-ups 2: a look by eye in the running app; -ARRAY unit cell previewed as a rectangle only as AutoCAD's corner prompt (DECIDED by recommendation 2026-11-12: follow AutoCAD, replace the old preview test); text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
-- [ ] Angle follow-ups: ATTSYNC "extended data" (unclear: XData kept on re-made attributes, or Select on a dynamic block naming its *U block); the angle override in the DYN angle field; LIST for dimensions and ellipses with counted angles (S)
+- [ ] Angle follow-ups: ATTSYNC: XData kept on attributes it re-makes, and Select on a dynamic block naming its own block, not *U (DECIDED by recommendation 2026-11-12: both); the angle override in the DYN angle field; LIST for dimensions and ellipses with counted angles (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual
@@ -235,7 +236,7 @@ the ones wanted.
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [x] Speed: undo without reloading the whole drawing at 1 000 000 entities: read-ahead of the next undo and redo drawings (0.4 s where 2.2 s, once read ahead), states packed in 4 MB pieces; no core fork
 - [x] Speed follow-ups: edits stop read-aheads, the drawing left reused (1M: 47 to 35 GB allocated, redo 1.6 s to 0.3 s), first undo after BSAVE/discard read ahead, marker bytes compared
-- [ ] Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit: decide); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
+- [ ] Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit; DECIDED by recommendation 2026-11-12: keep the read-ahead, slim the core entity objects later as its own task); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
@@ -253,7 +254,7 @@ the ones wanted.
 - [x] Spline intersections against tiny or huge circles, arcs, ellipses no longer hang (21 cases, now 0.04-4.5 ms;
       ordinary spline intersections 1.89 -> 1.51 s, bit-identical)
 - [x] Try audit follow-ups: GetIntersections on flat/empty boxes, NaN/infinite input false in the segment Try members, fillet radius message
-- [ ] Try audit follow-ups 2: flat boxes in CollidesWith/DistanceTo done (rectangle, segment, point); boxes thinner than the tolerance on two axes give wrong answers through the body path (122 of 1 805 twin calls, e.g. 100 x 2E-6 x 2E-6 gives +Infinity for 20; old fault, a fix changes non-flat results: maintainer's decision); GetFaces/ToSolid of a flat box throw as documented (a TryGetFaces would need the maintainer); non-Try GetIntersections with NaN shapes; Corner3.RequirePositive lets +infinity through; the NaN fuzz over other types' Try members; 1E300 overflow in TryExtendTo/TryTrimTo(GeoCircle2) parked (metre-irrelevant) (S-M)
+- [ ] Try audit follow-ups 2: flat boxes in CollidesWith/DistanceTo done (rectangle, segment, point); boxes thinner than the tolerance on two axes give wrong answers through the body path (122 of 1 805 twin calls, e.g. 100 x 2E-6 x 2E-6 gives +Infinity for 20; DECIDED by recommendation 2026-11-12: read them as flat boxes (rectangle/segment/point)); GetFaces/ToSolid of a flat box throw as documented (a TryGetFaces would need the maintainer); non-Try GetIntersections with NaN shapes; Corner3.RequirePositive lets +infinity through; the NaN fuzz over other types' Try members; 1E300 overflow in TryExtendTo/TryTrimTo(GeoCircle2) parked (metre-irrelevant) (S-M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and

@@ -250,27 +250,82 @@ namespace GeometryHelper.Dxf.Viewer
                 );
         }
 
+        /// <summary>
+        /// Reads a row cell by cell into the boxes, as the dialog lays them out: the symbol, two tolerances, three datums. A row
+        /// written by hand may leave a box's cell out: a first cell that is no symbol is the first tolerance, and a cell of
+        /// letters alone where a tolerance would be is the first datum, so that <c>{\Fgdt;j}%%v0.1%%vA%%vB</c> reads as the
+        /// position, 0.1, to A and B. Cells past the third datum are left out.
+        /// </summary>
         private static void ReadRow(string line, CadToleranceRow row)
         {
             List<string> cells = DxfFeatureFrameLayout.Cells(line);
-            row.Symbol = Code(cells[0].Trim(), out char symbol) && Symbols.IndexOf(symbol) >= 0 ? symbol : (char?)null;
+            int box = 0;
 
-            for (int t = 0; t < 2 && t + 1 < cells.Count; t++)
+            foreach (string text in cells)
             {
-                CadToleranceValue value = t == 0 ? row.Tolerance1 : row.Tolerance2;
-                string cell = cells[t + 1].Trim();
-                value.Diameter = cell.StartsWith(CadToleranceRow.Gdt('n'), StringComparison.OrdinalIgnoreCase);
-                cell = value.Diameter ? cell.Substring(9) : cell;
-                value.Material = MaterialAtEnd(ref cell);
-                value.Value = cell.Trim();
+                string cell = text.Trim();
+
+                if (box == 0)
+                {
+                    box = 1;
+
+                    if (Code(cell, out char symbol) && Symbols.IndexOf(symbol) >= 0)
+                    {
+                        row.Symbol = symbol;
+                        continue;
+                    }
+
+                    if (cell.Length == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                if (box < 3 && IsDatum(cell))
+                {
+                    box = 3;
+                }
+
+                if (box < 3)
+                {
+                    CadToleranceValue value = box == 1 ? row.Tolerance1 : row.Tolerance2;
+                    value.Diameter = cell.StartsWith(CadToleranceRow.Gdt('n'), StringComparison.OrdinalIgnoreCase);
+                    cell = value.Diameter ? cell.Substring(9) : cell;
+                    value.Material = MaterialAtEnd(ref cell);
+                    value.Value = cell.Trim();
+                }
+                else if (box < 6)
+                {
+                    CadToleranceDatum datum = row.Datums[box - 3];
+                    datum.Material = MaterialAtEnd(ref cell);
+                    datum.Letter = cell.Trim();
+                }
+
+                box++;
+            }
+        }
+
+        /// <summary>Whether a cell reads as a datum: letters, as A or A-B, with no figure or gdt letter but a material condition after them.</summary>
+        private static bool IsDatum(string cell)
+        {
+            string letters = cell;
+            MaterialAtEnd(ref letters);
+            letters = letters.Trim();
+
+            if (letters.Length == 0 || letters.IndexOf('{') >= 0 || letters.IndexOf('\\') >= 0)
+            {
+                return false;
             }
 
-            for (int d = 0; d < row.Datums.Count && d + 3 < cells.Count; d++)
+            foreach (char letter in letters)
             {
-                string cell = cells[d + 3].Trim();
-                row.Datums[d].Material = MaterialAtEnd(ref cell);
-                row.Datums[d].Letter = cell.Trim();
+                if (char.IsDigit(letter))
+                {
+                    return false;
+                }
             }
+
+            return true;
         }
 
         // The letters of the symbols of the Symbol dialog.

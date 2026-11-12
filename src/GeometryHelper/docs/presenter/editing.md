@@ -543,7 +543,8 @@ by 2.5 and turned 0.3 is copied to (10, 320) scaled 1.5 by 2.5 and turned 0, as 
 is copied there along the UCS's X, its insertion point on the end where the leader runs right and set back its first
 row's width where it runs left, so that its right side meets the end: `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial copied
 to a leader ending at (90, 105) stands at (89.07704, 105), as AutoCAD 2021 puts it, and a leader steeper than 15 degrees
-is marked as hooked with no vertex of the hook's own. Block places an INSERT as INSERT does, None leaves the leader
+takes a hook as words do: copied to a leader from (200, 40) to (210, 45), the frame stands at (210, 45) and the leader
+runs through (209.82, 45), DIMASZ short of the end. Block places an INSERT as INSERT does, None leaves the leader
 pointing to nothing, and Mtext opens the MTEXT editor; Tolerance shows the Geometric Tolerance dialog and puts its frame
 at the leader's end as Copy puts a copied one, Cancel or an empty dialog leaving the leader pointing to nothing (with no
 window to show the dialog, the option is asked again). While the points are picked the leader is previewed at the cursor, its arrowhead and its line or
@@ -557,9 +558,11 @@ style's is written as the leader's override, as AutoCAD writes them, in the orde
 176, 178, 341 and 371 in that order. Words typed take DIMCLRT, the current colour where it is BYBLOCK. In a UCS other
 than the world's, a moved one too, the last segment is measured along the UCS's axes, as AutoCAD 2021 measures it: the
 words run along its X, DIMGAP along it from the end (and DIMGAP up its Y with DIMTAD 1), and a leader steeper than 15
-degrees to that X is marked as hooked but keeps the points picked, with no vertex of the hook's own; in a UCS turned 30
-degrees a leader from the UCS's (0, 0) to (10, 10) ends at the world's (3.66, 13.66), its words 0.625 along the UCS's X
-from there. QLEADER (LE) draws by the drawing's Leader Settings, which Settings or Enter at `Specify first leader point,
+degrees to that X takes its hook along that X, the hook's vertex DIMASZ short of the end; in a UCS turned 30 degrees a
+leader from the UCS's (0, 0) to (10, 10) ends at the world's (3.66, 13.66), its hook's vertex at (3.50, 13.57) with
+DIMASZ 0.18, its words 0.625 along the UCS's X from there. A frame on a leader to the left there is set back its width
+along the world's X and the leader's end moved to the frame's right side, as AutoCAD 2021 does: from the UCS's (0, 400)
+to (-10, 400), the end picked at the world's (-208.660, 341.410) moves to (-208.784, 341.872). QLEADER (LE) draws by the drawing's Leader Settings, which Settings or Enter at `Specify first leader point,
 or [Settings] <Settings>:` shows where there is a window (with none, the command line says so and QLEADER draws by the
 settings the drawing has). AutoCAD 2021 keeps them per drawing, in an XRECORD under the key `AcadDim` of the named object
 dictionary with group 90 of 990106, and `CadQLeaderSettings` reads and writes that record as AutoCAD's QLEADER reads it
@@ -580,7 +583,10 @@ prompts; Tolerance shows the Geometric Tolerance dialog after the points and put
 None ends the leader with no annotation, and so do Tolerance's Cancel and an empty dialog; Reuse Next keeps the next
 words or frame, the settings then turned to Reuse Current, which copies them to each later leader with nothing asked,
 and copies an INSERT or a TOLERANCE kept to the leader's end as Copy does. In a turned UCS QLEADER raises its words up
-the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. Its angle
+the world's Y, as AutoCAD 2021 does: Middle of top line half DIMTXT above the end whatever the UCS. How far the words'
+point is raised the leader writes as group 213, DIMGAP left out, as AutoCAD 2021 writes it in any UCS: (0, -0.09, 0)
+for Middle of top line at DIMTXT 0.18, (0, 0.09, 0) for Middle of bottom line, their width along X as well where
+Always left justify sets them back on the left, and none for the other rows, Underline bottom line and LEADER. Its angle
 constraints are held there as AutoCAD 2021 holds them, the way the point was picked read along the UCS's axes but the
 point laid off along the world's: in a UCS turned 30 degrees, the UCS's (310, 503) from its (300, 500) held level is 10
 along the world's X, and its (305, 510) held to 45 degrees is (7.5, 7.5) on in the world. A leader to words, a frame or a
@@ -615,14 +621,18 @@ ink and DIMTXT, a cell of nothing taking no room. The words are measured in the 
 gdt symbols take the room AutoCAD's gdt font gives them, 2/21 of the height either side of most, 1.5/21 of the diameter
 and 2.25/21 right of the runouts, drawn with the presenter's own strokes (board GdtGlyphs); words inked past their pen,
 as Arial's A and f, set what follows on from their ink. `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296 wide and
-`{\Fgdt;n}0.1{\Fgdt;m}` 1.009563, as in AutoCAD. Lines are in DIMCLRD, words and symbols in DIMCLRT. The snaps End and
-Mid take the corners and the middles of the sides of each row's rectangle alone, none of the walls between cells or of
-the symbols, and Insertion the frame's insertion point, as AutoCAD 2021 gives them. Selected, a frame shows one grip, at
+`{\Fgdt;n}0.1{\Fgdt;m}` 1.009563, as in AutoCAD. Lines are in DIMCLRD, words and symbols in DIMCLRT. The snaps End,
+Mid, Nearest and Perpendicular take the sides of each row's rectangle alone, none of the walls between cells or of the
+symbols, and Insertion the frame's insertion point, as AutoCAD 2021 gives them. Selected, a frame shows one grip, at
 its insertion point; MOVE, COPY, ROTATE and SCALE move it as AutoCAD does (SCALE writes DIMTXT and DIMGAP scaled as
 overrides), and MIRROR keeps it readable under MIRRTEXT 0, its normal kept, and turns it over under MIRRTEXT 1. EXPLODE
 refuses one with `Cannot explode TOLERANCE`, as AutoCAD 2021 does. TEXTEDIT (DDEDIT) and a double click open the
 Geometric Tolerance dialog filled from the frame's words, its rows, height with its P and datum identifier read back
-from group 1, and OK writes the words it ends with, one undo step. Properties shows a frame's Dim style (Misc), Dim
+from group 1, and OK writes the words it ends with, one undo step. A row written by hand that leaves a box's cell out
+is read by what its cells hold: a first cell that is no symbol is the first tolerance, and letters alone where a
+tolerance would be are the first datum, so that `{\Fgdt;j}%%v0.1%%vA%%vB` opens as the position, 0.1, to A and B, and OK
+writes it in the dialog's layout, `{\Fgdt;j}%%v0.1%%v%%vA%%vB`, drawn the same, a cell of nothing taking no room
+(AutoCAD 2021 draws `{\Fgdt;j}%%v0.1%%vA` and `{\Fgdt;j}%%v0.1%%v%%vA` both 1.271051 wide in Arial). Properties shows a frame's Dim style (Misc), Dim
 line color (Lines & Arrows), Text color and Text height (Text), each variable as the frame reads it, and writes a value
 typed as an override of its style, as a dimension's rows are written. A frame on a leader to the left is set back the
 width of its widest row, and the leader holds that width and the height of all its rows (groups 40 and 41), as AutoCAD
