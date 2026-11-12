@@ -293,13 +293,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string DynamicInputFirst => FieldText(false);
 
         /// <summary>Gets what the second field shows, the angle in degrees or the Y, as <see cref="DynamicInputFirst"/> does: "53.1".</summary>
-        /// <remarks>With a base point and no dimensional input the X and the Y are the cursor's from the base point, relative as AutoCAD's DYNPIFORMAT 0.</remarks>
+        /// <remarks>
+        /// With a base point and no dimensional input the X and the Y are the cursor's from the base point, relative as AutoCAD's
+        /// DYNPIFORMAT 0. Under an angle override (<see cref="CadCommandSession.AngleOverride"/>) the angle field shows the angle
+        /// typed, locked: &lt;30 shows 30 wherever the cursor is, until the point is given.
+        /// </remarks>
         public string DynamicInputSecond => FieldText(true);
 
         /// <summary>Gets whether the first field is locked, drawn with a lock: a value typed into it or locked by Tab, which Enter takes in place of the cursor's.</summary>
         public bool IsDynamicInputFirstLocked => FieldLocked(false);
 
-        /// <summary>Gets whether the second field is locked, as <see cref="IsDynamicInputFirstLocked"/> says of the first.</summary>
+        /// <summary>Gets whether the second field is locked, as <see cref="IsDynamicInputFirstLocked"/> says of the first, and while an angle override holds it.</summary>
         public bool IsDynamicInputSecondLocked => FieldLocked(true);
 
         /// <summary>Gets whether what is typed goes into the first field.</summary>
@@ -826,6 +830,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return locked;
             }
 
+            if (second && OverridesAngle())
+            {
+                // The angle override typed, <30, counted as the drawing counts angles.
+                return _settings.FormatNumber(
+                    Session.CountAngle(Ucs.AngleToUcs(Session.AngleOverride.Value)) * 180.0 / Math.PI,
+                    _settings.AngleDecimals
+                );
+            }
+
             GeoPoint2? from = Session.Prompt.BasePoint;
 
             if (!from.HasValue)
@@ -879,8 +892,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return (CommandText.Length > 0 && second == _secondActive)
-                || (second ? _lockedSecond : _lockedFirst) != null;
+                || (second ? _lockedSecond : _lockedFirst) != null
+                || (second && OverridesAngle());
         }
+
+        /// <summary>Whether an angle override holds the angle field: one typed at this prompt, with the length and angle shown.</summary>
+        private bool OverridesAngle() => IsDynamicInputPolar && Session.AngleOverride.HasValue;
 
         /// <summary>Whether the prompt asks a distance or an angle from a base point, shown in the one field of its kind on the canvas; a scale factor is not.</summary>
         private bool Alone(CadPromptKind kind)

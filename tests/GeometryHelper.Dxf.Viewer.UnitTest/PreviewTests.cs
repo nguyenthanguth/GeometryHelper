@@ -1109,30 +1109,31 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             MovesAsMade(session, line, P(6, 0));
         }
 
+        /// <summary>
+        /// AutoCAD 2021's corner prompt of -ARRAY drags the unit cell alone, a rectangle from the first corner to the cursor,
+        /// and no copies; the array is then made of the cell picked.
+        /// </summary>
         [Fact]
-        public void TypedRectangularArrayByAUnitCell_PreviewsEveryCopyAtTheOppositeCorner()
+        public void TypedRectangularArrayByAUnitCell_PreviewsTheRectangleAloneAtTheOppositeCorner()
         {
             CadCommandSession session = WithALine(out string line);
             Run(session, "-ARRAY", new[] { line }, Enter, "R", "2", "3", P(0, 0));
             Assert.StartsWith("Specify opposite corner", session.PromptText);
-            IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(40, 25));
-            Assert.Equal(5, moves.Count);
-            HashSet<string> before = Handles(session.Document);
-            List<string> previewed = moves
-                .SelectMany(m => Ends(session.Document, new[] { line }, m))
-                .OrderBy(s => s, StringComparer.Ordinal)
-                .ToList();
+            CadPreview preview = session.Prompt.Preview;
+
+            Assert.Equal(
+                "DisplayPolyline2 closed 0.000000 0.000000 40.000000 0.000000 40.000000 25.000000 0.000000 25.000000",
+                Assert.Single(Shapes(preview.Items(P(40, 25))))
+            );
+            Assert.Empty(preview.Moves(P(40, 25)));
 
             Run(session, P(40, 25));
 
-            List<string> made = Ends(
-                    session.Document,
-                    Handles(session.Document).Where(h => !before.Contains(h)),
-                    Affine2.Identity
-                )
-                .OrderBy(s => s, StringComparer.Ordinal)
-                .ToList();
-            Assert.Equal(made, previewed);
+            List<DxfLine> lines = All<DxfLine>(session.Document.ModelSpace);
+            Assert.Equal(6, lines.Count);
+            Assert.Contains(lines, l =>
+                Math.Abs(l.StartPoint.X - 90.0) < 1E-9 && Math.Abs(l.StartPoint.Y - 25.0) < 1E-9
+            );
         }
 
         /// <summary>
