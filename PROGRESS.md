@@ -206,7 +206,7 @@ the ones wanted.
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
-- [ ] Previews follow-ups 2: a look by eye in the running app; text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
+- [x] Previews follow-ups 2: a look by eye in the running app; text items moved, not redrawn, in the paste preview (6 000 texts: 65 to 12 ms a move on net48). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
 - [x] Maintainer's AutoCAD pictures (2026-11-12): SCALE/ROTATE faded originals and own-colour copies, amber band, one scale field; window/crossing colours and edges, plain cross while dragging; Shift+right-click access keys; screenshot mode no longer shows real dialogs
 - [x] Pictures follow-ups: implied window prompt with absolute DYN fields and F/WP/CP, no base-point square, cursor badges, AutoCAD's osnap menu letters, AutoComplete list of 5 rows, SCALE of 100 000 timed (25 ms a move)
 - [x] Pictures follow-ups 2: canvas right-click menus Default/Edit/Grips/Command from AutoCAD's menu file, SHORTCUTMENU 11, implied window inside Select objects, osnap labels and separators

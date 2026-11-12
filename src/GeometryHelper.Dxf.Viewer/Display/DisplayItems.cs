@@ -62,7 +62,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// A copy of the item moved along X and Y, as the entity it came from would be drawn moved so; null for an item that
-        /// is drawn anew rather than moved, as a text or an image.
+        /// is drawn anew rather than moved, as an image.
         /// </summary>
         internal virtual DisplayItem2 Moved(double dx, double dy) => null;
 
@@ -1075,6 +1075,67 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
+
+        /// <summary>
+        /// A copy of the text moved along X and Y: its point, the strokes of its letters and its parts moved, its words, font
+        /// and measure kept, so that a text of 3 000 letters is moved by adding to 6 000 numbers and not laid out again.
+        /// Null where a part of it cannot be moved.
+        /// </summary>
+        internal override DisplayItem2 Moved(double dx, double dy)
+        {
+            List<DisplayItem2> parts = null;
+
+            if (Parts != null)
+            {
+                parts = new List<DisplayItem2>(Parts.Count);
+
+                foreach (DisplayItem2 part in Parts)
+                {
+                    DisplayItem2 moved = part.Moved(dx, dy);
+
+                    if (moved == null)
+                    {
+                        return null;
+                    }
+
+                    parts.Add(moved);
+                }
+            }
+
+            return new DisplayText2(this, dx, dy, Strokes == null ? null : Moved(Strokes, dx, dy), parts);
+        }
+
+        /// <summary>A copy of a text moved along X and Y, with its strokes and parts already moved; its box is the text's moved.</summary>
+        private DisplayText2(
+            DisplayText2 from,
+            double dx,
+            double dy,
+            IReadOnlyList<double[]> strokes,
+            IReadOnlyList<DisplayItem2> parts
+        )
+            : base(from.Style, from.Handle, from.Layer)
+        {
+            IsBackward = from.IsBackward;
+            FontName = from.FontName;
+            Oblique = from.Oblique;
+            Text = from.Text;
+            X = from.X + dx;
+            Y = from.Y + dy;
+            Height = from.Height;
+            Rotation = from.Rotation;
+            WidthFactor = from.WidthFactor;
+            Horizontal = from.Horizontal;
+            Vertical = from.Vertical;
+            Strokes = strokes;
+            Parts = parts;
+            IsBold = from.IsBold;
+            IsItalic = from.IsItalic;
+            IsFrameInside = from.IsFrameInside;
+            _width = from._width;
+            _descent = from._descent;
+            DisplayBox box = from._bounds;
+            _bounds = new DisplayBox(box.MinX + dx, box.MinY + dy, box.MaxX + dx, box.MaxY + dy);
+        }
 
         /// <summary>Gives the text the parts it is drawn as (<see cref="Parts"/>), its box that of the parts; its own where none has a box.</summary>
         internal void SetParts(IReadOnlyList<DisplayItem2> parts)

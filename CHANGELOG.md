@@ -19,6 +19,12 @@ one step.
 **FIXED.** The Undo and Redo buttons and the canvas menu's Undo record a wheel turn or a pan made less than 80
 milliseconds before, as Ctrl+Z does, so that they take that gesture back and not the step before it. New
 `MainViewModel.CommitPendingView` is what the workspace sets to its canvas.
+**CHANGED.** The paste preview moves a text, an MTEXT and the words of a dimension with the cursor as it moves a line,
+by adding to the numbers of their letters, and no longer lays them out again at each move; an image alone is still drawn
+anew. A Clipboard of 5 000 TEXTs and 1 000 MTEXTs, with 300 lines and 20 dimensions (6 480 items), previews in 12 ms a
+move under .NET Framework 4.8 and 5 ms under .NET 10, where it took 60 to 70 and 43; what is drawn is the same to the
+last pixel.
+
 **NEW.** In the presenter the snap and grid are undo steps, as AutoCAD 2021's U takes them, probed in its console: GRID,
 SNAP, SETVAR and a snap or grid variable typed alone (GRIDMODE, SNAPMODE, ORTHOMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY,
 SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR) are a step each, named by the command, so that after a line, GRID 50

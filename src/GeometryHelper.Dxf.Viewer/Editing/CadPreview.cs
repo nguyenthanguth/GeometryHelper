@@ -86,6 +86,12 @@ namespace GeometryHelper.Dxf.Viewer
         internal CadPrompt Prompt { get; set; }
 
         /// <summary>
+        /// The number of objects a preview of another drawing's objects has drawn from their entities, each counted every time:
+        /// all of them once for the first cursor, then none for a cursor that only moves them.
+        /// </summary>
+        internal int DrawnAnew { get; private set; }
+
+        /// <summary>
         /// Gets the display items of the entities the command would make were a point picked at the cursor, drawn as they will
         /// be once made: their layer, colour and linetype the current ones. Empty where the point makes nothing, as a second
         /// corner in line with the first makes no rectangle.
@@ -251,9 +257,10 @@ namespace GeometryHelper.Dxf.Viewer
             var entities = new List<DxfEntity>(from.ModelSpace);
 
             // Each object is drawn once where it is, and its items moved to the cursor after: a Clipboard of 24 000 items
-            // took 34 ms a move drawn anew. An object with an item that cannot be moved so, as a text, is drawn anew each time.
+            // took 34 ms a move drawn anew. An object with an item that cannot be moved so, as an image, is drawn anew each time.
             IReadOnlyList<DisplayItem2>[] drawn = null;
-            return new CadPreview(c.Session, null, null, null, false)
+            CadPreview preview = null;
+            preview = new CadPreview(c.Session, null, null, null, false)
             {
                 _drawn = input =>
                 {
@@ -261,12 +268,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (m.A != 1.0 || m.B != 0.0 || m.C != 0.0 || m.D != 1.0)
                     {
+                        preview.DrawnAnew += entities.Count;
                         return builder.BuildLoose(entities, m);
                     }
 
                     if (drawn == null)
                     {
                         drawn = new IReadOnlyList<DisplayItem2>[entities.Count];
+                        preview.DrawnAnew += entities.Count;
 
                         for (int i = 0; i < entities.Count; i++)
                         {
@@ -287,6 +296,7 @@ namespace GeometryHelper.Dxf.Viewer
                             if (moved == null)
                             {
                                 items.RemoveRange(start, items.Count - start);
+                                preview.DrawnAnew++;
                                 items.AddRange(builder.BuildLoose(new[] { entities[i] }, m));
                                 break;
                             }
@@ -298,6 +308,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return items;
                 },
             };
+            return preview;
         }
 
         /// <summary>
