@@ -337,7 +337,15 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                 {
                     // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
+                    // One clipped by an entity has the middle alone, as AutoCAD 2021 gives it: its corners are the entity's own grips.
                     GeoPoint3 c = viewport.CenterPoint;
+
+                    if (viewport.NonRectClipEntity != null)
+                    {
+                        Add(CadGripKind.Center, c.X, c.Y);
+                        break;
+                    }
+
                     double w = viewport.Width / 2.0;
                     double h = viewport.Height / 2.0;
                     Add(CadGripKind.Corner, c.X - w, c.Y - h);
@@ -446,6 +454,15 @@ namespace GeometryHelper.Dxf.Viewer
                     return Reshape(document, handle, property, was, went, () =>
                     {
                         var v = (DxfViewport)document.FindEntity(handle);
+
+                        // A clipped viewport follows its boundary: the boundary moves, and the frame is fitted to it again.
+                        if (v.NonRectClipEntity is DxfEntity boundary)
+                        {
+                            boundary.TransformBy(GeoTransform3.Translation(shift));
+                            v.FitToClip();
+                            return true;
+                        }
+
                         v.CenterPoint = new GeoPoint3(to.X, to.Y, v.CenterPoint.Z);
                         return true;
                     });

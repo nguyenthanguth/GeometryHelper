@@ -65,6 +65,10 @@ the layout lists them, the one showing the paper first; in an AutoCAD 2000 file 
 itself is number 1 and the others follow in the order they were made. Their frozen layers come under group 341 in a
 DXF of AutoCAD 2000 and 331 later, and `DxfViewport.GetFrozenLayers` reads both.
 
+A viewport clipped by an entity keeps the link (`DxfViewport.NonRectClipEntity`, group 340) and the entity's reactor in both
+directions: AutoCAD's own DWG of R2000 and R2018 read to the clipped viewport and its boundary, the frame the box of the
+boundary, and a drawing written with a viewport clipped to a circle reads back the same, AutoCAD opening both as clipped.
+
 A REGION, 3DSOLID or BODY carries its ACIS data as DXF does. An AutoCAD 2000 file keeps it as SAT text, which comes
 out line for line, a line that goes on a record starting with a space where the file has a tab, as AutoCAD writes it.
 AutoCAD 2004 to 2010 keep the data as SAB, binary ACIS, where DXF wants SAT text: the reader turns it into the SAT

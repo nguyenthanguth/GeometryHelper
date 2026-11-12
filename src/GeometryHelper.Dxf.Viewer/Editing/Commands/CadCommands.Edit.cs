@@ -1153,6 +1153,11 @@ namespace GeometryHelper.Dxf.Viewer
                         kept?.Finish(copied);
                         copies[handle] = copied;
                     }
+                    else if (entity is DxfViewport clipped && clipped.NonRectClipEntity != null)
+                    {
+                        // A clipped viewport takes its frame from its boundary, which moves with it: the edit refits it.
+                        continue;
+                    }
                     else
                     {
                         entity.TransformBy(kept?.Transform ?? transform);
@@ -1163,6 +1168,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (copy)
                 {
                     CadDimAssociation.TieCopies(s, copies);
+                    CadViewportClips.TieCopies(s, copies);
                 }
             });
 

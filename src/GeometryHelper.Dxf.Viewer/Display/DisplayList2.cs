@@ -285,12 +285,23 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// Gets the outline the viewport is clipped to (VPCLIP), in paper units: model space shows through it in place of the
+        /// frame, and it is the border of the viewport; null for a viewport that is its frame.
+        /// </summary>
+        public DisplayClip2 Clip { get; internal set; }
+
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)
         {
+            if (Clip != null)
+            {
+                return Clip.DistanceToEdge(x, y);
+            }
+
             double dx = Math.Min(Math.Abs(x - _bounds.MinX), Math.Abs(x - _bounds.MaxX));
             double dy = Math.Min(Math.Abs(y - _bounds.MinY), Math.Abs(y - _bounds.MaxY));
             bool insideX = x >= _bounds.MinX && x <= _bounds.MaxX;

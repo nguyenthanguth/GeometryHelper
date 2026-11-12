@@ -65,7 +65,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// Draws a display list onto a SkiaSharp canvas: lines, arcs flattened to the pixel, fills, text, and the viewports of
-    /// a layout clipped to their frames. It draws what the list holds and asks nothing of the drawing, so it can draw to
+    /// a layout clipped to their frames or, for a clipped viewport, the outline of its boundary. It draws what the list holds and asks nothing of the drawing, so it can draw to
     /// a window's bitmap or to a PNG for a test. It draws only the items the view shows, found through the space's
     /// <see cref="PickIndex"/>, and spares the detail no eye could see: an item under half a pixel is one pixel of its colour,
     /// a text under 3 pixels high is left out, and a hatch whose lines come closer than 2 pixels is filled with a tint of
@@ -73,6 +73,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed class SkiaCanvasRenderer : IDisposable
     {
+        /// <summary>The farthest, in pixels, a chord of the outline of a clipped viewport may lie from its arc.</summary>
+        private const double OutlineTolerance = 0.1;
+
         /// <summary>An item whose box is smaller than this many pixels each way is drawn as one pixel.</summary>
         private const double TinyPixels = 0.5;
 
@@ -494,7 +497,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 stroke.Color = ColorOf(item, options, !hover, hover, background);
                 stroke.StrokeWidth = 2f;
-                IReadOnlyList<double[]> rings = item is DisplayFill2 mask ? mask.Rings : new[] { Frame(item.Bounds) };
+                IReadOnlyList<double[]> rings =
+                    item is DisplayFill2 mask ? mask.Rings
+                    : item is DisplayViewport2 clipped && clipped.Clip != null
+                        ? new[] { clipped.Clip.Flatten(OutlineTolerance / zoom) }
+                    : new[] { Frame(item.Bounds) };
 
                 using (SKPath path = RingsPath(rings, m))
                 {
@@ -2017,7 +2024,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float y1 = (float)m.Y(viewport.Bounds.MaxX, viewport.Bounds.MinY);
             Affine2 inner = viewport.ModelToPaper.Then(m);
             canvas.Save();
-            canvas.ClipRect(new SKRect(x0, y0, x1, y1));
+
+            // A viewport clipped by an entity shows model space through the entity's outline, arcs kept to a tenth of a pixel.
+            if (viewport.Clip != null)
+            {
+                using (SKPath outline = RingsPath(new[] { viewport.Clip.Flatten(OutlineTolerance / m.Scale) }, m))
+                {
+                    canvas.ClipPath(outline, SKClipOperation.Intersect, true);
+                }
+            }
+            else
+            {
+                canvas.ClipRect(new SKRect(x0, y0, x1, y1));
+            }
+
             int paperBackground = options.Paper;
             double rotation = viewport.Twist;
             double cos = Math.Cos(-rotation);
@@ -2049,6 +2069,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (cos == 0.0 && sin == 0.0)
             {
+                return;
+            }
+
+            // The border of a clipped viewport is its boundary entity, which the drawing draws as itself; only a selected viewport
+            // outlines the boundary here.
+            if (viewport.Clip != null)
+            {
+                if (isSelected)
+                {
+                    stroke.Color = Color(options.SelectionColor, 255);
+                    stroke.StrokeWidth = 2f;
+
+                    using (SKPath outline = RingsPath(new[] { viewport.Clip.Flatten(OutlineTolerance / m.Scale) }, m))
+                    {
+                        canvas.DrawPath(outline, stroke);
+                    }
+                }
+
                 return;
             }
 
