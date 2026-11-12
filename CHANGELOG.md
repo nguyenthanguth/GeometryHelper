@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** ROTATE and MIRROR of a viewport clipped by an entity (VPCLIP) and its boundary as AutoCAD 2021 does them, probed in
+accoreconsole (the probes GhVp and GhVq). ROTATE twists the view by the angle (group 51, from 0 up to 360 degrees)
+and writes the view's centre as the turn of `2 V - C' - T` by the new twist, V the view's centre before, C' the frame's centre
+carried by the rotation and T the view's target, whatever the scale of the view and the shape of the boundary: a viewport 60
+by 60 about (110, 60) showing (1 000, 500) at 1:10, turned 45 degrees about the origin, is about (35.355, 120.208), twisted
+45 degrees, its view centre (767.107, 2 011.320); turned 90 degrees about its own middle it is twisted 90 degrees with its view
+centre at (-940, 1 890). MIRROR (the copy and the erasing one) puts the pair at the mirrored place with the view's centre and
+twist as they were, and a copy made by ROTATE with Copy or by MIRROR no longer fails on the viewport: the copy of the
+viewport is tied to the copy of its boundary and fitted the same way (`CadViewportClips.TieCopies`).
+**NEW.** A clipped viewport copied and pasted into another drawing (COPYCLIP, PASTECLIP) comes along with its boundary, as
+AutoCAD 2021's `WblockCloneObjects` brings it: before, COPYCLIP of a viewport failed (a viewport is not put in model space)
+and a pair copied by `db.WblockCloneObjects` kept the copy of the viewport naming the original's boundary, or one of the
+other drawing. `DxfDatabase.WblockCloneObjects` now ties the copy of a clipped viewport to the copy of its boundary (group 340,
+the viewport its only reactor), brings the boundary of a viewport copied alone into another drawing, and leaves a viewport copied
+alone within the drawing naming its original's boundary, which does not list it, all as AutoCAD 2021 leaves them. The clipboard
+holds the viewports of a layout in a layout of its own drawing; PASTEBLOCK does not take them.
+**FIXED.** A pair of a clipped viewport and its boundary moved by MOVE, or by the grip at the viewport's middle, had the centre of
+its view shifted by the step of the frame (a pair moved by (20, 5) at 1:10 showed what lay 200 and 50 further on); AutoCAD 2021
+keeps the view's centre, the frame going with its boundary and showing what it showed. SCALE, whose step AutoCAD does shift,
+is unchanged and now has a test (a pair scaled by 2 about the origin: frame 120 by 120 about (220, 120), view height 1 200,
+view centre (2 100, 1 100)).
+**NEW.** Tests that the image of a layout (`CadRasterWriter.Draw`, IMAGEOUT, PNGOUT) and its plot to a PNG draw a viewport
+clipped to a circle through its outline, counted in pixels (nothing of the model outside the circle where an unclipped viewport
+shows walls beyond it), and that a corner of the boundary dragged on the canvas fits the frame of the viewport to it in one
+undo step.
+
 **NEW.** The grips on the clip boundary of a clipped block reference or external reference in the presenter, as AutoCAD 2021's
 `GetGripPoints` gives them (probed in accoreconsole): a selected reference has its insertion grip, an arrow at the middle of the
 boundary's first side and a grip at each corner of the rectangle or vertex of the polygon (`CadGripKind.ClipFlip` and

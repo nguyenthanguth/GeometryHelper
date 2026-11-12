@@ -1136,6 +1136,8 @@ namespace GeometryHelper.Dxf.Viewer
             CadEditResult result = c.Apply(planned, s =>
             {
                 var copies = copy ? new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase) : null;
+                var together = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
+                var clippedViewports = new List<DxfViewport>();
 
                 foreach (string handle in handles)
                 {
@@ -1149,13 +1151,25 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (copy)
                     {
-                        DxfEntity copied = AppendCopy(s, handle, kept?.Transform ?? transform);
+                        // A clipped viewport copied with its boundary is not moved itself: it is tied to the copy of the boundary and
+                        // fitted to it afterwards, as a turn or a mirror cannot move a viewport.
+                        bool paired = entity is DxfViewport shown && CadViewportClips.IsPaired(shown, together);
+                        DxfEntity copied = AppendCopy(
+                            s,
+                            handle,
+                            paired ? GeoTransform3.Identity : kept?.Transform ?? transform
+                        );
                         kept?.Finish(copied);
                         copies[handle] = copied;
                     }
                     else if (entity is DxfViewport clipped && clipped.NonRectClipEntity != null)
                     {
                         // A clipped viewport takes its frame from its boundary, which moves with it: the edit refits it.
+                        if (CadViewportClips.IsPaired(clipped, together))
+                        {
+                            clippedViewports.Add(clipped);
+                        }
+
                         continue;
                     }
                     else
@@ -1165,10 +1179,15 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
+                foreach (DxfViewport clipped in clippedViewports)
+                {
+                    CadViewportClips.Refit(clipped, transform, how);
+                }
+
                 if (copy)
                 {
                     CadDimAssociation.TieCopies(s, copies);
-                    CadViewportClips.TieCopies(s, copies);
+                    CadViewportClips.TieCopies(s, copies, transform, how);
                 }
             });
 

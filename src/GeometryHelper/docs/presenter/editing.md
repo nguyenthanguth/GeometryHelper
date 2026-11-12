@@ -1319,9 +1319,21 @@ AutoCAD 2021's console does. The viewport and its boundary are one object to a p
 AutoCAD 2021 counts them (`2 found`): picking either selects both, ERASE of either erases both, MOVE, SCALE and COPY take
 both (the copy of the viewport tied to the copy of its boundary), and the viewport follows its boundary whenever an edit
 changes it, a corner dragged by its grip too: the frame is the box of the boundary again, its view keeping its scale and
-its place. A clipped viewport has its middle as its only grip, which moves the boundary with it. ROTATE and MIRROR of the
-pair turn the boundary and fit the frame to it; AutoCAD 2021 also twists the view by the angle, which the presenter does not.
-Through the viewport (MSPACE) the cursor, the picks and the snaps work inside the outline alone, the thick frame follows it,
+its place. A clipped viewport has its middle as its only grip, which moves the boundary with it. The view is left as AutoCAD
+2021 leaves it (probed in its console on a viewport 60 by 60 about (110, 60) showing (1 000, 500) at 1:10): MOVE and MIRROR
+keep the view's centre, the frame going with its boundary, so that a pair moved by (20, 5) is about (130, 65) and shows what it
+showed; SCALE by 2 about the origin scales the frame (120 by 120 about (220, 120)) and the height of its view (1 200) alike
+and moves the view's centre to (2 100, 1 100); ROTATE turns the view by the angle (its twist, group 51, taken from 0 up to
+360 degrees) and writes the view's centre as the turn of `2 V - C' - T` by the new twist, V the view's centre before, C' the
+frame's centre carried by the rotation and T the view's target, whatever the scale of the view: turned 45 degrees about the
+origin, the viewport above is about (35.355, 120.208), twisted 45 degrees, with its view centre at (767.107, 2 011.320), and
+turned 90 degrees about its own middle it stays where it is, twisted 90 degrees, its view centre at (-940, 1 890). A copy
+made by COPY, ROTATE Copy or MIRROR is tied to the copy of its boundary and fitted the same way. Copied (COPYCLIP) and pasted
+(PASTECLIP) into another drawing the pair comes along whole, the copy of the viewport naming the copy of its boundary (group
+340) and listed as its reactor, as AutoCAD 2021's `WblockCloneObjects` brings it; PASTEBLOCK does not take viewports, and
+a paste into model space is refused. An image of the layout (IMAGEOUT, PNGOUT) and its plot to a PNG show the model only
+inside the outline of the boundary, as the canvas does (no pixel of the model lies outside a circle clip, where an unclipped
+viewport shows walls beyond it); a plot to a PDF is drawn by the same renderer. Through the viewport (MSPACE) the cursor, the picks and the snaps work inside the outline alone, the thick frame follows it,
 and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips) gives
 `WithPartners` and `WhyNotClip`.
 

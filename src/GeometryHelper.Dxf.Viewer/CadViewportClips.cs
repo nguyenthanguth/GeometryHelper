@@ -273,11 +273,19 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Ties the copy of a clipped viewport to the copy of its boundary made by the same command, as AutoCAD keeps the two
-        /// together; a copy whose boundary was not copied stays tied to the original's.
+        /// together, and fits its frame to that copy as the transformation leaves it (<see cref="Refit"/>); a copy whose boundary
+        /// was not copied stays tied to the original's.
         /// </summary>
         /// <param name="s">The edit.</param>
         /// <param name="copies">Each copy by the handle of its original.</param>
-        internal static void TieCopies(CadEditScope s, IReadOnlyDictionary<string, DxfEntity> copies)
+        /// <param name="transform">What the copies were moved by.</param>
+        /// <param name="how">The command that made them, as its record names it.</param>
+        internal static void TieCopies(
+            CadEditScope s,
+            IReadOnlyDictionary<string, DxfEntity> copies,
+            GeoTransform3 transform,
+            string how
+        )
         {
             foreach (KeyValuePair<string, DxfEntity> copy in copies)
             {
@@ -288,9 +296,63 @@ namespace GeometryHelper.Dxf.Viewer
                     && copies.TryGetValue(boundary.Handle, out DxfEntity copiedBoundary)
                 )
                 {
-                    made.ClipTo(copiedBoundary);
+                    made.TieClip(copiedBoundary);
+                    Refit(made, transform, how);
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether a clipped viewport and its boundary are in the list of handles together, which a copy or a transformation of
+        /// the two is made of as one: the viewport takes its place and view from the boundary (<see cref="Refit"/>).
+        /// </summary>
+        internal static bool IsPaired(DxfViewport viewport, ISet<string> handles) =>
+            viewport.NonRectClipEntity is DxfEntity boundary && handles.Contains(boundary.Handle);
+
+        /// <summary>
+        /// Fits a clipped viewport to its boundary after a command moved the boundary by a transformation, with the view left as
+        /// AutoCAD 2021 leaves it (probe GhVq): a MOVE or a MIRROR keeps the view's centre (the frame goes with its boundary);
+        /// a SCALE scales the frame and the height of the view alike and moves the view's centre by the step of the frame's
+        /// centre over the scale of the view; a ROTATE turns the view by the angle (its twist, group 51) and writes the view's
+        /// centre as the twist turns <c>2 V - C' - T</c>, V the view's centre before, C' the frame's centre carried by the
+        /// transformation and T the view's target, as it does for any angle and any scale of the view.
+        /// </summary>
+        /// <param name="viewport">The viewport, still as it was before the command.</param>
+        /// <param name="transform">What the boundary was moved by.</param>
+        /// <param name="how">The command, as its record names it: Rotate and Scale are told apart, every other moves like a Move.</param>
+        internal static void Refit(DxfViewport viewport, GeoTransform3 transform, string how)
+        {
+            GeoPoint3 moved = transform.Transform(viewport.CenterPoint);
+
+            if (how == "Scale")
+            {
+                viewport.FitToClip();
+                return;
+            }
+
+            if (how != "Rotate")
+            {
+                viewport.FitToClip(moved);
+                return;
+            }
+
+            double twist = viewport.TwistAngle + Math.Atan2(transform[1, 0], transform[0, 0]);
+            twist -= 2.0 * Math.PI * Math.Floor(twist / (2.0 * Math.PI));
+
+            if (Math.Abs(twist - 2.0 * Math.PI) < 1E-12)
+            {
+                twist = 0.0;
+            }
+
+            GeoPoint2 view = viewport.ViewCenter;
+            GeoPoint3 target = viewport.ViewTarget;
+            double x = 2.0 * view.X - moved.X - target.X;
+            double y = 2.0 * view.Y - moved.Y - target.Y;
+            double cos = Math.Cos(twist);
+            double sin = Math.Sin(twist);
+            viewport.FitToClip(moved);
+            viewport.TwistAngle = twist;
+            viewport.ViewCenter = new GeoPoint2(x * cos - y * sin, x * sin + y * cos);
         }
     }
 }

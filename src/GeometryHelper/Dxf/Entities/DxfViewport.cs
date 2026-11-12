@@ -393,7 +393,16 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>Whether the frame changed.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
-        public bool FitToClip()
+        public bool FitToClip() => FitToClip(null);
+
+        /// <summary>
+        /// Fits the frame to the box of its clip boundary as <see cref="FitToClip()"/> does, the view's centre moved by the step
+        /// from <paramref name="anchor"/> to the new centre of the frame instead of the step from where the frame is: the place
+        /// the frame would be at had it followed the edit that moved its boundary (a MOVE leaves the view as it was).
+        /// </summary>
+        /// <param name="anchor">Where the frame's centre would be with the view kept; null for where it is now.</param>
+        /// <returns>Whether the frame changed.</returns>
+        internal bool FitToClip(GeoPoint3? anchor)
         {
             DxfEntity boundary = NonRectClipEntity;
 
@@ -402,7 +411,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            KeyValuePair<int, string>[] groups = FitGroups(boundary.GeometricExtents);
+            KeyValuePair<int, string>[] groups = FitGroups(boundary.GeometricExtents, anchor);
 
             if (groups.Length == 0)
             {
@@ -445,6 +454,28 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Ties the copy of a clipped viewport to the copy of its boundary that was copied with it, as AutoCAD's map of ids does:
+        /// the group 340 names the copy and the viewport is its reactor. A copy with none to name (null) is not clipped, where the
+        /// handle it holds is of another drawing's entity.
+        /// </summary>
+        internal void TieClip(DxfEntity boundary)
+        {
+            if (boundary == null)
+            {
+                SetGroups(
+                    new List<KeyValuePair<int, string>>(FlagGroups(Flags() & ~0x10000))
+                    {
+                        new KeyValuePair<int, string>(340, null),
+                    }.ToArray()
+                );
+                return;
+            }
+
+            SetGroups(new[] { new KeyValuePair<int, string>(340, boundary.Handle) });
+            Item.File.SetReactor(boundary.Item, Handle, true);
+        }
+
         private void CheckClippable()
         {
             if (!IsResident || IsErased)
@@ -462,9 +493,10 @@ namespace GeometryHelper.Dxf
         /// centre moved by the step of the frame's centre over the view's scale (the view centre is in the viewport's own
         /// coordinates, which run along its sides), its height the new height over that scale. Only the groups that change.
         /// </summary>
-        private KeyValuePair<int, string>[] FitGroups(GeoAabb3 box)
+        private KeyValuePair<int, string>[] FitGroups(GeoAabb3 box, GeoPoint3? anchor = null)
         {
             GeoPoint3 now = CenterPoint;
+            GeoPoint3 from = anchor ?? now;
             double x = (box.Min.X + box.Max.X) / 2.0;
             double y = (box.Min.Y + box.Max.Y) / 2.0;
             double width = box.Max.X - box.Min.X;
@@ -495,8 +527,8 @@ namespace GeometryHelper.Dxf
             {
                 double scale = oldHeight / viewHeight;
                 GeoPoint2 center = ViewCenter;
-                double centerX = center.X + (x - now.X) / scale;
-                double centerY = center.Y + (y - now.Y) / scale;
+                double centerX = center.X + (x - from.X) / scale;
+                double centerY = center.Y + (y - from.Y) / scale;
 
                 if (!Same(centerX, center.X) || !Same(centerY, center.Y))
                 {
