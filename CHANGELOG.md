@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** ATTSYNC of a dynamic block, by Name or by Select, brings in line the INSERTs of its anonymous *U blocks too,
+against the dynamic block's own definitions, each keeping its dynamic properties: an attribute an action moves stands
+where the INSERT's values put it. GH_PANEL with TAG locked in a stretch of its Width, an INSERT at (1 000, 500) set to a
+Width of 150, and the block then given TAG 5 high and a new definition NEW at (60, 25): the INSERT keeps its *U block and
+its Width of 150, TAG at (1 145, 520) 5 high, NEW at (1 060, 525). These INSERTs were left as they were. BATTMAN's Sync
+and its count of INSERTs found take them in alike.
+
+**FIXED.** LIST writes as AutoCAD 2021 does, checked in accoreconsole: a jogged radius its type, "jogged", and its centre,
+chord point, override centre and jog point, where it wrote the rows of the Properties palette; a rotated dimension in a
+turned UCS its rotation and obliquing angle counted from the UCS's X axis, so that one turned 30 in a UCS turned 30 is
+"horizontal" and one turned 90 "rotation: 60"; and each object's kind as AutoCAD names it, two places before "Layer:",
+where a long one ran into it ("MULTILEADERLayer:"): MULTILEADER, LWPOLYLINE for a lightweight polyline, POLYLINE for a 2D
+one, BLOCK REFERENCE for a MINSERT, ACAD_TABLE, 3D FACE, the record's type for the others (IMAGE, MLINE, 3DSOLID). Its Y
+ordinates, its rotations of 180 and 270 degrees and "associative: yes" were already AutoCAD's, and are now pinned by tests.
+
 **CHANGED.** A hook of the presenter's LEADER and QLEADER has a vertex of its own wherever AutoCAD 2021 writes one: on a
 leader to a frame, new or copied, and on any leader made in a UCS other than the world's, DIMASZ short of the end along
 the UCS's X, where these leaders kept the two points picked. `{\Fgdt;j}%%v0.1` copied to a leader from (200, 40) to

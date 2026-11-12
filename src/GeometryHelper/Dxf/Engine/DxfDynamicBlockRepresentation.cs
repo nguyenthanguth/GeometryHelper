@@ -417,6 +417,88 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The ATTRIBs of a dynamic INSERT that follow their ATTDEF, with what each is given in the world to go from where the
+        /// dynamic block's own values put it to where the INSERT's values put it, as <see cref="Followed"/> works it out: an
+        /// ATTRIB placed afresh from the dynamic block's definition, as ATTSYNC places one, is taken so where the actions take
+        /// its definition (TAG locked at (95, 20) in a stretch of Width set from 100 to 150 by 50 along x). Empty where the INSERT
+        /// places no dynamic block. Refused with <see cref="NotSupportedException"/> where the block is one the library does not
+        /// work out, or the INSERT keeps a base point a grip moved, as <see cref="Set"/> refuses them.
+        /// </summary>
+        internal static List<KeyValuePair<DxfAttributeReference, GeoTransform3>> FollowedFromOwn(
+            DxfBlockReference insert
+        )
+        {
+            if (!insert.IsDynamicBlock)
+            {
+                return new List<KeyValuePair<DxfAttributeReference, GeoTransform3>>();
+            }
+
+            DxfBlockTableRecord dynamic = insert.DynamicBlockTableRecord;
+            Block block = Block.Of(dynamic);
+            GeoVector3 factors = insert.ScaleFactors;
+            double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
+            var own = new Dictionary<string, double[]>(StringComparer.Ordinal);
+            var values = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                own[parameter.Id] = (double[])parameter.Own.Clone();
+                values[parameter.Id] = (double[])parameter.Own.Clone();
+            }
+
+            // The values the INSERT has now, read as Set reads them: lengths in the block's own units.
+            foreach (DxfDynamicBlockReferenceProperty property in DxfDynamicProperties.Of(insert, dynamic))
+            {
+                if (
+                    property.Node != null
+                    && values.TryGetValue(property.Node, out double[] now)
+                    && property.Part < now.Length
+                )
+                {
+                    double read =
+                        property.Value is short flag ? flag
+                        : property.Value is double number ? number
+                        : double.NaN;
+
+                    if (!double.IsNaN(read))
+                    {
+                        now[property.Part] =
+                            property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance
+                                ? read / scale
+                                : read;
+                    }
+                }
+            }
+
+            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
+            Dictionary<string, double[]> carried = Carried(block, values);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                if (
+                    !(parameter is Spot)
+                    && !(parameter is Dimensional)
+                    && bases.TryGetValue(parameter.Id, out double[] saved)
+                    && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
+                        parameter.BaseNow(carried),
+                        Tolerance.Default
+                    )
+                )
+                {
+                    throw new NotSupportedException(
+                        "The INSERT "
+                            + insert.Handle
+                            + " keeps a base point of a parameter of the block "
+                            + dynamic.Name
+                            + " away from the block's own, as a grip moved it: the library works a block out from its own base points."
+                    );
+                }
+            }
+
+            return Followed(insert, dynamic, block, own, values);
+        }
+
+        /// <summary>
         /// Adds the property set, as read back, to the history of grip edits the INSERT keeps (ACAD_ENHANCEDBLOCKHISTORY), where
         /// it keeps one: the node's id (1071), the property's name (300) and its value, a real (40), a whole number (70) or a
         /// text (1), as AutoCAD 2021 added Block Table1 2, Spaces 5 Spaces and Width 5400 to its Parking sample's INSERT (plugin
