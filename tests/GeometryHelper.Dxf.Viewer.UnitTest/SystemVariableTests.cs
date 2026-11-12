@@ -204,6 +204,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.False(document.CurrentSpace.IsModel);
             Run(session, "TILEMODE", "1");
             Assert.True(document.CurrentSpace.IsModel);
+
+            // Unlike the variables above, showing another space is an undo step, as AutoCAD's U takes it.
+            Assert.Equal("LAYOUT", document.NextUndo.Name);
+            Run(session, "U");
+            Run(session, "U");
+            Assert.True(document.CurrentSpace.IsModel);
             Assert.False(document.CanUndo);
         }
 

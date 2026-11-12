@@ -846,8 +846,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _current.Session.Escape();
-            _current.Document.CurrentSpace = space;
-            _current.Document.Selection.Clear();
+            _current.Document.ShowSpace(space);
 
             foreach (SpaceTabViewModel tab in SpaceTabs)
             {
@@ -1120,6 +1119,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Gets or sets what records the view the wheel or the middle button gave the canvas and has not recorded yet (it does so
+        /// once the view has been still for 80 milliseconds): <see cref="Undo"/> and <see cref="Redo"/> call it first, so that the
+        /// Undo button, the menu and the shortcut take the gesture just made, not the step before it. The workspace sets it to its
+        /// canvas; null for none.
+        /// </summary>
+        public Action CommitPendingView { get; set; }
+
         /// <summary>Undoes the last step (Ctrl+Z), ending any command running first.</summary>
         /// <returns>Whether a step was undone.</returns>
         public bool Undo()
@@ -1128,6 +1135,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return false;
             }
+
+            CommitPendingView?.Invoke();
 
             // The same path as U typed on the command line: the session's command, which ends any command running first.
             CadUndoStep step = _current.Document.NextUndo;
@@ -1143,6 +1152,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return false;
             }
+
+            CommitPendingView?.Invoke();
 
             // The same path as REDO typed on the command line.
             CadUndoStep step = _current.Document.NextRedo;
@@ -1666,15 +1677,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             // LAYOUT Set shows another space from the command line: the tabs follow, as a tab clicked.
-            if (SpaceTabs.Any(t => t.IsActive != (t.Space == _current.Document.CurrentSpace)))
-            {
-                foreach (SpaceTabViewModel tab in SpaceTabs)
-                {
-                    tab.IsActive = tab.Space == _current.Document.CurrentSpace;
-                }
-
-                RaiseSpace();
-            }
+            SyncActiveSpaceTab();
 
             SyncInPlace();
             SyncTableCell();
@@ -1845,6 +1848,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SyncBlockEditor();
             SyncSpaceTabs();
+            SyncActiveSpaceTab();
 
             if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
             {
@@ -2050,6 +2054,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SyncHistory();
             SyncInPlace();
             SyncBlockEditor();
+        }
+
+        /// <summary>Makes the tab of the space the document shows the active one, where another is: a LAYOUT Set, an undo or a redo of a switch showed another space.</summary>
+        private void SyncActiveSpaceTab()
+        {
+            if (_current == null || !SpaceTabs.Any(t => t.IsActive != (t.Space == _current.Document.CurrentSpace)))
+            {
+                return;
+            }
+
+            foreach (SpaceTabViewModel tab in SpaceTabs)
+            {
+                tab.IsActive = tab.Space == _current.Document.CurrentSpace;
+            }
+
+            RaiseSpace();
         }
 
         private void RaiseSpace()

@@ -911,7 +911,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |
@@ -1174,7 +1174,7 @@ paper, in model space and through a viewport whose display is locked are undo st
 AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X, -PAN and ZOOM Extents one U each, in model space and on the paper), and
 ZOOM Previous is a step of its own. A step of the view alone keeps no copy of the drawing: U moves the view back to the
 part of the space it showed, and the drawing is not read again, so a wheel gesture in a drawing of a million entities
-costs nothing. `CadDocument.RecordSpaceView(space, view, before, name, realTime)` makes such a step and the list entry;
+costs nothing. U and REDO move the ZOOM Previous lists with the views, as AutoCAD 2021's do: after ZOOM 2X three times, ZOOM Previous and U the last zoom is back and the next ZOOM Previous goes where the first one went; after ZOOM 2X three times and U, ZOOM Previous goes to the view before the second zoom, not to the one U left. Showing another space (a tab clicked, LAYOUT Set, TILEMODE; `CadDocument.ShowSpace(space)` in code) is a step too, named LAYOUT, which U and REDO take back and forward without reading the drawing again, the selection let go each time. `CadDocument.RecordSpaceView(space, view, before, name, realTime)` makes such a step and the list entry;
 the canvas calls it once the view is still. A drawing so zoomed counts as changed, as AutoCAD's does (DBMOD 16).
 ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewport 100 high shows 5 000 of model space,
 1:50. A viewport whose display is locked keeps its view, and the paper is

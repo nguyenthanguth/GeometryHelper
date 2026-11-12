@@ -242,11 +242,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             OnLayout(
                 (model, canvas, viewport) =>
                 {
+                    CadUndoStep shown = model.Document.NextUndo;
                     model.Execute("ZOOMWHEEL");
                     Assert.Equal("Enter new value for ZOOMWHEEL <0>:", model.Prompt);
                     model.Execute("1");
                     Assert.True(model.Settings.WheelZoomReversed);
-                    Assert.False(model.Document.CanUndo);
+                    Assert.Same(shown, model.Document.NextUndo);
 
                     // The window gives the canvas the settings; forward now zooms out, on the paper and through a viewport.
                     canvas.WheelReversed = model.Settings.WheelZoomReversed;
@@ -298,6 +299,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal(zoom * 1.2, canvas.View.PixelsPerUnit, 9);
                     Assert.True(model.Document.Undo());
                     Assert.Equal(zoom, canvas.View.PixelsPerUnit, 9);
+                },
+                model: true
+            );
+        }
+
+        [Fact]
+        public void TheUndoButton_RecordsAWheelGestureNotYetRecorded_ThenTakesItBack_AsCtrlZDoes()
+        {
+            OnLayout(
+                (model, canvas, viewport) =>
+                {
+                    model.CommitPendingView = canvas.CommitView;
+                    double zoom = canvas.View.PixelsPerUnit;
+                    CadUndoStep start = model.Document.NextUndo;
+
+                    // The wheel turned, and the Undo button pressed within the 80 milliseconds the canvas waits for the view to be still.
+                    Mouse(canvas, UIElement.MouseWheelEvent, new Point(300, 200), delta: 120);
+                    Assert.Equal(zoom * 1.2, canvas.View.PixelsPerUnit, 9);
+                    Assert.Same(start, model.Document.NextUndo);
+
+                    model.UndoCommand.Execute(null);
+
+                    Assert.Equal(zoom, canvas.View.PixelsPerUnit, 9);
+                    Assert.Same(start, model.Document.NextUndo);
+                    Assert.True(model.Document.CanRedo);
+
+                    model.RedoCommand.Execute(null);
+                    Assert.Equal(zoom * 1.2, canvas.View.PixelsPerUnit, 9);
                 },
                 model: true
             );

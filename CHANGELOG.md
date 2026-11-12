@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In the presenter showing another space is an undo step, as AutoCAD 2021's U takes it, probed in its console:
+a tab clicked, LAYOUT Set and TILEMODE are a step each, named LAYOUT, so that after Model, Layout1 and Layout2 two U go back
+to Layout1 and to Model, each layout keeping the view it had, and REDO goes forward. The step keeps no copy of the drawing
+(the Database is the same object after U), and the selection, which belongs to a space, is let go each way. New
+`CadDocument.ShowSpace(space)` makes the step; TILEMODE no longer counts among the variables with no undo step.
+**FIXED.** In the presenter U and REDO move the ZOOM Previous lists with the views, as AutoCAD 2021's do (probed on the
+paper of a layout): after ZOOM 2X three times, ZOOM Previous and U, the last zoom is back and the next ZOOM Previous goes
+where the first went; after ZOOM 2X three times and U, ZOOM Previous goes to the view before the second zoom, not to the
+one U had just left. It holds for model space, the paper and each viewport, and for the wheel's gestures that were joined in
+one step.
+**FIXED.** The Undo and Redo buttons and the canvas menu's Undo record a wheel turn or a pan made less than 80
+milliseconds before, as Ctrl+Z does, so that they take that gesture back and not the step before it. New
+`MainViewModel.CommitPendingView` is what the workspace sets to its canvas.
 **NEW.** In the presenter the snap and grid are undo steps, as AutoCAD 2021's U takes them, probed in its console: GRID,
 SNAP, SETVAR and a snap or grid variable typed alone (GRIDMODE, SNAPMODE, ORTHOMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY,
 SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR) are a step each, named by the command, so that after a line, GRID 50

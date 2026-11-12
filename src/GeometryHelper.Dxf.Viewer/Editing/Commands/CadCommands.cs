@@ -398,7 +398,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 view.ZoomTo(previous, 0.0);
-                c.Document.RecordSpaceView(shown, view, before, "ZOOM", false, false);
+                c.Document.RecordSpaceView(shown, view, before, "ZOOM", false, previous);
                 yield break;
             }
             else if (c.Input.IsPoint || c.Input.Is("Window"))
@@ -544,7 +544,16 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                c.Apply(c.Document.ViewRecord(handle, center, height), CadDocument.ViewWriter(handle, center, height));
+                CadEditResult taken = c.Apply(
+                    c.Document.ViewRecord(handle, center, height),
+                    CadDocument.ViewWriter(handle, center, height)
+                );
+
+                if (taken.Succeeded)
+                {
+                    c.Document.TookViewportView(taken, handle, center, height);
+                }
+
                 yield break;
             }
             else if (c.Input.IsPoint || c.Input.Is("Window"))
@@ -595,14 +604,14 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (
-                c.Apply(
-                    c.Document.ViewRecord(handle, center, height),
-                    CadDocument.ViewWriter(handle, center, height)
-                ).Succeeded
-            )
+            CadEditResult moved = c.Apply(
+                c.Document.ViewRecord(handle, center, height),
+                CadDocument.ViewWriter(handle, center, height)
+            );
+
+            if (moved.Succeeded)
             {
-                c.Session.Views.Add(handle, wasCenter, wasHeight);
+                c.Document.KeepViewportView(moved, handle, wasCenter, wasHeight);
             }
         }
 
@@ -675,14 +684,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 GeoPoint2 center = viewport.ViewCenter - shift;
 
-                if (
-                    c.Apply(
-                        c.Document.ViewRecord(handle, center, viewport.ViewHeight),
-                        CadDocument.ViewWriter(handle, center, viewport.ViewHeight)
-                    ).Succeeded
-                )
+                CadEditResult panned = c.Apply(
+                    c.Document.ViewRecord(handle, center, viewport.ViewHeight),
+                    CadDocument.ViewWriter(handle, center, viewport.ViewHeight)
+                );
+
+                if (panned.Succeeded)
                 {
-                    c.Session.Views.Add(handle, wasCenter, wasHeight);
+                    c.Document.KeepViewportView(panned, handle, wasCenter, wasHeight);
                 }
 
                 yield break;

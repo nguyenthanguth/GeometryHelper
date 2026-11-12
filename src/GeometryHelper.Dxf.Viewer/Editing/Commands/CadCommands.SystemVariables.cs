@@ -721,10 +721,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             CadSpace space = c.Document.Spaces.FirstOrDefault(s => s.IsModel == (value == 1));
 
-            if (space != null && space != c.Document.CurrentSpace)
+            if (space != null)
             {
-                c.Document.CurrentSpace = space;
-                c.Document.Selection.Clear();
+                c.Document.ShowSpace(space);
             }
         }
 

@@ -631,6 +631,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                 _model.TableCellChanged += OnTableCellChanged;
                 _model.CellGripDragRequested = grip => CanvasView.DragCellGrip(grip);
+                _model.CommitPendingView = () => CanvasView.CommitView();
                 _model.ShowBlocksPalette = dialog => BlocksPaletteWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeDefinition = dialog =>
