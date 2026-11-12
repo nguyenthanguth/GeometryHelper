@@ -358,8 +358,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(frame.Handle, leader.Annotation?.Handle);
             Assert.Equal(DxfAnnotationType.FeatureControlFrame, leader.AnnoType);
 
-            // A steep last segment: a hook said, as AutoCAD 2021 writes it, but no vertex of its own.
-            Assert.Equal(2, leader.NumVertices);
+            // A steep last segment: a hook with a vertex of its own DIMASZ short of the end, as AutoCAD 2021 writes it (GHTH3).
+            Assert.Equal(3, leader.NumVertices);
+            Near(new GeoPoint3(10 - document.Database.Dimasz, 5, 0), leader.VertexAt(1));
             Assert.True(leader.HasHookLine);
         }
 

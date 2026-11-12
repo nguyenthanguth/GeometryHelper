@@ -55,7 +55,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets whether the item is a wall, a symbol or words of a feature control frame, which give the snaps no End,
-        /// Mid, Center or Quadrant: AutoCAD 2021 gives a frame's End and Mid on the rectangles of its rows alone (probe GHTQ2).
+        /// Mid, Center, Quadrant, Nearest or Perpendicular: AutoCAD 2021 gives a frame's End, Mid, Nearest and Perpendicular on
+        /// the rectangles of its rows alone (probes GHTQ2 and GHTH2).
         /// </summary>
         internal bool IsFrameInside { get; set; }
 

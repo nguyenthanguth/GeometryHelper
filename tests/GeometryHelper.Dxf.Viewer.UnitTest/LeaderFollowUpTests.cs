@@ -154,7 +154,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         // ---- The hook along the UCS
 
         [Fact]
-        public void InAUcsTurned30Degrees_TheHookRunsAlongItsX_WithNoVertexOfItsOwn_AndTheWordsTurnWithIt()
+        public void InAUcsTurned30Degrees_TheHookRunsAlongItsX_ItsOwnVertexDimaszBack_AndTheWordsTurnWithIt()
         {
             CadDocument document = CadDocument.From(MetricDatabase(), "metric.dxf");
             DxfDatabase db = document.Database;
@@ -164,11 +164,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             GeoVector2 x = ucs.ToWorld(new GeoVector2(1, 0));
             GeoVector2 y = ucs.ToWorld(new GeoVector2(0, 1));
 
-            // AutoCAD 2021: from the UCS's (0, 0) to its (10, 10), two vertices, the hook set, the words DIMGAP along its X.
+            // AutoCAD 2021 (GHTH3): from the UCS's (0, 0) to its (10, 10), three vertices, the hook's DIMASZ back along its X,
+            // the words DIMGAP along it.
             GeoPoint2 right = ucs.ToWorld(P(10, 10));
             Run(session, "LEADER", ucs.ToWorld(P(0, 0)), right, Enter, "R", Enter);
             DxfLeader first = All<DxfLeader>(document.ModelSpace).Last();
-            Assert.Equal(2, first.NumVertices);
+            Assert.Equal(3, first.NumVertices);
+            Near(new GeoPoint3(right.X - db.Dimasz * x.X, right.Y - db.Dimasz * x.Y, 0), first.VertexAt(1));
             Assert.True(first.HasHookLine);
             DxfMText words = (DxfMText)first.Annotation;
             Assert.Equal(DxfAttachmentPoint.MiddleLeft, words.Attachment);
@@ -180,7 +182,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             GeoPoint2 left = ucs.ToWorld(P(-10, 60));
             Run(session, "LEADER", ucs.ToWorld(P(0, 50)), left, Enter, "L", Enter);
             DxfLeader second = All<DxfLeader>(document.ModelSpace).Last();
-            Assert.Equal(2, second.NumVertices);
+            Assert.Equal(3, second.NumVertices);
+            Near(new GeoPoint3(left.X + db.Dimasz * x.X, left.Y + db.Dimasz * x.Y, 0), second.VertexAt(1));
             Assert.True(second.HasHookLine);
             Assert.Equal(DxfAttachmentPoint.MiddleRight, ((DxfMText)second.Annotation).Attachment);
             Near(
@@ -210,9 +213,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void InAUcsOnlyMoved_TheHookHasNoVertexOfItsOwnEither()
+        public void InAUcsOnlyMoved_TheHookHasItsOwnVertex_AsInTheWorld()
         {
-            // AutoCAD 2021, UCS origin (5, 5): from (5, 205) to (15, 215), two vertices, the hook set.
+            // AutoCAD 2021 (GHTH3), UCS origin (5, 5): from (5, 205) to (15, 215), three vertices, the hook's at (14.82, 215)
+            // in AutoCAD's Standard, DIMASZ short of the end.
             CadDocument document = CadDocument.From(MetricDatabase(), "metric.dxf");
             document.Ucs.SetCurrent(CadUcs.InPlane(P(5, 5), 0.0));
             CadCommandSession session = Session(document);
@@ -220,7 +224,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "LEADER", P(5, 205), P(15, 215), Enter, "M", Enter);
 
             DxfLeader leader = Assert.Single(All<DxfLeader>(document.ModelSpace));
-            Assert.Equal(2, leader.NumVertices);
+            Assert.Equal(3, leader.NumVertices);
+            Near(new GeoPoint3(15 - document.Database.Dimasz, 215, 0), leader.VertexAt(1));
             Assert.True(leader.HasHookLine);
             Near(new GeoPoint3(15 + document.Database.Dimgap, 215, 0), ((DxfMText)leader.Annotation).Location);
         }
@@ -248,7 +253,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             GeoPoint2 left = ucs.ToWorld(P(-10, 210));
             Run(session, "QLEADER", ucs.ToWorld(P(0, 200)), left, Enter, "0", "QL", Enter);
             DxfLeader leader = All<DxfLeader>(document.ModelSpace).Last();
-            Assert.Equal(2, leader.NumVertices);
+            Assert.Equal(3, leader.NumVertices);
             Assert.True(leader.HasHookLine);
             DxfMText leftWords = (DxfMText)leader.Annotation;
             Assert.Equal(DxfAttachmentPoint.BottomRight, leftWords.Attachment);

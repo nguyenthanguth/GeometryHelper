@@ -978,12 +978,13 @@ namespace GeometryHelper.Dxf.Viewer
                 under = true;
                 curves.Add(Curve.Segment(a, b, item.Handle, reach, foot, sampled));
 
-                if (Has(CadSnapModes.Nearest))
+                // Nor Nearest or Perpendicular: AutoCAD 2021 gives them on the sides of a frame's rows alone (probe GHTH2).
+                if (!inside && Has(CadSnapModes.Nearest))
                 {
                     nearest.Add(new Candidate(CadSnapKind.Nearest, foot, item.Handle, reach));
                 }
 
-                if (basePoint.HasValue && Has(CadSnapModes.Perpendicular))
+                if (!inside && basePoint.HasValue && Has(CadSnapModes.Perpendicular))
                 {
                     GeoPoint2 perpendicular = Foot(basePoint.Value, a, b, out double t);
                     double slack = Tolerance.EqualPoint / Math.Max((b - a).Length, Tolerance.EqualPoint);
