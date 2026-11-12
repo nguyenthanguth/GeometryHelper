@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -65,6 +68,83 @@ namespace GeometryHelper.Dxf.Viewer
             Pin(database, "$DIMTXSTY", 7, "Standard");
             Pin(database, "$DIMSTYLE", 2, DimensionStyle);
             return database;
+        }
+
+        /// <summary>
+        /// Adds the layers of Global settings (Layers, colours and lines) to a new drawing, in the order they are listed: each
+        /// with its colour as a true colour, its lineweight (the width of AutoCAD's nearest, 0.5 mm for 0.50) and whether it is
+        /// plotted. A linetype is taken from the presenter's own set (<see cref="CadLinetypeFile.BuiltIn"/>) and added to the
+        /// drawing where it has not got it: HIDDEN for Hidden, CENTER for Centre. One that set has not is not made up; the
+        /// layer is drawn Continuous. A layer named as one the drawing has already, 0 among them, is left as it is, and the
+        /// current layer stays 0.
+        /// </summary>
+        /// <param name="database">The new drawing.</param>
+        /// <param name="layers">The layers, as <see cref="GlobalSettings.Layers"/> lists them.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing or the layers are null.</exception>
+        public static void AddLayers(DxfDatabase database, IEnumerable<GlobalLayer> layers)
+        {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
+            if (layers == null)
+            {
+                throw new ArgumentNullException(nameof(layers));
+            }
+
+            foreach (GlobalLayer layer in layers)
+            {
+                if (database.LayerTable.Has(layer.Name))
+                {
+                    continue;
+                }
+
+                var record = new DxfLayerTableRecord
+                {
+                    Name = layer.Name,
+                    Color = DxfColor.FromRgb((byte)(layer.Rgb >> 16), (byte)(layer.Rgb >> 8), (byte)layer.Rgb),
+                    LineWeight = database.GetNearestLineWeight((int)Math.Round(layer.LineWeight * 100.0)),
+                };
+                string linetype = LinetypeOf(database, layer.Linetype);
+
+                if (linetype != null)
+                {
+                    record.LinetypeName = linetype;
+                }
+
+                database.LayerTable.Add(record);
+                record.IsPlottable = layer.Plot;
+            }
+        }
+
+        /// <summary>The name of a linetype the drawing has once it is added from the presenter's own set; null for Continuous or one that set has not.</summary>
+        private static string LinetypeOf(DxfDatabase database, string name)
+        {
+            if (database.LinetypeTable.Has(name))
+            {
+                return string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : database.LinetypeTable[name].Name;
+            }
+
+            CadLinetypeDefinition own = CadLinetypeFile.BuiltIn.FirstOrDefault(l =>
+                string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (own == null || own.Fault != null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return CadLinetypes.Add(database, own).Name;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
         }
 
         /// <summary>Writes a variable into the header, whether or not the library reads the same where it gives none.</summary>

@@ -326,6 +326,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given RIBBON (Ctrl+3) shows the ribbon when it is hidden and hides it when it is shown; typed, RIBBON still
+            // shows it and RIBBONCLOSE hides it.
+            if (target == "RIBBON")
+            {
+                IsRibbonShown = !IsRibbonShown;
+                return true;
+            }
+
             StatusToggleViewModel toggle = FindToggle(target);
 
             if (toggle != null)

@@ -1429,7 +1429,8 @@ namespace GeometryHelper.Dxf.Viewer
             /// Gives the file the default keys added since it was saved. The file lists the default keys it has seen
             /// (<c>knownDefaultKeys</c>); one not on the list is added when its key is free and no key is bound to its command
             /// yet, so a key the user cleared or gave away is never put back. A file with no list has seen the defaults but Ctrl+2,
-            /// DRAWINGS, which gets it once: a file saved with Ctrl+1 and F3 alone also has Ctrl+2 after it is read.
+            /// DRAWINGS, and Ctrl+3, RIBBON, which get them once: a file saved with Ctrl+1 and F3 alone also has Ctrl+2 and Ctrl+3
+            /// after it is read.
             /// </summary>
             private void MergeNewDefaultKeys(XElement known)
             {
@@ -1437,7 +1438,10 @@ namespace GeometryHelper.Dxf.Viewer
                 var seen = new HashSet<string>(
                     known != null
                         ? known.Elements().Select(e => e.Value)
-                        : defaults.Keys.Where(k => !string.Equals(k, "Ctrl+2", StringComparison.OrdinalIgnoreCase)),
+                        : defaults.Keys.Where(k =>
+                            !string.Equals(k, "Ctrl+2", StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(k, "Ctrl+3", StringComparison.OrdinalIgnoreCase)
+                        ),
                     StringComparer.OrdinalIgnoreCase
                 );
                 var keys = _s.Keys.ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);

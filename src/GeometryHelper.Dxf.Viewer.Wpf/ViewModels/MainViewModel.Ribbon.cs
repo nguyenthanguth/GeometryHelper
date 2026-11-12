@@ -174,6 +174,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private DelegateCommand _newLayoutCommand;
         private bool _fileListShown = true;
         private bool _propertiesShown = true;
+        private bool _ribbonShown = true;
         private int _newDrawings;
         private DelegateCommand _startCommandWithOptionCommand;
 
@@ -287,9 +288,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Gets or sets whether the ribbon, its tabs and its panels, is shown above the canvas: Ctrl+3 shows or hides it, and
+        /// RIBBON shows it where RIBBONCLOSE hides it, as AutoCAD's do. Hidden, the canvas takes its room.
+        /// </summary>
+        public bool IsRibbonShown
+        {
+            get => _ribbonShown;
+            set => Set(ref _ribbonShown, value);
+        }
+
+        /// <summary>
         /// Makes a new empty drawing and shows it, as AutoCAD's NEW: a drawing of R2013 of the presenter's metric template
-        /// (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0 and Layout1, named
-        /// Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new drawing, so that Save As offers a DWG first; listed
+        /// (<see cref="CadTemplate"/>, the settings of acadiso.dwt: millimetres, ISO-25) with the layer 0, the layers of Global
+        /// settings (<see cref="CadTemplate.AddLayers"/>, the current layer staying 0) and Layout1, named Drawing1.dwg, then Drawing2.dwg, as AutoCAD's DWGNAME of a new drawing, so that Save As offers a DWG first; listed
         /// under Open drawings until it is saved to a file of its own.
         /// </summary>
         /// <returns>The document.</returns>
@@ -311,6 +322,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // The template's GRIDMODE is the window's, so that a new drawing shows the grid as Global settings say.
             DxfDatabase database = CadTemplate.CreateMetric();
             database.ViewportTable["*Active"].GridEnabled = _settings.Grid;
+
+            // The layers of Global settings (Layers, colours and lines), with their colours, linetypes, lineweights and plot flags;
+            // the current layer stays 0.
+            CadTemplate.AddLayers(database, _settings.Layers);
             CadDocument document = CadDocument.From(database, name);
             OpenDocument(document, name);
             return document;
@@ -390,7 +405,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
+        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
         /// (the command line's Input Search Options), the six toggles of the status bar, DYN the last, and DSETTINGS with
         /// AutoCAD's aliases DS and OS.
         /// </summary>
@@ -399,6 +414,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("NEW", NewBody));
             registry.Add(new CadCommand("SAVEAS", SaveAsBody));
             registry.Add(new CadCommand("PROPERTIESCLOSE", PropertiesCloseBody));
+            registry.Add(new CadCommand("RIBBON", RibbonBody));
+            registry.Add(new CadCommand("RIBBONCLOSE", RibbonCloseBody));
             registry.Add(new CadCommand("INPUTSEARCHOPTIONS", InputSearchOptionsBody));
             registry.Add(new CadCommand("-INPUTSEARCHOPTIONS", InputSearchOptionsTyped));
 
@@ -477,6 +494,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private IEnumerable<CadPrompt> PropertiesCloseBody(CadCommandContext c)
         {
             IsPropertiesPanelShown = false;
+            return Array.Empty<CadPrompt>();
+        }
+
+        /// <summary>RIBBON: the ribbon shown.</summary>
+        private IEnumerable<CadPrompt> RibbonBody(CadCommandContext c)
+        {
+            IsRibbonShown = true;
+            return Array.Empty<CadPrompt>();
+        }
+
+        /// <summary>RIBBONCLOSE: the ribbon hidden.</summary>
+        private IEnumerable<CadPrompt> RibbonCloseBody(CadCommandContext c)
+        {
+            IsRibbonShown = false;
             return Array.Empty<CadPrompt>();
         }
 

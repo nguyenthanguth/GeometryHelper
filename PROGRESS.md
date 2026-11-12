@@ -78,6 +78,13 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 
 ### In progress
 
+User note 2026-11-12 evening (note.md 1-14):
+- [ ] Global settings (settings-ui, design first): Shortcuts keys captured as key presses; Import acad.pgp left of "Reset to AutoCAD defaults"; wheel zoom factor default 1.5; UI font as an editable font combo (or Windows font dialog); "Fonts" renamed "Folder preference" with only the folder paths, Font not found and Font mapping moved to "Text and fonts"; Drawing defaults, Data sources and Drawing text removed from Dxf.Viewer (they belong to the Tekla drawing part) (M)
+- [x] New drawing gets the default layers of Global settings > Layers, colour and lines; Ctrl+3 toggles the ribbon area like Ctrl+1/Ctrl+2 (RIBBON/RIBBONCLOSE)
+- [ ] Save Drawing As listing each DXF version plainly (2018, 2013, 2010, 2007, 2004, 2000, R12): needs a DXF version converter in the core (records a version lacks dropped or turned as AutoCAD's SAVEAS does); DWG stays 2018 only until older DWG writers exist (DECIDED by recommendation 2026-11-12) (M)
+- [ ] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
+- [ ] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (after settings-ui) (M)
+
 User note 2026-11-12 (basic features first, advanced later):
 - [x] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
 - [x] Grips follow-ups: MTEXT triangle and table grips sized from GRIPSIZE like the squares (look on screen at g 5) and their hover pink; Remove Vertex next to an arc and Add Vertex on an arc checked in AutoCAD; Undo inside Add Vertex; a clicked polyline vertex saying ** STRETCH VERTEX **; later: 2D POLYLINE, LINE/ARC/SPLINE/HATCH/dimension menus, Ctrl cycling (S)

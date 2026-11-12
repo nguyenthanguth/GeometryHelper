@@ -1055,6 +1055,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         NewDrawing();
                     }
+                    else if (string.Equals(line.Trim(), "RIBBON", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // RIBBON and RIBBONCLOSE need no drawing either: the ribbon is the window's.
+                        IsRibbonShown = true;
+                    }
+                    else if (string.Equals(line.Trim(), "RIBBONCLOSE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        IsRibbonShown = false;
+                    }
                     else if (!_extensions.Any(e => e.TryRunWithoutDocument(line.Trim())))
                     {
                         Say("No drawing is open: Ctrl+O opens a DXF.");
