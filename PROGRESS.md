@@ -90,8 +90,28 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [ ] Batch 2b (left from pgp-cmds2): MLINE with MLSTYLE and MLEDIT (needs a core DxfMline builder; group layout noted in the merge commit); MLEADERCOLLECT (a composite block); MLEADERALIGN Parallel; TEXTALIGN on an oblique line as AutoCAD places it; confirm the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute in the AutoCAD GUI; a Check Spelling dialog and ribbon buttons (design first) (M)
 - [x] Batch 3, shapes and hatching (pgp-cmds3): SOLID, -BOUNDARY (Advanced options), -HATCH (Properties, Select objects, Advanced, DRaw order), GRADIENT, HATCHTOBACK, SPLINEDIT (Close/Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT (= INSERT); REGION counts loops but makes none (no ACIS writer)
 - [ ] Batch 3b (left from pgp-cmds3): an ACIS SAT/SAB writer so REGION and -BOUNDARY Region work (L); the rest of -HATCH (draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, ANnotative, Boundary set, Gap tolerance) and Single color gradients; SPLINEDIT Fit data, Join, Refine, Close/Open of control-point splines; plain HATCH drawn behind its boundary as -HATCH is (AutoCAD default); -BOUNDARY on ellipses/splines (AutoCAD refuses them); Boundary Creation and classic Insert dialogs (design first) (M)
-- [ ] Batch 4, view and utility: VPORTS (model tiled viewports), FILTER, QUICKCALC, QUICKPROPERTIES, the command-line forms -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND, SAVE, QUIT, COMMANDLINE, HIDEPALETTES/SHOWPALETTES (M)
-- [ ] Batch 5, output: EXPORTPDF, PLOTSTAMP, PDFSHX, IMPORT (M)
+- [ ] Batch 4, view and utility: VPORTS (model tiled viewports), FILTER, QUICKCALC, QUICKPROPERTIES (pgp-cmds4a, running, design first); the command-line forms -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND, SAVE, QUIT, COMMANDLINE, HIDEPALETTES/SHOWPALETTES (pgp-cmds4b, running) (M)
+- [x] Batch 5, output (pgp-cmds5): EXPORTPDF (typed as -EXPORT Pdf), EXPORTDWF/DWFX (refused: no DWF writer), PLOTSTAMP and -PLOTSTAMP in AutoCAD's words, the stamp on PDF plots with its log, PDFSHX (searchable SHX text), IMPORT of DWG/DXF as a block
+- [ ] Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
+- [ ] Batch 1b first part: CHANGE (-CH), -RENAME with the missing rename helpers, CENTERMARK and CENTERLINE, DIMCENTER line colour, ACAD_OBJECTISOLATION (pgp-cmds1b, running) (M)
+
+Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics first, each round merged and verified before
+the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
+- Round 2, finishing the 2D commands drafters use every day:
+  - [ ] R2.1 MLINE, MLSTYLE (typed), MLEDIT joins, with a core `DxfMline` builder (from Batch 2b) (M)
+  - [ ] R2.2 HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
+        -BOUNDARY refusing ellipses and splines as AutoCAD (from Batch 3b) (M)
+  - [ ] R2.3 SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
+  - [ ] R2.4 Dialogs, designed first then built: RENAME, Lineweight Settings, Boundary Creation, classic Insert, Check
+        Spelling, and ribbon buttons for the commands of batches 1 to 5 (from Batches 1b, 2b, 3b) (M)
+- Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
+  - [ ] R3.1 MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
+  - [ ] R3.2 INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
+  - [ ] R3.3 An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
+- Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
+  VPCLIP, LAYERP), taken top to bottom, basics first.
+- Checks only the AutoCAD GUI can give (accoreconsole cannot), gathered for the maintainer: LAYERP with U and a Layer
+  manager session; the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute; DIMBREAK Auto breaks.
 
 User note 2026-11-12 evening (note.md 1-14):
 - [x] Global settings (settings-ui, design v133): Shortcuts keys captured as key presses; Import acad.pgp left of "Reset to AutoCAD defaults"; wheel zoom factor default 1.5; UI font as an editable font combo (or Windows font dialog); "Fonts" renamed "Folder preference" with only the folder paths, Font not found and Font mapping moved to "Text and fonts"; Drawing defaults, Data sources and Drawing text removed from Dxf.Viewer (they belong to the Tekla drawing part) (M)

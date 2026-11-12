@@ -297,6 +297,12 @@ namespace GeometryHelper.Dxf.Viewer
                     ["ISOLATE"] = "ISOLATEOBJECTS",
                     ["UNISOLATE"] = "UNISOLATEOBJECTS",
                     ["UNHIDE"] = "UNISOLATEOBJECTS",
+                    ["EPDF"] = "EXPORTPDF",
+                    ["EDWF"] = "EXPORTDWF",
+                    ["EDWFX"] = "EXPORTDWFX",
+                    ["EPDFSHX"] = "PDFSHX",
+                    ["IMP"] = "IMPORT",
+                    ["DDPLOTSTAMP"] = "PLOTSTAMP",
                 },
                 new Dictionary<string, string>
                 {

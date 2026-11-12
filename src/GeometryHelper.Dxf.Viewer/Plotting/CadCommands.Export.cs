@@ -151,9 +151,23 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            foreach (CadPrompt prompt in ExportPdf(c, "-EXPORT"))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>
+        /// The questions of a PDF export on the command line, -EXPORT's after its format and EXPORTPDF's with FILEDIA 0: the plot
+        /// area, the detailed configuration, then the file and the writing. <paramref name="request"/> is the name the window is
+        /// asked the file's dialog by.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ExportPdf(CadCommandContext c, string request)
+        {
             CadSpace space = c.Space;
             CadPlotSettings settings = CadPlotSettings.Read(c.Document, space);
             settings.UseDevice(CadPlotSettings.PdfDevice);
+            WithOutputOptions(c, settings);
 
             if (space.IsModel)
             {
@@ -251,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer
             var job = new CadExportJob("Save As PDF", new[] { CadExportJob.Pdf }, CadExportJob.Pdf, offered);
             string file;
 
-            if (c.Session.FileDialogs && c.Session.Request("-EXPORT", c.Document, job))
+            if (c.Session.FileDialogs && c.Session.Request(request, c.Document, job))
             {
                 if (job.FileName == null)
                 {
@@ -274,6 +288,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            ExportedPdf(c, space, settings, file);
+        }
+
+        /// <summary>The PDF of a plot handed to the window's writer, and what became of it said on the command line.</summary>
+        private static void ExportedPdf(CadCommandContext c, CadSpace space, CadPlotSettings settings, string file)
+        {
             if (!file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 file += ".pdf";
@@ -285,13 +305,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (page.IsEmpty)
             {
                 c.Write("Nothing to export: the plot area is empty.");
-                yield break;
+                return;
             }
 
             if (!c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, settings, display, file)))
             {
                 c.Write("Exporting a PDF needs the window's PDF writer: nothing was written.");
-                yield break;
+                return;
             }
 
             c.Write("Plot written to " + file + ".");

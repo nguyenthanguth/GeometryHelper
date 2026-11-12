@@ -375,6 +375,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (named != null)
                 {
                     UseKnownDevice(named);
+
+                    // The plot stamp and the SHX text are the session's, not the page setup's: they stay.
+                    named.PlotStamp = _settings.PlotStamp;
+                    named.PdfShx = _settings.PdfShx;
                     _settings = named;
                     RefreshDevice();
                 }

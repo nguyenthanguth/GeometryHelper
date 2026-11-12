@@ -111,6 +111,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Units of the canvas per millimetre of lineweight; the scale of <paramref name="sheetToCanvas"/> where 0. An image
         /// sized in pixels gives 96 / 25.4, its lines as wide as at 96 dots an inch.
         /// </param>
+        /// <param name="shxText">
+        /// Whether the text of an SHX font is written as well as its strokes, in letters of a transparency so near full that no
+        /// eye sees them, for a PDF reader's search to find (PDFSHX); false for the page of anything else.
+        /// </param>
         internal void RenderPlot(
             SKCanvas canvas,
             CadDocument document,
@@ -118,7 +122,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadPlotPage page,
             CadPlotSettings settings,
             Affine2 sheetToCanvas,
-            double lineweightScale = 0.0
+            double lineweightScale = 0.0,
+            bool shxText = false
         )
         {
             if (page.IsEmpty)
@@ -162,7 +167,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double perMillimetre = lineweightScale > 0.0 ? lineweightScale : sheetToCanvas.Scale;
             _plot = new PlotRules(
                 settings.EffectiveStyleTable,
-                settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0
+                settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0,
+                shxText
             );
             canvas.Save();
 
@@ -1990,9 +1996,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 stroke.StrokeCap = SKStrokeCap.Butt;
                 stroke.StrokeJoin = SKStrokeJoin.Miter;
+
+                if (_plot != null && _plot.ShxText)
+                {
+                    // PDFSHX: the words again in the canvas's own font, 1 part in 255 opaque, which a PDF writer still writes (an
+                    // opacity of nought it leaves out) and no eye sees on a sheet; a reader's search finds them over the strokes.
+                    DrawLetters(canvas, text, m, heightPx, fill, color.WithAlpha(1), options);
+                }
+
                 return;
             }
 
+            DrawLetters(canvas, text, m, heightPx, fill, color, options);
+        }
+
+        /// <summary>The letters of a text in a font of the canvas, from its place, turn, height, width factor, slant and alignment.</summary>
+        private void DrawLetters(
+            SKCanvas canvas,
+            DisplayText2 text,
+            Affine2 m,
+            double heightPx,
+            SKPaint fill,
+            SKColor color,
+            CanvasOptions options
+        )
+        {
             double cos = Math.Cos(text.Rotation);
             double sin = Math.Sin(text.Rotation);
             double angle = Math.Atan2(m.B * cos + m.D * sin, m.A * cos + m.C * sin);
@@ -2138,18 +2166,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             canvas.DrawRect(x0, y0, x1 - x0, y1 - y0, stroke);
         }
 
-        /// <summary>The rules a plot is drawn by: the table its colours go through, and the units of the canvas a millimetre of lineweight is, nought for the thinnest line.</summary>
+        /// <summary>The rules a plot is drawn by: the table its colours go through, the units of the canvas a millimetre of lineweight is, nought for the thinnest line, and whether the text of an SHX font is also written for a reader to find.</summary>
         private sealed class PlotRules
         {
-            public PlotRules(CadPlotStyleTable table, double lineweightScale)
+            public PlotRules(CadPlotStyleTable table, double lineweightScale, bool shxText)
             {
                 Table = table;
                 LineweightScale = lineweightScale;
+                ShxText = shxText;
             }
 
             public CadPlotStyleTable Table { get; }
 
             public double LineweightScale { get; }
+
+            public bool ShxText { get; }
         }
 
         /// <summary>

@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 215 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 221 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -1087,7 +1087,7 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 213 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 217 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 219 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 223 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
@@ -1109,7 +1109,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |

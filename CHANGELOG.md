@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
+EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
+variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog
+and writes the current layout, or the display of model space, through the writer of -PLOT; with FILEDIA 0 it asks -EXPORT's
+questions (the area, `Detailed plot configuration?`, the file). EXPORTDWF and EXPORTDWFX say the presenter has no DWF writer.
+-PLOTSTAMP asks `Enter an option [On/OFF/Fields/User Fields/Log file/LOCation/Text Properties/UNits]:` and each option's
+questions as AutoCAD's console does; while the stamp is on, the PDF of PLOT, -PLOT, EXPORTPDF and -EXPORT carries the drawing,
+layout, date and time, login, plotter, sheet and scale, and two user fields, as text in the corner chosen, and a line of each
+plot is added to the log file. PDFSHX 1 writes the words of an SHX text over its strokes in letters no eye sees (1 part in 255
+opaque), so that a PDF reader's search finds them. IMPORT asks `Enter import file name:` (the window's Open dialog with FILEDIA
+1) and brings a DWG or DXF in as a block, placed as INSERT places one; WMF and the other types of AutoCAD's list are refused.
+New: `CadPlotStamp`, `CadPlotStampCorner`, `CadPlotStampUnits`, `CadPlotSettings.PlotStamp` and `PdfShx`,
+`CadCommandSession.PlotStamp`, `CadExportJob.Opens` and `CadExportJob.Drawing`. Not built: the Plot Stamp dialog, the stamp on a
+PNG or JPG plot, EXPORTPDF's Options and a PDF of all layouts.
 **NEW.** Batch 3 of acad.pgp's 2D commands in the presenter, in the words of AutoCAD 2021 (read from its resources and probed
 in accoreconsole): SOLID (`SO`), -BOUNDARY (`-BO`), -HATCH (`-H`), GRADIENT (`GD`), HATCHTOBACK (`HB`), REGION (`REG`),
 SPLINEDIT (`SPE`) and CLASSICINSERT (`DDINSERT`), the eight added to the 142 default aliases and to the registry (196

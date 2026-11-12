@@ -335,6 +335,81 @@ PDF writer writes it from the page setup of the space, with the area and the ans
 the default of the next -EXPORT, as AutoCAD keeps EXPORTEPLOTFORMAT. Dwf and dwfX have no writer, and neither does All
 layouts, since the writer makes one sheet; -EXPORT refuses all three and writes nothing.
 
+## EXPORTPDF, EXPORTDWF and EXPORTDWFX
+
+EXPORTPDF (`EPDF`) asks for the file in the window's Save As PDF dialog, offered as `plan-level2-Model.pdf`, then writes
+the current layout, or the display of model space, as a PDF of the space's page setup, by the writer of -PLOT. The dialog
+is a plain Save dialog: AutoCAD's Page Setup box and Options are not in it, and All layouts is not written (the writer makes
+one sheet). With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command line, which are the way
+to choose the area (`Enter plot area [Display/Extents/Window] <Display>:`, or `[Current layout/All layouts]` on a layout) and
+to override the page setup (`Detailed plot configuration? [Yes/No] <No>:`), then `Enter file name <file>:`. AutoCAD 2021's
+console asks nothing of EXPORTPDF, which is a dialog there, so the typed form is -EXPORT's with its first question
+answered Pdf.
+
+EXPORTDWF (`EDWF`) and EXPORTDWFX (`EDWFX`) are in the registry for the aliases of acad.pgp. The presenter has no DWF
+writer, so each says `DWF files have no writer in the presenter: nothing was exported. EXPORTPDF writes a PDF.` and writes
+nothing.
+
+## PLOTSTAMP and -PLOTSTAMP
+
+A plot stamp is a few lines of text in a corner of the sheet, and the same words added to a log file.
+[`CadPlotStamp`](xref:GeometryHelper.Dxf.Viewer.CadPlotStamp) holds its settings, kept for the window (every drawing open
+shares one, as AutoCAD stamps every plot of a session) and off until it is switched on. PLOTSTAMP (`DDPLOTSTAMP`) and
+-PLOTSTAMP ask AutoCAD 2021's question, in its words as its console writes them, and come back to it after each option
+until Enter:
+
+```text
+Command: -PLOTSTAMP
+Enter an option [On/OFF/Fields/User Fields/Log file/LOCation/Text Properties/UNits]: Fields
+Stamp drawing name? [Yes/No] <Yes>:
+Stamp layout name? [Yes/No] <No>:
+Stamp date and time? [Yes/No] <Yes>:
+Stamp login name? [Yes/No] <No>:
+Stamp plot device name? [Yes/No] <Yes>:
+Stamp paper size? [Yes/No] <No>:
+Stamp plot scale? [Yes/No] <No>:
+```
+
+User Fields asks `Enter user field 1:` and field 2, a full stop clearing one. Log file asks `Write plot stamp to log file?
+[Yes/No] <Yes>:` and `Enter log file path <plot.log>:`. LOCation asks `Enter location [TL/TR/BL/BR] <BL>:`, `Enter stamp
+orientation [Horizontal/Vertical] <Horizontal>:`, `Stamp upside-down? [Yes/No] <No>:`, `Specify plot stamp offset
+<0.1000,0.1000>:` and `Specify offset relative to [paper Border/printable Area] <printable Area>:`. Text Properties asks the
+font (`Segoe UI`), the height (`0.2000`) and `Place plot stamp on single line? [Yes/No] <No>:`. UNits asks `Enter measurement
+units [Inches/Millimeters/Pixels] <Inches>:`; the offset and the height are in those units, a pixel being 1/96 inch.
+
+While the stamp is on, PLOT, -PLOT, EXPORTPDF and -EXPORT give the PDF they write a copy of it
+([`CadPlotSettings.PlotStamp`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings)), and GeometryHelper PDF draws it as text, so
+that a reader finds it. The fields come in AutoCAD's order: the drawing (with its folder), the layout, the date and time
+(`2026-06-09 14:05:09`), the login name, the plotter, the sheet, the scale (`1:20`), then the two user fields that are not
+empty; each is a line, or all in one line set apart by two spaces with Single line. With AutoCAD's start-up values a plot of
+Plan.dxf on A3 is stamped with three lines of letters 0.2 inch (5.08 mm) high, their lower left corner 2.54 mm in from both
+edges of the printable area. A vertical stamp reads up the sheet; upside down turns it half round. The log file is
+appended with a line a plot, beside the plot where its path has no folder; a log that cannot be written is logged and the
+plot is not failed. Not built: the Plot Stamp dialog (it needs a design first, so PLOTSTAMP asks the same questions on the
+command line), PLOT's Plot stamp on box, the stamp on a PNG or JPG plot, the stamp of a plot turned upside down following the
+turn, and AutoCAD's .pss files of saved stamp settings. With no confirmation from AutoCAD's own output, a stamp of several
+fields is one line a field.
+
+## PDFSHX
+
+PDFSHX is 0 or 1, kept for the session and set by `PDFSHX` or its alias `EPDFSHX`. A text drawn in an SHX font is its
+strokes in the PDF, which no reader's search finds. With PDFSHX 1 the writer writes its words again over the strokes,
+in the canvas's own font and a letter opaque by 1 part in 255, which a PDF reader's search and copy find and no eye sees on a
+sheet (a plot of ROOM 1 in ghsimplex differs from one without by no more than one level in a pixel). AutoCAD writes the
+text as comments of the PDF; the presenter writes it as the page's text. AutoCAD's initial value is 0, as here; its console
+here had 1, a profile that had set it. Only the PDF writer reads PDFSHX, and a drawing keeps it nowhere.
+[`CadPlotSettings.PdfShx`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) carries it.
+
+## IMPORT
+
+IMPORT (`IMP`) asks for the file in the window's Import File dialog (an Open dialog) or, with FILEDIA 0, `Enter import file
+name:`, as AutoCAD 2021's console does. A name that is not a file is answered `Can't find file.`. The presenter brings in a
+DWG or a DXF drawing, as a block of the file's name placed as INSERT places one (`Specify insertion point or
+[Basepoint/Scale/X/Y/Z/Rotate]:`, then the scale and the rotation). Any other type, the WMF, ACIS, 3DS, IGES and the rest of
+AutoCAD's list, has no reader here: `.WMF files cannot be imported by the presenter, which reads a DWG or a DXF drawing:
+nothing was imported.` AutoCAD's Import File lists none of DWG and DXF (they are for INSERT and OPEN), so this dialog's one
+type, `Drawing (*.dwg;*.dxf)`, is the presenter's own.
+
 ## See also
 
 - [Editing as AutoCAD does](editing.md): the command line and the undo steps.

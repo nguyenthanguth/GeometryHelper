@@ -13,6 +13,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The settings of the last plot or print made, which New Page Setup can start with as &lt;Previous plot&gt;.</summary>
         private CadPlotSettings _previousPlot;
 
+        /// <summary>The plot stamp -PLOTSTAMP sets, shared by the sessions of every drawing, as AutoCAD stamps every plot of the session.</summary>
+        private readonly CadPlotStamp _plotStamp = new CadPlotStamp();
+
         /// <summary>Gets or sets how the workspace shows the Plot dialog: true when OK (or the preview's Plot) was pressed.</summary>
         public Func<PlotDialogViewModel, bool> ShowPlot { get; set; }
 

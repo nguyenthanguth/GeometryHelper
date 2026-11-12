@@ -5,10 +5,11 @@ using System.Linq;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// The file EXPORT or -EXPORT asks the window for (<see cref="CadUiRequestEventArgs.Export"/>), or SAVEAS shows its Save
-    /// Drawing As dialog for: the title of the file dialog, the types it lists, the type and the file offered. The window
-    /// shows a standard Save dialog of those types and sets <see cref="FileName"/> and <see cref="FileType"/> to what was
-    /// chosen, or <see cref="FileName"/> to null where it was cancelled.
+    /// The file EXPORT, -EXPORT, EXPORTPDF or IMPORT asks the window for (<see cref="CadUiRequestEventArgs.Export"/>), or
+    /// SAVEAS shows its Save Drawing As dialog for: the title of the file dialog, the types it lists, the type and the file
+    /// offered. The window shows a standard Save dialog of those types (an Open dialog where <see cref="Opens"/>) and sets
+    /// <see cref="FileName"/> and <see cref="FileType"/> to what was chosen, or <see cref="FileName"/> to null where it was
+    /// cancelled.
     /// </summary>
     public sealed class CadExportJob
     {
@@ -17,6 +18,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The one type of -EXPORT's file of format Pdf.</summary>
         public const string Pdf = "PDF (*.pdf)";
+
+        /// <summary>The one type of IMPORT's file: a DWG or a DXF drawing, brought in as a block.</summary>
+        public const string Drawing = "Drawing (*.dwg;*.dxf)";
 
         /// <summary>The DWG type of Save As, the one the DWG writer writes, listed first as AutoCAD 2021 lists it.</summary>
         public const string Dwg = "AutoCAD 2018 Drawing (*.dwg)";
@@ -118,6 +122,12 @@ namespace GeometryHelper.Dxf.Viewer
             FileType = fileType;
             FileName = fileName;
         }
+
+        /// <summary>
+        /// Gets or sets whether the dialog asks for a file to read, as IMPORT's Import File does, the window showing an Open
+        /// dialog that takes only a file that exists; false, as it starts, it is a Save dialog.
+        /// </summary>
+        public bool Opens { get; set; }
 
         /// <summary>Gets the title of the dialog.</summary>
         public string Title { get; }

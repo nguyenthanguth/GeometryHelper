@@ -32,12 +32,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> PlotDialog(CadCommandContext c, string name)
         {
             CadSpace space = c.Space;
-            var job = new CadPlotJob(
-                space,
-                CadPlotSettings.Read(c.Document, space),
-                c.Session.View?.VisibleBox ?? DisplayBox.Empty,
-                null
-            );
+            CadPlotSettings read = CadPlotSettings.Read(c.Document, space);
+            WithOutputOptions(c, read);
+            var job = new CadPlotJob(space, read, c.Session.View?.VisibleBox ?? DisplayBox.Empty, null);
             bool dialogs = name != "PLOT" || Kept(c.Session, "cmddia", 1.0) != 0.0;
 
             while (true)
@@ -217,6 +214,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             settings.UseDevice(device);
+            WithOutputOptions(c, settings);
 
             if (detailed)
             {

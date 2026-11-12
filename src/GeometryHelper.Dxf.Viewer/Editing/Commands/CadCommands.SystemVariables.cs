@@ -285,6 +285,18 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // Whether the text of an SHX font is also written to a PDF as text a reader's search finds (1) or only as its strokes (0), kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "PDFSHX",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "pdfshx", 0.0),
+                    (c, v) => c.Remember("pdfshx", v)
+                )
+            );
+
             // Whether the Page Setup Manager is shown when a layout is made (1) or not (0), the box at the foot of the manager, kept by the session.
             registry.AddVariable(
                 CadSystemVariable.Whole(

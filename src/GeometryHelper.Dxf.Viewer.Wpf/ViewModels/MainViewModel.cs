@@ -1589,6 +1589,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
             file.Session.Clipboard = _clipboard;
+            file.Session.PlotStamp = _plotStamp;
             file.Session.Progress = Progress;
             ApplyTextDefaults(file.Session);
             document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
@@ -1825,6 +1826,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "EXPORT":
                 case "-EXPORT":
+                case "EXPORTPDF":
+                case "IMPORT":
                 case "DXFOUT":
                     OnExportFileRequested(e);
                     break;
