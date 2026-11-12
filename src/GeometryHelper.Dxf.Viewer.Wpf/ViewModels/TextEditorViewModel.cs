@@ -39,14 +39,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// justification and line spacing, and the contextual Text Editor tab as the design draws it: Style (the style, Annotative
     /// greyed, the height), Formatting (bold, italic, strikethrough, underline, overline, the font, the colour, upper and lower
     /// case, clear formatting, oblique, tracking and width), Paragraph (justification, the paragraphs' line spacing with
-    /// More… and Clear Paragraph Spacing, the five alignments, the launcher of the Paragraph dialog; bullets and numbering
-    /// greyed), Insert (Columns with Column Settings, the Symbol menu; field greyed), Spell Check greyed, Tools (Find and
+    /// More… and Clear Paragraph Spacing, the five alignments, the launcher of the Paragraph dialog, bullets and numbering),
+    /// Insert (Columns with Column Settings, the Symbol menu; field greyed), Spell Check greyed, Tools (Find and
     /// Replace), Options (ruler, undo, redo) and Close Text Editor. The ruler's drags, the dialogs and the menus are each
     /// one step of the editor's undo. Close writes the words in AutoCAD's codes and the box (width, height, columns) as the
     /// answer of the prompt that opened the editor, one undo step of the drawing; Esc asks whether to keep them.
     /// </summary>
     public sealed class TextEditorViewModel : ObservableObject
     {
+        // The icons of Bullets and Numbering, as the design draws them on a grid of 16.
+        private const string NumberedIcon = "M2 3.5h1.5v4M2 7.5h3M2 10h3l-3 3.5h3M7 5h7M7 12h7";
+        private const string LowercaseIcon = "M4.5 7.5a1.5 1.5 0 1 0 0.01 0M6 6v3M7.5 5h6.5M7.5 12h6.5";
+        private const string UppercaseIcon = "M2 9.5 3.75 4 5.5 9.5M2.6 8h2.3M7.5 5h6.5M7.5 12h6.5";
+
         private readonly MainViewModel _model;
         private bool _isRulerShown = true;
         private bool _isFindShown;
@@ -675,9 +680,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets the items of a menu of the tab: Symbol (each symbol with its code, Other greyed), Justification and Line Spacing
-        /// (the one set ticked), Case (UPPERCASE, lowercase), Clear (Remove Character Formatting), Bullets (greyed: not built).
+        /// (the one set ticked), Case (UPPERCASE, lowercase), Clear (Remove Character Formatting), Bullets (Off, Numbered,
+        /// Lettered and Bulleted, the labels every selected paragraph has ticked; Start, Continue and the two Allow items grey),
+        /// Editor (the editor's right-click, its Bullets and Lists the same items with no list ticked).
         /// </summary>
-        /// <param name="name">Symbol, Justification, LineSpacing, Case, Clear or Bullets.</param>
+        /// <param name="name">Symbol, Justification, LineSpacing, Columns, Editor, Ruler, Case, Clear or Bullets.</param>
         /// <returns>The items; empty for a menu of no such name.</returns>
         public IReadOnlyList<CadMenuItemViewModel> Menu(string name)
         {
@@ -781,14 +788,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             }
                         ),
                         new CadMenuItemViewModel("Paragraph…", () => ShowParagraph(false), !Edit.IsTableCell),
-                        new CadMenuItemViewModel(
-                            "Bullets and Lists",
-                            false,
-                            new[]
-                            {
-                                new CadMenuItemViewModel("Bullets and numbering are not built yet", () => { }, false),
-                            }
-                        ),
+                        new CadMenuItemViewModel("Bullets and Lists", BulletsMenu(false)),
                         new CadMenuItemViewModel("Columns", !Edit.IsTableCell, ColumnsMenu()),
                     };
                 case "Ruler":
@@ -809,13 +809,87 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         new CadMenuItemViewModel("Remove Character Formatting", () => Editor.ClearFormatting()),
                     };
                 case "Bullets":
-                    return new[]
-                    {
-                        new CadMenuItemViewModel("Bullets and numbering are not built yet", () => { }, false),
-                    };
+                    return BulletsMenu(true);
                 default:
                     return Array.Empty<CadMenuItemViewModel>();
             }
+        }
+
+        /// <summary>
+        /// The items of Bullets and Numbering, as AutoCAD 2021's ribbon menu and the editor's Bullets and Lists have them: Off,
+        /// Numbered, Lettered (Lowercase, Uppercase) and Bulleted, each labelling the selected paragraphs, or the caret's;
+        /// Start and Continue grey, not built; Allow Auto Bullets and Numbering grey and unticked, as the editor does not turn
+        /// "1." typed into a list; Allow Bullets and Lists grey and ticked, as lists are always allowed. On the ribbon
+        /// (<paramref name="ticks"/>) the labels every selected paragraph has are ticked, Lettered for either case, its menu
+        /// ticking which, with the icons of the design; the right-click menu ticks no list, as AutoCAD's.
+        /// </summary>
+        private IReadOnlyList<CadMenuItemViewModel> BulletsMenu(bool ticks)
+        {
+            CadMTextNumbering? all = SelectedNumbering();
+            string blank = ticks ? string.Empty : null;
+
+            bool? Tick(bool on) => ticks ? on : (bool?)null;
+
+            CadMenuItemViewModel List(string header, CadMTextNumbering numbering, string icon) =>
+                new CadMenuItemViewModel(
+                    header,
+                    () => Editor.SetNumbering(numbering),
+                    true,
+                    null,
+                    Tick(all == numbering)
+                )
+                {
+                    Icon = ticks ? icon : null,
+                };
+
+            CadMenuItemViewModel Grey(string header, bool? isChecked) =>
+                new CadMenuItemViewModel(header, () => { }, false, MainViewModel.NotBuiltYet, isChecked)
+                {
+                    Icon = blank,
+                };
+
+            return new[]
+            {
+                List("Off", CadMTextNumbering.Off, blank),
+                List("Numbered", CadMTextNumbering.Number, NumberedIcon),
+                new CadMenuItemViewModel(
+                    "Lettered",
+                    true,
+                    new[]
+                    {
+                        List("Lowercase", CadMTextNumbering.LetterLower, LowercaseIcon),
+                        List("Uppercase", CadMTextNumbering.LetterUpper, UppercaseIcon),
+                    },
+                    isChecked: Tick(all == CadMTextNumbering.LetterLower || all == CadMTextNumbering.LetterUpper)
+                )
+                {
+                    Icon = blank,
+                },
+                List("Bulleted", CadMTextNumbering.Bullet, blank),
+                CadMenuItemViewModel.Separator(),
+                Grey("Start", null),
+                Grey("Continue", null),
+                CadMenuItemViewModel.Separator(),
+                Grey("Allow Auto Bullets and Numbering", false),
+                Grey("Allow Bullets and Lists", true),
+            };
+        }
+
+        /// <summary>The label every selected paragraph, or the caret's, opens with; null where they differ.</summary>
+        private CadMTextNumbering? SelectedNumbering()
+        {
+            (int first, int last) = Editor.SelectedParagraphs;
+            CadMTextNumbering numbering = Editor.NumberingOf(first);
+
+            for (int p = first + 1; p <= last; p++)
+            {
+                if (Editor.NumberingOf(p) != numbering)
+                {
+                    return null;
+                }
+            }
+
+            return numbering;
         }
 
         /// <summary>Sets on the edit what the frame changed, before the words answer the prompt.</summary>

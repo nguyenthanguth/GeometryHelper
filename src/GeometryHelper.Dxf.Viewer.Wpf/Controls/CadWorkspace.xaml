@@ -1330,7 +1330,11 @@
                                     Style="{StaticResource SmallButton}"
                                     Tag="{StaticResource IconBullets}"
                                     Content="Bullets and Numbering ▾"
-                                    ToolTip="Bullets and numbering are not built yet"
+                                    IsEnabled="True"
+                                    Focusable="False"
+                                    Click="OnEditorMenu"
+                                    CommandParameter="Bullets"
+                                    ToolTip="Numbers, letters or bullets for the selected paragraphs"
                                 />
                                 <Button
                                     Style="{StaticResource SmallButton}"

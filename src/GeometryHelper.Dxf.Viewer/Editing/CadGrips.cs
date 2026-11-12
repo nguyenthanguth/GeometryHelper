@@ -32,7 +32,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// A corner of a viewport's frame: resizes the frame, the corner across from it kept, the scale and the centre of the view
         /// kept. A corner of an MTEXT's box: takes its two edges of the box to the point, the width and the height of the MTEXT
-        /// those of the box then.
+        /// those of the box then; drawn a triangle along the MTEXT at the top right, down it at the bottom left and into the
+        /// corner at the bottom right, a square at the top left.
         /// </summary>
         Corner,
 
@@ -81,6 +82,40 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The table breaking grip under the middle of a table's bottom edge: drawn as AutoCAD's, not offered; dragged, it does nothing.</summary>
         TableBreak,
+
+        /// <summary>
+        /// The column width grip of an MTEXT in columns, a triangle at the top right of its first column pointing along it:
+        /// sets the width of every column, as AutoCAD 2021's. Dynamic columns keep their gutter; static ones keep their total
+        /// width, the gutter giving or taking the rest: two static columns 120 wide with a gutter of 20 dragged 30 narrower are
+        /// 90 wide with a gutter of 80.
+        /// </summary>
+        MTextColumnWidth,
+
+        /// <summary>
+        /// The height grip of an MTEXT in columns of one height, a triangle under its location pointing down: sets the height
+        /// of the columns, at least the text height.
+        /// </summary>
+        MTextHeight,
+
+        /// <summary>
+        /// The corner grip of an MTEXT in columns of one height, a triangle at the bottom right of its last column pointing into
+        /// the corner: sets the height of the columns and, as the grip of the last column does, the gutter of static columns, or
+        /// the width of dynamic ones.
+        /// </summary>
+        MTextSize,
+
+        /// <summary>
+        /// The grip of the last column of an MTEXT in two columns or more, a triangle at its top right pointing along it: sets
+        /// the gutter, the columns keeping their width, as AutoCAD 2021's: two static columns 120 wide with a gutter of 20
+        /// dragged 50 wider have a gutter of 70.
+        /// </summary>
+        MTextGutter,
+
+        /// <summary>
+        /// The height grip of one column of an MTEXT in dynamic columns of their own heights, a triangle under the middle of the
+        /// column pointing down: sets that column's height, at least the text height.
+        /// </summary>
+        MTextColumnHeight,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
@@ -113,7 +148,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the way a custom grip's arrow points, in the plan: along a linear parameter, across a flip parameter's line; the
-        /// way a table's stretch or breaking grip points, along the table, down it, or both; nought for a grip of no arrow.
+        /// way a table's stretch or breaking grip points, along the table, down it, or both; the way an MTEXT's triangle grip
+        /// points, along it, down it, or into a corner (the two at once); nought for a grip of no arrow.
         /// </summary>
         public GeoVector2 Direction { get; }
 
@@ -133,7 +169,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The grips of each kind of entity and what dragging each does, as AutoCAD's: a line's two ends and middle, a circle's
     /// centre and four quadrants, an arc's ends, middle and centre, a polyline's vertices and the middles of its segments, a
-    /// text's and a block reference's insertion point, an MTEXT's location and the corners of its box, a viewport's four corners
+    /// text's and a block reference's insertion point, an MTEXT's location and the corners of its box or the grips of its
+    /// columns, a viewport's four corners
     /// and middle, and a dimension's as AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag.
     /// Entities of other kinds have none.
     /// </summary>
@@ -147,8 +184,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// drawn in no plan, or with no picture of its own, has none. An MTEXT's, as AutoCAD 2021's: the four corners of its box
         /// (its defined width by its defined height, or with none the height of its lines) from the top left, the top right, the
         /// bottom left to the bottom right, the corner its location is at the grip of its insertion; its location first, a fifth
-        /// grip, where it is at no corner (held at a middle); its location alone for an MTEXT of no width, in columns or out of
-        /// the plan. A TOLERANCE's, as AutoCAD 2021 shows it: its insertion point alone. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
+        /// grip, where it is at no corner (held at a middle); the top right, bottom left and bottom right corners carry the way
+        /// their triangles point (<see cref="CadGrip.Direction"/>). In columns, as AutoCAD 2021's: its location, the first
+        /// column's width at its top right, then for columns of one height the corner of the last column and the height under
+        /// the location, for dynamic columns of their own heights a height grip under the middle of each column, and last, in two
+        /// columns or more, the gutter grip at the last column's top right; two static columns 120 wide with a gutter of 20 and
+        /// a height of 100, held at the top left, have them at (0, 0), (120, 0), (260, -100), (0, -100) and (260, 0). Held at
+        /// the right or the bottom they stand at the other side, pointing the other way. Its location alone for an MTEXT of no
+        /// width or out of the plan. A TOLERANCE's, as AutoCAD 2021 shows it: its insertion point alone. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
         /// its top edge, its width, height and size stretch grips at the top right, bottom left and bottom right, and the table
         /// breaking grip under the middle of its bottom edge, which is not offered.
         /// </summary>
@@ -256,7 +299,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 case DxfMText mtext:
-                    MTextGrips(mtext, (kind, at) => Add(kind, at.X, at.Y));
+                    MTextGrips(mtext, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;
                 case DxfTolerance tolerance:
                     Add(CadGripKind.Insertion, tolerance.Location.X, tolerance.Location.Y);
@@ -313,7 +356,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// as AutoCAD 2021's does: the width of the MTEXT is the box's then and its words wrap anew, its defined height the box's
         /// (at least its text height; left as it is in a file before R2007, which holds none), and its location stays at the
         /// point of the box its attachment names: the top right corner of a box 60 wide dragged 5 right and 3 down makes it 65
-        /// wide and moves a location at the top left 3 down.
+        /// wide and moves a location at the top left 3 down. A grip of an MTEXT in columns changes the columns as AutoCAD 2021's
+        /// MoveGripPointsAt does, the step taken the way the grip points, the location kept (see the kinds from
+        /// <see cref="CadGripKind.MTextColumnWidth"/> on): two static columns 120 wide with a gutter of 20 have, dragged 50 out,
+        /// columns 130 wide and no gutter by the first column's grip (the total kept), a gutter of 70 by the last column's;
+        /// widths and heights stop at the text height, a gutter at nought.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -403,6 +450,22 @@ namespace GeometryHelper.Dxf.Viewer
                         was,
                         went,
                         gripIndex - (grips.Count - 4),
+                        to
+                    );
+                case CadGripKind.MTextColumnWidth:
+                case CadGripKind.MTextHeight:
+                case CadGripKind.MTextSize:
+                case CadGripKind.MTextGutter:
+                case CadGripKind.MTextColumnHeight:
+                    return DragMTextColumns(
+                        document,
+                        (DxfMText)entity,
+                        handle,
+                        property,
+                        was,
+                        went,
+                        grips,
+                        gripIndex,
                         to
                     );
                 case CadGripKind.Corner:

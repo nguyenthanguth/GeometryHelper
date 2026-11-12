@@ -382,6 +382,41 @@ namespace GeometryHelper.Dxf.Viewer
             Raise();
         }
 
+        /// <summary>
+        /// Gets the label a paragraph opens with, as <see cref="SetNumbering"/> writes them: in <c>1.\tPlate\Pb.\tBeam\PColumn</c>
+        /// the first is <see cref="CadMTextNumbering.Number"/>, the second <see cref="CadMTextNumbering.LetterLower"/> and the
+        /// third <see cref="CadMTextNumbering.Off"/>.
+        /// </summary>
+        /// <param name="paragraph">The paragraph, from nought.</param>
+        /// <returns>Its label; <see cref="CadMTextNumbering.Off"/> for none.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when there is no such paragraph.</exception>
+        public CadMTextNumbering NumberingOf(int paragraph)
+        {
+            if (paragraph < 0 || paragraph >= _paragraphCodes.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(paragraph),
+                    paragraph,
+                    "The words have " + _paragraphCodes.Count + " paragraphs, counted from nought."
+                );
+            }
+
+            int at = 0;
+
+            for (int p = 0; p < paragraph; p++)
+            {
+                while (at < _cells.Count && !_cells[at].Break)
+                {
+                    at++;
+                }
+
+                at++;
+            }
+
+            LabelLength(at, out CadMTextNumbering numbering);
+            return numbering;
+        }
+
         /// <summary>Changes the MTEXT's box: its width, defined height or columns, one undo step.</summary>
         /// <param name="frame">The box.</param>
         /// <exception cref="ArgumentNullException">Thrown when the frame is null.</exception>
@@ -1047,8 +1082,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// How many places a list's label takes at the start of a paragraph, its tab with it: a bullet, a number or letters and
         /// a full stop, then a tab; nought where the paragraph opens with none.
         /// </summary>
-        private int LabelLength(int start)
+        private int LabelLength(int start) => LabelLength(start, out _);
+
+        /// <summary>How many places a list's label takes at the start of a paragraph, as <see cref="LabelLength(int)"/>, and what the label is: <see cref="CadMTextNumbering.Off"/> for none.</summary>
+        private int LabelLength(int start, out CadMTextNumbering numbering)
         {
+            numbering = CadMTextNumbering.Off;
             int i = start;
 
             while (i < _cells.Count && !_cells[i].Break && _cells[i].Code == null && _cells[i].Text != "\t")
@@ -1069,16 +1108,26 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string text = label.ToString();
-            bool bullet = text == "·" || text == "•";
-            bool numbered =
-                text.Length >= 2
-                && text[text.Length - 1] == '.'
-                && (
-                    text.Take(text.Length - 1).All(c => c >= '0' && c <= '9')
-                    || text.Take(text.Length - 1).All(c => c >= 'a' && c <= 'z')
-                    || text.Take(text.Length - 1).All(c => c >= 'A' && c <= 'Z')
-                );
-            return bullet || numbered ? i - start + 1 : 0;
+            bool dotted = text.Length >= 2 && text[text.Length - 1] == '.';
+
+            if (text == "·" || text == "•")
+            {
+                numbering = CadMTextNumbering.Bullet;
+            }
+            else if (dotted && text.Take(text.Length - 1).All(c => c >= '0' && c <= '9'))
+            {
+                numbering = CadMTextNumbering.Number;
+            }
+            else if (dotted && text.Take(text.Length - 1).All(c => c >= 'a' && c <= 'z'))
+            {
+                numbering = CadMTextNumbering.LetterLower;
+            }
+            else if (dotted && text.Take(text.Length - 1).All(c => c >= 'A' && c <= 'Z'))
+            {
+                numbering = CadMTextNumbering.LetterUpper;
+            }
+
+            return numbering != CadMTextNumbering.Off ? i - start + 1 : 0;
         }
 
         /// <summary>The label of the <paramref name="index"/>th paragraph of a list, from nought, its tab after it, in the look of the paragraph's first letter.</summary>

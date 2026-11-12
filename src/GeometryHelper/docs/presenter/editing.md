@@ -1074,7 +1074,23 @@ has its grips at (0, 0), (240, 0), (0, -26.67) and (240, -26.67). The top right 
 MTEXT 260 wide with a defined height of 14.67, located at (0, -12); the bottom left one dragged by the same leaves it 220
 wide and 38.67 high at (20, 0). The words wrap anew at the new width. The box is never lower than one text height, the
 side dragged staying at the point, and a box dragged to no width is refused. In a drawing before R2007, whose MTEXT
-holds no defined height, a corner changes the width alone.
+holds no defined height, a corner changes the width alone. The canvas draws them as AutoCAD 2021 shows them: the
+location a square, the top right a triangle pointing along the MTEXT, the bottom left one pointing down, the bottom right
+one pointing into its corner, and the top left a square where the location is elsewhere; the triangles turn with the
+MTEXT.
+
+An MTEXT in columns has the grips AutoCAD 2021's GetGripPoints gives it, each doing what its MoveGripPointsAt does, the
+location kept. Two static columns 120 wide with a gutter of 20 and 100 high, attached top left at the origin, have the
+location at (0, 0), the column width at (120, 0), the corner at (260, -100), the height at (0, -100) and the gutter at
+(260, 0), the last column's top right. Dragged 50 to the right, the column width grip makes the columns 130 wide with no
+gutter, as static columns keep their total of 260, and dragged 30 to the left 90 wide with a gutter of 80; the gutter
+grip keeps the columns 120 wide and makes the gutter 70, the total 310, and dragged left it stops at no gutter; the
+corner does that and sets the height; the height grip sets the height of the columns. Dynamic columns have the same
+grips, the corner and the gutter grip at the last column the words fill, but the column width grip keeps the gutter, the
+total following, and so does the corner. Dynamic columns of their own heights have no corner and no height grip: a
+triangle under the middle of each column sets that column's height. Attached at the right or the bottom, the grips stand
+at the other side and grow the other way: attached bottom right the column width grip is at (-120, 0), and 50 to the
+right makes the columns 70 wide. A width or a height stops at the text height and a gutter at nought.
 
 EXPLODE breaks an MTEXT into a TEXT for each run of each line, where the picture draws it and of its height, width
 factor and slant, with `%%U`, `%%O` or `%%K` before the words of a run lined under, over or through, and a LINE for

@@ -4250,7 +4250,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                if (DrawTableGrip(dc, view, scale, _grips[i].Grip, at, hot))
+                if (
+                    DrawTableGrip(dc, view, scale, _grips[i].Grip, at, hot)
+                    || DrawMTextGrip(dc, view, scale, _grips[i].Grip, at, hot)
+                )
                 {
                     continue;
                 }
@@ -4407,6 +4410,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                     break;
             }
+        }
+
+        /// <summary>
+        /// A triangle grip of an MTEXT, as the design MTextGrips draws it: a width, a gutter or a height a triangle 10 across
+        /// pointing the way the grip does, from 4 behind its point to 6 ahead; a size, or a corner of the box pointing both
+        /// ways, a right triangle 12 across pointing into the corner; filled in the grip colour with a dark edge, as the
+        /// table's stretch grips. True where the grip is one of these; the location and a corner of no way are squares.
+        /// </summary>
+        private bool DrawMTextGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, bool hot)
+        {
+            bool triangle =
+                grip.Kind == CadGripKind.MTextColumnWidth
+                || grip.Kind == CadGripKind.MTextGutter
+                || grip.Kind == CadGripKind.MTextHeight
+                || grip.Kind == CadGripKind.MTextColumnHeight;
+            bool corner = grip.Kind == CadGripKind.MTextSize;
+
+            // A corner of an MTEXT's box of no columns: its way along, down or both, the two at once as long as a diagonal.
+            if (grip.Kind == CadGripKind.Corner && grip.Direction.Length > 0.0)
+            {
+                corner = grip.Direction.Length > 1.2;
+                triangle = !corner;
+            }
+
+            if (!triangle && !corner)
+            {
+                return false;
+            }
+
+            Point ahead = ToScreen(
+                view,
+                new GeoPoint2(grip.Point.X + grip.Direction.X, grip.Point.Y + grip.Direction.Y),
+                scale
+            );
+            double angle = Math.Atan2(ahead.Y - at.Y, ahead.X - at.X);
+            double d = 6.0 * Math.Sqrt(2.0);
+            Point[] shape = triangle
+                ? Shape(at, angle, 1.0, -4, -5, 6, 0, -4, 5)
+                : Shape(at, angle, 1.0, d, 0, 0, d, 0, -d);
+            dc.DrawGeometry(hot ? HotGripBrush : GripBrush, CustomGripEdge, Polygon(shape));
+            return true;
         }
 
         /// <summary>The corners of a shape given as x, y pairs on the design's grid, scaled, turned by an angle on the screen and put at a point.</summary>
