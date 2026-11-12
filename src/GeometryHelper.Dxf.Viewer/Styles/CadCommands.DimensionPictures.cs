@@ -352,9 +352,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoVector2 outward = (chord - center) / radius;
             DxfMText words = dimension.DimBlock.OfType<DxfMText>().FirstOrDefault();
+            // Words at their default place with a leader of nought, as AutoCAD 2021 writes a radius or a diameter the fit or the
+            // room next to the rim put them in (36 and 35), are laid out afresh as for a point on the rim.
+            double leader =
+                dimension is DxfRadialDimension radial ? radial.LeaderLength
+                : dimension is DxfDiametricDimension diametric ? diametric.LeaderLength
+                : 0.0;
             GeoPoint2? placed =
                 !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition)
-                : words == null ? (GeoPoint2?)null
+                : words == null || leader <= 1E-9 ? (GeoPoint2?)null
                 : P2(words.Location);
             double reach =
                 placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;

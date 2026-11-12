@@ -498,10 +498,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 unit = toward / toward.Length;
             GeoPoint2 chord = center + unit * radius;
             GeoPoint2 far = center - unit * radius;
-            double leader = Math.Max(0.0, (location - chord).Length);
+            // AutoCAD 2021 writes a leader of nought for every radius and diameter it makes.
             made = diameter
-                ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, text ?? string.Empty, null)
-                : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
+                ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), 0.0, text ?? string.Empty, null)
+                : new DxfRadialDimension(P3(center), P3(chord), 0.0, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
             double textHeight = TextHeight(c, style);
 
@@ -511,13 +511,9 @@ namespace GeometryHelper.Dxf.Viewer
             bool slid = move == 1 && (along - location).Length > c.Session.Tolerance.EqualPoint;
             GeoPoint2 wordsAt = slid ? along : location;
 
-            if (free || slid)
-            {
-                made.TextPosition = P3(wordsAt);
-                made.UsingDefaultTextPosition = false;
-            }
-
-            List<DxfEntity> picture = Radial(
+            // Words slid onto the line outside the rim still keep the room next to it: AutoCAD 2021 holds "R20" put 20.3 out
+            // off the line it was picked on, DIMTMOVE 1, 20.9794 out on it and writes it with the words at their default place.
+            List<DxfEntity> picture = RadialLaidOut(
                 style,
                 Dimscale(c),
                 textHeight,
@@ -528,8 +524,9 @@ namespace GeometryHelper.Dxf.Viewer
                 wordsAt,
                 diameter,
                 words,
-                slid,
-                free
+                slid && (wordsAt - center).X * unit.X + (wordsAt - center).Y * unit.Y < radius - 1E-10,
+                free,
+                out bool atPoint
             );
 
             // Under DIMTMOVE 1 AutoCAD 2021 records the words by the point they were put at, where the leader ends: "R20" put
@@ -541,6 +538,26 @@ namespace GeometryHelper.Dxf.Viewer
                     if (entity is DxfMText mtext)
                     {
                         RecordWordsBy(mtext, wordsAt);
+                    }
+                }
+            }
+
+            // Where the words stand at the point put (not where the fit, DIMTIX or the room next to the rim put them) AutoCAD 2021
+            // writes the dimension with flag 128: 164 for "R20" put 35 out at 18.9 degrees under DIMATFIT 3, group 11 the point
+            // of the line they stand by; and 36 where the fit put them, group 11 their middle.
+            if (atPoint)
+            {
+                made.TextPosition = free || slid ? P3(wordsAt) : RecordedPoint(picture) ?? P3(wordsAt);
+                made.UsingDefaultTextPosition = false;
+            }
+            else
+            {
+                // At their default place the words are recorded by their middle.
+                foreach (DxfEntity entity in picture)
+                {
+                    if (entity is DxfMText mtext)
+                    {
+                        WordsStarts.Remove(mtext);
                     }
                 }
             }
@@ -2074,16 +2091,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (dimension.UsingDefaultTextPosition)
             {
-                foreach (DxfEntity entity in picture)
+                GeoPoint3? recorded = RecordedPoint(picture);
+
+                if (recorded.HasValue)
                 {
-                    if (entity is DxfMText words)
-                    {
-                        dimension.TextPosition = WordsStarts.TryGetValue(words, out StrongBox<GeoPoint3> start)
-                            ? start.Value
-                            : words.Location;
-                        dimension.UsingDefaultTextPosition = true;
-                        break;
-                    }
+                    dimension.TextPosition = recorded.Value;
+                    dimension.UsingDefaultTextPosition = true;
                 }
             }
 
@@ -2093,6 +2106,22 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 dimension.WriteMeasurement(measured);
             }
+        }
+
+        /// <summary>The point a picture's words are recorded by (group 11): their start where one was kept, else their middle; null with no words.</summary>
+        private static GeoPoint3? RecordedPoint(List<DxfEntity> picture)
+        {
+            foreach (DxfEntity entity in picture)
+            {
+                if (entity is DxfMText words)
+                {
+                    return WordsStarts.TryGetValue(words, out StrongBox<GeoPoint3> start)
+                        ? start.Value
+                        : words.Location;
+                }
+            }
+
+            return null;
         }
 
         private static DxfEntity Definition(GeoPoint2 at) => new DxfDBPoint(P3(at)) { Layer = "Defpoints" };
