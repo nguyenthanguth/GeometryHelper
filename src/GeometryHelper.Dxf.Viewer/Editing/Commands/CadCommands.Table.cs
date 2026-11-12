@@ -733,7 +733,7 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadInPlaceEdit(
                 CadInPlaceKind.MText,
                 table.Handle,
-                table.TextString(row, column),
+                table.TextStringForEditing(row, column),
                 new GeoPoint2(at.X, at.Y),
                 height,
                 Math.Atan2(along.Y, along.X),

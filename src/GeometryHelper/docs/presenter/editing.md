@@ -517,8 +517,20 @@ number shown in the drawing's units (1.5000 at LUNITS 2 and LUPREC 4, 1.50 at LU
 no alignment of its own; 1,5 is the point (1, 5, 0), shown 1.0000, 5.0000, 0.0000. The autofill counts each on in its
 format, 1.5 to 2.5000, 3.5000 and 4.5000 and 1/2 to 1 1/2, 2 1/2 and 3 1/2, and copies a point. A number typed over a
 number keeps the cell's kind and format, as AutoCAD keeps them: 12 over 1.25 is shown 12.0000, and 1.5 over the whole
-number 12 is the whole number 1. b1, 12mm, 1,500 (AutoCAD's thousands), feet and inches, and a number in a cell made to
-hold text, stay text. Drawn anew,
+number 12 is the whole number 1. Thousands typed with commas, 1,500, are a number of the thousands format (the whole
+number 1500 of `%th[\,]` shown 1,500; 1,500.5 shown 1,500.5000; a comma before other than three figures, as 1,50, is a
+point), and a length in feet and inches, 12'6", 12'-6", 12'6-1/2" or 6 1/2", is a number of inches (12'6" the number 150
+shown 12'-6"; 6.5" and 12.5' a number of the engineering units, shown 0'-6.5000" and 12'-6.0000"), each set top right;
+a length with a space before its figures, 12ft and 12"6 are not read as lengths and stay text. Dates and times (1/1/2020,
+12:30) stay text, the library writing no date. The editor opens a number as AutoCAD 2021's
+`GetTextString(FormatOption.ForEditing)` writes it ([`DxfTable.TextStringForEditing`](xref:GeometryHelper.Dxf.DxfTable.TextStringForEditing(System.Int32,System.Int32))),
+the number as it is to 16 figures with its zeros and the places of its units left off: a cell that shows 1.5000 opens as 1.5,
+a third as 0.333333333333333, 1e3 as 1.000000000000000E+03, 1/3 as 10923/32768, 12.5 in feet and inches as 1'-0 1/2" and a
+point as 1.5, 2.25, -0.1; the words that opened are kept when they are given back. A text typed over a cell of a number
+or a point is refused, the message "Cell C3 holds a number, and "abc" is not a number." and the cell left as it was, as
+AutoCAD 2021's SetValue of it throws eInvalidInput (12mm, 1/1/2020 and 12:30 too, and a number over a point or a point over a number);
+empty words still clear the cell. In a cell that holds no number, b1 and 12mm stay text, as does a number in a cell made to
+hold text. Drawn anew,
 each row grows to
 hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's width less its margins, as an MTEXT of that
 width, and need their actual height and the margins above and below, one line of four thirds of the text height at

@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
+`GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is
+to 16 figures with its zeros and the places of its units left off, so that a cell showing 1.5000 opens as 1.5, a third as
+0.333333333333333, 1e3 as 1.000000000000000E+03, 1/3 as 10923/32768, 12.5 in feet and inches as 1'-0 1/2", 75.25 in
+engineering units as 6'-3.25" and a point as 1.5, 2.25, -0.1 (probed on every unit, with prefixes and thousands of a
+format left out). It used to open with the text the cell shows. The words given back unchanged write nothing.
+**CHANGED.** A text typed over a cell of a number or a point in the presenter (`CadTableEditor.SetText`, TABLEDIT) is
+refused, as AutoCAD 2021's `SetValue` of it throws eInvalidInput and keeps the value: abc, 12mm, 1/1/2020 and 12:30 over
+1.5, a number over a point and a point over a number, with "Cell C3 holds a number, and "abc" is not a number."; it used to
+turn the cell into text. Empty words still clear the cell, and a cell of words takes any.
+**NEW.** Thousands typed with commas in a table cell in the presenter are numbers of AutoCAD 2021's thousands format:
+1,500 the whole number 1500 of `%th[\,]` shown 1,500, 1,500.5 the number of `%lu6%th[\,]` shown 1,500.5000, 1,500e2 one of
+`%lu1%th[\,]`, and ,500 and 1000,000 read as AutoCAD reads them; a comma before other than three figures (1,50, 1,5000) is
+still a point. They stayed text. A cell whose format carries `%th44` or `%th46%ds44` (AutoCAD's own) shows a number typed
+in it with its marks: 1234567.891 in `%lu2%pr2%th44` is 1,234,567.89 and 1500.5 in `%lu2%pr2%th46%ds44` is 1.500,50.
+**NEW.** A length typed in feet and inches in a table cell is a number of inches, as AutoCAD 2021 reads it: 12'6", 12'-6",
+12' 6", 12'6-1/2" and 12' (the number 150, 150, 150, 150.5 and 144 of `%lu4`, shown 12'-6", 12'-6", 12'-6", 12'-6 1/2" and
+12'-0"), and 6.5", 12.5' and 12'6.5" as numbers of `%lu3` (shown 0'-6.5000", 12'-6.0000" and 12'-6.5000"); a sign before
+all, -12'6" being -150. A space before the figures, 12ft, 12"6 and 12'6"' are not lengths and stay text. Over a whole
+number the inches are cut (12'6.5" is 150). The units of engineering (`%lu3`) are now shown, 11.99999 as 1'-0.0000" with its
+inches carried into the feet, where they were written as the number alone. Dates and times typed (1/1/2020, 12:30) stay
+text: AutoCAD makes dates of them, and the library knows no groups of a date value to write.
+**FIXED.** The text of a number of a decimal format (`%lu2%pr2`) in `DxfTable` rounded as the runtime rounds on .NET Core
+and .NET 10: 0.015 was shown 0.01, 2.5 at no places 2 and 1.005 1.00, where AutoCAD 2021 and .NET Framework show 0.02, 3
+and 1.01. It now rounds half away from nought the 15 figures the number writes, on every runtime, as the units shown
+already did.
+
 **NEW.** In the presenter the command line's Search Content lists each kind of named object under a header row with its
 count, as AutoCAD 2021's suggestion list groups its content (design CmdContentSection): WAL typed in a drawing of the
 block WALL_TAG and the layers WALLS and WALL-FINISH shows `Blocks 1` over WALL_TAG and `Layers 2` over the two layers.

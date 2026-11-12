@@ -495,8 +495,12 @@ namespace GeometryHelper.Dxf
         /// alignment top right where it has none of its own; two or three numbers with commas are a point (1,5 shown 1.0000,
         /// 5.0000, 0.0000), its alignment left as it is. A cell of a number keeps its format, 12 over 1.25 the number 12 shown
         /// 12.0000, a cell of a whole number takes the whole number cut towards nought, 1 of 1.5, a cell of a point a point.
-        /// A cell of a text, a block cell, a date, a whole number past 32 bits, thousands with commas (1,500, which AutoCAD
-        /// writes as the whole number 1 500 of <c>%th[\,]</c>), feet and inches and any other text are not read.
+        /// Thousands with commas are a number of the format <c>%th[\,]</c> (1,500 the whole number 1500 shown 1,500, 1,500.5 a
+        /// number of <c>%lu6%th[\,]</c> shown 1,500.5000; a comma before other than three figures is a point) and a length in
+        /// feet and inches a number of inches (12'6" the number 150 of <c>%lu4</c> shown 12'-6", 6.5" one of <c>%lu3</c> shown
+        /// 0'-6.5000", a space before its figures read as nothing) (D40). A cell of a text, a block cell, a date, a whole number
+        /// past 32 bits, and any other text are not read; <see cref="RefusesText(int, int, string)"/> tells a cell of a number
+        /// the text is not read for.
         /// </summary>
         internal bool SetValueFromText(int row, int col, string text)
         {
@@ -520,6 +524,12 @@ namespace GeometryHelper.Dxf
                     typed.Units == 0 ? string.Empty
                     : typed.Units == lunits ? "%lu6"
                     : "%lu" + typed.Units.ToString(CultureInfo.InvariantCulture);
+
+                // Thousands typed with commas show them, as AutoCAD 2021 wrote 1,500 as the whole number of %th[\,].
+                if (typed.Thousands)
+                {
+                    format += "%th[\\,]";
+                }
             }
             else if (
                 ((kind == DxfDataType.Long || kind == DxfDataType.Double) && typed.Point == null)
@@ -552,7 +562,7 @@ namespace GeometryHelper.Dxf
             }
             else if (kind == DxfDataType.Long || (given && typed.Units == 0))
             {
-                written = Whole(Cut(typed.Number));
+                written = Whole(Cut(typed.Number), format);
             }
             else
             {
@@ -591,6 +601,65 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Whether a text typed over a cell of a number or a point is one AutoCAD 2021 refuses: its <c>SetValue</c> of the text
+        /// threw eInvalidInput and kept the value (D40) where the text is not read as a value of the cell's kind, a word or a
+        /// date over a number, a number over a point or a point over a number. False for a cell of words or of no value yet,
+        /// a block cell and a cell before R2007, which take any text.
+        /// </summary>
+        internal bool RefusesText(int row, int col, string text)
+        {
+            CellView cell = Cell(row, col);
+
+            if (cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            {
+                return false;
+            }
+
+            DxfDataType kind = KindOf(cell);
+
+            if (kind != DxfDataType.Long && kind != DxfDataType.Double && kind != DxfDataType.Point3d)
+            {
+                return false;
+            }
+
+            Typing typed = Typing.Read(text);
+            return typed == null || (kind == DxfDataType.Point3d) != (typed.Point != null);
+        }
+
+        /// <summary>The unit a format writes in, as LUNITS counts them: its <c>%lu</c>, the drawing's for 6, decimals where it has none.</summary>
+        private int EditingUnits(string format)
+        {
+            Match units = Regex.Match(format ?? string.Empty, "%lu([1-6])");
+
+            if (!units.Success)
+            {
+                return 2;
+            }
+
+            int unit = units.Groups[1].Value[0] - '0';
+            DxfDatabase database = IsResident ? Item.File.Database : null;
+            return unit == 6 ? database?.Lunits ?? 2 : unit;
+        }
+
+        /// <summary>A number written for the editor in the units given (LUNITS): powers of ten, decimals, feet and decimals of an inch, feet and fractions of an inch or fractions; decimals for any other.</summary>
+        private static string EditingText(double value, int units)
+        {
+            switch (units)
+            {
+                case 1:
+                    return DxfTableEditingText.Scientific(value);
+                case 3:
+                    return DxfTableEditingText.Engineering(value);
+                case 4:
+                    return DxfTableEditingText.Architectural(value);
+                case 5:
+                    return DxfTableEditingText.Fractional(value);
+                default:
+                    return DxfTableEditingText.Decimal(value);
+            }
+        }
+
+        /// <summary>
         /// The text of a number in a format, as AutoCAD 2021 showed it: of <see cref="RealText"/> for none, a decimal of its
         /// places and feet and inches; of the drawing's units and places (LUNITS, LUPREC) for <c>%lu6</c>, and of the units
         /// named with the drawing's places for <c>%lu1</c> to <c>%lu5</c> (D39a); of six places of decimals for a format the
@@ -598,23 +667,90 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private string Shown(double value, string format)
         {
-            string text = RealText(value, format);
+            // The marks between thousands and before the decimals (%th, %ds) are put in after the digits are written.
+            string bare = Marks(format, out char thousands, out char mark);
+            string text = RealText(value, bare);
 
             if (text != null)
             {
-                return text;
+                return Marked(text, thousands, mark);
             }
 
-            Match units = Regex.Match(format, "^%lu([1-6])$");
+            Match units = Regex.Match(bare, "^%lu([1-6])$");
 
             if (!units.Success)
             {
-                return RealText(value, null);
+                return Marked(RealText(value, null), thousands, mark);
             }
 
             DxfDatabase database = IsResident ? Item.File.Database : null;
             int unit = units.Groups[1].Value[0] - '0';
-            return UnitsText(value, unit == 6 ? database?.Lunits ?? 2 : unit, database?.Luprec ?? 4);
+            return Marked(
+                UnitsText(value, unit == 6 ? database?.Lunits ?? 2 : unit, database?.Luprec ?? 4),
+                thousands,
+                mark
+            );
+        }
+
+        /// <summary>
+        /// A format less its thousands mark (<c>%th44</c> a comma, <c>%th[\,]</c> as AutoCAD 2021 writes it for a number typed
+        /// with commas) and its mark for the decimals (<c>%ds46</c> a point), and the two marks; nought for a mark the format
+        /// has none of.
+        /// </summary>
+        private static string Marks(string format, out char thousands, out char mark)
+        {
+            thousands = '\0';
+            mark = '\0';
+            string bare = format ?? string.Empty;
+            Match group = Regex.Match(bare, @"%th(?:(\d{1,5})|\[\\?(.)\])");
+            Match point = Regex.Match(bare, @"%ds(\d{1,5})");
+
+            if (group.Success)
+            {
+                thousands = group.Groups[1].Success ? (char)int.Parse(group.Groups[1].Value) : group.Groups[2].Value[0];
+                bare = bare.Replace(group.Value, string.Empty);
+            }
+
+            if (point.Success)
+            {
+                mark = (char)int.Parse(point.Groups[1].Value);
+                bare = bare.Replace(point.Value, string.Empty);
+            }
+
+            return bare;
+        }
+
+        /// <summary>The marks of a format put in a number written in decimals: 1234567.891 with a comma between thousands is 1,234,567.891; any other text as it is.</summary>
+        private static string Marked(string text, char thousands, char mark)
+        {
+            Match number = thousands == '\0' && mark == '\0' ? null : Regex.Match(text, @"^(-?)(\d+)(\.\d*)?$");
+
+            if (number == null || !number.Success)
+            {
+                return text;
+            }
+
+            string digits = number.Groups[2].Value;
+
+            if (thousands != '\0')
+            {
+                for (int at = digits.Length - 3; at > 0; at -= 3)
+                {
+                    digits = digits.Insert(at, thousands.ToString());
+                }
+            }
+
+            string fraction = number.Groups[3].Value;
+            return number.Groups[1].Value
+                + digits
+                + (mark != '\0' && fraction.Length != 0 ? mark + fraction.Substring(1) : fraction);
+        }
+
+        /// <summary>The thousands and decimal marks a format has put in a number written in decimals; the number as it is for a format of none.</summary>
+        private static string Grouped(string text, string format)
+        {
+            Marks(format, out char thousands, out char mark);
+            return Marked(text, thousands, mark);
         }
 
         /// <summary>
@@ -1057,7 +1193,7 @@ namespace GeometryHelper.Dxf
                     : null;
             }
 
-            string text = Math.Abs(value).ToString("F" + places, CultureInfo.InvariantCulture);
+            string text = Fixed(Math.Abs(value), int.Parse(places, CultureInfo.InvariantCulture));
             return value < 0.0 ? "-" + text : text;
         }
 
@@ -1114,10 +1250,18 @@ namespace GeometryHelper.Dxf
             return sign + text;
         }
 
-        private static Written Whole(int whole)
+        private static Written Whole(int whole) => Whole(whole, null);
+
+        /// <summary>A whole number shown in a format: its thousands mark between thousands, 1,500 for <c>%th[\,]</c>.</summary>
+        private static Written Whole(int whole, string format)
         {
-            string text = whole.ToString(CultureInfo.InvariantCulture);
-            return new Written(DxfDataType.Long, whole, new[] { new KeyValuePair<int, string>(91, text) }, text);
+            string digits = whole.ToString(CultureInfo.InvariantCulture);
+            return new Written(
+                DxfDataType.Long,
+                whole,
+                new[] { new KeyValuePair<int, string>(91, digits) },
+                Grouped(digits, format)
+            );
         }
 
         private static Written Real(double real, string parameter)
@@ -1208,8 +1352,8 @@ namespace GeometryHelper.Dxf
         /// A number shown in a drawing's units (LUNITS) to its places (LUPREC), as AutoCAD 2021 showed a text made a number of
         /// <c>%lu6</c> or <c>%lu1</c> (D33 t1, t2, t16) and a number typed (D39a, D39b): of powers of ten 1.0000E+03, decimal
         /// 12.0000 and -0.5000, rounded half away from nought as its 15 figures write it, 0.015 0.02 at two places on every
-        /// runtime, architectural as <see cref="Architectural"/>, fractional as <see cref="Fractional"/>; of the units of
-        /// engineering, which the library does not write, as the invariant culture writes it.
+        /// runtime, architectural as <see cref="Architectural"/>, fractional as <see cref="Fractional"/>, engineering as
+        /// <see cref="Engineering"/>; of any other units as the invariant culture writes it.
         /// </summary>
         private static string UnitsText(double value, int units, int places)
         {
@@ -1222,6 +1366,8 @@ namespace GeometryHelper.Dxf
                     );
                 case 2:
                     return Fixed(value, places);
+                case 3:
+                    return Engineering(value, places) ?? Numbers.Exact(value + 0.0);
                 case 4:
                     return Architectural(value, Math.Min(places, 9), 0) ?? Numbers.Exact(value + 0.0);
                 case 5:
@@ -1229,6 +1375,38 @@ namespace GeometryHelper.Dxf
                 default:
                     return Numbers.Exact(value + 0.0);
             }
+        }
+
+        /// <summary>
+        /// A number of inches in feet and decimals of an inch, as AutoCAD 2021 showed one of <c>%lu3</c> (D40): 75.25 as
+        /// 6'-3.2500" at four places, 0.5 as 0'-0.5000", 11.99999 as 1'-0.0000" (the inches rounded to their places carried
+        /// into the feet) and -12.5 as -1'-0.5000", the minus only where the number shown is not nought. Null for a number
+        /// of more feet than 32 bits hold.
+        /// </summary>
+        private static string Engineering(double value, int places)
+        {
+            double length = Math.Abs(value);
+            double feet = Math.Floor(length / 12.0);
+
+            if (!(feet <= int.MaxValue))
+            {
+                return null;
+            }
+
+            string inches = Fixed(length - 12.0 * feet, places);
+
+            if (double.Parse(inches, CultureInfo.InvariantCulture) >= 12.0)
+            {
+                feet += 1.0;
+                inches = Fixed(0.0, places);
+            }
+
+            bool nought = feet == 0.0 && inches.Trim('0', '.').Length == 0;
+            return (value < 0.0 && !nought ? "-" : string.Empty)
+                + feet.ToString("0", CultureInfo.InvariantCulture)
+                + "'-"
+                + inches
+                + "\"";
         }
 
         /// <summary>
@@ -1320,9 +1498,11 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A text typed in a cell read as AutoCAD 2021's <c>ConvertTextToValue</c> reads it (D39a, D39b, D39c), spaces round it
-        /// left out: a whole number of 32 bits (units nought), a decimal (units 2), a power of ten (units 1), a fraction (units
-        /// 5) or a point of two or three of the first three with commas, the units of its first; null for any other text.
+        /// A text typed in a cell read as AutoCAD 2021's <c>ConvertTextToValue</c> reads it (D39a, D39b, D39c, D40), spaces round
+        /// it left out: a whole number of 32 bits (units nought), a decimal (units 2), a power of ten (units 1), a fraction
+        /// (units 5), thousands with commas (the units of the figure, <see cref="Thousands"/> set), a length in feet and inches
+        /// (units 4, or 3 where a figure has a decimal point) or a point of two or three of the first three with commas, the
+        /// units of its first; null for any other text.
         /// </summary>
         private sealed class Typing
         {
@@ -1330,9 +1510,26 @@ namespace GeometryHelper.Dxf
 
             private const string Tens = Real + @"[eE][+-]?\d+";
 
+            // Inches as a length gives them: 6 1/2, 6-1/2, 6.5, 6 or 1/2.
+            private const string Inches = @"\d+[ -]\d+/\d+|\d+(?:\.\d*)?|\d+/\d+";
+
             private static readonly Regex WholeForm = new Regex(@"^[+-]?\d+$");
 
-            private static readonly Regex ThousandsForm = new Regex(@"^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d*)?$");
+            // Commas before groups of three figures, whatever stands before the first: 1,500 and ,500 and 1000,000 are
+            // thousands, 1,50 and 1,5000 a point.
+            private static readonly Regex ThousandsForm = new Regex(
+                @"^([+-]?)(\d*(?:,\d{3})+)(\.\d*)?([eE][+-]?\d+)?$"
+            );
+
+            // Feet and inches as AutoCAD 2021 reads them: 12'6", 12'-6", 12' 6", 12'6-1/2", 12'6 and 12' (whole feet, then
+            // inches); 12.5' and 1-1/2' (feet alone); 6.5" and 6 1/2" (inches alone, the mark required). A sign before all.
+            private static readonly Regex FeetForm = new Regex(
+                "^([+-]?)(?:(?<feet>\\d+)'(?:[ -]?(?<inches>"
+                    + Inches
+                    + ")\"?)?|(?<only>\\d+\\.\\d*|(?:\\d+[ -])?\\d+/\\d+)'|(?<across>"
+                    + Inches
+                    + ")\")$"
+            );
 
             private static readonly Regex RealForm = new Regex("^" + Real + "$");
 
@@ -1356,11 +1553,12 @@ namespace GeometryHelper.Dxf
                     + "))?$"
             );
 
-            private Typing(double number, int units, double[] point)
+            private Typing(double number, int units, double[] point, bool thousands = false)
             {
                 Number = number;
                 Units = units;
                 Point = point;
+                Thousands = thousands;
             }
 
             /// <summary>The number; nought for a point.</summary>
@@ -1372,9 +1570,18 @@ namespace GeometryHelper.Dxf
             /// <summary>The point's x, y and z, nought where it gives two; null for a number.</summary>
             internal double[] Point { get; }
 
+            /// <summary>Whether the number was typed with commas between its thousands, which its format then shows.</summary>
+            internal bool Thousands { get; }
+
             internal static Typing Read(string text)
             {
                 string typed = text.Trim();
+
+                // A length, whose marks are in no other form; AutoCAD reads none with a space before its figures.
+                if (typed.IndexOf('\'') >= 0 || typed.IndexOf('"') >= 0)
+                {
+                    return Length(text.TrimEnd());
+                }
 
                 if (WholeForm.IsMatch(typed))
                 {
@@ -1388,9 +1595,28 @@ namespace GeometryHelper.Dxf
                         : null;
                 }
 
-                if (ThousandsForm.IsMatch(typed))
+                Match thousands = ThousandsForm.Match(typed);
+
+                if (thousands.Success)
                 {
-                    return null;
+                    string figures = thousands.Groups[1].Value + thousands.Groups[2].Value.Replace(",", string.Empty);
+                    bool tens = thousands.Groups[4].Success;
+
+                    if (!tens && !thousands.Groups[3].Success)
+                    {
+                        return int.TryParse(
+                            figures,
+                            NumberStyles.AllowLeadingSign,
+                            CultureInfo.InvariantCulture,
+                            out int count
+                        )
+                            ? new Typing(count, 0, null, true)
+                            : null;
+                    }
+
+                    return Finite(figures + thousands.Groups[3].Value + thousands.Groups[4].Value, out double decimals)
+                        ? new Typing(decimals + 0.0, tens ? 1 : 2, null, true)
+                        : null;
                 }
 
                 if (RealForm.IsMatch(typed) || TensForm.IsMatch(typed))
@@ -1441,6 +1667,71 @@ namespace GeometryHelper.Dxf
                     TensForm.IsMatch(point.Groups[1].Value) ? 1 : 2,
                     new[] { x + 0.0, y + 0.0, z + 0.0 }
                 );
+            }
+
+            /// <summary>
+            /// A length in feet and inches as a number of inches, 12'6" being 150 and -6 1/2" -6.5: of the architectural units
+            /// (4) where its figures are whole or fractions, of engineering (3) where one has a decimal point; null for any
+            /// text AutoCAD does not read as one.
+            /// </summary>
+            private static Typing Length(string text)
+            {
+                Match length = FeetForm.Match(text);
+
+                if (!length.Success)
+                {
+                    return null;
+                }
+
+                string feet = length.Groups["feet"].Success ? length.Groups["feet"].Value : length.Groups["only"].Value;
+                string inches =
+                    length.Groups["inches"].Success ? length.Groups["inches"].Value
+                    : length.Groups["across"].Success ? length.Groups["across"].Value
+                    : string.Empty;
+
+                if (
+                    !Figure(feet, out double feetFigure)
+                    || !Figure(inches, out double inchesFigure)
+                    || !Guard.IsFinite(feetFigure * 12.0 + inchesFigure)
+                )
+                {
+                    return null;
+                }
+
+                double total = feetFigure * 12.0 + inchesFigure;
+                bool decimals = feet.IndexOf('.') >= 0 || inches.IndexOf('.') >= 0;
+                return new Typing(length.Groups[1].Value == "-" ? -total : total + 0.0, decimals ? 3 : 4, null);
+            }
+
+            /// <summary>A figure of a length, 6, 6.5, 1/2 or 6 1/2 (with a space or a dash); nought for none; false for a fraction over nought.</summary>
+            private static bool Figure(string text, out double value)
+            {
+                value = 0.0;
+
+                if (text.Length == 0)
+                {
+                    return true;
+                }
+
+                Match mixed = Regex.Match(text, @"^(?:(\d+)[ -])?(\d+)/(\d+)$");
+
+                if (!mixed.Success)
+                {
+                    return Finite(text, out value);
+                }
+
+                if (
+                    !Finite(mixed.Groups[2].Value, out double over)
+                    || !Finite(mixed.Groups[3].Value, out double under)
+                    || !Finite(mixed.Groups[1].Success ? mixed.Groups[1].Value : "0", out double whole)
+                    || !(under > 0.0)
+                )
+                {
+                    return false;
+                }
+
+                value = whole + over / under;
+                return true;
             }
 
             private static bool Finite(string text, out double value) =>
