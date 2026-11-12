@@ -1362,8 +1362,27 @@ in, and the canvas clips to it. Of a clipped reference a pick, a window and a cr
 line of the block outside the boundary picks nothing, and a window round the boundary alone takes the reference. Each cell of
 a MINSERT is clipped by its own place, and the attributes of the reference are clipped too. The frame of the boundary is drawn
 over the reference in its colour while XCLIPFRAME (kept in the drawing, 0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0; at 2 it
-is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle` and `Inverted`. A tilted
-UCS's boundary is drawn as its projection on the plane of the drawing, and EXPLODE leaves the block unclipped.
+is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. A tilted
+UCS's boundary is drawn as its projection on the plane of the drawing.
+
+EXPLODE of a clipped reference breaks the whole block, as AutoCAD 2021's does (probed on a rectangle, a polygon, a clip
+turned inside out and a clip switched off): a block of a square 100 by 100 and a circle, clipped to a rectangle 40 by 50, gives
+the whole square and the whole circle, the clip applied to neither and kept by no piece.
+
+A selected reference that is clipped has, besides its insertion grip, the grips AutoCAD 2021's `GetGripPoints` gives it
+(probed in accoreconsole, whatever the clip's state and XCLIPFRAME): an arrow at the middle of the boundary's first side
+and a grip at each corner of the rectangle, from its lower left counter-clockwise, or at each vertex of the polygon, in
+order. A corner dragged takes the two sides it is on and keeps the opposite corner, the rectangle staying a rectangle (the
+corner (1020, 520) of the rectangle (1020, 520) to (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); one
+dragged past the opposite corner leaves the rectangle in order; one dragged onto a side of it, "Boundaries with zero area are
+not acceptable."); a vertex of a polygon moves alone. The grip's point is put into the boundary's own system through the
+matrices the clip keeps, so that a reference moved, turned or scaled after the clip is dragged where the cursor is. A clip
+turned inside out is dragged the same way, its keyhole made anew about the box that holds the reference. Each drag is one
+undo step, GRIP, and any of the grip modes works on a corner. The arrow, a blue triangle across the first side, points to
+what the clip hides (down on the bottom side of a rectangle in Outside mode, up in Inside mode); a click on it turns the clip
+inside out, or back, at once, one undo step, with no grip edit started: a rectangle of two corners becomes the eleven points
+of its keyhole and returns to two corners. [`CadGrips.ClickClipFlip`](xref:GeometryHelper.Dxf.Viewer.CadGrips) does it, and
+the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind).
 
 ### Grip modes
 

@@ -154,6 +154,53 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// A point of the boundary in the block's own coordinates measured from its origin: the chain of <see cref="GetRing"/> for
+        /// one point, which the presenter's grips on the boundary draw and drag by.
+        /// </summary>
+        internal GeoPoint2 ToBlock(GeoPoint2 point)
+        {
+            State state = Read();
+
+            if (!TryInvert(state.Clip, out double[] fromClip))
+            {
+                return point;
+            }
+
+            double[] world = Apply(fromClip, point.X, point.Y, 0.0);
+            double[] block = Apply(state.Inverse, world[0], world[1], world[2]);
+            return new GeoPoint2(block[0], block[1]);
+        }
+
+        /// <summary>
+        /// The point of the clip coordinate system whose <see cref="ToBlock"/> is a given point of the block's own plane, as far
+        /// as the boundary's plane is the block's: the way back, which a vertex dragged is put by.
+        /// </summary>
+        /// <returns>false where the matrices of the filter flatten space.</returns>
+        internal bool TryFromBlock(GeoPoint2 block, out GeoPoint2 clip)
+        {
+            State state = Read();
+            clip = default;
+
+            if (!TryInvert(state.Inverse, out double[] toWorld))
+            {
+                return false;
+            }
+
+            double[] world = Apply(toWorld, block.X, block.Y, 0.0);
+            double[] inside = Apply(state.Clip, world[0], world[1], world[2]);
+            clip = new GeoPoint2(inside[0], inside[1]);
+            return true;
+        }
+
+        /// <summary>Writes the points of the boundary, the rest of the filter as it is: how a vertex of the boundary is dragged.</summary>
+        internal void SetPoints(IReadOnlyList<GeoPoint2> points)
+        {
+            State state = Read();
+            state.Points = new List<GeoPoint2>(points);
+            Write(state);
+        }
+
+        /// <summary>
         /// Erases the filter, as AutoCAD's <c>Erase</c>: it is taken out of the file, with the entry of the dictionary that names
         /// it.
         /// </summary>

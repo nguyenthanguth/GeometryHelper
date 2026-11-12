@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -116,6 +117,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// column pointing down: sets that column's height, at least the text height.
         /// </summary>
         MTextColumnHeight,
+
+        /// <summary>
+        /// A corner of the clip boundary of a block reference or an external reference (XCLIP), or a vertex of its polygon:
+        /// moves that corner of a rectangle (the two sides it is on, the opposite corner kept) or that vertex alone.
+        /// </summary>
+        ClipVertex,
+
+        /// <summary>
+        /// The arrow at the middle of the first side of a clip boundary, pointing across it to what the clip hides: clicked,
+        /// turns the clip inside out (<see cref="CadGrips.ClickClipFlip"/>); not dragged.
+        /// </summary>
+        ClipFlip,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
@@ -194,7 +207,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// the right or the bottom they stand at the other side, pointing the other way. Its location alone for an MTEXT of no
         /// width or out of the plan. A TOLERANCE's, as AutoCAD 2021 shows it: its insertion point alone. A table's, as AutoCAD 2021's: its move grip at the top left, a column grip at each line between columns on
         /// its top edge, its width, height and size stretch grips at the top right, bottom left and bottom right, and the table
-        /// breaking grip under the middle of its bottom edge, which is not offered.
+        /// breaking grip under the middle of its bottom edge, which is not offered. A block reference's, after its insertion
+        /// point and its dynamic block's grips, where it is clipped by XCLIP, as AutoCAD 2021's: an arrow at the middle of the
+        /// boundary's first side (<see cref="CadGripKind.ClipFlip"/>, its <see cref="CadGrip.Direction"/> across the side to
+        /// what the clip hides) and a grip at each corner of a rectangle, from its lower left counter-clockwise, or each vertex
+        /// of a polygon (<see cref="CadGripKind.ClipVertex"/>); a block 100 by 100 clipped to the rectangle (20, 20) to (60, 70)
+        /// has grips at (40, 20), the arrow, then (20, 20), (60, 20), (60, 70) and (20, 70).
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -327,6 +345,8 @@ namespace GeometryHelper.Dxf.Viewer
                         );
                     }
 
+                    // A clipped reference's boundary: the arrow and a grip at each corner, as AutoCAD 2021 gives them.
+                    ClipGrips(insert, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;
                 case DxfDimension dimension:
                     DimensionGrips(dimension, (kind, at) => Add(kind, at.X, at.Y));
@@ -376,7 +396,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// MoveGripPointsAt does, the step taken the way the grip points, the location kept (see the kinds from
         /// <see cref="CadGripKind.MTextColumnWidth"/> on): two static columns 120 wide with a gutter of 20 have, dragged 50 out,
         /// columns 130 wide and no gutter by the first column's grip (the total kept), a gutter of 70 by the last column's;
-        /// widths and heights stop at the text height, a gutter at nought.
+        /// widths and heights stop at the text height, a gutter at nought. A corner of a clip boundary
+        /// (<see cref="CadGripKind.ClipVertex"/>) takes the two sides of a rectangle it is on, the opposite corner kept, or a
+        /// polygon's vertex alone, the clip kept inside out where it is: the corner (1020, 520) of the rectangle (1020, 520) to
+        /// (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); a boundary of no area is refused.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -427,6 +450,25 @@ namespace GeometryHelper.Dxf.Viewer
             if (grip.Custom != null)
             {
                 return CadDynamicBlocks.Drag(document, handle, grip, to);
+            }
+
+            if (grip.Kind == CadGripKind.ClipFlip)
+            {
+                return CadEditResult.Refuse("The arrow of a clip boundary is clicked, not dragged.");
+            }
+
+            if (grip.Kind == CadGripKind.ClipVertex)
+            {
+                return DragClipVertex(
+                    document,
+                    (DxfBlockReference)entity,
+                    handle,
+                    "Grip " + gripIndex,
+                    CadCommands.Values(grip.Point.X, grip.Point.Y),
+                    CadCommands.Values(to.X, to.Y),
+                    gripIndex - grips.First(g => g.Kind == CadGripKind.ClipVertex).Index,
+                    to
+                );
             }
 
             if (entity is DxfTable && grip.Kind != CadGripKind.Insertion)

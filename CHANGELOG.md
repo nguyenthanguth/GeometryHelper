@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The grips on the clip boundary of a clipped block reference or external reference in the presenter, as AutoCAD 2021's
+`GetGripPoints` gives them (probed in accoreconsole): a selected reference has its insertion grip, an arrow at the middle of the
+boundary's first side and a grip at each corner of the rectangle or vertex of the polygon (`CadGripKind.ClipFlip` and
+`CadGripKind.ClipVertex`, listed by `CadGrips.Of`). A corner dragged takes its two sides and keeps the opposite corner, the
+rectangle staying one (the corner (1020, 520) of the rectangle (1020, 520) to (1080, 570) dragged to (1010, 510) leaves
+(1010, 510) to (1080, 570); onto a side of the opposite corner it says `Boundaries with zero area are not acceptable.`); a
+polygon's vertex moves alone; a clip turned inside out stays so, its keyhole made anew about the reference's box. The point is
+carried through the matrices the clip keeps, so that a reference scaled, turned or moved after the clip is dragged where the
+cursor is. One undo step, GRIP, and every grip mode works. A click on the arrow turns the clip inside out, or back, at once
+(`CadGrips.ClickClipFlip`, one undo step): a rectangle of two corners becomes the eleven points of its keyhole and returns to
+two. `CadXClips.TryUninvert` takes a keyhole back to its polygon, wherever the ring starts.
+**NEW.** EXPLODE of a clipped block reference is checked against AutoCAD 2021 (probed on a rectangle, a polygon, a clip turned
+inside out and a clip off): it breaks the whole block, the clip applied to no piece, as the presenter does; a test keeps it so.
+
 **FIXED.** Edit Drawing Scales in the presenter now works as AutoCAD 2021's. Reset's question offers the three buttons AutoCAD's
 task dialog has, Metric scales (1:1 to 100:1, 17 scales), Imperial scales (1:1 and `1/128" = 1'-0"` to `1'-0" = 1'-0"`, 17)
 and Metric and Imperial scales (the metric ones then the 16 imperial ones that are not 1:1, 33), where it offered the

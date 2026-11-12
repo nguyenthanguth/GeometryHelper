@@ -12,7 +12,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed partial class MainViewModel
     {
         /// <summary>
-        /// A custom grip of a dynamic block reference clicked, as the canvas reports it: a flip grip flips the block at once,
+        /// A custom grip of a dynamic block reference clicked, or the arrow of a clip boundary, as the canvas reports it: the arrow turns the clip inside out at once, a flip grip flips the block at once,
         /// one undo step, and gives no list; a visibility or a lookup grip gives its list, a row of each value allowed in the
         /// parameter's order, the value shown ticked, a row chosen setting it.
         /// </summary>
@@ -27,6 +27,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadDocument document = _current.Document;
+
+            // The arrow of a clip boundary turns the clip inside out at once, one undo step.
+            if (document.FindEntity(handle) is DxfBlockReference clipped)
+            {
+                IReadOnlyList<CadGrip> grips = CadGrips.Of(clipped);
+
+                if (gripIndex >= 0 && gripIndex < grips.Count && grips[gripIndex].Kind == CadGripKind.ClipFlip)
+                {
+                    CadEditResult turned = CadGrips.ClickClipFlip(document, handle, gripIndex);
+
+                    if (!turned.Succeeded)
+                    {
+                        Say(turned.Message);
+                    }
+
+                    return null;
+                }
+            }
+
             IReadOnlyList<string> values = CadDynamicBlocks.ValuesOf(document, handle, gripIndex, out string shown);
 
             if (values.Count == 0)
