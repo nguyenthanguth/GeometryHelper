@@ -218,9 +218,31 @@ namespace GeometryHelper.Dxf.Viewer
 
             string old = table.TextString(row, column);
 
-            if (string.Equals(old, text, StringComparison.Ordinal))
+            // The words the cell shows, or those the editor opened it with (1.5 for 1.5000), change nothing.
+            if (
+                string.Equals(old, text, StringComparison.Ordinal)
+                || string.Equals(table.TextStringForEditing(row, column), text, StringComparison.Ordinal)
+            )
             {
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            // A text that is not a number over a number, or a number over a point, as AutoCAD 2021 refuses it: the cell keeps its
+            // value. Empty words clear the cell, as Delete does.
+            if (text.Length != 0 && table.RefusesText(row, column, text))
+            {
+                string kind = table.DataType(row, column) == DxfDataType.Point3d ? "point" : "number";
+                return CadEditResult.Refuse(
+                    "Cell "
+                        + CellName(row, column)
+                        + " holds a "
+                        + kind
+                        + ", and \""
+                        + text
+                        + "\" is not a "
+                        + kind
+                        + "."
+                );
             }
 
             // A whole number, as AutoCAD 2021's SetValue of a text with ConvertTextToValue made 1 and 007 the numbers 1 and 7

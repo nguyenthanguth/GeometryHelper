@@ -1836,7 +1836,7 @@ namespace GeometryHelper.Dxf
             cell.WriteValue(
                 ((int)written.Kind).ToString(CultureInfo.InvariantCulture),
                 written.Data,
-                whole ? written.Text : Shown(value, format),
+                whole ? Grouped(written.Text, format) : Shown(value, format),
                 null,
                 format,
                 false,

@@ -313,6 +313,49 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
         public string TextString(int row, int col) => DxfReader.Decode(Cell(row, col).Text());
 
+        /// <summary>
+        /// Gets the text of a cell as the editor opens it, as AutoCAD 2021's <c>GetTextString(FormatOption.ForEditing)</c>: a
+        /// number as it is to 16 figures, its zeros and the places of its format left off, 1.5 for a cell that shows 1.5000,
+        /// 0.333333333333333 for a third, 1.000000000000000E+03 for 1000 in powers of ten, 10923/32768 for a third in fractions,
+        /// 1'-0 1/2" for 12.5 in feet and inches and 1, 5, 0 for a point; the format's unit is its <c>%lu</c> (6, the
+        /// drawing's, follows LUNITS) and a cell of none is in decimals. The thousands, prefix and suffix of a format are left
+        /// out. Any other cell, a text or a date, a block or one before R2007, gives its <see cref="TextString(int, int)"/>.
+        /// </summary>
+        /// <param name="row">The row, from nought.</param>
+        /// <param name="col">The column, from nought.</param>
+        /// <returns>The text.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the cell is not one of the table's.</exception>
+        public string TextStringForEditing(int row, int col)
+        {
+            CellView cell = Cell(row, col);
+
+            if (cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            {
+                return TextString(row, col);
+            }
+
+            switch (KindOf(cell))
+            {
+                case DxfDataType.Long:
+                    return cell.Value() is int whole
+                        ? whole.ToString(CultureInfo.InvariantCulture)
+                        : TextString(row, col);
+                case DxfDataType.Double:
+                    return cell.Value() is double real
+                        ? EditingText(real, EditingUnits(cell.InValue(300)))
+                        : TextString(row, col);
+                case DxfDataType.Point3d:
+                    return
+                        Numbers.TryRead(cell.InValue(11), out double x)
+                        && Numbers.TryRead(cell.InValue(21), out double y)
+                        && Numbers.TryRead(cell.InValue(31), out double z)
+                        ? DxfTableEditingText.Point(x, y, z)
+                        : TextString(row, col);
+                default:
+                    return TextString(row, col);
+            }
+        }
+
         /// <summary>Gets the text of a cell as the file holds it, as AutoCAD's <c>TextStringConst</c>: the same as <see cref="TextString(int, int)"/>.</summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
