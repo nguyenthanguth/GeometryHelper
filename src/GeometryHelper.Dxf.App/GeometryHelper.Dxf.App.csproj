@@ -11,7 +11,14 @@
         <Description>GeometryHelper DXF: the standalone app that opens, edits and plots DXF drawings, laid out as AutoCAD 2D.</Description>
         <IsPackable>false</IsPackable>
         <NoWarn>$(NoWarn);MSB3277</NoWarn>
+        <ApplicationIcon>Icons\app.ico</ApplicationIcon>
     </PropertyGroup>
+
+    <!-- The icons Icons\make-icons.ps1 writes: the window's, and a drawing file's, which the register switch names beside the exe. -->
+    <ItemGroup>
+        <EmbeddedResource Include="Icons\app.ico" LogicalName="GeometryHelper.Dxf.App.app.ico" />
+        <None Include="Icons\drawing-file.ico" Link="drawing-file.ico" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\GeometryHelper.Dxf.Viewer.Wpf\GeometryHelper.Dxf.Viewer.Wpf.csproj" />

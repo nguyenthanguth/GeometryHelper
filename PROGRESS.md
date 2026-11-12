@@ -223,7 +223,7 @@ the ones wanted.
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual
       styles (need design); EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
       layouts (S)
-- [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
+- [x] Dxf.App: an app icon, file association for .dxf/.dwg (HKCU, --register/--unregister), `--tab Home` in screenshot mode (design v131)
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
