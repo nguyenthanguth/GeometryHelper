@@ -195,7 +195,8 @@ the ones wanted.
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
 - [x] Angle follow-ups: ATTSYNC keeps XData and names the dynamic block, the angle override in the DYN field, LIST of ellipses and dimensions as AutoCAD
-- [ ] ATTSYNC and LIST follow-ups: ATTSYNC of a dynamic block also syncs its *U INSERTs against the dynamic block's definitions (DECIDED by recommendation 2026-11-12); LIST of jogged radius, Y ordinate, rotations 180/270, non-world UCS, "associative: yes"; other long kind names running into "Layer:" (MULTILEADER) (S)
+- [x] ATTSYNC and LIST follow-ups: *U INSERTs synced, LIST names, jogged radius, UCS rotations, Y ordinate and associative pinned
+- [ ] LIST/blocks follow-ups: "dimension style overrides:" lines in LIST; BCLOSE leaving *U blocks stale (AutoCAD's UpdateAnonymousBlocks); ATTSYNC placement for *U unprobed (ATTSYNC not in the console) (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual

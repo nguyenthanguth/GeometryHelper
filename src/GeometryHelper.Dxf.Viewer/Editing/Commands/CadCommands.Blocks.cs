@@ -2669,8 +2669,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// each definition not constant, in the block's order, its value kept where the INSERT had the tag; those of tags the
         /// block no longer defines removed; each placed and styled from its definition as the INSERT places it. "?" lists the
         /// blocks with attributes. An INSERT of a dynamic block picked names the dynamic block, not the anonymous *U block it
-        /// places. A block picked that has no attribute definitions is refused, "This block has no attribute definitions.", and
-        /// another asked for. One undo step.
+        /// places; a dynamic block synced brings in line the INSERTs of its *U blocks too, against the dynamic block's
+        /// definitions, each keeping its dynamic properties. A block picked that has no attribute definitions is refused, "This
+        /// block has no attribute definitions.", and another asked for. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeSync(CadCommandContext c)
         {
@@ -2836,6 +2837,11 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(s.Database, name))
                 {
                     Sync(pair.Value, definitions);
+
+                    if (pair.Value.AnonymousBlockTableRecord != null)
+                    {
+                        FollowActions(pair.Value);
+                    }
                 }
             });
 
@@ -2852,7 +2858,44 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The INSERTs of a block with the block or layout each stands in, in the order of the block table and of each block; external references left out.</summary>
+        /// <summary>
+        /// Takes the attributes of an INSERT of an anonymous *U block, just placed from the dynamic block's definitions, where
+        /// the INSERT's dynamic properties put their definitions, so that it keeps its values: TAG locked at (95, 20) in a
+        /// stretch of a Width set to 150 from the block's 100 stands 50 further along x. A block the library does not work out
+        /// leaves them where the definitions put them.
+        /// </summary>
+        private static void FollowActions(DxfBlockReference insert)
+        {
+            List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow;
+
+            try
+            {
+                follow = DxfDynamicBlockRepresentation.FollowedFromOwn(insert);
+            }
+            catch (NotSupportedException e)
+            {
+                GeometryHelperLog.Debug(
+                    "CadCommands: ATTSYNC left the attributes of the INSERT "
+                        + insert.Handle
+                        + " where the definitions of "
+                        + insert.DynamicBlockTableRecord.Name
+                        + " put them: "
+                        + e.Message
+                );
+                return;
+            }
+
+            foreach (KeyValuePair<DxfAttributeReference, GeoTransform3> attribute in follow)
+            {
+                attribute.Key.TransformBy(attribute.Value);
+            }
+        }
+
+        /// <summary>
+        /// The INSERTs of a block with the block or layout each stands in, in the order of the block table and of each block;
+        /// external references left out. Those of a dynamic block include the INSERTs of the anonymous *U blocks that stand
+        /// for it, as AutoCAD's <c>DynamicBlockTableRecord</c> names it for them.
+        /// </summary>
         private static List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>> InsertsOf(
             DxfDatabase database,
             string name
@@ -2872,7 +2915,18 @@ namespace GeometryHelper.Dxf.Viewer
                     if (
                         entity is DxfBlockReference insert
                         && !insert.IsErased
-                        && string.Equals(insert.Name, name, StringComparison.OrdinalIgnoreCase)
+                        && (
+                            string.Equals(insert.Name, name, StringComparison.OrdinalIgnoreCase)
+                            || (
+                                (insert.Name ?? string.Empty).StartsWith("*", StringComparison.Ordinal)
+                                && insert.AnonymousBlockTableRecord != null
+                                && string.Equals(
+                                    insert.DynamicBlockTableRecord.Name,
+                                    name,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            )
+                        )
                     )
                     {
                         inserts.Add(new KeyValuePair<DxfBlockTableRecord, DxfBlockReference>(owner, insert));

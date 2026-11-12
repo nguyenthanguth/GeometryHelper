@@ -228,18 +228,9 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
                 CadSpace space = c.Document.FindSpace(handle);
-                // A dimension of any type is a DIMENSION, two spaces before its layer, as AutoCAD 2021 writes it.
-                c.Write(
-                    new string(' ', 18)
-                        + (
-                            entity is DxfDimension
-                                ? "DIMENSION  "
-                                : CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10)
-                        )
-                        + "Layer: \""
-                        + entity.Layer
-                        + "\""
-                );
+                // The kind set in eight places and two more before its layer, as AutoCAD 2021 writes it: "LINE      Layer:",
+                // "DIMENSION  Layer:", "MULTILEADER  Layer:".
+                c.Write(new string(' ', 18) + ListedKind(entity).PadRight(8) + "  Layer: \"" + entity.Layer + "\"");
                 c.Write(
                     new string(' ', 28) + "Space: " + (space == null || space.IsModel ? "Model space" : "Paper space")
                 );
@@ -252,7 +243,29 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline, a point, an ellipse and a dimension (a jogged radius aside), the rows Properties shows for the others.</summary>
+        /// <summary>
+        /// The kind LIST names an object by, as AutoCAD 2021 names it: DIMENSION for a dimension of any type, BLOCK REFERENCE
+        /// for an INSERT or a MINSERT, ATTRIBUTE DEFINITION, 3D FACE, and the type of its record for the others (LWPOLYLINE,
+        /// POLYLINE, MULTILEADER, ACAD_TABLE, IMAGE).
+        /// </summary>
+        private static string ListedKind(DxfEntity entity)
+        {
+            switch (entity)
+            {
+                case DxfDimension _:
+                    return "DIMENSION";
+                case DxfBlockReference _:
+                    return "BLOCK REFERENCE";
+                case DxfAttributeDefinition _:
+                    return "ATTRIBUTE DEFINITION";
+                case DxfFace _:
+                    return "3D FACE";
+                default:
+                    return entity.Item?.Type ?? CadProperties.KindOf(entity).ToUpperInvariant();
+            }
+        }
+
+        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline, a point, an ellipse and a dimension, the rows Properties shows for the others.</summary>
         private static IEnumerable<string> Listed(CadCommandContext c, DxfEntity entity, string handle, CadSpace space)
         {
             switch (entity)
@@ -312,7 +325,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     yield break;
-                case DxfDimension dimension when !(dimension is DxfRadialDimensionLarge):
+                case DxfDimension dimension:
                     foreach (string line in ListedDimension(c, dimension))
                     {
                         yield return line;
@@ -395,7 +408,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// points, its obliquing and text angles where it has them, its text position and text, its style and whether it is
         /// annotative. The rotation of a rotated dimension is an amount turned, counted the way ANGDIR counts from the X axis (30
         /// reads 330 with ANGDIR 1, whatever ANGBASE is); the obliquing and text angles are directions, counted from ANGBASE (30
-        /// reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD writes them.
+        /// reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD writes them. In a turned UCS the points are the UCS's and the
+        /// rotation and obliquing angle are counted from its X axis (a dimension turned 30 is horizontal in a UCS turned 30), the
+        /// text angle left as it is. A jogged radius writes its centre, chord point, override centre and jog point.
         /// </summary>
         private static IEnumerable<string> ListedDimension(CadCommandContext c, DxfDimension dimension)
         {
@@ -406,7 +421,8 @@ namespace GeometryHelper.Dxf.Viewer
             switch (dimension)
             {
                 case DxfRotatedDimension rotated:
-                    double turn = rotated.Rotation;
+                    // Counted from the UCS's X axis: one turned 30 is horizontal in a UCS turned 30, as AutoCAD 2021 lists it.
+                    double turn = c.Session.Ucs.AngleToUcs(rotated.Rotation);
                     bool horizontal = Math.Abs(Math.IEEERemainder(turn, 2.0 * Math.PI)) <= tolerance;
                     bool vertical = Math.Abs(Math.IEEERemainder(turn - Math.PI / 2.0, 2.0 * Math.PI)) <= tolerance;
                     yield return "type: "
@@ -455,6 +471,13 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return "arc center    defining point: " + At(c, arc.CenterPoint);
                     yield return "dimension arc defining point: " + At(c, arc.ArcPoint);
                     break;
+                case DxfRadialDimensionLarge jogged:
+                    yield return "type: jogged";
+                    yield return "center defining point:          " + At(c, jogged.Center);
+                    yield return "chord point defining point:     " + At(c, jogged.ChordPoint);
+                    yield return "override center defining point: " + At(c, jogged.OverrideCenter);
+                    yield return "jog point defining point:       " + At(c, jogged.JogPoint);
+                    break;
                 case DxfRadialDimension radial:
                     yield return "type: radial";
                     yield return "center defining point: " + At(c, radial.Center);
@@ -475,7 +498,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (Math.Abs(Math.IEEERemainder(oblique, 2.0 * Math.PI)) > tolerance)
             {
-                yield return "obliquing angle:" + Degrees(c, c.Session.CountAngle(oblique)).PadLeft(7);
+                yield return "obliquing angle:"
+                    + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(oblique))).PadLeft(7);
             }
 
             if (Math.Abs(Math.IEEERemainder(dimension.TextRotation, 2.0 * Math.PI)) > tolerance)

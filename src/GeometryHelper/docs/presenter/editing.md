@@ -205,7 +205,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
@@ -717,8 +717,12 @@ Angle writes the angle it measures as AutoCAD 2021 does, as the direction of tha
 between two lines reads 60 with ANGBASE 90 and ANGDIR 1. LIST writes an ellipse and a dimension line for line as AutoCAD
 2021 does: an elliptical arc from 30 to 120 degrees "Start Angle: 60" and "End Angle: 330" with ANGBASE 90 and ANGDIR 1,
 the obliquing and text angles of a dimension as directions (30 reads 60), and the rotation of a rotated dimension as an
-amount turned, by ANGDIR alone (30 reads 330 clockwise, whatever ANGBASE is). What the drawing keeps stays
-counter-clockwise from the X axis.
+amount turned, by ANGDIR alone (30 reads 330 clockwise, whatever ANGBASE is). In a UCS turned 30 degrees a dimension's
+points are the UCS's and its rotation and obliquing angle are counted from the UCS's X axis, so one turned 30 is
+horizontal and one turned 90 rotated by 60, its text angle left as it is; a jogged radius writes its centre, chord point,
+override centre and jog point. Each object's kind stands two places before its layer, as AutoCAD names it:
+"MULTILEADER  Layer:", "LWPOLYLINE  Layer:", "BLOCK REFERENCE  Layer:" for an INSERT or a MINSERT, "ACAD_TABLE  Layer:".
+What the drawing keeps stays counter-clockwise from the X axis.
 `CadUnits.ToDirection` and `FromDirection` are the two conversions, and `session.CountAngle(radians)` the second with
 the drawing's settings.
 
