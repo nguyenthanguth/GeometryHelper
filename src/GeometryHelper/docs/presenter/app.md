@@ -173,17 +173,18 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | middle button double-clicked | zooms to the extents, the paper included in a layout; through a viewport, its view to model space's extents |
 | left double click in a layout | inside a viewport's frame works through it (MSPACE); off every frame goes back to the paper (PSPACE); a click in another viewport's frame works through that one |
 | MODEL / PAPER on the status bar, Ctrl+R | in a layout a button, raised on the paper and pressed through a viewport: MSPACE or PSPACE; Ctrl+R the next viewport; on the Model tab a label. The scale beside it opens its list: in a layout the viewport's (Scale to fit, the standard scales, Custom...), grey while the padlock after it locks the viewport's display; on the Model tab the annotation scale (CANNOSCALE) |
-| left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box |
+| left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box, the implied window: the command line asks "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and the Y of the cursor itself. The next click, or a point typed, ends the box; F, WP or CP turns it into a fence or a polygon whose first point is the corner, asking its next points until Enter; Esc cancels it, "*Cancel*" after the prompt in the history. Its corners take no object snap |
 | click / double click in DRAWINGS | selects the row / opens it; the right-click menu has Open, Close, Close Selected Drawings, Close All Other Drawings, Close All Drawings |
-| Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone. Each item takes AutoCAD's access key while the menu is open: F From, k Temporary track point, 2 Mid Between 2 Points, E Endpoint, M Midpoint, I Intersection, A Apparent Intersection, x Extension, C Center, G Geometric Center, Q Quadrant, T Tangent, P Perpendicular, l Parallel, d Node, s Insertion, r Nearest, N None, O Osnap Settings...; Point Filters has none |
-| left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner. Left to right it is a window, blue a quarter strong over the drawing with a solid edge; right to left a crossing, green with an edge dashed 4 pixels on and 2 off; both edged in the crosshair's colour, as AutoCAD 2021 draws them. While the box or a lasso is dragged the cursor is the cross alone, the pickbox coming back once it ends. The box of "Select objects:" W, C or BOX is drawn the same way and alone, with no rubber band from its first corner |
+| Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone. Each item takes AutoCAD's access key while the menu is open: F From, k Temporary track point, t Mid Between 2 Points and Point Filters (the key moves between the two), E Endpoint, M Midpoint, I Intersection, A Apparent Intersection, x Extension, C Center, Q Quadrant, g Tangent, P Perpendicular, l Parallel, d Node, s Insertion, r Nearest, N None, O Osnap Settings...; Geometric Center has none, as in AutoCAD 2021's menu. The right-click menu of a selection holding a dynamic block takes R for Reset Block |
+| left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner. Left to right it is a window, blue a quarter strong over the drawing with a solid edge; right to left a crossing, green with an edge dashed 4 pixels on and 2 off; both edged in the crosshair's colour, as AutoCAD 2021 draws them. While the box or a lasso is dragged the cursor is the cross alone, the pickbox coming back once it ends, and a box carries AutoCAD's cursor badge 12 pixels right of the cursor and 21 above: a square 9 pixels across filled blue for a window, dashed round a green middle for a crossing. SCALE carries its own badge, a square with a smaller one filled in its lower left corner, while it runs. The box of "Select objects:" W, C or BOX is drawn the same way and alone, with no rubber band from its first corner |
 | cursor over an entity | drawn 2 pixels wide in its colour taken halfway to the selection colour |
 | a grip clicked | makes it hot and starts the grip modes, `** STRETCH **` first (see [Grip modes](editing.md#grip-modes)); Shift+click makes several hot; dragged, stretches it where it is let go |
 | left click, a command running | answers its prompt: a point taken through the snaps, with a rubber band from the base point; or objects, by a click or a box |
 | right click, a command running | Enter |
 
 While MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a copy of the objects follows the cursor, each in
-its own colour, as AutoCAD 2021 drags them, with a rubber band dashed amber from the base point; an XLINE or a RAY among
+its own colour, as AutoCAD 2021 drags them, with a rubber band dashed amber from the base point, and no square marks the
+base point, as none of AutoCAD's prompts marks one; an XLINE or a RAY among
 them is drawn across the view as the canvas draws it, moved, turned, scaled or mirrored with the rest. ROTATE and SCALE
 move it by a Reference too, and an array shows every copy while its options are offered. Where the objects are to leave
 their place, at MOVE's second point and at ROTATE's and SCALE's angle and factor without Copy, they are drawn faded where
@@ -227,7 +228,9 @@ for 300 milliseconds, as AutoCAD 2021's AutoComplete. LA typed lists LAYER first
 commands that begin with LA, the ones used most first and the rest by name, then the system variables that begin with LA
 (each marked {x}), then, below a rule, the names with LA inside: CLAYER, PLAN, POLAR. The first row is chosen: Enter or
 Space runs it, the arrows move it, a click runs another and Esc closes the list and clears what is typed, as AutoCAD's does. Typing on with the
-list open updates it at once.
+list open updates it at once. The list shows five rows at a time, at the command line and under the box of dynamic input
+alike, the rest scrolled to with the wheel, and the row the arrows choose is scrolled into sight: A typed shows ARC,
+ATTDEF, ALIGN, AREA and ARRAY, the others below.
 
 - **Most used first.** Each command run is counted, and the counts are kept in the settings file, so that a command used
   three times comes before one used once among those that begin with the same letters.

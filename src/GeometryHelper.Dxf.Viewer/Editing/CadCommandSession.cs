@@ -838,6 +838,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            // The implied window asks at the Command prompt, and its answer is written after "Command:", as AutoCAD writes it.
+            if (IsWindowOpen && line != null && line.StartsWith(Prompt.Text, StringComparison.Ordinal))
+            {
+                line = "Command: " + line;
+            }
+
             _history.Add(line ?? string.Empty);
         }
 

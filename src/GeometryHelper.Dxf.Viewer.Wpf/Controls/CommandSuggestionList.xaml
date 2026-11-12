@@ -14,7 +14,8 @@
     <!--
     The command line's AutoComplete list (design CmdAutoComplete): a row per command, synonym or system variable, the letters
     typed in bold accent, the variables with {x}, the names with the letters inside below a rule, and the named objects of
-    Search Content below another, their kind at the right. Its data context is the MainViewModel; a click runs a row.
+    Search Content below another, their kind at the right. Five rows show at a time, the rest scrolled to. Its data context
+    is the MainViewModel; a click runs a row.
     -->
     <UserControl.Resources>
         <ResourceDictionary>
@@ -39,9 +40,8 @@
             VerticalScrollBarVisibility="Auto"
             HorizontalScrollBarVisibility="Disabled"
             Focusable="False"
-            MaxHeight="340"
         >
-            <ItemsControl ItemsSource="{Binding Suggestions}" Focusable="False">
+            <ItemsControl x:Name="Rows" ItemsSource="{Binding Suggestions}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type local:CommandSuggestionViewModel}">
                         <StackPanel>
