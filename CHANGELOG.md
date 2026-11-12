@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter drags objects as AutoCAD 2021 does, after the maintainer's pictures of its SCALE: while
+MOVE, COPY, ROTATE, SCALE, MIRROR, ALIGN, an array or a grip edit waits for its point, the copy at the cursor is drawn in
+the objects' own colours, not dashed blue, and the rubber band from the base point is dashed amber, 16 pixels on and 9
+off. At MOVE's second point and at ROTATE's angle and SCALE's factor without Copy, the objects are drawn faded where they
+stand, a fifth of their colour (a white line on black a grey of 51), rather than highlighted. SCALE's box at the cursor
+shows the factor alone, 0.50 with the cursor 0.5 from the base point, where it showed "0.50 < 306.9°". A selection
+window is blue and a crossing green, a quarter strong over the drawing, where they were a tenth; both are edged in the
+crosshair's colour, the crossing dashed 4 on and 2 off. While a window, a crossing or a lasso is dragged the cursor is
+the cross alone, without the pickbox, which comes back once the box ends. The window, crossing, fence or polygon an
+option of "Select objects:" draws is drawn alone, without the rubber band and the base point square it had from its
+first corner.
+
+**FIXED.** The presenter's screenshot mode showed the real dialog of a command its `--run` typed, as Write Block for
+`--run W`, and waited on it: the window hooked its dialogs again once it was given the view model. Such a command asks on
+the command line now, as the rest of the screenshot mode does.
+
+**NEW.** `CadMenuItemViewModel.AccessKey`: the Shift+right-click menu takes AutoCAD's access keys while it is open, F for
+From, E for Endpoint, r for Nearest and the rest, the letter underlined. `CadPreview.FadesOriginals` says whether a preview
+draws the objects it moves faded where they stand.
+
 **FIXED.** `DistanceTo` of a `GeoTriangle3` and a point measured a triangle nearly on one line by a foot along a normal
 that is the rounding of its cross product: the point 5E-14 from two corners 1E-13 apart, of the triangle (35, 54, -67),
 (88, 96, -11), (88, 96.0000000000001, -11), was measured 2.12 away. Such a triangle, no higher than about 3E-8 of its

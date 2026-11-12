@@ -56,8 +56,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                // The marker beside the words, as AutoCAD's OSNAP menu draws it; the tick in the gutter before both.
-                object header = item.Header;
+                // The marker beside the words, as AutoCAD's OSNAP menu draws it; the tick in the gutter before both. Words with an
+                // access key are an AccessText, so that the key typed while the menu is open picks the item.
+                object header = item.AccessKey == '\0' ? (object)item.Header : Words(item);
 
                 if (item.Marker != CadSnapKind.None)
                 {
@@ -73,7 +74,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         }
                     );
                     row.Children.Add(
-                        new TextBlock { Text = item.Header, VerticalAlignment = VerticalAlignment.Center }
+                        item.AccessKey == '\0'
+                            ? new TextBlock { Text = item.Header, VerticalAlignment = VerticalAlignment.Center }
+                            : (UIElement)Words(item)
                     );
                     header = row;
                 }
@@ -91,6 +94,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Fill(menuItem, item.Items);
                 menu.Items.Add(menuItem);
             }
+        }
+
+        /// <summary>
+        /// The words of an item with an access key: an AccessText with the first of that letter in the header, in either case,
+        /// marked, and every other underscore doubled so that it shows as one. "From" with F reads "_From".
+        /// </summary>
+        private static AccessText Words(CadMenuItemViewModel item)
+        {
+            string header = item.Header;
+            int at = header.IndexOf(item.AccessKey.ToString(), StringComparison.OrdinalIgnoreCase);
+            string text =
+                at < 0
+                    ? header.Replace("_", "__")
+                    : header.Substring(0, at).Replace("_", "__") + "_" + header.Substring(at).Replace("_", "__");
+            return new AccessText { Text = text, VerticalAlignment = VerticalAlignment.Center };
         }
 
         /// <summary>Gets a snap kind's marker as a picture 16 pixels across, drawn as the canvas draws it on a dark background.</summary>

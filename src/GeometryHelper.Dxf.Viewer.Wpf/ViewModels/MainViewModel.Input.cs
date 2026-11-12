@@ -184,6 +184,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the value the box of dynamic input shows: what is typed, once something is; else, while a point, a distance or
         /// an angle is asked, the cursor's coordinates, "1 250.00, 400.00", or once the prompt has a base point the distance
         /// and angle to the cursor from it, "500.00 &lt; 90°", in the decimals of Global settings; empty for another prompt.
+        /// SCALE's factor is the distance alone, "0.69" with the cursor 0.69 from the base point, as AutoCAD shows it.
         /// </summary>
         public string DynamicInputValue
         {
@@ -222,6 +223,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 GeoVector2 way = Ucs.ToUcs(_bandAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
+
+                // A scale factor is one number, the distance from the base point, as AutoCAD's SCALE shows it: no angle.
+                if (prompt.Message == ScaleFactorMessage)
+                {
+                    return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals);
+                }
+
                 double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals)
                     + " < "
@@ -906,8 +914,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return prompt != null
                 && prompt.Kind == kind
                 && prompt.BasePoint.HasValue
-                && prompt.Message != "Specify scale factor";
+                && prompt.Message != ScaleFactorMessage;
         }
+
+        /// <summary>The prompt of SCALE and of a grip edit's SCALE for the factor, which dynamic input shows as one number.</summary>
+        private const string ScaleFactorMessage = "Specify scale factor";
 
         private bool SecondTyped() => Parted(out _, out _) || _secondActive;
 

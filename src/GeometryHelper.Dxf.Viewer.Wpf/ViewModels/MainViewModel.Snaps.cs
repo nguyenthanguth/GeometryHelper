@@ -19,11 +19,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string toolTip = null,
             bool? isChecked = null,
             CadSnapKind marker = CadSnapKind.None,
-            string shortcut = null
+            string shortcut = null,
+            char accessKey = '\0'
         )
         {
             Header = header ?? string.Empty;
             Shortcut = shortcut ?? string.Empty;
+            AccessKey = accessKey;
             IsEnabled = isEnabled;
             ToolTip = toolTip;
             IsCheckable = isChecked.HasValue;
@@ -37,14 +39,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             : this(header, true, items) { }
 
         /// <summary>Makes an item that opens a menu of its own, greyed where it is off: a grey one never opens its menu.</summary>
-        internal CadMenuItemViewModel(string header, bool isEnabled, IReadOnlyList<CadMenuItemViewModel> items)
-            : this(header, (Action)null, isEnabled)
+        internal CadMenuItemViewModel(
+            string header,
+            bool isEnabled,
+            IReadOnlyList<CadMenuItemViewModel> items,
+            char accessKey = '\0'
+        )
+            : this(header, (Action)null, isEnabled, accessKey: accessKey)
         {
             Items = items;
         }
 
         /// <summary>Gets the keys written at its right, as "Ctrl+1"; empty for none.</summary>
         public string Shortcut { get; }
+
+        /// <summary>
+        /// Gets the access key, the letter of <see cref="Header"/> underlined that picks the item when typed while its menu is
+        /// open, as AutoCAD's menus have them: 'F' for From of the Shift+right-click menu. The first of that letter in the
+        /// header, in either case, is the one underlined; '\0' for none.
+        /// </summary>
+        public char AccessKey { get; }
 
         /// <summary>Gets the text, as "Close All Other Drawings"; empty for a separator.</summary>
         public string Header { get; }
@@ -249,9 +263,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             var items = new List<CadMenuItemViewModel>
             {
-                new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt")),
-                new CadMenuItemViewModel("From", () => ModifyPoint("_from")),
-                new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p")),
+                new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt"), accessKey: 'k'),
+                new CadMenuItemViewModel("From", () => ModifyPoint("_from"), accessKey: 'F'),
+                new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p"), accessKey: '2'),
                 new CadMenuItemViewModel(
                     "Point Filters",
                     new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
@@ -263,12 +277,64 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             items.AddRange(
                 OverrideMenuOrder
                     .Select(k => SnapModeTable.First(i => i.Kind == k))
-                    .Select(i => new CadMenuItemViewModel(i.Name, () => OverrideSnap(i.Mode), true, null, null, i.Kind))
+                    .Select(i => new CadMenuItemViewModel(
+                        i.Name,
+                        () => OverrideSnap(i.Mode),
+                        true,
+                        null,
+                        null,
+                        i.Kind,
+                        accessKey: OverrideMenuKey(i.Kind)
+                    ))
             );
-            items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None)));
+            items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None), accessKey: 'N'));
             items.Add(CadMenuItemViewModel.Separator());
-            items.Add(new CadMenuItemViewModel("Osnap Settings...", () => RequestDraftingSettings(null)));
+            items.Add(
+                new CadMenuItemViewModel("Osnap Settings...", () => RequestDraftingSettings(null), accessKey: 'O')
+            );
             return items;
+        }
+
+        /// <summary>
+        /// The access key of an object snap in the Shift+right-click menu, as AutoCAD's menu underlines it: Endpoint E,
+        /// Midpoint M, Intersection I, Apparent Intersection A, Extension X, Center C, Geometric Center G, Quadrant Q, Tangent
+        /// T, Perpendicular P, Parallel L, Node D, Insertion S, Nearest R.
+        /// </summary>
+        private static char OverrideMenuKey(CadSnapKind kind)
+        {
+            switch (kind)
+            {
+                case CadSnapKind.Endpoint:
+                    return 'E';
+                case CadSnapKind.Midpoint:
+                    return 'M';
+                case CadSnapKind.Intersection:
+                    return 'I';
+                case CadSnapKind.ApparentIntersection:
+                    return 'A';
+                case CadSnapKind.Extension:
+                    return 'x';
+                case CadSnapKind.Center:
+                    return 'C';
+                case CadSnapKind.GeometricCenter:
+                    return 'G';
+                case CadSnapKind.Quadrant:
+                    return 'Q';
+                case CadSnapKind.Tangent:
+                    return 'T';
+                case CadSnapKind.Perpendicular:
+                    return 'P';
+                case CadSnapKind.Parallel:
+                    return 'l';
+                case CadSnapKind.Node:
+                    return 'd';
+                case CadSnapKind.Insertion:
+                    return 's';
+                case CadSnapKind.Nearest:
+                    return 'r';
+                default:
+                    return '\0';
+            }
         }
 
         /// <summary>Asks the window for Drafting Settings on a tab; with no window, says so on the command line.</summary>

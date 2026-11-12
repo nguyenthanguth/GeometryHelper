@@ -59,6 +59,13 @@ namespace GeometryHelper.Dxf.Viewer
         public bool Fades => _fades != (_swaps && Shift);
 
         /// <summary>
+        /// Gets whether the objects of <see cref="Handles"/> leave where they stand once the answer is given, so that they are
+        /// drawn faded there while their copies follow the cursor, as AutoCAD 2021's SCALE and ROTATE draw them; false where
+        /// they stay, as with the Copy option, or where the preview moves none.
+        /// </summary>
+        public bool FadesOriginals { get; private set; }
+
+        /// <summary>
         /// Gets or sets whether Shift is held, which a window sets before it asks for the preview: the answer previewed then
         /// carries it (<see cref="CadInput.Shift"/>), as a pick with Shift held does, so that TRIM previews what EXTEND would
         /// do to the object under the cursor and EXTEND what TRIM would.
@@ -359,13 +366,22 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadPreview(c.Session, null, sorted, moves, band);
         }
 
-        /// <summary>A preview of the copies of objects under one transformation the answer at the cursor gives; null gives none.</summary>
+        /// <summary>
+        /// A preview of the copies of objects under one transformation the answer at the cursor gives; null gives none. With
+        /// <paramref name="fade"/> the objects themselves are drawn faded where they stand (<see cref="FadesOriginals"/>).
+        /// </summary>
         internal static CadPreview MovingOne(
             CadCommandContext c,
             IReadOnlyList<string> handles,
             Func<CadInput, Affine2?> move,
-            bool band = false
-        ) => Moving(c, handles, input => move(input) is Affine2 m ? new[] { m } : NoMoves, band);
+            bool band = false,
+            bool fade = false
+        )
+        {
+            CadPreview preview = Moving(c, handles, input => move(input) is Affine2 m ? new[] { m } : NoMoves, band);
+            preview.FadesOriginals = fade && preview.Handles.Count > 0;
+            return preview;
+        }
 
         /// <summary>The transformation of the plane a transformation of space makes, its Z left out.</summary>
         internal static Affine2 Flat(GeoTransform3 t) =>

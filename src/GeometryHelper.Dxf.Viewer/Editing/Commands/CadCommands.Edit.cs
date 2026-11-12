@@ -186,7 +186,7 @@ namespace GeometryHelper.Dxf.Viewer
                     .ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Counted(c, last))
                     .Turning()
                     .Previewing(
-                        CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true)
+                        CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true, !copy)
                     );
 
                 if (c.Input.Is("Copy"))
@@ -221,7 +221,8 @@ namespace GeometryHelper.Dxf.Viewer
                                 c,
                                 c.Selected,
                                 input => CadPreview.Flat(Turned(input.Number - from)),
-                                true
+                                true,
+                                !copy
                             )
                         );
                     var target = new Ref<double?>();
@@ -229,8 +230,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (c.Input.Is("Points"))
                     {
                         foreach (
-                            CadPrompt prompt in TwoPoints(c, true, target, value =>
-                                CadPreview.Flat(Turned(value - from))
+                            CadPrompt prompt in TwoPoints(
+                                c,
+                                true,
+                                target,
+                                value => CadPreview.Flat(Turned(value - from)),
+                                !copy
                             )
                         )
                         {
@@ -291,7 +296,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 yield return CadPrompt
                     .ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last))
-                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => Scaled(input.Number), true));
+                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => Scaled(input.Number), true, !copy));
 
                 if (c.Input.Is("Copy"))
                 {
@@ -323,7 +328,8 @@ namespace GeometryHelper.Dxf.Viewer
                                 c,
                                 c.Selected,
                                 input => length > c.Session.Tolerance.EqualPoint ? Scaled(input.Number / length) : null,
-                                true
+                                true,
+                                !copy
                             )
                         );
                     var target = new Ref<double?>();
@@ -331,8 +337,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (c.Input.Is("Points"))
                     {
                         foreach (
-                            CadPrompt prompt in TwoPoints(c, false, target, value =>
-                                length > c.Session.Tolerance.EqualPoint ? Scaled(value / length) : null
+                            CadPrompt prompt in TwoPoints(
+                                c,
+                                false,
+                                target,
+                                value => length > c.Session.Tolerance.EqualPoint ? Scaled(value / length) : null,
+                                !copy
                             )
                         )
                         {
@@ -995,13 +1005,15 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Asks two points and gives the angle of the line from the first to the second, or its length; the second point
-        /// previewing the objects selected moved as <paramref name="moved"/> moves them by the value to the cursor, where given.
+        /// previewing the objects selected moved as <paramref name="moved"/> moves them by the value to the cursor, where given,
+        /// and with <paramref name="fade"/> the objects themselves faded where they stand.
         /// </summary>
         private static IEnumerable<CadPrompt> TwoPoints(
             CadCommandContext c,
             bool angle,
             Ref<double?> result,
-            Func<double, Affine2?> moved = null
+            Func<double, Affine2?> moved = null,
+            bool fade = false
         )
         {
             yield return CadPrompt.ForPoint("Specify first point");
@@ -1022,7 +1034,9 @@ namespace GeometryHelper.Dxf.Viewer
             CadPrompt second = CadPrompt.ForPoint("Specify second point", first);
             yield return moved == null
                 ? second
-                : second.Previewing(CadPreview.MovingOne(c, c.Selected, input => moved(Between(input.Point)), true));
+                : second.Previewing(
+                    CadPreview.MovingOne(c, c.Selected, input => moved(Between(input.Point)), true, fade)
+                );
 
             if (c.Input.IsPoint)
             {
