@@ -47,6 +47,22 @@ view centre (2 100, 1 100)).
 clipped to a circle through its outline, counted in pixels (nothing of the model outside the circle where an unclipped viewport
 shows walls beyond it), and that a corner of the boundary dragged on the canvas fits the frame of the viewport to it in one
 undo step.
+**NEW.** The presenter's commands and aliases checked against AutoCAD 2021's acad.pgp. The 68 stock aliases it lacked for
+commands it has are added (`DELETE` ERASE, `MO` PROPERTIES, `PRINT` PLOT, `DIMLIN` DIMLINEAR, `DTEXT` TEXT, `DDMODIFY`
+PROPERTIES and the rest; 202 aliases now with the four digits, DXFOUT being a command of its own), and thirteen commands with their aliases, each asking AutoCAD 2021's prompts as
+its console asked them and making one undo step: DIVIDE (`DIV`) and MEASURE (`ME`), points or a block, aligned or level,
+along a line, arc, circle, ellipse, polyline or spline (a circle of 50 about (400, 0) divided in 4 has points at (450, 0),
+(400, 50), (350, 0) and (400, -50); a line of 100 measured by 30 from the end picked has points 30, 60 and 90 from it;
+`Object isn't that long.` for a length past the curve; every point checked against AutoCAD's to 1E-6); DIMCENTER (`DCE`),
+the mark of DIMCEN as lines; COLOR (`COL`, `COLOUR`), the window's Select Color dialog, and -COLOR; LWEIGHT (`LW`) and
+-LWEIGHT, rounding a width to the nearest of AutoCAD's (`0.33` gives 0.35 mm); REDRAW (`R`), REDRAWALL (`RA`) and
+REGENALL (`REA`); ISOLATEOBJECTS (`ISOLATE`), HIDEOBJECTS and UNISOLATEOBJECTS (`UNISOLATE`, `UNHIDE`), which the canvas's
+shortcut menu offered without the commands behind them, hiding objects for the session as AutoCAD 2021 does (their
+Visible off; a save writes them shown).
+
+**FIXED.** A radius or diameter dimension in the presenter whose DIMCEN is below nought drew centre lines on a circle too
+small for them: AutoCAD 2021 draws them only where the radius is over twice the mark (a circle of 5.01 under -2.5 has
+them, one of 5 or 4 the cross alone), where the presenter drew them wherever the radius was over the mark.
 
 **NEW.** The grips on the clip boundary of a clipped block reference or external reference in the presenter, as AutoCAD 2021's
 `GetGripPoints` gives them (probed in accoreconsole): a selected reference has its insertion grip, an arrow at the middle of the

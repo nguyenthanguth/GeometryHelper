@@ -519,7 +519,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The centre mark of DIMCEN about a centre, along the axes: a cross DIMCEN long each way, and where DIMCEN is below
-        /// nought centre lines from twice its length out to its length past the rim, as AutoCAD 2021 draws them.
+        /// nought centre lines from twice its length out to its length past the rim, where the radius is over twice it, as AutoCAD
+        /// 2021 draws them.
         /// </summary>
         private static void AddCenterMark(
             List<DxfEntity> picture,
@@ -541,7 +542,7 @@ namespace GeometryHelper.Dxf.Viewer
             picture.Add(Lined(new DxfLine(P3(center - x * mark), P3(center + x * mark)), style.Dimclrd, style.Dimlwd));
             picture.Add(Lined(new DxfLine(P3(center - y * mark), P3(center + y * mark)), style.Dimclrd, style.Dimlwd));
 
-            if (style.Dimcen < 0.0 && radius + mark > 2.0 * mark)
+            if (style.Dimcen < 0.0 && CentreLinesFit(radius, mark))
             {
                 foreach (GeoVector2 way in new[] { -x, x, -y, y })
                 {
