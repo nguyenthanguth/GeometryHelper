@@ -173,9 +173,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AttachDxfCommand = new DelegateCommand(_ => _model.StartCommand("XATTACH"), _ => Document != null);
             AttachImageCommand = new DelegateCommand(_ => _model.StartCommand("IMAGEATTACH"), _ => Document != null);
             OpenCommand = new DelegateCommand(_ => Open(), _ => IsReference && Selected.Reference.FoundAt != null);
-            UnloadCommand = new DelegateCommand(_ => Run("Unload"), _ => IsOwn);
-            ReloadCommand = new DelegateCommand(_ => Run("Reload"), _ => IsOwn);
-            DetachCommand = new DelegateCommand(_ => Run("Detach"), _ => IsOwn);
+            UnloadCommand = new DelegateCommand(_ => Run("Unload"), _ => OwnRows.Count > 0);
+            ReloadCommand = new DelegateCommand(_ => Run("Reload"), _ => OwnRows.Count > 0);
+            DetachCommand = new DelegateCommand(_ => Run("Detach"), _ => OwnRows.Count > 0);
             RefreshCommand = new DelegateCommand(_ => Refresh());
             ReloadAllCommand = new DelegateCommand(_ => ReloadAll(), _ => Document != null);
             MakeAbsoluteCommand = new DelegateCommand(
@@ -256,6 +256,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Whether the row selected is a reference or image of the drawing's own, which Unload, Reload, Detach and Change Path act on; a nested one is not.</summary>
         private bool IsOwn => IsReference && !_selected.IsNested;
+
+        /// <summary>The rows selected that are a reference or image of the drawing's own, in the palette's order: what Unload, Reload and Detach act on.</summary>
+        private IReadOnlyList<ReferenceRowViewModel> OwnRows =>
+            SelectedRows.Where(r => r.Reference != null && !r.IsNested).OrderBy(r => Rows.IndexOf(r)).ToList();
 
         /// <summary>Gets or sets whether the lower pane shows a preview of the row selected rather than its details.</summary>
         public bool IsPreview
@@ -415,7 +419,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             string name = _selected.Name;
-            _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", "P", name, path, string.Empty);
+            _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", "P", Pattern(name), path, string.Empty);
             Refresh();
         }
 
@@ -473,9 +477,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model.Open(reference.FoundAt);
         }
 
+        /// <summary>
+        /// Unload, Reload or Detach on every row selected that is the drawing's own: one -XREF for the references and one
+        /// -IMAGE for the images, the names whole under the back quote; a selection of both is one undo step. Detach names
+        /// the nested rows selected too, which -XREF Detach refuses in AutoCAD's words; Unload and Reload leave them out.
+        /// </summary>
         private void Run(string option)
         {
-            if (!IsOwn)
+            IReadOnlyList<ReferenceRowViewModel> own = OwnRows;
+
+            if (own.Count == 0)
             {
                 return;
             }
@@ -484,8 +495,68 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 option == "Unload" ? "U"
                 : option == "Reload" ? "R"
                 : "D";
-            _model.RunWithAnswers(_selected.IsImage ? "-IMAGE" : "-XREF", answer, _selected.Name);
+            IEnumerable<ReferenceRowViewModel> xrefRows = option == "Detach" ? SelectedRows : own;
+            string xrefs = Patterns(xrefRows.Where(r => r.Reference != null && !r.IsImage));
+            string images = Patterns(own.Where(r => r.IsImage));
+            bool both = xrefs.Length > 0 && images.Length > 0;
+
+            if (both)
+            {
+                Document.BeginGroup("-XREF");
+            }
+
+            try
+            {
+                if (xrefs.Length > 0)
+                {
+                    _model.RunWithAnswers("-XREF", answer, xrefs);
+                }
+
+                if (images.Length > 0)
+                {
+                    _model.RunWithAnswers("-IMAGE", answer, images);
+                }
+            }
+            finally
+            {
+                if (both)
+                {
+                    Document.EndGroup();
+                }
+            }
+
             Refresh();
+        }
+
+        /// <summary>The names of the rows, in the palette's order, each once, as a list of patterns that take each whole.</summary>
+        private string Patterns(IEnumerable<ReferenceRowViewModel> rows) =>
+            string.Join(
+                ",",
+                rows.OrderBy(r => Rows.IndexOf(r))
+                    .Select(r => Pattern(r.Name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+            );
+
+        /// <summary>
+        /// A name as a pattern that matches it and nothing else: a back quote put before each character AutoCAD reads as a
+        /// wildcard, so that <c>a#1</c> is taken as those three characters and not as a followed by a digit, and <c>~t</c>
+        /// as itself and not as anything but t.
+        /// </summary>
+        internal static string Pattern(string name)
+        {
+            var text = new System.Text.StringBuilder(name.Length + 2);
+
+            foreach (char ch in name)
+            {
+                if ("#@.*?~[]-`".IndexOf(ch) >= 0)
+                {
+                    text.Append('`');
+                }
+
+                text.Append(ch);
+            }
+
+            return text.ToString();
         }
 
         /// <summary>Whether a row is a drawing Bind… binds: loaded, or changed on disk since it was read.</summary>
@@ -543,7 +614,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!_selected.IsImage)
             {
-                _model.RunWithAnswers("-XREF", "T", _selected.Name, type.ToString());
+                _model.RunWithAnswers("-XREF", "T", Pattern(_selected.Name), type.ToString());
                 Refresh();
                 return;
             }
