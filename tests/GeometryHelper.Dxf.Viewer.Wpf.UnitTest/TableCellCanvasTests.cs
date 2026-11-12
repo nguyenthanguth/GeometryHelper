@@ -256,6 +256,142 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             );
         }
 
+        /// <summary>The box (width, height) of the pixels near a colour within 30 pixels of a point; 0 by 0 where there are none.</summary>
+        private static Size Extent(int[] pixels, Point at, int colour)
+        {
+            int left = int.MaxValue,
+                right = int.MinValue,
+                top = int.MaxValue,
+                bottom = int.MinValue;
+
+            for (int y = (int)at.Y - 30; y <= (int)at.Y + 30; y++)
+            {
+                for (int x = (int)at.X - 30; x <= (int)at.X + 30; x++)
+                {
+                    if (x < 0 || y < 0 || x >= Width || y >= Height)
+                    {
+                        continue;
+                    }
+
+                    int rgb = pixels[y * Width + x] & 0xFFFFFF;
+                    int off =
+                        Math.Abs(((rgb >> 16) & 0xFF) - ((colour >> 16) & 0xFF))
+                        + Math.Abs(((rgb >> 8) & 0xFF) - ((colour >> 8) & 0xFF))
+                        + Math.Abs((rgb & 0xFF) - (colour & 0xFF));
+
+                    if (off > 60)
+                    {
+                        continue;
+                    }
+
+                    left = Math.Min(left, x);
+                    right = Math.Max(right, x);
+                    top = Math.Min(top, y);
+                    bottom = Math.Max(bottom, y);
+                }
+            }
+
+            return right < left ? new Size(0, 0) : new Size(right - left + 1, bottom - top + 1);
+        }
+
+        /// <summary>How many pixels in a row, from a point one step at a time, are near a colour.</summary>
+        private static int Run(int[] pixels, Point from, int dx, int dy, int colour)
+        {
+            int n = 0;
+
+            while (true)
+            {
+                int x = (int)Math.Round(from.X) + n * dx,
+                    y = (int)Math.Round(from.Y) + n * dy;
+
+                if (x < 0 || y < 0 || x >= Width || y >= Height)
+                {
+                    return n;
+                }
+
+                int rgb = pixels[y * Width + x] & 0xFFFFFF;
+                int off =
+                    Math.Abs(((rgb >> 16) & 0xFF) - ((colour >> 16) & 0xFF))
+                    + Math.Abs(((rgb >> 8) & 0xFF) - ((colour >> 8) & 0xFF))
+                    + Math.Abs((rgb & 0xFF) - (colour & 0xFF));
+
+                if (off > 60)
+                {
+                    return n;
+                }
+
+                n++;
+            }
+        }
+
+        [Theory]
+        [InlineData(5, 15)]
+        [InlineData(10, 25)]
+        public void TheStretchTrianglesOfATable_AreAsLargeAsTheSquare_AtEveryGripSize(int size, int square)
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    model.Document.Selection.Set(new[] { handle });
+                    canvas.GripSize = size;
+                    int[] pixels = Pixels(canvas);
+
+                    // The width grip at the top right corner points right, the height grip at the bottom left points down, each
+                    // out of the table: the run of grip colour from the point to the tip is half the square's side less the dark
+                    // edge, 6 or 7 at the default size and 11 or 12 at 10; the old fixed triangle ran 4.
+                    int half = square / 2;
+                    Assert.InRange(Run(pixels, At(canvas, 120, 0), 1, 0, Accent), half - 2, half);
+                    Assert.InRange(Run(pixels, At(canvas, 0, -38), 0, 1, Accent), half - 2, half);
+                }
+            );
+        }
+
+        [Fact]
+        public void ATablesStretchGripUnderTheCursor_IsPink_ThePinkOfTheSquares_AndOnlyThatOne()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    model.Document.Selection.Set(new[] { handle });
+                    Point width = At(canvas, 120, 0);
+                    Point height = At(canvas, 0, -38);
+                    Assert.Equal(Accent, Pixel(Pixels(canvas), width));
+
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, width);
+                    int[] pixels = Pixels(canvas);
+                    Assert.Equal(0xFF7F7F, Pixel(pixels, width));
+                    Assert.Equal(Accent, Pixel(pixels, height));
+                }
+            );
+        }
+
+        [Fact]
+        public void TheBreakingGripAndTheAutofillDiamond_GrowWithTheGripSize_AndKeepTheirSizeAtTheDefault()
+        {
+            OnCanvas(
+                (model, canvas, handle) =>
+                {
+                    model.Document.Selection.Set(new[] { handle });
+                    Point breaking = At(canvas, 60, -38);
+                    int[] pixels = Pixels(canvas);
+                    Size standard = Extent(pixels, breaking, 0x5B6573);
+                    canvas.GripSize = 10;
+                    Size large = Extent(Pixels(canvas), breaking, 0x5B6573);
+                    Assert.True(large.Width > standard.Width + 4.0);
+                    Assert.True(large.Height > standard.Height + 4.0);
+
+                    // The diamond of a cell, 7 pixels from its centre to a point at the default size, 11.7 at 10; 8 across and 1 down is inside only at 10.
+                    canvas.GripSize = 5;
+                    model.Document.Selection.Clear();
+                    Assert.True(model.SelectTableCellAt(new GeoPoint2(60, -25), false));
+                    Point corner = At(canvas, 80, -29);
+                    Assert.NotEqual(Accent, Pixel(Pixels(canvas), new Point(corner.X + 8, corner.Y + 1)));
+                    canvas.GripSize = 10;
+                    Assert.Equal(Accent, Pixel(Pixels(canvas), new Point(corner.X + 8, corner.Y + 1)));
+                }
+            );
+        }
+
         [Fact]
         public void TheRightClickMenuOfCells_IsAutoCads_TheWorkingItemsEditTheTable_TheRestGrey()
         {

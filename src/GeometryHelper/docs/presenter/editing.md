@@ -1081,7 +1081,8 @@ side dragged staying at the point, and a box dragged to no width is refused. In 
 holds no defined height, a corner changes the width alone. The canvas draws them as AutoCAD 2021 shows them: the
 location a square, the top right a triangle pointing along the MTEXT, the bottom left one pointing down, the bottom right
 one pointing into its corner, and the top left a square where the location is elsewhere; the triangles turn with the
-MTEXT.
+MTEXT. Each triangle is as large as a plain grip's square, 15 pixels across at the default GRIPSIZE of 5 and 25 at 10, and
+is pink under the cursor and red once clicked, as the squares are.
 
 An MTEXT in columns has the grips AutoCAD 2021's GetGripPoints gives it, each doing what its MoveGripPointsAt does, the
 location kept. Two static columns 120 wide with a gutter of 20 and 100 high, attached top left at the origin, have the
@@ -1214,6 +1215,10 @@ the default of 5); the middle of a segment is a bar along it, 22 by 6 at 5 (37 b
 chord of an arc segment, which is the tangent at the arc's middle; a rotated view turns the bar with its segment. A grip
 under the cursor is pink (`#FF7F7F`, AutoCAD's GRIPHOVER) and a clicked one red, both unedged; the others are the grip
 colour with a 1 pixel dark edge. The grip is hit within its own square, the bar within its length by the square's side.
+The other grips follow the same size and the same colours: the triangles of an MTEXT and of a table's width, height and
+size are 15 across at the default and 25 at GRIPSIZE 10, the table's breaking triangle and the autofill diamond of a
+selected cell (14 across at the default) grow with it too, and a dynamic block's custom grips and a table cell's grips
+turn pink under the cursor, a custom grip red once clicked.
 
 Once the cursor has rested 400 milliseconds on a grip, with GRIPMULTIFUNCTIONAL's bit 2 set, no command running and no
 second grip hot, its menu opens 19 pixels right of the grip and 24 below it (left and above where it would leave the
@@ -1231,17 +1236,23 @@ or the command changes. A click on the grip itself is the grip edit as before, `
 grip are [`CadGripMenus.Of(document, handle, gripIndex)`](xref:GeometryHelper.Dxf.Viewer.CadGripMenus). Each item is one
 undo step named GRIP, and Esc at its prompt changes nothing:
 
-- Stretch Vertex is the grip edit with the command line saying `** STRETCH VERTEX **`; Stretch moves a straight segment
-  by the offset, both ends, or bends an arc segment through the point.
-- Add Vertex says `** ADD VERTEX **` and asks `Specify new vertex point or [Base point/Copy/eXit]:` with the polyline
+- Stretch Vertex is the grip edit, the command line saying `** STRETCH **` as a click does: AutoCAD 2021's table of the
+  polyline's grip modes (probed in `acdb24res.dll`) gives Stretch Vertex that line, `** STRETCH VERTEX **` being the
+  section line vertex's. Stretch moves a straight segment by the offset, both ends, or bends an arc segment through the
+  point.
+- Add Vertex says `** ADD VERTEX **` and asks `Specify new vertex point or [Base point/Copy/Undo/eXit]:` with the polyline
   drawn with the vertex at the cursor. The vertex goes after the vertex of the grip (after the last vertex of an open
   polyline it extends the end); a segment split keeps its widths, the width at the point being where the point falls along
   it. A straight segment splits in two straight ones; an arc segment in two arcs of the arc through its start, the new
   point and its end: a half circle from (0, 0) to (20, 0), given (10, -10), becomes two quarter circles of bulge 0.4142.
-  Copy on keeps asking, each vertex after the one just made, until eXit, Enter or Esc.
-- Remove Vertex takes the vertex out at once; the segment that now joins its neighbours is straight. It is grey on a
-  polyline of two vertices, and a closed polyline of three keeps two.
-- Convert to Arc says `** CONVERT TO ARC **` and asks `Specify the arc midpoint:`, the polyline drawn bent through the
+  Copy on keeps asking, each vertex after the one just made, until eXit, Enter or Esc, and Undo takes the last vertex
+  made back while it runs: the polyline is read back as it was before that vertex, the segment it split with its bulge and
+  widths, and the next vertex is asked after the one before. Undo with no vertex made yet changes nothing. The whole run
+  stays one undo step.
+- Remove Vertex takes the vertex out at once, and AutoCAD 2021 words it "Remove vertex, and replace neighboring segments
+  with line": the segment that now joins its neighbours is straight, whether the segment either side of the vertex was an
+  arc or not. It is grey on a polyline of two vertices, and a closed polyline of three keeps two.
+- Convert to Arc says `** CONVERT TO ARC **` and asks `Specify midpoint of arc segment:`, the polyline drawn bent through the
   cursor; a chord of 100 with the point 20 off its middle gets a bulge of 0.4 (the sagitta over half the chord), above
   nought where the point is to the right of the way the segment runs. A point on the line of the segment is refused.
 - Convert to Line makes an arc segment straight at once.

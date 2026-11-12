@@ -487,7 +487,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     CanvasMouseTests.Click(canvas, new Point(box.X + 40, box.Y + 3 + 22 + 11));
 
                     Assert.True(model.Session.IsGripEditing);
-                    Assert.Equal("Specify new vertex point or [Base point/Copy/eXit]:", model.Prompt);
+                    Assert.Equal("Specify new vertex point or [Base point/Copy/Undo/eXit]:", model.Prompt);
                     Assert.Contains("** ADD VERTEX **", model.History);
 
                     CanvasMouseTests.Click(canvas, At(canvas, 40, 30));
@@ -514,7 +514,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                     CanvasMouseTests.Click(canvas, new Point(box.X + 40, box.Y + 3 + 44 + 11));
 
-                    Assert.Equal("Specify the arc midpoint:", model.Prompt);
+                    Assert.Equal("Specify midpoint of arc segment:", model.Prompt);
                     canvas.Cancel();
                     Assert.False(model.Session.IsRunning);
                     DxfPolyline polyline = (DxfPolyline)

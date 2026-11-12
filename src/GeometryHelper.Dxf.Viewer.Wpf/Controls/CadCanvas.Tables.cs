@@ -491,7 +491,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Point[] range = Array.ConvertAll(outline[0], q => ToScreen(view, q, scale));
             double reach = GripSquare * 0.75;
 
-            if (Math.Abs(range[2].X - p.X) + Math.Abs(range[2].Y - p.Y) <= 7.0 + 2.0)
+            if (Math.Abs(range[2].X - p.X) + Math.Abs(range[2].Y - p.Y) <= DiamondReach + 2.0)
             {
                 return 4;
             }
@@ -539,13 +539,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Point a = range[k],
                         b = range[(k + 1) % 4];
                     dc.DrawRectangle(
-                        k == _cellGripHot ? HotGripBrush : CellBrush,
+                        k == _cellGripHot ? HoverGripBrush : CellBrush,
                         null,
                         new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSquare, GripSquare)
                     );
                 }
 
-                DrawDiamond(dc, range[2], _cellGripHot == 4 ? HotGripBrush : CellBrush);
+                DrawDiamond(dc, range[2], _cellGripHot == 4 ? HoverGripBrush : CellBrush);
             }
 
             if (TableIndicator)
@@ -554,21 +554,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>The autofill grip: a diamond 14 pixels across, edged dark.</summary>
-        private static void DrawDiamond(DrawingContext dc, Point at, Brush fill) =>
+        /// <summary>From the centre of the autofill diamond to a point of it: 7 at the default grip size, as 14 across is 15 less one.</summary>
+        private double DiamondReach => GripSquare * 7.0 / 15.0;
+
+        /// <summary>The autofill grip: a diamond 14 pixels across at the default grip size, edged dark; it grows with the size like the squares.</summary>
+        private void DrawDiamond(DrawingContext dc, Point at, Brush fill)
+        {
+            double reach = DiamondReach;
             dc.DrawGeometry(
                 fill,
                 CustomGripEdge,
                 Polygon(
                     new[]
                     {
-                        new Point(at.X, at.Y - 7.0),
-                        new Point(at.X + 7.0, at.Y),
-                        new Point(at.X, at.Y + 7.0),
-                        new Point(at.X - 7.0, at.Y),
+                        new Point(at.X, at.Y - reach),
+                        new Point(at.X + reach, at.Y),
+                        new Point(at.X, at.Y + reach),
+                        new Point(at.X - reach, at.Y),
                     }
                 )
             );
+        }
 
         /// <summary>The bands of column letters over the table and row numbers left of it, with their corner box; the range's part on amber.</summary>
         private void DrawBands(
@@ -660,10 +666,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// A grip of a whole table: a stretch grip a triangle pointing along the table, down it, or into its corner; the table
-        /// breaking grip a grey triangle under the bottom edge, never hot; true where the grip is one of these.
+        /// A grip of a whole table: a stretch grip a triangle pointing along the table, down it, or into its corner, as large
+        /// as a plain grip's square (a triangle 10 across scaled by the square's side over 10: 15 across at the default grip
+        /// size of 5, 25 at 10), filled as the squares are; the table breaking grip a grey triangle under the bottom edge, never hot, a little smaller and growing with
+        /// the size too; true where the grip is one of these.
         /// </summary>
-        private bool DrawTableGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, bool hot)
+        private bool DrawTableGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, Brush fill)
         {
             if (
                 grip.Kind != CadGripKind.TableWidth
@@ -684,16 +692,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (grip.Kind == CadGripKind.TableBreak)
             {
-                var below = new Point(at.X + 8.0 * Math.Cos(angle), at.Y + 8.0 * Math.Sin(angle));
-                dc.DrawGeometry(NotOfferedBrush, null, Polygon(Shape(below, angle, 1.0, -4, -7, 4, 0, -4, 7)));
+                // As large at the default size as it was before the grips followed the size: 8 under the edge, 14 across.
+                double j = GripSquare / 15.0;
+                var below = new Point(at.X + 8.0 * j * Math.Cos(angle), at.Y + 8.0 * j * Math.Sin(angle));
+                dc.DrawGeometry(NotOfferedBrush, null, Polygon(Shape(below, angle, j, -4, -7, 4, 0, -4, 7)));
                 return true;
             }
 
-            dc.DrawGeometry(
-                hot ? HotGripBrush : GripBrush,
-                CustomGripEdge,
-                Polygon(Shape(at, angle, 1.0, -5, -5, 5, 0, -5, 5))
-            );
+            dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, angle, GripSquare / 10.0, -5, -5, 5, 0, -5, 5)));
             return true;
         }
 

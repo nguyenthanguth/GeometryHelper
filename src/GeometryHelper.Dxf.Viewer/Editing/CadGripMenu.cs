@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The middle of a segment: stretches it, as a click on the grip does ("** STRETCH **").</summary>
         Stretch,
 
-        /// <summary>A polyline's vertex: stretches the vertex, as a click on the grip does ("** STRETCH VERTEX **").</summary>
+        /// <summary>A polyline's vertex: stretches the vertex, as a click on the grip does ("** STRETCH **").</summary>
         StretchVertex,
 
         /// <summary>A polyline's vertex or segment middle: asks for a new vertex, put after the vertex of the grip.</summary>
