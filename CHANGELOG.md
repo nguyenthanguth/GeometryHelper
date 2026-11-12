@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A new drawing in the presenter (NEW, Ctrl+N) now has the layers of Global settings > Layers, colours and lines:
+Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet and Viewport by default, each with its colour, linetype,
+lineweight and plot flag (Hidden `#9AA4B1` in HIDDEN at 0.18 mm, Centre `#F85149` in CENTER at 0.18 mm, Viewport not
+plotted), and the linetypes HIDDEN and CENTER with them. The table was edited and saved but never applied: a new drawing had
+the layer 0 alone. A linetype outside the presenter's own set is drawn Continuous; the current layer stays 0; a drawing
+opened from a file is not changed. `CadTemplate.AddLayers(database, layers)` is the new public member that adds them.
+**NEW.** Ctrl+3 shows or hides the whole ribbon of the presenter (its tabs and panels), as Ctrl+1 and Ctrl+2 do Properties and
+the Drawings list: the default key of the new shortcut target RIBBON (23 default keys now), which a settings file saved
+before it gets once when it is read, if Ctrl+3 and RIBBON are both unbound. The typed commands RIBBON (shows the ribbon) and
+RIBBONCLOSE (hides it) work as AutoCAD's, with or without a drawing open; `MainViewModel.IsRibbonShown` holds it.
+
 **NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is
 to 16 figures with its zeros and the places of its units left off, so that a cell showing 1.5000 opens as 1.5, a third as

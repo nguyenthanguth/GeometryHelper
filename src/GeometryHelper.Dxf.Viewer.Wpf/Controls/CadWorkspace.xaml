@@ -3065,9 +3065,10 @@
             />
         </Grid>
 
-        <!-- Ribbon: the tabs, then the panels of Home. -->
+        <!-- Ribbon: the tabs, then the panels of Home; Ctrl+3 and RIBBONCLOSE hide it, RIBBON shows it. -->
         <Border
             Grid.Row="1"
+            Visibility="{Binding IsRibbonShown, Converter={StaticResource Shown}}"
             Background="{StaticResource GhPanel}"
             BorderBrush="{StaticResource GhBorder}"
             BorderThickness="0,1"
