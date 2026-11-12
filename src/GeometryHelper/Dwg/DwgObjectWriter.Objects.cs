@@ -436,10 +436,12 @@ namespace GeometryHelper.Dwg
             _data.BitShort(cloning);
         }
 
-        private void WriteLayout()
+        /// <summary>Writes a PLOTSETTINGS, a named page setup: the page setup part of a LAYOUT alone.</summary>
+        private void WritePlotSettings() => WritePlotPart(_record.Of("AcDbPlotSettings"));
+
+        /// <summary>Writes the part of a LAYOUT or a PLOTSETTINGS that is the page setup, its data and its handles.</summary>
+        private void WritePlotPart(DwgGroups plot)
         {
-            DwgGroups plot = _record.Of("AcDbPlotSettings");
-            DwgGroups layout = _record.Of("AcDbLayout");
             T(plot.Text(1));
             T(plot.Text(2));
             _data.BitShort(plot.Int(70));
@@ -487,7 +489,12 @@ namespace GeometryHelper.Dwg
             {
                 H(4, 0);
             }
+        }
 
+        private void WriteLayout()
+        {
+            DwgGroups layout = _record.Of("AcDbLayout");
+            WritePlotPart(_record.Of("AcDbPlotSettings"));
             T(layout.Text(1));
             _data.BitLong(layout.Int(71));
             _data.BitShort(layout.Int(70));

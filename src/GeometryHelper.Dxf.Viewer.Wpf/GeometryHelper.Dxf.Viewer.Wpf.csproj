@@ -26,8 +26,9 @@
         <PackageReference Include="SkiaSharp" Version="4.155.0" />
     </ItemGroup>
 
-    <!-- The printers of Windows the Plot dialog lists; .NET 8's WPF brings System.Printing itself. -->
+    <!-- The printers of Windows the Plot dialog lists and prints to; .NET 8's WPF brings System.Printing and ReachFramework itself. -->
     <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
         <Reference Include="System.Printing" />
+        <Reference Include="ReachFramework" />
     </ItemGroup>
 </Project>

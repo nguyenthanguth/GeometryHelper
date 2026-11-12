@@ -196,7 +196,55 @@ namespace GeometryHelper.Dxf.Viewer
             DeviceName = raster
                 ? (string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice)
                 : PdfDevice;
+            SavedPlotter = string.Empty;
         }
+
+        /// <summary>
+        /// Gets whether the plotter is a printer of Windows, chosen by <see cref="UsePrinter"/>: neither
+        /// <see cref="PdfDevice"/> nor a raster device. Its sheets are the printer's own, and a plot goes to its paper.
+        /// </summary>
+        public bool IsPrinter =>
+            !IsRaster
+            && !string.IsNullOrEmpty(DeviceName)
+            && !string.Equals(DeviceName, PdfDevice, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Chooses a printer of Windows as the plotter, as the Name list of the Plot dialog does. Moving to it from a raster
+        /// device gives back ISO A3 and the monochrome table, as moving to the PDF plotter does; the sheet is then one the
+        /// printer lists, which the caller sets.
+        /// </summary>
+        /// <param name="name">The name Windows gives the printer, as <c>Microsoft Print to PDF</c> or <c>\\print\HP LaserJet</c>.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name is blank.</exception>
+        public void UsePrinter(string name)
+        {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (name.Trim().Length == 0)
+            {
+                throw new ArgumentException("A printer has a name.", nameof(name));
+            }
+
+            if (_paper.IsPixels)
+            {
+                _paper = CadPaper.Default;
+                StyleTable = CadPlotStyleTable.Monochrome;
+            }
+
+            DeviceName = name.Trim();
+            SavedPlotter = string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the plotter the layout or page setup named when these settings were read (group 2), such as
+        /// <c>Microsoft Print to PDF</c> or AutoCAD's <c>DWG To PDF.pc3</c>; empty where it named none, or these settings
+        /// were not read from a drawing, or a plotter has been chosen since (<see cref="UseDevice"/>, <see cref="UsePrinter"/>).
+        /// The Plot dialog chooses it again when it is a printer this computer has.
+        /// </summary>
+        public string SavedPlotter { get; private set; } = string.Empty;
 
         private CadPaper _paper = CadPaper.Default;
         private double _paperUnits = 1.0;
@@ -326,7 +374,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             var names = new List<string>();
 
-            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(document))
+            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(document.Database))
             {
                 names.Add(pair.Key);
             }
@@ -357,7 +405,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (
                 KeyValuePair<string, DxfPlotSettings> pair in PageSetups(
-                    document ?? throw new ArgumentNullException(nameof(document))
+                    (document ?? throw new ArgumentNullException(nameof(document))).Database
                 )
             )
             {
@@ -370,14 +418,292 @@ namespace GeometryHelper.Dxf.Viewer
             return null;
         }
 
+        /// <summary>
+        /// Gets the page setups of another drawing by name, as Import in the Page Setup Manager lists them: the PLOTSETTINGS of
+        /// its dictionary ACAD_PLOTSETTINGS, in ordinal order of their names, letters of either case the same.
+        /// </summary>
+        /// <param name="database">The drawing, as <see cref="CadDrawingFile.Open(string)"/> opens it.</param>
+        /// <returns>The names, a new list; empty where the drawing has none.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
+        public static IReadOnlyList<string> PageSetupNames(DxfDatabase database)
+        {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
+            var names = new List<string>();
+
+            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(database))
+            {
+                names.Add(pair.Key);
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Gets the name of the page setup a space is set to, as the Page Setup Manager shows it as the current one: the name its
+        /// LAYOUT keeps (group 1) where the drawing has a page setup of it, written by <see cref="SetCurrentPageSetup"/>.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space.</param>
+        /// <returns>The page setup's name as the drawing spells it; empty where the space is set to none.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document or the space is null.</exception>
+        public static string CurrentPageSetupName(CadDocument document, CadSpace space)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (space == null)
+            {
+                throw new ArgumentNullException(nameof(space));
+            }
+
+            string name = LayoutOf(document, space)?.PlotSettingsName?.Trim();
+            return string.IsNullOrEmpty(name)
+                ? string.Empty
+                : PageSetupNamed(document.Database, name)?.Key ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Says why a name cannot name a page setup, as AutoCAD refuses one: empty, longer than 255 letters, or with a
+        /// <c>&lt; &gt; / \ " : ; ? * | , = `</c> in it.
+        /// </summary>
+        /// <param name="name">The name typed.</param>
+        /// <returns>The reason, in a sentence; null where the name is a good one.</returns>
+        public static string CheckPageSetupName(string name)
+        {
+            string trimmed = (name ?? string.Empty).Trim();
+
+            if (trimmed.Length == 0)
+            {
+                return "A page setup needs a name.";
+            }
+
+            if (trimmed.Length > 255)
+            {
+                return "A page setup's name is 255 letters at most.";
+            }
+
+            if (trimmed.IndexOfAny(new[] { '<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', ',', '=', '`' }) >= 0)
+            {
+                return "A page setup's name may not hold any of < > / \\ \" : ; ? * | , = `.";
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Writes the settings as a named page setup of the drawing, one undo step named PAGESETUP, as the Plot dialog's Add…
+        /// and the Page Setup Manager's New… and Modify… do: the PLOTSETTINGS of the name added to ACAD_PLOTSETTINGS (the
+        /// dictionary made where the drawing has none), or replaced where the name, letters of either case the same, is taken.
+        /// What is written is as <see cref="ApplyTo"/> writes it into a layout.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The page setup's name, trimmed.</param>
+        /// <returns>What came of the edit; refused where the name is not a good one (<see cref="CheckPageSetupName"/>).</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public CadEditResult SaveAsPageSetup(CadDocument document, string name)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            string refused = CheckPageSetupName(name);
+
+            if (refused != null)
+            {
+                return CadEditResult.Refuse(refused);
+            }
+
+            string key = name.Trim();
+            CadPlotSettings settings = Clone();
+            return document.ApplyEdit("PAGESETUP", PlannedPageSetup(key), scope =>
+            {
+                var made = new DxfPlotSettings();
+                PageSetupDictionary(scope.Document.Database).SetAt(key, made);
+                settings.Write(made);
+            });
+        }
+
+        /// <summary>
+        /// Sets a space to a page setup of the drawing, as Set Current of the Page Setup Manager does, one undo step named
+        /// PAGESETUP: every setting of the page setup copied into the space's LAYOUT, its name with them, as AutoCAD's
+        /// <c>CopyFrom</c> copies them.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space.</param>
+        /// <param name="name">The page setup's name, letters of either case the same.</param>
+        /// <returns>What came of the edit; refused where the drawing has no page setup of the name or the space has no LAYOUT.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+        public static CadEditResult SetCurrentPageSetup(CadDocument document, CadSpace space, string name)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (space == null)
+            {
+                throw new ArgumentNullException(nameof(space));
+            }
+
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            KeyValuePair<string, DxfPlotSettings>? found = PageSetupNamed(document.Database, name);
+
+            if (found == null)
+            {
+                return CadEditResult.Refuse("The drawing has no page setup named " + name.Trim() + ".");
+            }
+
+            if (LayoutOf(document, space) == null)
+            {
+                return CadEditResult.Refuse("The space " + space.Name + " has no LAYOUT to keep its page setup in.");
+            }
+
+            string key = found.Value.Key;
+            string spaceName = space.Name;
+            bool isModel = space.IsModel;
+            return document.ApplyEdit("PAGESETUP", Planned(space), scope =>
+            {
+                CadSpace target = SpaceIn(scope.Document, spaceName, isModel);
+                DxfLayout layout = LayoutOf(scope.Document, target)
+                    ?? throw new InvalidOperationException("The space " + spaceName + " has no LAYOUT.");
+                DxfPlotSettings setup = PageSetupNamed(scope.Document.Database, key)?.Value
+                    ?? throw new InvalidOperationException("The drawing has no page setup named " + key + ".");
+                layout.CopyFrom(setup);
+                layout.PlotSettingsName = key;
+                target.ForgetPaper();
+            });
+        }
+
+        /// <summary>
+        /// Copies page setups of another drawing into this one, as Import of the Page Setup Manager does, one undo step named
+        /// PAGESETUP. A page setup whose name the drawing has already is added as <c>Name (2)</c>, <c>Name (3)</c> and on, so that
+        /// none is lost.
+        /// </summary>
+        /// <param name="document">The document the page setups go into.</param>
+        /// <param name="source">The drawing they come from, as <see cref="CadDrawingFile.Open(string)"/> opens it.</param>
+        /// <param name="names">The names to copy, letters of either case the same; those the source has not are passed over.</param>
+        /// <returns>What came of the edit; refused where none of the names is a page setup of the source.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+        public static CadEditResult ImportPageSetups(
+            CadDocument document,
+            DxfDatabase source,
+            IEnumerable<string> names
+        )
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (names == null)
+            {
+                throw new ArgumentNullException(nameof(names));
+            }
+
+            var asked = new List<string>(names);
+            var wanted = new List<KeyValuePair<string, DxfPlotSettings>>();
+
+            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(source))
+            {
+                if (asked.Exists(name => string.Equals(name?.Trim(), pair.Key, StringComparison.OrdinalIgnoreCase)))
+                {
+                    wanted.Add(pair);
+                }
+            }
+
+            if (wanted.Count == 0)
+            {
+                return CadEditResult.Refuse("The drawing has none of the page setups asked for.");
+            }
+
+            return document.ApplyEdit("PAGESETUP", PlannedPageSetup(wanted[0].Key), scope =>
+            {
+                DxfDBDictionary dictionary = PageSetupDictionary(scope.Document.Database);
+
+                foreach (KeyValuePair<string, DxfPlotSettings> pair in wanted)
+                {
+                    string key = pair.Key;
+
+                    for (int n = 2; PageSetupNamed(scope.Document.Database, key) != null; n++)
+                    {
+                        key = pair.Key + " (" + n.ToString(CultureInfo.InvariantCulture) + ")";
+                    }
+
+                    var made = new DxfPlotSettings();
+                    dictionary.SetAt(key, made);
+                    made.CopyFrom(pair.Value);
+                    made.PlotSettingsName = key;
+                }
+            });
+        }
+
+        /// <summary>The change a page setup written by name plans: a setting of the drawing, named by the page setup.</summary>
+        private static IReadOnlyList<CadEditRecord> PlannedPageSetup(string name) =>
+            new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "Page setup", null, name) };
+
+        /// <summary>The drawing's dictionary of page setups, made where it has none.</summary>
+        private static DxfDBDictionary PageSetupDictionary(DxfDatabase database)
+        {
+            if (database.PlotSettingsDictionary == null)
+            {
+                database.NamedObjectsDictionary.SetAt("ACAD_PLOTSETTINGS", new DxfDBDictionary());
+            }
+
+            return database.PlotSettingsDictionary;
+        }
+
+        /// <summary>The page setup of a name, letters of either case the same, with the name the drawing spells it; null where it has none.</summary>
+        private static KeyValuePair<string, DxfPlotSettings>? PageSetupNamed(DxfDatabase database, string name)
+        {
+            foreach (KeyValuePair<string, DxfPlotSettings> pair in PageSetups(database))
+            {
+                if (string.Equals(pair.Key, name.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>The space of a name and kind in a document, as an edit finds it again; null where it has none.</summary>
+        private static CadSpace SpaceIn(CadDocument document, string name, bool isModel)
+        {
+            foreach (CadSpace each in document.Spaces)
+            {
+                if (string.Equals(each.Name, name, StringComparison.OrdinalIgnoreCase) && each.IsModel == isModel)
+                {
+                    return each;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>The page setups of the drawing's ACAD_PLOTSETTINGS by name, in ordinal order.</summary>
-        private static List<KeyValuePair<string, DxfPlotSettings>> PageSetups(CadDocument document)
+        private static List<KeyValuePair<string, DxfPlotSettings>> PageSetups(DxfDatabase database)
         {
             var found = new List<KeyValuePair<string, DxfPlotSettings>>();
 
             try
             {
-                DxfDBDictionary dictionary = document.Database.PlotSettingsDictionary;
+                DxfDBDictionary dictionary = database.PlotSettingsDictionary;
 
                 foreach (
                     DxfDBDictionaryEntry entry in (IEnumerable<DxfDBDictionaryEntry>)dictionary
@@ -428,6 +754,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
+                string saved = (layout.PlotConfigurationName ?? string.Empty).Trim();
+                settings.SavedPlotter = string.Equals(saved, "none_device", StringComparison.OrdinalIgnoreCase)
+                    ? string.Empty
+                    : saved;
                 GeoPoint2 size = layout.PlotPaperSize;
                 DxfExtents2d margins = layout.PlotPaperMargins;
                 // A raster device's plot settings keep the image's size in pixels (group 72 = 2), as AutoCAD's PublishToWeb PNG.
@@ -638,7 +968,7 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
-        private void Write(DxfLayout layout)
+        private void Write(DxfPlotSettings layout)
         {
             CadPaper paper = Paper;
             bool turned = Landscape != (paper.Width >= paper.Height);

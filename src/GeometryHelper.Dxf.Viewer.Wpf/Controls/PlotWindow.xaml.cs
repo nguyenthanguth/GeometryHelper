@@ -22,6 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // Custom… of a raster device's Paper size list: Custom Image Size over this dialog.
             model.ShowCustomSize = size => new CustomImageSizeWindow(size) { Owner = this }.ShowDialog() == true;
+
+            // Add… of the Page setup box: Add Page Setup over this dialog.
+            model.ShowPageSetupName = asked => new PageSetupNameWindow(asked) { Owner = this }.ShowDialog() == true;
         }
 
         /// <summary>Gets the view model.</summary>
@@ -50,6 +53,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
         private void OnApply(object sender, RoutedEventArgs e) => Model.ApplyToLayout();
+
+        private void OnAdd(object sender, RoutedEventArgs e) => Model.AskAndAddPageSetup();
 
         private void OnPickWindow(object sender, RoutedEventArgs e)
         {

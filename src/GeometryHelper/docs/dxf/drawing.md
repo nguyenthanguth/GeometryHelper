@@ -303,7 +303,7 @@ dimensions, leaders and tolerances drawn in it, the styles AutoCAD keeps for its
 The drawing's own dictionaries are objects: `NamedObjectsDictionary`, and those it names, `GroupDictionary` (ACAD_GROUP),
 `LayoutDictionary` (ACAD_LAYOUT), `MLeaderStyleDictionary`, `TableStyleDictionary` and the others AutoCAD's `Database`
 names by id; null where a drawing has none, as one of R12. `SetAt` adds a [`DxfDBDictionary`](xref:GeometryHelper.Dxf.DxfDBDictionary), a [`DxfXrecord`](xref:GeometryHelper.Dxf.DxfXrecord) or a [`DxfGroup`](xref:GeometryHelper.Dxf.DxfGroup)
-made in code; `TreatElementsAsHard` says whether a dictionary owns its entries hard (280 of 1, its entries named by 360),
+made in code (and a page setup, below); `TreatElementsAsHard` says whether a dictionary owns its entries hard (280 of 1, its entries named by 360),
 and `CopyTo` copies its entries into an array. An XRECORD is a `DxfXrecord`, its `Data` the groups after its cloning flag,
 the groups 102 of a list among them:
 
@@ -535,6 +535,15 @@ What is plotted and how is set as AutoCAD's validator sets it too: `PlotConfigur
 `PlotType` with `PlotWindowArea`, `CustomPrintScale`, `StdScaleType` (writing group 147 with it) and `UseStandardScale`,
 and the flags `PlotCentered`, `PlotPlotStyles`, `ScaleLineweights` and `PrintLineweights`; a page setup of A3 at 1:20 with
 monochrome.ctb reads back as written.
+
+A named page setup is a PLOTSETTINGS of `PlotSettingsDictionary` (ACAD_PLOTSETTINGS), and is added as AutoCAD adds one:
+`db.PlotSettingsDictionary.SetAt("A3 plan", new DxfPlotSettings())` writes one of an ISO A3 sheet and no plotter, named by
+its entry, and lists its class PLOTSETTINGS in CLASSES with proxy flags 0, as AutoCAD 2021 does. It is then set with the
+properties above. `CopyFrom` copies every setting of other page settings into these, the name with them, as AutoCAD's does:
+`model.CopyFrom(setup)` is Set Current of the Page Setup Manager (the layout Model stays model space's), and
+`setup.CopyFrom(model)` is its New from a layout. `PlotSettingsName` can be set, and is the name a layout shows as its
+page setup. A DWG keeps page setups as it keeps LAYOUTs: a drawing with "A3 plan" saved as DWG and read back has it, with
+its sheet, scale and plotter, and AutoCAD 2021 reads both the DXF and the DWG, AUDIT finding 0 errors in each.
 
 ## See also
 

@@ -1043,6 +1043,9 @@ namespace GeometryHelper.Dwg
                 case "LAYOUT":
                     ReadLayout();
                     return true;
+                case "PLOTSETTINGS":
+                    ReadPlotSettings();
+                    return true;
                 case "XRECORD":
                     ReadXRecord();
                     return true;

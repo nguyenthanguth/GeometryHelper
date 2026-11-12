@@ -117,10 +117,7 @@
 
             <Style x:Key="DeviceRow" TargetType="ComboBoxItem" BasedOn="{StaticResource GreyableRow}">
                 <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
-                <Setter
-                    Property="ToolTip"
-                    Value="Plotting to a printer of Windows is not built yet: plot to GeometryHelper PDF."
-                />
+                <Setter Property="ToolTip" Value="Plots nowhere: choose GeometryHelper PDF or a printer." />
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsEnabled}" Value="True">
                         <Setter Property="ToolTip" Value="{x:Null}" />
@@ -253,8 +250,9 @@
                                 Style="{StaticResource GhDialogButton}"
                                 Content="Add…"
                                 Margin="8,0,0,0"
-                                IsEnabled="False"
-                                ToolTip="Named page setups are read and chosen; adding one is not built yet."
+                                Click="OnAdd"
+                                IsEnabled="{Binding CanAddPageSetup}"
+                                ToolTip="Keep this page setup under a name of its own"
                             />
                             <ComboBox
                                 Style="{StaticResource GhComboBox}"
@@ -410,21 +408,13 @@
                                         TextWrapping="Wrap"
                                     />
                                 </Grid>
-                                <CheckBox IsChecked="True" IsEnabled="False" HorizontalAlignment="Left">
-                                    <CheckBox.Style>
-                                        <Style TargetType="CheckBox" BasedOn="{StaticResource StyleCheck}">
-                                            <Setter Property="Content" Value="Plot to file (always, for PDF)" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsRaster}" Value="True">
-                                                    <Setter
-                                                        Property="Content"
-                                                        Value="Plot to file (always, for a raster device)"
-                                                    />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </CheckBox.Style>
-                                </CheckBox>
+                                <CheckBox
+                                    Style="{StaticResource StyleCheck}"
+                                    Content="{Binding PlotToFileText}"
+                                    IsChecked="{Binding PlotsToFile, Mode=OneWay}"
+                                    IsEnabled="False"
+                                    HorizontalAlignment="Left"
+                                />
                             </StackPanel>
                             <StackPanel
                                 Grid.Column="2"
@@ -492,10 +482,11 @@
                         >
                             <TextBox
                                 Style="{StaticResource StyleBox}"
-                                Text="1"
+                                Text="{Binding CopiesText, UpdateSourceTrigger=PropertyChanged}"
                                 Width="60"
                                 HorizontalAlignment="Left"
-                                IsEnabled="False"
+                                IsEnabled="{Binding IsCopiesEnabled}"
+                                ToolTip="1 to 999 for a printer; 1 for a file"
                                 AutomationProperties.Name="Number of copies, 1 for a file"
                             />
                         </HeaderedContentControl>
@@ -519,6 +510,7 @@
                                         Padding="10,3"
                                         Margin="6,0,0,0"
                                         Click="OnPickWindow"
+                                        IsEnabled="{Binding CanPickWindow}"
                                         Visibility="{Binding IsWindow, Converter={StaticResource Shown}}"
                                         ToolTip="Pick the window's two corners on the drawing"
                                     />

@@ -55,7 +55,7 @@ What each line does is on the page that follows.
 |---|---|
 | [Opening, drawing and picking](display.md) | the document and its spaces, what each entity is drawn as, the view and its zoom, [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex), the selection |
 | [Editing as AutoCAD does](editing.md) | one edit, one undo step; the command line, its aliases and its commands; object snaps; grips; Properties; layers; saving |
-| [Plotting to PDF](plot.md) | the page setup a layout keeps, the sheet a plot is laid on, the plot style tables, the PDF, PLOT, -PLOT, PREVIEW and PAGESETUP |
+| [Plotting to PDF](plot.md) | the page setup a layout keeps, named page setups and the Page Setup Manager, the sheet a plot is laid on, the plot style tables, the PDF, printing on a printer of Windows, PLOT, -PLOT, PREVIEW and PAGESETUP |
 | [Owners](owners.md) | the entities a model drawing wrote, and how the presenter asks their owner before it changes one |
 | [Command plugins](plugins.md) | a command written in a .dll, loaded and unloaded while the app runs |
 | [Settings, autosave and the window](app.md) | global settings as JSON, autosave copies, closing a drawing, the keys, the mouse and the app's command line |

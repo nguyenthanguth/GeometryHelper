@@ -665,7 +665,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.AskPlotFile = AskPlotFile;
                 _model.AskImageFile = AskImageFile;
                 _model.AskExportFile = AskExportFile;
-                _model.WindowsPrinters = WindowsPrinters;
+                _model.WindowsPrinters = WindowsPlotPrinter.Installed;
+                _model.ShowPageSetupManager = manager => PageSetupManagerWindow.Show(Window.GetWindow(this), manager);
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
                 MainViewModel shown = _model;
@@ -766,41 +767,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 job.FileName = null;
             }
-        }
-
-        /// <summary>The printers of Windows by name, each with whether it is on the network, as the print spooler lists them.</summary>
-        private static System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<
-            string,
-            bool
-        >> WindowsPrinters()
-        {
-            var printers = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, bool>>();
-
-            using (var server = new System.Printing.LocalPrintServer())
-            {
-                foreach (
-                    System.Printing.PrintQueue queue in server.GetPrintQueues(
-                        new[]
-                        {
-                            System.Printing.EnumeratedPrintQueueTypes.Local,
-                            System.Printing.EnumeratedPrintQueueTypes.Connections,
-                        }
-                    )
-                )
-                {
-                    using (queue)
-                    {
-                        printers.Add(
-                            new System.Collections.Generic.KeyValuePair<string, bool>(
-                                queue.FullName,
-                                queue.FullName.StartsWith(@"\\", StringComparison.Ordinal)
-                            )
-                        );
-                    }
-                }
-            }
-
-            return printers;
         }
 
         private void OnOpenRequested(object sender, EventArgs e) => ShowOpenDialog();

@@ -27,16 +27,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 DisplayBox.Empty,
                 null
             );
-            var printers = new[]
+            var printers = new IPlotPrinter[]
             {
-                new KeyValuePair<string, bool>(@"\\print\HP LaserJet M507", true),
-                new KeyValuePair<string, bool>("Microsoft Print to PDF", false),
+                new FakePlotPrinter(@"\\print\HP LaserJet M507", true),
+                new FakePlotPrinter("Microsoft Print to PDF", false),
             };
             return new PlotDialogViewModel(document, job, isPageSetup, printers);
         }
 
         [Fact]
-        public void TheDialogShowsThePdfWriterChosen_AndThePrintersOfWindowsGreyed()
+        public void TheDialogShowsThePdfWriterChosen_AndNoneGreyed()
         {
             PlotDialogViewModel dialog = Dialog(PlotPdfTests.Plan(), PlotPdfTests.AtOneToTwenty());
 
@@ -56,7 +56,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 dialog.Devices.Select(d => d.Name).ToArray()
             );
             Assert.Equal(
-                new[] { false, true, true, true, false, false },
+                new[] { false, true, true, true, true, true },
                 dialog.Devices.Select(d => d.IsEnabled).ToArray()
             );
             Assert.Equal(
@@ -73,7 +73,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             );
             Assert.True(dialog.Devices[4].StartsGroup);
             Assert.Same(dialog.Devices[1], dialog.Device);
-            dialog.Device = dialog.Devices[5];
+            dialog.Device = dialog.Devices[0];
             Assert.Same(dialog.Devices[1], dialog.Device);
             Assert.Equal("GeometryHelper PDF · vector, built in", dialog.PlotterText);
             Assert.Equal("<None>", dialog.PageSetup);

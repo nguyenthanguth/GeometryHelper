@@ -1,8 +1,8 @@
 # Plotting to PDF
 
-How a space of the presenter is plotted, as AutoCAD 2021 plots it: the page setup a layout keeps, the sheet the plot is
-laid on, the plot style tables, the PDF the presenter writes, and the commands PLOT (Ctrl+P), -PLOT, PREVIEW and
-PAGESETUP. The page setup and the sheet are worked out by
+How a space of the presenter is plotted, as AutoCAD 2021 plots it: the page setup a layout keeps, the named page setups
+of a drawing, the sheet the plot is laid on, the plot style tables, the PDF the presenter writes, printing on a printer of
+Windows, and the commands PLOT (Ctrl+P), -PLOT, PREVIEW and PAGESETUP. The page setup and the sheet are worked out by
 [`CadPlotSettings`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and
 [`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage) with no window; the PDF is written by the controls'
 `CadPdfWriter`, through SkiaSharp. Every example below was run on a plan of model space: a frame from (120, 60) to
@@ -47,7 +47,8 @@ A sheet the layout names is the standard one of its name and margins, else one m
 so a layout of `LAYOUT New`, A3 with margins of 7.5 at the sides and 20 above and below, plots on the sheet its tab shows.
 The page setups of the drawing's ACAD_PLOTSETTINGS are listed by
 [`PageSetupNames`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and read by
-[`ReadPageSetup`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings); a new one is not added yet.
+[`ReadPageSetup`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings); keeping them is under
+[Named page setups](#named-page-setups).
 
 ## The sheet
 
@@ -117,12 +118,13 @@ at once lost the map of their text in 3 to 6 of 64.
 | Command | What it does |
 |---|---|
 | PLOT, Ctrl+P | the Plot dialog, expanded, on the space's page setup; OK asks for the file and writes the PDF, or the PNG or JPEG of a raster device; with no window, -PLOT's prompts |
-| PAGESETUP | the same dialog titled Page Setup; OK writes the page setup to the layout |
+| PAGESETUP | the Page Setup Manager, [below](#named-page-setups); where a host shows none, the same dialog titled Page Setup, whose OK writes the page setup to the layout |
 | PREVIEW | the plot preview of the space's page setup over the whole window; its Plot asks for the file and writes the PDF |
 | -PLOT | AutoCAD's plot on the command line |
 
-The dialog follows AutoCAD's: the page setup's name; the plotter, GeometryHelper PDF, with the printers of Windows listed
-greyed, since printing to them is not built; the paper size and its small picture; what to plot, and for a window the
+The dialog follows AutoCAD's: the page setup's name, with Add… to keep the dialog's settings under a name; the plotter,
+GeometryHelper PDF, PNG or JPG or a printer of Windows (None is listed greyed); the paper size and its small picture, and
+for a printer the number of copies; what to plot, and for a window the
 Window&lt; button, which hides the dialog while "Specify first corner:" and "Specify opposite corner:" are answered on the
 drawing and shows it again with the window set; the offset, or Center the plot; Fit to paper, or the scale and its two
 units; the plot style table; the plot options; and the orientation. Apply to Layout writes the page setup at once, Save
@@ -161,6 +163,68 @@ Without the detailed configuration it asks the layout, a page setup's name, the 
 area offers Layout in place of Limits, and the last prompts are Scale lineweights, Plot paper space first and Hide
 paperspace objects; the last two, like the shade plot, change nothing in a 2D plot. View is not offered: the presenter has
 no named views. The file is written by the window, which holds the PDF writer.
+
+## Printing on a printer of Windows
+
+The printers of Windows are listed in the Printer/plotter list after the three built-in plotters, by name, a printer on the
+network (`\\print\HP LaserJet M507`) marked Windows · network. Choosing one asks the printer for its sheets: the Paper size
+list is then the printer's own, each sheet as the driver names it (`A4`, `A3`, `Letter`) at its size upright, with the
+margins of the imageable area the driver gives for it. The sheet the plot was on stays where the printer has one of its size
+in either turn: a plot on ISO A3 (420 by 297) moves to the printer's A3 (297 by 420), still on its side, and a printer with
+no such sheet starts on the first it lists. A printer that lists no sheet at all offers the sheets of GeometryHelper PDF.
+Plot to file is not ticked for a printer, and Number of copies takes 1 to 999.
+
+OK on a printer draws the plot as the PDF writer does, through the same page [`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage)
+lays out, with the same scale, offset, centring, turn, plot style table and lineweights, then hands it to the printer; no
+file is asked. "Plot sent to Office printer." is written on the command line, or "The plot was not printed:" and the
+printer's reason where it does not take the job. Save changes to layout writes the printer's name as the layout's plotter (group 2),
+so that the next PLOT opens on that printer where the computer has it, and chooses GeometryHelper PDF where it has not.
+PREVIEW and the preview's Plot print too when the page setup names an installed printer. -PLOT still names the three built-in
+devices only.
+
+The page goes to the printer as pixels, not vectors: SkiaSharp's XPS writer stops the process ("Must set a PNG encoder"), so
+the plot is drawn at up to 300 dots to the inch in bands of at most 4 million pixels and set into a WPF visual that WPF
+prints, with a print ticket of the paper, the turn and the copies that the driver validates. A sheet of A3 is 4 961 by 3 508
+pixels; a sheet that would take more than 40 million (A0 would take 139 million) is drawn at the resolution that keeps it
+under, 160 dots to the inch for A0. A printer is reached through
+`IPlotPrinter`, so that a host or a test gives a queue of its own:
+`WindowsPlotPrinter.Installed()` lists the real ones, and `MainViewModel.WindowsPrinters` is where the window gives them.
+
+## Named page setups
+
+A drawing keeps named page setups as PLOTSETTINGS in its dictionary ACAD_PLOTSETTINGS, in a DXF and in a DWG, as AutoCAD does.
+A name is any of up to 255 letters but `< > / \ " : ; ? * | , = ` and a back quote
+([`CheckPageSetupName`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings)). Each of these is one undo step named PAGESETUP:
+
+| Member | What it does |
+|---|---|
+| `settings.SaveAsPageSetup(document, "A2 plan")` | writes the settings as the page setup of the name, added or, where the name has one (letters of either case the same), replaced; the layout is not touched |
+| `CadPlotSettings.SetCurrentPageSetup(document, space, "A2 plan")` | copies the page setup into the space's layout with its name, as AutoCAD's `CopyFrom` does |
+| `CadPlotSettings.CurrentPageSetupName(document, space)` | the name the layout keeps, as the drawing spells it; empty for none |
+| `CadPlotSettings.ImportPageSetups(document, source, names)` | copies page setups of another drawing, adding ` (2)`, ` (3)` where the name is taken |
+
+```csharp
+CadPlotSettings settings = CadPlotSettings.Read(document, document.ModelSpace);
+settings.Paper = CadPaper.Standard[2];                                  // ISO A2
+settings.SaveAsPageSetup(document, "A2 plan");                          // PLOTSETTINGS "A2 plan", ISO_A2_(594.00_x_420.00_MM)
+CadPlotSettings.SetCurrentPageSetup(document, document.ModelSpace, "a2 plan");
+// CurrentPageSetupName: "A2 plan"; the layout Model is on ISO A2, and one undo takes it back
+```
+
+PAGESETUP opens the Page Setup Manager: the layout, "Current page setup: A2 plan", the drawing's page setups with Current
+beside the one the layout is set to and one line on how the one chosen plots (`ISO A2 (594.00 x 420.00 MM) · GeometryHelper PDF ·
+Window 1:20 · grayscale.ctb`), and four buttons. Set Current sets the layout to the page setup chosen. New… asks a name and
+what to start with, `<None>`, `*Model*` (the settings of a space, one for each) or a page setup, then shows the Page Setup
+dialog on it, and adds the page setup when OK is pressed there; nothing is added when either is cancelled. Modify… (or a double
+click) shows the Page Setup dialog on the one chosen and writes it back on OK. Import… asks a drawing, a DWG, DXF or DWT, lists
+its page setups in Import Page Setups, each ticked, and copies those left ticked. In the Page Setup dialog of the manager Window&lt;
+and Add… are greyed. Add… of the Plot dialog asks Add Page Setup and keeps the dialog's settings under the name, which is then
+the one chosen in the Page setup list; a name the drawing has, or one AutoCAD refuses, is shown in red with its reason and
+greys OK.
+
+A page setup that names a printer of Windows (group 2) is chosen in the Plot dialog when the computer has the printer; AutoCAD's
+`DWG To PDF.pc3` and a printer this computer lacks are read as GeometryHelper PDF. Rename and Delete, which AutoCAD puts on the
+manager's right-click menu, are not built.
 
 ## Plotting to an image
 

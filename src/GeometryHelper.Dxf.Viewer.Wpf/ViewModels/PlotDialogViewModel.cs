@@ -2,19 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Media;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
-    /// <summary>A plotter of the Printer/plotter list: the built-in PDF writer, None, or a printer of Windows, shown and not chosen.</summary>
+    /// <summary>A plotter of the Printer/plotter list: the built-in PDF and image writers, None (shown, not chosen), or a printer of Windows.</summary>
     public sealed class PlotDeviceRow
     {
-        internal PlotDeviceRow(string name, string kind, bool isEnabled, bool startsGroup)
+        internal PlotDeviceRow(string name, string kind, bool isEnabled, bool startsGroup, IPlotPrinter printer = null)
         {
             Name = name;
             Kind = kind;
             IsEnabled = isEnabled;
             StartsGroup = startsGroup;
+            Printer = printer;
         }
+
+        /// <summary>Gets the printer of Windows this row is; null for a plotter of the presenter's own and None.</summary>
+        public IPlotPrinter Printer { get; }
 
         /// <summary>Gets the name: GeometryHelper PDF, None, or the name Windows gives a printer.</summary>
         public string Name { get; }
@@ -22,7 +27,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets what it is, shown after it: "built in", "Windows", "Windows · network".</summary>
         public string Kind { get; }
 
-        /// <summary>Gets whether it can be chosen: the PDF writer alone; None and the printers of Windows are shown greyed.</summary>
+        /// <summary>Gets whether it can be chosen: every one but None, which is shown greyed.</summary>
         public bool IsEnabled { get; }
 
         /// <summary>Gets whether a line is drawn above it: the first printer of Windows.</summary>
@@ -58,8 +63,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// AutoCAD's Plot dialog in its expanded form, which PLOT (Ctrl+P) shows, and its Page Setup form, which PAGESETUP shows:
     /// the page setup, the plotter, the sheet, what to plot, the offset and the scale on the left; the plot style table, the
     /// shaded viewport options, the plot options and the orientation on the right. It edits a copy of the space's page setup
-    /// (<see cref="Settings"/>); Apply to Layout writes it into the drawing as one undo step, OK plots it to a PDF (or, in the
-    /// Page Setup form, writes it), and Window&lt; closes the dialog for a window to be picked on the canvas.
+    /// (<see cref="Settings"/>); Apply to Layout writes it into the drawing as one undo step, OK plots it to a PDF or an image
+    /// or prints it on a printer of Windows (or, in the Page Setup form, writes it), Add… keeps it as a named page setup, and
+    /// Window&lt; closes the dialog for a window to be picked on the canvas.
     /// </summary>
     public sealed class PlotDialogViewModel : ObservableObject
     {
@@ -74,6 +80,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private readonly CadPlotJob _job;
         private readonly List<CadPaper> _customSizes;
+        private readonly List<IPlotPrinter> _printers;
+        private readonly Dictionary<string, IReadOnlyList<CadPaper>> _printerPapers = new Dictionary<
+            string,
+            IReadOnlyList<CadPaper>
+        >(StringComparer.OrdinalIgnoreCase);
+        private int _copies = 1;
         private CadPaper _mmPaper;
         private CadPlotSettings _settings;
         private string _pageSetup = NoPageSetup;
@@ -87,22 +99,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="document">The document.</param>
         /// <param name="job">The space and its page setup; the dialog edits a copy of the settings.</param>
         /// <param name="isPageSetup">True for PAGESETUP's form: titled Page Setup, OK writing the page setup instead of plotting.</param>
-        /// <param name="windowsPrinters">The printers of Windows to list, greyed, each its name and whether it is on the network; null for none.</param>
+        /// <param name="windowsPrinters">The printers of Windows to list after the presenter's own plotters, by name; null for none.</param>
         /// <param name="customPixelSizes">The sizes of an image of the user's own a raster device lists after those built in, the newest first; null for none.</param>
+        /// <param name="editsPageSetup">
+        /// The name of the page setup of the drawing this form edits, as the Page Setup Manager's Modify… and New… do: OK then
+        /// writes it with <see cref="SaveToPageSetup"/> and not into the layout, and Window&lt; is not offered. Null for the
+        /// layout's own.
+        /// </param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the job is null.</exception>
         public PlotDialogViewModel(
             CadDocument document,
             CadPlotJob job,
             bool isPageSetup = false,
-            IEnumerable<KeyValuePair<string, bool>> windowsPrinters = null,
-            IEnumerable<CadPaper> customPixelSizes = null
+            IEnumerable<IPlotPrinter> windowsPrinters = null,
+            IEnumerable<CadPaper> customPixelSizes = null,
+            string editsPageSetup = null
         )
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             _job = job ?? throw new ArgumentNullException(nameof(job));
             IsPageSetup = isPageSetup;
+            PageSetupName = editsPageSetup;
+            _pageSetup = editsPageSetup ?? NoPageSetup;
+            _printers = (windowsPrinters ?? Array.Empty<IPlotPrinter>())
+                .Where(p => p != null)
+                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(p => p.Name, StringComparer.Ordinal)
+                .ToList();
             _settings = job.Settings.Clone();
-            _settings.UseDevice(_settings.IsRaster ? _settings.DeviceName : CadPlotSettings.PdfDevice);
+            UseKnownDevice(_settings);
             _customSizes = (customPixelSizes ?? Array.Empty<CadPaper>())
                 .Where(p => p != null && p.IsPixels && !p.IsCustomChoice)
                 .ToList();
@@ -117,20 +142,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             bool first = true;
 
-            foreach (
-                KeyValuePair<string, bool> printer in (windowsPrinters ?? Array.Empty<KeyValuePair<string, bool>>())
-                    .OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(p => p.Key, StringComparer.Ordinal)
-            )
+            foreach (IPlotPrinter printer in _printers)
             {
                 devices.Add(
-                    new PlotDeviceRow(printer.Key, printer.Value ? "Windows · network" : "Windows", false, first)
+                    new PlotDeviceRow(
+                        printer.Name,
+                        printer.IsNetwork ? "Windows · network" : "Windows",
+                        true,
+                        first,
+                        printer
+                    )
                 );
                 first = false;
             }
 
             Devices = devices;
-            _mmPaper = _settings.Paper.IsPixels ? CadPaper.Default : _settings.Paper;
+            _mmPaper = _settings.Paper.IsPixels || _settings.IsPrinter ? CadPaper.Default : _settings.Paper;
             Papers = PapersOf(_settings);
             Areas = Space.IsModel
                 ? new[]
@@ -155,7 +182,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Scales = CadPlotScale.ListFor(document.Database);
             ScaleNames = Scales.Select(s => s.Name).Concat(new[] { CustomScale }).ToList();
-            PageSetups = new[] { NoPageSetup }.Concat(CadPlotSettings.PageSetupNames(document)).ToList();
+            PageSetups = PageSetupList();
             StyleTables = new[] { CadPlotStyleTable.Monochrome, CadPlotStyleTable.Grayscale, CadPlotStyleTable.None };
             Refresh();
         }
@@ -171,6 +198,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether the plotter is a raster device, GeometryHelper PNG or JPG: sizes in pixels, Plot to file always, the DPI grey.</summary>
         public bool IsRaster => _settings.IsRaster;
+
+        /// <summary>Gets whether the plotter is a printer of Windows: the plot is printed on its paper, not written to a file.</summary>
+        public bool IsPrinter => _settings.IsPrinter;
+
+        /// <summary>Gets the printer of Windows chosen; null for a plotter of the presenter's own.</summary>
+        internal IPlotPrinter SelectedPrinter => IsPrinter ? PrinterNamed(_settings.DeviceName) : null;
+
+        /// <summary>Gets whether Plot to file is ticked: always, but for a printer of Windows.</summary>
+        public bool PlotsToFile => !IsPrinter;
+
+        /// <summary>Gets the words of the Plot to file box: always for the PDF writer or a raster device, not offered for a printer.</summary>
+        public string PlotToFileText =>
+            IsPrinter ? "Plot to file (a printer prints on paper)"
+            : IsRaster ? "Plot to file (always, for a raster device)"
+            : "Plot to file (always, for PDF)";
+
+        /// <summary>Gets whether the number of copies can be typed: for a printer of Windows alone.</summary>
+        public bool IsCopiesEnabled => IsPrinter;
+
+        /// <summary>Gets the number of copies printed: what was typed for a printer, 1 for a file.</summary>
+        public int Copies => IsPrinter ? _copies : 1;
+
+        /// <summary>Gets or sets the number of copies as typed; a number from 1 to 999 is taken, anything else is shown as the copies were.</summary>
+        public string CopiesText
+        {
+            get => Copies.ToString(CultureInfo.InvariantCulture);
+            set
+            {
+                if (
+                    IsPrinter
+                    && int.TryParse(
+                        (value ?? string.Empty).Trim(),
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out int copies
+                    )
+                    && copies >= 1
+                    && copies <= 999
+                )
+                {
+                    _copies = copies;
+                }
+
+                Raise(nameof(CopiesText));
+            }
+        }
 
         /// <summary>Gets the unit of the offsets: "mm", or "pixels" for a raster device.</summary>
         public string OffsetUnit => IsRaster ? "pixels" : "mm";
@@ -205,6 +278,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the page setup as the dialog has it, a copy apart from the drawing's.</summary>
         public CadPlotSettings Settings => _settings;
 
+        /// <summary>Gets the name of the page setup of the drawing this form edits (the Page Setup Manager's Modify… and New…); null for the layout's own.</summary>
+        public string PageSetupName { get; }
+
+        /// <summary>Gets whether Window&lt; can be pressed: not while a named page setup is edited, which has no canvas to pick on.</summary>
+        public bool CanPickWindow => PageSetupName == null;
+
+        /// <summary>Gets whether Add… is offered: not while a named page setup is edited, which is kept by OK.</summary>
+        public bool CanAddPageSetup => PageSetupName == null;
+
+        /// <summary>
+        /// Gets or sets how the window asks the name of a new page setup (Add Page Setup): true where OK was pressed. Null for
+        /// none, when <see cref="AskAndAddPageSetup"/> does nothing.
+        /// </summary>
+        public Func<PageSetupNameViewModel, bool> ShowPageSetupName { get; set; }
+
         /// <summary>Gets the title: "Plot - Model", or "Page Setup - Model" in PAGESETUP's form.</summary>
         public string Title => (IsPageSetup ? "Page Setup - " : "Plot - ") + Space.Name;
 
@@ -212,7 +300,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Footer => Document.Title + " · " + Space.Name;
 
         /// <summary>Gets the page setups to choose from: &lt;None&gt;, then the drawing's by name.</summary>
-        public IReadOnlyList<string> PageSetups { get; }
+        public IReadOnlyList<string> PageSetups { get; private set; }
 
         /// <summary>Gets or sets the page setup chosen; one of the drawing's sets the dialog to it.</summary>
         public string PageSetup
@@ -229,7 +317,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (named != null)
                 {
-                    named.UseDevice(named.IsRaster ? named.DeviceName : CadPlotSettings.PdfDevice);
+                    UseKnownDevice(named);
                     _settings = named;
                     RefreshDevice();
                 }
@@ -237,15 +325,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets the plotters of the Printer/plotter list: None and the printers of Windows greyed, GeometryHelper PDF, PNG and
-        /// JPG to choose from.
+        /// Gets the plotters of the Printer/plotter list: None greyed, GeometryHelper PDF, PNG and JPG, then the printers of
+        /// Windows, to choose from.
         /// </summary>
         public IReadOnlyList<PlotDeviceRow> Devices { get; }
 
         /// <summary>
-        /// Gets or sets the plotter chosen, GeometryHelper PDF, PNG or JPG; a row greyed is not taken. A raster device starts
-        /// on 1920 by 1080 pixels, fitted and centred, with no plot style table; going back to the PDF one gives the sheet it
-        /// had.
+        /// Gets or sets the plotter chosen, GeometryHelper PDF, PNG or JPG, or a printer of Windows; None is greyed and not
+        /// taken. A raster device starts on 1920 by 1080 pixels, fitted and centred, with no plot style table; going back to the
+        /// PDF one gives the sheet it had. A printer takes the sheets it lists, the one of the size the plot was on where it has
+        /// it, else its first.
         /// </summary>
         public PlotDeviceRow Device
         {
@@ -258,12 +347,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     && !string.Equals(value.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase)
                 )
                 {
+                    bool wasFile = !_settings.IsPrinter;
                     bool wasRaster = _settings.IsRaster;
-                    _settings.UseDevice(value.Name);
 
-                    if (wasRaster && !_settings.IsRaster)
+                    if (value.Printer != null)
                     {
-                        _settings.Paper = _mmPaper;
+                        CadPaper wanted = _settings.Paper.IsPixels ? _mmPaper : _settings.Paper;
+                        _settings.UsePrinter(value.Name);
+                        _settings.Paper = ClosestPaper(PrinterPapers(value.Printer), wanted);
+                    }
+                    else
+                    {
+                        bool wasPrinter = _settings.IsPrinter;
+                        _settings.UseDevice(value.Name);
+
+                        if ((wasRaster || wasPrinter) && !_settings.IsRaster)
+                        {
+                            _settings.Paper = _mmPaper;
+                        }
+                    }
+
+                    if (wasFile && value.Printer != null && !_settings.Paper.IsPixels)
+                    {
+                        _copies = 1;
                     }
 
                     RefreshDevice();
@@ -276,14 +382,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets what the plotter is: "GeometryHelper PDF · vector, built in", "GeometryHelper PNG · raster, built in".</summary>
-        public string PlotterText => _settings.DeviceName + (IsRaster ? " · raster, built in" : " · vector, built in");
+        public string PlotterText =>
+            _settings.DeviceName
+            + (
+                IsPrinter ? " · printer of Windows"
+                : IsRaster ? " · raster, built in"
+                : " · vector, built in"
+            );
 
-        /// <summary>Gets where it writes: File.</summary>
-        public string WhereText => "File";
+        /// <summary>Gets where it writes: File, or for a printer of Windows Printer, Network printer when it is on the network.</summary>
+        public string WhereText =>
+            IsPrinter ? (SelectedPrinter?.IsNetwork == true ? "Network printer" : "Printer") : "File";
 
         /// <summary>Gets what it does.</summary>
         public string DescriptionText =>
-            string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase)
+            IsPrinter ? "Prints on paper through Windows, drawn at up to 300 dots to the inch."
+            : string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase)
                 ? "Writes a PNG image, lossless, one file per plot."
             : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase)
                 ? "Writes a JPEG image, quality 90, one file per plot; no transparency."
@@ -335,7 +449,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 _settings.Paper = value;
 
-                if (!value.IsPixels)
+                if (!value.IsPixels && !_settings.IsPrinter)
                 {
                     _mmPaper = value;
                 }
@@ -690,6 +804,92 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public CadEditResult ApplyToLayout() => _settings.ApplyTo(Document, Space);
 
         /// <summary>
+        /// Writes the page setup as it is into the named page setup this form edits (<see cref="PageSetupName"/>), one undo step
+        /// named PAGESETUP: what OK does in the Page Setup Manager's Modify… and New….
+        /// </summary>
+        /// <returns>What came of the edit; refused where this form edits the layout's own page setup.</returns>
+        public CadEditResult SaveToPageSetup() =>
+            PageSetupName == null
+                ? CadEditResult.Refuse("This page setup is the layout's own: it is applied to the layout.")
+                : _settings.SaveAsPageSetup(Document, PageSetupName);
+
+        /// <summary>
+        /// Keeps the page setup as the dialog has it as a named page setup of the drawing, as Add… does, one undo step named
+        /// PAGESETUP; the name is then the one chosen in the Page setup list. A name the drawing has is replaced.
+        /// </summary>
+        /// <param name="name">The name, trimmed.</param>
+        /// <returns>What came of the edit; refused where the name is not a good one.</returns>
+        public CadEditResult AddPageSetup(string name)
+        {
+            CadEditResult result = _settings.SaveAsPageSetup(Document, name);
+
+            if (result.Succeeded)
+            {
+                PageSetups = PageSetupList();
+                _pageSetup = CadPlotSettings
+                    .PageSetupNames(Document)
+                    .First(n => string.Equals(n, name.Trim(), StringComparison.OrdinalIgnoreCase));
+                Raise(nameof(PageSetups));
+                Raise(nameof(PageSetup));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Asks the name of a new page setup (<see cref="ShowPageSetupName"/>) and keeps the page setup as the dialog has it
+        /// under it, as Add… does.
+        /// </summary>
+        /// <returns>What came of the edit; null where no name was given or the window does not ask.</returns>
+        public CadEditResult AskAndAddPageSetup()
+        {
+            if (ShowPageSetupName == null || !CanAddPageSetup)
+            {
+                return null;
+            }
+
+            var asked = new PageSetupNameViewModel("Add Page Setup", CadPlotSettings.PageSetupNames(Document));
+            return ShowPageSetupName(asked) && asked.CanOk ? AddPageSetup(asked.Name) : null;
+        }
+
+        /// <summary>
+        /// Prints the plot on the printer of Windows chosen, as OK does for one: the page drawn on its sheet and handed to the
+        /// printer with the paper, the turn and the copies; the page setup written into the layout first where Save changes
+        /// to layout is ticked. No file is written.
+        /// </summary>
+        /// <returns>The plot as it was laid on its sheet.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when no printer of Windows is chosen, there is nothing to plot, or the printer cannot take the job.</exception>
+        public CadPlotPage Print()
+        {
+            IPlotPrinter printer = SelectedPrinter
+                ?? throw new InvalidOperationException("No printer of Windows is chosen.");
+
+            if (_saveChanges)
+            {
+                ApplyToLayout();
+            }
+
+            DrawingVisual visual = CadPrintWriter.CreatePage(
+                Document,
+                Space,
+                _settings,
+                _job.Display,
+                out CadPlotPage page
+            );
+            printer.Print(
+                new PlotPrintJob(
+                    Document.Title + " - " + Space.Name,
+                    _settings.Paper,
+                    page.SheetWidth,
+                    page.SheetHeight,
+                    Copies,
+                    visual
+                )
+            );
+            return page;
+        }
+
+        /// <summary>
         /// Plots as OK does, to a PDF or, with a raster device, to a PNG or a JPEG of the size in pixels: the file written,
         /// and the page setup written into the layout first where Save changes to layout is ticked.
         /// </summary>
@@ -737,6 +937,89 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _job.AsksFile = asksFile;
         }
 
+        /// <summary>The Page setup list: &lt;None&gt;, then the drawing's by name.</summary>
+        private IReadOnlyList<string> PageSetupList() =>
+            new[] { NoPageSetup }.Concat(CadPlotSettings.PageSetupNames(Document)).ToList();
+
+        /// <summary>The printer of Windows of a name, letters of either case the same; null for none, or a plotter of the presenter's own.</summary>
+        private IPlotPrinter PrinterNamed(string name) =>
+            string.IsNullOrEmpty(name)
+                ? null
+                : _printers.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>The sheets a printer lists, asked once; the PDF plotter's where it lists none or cannot say.</summary>
+        private IReadOnlyList<CadPaper> PrinterPapers(IPlotPrinter printer)
+        {
+            if (printer == null)
+            {
+                return CadPaper.Standard;
+            }
+
+            if (!_printerPapers.TryGetValue(printer.Name, out IReadOnlyList<CadPaper> papers))
+            {
+                try
+                {
+                    papers = printer.GetPapers() ?? Array.Empty<CadPaper>();
+                }
+                catch (Exception exception)
+                {
+                    GeometryHelperLog.Warn(
+                        "PlotDialogViewModel: the sheets of " + printer.Name + " could not be listed.",
+                        exception
+                    );
+                    papers = Array.Empty<CadPaper>();
+                }
+
+                _printerPapers[printer.Name] = papers.Count == 0 ? CadPaper.Standard : papers;
+            }
+
+            return _printerPapers[printer.Name];
+        }
+
+        /// <summary>The sheet of a list that is the size of a wanted one in either turn, to a millimetre; else the list's first.</summary>
+        private static CadPaper ClosestPaper(IReadOnlyList<CadPaper> papers, CadPaper wanted)
+        {
+            foreach (CadPaper paper in papers)
+            {
+                bool sameWay =
+                    Math.Abs(paper.Width - wanted.Width) <= 1.0 && Math.Abs(paper.Height - wanted.Height) <= 1.0;
+                bool turned =
+                    Math.Abs(paper.Width - wanted.Height) <= 1.0 && Math.Abs(paper.Height - wanted.Width) <= 1.0;
+
+                if (sameWay || turned)
+                {
+                    return paper;
+                }
+            }
+
+            return papers[0];
+        }
+
+        /// <summary>
+        /// Settings made to use a plotter this dialog has: the printer of Windows they were read with (or already use) where
+        /// the computer has it, on a sheet of its list; else the presenter's own plotter, a raster device as it was and the
+        /// PDF one for anything else.
+        /// </summary>
+        private void UseKnownDevice(CadPlotSettings settings)
+        {
+            IPlotPrinter printer = PrinterNamed(
+                settings.IsPrinter ? settings.DeviceName
+                : settings.IsRaster ? null
+                : settings.SavedPlotter
+            );
+
+            if (printer != null)
+            {
+                CadPaper wanted = settings.Paper.IsPixels ? CadPaper.Default : settings.Paper;
+                settings.UsePrinter(printer.Name);
+                settings.Paper = ClosestPaper(PrinterPapers(printer), wanted);
+            }
+            else
+            {
+                settings.UseDevice(settings.IsRaster ? settings.DeviceName : CadPlotSettings.PdfDevice);
+            }
+        }
+
         private double PictureScale
         {
             get
@@ -750,7 +1033,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private IReadOnlyList<CadPaper> PapersOf(CadPlotSettings settings)
         {
             var papers = new List<CadPaper>(
-                settings.IsRaster ? CadPaper.PixelSizes.Concat(_customSizes) : CadPaper.Standard
+                settings.IsRaster ? CadPaper.PixelSizes.Concat(_customSizes)
+                : settings.IsPrinter ? PrinterPapers(PrinterNamed(settings.DeviceName))
+                : CadPaper.Standard
             );
 
             if (!papers.Any(p => p.IsSameAs(settings.Paper)))
@@ -777,6 +1062,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     nameof(Device),
                     nameof(IsRaster),
+                    nameof(IsPrinter),
+                    nameof(PlotsToFile),
+                    nameof(PlotToFileText),
+                    nameof(IsCopiesEnabled),
+                    nameof(CopiesText),
+                    nameof(WhereText),
                     nameof(PlotterText),
                     nameof(DescriptionText),
                     nameof(OffsetUnit),

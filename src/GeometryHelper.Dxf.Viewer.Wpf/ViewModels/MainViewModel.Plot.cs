@@ -5,7 +5,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// PLOT (Ctrl+P), PAGESETUP and PREVIEW shown through functions the workspace sets, so that a test drives them with none,
-    /// and -PLOT's file written by the PDF writer. With no dialog to show, PLOT asks -PLOT's prompts on the command line.
+    /// -PLOT's file written by the PDF writer, and a plot printed on a printer of Windows through the queue it is given. With
+    /// no dialog to show, PLOT asks -PLOT's prompts on the command line.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -21,8 +22,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public Func<string, string, string> AskPlotFile { get; set; }
 
-        /// <summary>Gets or sets the printers of Windows the Plot dialog lists, greyed: each its name and whether it is on the network; null for none.</summary>
-        public Func<IEnumerable<KeyValuePair<string, bool>>> WindowsPrinters { get; set; }
+        /// <summary>Gets or sets the printers of Windows the Plot dialog lists after the presenter's own plotters, and prints to; null for none.</summary>
+        public Func<IEnumerable<IPlotPrinter>> WindowsPrinters { get; set; }
+
+        /// <summary>Gets or sets how the workspace shows the Page Setup Manager, which PAGESETUP opens; null shows the Page Setup dialog on the layout's own page setup instead.</summary>
+        public Action<PageSetupManagerViewModel> ShowPageSetupManager { get; set; }
 
         /// <summary>
         /// PLOT's and PAGESETUP's request: the dialog shown, then the plot written to the file asked for, or the page setup
@@ -33,12 +37,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadDocument document = e.Document ?? _current?.Document;
 
+            bool isPageSetup = e.Name == "PAGESETUP";
+
+            if (document != null && e.Plot != null && isPageSetup && ShowPageSetupManager != null)
+            {
+                OpenPageSetupManager(document, e.Plot.Space);
+                e.Handled = true;
+                return;
+            }
+
             if (document == null || e.Plot == null || ShowPlot == null)
             {
                 return;
             }
 
-            bool isPageSetup = e.Name == "PAGESETUP";
             var dialog = new PlotDialogViewModel(document, e.Plot, isPageSetup, Printers(), _settings.CustomPixelSizes);
 
             // A size of an image made with Custom… is kept in the settings file, as AutoCAD keeps it in the device's PC3.
@@ -64,6 +76,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (isPageSetup)
             {
                 SayRefused(dialog.ApplyToLayout());
+                return;
+            }
+
+            if (dialog.IsPrinter)
+            {
+                Printed(sender, dialog);
                 return;
             }
 
@@ -98,7 +116,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadPlotJob job = e.Plot;
-            var preview = new PlotPreviewViewModel(document, job.Space, job.Settings, job.Display);
+            var dialog = new PlotDialogViewModel(document, job, false, Printers());
+            var preview = new PlotPreviewViewModel(document, job.Space, dialog.Settings, job.Display);
             e.Handled = true;
 
             if (preview.Page.IsEmpty)
@@ -109,7 +128,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (ShowPlotPreview(preview))
             {
-                var dialog = new PlotDialogViewModel(document, job);
+                if (dialog.IsPrinter)
+                {
+                    Printed(sender, dialog);
+                    return;
+                }
+
                 string path = AskPlotFile?.Invoke(dialog.SuggestedFolder, dialog.SuggestedFileName);
 
                 if (path != null)
@@ -173,7 +197,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private IEnumerable<KeyValuePair<string, bool>> Printers()
+        /// <summary>
+        /// A plot printed on the printer the dialog has chosen, and where it went on the command line, or why it was not. A
+        /// printer that fails, or a page with nothing on it, is said and not thrown.
+        /// </summary>
+        private void Printed(object sender, PlotDialogViewModel dialog)
+        {
+            var session = (CadCommandSession)sender;
+            string printer = dialog.Settings.DeviceName;
+
+            try
+            {
+                dialog.Print();
+                session.Write("Plot sent to " + printer + ".");
+            }
+            catch (Exception exception)
+                when (exception is InvalidOperationException
+                    || exception is System.IO.IOException
+                    || exception is UnauthorizedAccessException
+                    || exception is ArgumentException
+                )
+            {
+                GeometryHelperLog.Warn("MainViewModel: the plot to " + printer + " was not printed.", exception);
+                session.Write("The plot was not printed: " + exception.Message);
+            }
+        }
+
+        /// <summary>PAGESETUP's manager, given the printers; a size of an image it made is kept in the settings file. The window gives it its dialogs.</summary>
+        private void OpenPageSetupManager(CadDocument document, CadSpace space)
+        {
+            var manager = new PageSetupManagerViewModel(document, space, Printers(), _settings.CustomPixelSizes);
+            manager.CustomSizeMade += (s, size) =>
+            {
+                _settings.NoteCustomPixelSize(size);
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            };
+            ShowPageSetupManager(manager);
+        }
+
+        private IEnumerable<IPlotPrinter> Printers()
         {
             try
             {
