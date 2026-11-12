@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace GeometryHelper.Dxf
 {
     /// <summary>
@@ -110,6 +112,20 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </remarks>
         public bool ExpandBlocks { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the folders a DWG's files of shapes are looked for in, in their order, as AutoCAD looks in its support
+        /// folders; empty by default. Used where <see cref="Dwg.DwgReader"/> reads a DWG.
+        /// </summary>
+        /// <remarks>
+        /// A DWG keeps a SHAPE by its number in the file of shapes of its text style, where DXF gives its name (group 2). The
+        /// file the style names, ltypeshp.shx say, is looked for in each folder in turn, with .shx where the name has no
+        /// extension, and first where the style gives it with its folder; the first compiled file of shapes found names the
+        /// shape. Where none is found, or it has no shape of that number, the SHAPE gives its number instead, as group 70, as
+        /// AutoCAD writes a shape whose file it does not find: shape 130 is TRACK1 with ltypeshp.shx in one of the folders and
+        /// 70 = 130 without it.
+        /// </remarks>
+        public IList<string> SupportFolders { get; set; } = new List<string>();
 
         private int _maxPlacedEntities = 2000000;
 

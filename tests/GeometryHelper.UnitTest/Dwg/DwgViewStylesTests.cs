@@ -58,7 +58,7 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             DwgAnswerKey.Result result = DwgAnswerKey.Compare(
                 DwgAnswerKey.Key(drawing),
-                DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing))
+                DwgShapeTests.ToDxfWithShapes(DwgAnswerKey.Dwg(drawing))
             );
 
             Assert.Empty(result.Differences);

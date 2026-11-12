@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgReader` reads REGION, 3DSOLID and BODY of AutoCAD 2004 to 2010, whose ACIS data the file keeps as SAB: the
+SAB is turned into the SAT AutoCAD writes of it in the DXF of those versions, line for line, its head (`20800 93 2 0`
+and `16 Autodesk AutoCAD 20 ASM 226.0.0.65535 NT 0`), each flag as AutoCAD's word for it and each real to 19
+significant digits as `%.19g` writes it (25.4 is `25.39999999999999858`). Twenty solids and regions of AutoCAD 2021, a
+box, a loft, a sweep, booleans and regions of splines among them, come out as AutoCAD's DXF of them in each of the
+three versions. A record or a subtype of spline the converter does not know leaves its entity out, as before, counted
+in the Debug line of the types not read.
+
+**NEW.** `DwgReader` reads SHAPE. `DxfReadOptions.SupportFolders` lists the folders a DWG's files of shapes are looked
+for in, and `DwgReader.Open(string, DxfReadOptions)` takes them as `Read` does: with the file of its style found, a
+SHAPE gives its name (group 2), else its number (group 70), as AutoCAD writes a shape whose file it does not find.
+`DwgWriter` writes a SHAPE that gives its number, under 70 or as a number in group 2, of the first text style of a file
+of shapes; one given by its name alone is still left out.
+
+**FIXED.** A line of SAT longer than 255 characters, read from a DWG of AutoCAD 2000, comes out as AutoCAD writes it: in
+pieces of 255 under group 3, the last piece under group 1, where it came as group 1 then 3. A line that goes on a
+record starts with a space where the file has a tab, as AutoCAD writes it.
+
 **NEW.** `DwgReader` reads the detail and section view styles every drawing of AutoCAD 2013 and later holds, in every
 version AutoCAD saves them, and the manager of the persistent names of subentities AutoCAD keeps beside solids, each as
 AutoCAD's DXF of it gives: a section view style of its own, its identifier 0.33 high, bend lines overshooting by 0.11 and

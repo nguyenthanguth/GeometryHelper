@@ -30,9 +30,10 @@ namespace GeometryHelper.Dwg
     /// style's rows, then those of its own (101 on) from the CELLSTYLEMAP AutoCAD writes in DXF alone; that map, and the
     /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
     /// A REGION, 3DSOLID or BODY is written where the section ACDSDATA holds its SAB data, as a DXF of R2013 and later
-    /// gives it; one of SAT text, as a DXF of an older version gives it, is left out. A record of another type, SHAPE
-    /// among them, is left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one
-    /// Warn line of <see cref="GeometryHelperLog"/> counts them by type.
+    /// gives it; one of SAT text, as a DXF of an older version gives it, is left out. A SHAPE is written where its DXF
+    /// gives its number (group 70, or a number as its name), of the first text style of a file of shapes; one given by
+    /// its name alone is left out. A record of another type is left out, every handle to it written as 0 and every
+    /// dictionary entry naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
     /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in. The same bytes come of the same

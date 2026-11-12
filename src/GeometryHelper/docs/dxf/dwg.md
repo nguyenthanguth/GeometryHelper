@@ -18,7 +18,8 @@ db.Save("plan.dxf");                                                            
 ```
 
 Both take a path or a stream; a stream is read from where it stands to its end and left open. `Read` takes the
-[`DxfReadOptions`](xref:GeometryHelper.Dxf.DxfReadOptions) of `DxfReader`. A drawing opened from a DWG is saved as a
+[`DxfReadOptions`](xref:GeometryHelper.Dxf.DxfReadOptions) of `DxfReader`, and so does `Open` from a path, which reads
+only their `SupportFolders` (see [Shapes](#shapes)). A drawing opened from a DWG is saved as a
 DXF by `Save`, and as a DWG by [`DwgWriter`](xref:GeometryHelper.Dwg.DwgWriter) (see [Writing DWG files](#writing-dwg-files)).
 
 ## Which files
@@ -55,7 +56,7 @@ each.
 | Classes | every class of the file |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
 | Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 
@@ -65,14 +66,32 @@ itself is number 1 and the others follow in the order they were made. Their froz
 DXF of AutoCAD 2000 and 331 later, and `DxfViewport.GetFrozenLayers` reads both.
 
 A REGION, 3DSOLID or BODY carries its ACIS data as DXF does. An AutoCAD 2000 file keeps it as SAT text, which comes
-out line for line. From AutoCAD 2013 the data is in a store of the file that DXF writes in a section of its own,
+out line for line, a line that goes on a record starting with a space where the file has a tab, as AutoCAD writes it.
+AutoCAD 2004 to 2010 keep the data as SAB, binary ACIS, where DXF wants SAT text: the reader turns it into the SAT
+AutoCAD writes of it in the DXF of those versions, line for line. The head gives the version of the data (20800 in a
+file of AutoCAD 2004, 21200 of 2007, 21500 of 2010), the count of records, the count of bodies and the flags, then
+`16 Autodesk AutoCAD 20 ASM 226.0.0.65535 NT` and an empty date, then the unit and the two tolerances; each flag
+becomes AutoCAD's word for it (`forward` or `reversed`, `single` or `double`, `I` for a range without a bound and `F`
+before a bound), and a real is written to 19 significant digits, as C's `%.19g` writes it: 25.4 is
+`25.39999999999999858` and 1E-6 is `9.999999999999999547e-07`. The normal of a plane, an ellipse, a cone or a torus is
+divided by its length first, as AutoCAD does, so that a plane whose normal the file holds as
+(-0.30504964162071868, ...) comes out as `-0.3050496416207187367`. A spline breaks over lines where AutoCAD breaks it:
+five knots to a line, a control point to a line. A line longer than 255 characters is written, as AutoCAD writes it,
+in pieces of 255 under group 3 and its last piece under group 1: the loft below has a line of 493 characters. A box, a
+sphere, a cylinder, a region of a circle, a closed spline extruded, a solid lofted through a circle, an ellipse and a
+circle, booleans, fillets, a swept and a revolved solid, regions of arcs, an ellipse and a spline, twenty solids and
+regions in all, come out as AutoCAD's DXF of them in each of the three versions, every line. The SAT is written from
+grammars of the records and of the subtypes of splines AutoCAD writes for those solids; a record, a subtype or a word
+they do not know (a cone whose sense is reversed, a sweep of another kind) leaves the entity out, counted with the types
+not read, so that no SAT is written that is not AutoCAD's.
+
+From AutoCAD 2013 the data is in a store of the file that DXF writes in a section of its own,
 ACDSDATA, and it comes out there as AutoCAD writes it: the five schemas AutoCAD gives ACIS data, then a record for each
 REGION, 3DSOLID or BODY read, the handle of its entity (320) and its SAB bytes (94 and 310), the entity itself carrying
 the GUID of its record. A box 30 by 20 by 10, a sphere, a cylinder and a region of a circle give four records; a plate
 400 by 400 with 400 holes gives one of 515 873 bytes, which the store keeps in a page of its own past 256 KB. AutoCAD
 gives the records in the order of its store in a file of AutoCAD 2018 and by handle in one of AutoCAD 2013; the reader
-gives them in the order of the store. AutoCAD 2004 to 2010 keep the data as SAB, binary ACIS, where DXF wants SAT text;
-those entities are not read.
+gives them in the order of the store.
 
 A MATERIAL and a VISUALSTYLE come out with the groups AutoCAD's DXF of them gives. Of a material that is what differs
 from a new material's values: a material of its own red, RGB 200, 30, 30 at 0.8, glossy at 0.3 and seen through at
@@ -102,6 +121,28 @@ A true colour of a table record (a layer, a viewport's ambient light) is given w
 palette, as AutoCAD writes it; the file holds no index beside it. A layer of RGB 10, 200, 30 gets index 102. The
 palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
 
+### Shapes
+
+A DWG keeps a SHAPE by its number in the compiled file of shapes of its text style, where DXF gives its name (group 2).
+The name is read from that file where it is found: give the folders to look in, in their order, as
+`DxfReadOptions.SupportFolders`, as AutoCAD looks in its support folders. The file the style names, `ltypeshp.shx` say,
+is looked for in each folder in turn, with `.shx` where the name has none, and first where the style gives it with its
+folder.
+
+```csharp
+var options = new DxfReadOptions { SupportFolders = { @"C:\CAD\Support", @"C:\CAD\Fonts" } };
+DxfDocument drawing = DwgReader.Read("plan.dwg", options);
+DxfDatabase db = DwgReader.Open("plan.dwg", options);
+```
+
+Where no folder holds the file, or it has no shape of that number, the SHAPE gives its number under group 70 instead
+of its name, as AutoCAD writes a shape whose file it does not find: shape 130 of `ltypeshp.shx` is `2 TRACK1` with the
+file in one of the folders and `70 130` without it. AutoCAD's own DXFIN refuses the DXF of such a SHAPE ("Undefined
+shape 7" for shape 7 of a file it does not find), and one that gives the number as the name too. The place, size, turn, width, slant, thickness and extrusion come as
+AutoCAD writes them, a turn, slant and thickness of 0, a width of 1 and the extrusion (0, 0, 1) left out: a TRACK1 at
+(10, 20, 30) of size 2.5, turned 0.3 rad, 0.8 wide, slanted 0.2 rad and 4 thick on the normal (0, 0.6, 0.8) comes out
+as AutoCAD's DXF of it in all six versions.
+
 ## What is not read yet
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
@@ -109,9 +150,8 @@ A type that is not read is left out, with what it owns, and counted: one Debug l
 (`DwgReader: types that are not read yet were left out: ACDBDATATABLE 2 TABLECONTENT 1 …`), and one Info line sums the
 call.
 
-- Entities: SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
-  3DSOLID and BODY of AutoCAD 2004 to 2010 (see above), the OLE frames, proxies, and every entity of a class the list
-  above does not name.
+- Entities: a REGION, 3DSOLID or BODY of AutoCAD 2004 to 2010 whose SAB holds a record or subtype the grammars do not
+  know (see above), the OLE frames, proxies, and every entity of a class the list above does not name.
 - Objects: the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
   AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the data of dynamic blocks,
   and the other objects of classes. AutoCAD makes most of these anew in a drawing
@@ -217,7 +257,7 @@ drawing gives the same bytes every time.
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
 | Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE of AutoCAD 2013 and later, the detail and section view styles, the manager of the persistent names of subentities, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
@@ -225,8 +265,16 @@ A record of another type is left out and counted: one Warn line of `GeometryHelp
 each (`DwgWriter: types that are not written yet were left out: SHAPE 1 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
 with it. Left out so far: a VISUALSTYLE of the form before AutoCAD 2013 and a REGION, 3DSOLID or BODY of SAT text, as a
-DXF of an older version gives them; and of the types the reader does read, SHAPE. A new drawing of AutoCAD 2018 is
-written whole: nothing of it is left out.
+DXF of an older version gives them; and a SHAPE given by its name. A new drawing of AutoCAD 2018 is written whole:
+nothing of it is left out.
+
+A SHAPE is written where its DXF gives its number: under group 70, as the reader gives a shape whose file of shapes it
+does not find, or as the name, `2 130`. A name is not looked up, and a SHAPE given by its name alone, as AutoCAD's DXF
+gives it, is left out. DXF does not say which text style a shape is of; the shape is written of the first style of the
+table that is of a file of shapes (flag 1). A drawing of TRACK1 and BOX of `ltypeshp.shx` read without the file, so
+that each gives its number, is written back with those numbers; AutoCAD opens it, `AUDIT` finds 0 errors, and its own
+DXF names the four shapes TRACK1, TRACK1, TRACK1 and BOX again. A fifth shape, number 7 of a file that is nowhere, goes
+to `ltypeshp.shx` too, the first style of shapes, where it had its own style in the file read.
 
 A REGION, 3DSOLID or BODY is written where the section ACDSDATA of its DXF holds its SAB data, as a DXF of AutoCAD 2013
 and later gives it: the entity with the GUID of its data, and the data in the data store of the file, the section

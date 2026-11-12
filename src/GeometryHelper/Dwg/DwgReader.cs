@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using GeometryHelper.Dxf;
 
@@ -19,13 +20,16 @@ namespace GeometryHelper.Dwg
     /// The file is turned, in memory, into the DXF that says the same, record for record with the handles of the file:
     /// the header variables, the classes, the nine tables, the blocks, the entities and the objects. Read are LINE, POINT,
     /// CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and
-    /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE and
+    /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE, SHAPE and
     /// DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MATERIAL, VISUALSTYLE, the detail
-    /// and section view styles and the small ones a new drawing holds (see the guide for the full list); from AutoCAD
-    /// 2013 the ACIS data of the solids in the
-    /// data store of the file comes as the section ACDSDATA; each with its layer, linetype, colour, lineweight, owner,
-    /// reactors, extension dictionary and extended data. The types not read yet, SHAPE and the objects of dynamic blocks
-    /// among them, are left out and counted by type in one Debug line of <see cref="GeometryHelperLog"/>.
+    /// and section view styles and the small ones a new drawing holds (see the guide for the full list); the ACIS data of
+    /// the solids comes as SAT text to AutoCAD 2010, turned from the SAB AutoCAD keeps from AutoCAD 2004 into the SAT
+    /// AutoCAD writes of it, and from AutoCAD 2013 from the data store of the file as the section ACDSDATA; each with its
+    /// layer, linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. A SHAPE is named
+    /// from the file of shapes of its style where <see cref="DxfReadOptions.SupportFolders"/> holds it, and else gives
+    /// its number (group 70), as AutoCAD writes a shape whose file it does not find. The types not read yet, the objects
+    /// of dynamic blocks among them, are left out and counted by type in one Debug line of
+    /// <see cref="GeometryHelperLog"/>.
     /// </para>
     /// <para>
     /// The check sums of the file are checked. A wrong one in the file header, the header variables, the classes or the
@@ -88,7 +92,31 @@ namespace GeometryHelper.Dwg
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return Open(File.ReadAllBytes(path));
+            return Open(File.ReadAllBytes(path), null);
+        }
+
+        /// <summary>
+        /// Opens a DWG file from a path as a drawing database, its SHAPEs named from the files of shapes in the folders of
+        /// <see cref="DxfReadOptions.SupportFolders"/>.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="options">
+        /// How to read it: of the options, the database reads <see cref="DxfReadOptions.SupportFolders"/>; null opens it as
+        /// <see cref="Open(string)"/> does.
+        /// </param>
+        /// <returns>The drawing. It has no file name of its own, and saving it writes a DXF.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="FormatException">Thrown when the file is not a DWG, is cut short, or has a wrong check sum where nothing can be read past it.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the DWG is of a version that is not read; the message names it.</exception>
+        /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
+        public static DxfDatabase Open(string path, DxfReadOptions options)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            return Open(File.ReadAllBytes(path), options);
         }
 
         /// <summary>
@@ -99,17 +127,17 @@ namespace GeometryHelper.Dwg
         /// <exception cref="ArgumentNullException">Thrown when the stream is null.</exception>
         /// <exception cref="FormatException">Thrown when the data is not a DWG, is cut short, or has a wrong check sum where nothing can be read past it.</exception>
         /// <exception cref="NotSupportedException">Thrown when the DWG is of a version that is not read; the message names it.</exception>
-        public static DxfDatabase Open(Stream stream) => Open(BytesOf(stream));
+        public static DxfDatabase Open(Stream stream) => Open(BytesOf(stream), null);
 
         /// <summary>
         /// The DXF that says what the DWG in <paramref name="file"/> says, as the bytes of a text DXF file in the drawing's
-        /// code page.
+        /// code page; the files of shapes are looked for in <paramref name="supportFolders"/>.
         /// </summary>
-        internal static byte[] ToDxf(byte[] file)
+        internal static byte[] ToDxf(byte[] file, IList<string> supportFolders = null)
         {
             try
             {
-                return DwgTranscoder.ToDxf(file);
+                return DwgTranscoder.ToDxf(file, supportFolders);
             }
             catch (Exception fault)
                 when (!(fault is FormatException)
@@ -125,15 +153,15 @@ namespace GeometryHelper.Dwg
 
         private static DxfDocument Read(byte[] file, DxfReadOptions options)
         {
-            using (var dxf = new MemoryStream(ToDxf(file), false))
+            using (var dxf = new MemoryStream(ToDxf(file, options?.SupportFolders), false))
             {
                 return DxfReader.Read(dxf, options);
             }
         }
 
-        private static DxfDatabase Open(byte[] file)
+        private static DxfDatabase Open(byte[] file, DxfReadOptions options)
         {
-            using (var dxf = new MemoryStream(ToDxf(file), false))
+            using (var dxf = new MemoryStream(ToDxf(file, options?.SupportFolders), false))
             {
                 return DxfDatabase.Open(dxf);
             }

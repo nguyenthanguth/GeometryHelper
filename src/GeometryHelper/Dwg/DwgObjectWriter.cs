@@ -181,6 +181,8 @@ namespace GeometryHelper.Dwg
                     return 0x1F;
                 case "TRACE":
                     return 0x20;
+                case "SHAPE":
+                    return ShapeNumber(record) > 0 && ShapeStyle() != 0 ? 0x21 : -1;
                 case "VIEWPORT":
                     return 0x22;
                 case "REGION":
@@ -1085,6 +1087,9 @@ namespace GeometryHelper.Dwg
                 case 0x1F:
                 case 0x20:
                     WriteSolid();
+                    return;
+                case 0x21:
+                    WriteShape();
                     return;
                 case 0x22:
                     WriteViewport();

@@ -406,6 +406,55 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal static Dictionary<string, int> ShapeNumbers(byte[] bytes)
         {
+            List<KeyValuePair<string, int>> shapes = Shapes(bytes);
+
+            if (shapes == null)
+            {
+                return null;
+            }
+
+            var numbers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, int> shape in shapes)
+            {
+                if (!numbers.ContainsKey(shape.Key))
+                {
+                    numbers.Add(shape.Key, shape.Value);
+                }
+            }
+
+            return numbers;
+        }
+
+        /// <summary>
+        /// The names of the shapes of a compiled file of shapes by their numbers, as <see cref="ShapeNumbers"/> reads it: of a
+        /// number given twice, the first name in the file. Null where the bytes are not such a file.
+        /// </summary>
+        internal static Dictionary<int, string> ShapeNames(byte[] bytes)
+        {
+            List<KeyValuePair<string, int>> shapes = Shapes(bytes);
+
+            if (shapes == null)
+            {
+                return null;
+            }
+
+            var names = new Dictionary<int, string>();
+
+            foreach (KeyValuePair<string, int> shape in shapes)
+            {
+                if (!names.ContainsKey(shape.Value))
+                {
+                    names.Add(shape.Value, shape.Key);
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>The shapes of a compiled file of shapes that have a name, each its name and number, in the order of the file; null where the bytes are not such a file.</summary>
+        private static List<KeyValuePair<string, int>> Shapes(byte[] bytes)
+        {
             int end = Array.IndexOf(bytes, (byte)0x1A, 0, Math.Min(bytes.Length, 64));
 
             if (
@@ -426,7 +475,7 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
-            var numbers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var shapes = new List<KeyValuePair<string, int>>();
             int data = at + count * 4;
 
             for (int i = 0; i < count; i++)
@@ -442,15 +491,15 @@ namespace GeometryHelper.Dxf
                 int zero = Array.IndexOf(bytes, (byte)0, data, length);
                 string name = zero < 0 ? string.Empty : Encoding.ASCII.GetString(bytes, data, zero - data);
 
-                if (name.Length > 0 && !numbers.ContainsKey(name))
+                if (name.Length > 0)
                 {
-                    numbers.Add(name, number);
+                    shapes.Add(new KeyValuePair<string, int>(name, number));
                 }
 
                 data += length;
             }
 
-            return numbers;
+            return shapes;
         }
 
         #endregion
