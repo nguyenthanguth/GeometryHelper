@@ -123,13 +123,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void NoWindowStartsWhileACommandRuns()
+        public void NoWindowStartsWhileACommandAsksAPoint()
         {
             CadCommandSession session = Session(Plan());
-            Run(session, "MOVE");
+            Run(session, "LINE");
 
             Assert.False(session.StartWindow(P(0, 0)));
-            Assert.Equal("Select objects:", session.PromptText);
+            Assert.Equal("Specify first point:", session.PromptText);
         }
     }
 }

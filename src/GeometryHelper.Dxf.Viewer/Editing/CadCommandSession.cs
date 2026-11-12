@@ -730,7 +730,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            Write(Prompt.Text);
+            // A box that ends the implied window was written with the window's prompt (EndWindow).
+            if (!_windowWritten)
+            {
+                Write(Prompt.Text);
+            }
+
+            _windowWritten = false;
             var gathered = new List<string>(Document.WithGroups(found));
 
             // With PICKADD 0 what is picked last replaces those gathered, and Shift adds to them, as AutoCAD's.
@@ -838,10 +844,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            // The implied window asks at the Command prompt, and its answer is written after "Command:", as AutoCAD writes it.
+            // The implied window asks at the Command prompt or at "Select objects:", and its answer is written after those
+            // words, as AutoCAD writes it.
             if (IsWindowOpen && line != null && line.StartsWith(Prompt.Text, StringComparison.Ordinal))
             {
-                line = "Command: " + line;
+                line = WindowAfter + " " + line;
             }
 
             _history.Add(line ?? string.Empty);

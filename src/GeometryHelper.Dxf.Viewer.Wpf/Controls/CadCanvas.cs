@@ -445,7 +445,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public event EventHandler<CadGripEventArgs> CustomGripClicked;
 
-        /// <summary>Raised by a right-click while no command runs: the window shows the shortcut menu of the selection at the cursor.</summary>
+        /// <summary>
+        /// Raised by a right-click while no command runs, or while one runs whose prompt offers options or a grip edit: the
+        /// window shows AutoCAD's Default, Edit, Command or Grips menu at the cursor. A right-click at a prompt with no options
+        /// is Enter, as it is with no handler at all.
+        /// </summary>
         public event EventHandler ShortcutMenuRequested;
 
         /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
@@ -1782,16 +1786,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 SnapMenuRequested?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Right && IsRunning)
+            else if (
+                e.ChangedButton == MouseButton.Right
+                && IsRunning
+                && (ShortcutMenuRequested == null || !CadPicking.WantsCommandMenu(Session))
+            )
             {
-                // A right click is Enter while a command runs, as AutoCAD has it by default.
+                // A right click is Enter while a command runs and its prompt offers no options, as AutoCAD's SHORTCUTMENU 11.
                 Session.Enter();
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Right && ShortcutMenuRequested != null)
             {
-                // With no command running, the shortcut menu of the selection, as AutoCAD's.
+                // The Default or Edit menu with no command running, the Command or Grips menu while one runs, as AutoCAD's.
                 ShortcutMenuRequested(this, EventArgs.Empty);
                 e.Handled = true;
             }

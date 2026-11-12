@@ -79,6 +79,8 @@ namespace GeometryHelper.Dxf.Viewer
             _removing = false;
             _single = false;
             _multiple = null;
+            _windowWritten = false;
+            EndWindowInSelection();
         }
 
         /// <summary>Keeps a selection a command took, for Previous to give again (AutoCAD's previous selection set).</summary>
@@ -208,6 +210,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Ends an option: back at the command's "Select objects:", or "Remove objects:" while removing.</summary>
         private void EndOption()
         {
+            EndWindowInSelection();
             _option = null;
             _band.Clear();
             Prompt = _removing ? CadPrompt.ForSelection("Remove objects") : _asked ?? Prompt;
@@ -308,6 +311,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return GatherWhole(members);
             }
 
+            if (WindowOption(typed, echo))
+            {
+                return true;
+            }
+
             if (Prompt.MatchKeyword(typed) == "Undo")
             {
                 Write(echo);
@@ -330,6 +338,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private void OptionEnter()
         {
+            if (WindowOption(null, null))
+            {
+                return;
+            }
+
             Write(Prompt.Text);
             string option = _option;
             var points = new List<GeoPoint2>(_band);

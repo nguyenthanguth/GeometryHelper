@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's canvas shows AutoCAD 2021's right-click menus, as its default SHORTCUTMENU 11 has them, their
+items, order and access keys read from AutoCAD's own menu file: with nothing selected the Default menu (Repeat LINE,
+Clipboard, Undo, Redo, Pan, Zoom, Quick Select..., Find..., Options...), with objects selected the Edit menu (the items of
+the objects, such as Reset Block, then Clipboard, Erase, Move, Copy Selection, Scale, Rotate, Draw Order, Group, Deselect
+All, Quick Select..., Find..., Properties), while a command offers options the Command menu (Enter, Cancel, the options,
+"Close" and "Undo" at LINE's third point, and Osnap Overrides), and while a grip edit runs the Grips menu (Enter,
+Stretch, Move, Rotate, Scale, Mirror, Base Point, Copy, Reference, Undo, Exit). What AutoCAD has and the presenter does
+not, as Isolate, SteeringWheels and QuickCalc, is grey. `MainViewModel.CanvasMenu` gives the items; `--dialog
+canvas-menu` draws the menu in screenshot mode.
+
+**CHANGED.** A right-click while a command runs is Enter only where the prompt offers no options, as at "Specify first
+point:" and "Select objects:"; where it offers some, as LINE's "Specify next point or [Undo]:", it shows the Command menu,
+whose first item is Enter, as AutoCAD 2021's does by default.
+
+**NEW.** The implied window works inside a command's "Select objects:" as AutoCAD 2021's does: a click on nothing asks
+"Specify opposite corner or [Fence/WPolygon/CPolygon]:" after "Select objects:" on the same line, the next click or a
+corner typed ends the box, F, WP or CP turns it into a fence or a polygon from the corner, and what it takes is gathered
+for the command ("2 found"), or taken out at "Remove objects:"; Esc cancels the command. `CadCommandSession.StartWindow`
+starts it there too, where it returned false.
+
+**CHANGED.** The Shift+right-click menu names Apparent Intersect and Insert as AutoCAD 2021's menu does, where it said
+Apparent Intersection and Insertion, and parts its snaps into AutoCAD's three groups by two lines, after Extension and
+after Tangent. The OSNAP menu of the status bar and Drafting Settings keep the longer names, as AutoCAD's do.
+
 **NEW.** The presenter's implied window asks on the command line as AutoCAD 2021's does: a click on nothing at the
 Command prompt shows "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and
 the Y of the cursor itself, where it showed nothing. The next click, or a corner typed (110,60), ends the box; F, WP or

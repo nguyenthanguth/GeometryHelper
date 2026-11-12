@@ -94,6 +94,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Gets whether a right-click while a command runs shows a menu rather than being Enter, as AutoCAD's SHORTCUTMENU 11
+        /// has it: the Grips menu while a grip edit runs, the Command menu while the prompt offers options in its brackets
+        /// ("Specify next point or [Undo]:"); "Specify first point:" and "Select objects:" offer none, so a right-click there is
+        /// Enter.
+        /// </summary>
+        public static bool WantsCommandMenu(CadCommandSession session) =>
+            session != null
+            && session.IsRunning
+            && (session.IsGripEditing || (session.Prompt != null && session.Prompt.Keywords.Count > 0));
+
+        /// <summary>
         /// Gets the point a click at the cursor takes, snapped from the prompt's base point (perpendicular and tangent from
         /// <paramref name="drawnFrom"/> where it has none, <see cref="CadPrompt.SnapFrom"/>), the grid, ortho and polar along the
         /// space's UCS; null where no snap is given.
