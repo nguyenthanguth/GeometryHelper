@@ -86,6 +86,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Gets the page of the guide the Help button opens.</summary>
+        public string HelpUrl => PlotHelp.PageSetups;
+
+        /// <summary>
+        /// Gets or sets how Import… copies page setups of another drawing in, as Add Page Setup offers it beside OK: it returns the
+        /// names the drawing has afterwards, which the name is then refused against, or null where nothing was imported. Null for
+        /// none, when Import… is not offered.
+        /// </summary>
+        public Func<IEnumerable<string>> ImportPageSetups { get; set; }
+
+        /// <summary>Gets whether Import… is offered.</summary>
+        public bool CanImport => ImportPageSetups != null;
+
+        /// <summary>
+        /// Runs Import… : the page setups copied in are names the drawing has, so a name typed that is one of them is refused
+        /// from then on.
+        /// </summary>
+        public void Import()
+        {
+            IEnumerable<string> names = ImportPageSetups?.Invoke();
+
+            if (names == null)
+            {
+                return;
+            }
+
+            _taken.Clear();
+            _taken.AddRange(names);
+            Raise(nameof(Error));
+            Raise(nameof(HasError));
+            Raise(nameof(CanOk));
+        }
+
         private bool IsTaken(string name) =>
             _taken.Exists(t => string.Equals(t, name, StringComparison.OrdinalIgnoreCase));
     }

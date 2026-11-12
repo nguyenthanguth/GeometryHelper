@@ -294,7 +294,7 @@ the ones wanted.
 - [ ] MTEXT follow-ups 3: Bullets and Numbering menu and AutoCAD's MTEXT and column grips done 2026-11-12; grips with reversed column flow and in R2007-R2013 files (columns in xdata); overflow column grip; column grip drag preview; Start/Continue/Allow Auto Bullets; static/dynamic defaults from no columns (needs GUI); undo-step labels (unclear); TrueType %%U/%%O/%%K lines; first-draw cost of the layout cache; MIRROR/InkOf measuring %%U as letters; core DxfFonts \W..x; a look at the ruler in the running app (S)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [x] PLOT: print to Windows printers; add named page setups (PAGESETUP manager, PLOTSETTINGS in DWG)
-- [ ] PLOT follow-ups: a real print on hardware and Microsoft Print to PDF; Rename/Delete of page setups (right-click); -PLOT choosing a printer; vector printing if pixels are not enough for plotters; embed only the glyphs used (smaller PDFs, our own TrueType subsetter); design boards for the Page Setup Manager, name and import windows (S)
+- [ ] PLOT follow-ups: a real print on hardware and Microsoft Print to PDF; -PLOT choosing a printer; Plot to file for a printer (refused today); flag 1024 written for model-space page setups; Help anchors checked on the built docs; vector printing if pixels are not enough for plotters; embed only the glyphs used (smaller PDFs, our own TrueType subsetter) (S)
 - [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
       palette (list and tree); a changed referenced file said on the command line
 - [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,

@@ -71,6 +71,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
+    /// A printer of Windows that also says where it prints, which the Plot dialog shows as Where: the port of a local printer
+    /// (<c>USB001</c>) or the share of one on the network. Kept apart from <see cref="IPlotPrinter"/> so that a printer that
+    /// does not know its port still serves; the dialog then says Printer or Network printer.
+    /// </summary>
+    public interface IPlotPrinterPort
+    {
+        /// <summary>Gets the port or share the printer prints to: <c>USB001</c>, <c>\\office-srv\Office printer</c>; empty where it is not known.</summary>
+        string Port { get; }
+    }
+
+    /// <summary>
     /// A printer of Windows the Plot dialog lists beside the presenter's own plotters: its name, the sheets it lists and a way
     /// to print a page on it. The window gives <see cref="WindowsPlotPrinter"/>, which prints through WPF; a test gives a queue
     /// that prints nothing.

@@ -4,47 +4,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Import Page Setups"
-    Width="420"
-    Height="380"
+    Width="480"
+    Height="560"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
     WindowStartupLocation="CenterOwner"
     Background="#262B33"
 >
-    <!-- Import Page Setups, from Import… of the Page Setup Manager: the page setups of the drawing chosen, each ticked to be copied. -->
+    <!-- Import Page Setups, from Import… of the Page Setup Manager and of Add Page Setup: the page setups of the drawing chosen, each ticked to be copied, with the details of the one chosen. -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
-
-            <Style x:Key="SetupRow" TargetType="ListBoxItem">
-                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ListBoxItem">
-                            <Border
-                                x:Name="Row"
-                                BorderBrush="{StaticResource GhHeader}"
-                                BorderThickness="0,1,0,0"
-                                Background="Transparent"
-                            >
-                                <ContentPresenter />
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter
-                                        TargetName="Row"
-                                        Property="Background"
-                                        Value="{StaticResource GhSelected}"
-                                    />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -78,8 +51,18 @@
                 </DockPanel>
             </Border>
 
+            <!-- Footer: OK, Cancel and Help. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnOk"
+                        IsDefault="True"
+                        IsEnabled="{Binding CanOk}"
+                    />
                     <Button
                         Style="{StaticResource GhDialogButton}"
                         Content="Cancel"
@@ -88,47 +71,167 @@
                         Click="OnCancel"
                         IsCancel="True"
                     />
-                    <Button
-                        Style="{StaticResource StylePrimaryButton}"
-                        Content="OK"
-                        Padding="14,5"
-                        Click="OnOk"
-                        IsDefault="True"
-                        IsEnabled="{Binding CanOk}"
-                    />
+                    <Button Style="{StaticResource GhDialogButton}" Content="Help" Padding="14,5" Click="OnHelp" />
                 </StackPanel>
             </Border>
 
             <DockPanel Margin="16,12">
-                <TextBlock
-                    DockPanel.Dock="Top"
-                    Text="{Binding FromText}"
-                    Foreground="{StaticResource GhTextMuted}"
-                    TextTrimming="CharacterEllipsis"
-                    Margin="0,0,0,6"
-                />
+                <!-- The drawing the page setups come from, its path on a line of its own. -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding FromText}" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                    <TextBlock
+                        Text="{Binding FileName}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding FileName}"
+                        AutomationProperties.Name="Source drawing name"
+                    />
+                </StackPanel>
+
+                <!-- Selected page setup details, as the Page Setup Manager shows them. -->
+                <HeaderedContentControl
+                    DockPanel.Dock="Bottom"
+                    Style="{StaticResource BlockGroup}"
+                    Header="Selected page setup details"
+                    Margin="0,10,0,0"
+                >
+                    <Grid DataContext="{Binding SelectedInfo}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="96" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            Grid.Row="0"
+                            Text="Device name:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="{Binding DeviceName}"
+                            TextTrimming="CharacterEllipsis"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock
+                            Grid.Row="1"
+                            Text="Plotter:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Text="{Binding Plotter}"
+                            TextTrimming="CharacterEllipsis"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock
+                            Grid.Row="2"
+                            Text="Plot size:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PlotSize}" Margin="0,0,0,4" />
+                        <TextBlock
+                            Grid.Row="3"
+                            Text="Where:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Text="{Binding Where}"
+                            TextTrimming="CharacterEllipsis"
+                            Margin="0,0,0,4"
+                        />
+                        <TextBlock Grid.Row="4" Text="Description:" Foreground="{StaticResource GhTextMuted}" />
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Text="{Binding Description}"
+                            TextWrapping="Wrap"
+                            MinHeight="30"
+                        />
+                    </Grid>
+                </HeaderedContentControl>
+
+                <!-- The list: a tick, the name and the space each was made for. -->
                 <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
-                    <ListBox
-                        ItemsSource="{Binding Items}"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        ItemContainerStyle="{StaticResource SetupRow}"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        HorizontalContentAlignment="Stretch"
-                        AutomationProperties.Name="Page setups to import"
-                    >
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type local:ImportPageSetupRow}">
-                                <CheckBox
-                                    Style="{StaticResource StyleCheck}"
-                                    Content="{Binding Name}"
-                                    IsChecked="{Binding IsChecked, Mode=TwoWay}"
-                                    Padding="4,0,0,0"
-                                    Margin="8,5"
-                                />
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Name"
+                                Padding="4,6"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Foreground="{StaticResource GhTextMuted}"
+                            />
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="Location"
+                                Padding="4,6"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Foreground="{StaticResource GhTextMuted}"
+                            />
+                        </Grid>
+                        <ListBox
+                            ItemsSource="{Binding Items}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ItemContainerStyle="{StaticResource SetupRow}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            HorizontalContentAlignment="Stretch"
+                            AutomationProperties.Name="Page setups to import"
+                        >
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:ImportPageSetupRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox
+                                            Style="{StaticResource StyleCheck}"
+                                            IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                            Margin="8,6,0,6"
+                                            AutomationProperties.Name="{Binding Name}"
+                                        />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{Binding Name}"
+                                            Padding="4,5"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource GhText}"
+                                            TextTrimming="CharacterEllipsis"
+                                        />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Text="{Binding Location}"
+                                            Padding="4,5"
+                                            Foreground="{StaticResource GhTextMuted}"
+                                        />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
                 </Border>
             </DockPanel>
         </DockPanel>

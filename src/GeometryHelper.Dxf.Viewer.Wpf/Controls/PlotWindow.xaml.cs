@@ -25,6 +25,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // Add… of the Page setup box: Add Page Setup over this dialog.
             model.ShowPageSetupName = asked => new PageSetupNameWindow(asked) { Owner = this }.ShowDialog() == true;
+
+            // Import… of Add Page Setup: Select File for the drawing, then Import Page Setups over this dialog.
+            model.AskImportFile = () => PageSetupManagerWindow.AskDrawing(this);
+            model.ShowImport = chosen => ImportPageSetupsWindow.Show(this, chosen);
         }
 
         /// <summary>Gets the view model.</summary>
@@ -48,7 +52,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;
+        private void OnOk(object sender, RoutedEventArgs e)
+        {
+            // A printer with Plot to file ticked is not supported: the footer says so and the dialog stays.
+            if (Model.TryAccept())
+            {
+                DialogResult = true;
+            }
+        }
+
+        private void OnHelp(object sender, RoutedEventArgs e) => PlotHelp.Open(Model.HelpUrl);
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
@@ -69,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool plot = PlotPreviewWindow.Show(Owner, Model.CreatePreview());
             Visibility = Visibility.Visible;
 
-            if (plot)
+            if (plot && Model.TryAccept())
             {
                 DialogResult = true;
             }

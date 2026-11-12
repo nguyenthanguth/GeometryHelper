@@ -73,26 +73,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Page Setup Manager", manager.Title);
             Assert.Equal("Current layout: Model", manager.LayoutText);
             Assert.Equal("Current page setup: <None>", manager.CurrentText);
-            Assert.Equal(new[] { "A2 plan", "Small" }, manager.Items.Select(i => i.Name).ToArray());
+            Assert.Equal(new[] { "*Model*", "A2 plan", "Small" }, manager.Items.Select(i => i.Name).ToArray());
             Assert.Equal(
                 "ISO A2 (594.00 x 420.00 MM) · GeometryHelper PDF · Window 1:20 · grayscale.ctb",
-                manager.Items[0].Details
+                manager.Items[1].Details
             );
-            Assert.False(manager.CanSetCurrent);
-            Assert.False(manager.CanModify);
-            Assert.Equal(string.Empty, manager.DetailsText);
 
-            manager.Selected = manager.Items[0];
-            Assert.True(manager.CanSetCurrent);
+            // The layout's own setup is the first row and is chosen to begin with, as AutoCAD opens it: it is current already.
+            Assert.Same(manager.Items[0], manager.Selected);
+            Assert.False(manager.CanSetCurrent);
             Assert.True(manager.CanModify);
             Assert.Equal(manager.Items[0].Details, manager.DetailsText);
+
+            manager.Selected = manager.Items[1];
+            Assert.True(manager.CanSetCurrent);
+            Assert.True(manager.CanModify);
+            Assert.Equal(manager.Items[1].Details, manager.DetailsText);
 
             CadEditResult result = manager.SetCurrent();
 
             Assert.True(result.Succeeded, result.Message);
             Assert.Equal("Current page setup: A2 plan", manager.CurrentText);
-            Assert.True(manager.Items[0].IsCurrent);
-            Assert.False(manager.Items[1].IsCurrent);
+            Assert.True(manager.Items[1].IsCurrent);
+            Assert.False(manager.Items[2].IsCurrent);
+            Assert.Equal("*Model (A2 plan)*", manager.Items[0].Name);
             Assert.Equal("A2 plan", manager.Selected.Name);
             Assert.False(manager.CanSetCurrent);
             Assert.Equal("PAGESETUP", document.NextUndo.Name);
@@ -127,7 +131,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             CadEditResult result = manager.New();
 
-            Assert.Equal(new[] { "<None>", "*Model*", "*Layout1*" }, offered);
+            Assert.Equal(new[] { "<None>", "<Default output device>", "<Previous plot>", "*Model*" }, offered);
             Assert.True(result.Succeeded, result.Message);
             Assert.Equal("Roof", edited.PageSetupName);
             Assert.True(edited.IsPageSetup);
@@ -142,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(CadPlotArea.Window, roof.Area);
             Assert.Equal(20.0, roof.DrawingUnits);
             Assert.Equal("PAGESETUP", document.NextUndo.Name);
-            Assert.Equal(new[] { "Roof" }, manager.Items.Select(i => i.Name).ToArray());
+            Assert.Equal(new[] { "*Model*", "Roof" }, manager.Items.Select(i => i.Name).ToArray());
             // The layout itself was not touched.
             Assert.True(CadPlotSettings.Read(document, document.ModelSpace).Paper.IsSameAs(CadPaper.Standard[2]));
         }
@@ -205,7 +209,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = PlotPdfTests.Plan();
             Assert.True(OnA2().SaveAsPageSetup(document, "A2 plan").Succeeded);
             PageSetupManagerViewModel manager = Manager(document);
-            manager.Selected = manager.Items.Single();
+            manager.Selected = manager.Items.Single(i => i.Name == "A2 plan");
             manager.ShowPageSetup = dialog =>
             {
                 Assert.Equal("A2 plan", dialog.PageSetupName);
@@ -233,7 +237,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = PlotPdfTests.Plan();
             Assert.True(OnA2().SaveAsPageSetup(document, "A2 plan").Succeeded);
             PageSetupManagerViewModel manager = Manager(document, new FakePlotPrinter("Office printer"));
-            manager.Selected = manager.Items.Single();
+            manager.Selected = manager.Items.Single(i => i.Name == "A2 plan");
             string[] devices = null;
             manager.ShowPageSetup = dialog =>
             {
@@ -282,10 +286,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.True(result.Succeeded, result.Message);
                 Assert.Equal("Import Page Setups", shown.Title);
-                Assert.Equal("Page setups in source.dxf:", shown.FromText);
+                Assert.Equal("Source drawing name:", shown.FromText);
+                Assert.Equal(withSetups, shown.FileName);
                 Assert.Equal(new[] { "A2 plan", "Small" }, shown.Items.Select(i => i.Name).ToArray());
                 Assert.Equal(new[] { "A2 plan" }, CadPlotSettings.PageSetupNames(document));
-                Assert.Equal(new[] { "A2 plan" }, manager.Items.Select(i => i.Name).ToArray());
+                Assert.Equal(new[] { "*Model*", "A2 plan" }, manager.Items.Select(i => i.Name).ToArray());
                 Assert.Null(manager.Message);
 
                 manager.AskImportFile = () => without;

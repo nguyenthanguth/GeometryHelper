@@ -6,7 +6,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// Add Page Setup, from Add… of the Plot dialog, and New Page Setup, from New… of the Page Setup Manager: the name of a new
-    /// page setup, with what it starts with in the second. Its logic is <see cref="PageSetupNameViewModel"/>.
+    /// page setup, with what it starts with in the second and Import… in the first (where the host gives it). Its logic is <see cref="PageSetupNameViewModel"/>.
     /// </summary>
     public partial class PageSetupNameWindow : Window
     {
@@ -55,5 +55,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        private void OnHelp(object sender, RoutedEventArgs e) => PlotHelp.Open(Model.HelpUrl);
+
+        private void OnImport(object sender, RoutedEventArgs e) => Model.Import();
     }
 }

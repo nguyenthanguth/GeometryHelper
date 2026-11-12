@@ -285,6 +285,18 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // Whether the Page Setup Manager is shown when a layout is made (1) or not (0), the box at the foot of the manager, kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "SHOWPAGESETUPFORNEWLAYOUTS",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "showpagesetupfornewlayouts", 0.0),
+                    (c, v) => c.Remember("showpagesetupfornewlayouts", v)
+                )
+            );
+
             // Whether PEDIT turns a line, an arc or a spline picked into a polyline without asking (1) or asks first (0), and
             // whether PLINE, POLYGON, DONUT and PEDIT make old-style POLYLINEs (0) or LWPOLYLINEs (1 and 2), kept by the session.
             registry.AddVariable(
