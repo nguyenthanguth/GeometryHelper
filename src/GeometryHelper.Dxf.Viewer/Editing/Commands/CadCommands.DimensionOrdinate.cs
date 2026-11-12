@@ -243,7 +243,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// straight line where its end is in line with the point; under DIMFXLON the first leg, or the one line, DIMFXL long up to
         /// the jog or the end), and the words past the end along the leader, DIMGAP off it,
         /// turned along it, an X datum's a quarter turn more; where DIMTAD is not 0 the leader runs on under them and they stand
-        /// beside it by DIMGAP and half their height (below it for 4).
+        /// beside it by DIMGAP and half their height (below it for 4); words moved free under DIMTMOVE 2 (<paramref name="free"/>)
+        /// leave it ending at its end.
         /// </summary>
         /// <remarks>
         /// An X datum of the point (300, 40) with its leader ending at (310, 80), arrowheads of 2.5: the leader runs up from
@@ -258,7 +259,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 end,
             bool xDatum,
             double turn,
-            string words
+            string words,
+            bool free = false
         )
         {
             Sizes(
@@ -291,7 +293,7 @@ namespace GeometryHelper.Dxf.Viewer
             double width = WordsWidth(style, words, height, out height);
             int tad = style.Dimtad;
             GeoPoint2 jogged = end - way * leg;
-            GeoPoint2 last = tad != 0 ? end + way * (gap + width) : end;
+            GeoPoint2 last = tad != 0 && !free ? end + way * (gap + width) : end;
 
             if (Math.Abs(aside) <= 1E-9)
             {
@@ -349,7 +351,8 @@ namespace GeometryHelper.Dxf.Viewer
                 end,
                 ordinate.UsingXAxis,
                 -ordinate.HorizontalRotation,
-                Formatted(dimension, ordinate.Measurement, string.Empty)
+                Formatted(dimension, ordinate.Measurement, string.Empty),
+                !dimension.UsingDefaultTextPosition && style.Dimtmove == 2
             );
         }
     }

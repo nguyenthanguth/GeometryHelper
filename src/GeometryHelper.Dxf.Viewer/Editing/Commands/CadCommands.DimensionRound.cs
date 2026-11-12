@@ -19,7 +19,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// centre mark of DIMCEN. Put inside, DIMATFIT 3 keeps the words there, no nearer the rim than two arrowheads and DIMGAP,
         /// with one arrowhead inside the rim; DIMATFIT 0 to 2 put them in the middle of the radius line (of the diameter, at the
         /// centre between two arrowheads) where they fit, else outside past the rim, two arrowheads clear of it, the arrowheads
-        /// outside too unless DIMATFIT 2 keeps them in; DIMTIX puts the words outside.
+        /// outside too unless DIMATFIT 2 keeps them in. DIMTIX under DIMATFIT 3 puts the words outside next to the rim wherever the
+        /// point was, as the fit does (a diameter's far arrowhead outside with them, on its line, where DIMTOFL is on, else the
+        /// centre marked); under DIMATFIT 0 to 2 it keeps the words inside however tight the radius, the arrowhead going out
+        /// with its short line where it does not fit with them.
         /// </summary>
         /// <remarks>
         /// A radius of 20 drawn with ISO-25's sizes and its line put 45 from the centre has its arrowhead from 20 to 22.5 out,
@@ -27,7 +30,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// from 20 in to 17.5 and its line from 17.5 to past the words. The words stand on the line (DIMTAD 0, the line stopped
         /// short of them), above it as they read (1, 2, 3) or below (4); kept level (DIMTOH outside, DIMTIH inside) they stand on
         /// a level landing from the end of the line. <paramref name="placed"/> says the words were put by hand (DIMTEDIT): they
-        /// stay where they are put along the line. <paramref name="free"/> says they were put off it under DIMTMOVE 2: they stand
+        /// stay where they are put along the line (under DIMATFIT 0 to 2 and DIMTMOVE 0 at the point itself inside the circle, the
+        /// line whole to the arrowhead, and outside where the fit puts them past the rim, the arrowhead outside but for DIMATFIT 2:
+        /// "R20" of a circle of 20 put 25 out stands 28.6 out; under DIMATFIT 3 no nearer the rim than the fit puts them). <paramref name="free"/> says they were put off it under DIMTMOVE 2: they stand
         /// at <paramref name="location"/> itself, turned along the line, and the line is drawn inside as though they were not
         /// there, from the centre (the back of the far arrowhead) to the back of the arrowhead inside the rim, broken where it
         /// runs through them. Words put past the rim stand no nearer it than two arrowheads and the gap and half their width (two
@@ -143,12 +148,14 @@ namespace GeometryHelper.Dxf.Viewer
             bool farOut = false;
             bool nearArrow = true;
             bool single = false;
+            bool tixOut = false;
             bool textOut;
             double at;
 
             // Under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out the line was put, as AutoCAD 2021
             // draws them: "R20" put 35 out stands in the middle of the radius.
-            bool fitted = !placed && !style.Dimtix && style.Dimatfit != 3 && style.Dimtmove == 0;
+            bool fitted =
+                !placed && style.Dimatfit != 3 && (style.Dimtmove == 0 || (style.Dimtix && style.Dimtmove == 2));
 
             bool pastRim = along >= radius - 1E-10;
             bool flatLine = Math.Abs(u.Y) <= 1E-9;
@@ -158,33 +165,64 @@ namespace GeometryHelper.Dxf.Viewer
             // 0.18 high put 20.3 out straight down, level, DIMTAD 1, has its landing 20.5438 out.
             bool lower = (style.Dimtad == 1 || style.Dimtad == 4) && u.Y < -1E-9;
 
-            if (pastRim && !fitted)
+            // Words put by hand under DIMATFIT 0 to 2 (DIMTEDIT) stand at the point put inside the circle, the line whole from the
+            // centre to the arrowhead, and past the rim where the fit puts them, the arrowhead outside but for DIMATFIT 2 keeping
+            // it in: "R20" of a circle of 20 put 15 out stands 15 out, put 25 out 28.75 out.
+            bool fitPlaced = placed && style.Dimatfit != 3 && style.Dimtmove == 0;
+
+            if (fitPlaced)
+            {
+                single = false;
+                textOut = pastRim;
+                double needArrows =
+                    CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName)
+                        ? 0.0
+                        : 2.0 * arrow + 2.0 * gap;
+                arrowOut =
+                    pastRim && !(style.Dimatfit == 2 && (diameter ? 2.0 * radius >= needArrows : radius >= trim + gap));
+                at = !pastRim
+                    ? along
+                    : Math.Max(
+                        along,
+                        radius
+                            + (arrowOut ? 2.0 * arrow : trim)
+                            + (style.Dimtoh && !flatLine ? (lower ? height : 0.0) : words2.Beside)
+                    );
+                farArrow = diameter;
+                farOut = arrowOut;
+                atPoint = true;
+            }
+            else if (pastRim && !fitted && !(style.Dimtix && !placed))
             {
                 arrowOut = true;
                 textOut = true;
                 // Words put within the arrowhead's room of the rim stand where the fit would put them past it: AutoCAD 2021
                 // keeps "R25" put 25.25 out where it stands put 33.9 out, its arrowhead and two gaps clear of the rim.
-                at = placed
-                    ? along
-                    : Math.Max(
-                        along,
-                        radius
-                            + (
-                                style.Dimtoh && !flatLine
-                                    ? 2.0 * arrow + (lower ? height : 0.0)
-                                    : 2.0 * arrow + words2.Beside
-                            )
-                    );
+                at =
+                    placed && style.Dimtmove != 0
+                        ? along
+                        : Math.Max(
+                            along,
+                            radius
+                                + (
+                                    style.Dimtoh && !flatLine
+                                        ? 2.0 * arrow + (lower ? height : 0.0)
+                                        : 2.0 * arrow + words2.Beside
+                                )
+                        );
                 farArrow = diameter && style.Dimtofl;
                 farOut = true;
-                atPoint = !style.Dimtix && at <= along + 1E-9;
+                atPoint = (placed || !style.Dimtix) && at <= along + 1E-9;
             }
-            else if (!placed && style.Dimtix)
+            else if (!placed && style.Dimtix && !fitted)
             {
                 arrowOut = true;
                 textOut = true;
-                at = radius + 2.0 * arrow + words2.Beside;
-                farArrow = diameter;
+                tixOut = true;
+                at =
+                    radius
+                    + (style.Dimtih && !flatLine ? 2.0 * arrow + (lower ? height : 0.0) : 2.0 * arrow + words2.Beside);
+                farArrow = diameter && style.Dimtofl;
                 farOut = true;
             }
             else if (placed || style.Dimatfit == 3 || style.Dimtmove == 1)
@@ -204,15 +242,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // AutoCAD 2021 draws no arrowhead on a radius whose words stand inside next to the first extension line.
                 nearArrow = diameter || style.Dimjust != 1;
-                atPoint = !style.Dimtix;
+                atPoint = !style.Dimtix || style.Dimtmove == 0;
             }
             else if (!diameter)
             {
                 // The words fit where the radius takes them and a gap each side, the arrowhead not counted, as AutoCAD 2021 fits
                 // "R6" 4.03 wide in a radius of 6 and not "R5" in one of 5; DIMATFIT 2 keeps the arrowhead in where it and a gap fit.
-                textOut = radius < width + 2.0 * gap + (words2.On(style.Dimtih) ? trim + 2.0 * gap : 0.0);
-                arrowOut = textOut && !(style.Dimatfit == 2 && radius >= trim + gap);
-                at = !textOut ? (radius - trim) / 2.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
+                bool tight = radius < width + 2.0 * gap + (words2.On(style.Dimtih) ? trim + 2.0 * gap : 0.0);
+                // DIMTIX keeps the words inside however tight the radius, the arrowhead going out where they leave it no room.
+                textOut = tight && !style.Dimtix;
+                arrowOut = style.Dimtix ? tight : textOut && !(style.Dimatfit == 2 && radius >= trim + gap);
+                at = !textOut
+                    ? (radius - (arrowOut ? 0.0 : trim)) / 2.0
+                    : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
             }
             else
             {
@@ -226,21 +268,21 @@ namespace GeometryHelper.Dxf.Viewer
                         : 2.0 * arrow + 2.0 * gap;
                 bool both =
                     2.0 * radius >= (words2.On(false) ? needText + 2.0 * arrow : Math.Max(needText, needArrows));
-                textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius >= needText);
-                arrowOut = !both && !(style.Dimatfit == 2 && 2.0 * radius >= needArrows);
+                textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius >= needText) && !style.Dimtix;
+                arrowOut = !both && !(style.Dimatfit == 2 && 2.0 * radius >= needArrows && !style.Dimtix);
                 at = !textOut ? 0.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
                 farArrow = true;
                 farOut = arrowOut;
             }
 
             // Words kept level on a line exactly level are the words that stand along it: no landing, as AutoCAD 2021 draws them.
-            bool level = (textOut ? style.Dimtoh : style.Dimtih) && !flatLine;
+            bool level = (textOut && !tixOut ? style.Dimtoh : style.Dimtih) && !flatLine;
             GeoPoint2 knee = center + u * at;
-            GeoPoint2 back = arrowOut ? chord + u * trim : chord - u * trim;
+            GeoPoint2 back = arrowOut ? (textOut || diameter ? chord + u * trim : chord) : chord - u * trim;
             GeoPoint2 wordsAt;
             double angle = aligned;
 
-            if (textOut && !pastRim)
+            if (textOut && !pastRim && !tixOut)
             {
                 // Moved out past the rim: the line from the rim (or the back of an arrowhead outside) to the words.
                 double clear = arrowOut ? 2.0 * arrow : trim;
@@ -250,7 +292,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (textOut)
             {
-                wordsAt = words2.Along(lines, back, knee, u, level, true, ref angle, clearOfBend: false);
+                // The line of words outside with the arrowhead in starts at the rim, past the arrowhead.
+                wordsAt = words2.Along(
+                    lines,
+                    arrowOut || !fitPlaced ? back : chord,
+                    knee,
+                    u,
+                    level,
+                    !tixOut,
+                    ref angle,
+                    clearOfBend: false
+                );
             }
             else if (single)
             {
@@ -261,7 +313,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // Inside between two arrowheads: the line from the back of one to the back of the other, broken about words on it.
                 GeoPoint2 farBack = far + u * farTrim;
-                wordsAt = words2.Centred(lines, farBack, back, center, u, level, ref angle);
+                wordsAt = words2.Centred(lines, farBack, back, knee, u, level, ref angle);
             }
             else if (diameter)
             {
@@ -278,7 +330,19 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 // In the middle of the radius line, which runs whole from the centre to the arrowhead.
+                int before = lines.Count;
                 wordsAt = words2.Centred(lines, center, back, knee, u, level, ref angle);
+
+                // DIMTIX words on the line that take all of it leave it whole; the arrowhead outside, DIMTOFL off, no line at all.
+                if (style.Dimtix && lines.Count == before)
+                {
+                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(center, back));
+                }
+
+                if (arrowOut && !style.Dimtofl)
+                {
+                    lines.RemoveRange(before, lines.Count - before);
+                }
             }
 
             // The line the other side of the circle: from the centre, or the far rim, to the rim (DIMTOFL).
@@ -295,7 +359,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The short line the arrowhead outside stands on, where the words stand inside the diameter.
-            if (diameter && arrowOut && !textOut && !CadArrowheads.TakesNoRoom(nearName))
+            if (arrowOut && !textOut && !CadArrowheads.TakesNoRoom(nearName))
             {
                 lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(chord + u * arrow, chord + u * (2.0 * arrow)));
             }
@@ -328,7 +392,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The centre mark where the line stands outside and DIMTOFL draws none through the circle.
-            if (textOut && !style.Dimtofl)
+            if ((textOut || (arrowOut && !diameter)) && !style.Dimtofl)
             {
                 AddCenterMark(picture, style, center, radius, scale);
             }
@@ -929,6 +993,25 @@ namespace GeometryHelper.Dxf.Viewer
                 if (onInside && arrowsInside)
                 {
                     LevelBreak(vertex, radius, at, textAngle, width, height, gap, theta, out breakFrom, out breakTo);
+
+                    // Words on the arc that cut into an arrowhead's room send the arrowheads outside, the arc drawn whole: "60%%d"
+                    // put 6 degrees from the first ray of an angle of 60 at 35 stands there, as AutoCAD 2021 draws it.
+                    if (
+                        CutsArrows(
+                            breakFrom,
+                            breakTo,
+                            AlongSweep(theta, from),
+                            from,
+                            to,
+                            from + (trim1 > 0.0 ? ChordTurn(radius, trim1) : 0.0),
+                            to - (trim2 > 0.0 ? ChordTurn(radius, trim2) : 0.0)
+                        )
+                    )
+                    {
+                        arrowsInside = false;
+                        breakFrom = 0.0;
+                        breakTo = 0.0;
+                    }
                 }
             }
             else if (placed.HasValue)
@@ -943,7 +1026,14 @@ namespace GeometryHelper.Dxf.Viewer
                     textAngle = 0.0;
                     GeoPoint2 start = vertex + Heading(middle) * radius;
 
-                    if ((at - start).Length > gap + height / 2.0)
+                    // Words put near the arc have no leader, as AutoCAD 2021 draws them: probed with words 3 to 16 off an arc of 30 in 8
+                    // styles (DIMASZ 2.5 and 4, DIMTXT 2.5 and 4, DIMGAP 0.625 and 1.5), the leader appears past 6.875 off it for
+                    // 2.5, 2.5 and 0.625 and past 7.75, 8.9 and 10.2 for the others, a line fitted to those: the height of the
+                    // words, the gap and three quarters of an arrowhead and 1.9.
+                    if (
+                        (at - start).Length > gap + height / 2.0
+                        && Math.Abs((at - vertex).Length - radius) > height + gap + 0.75 * arrow + 1.9
+                    )
                     {
                         double flat = at.X >= start.X ? 1.0 : -1.0;
                         GeoPoint2 knee = at - new GeoVector2(flat, 0.0) * (width / 2.0 + gap + arrow);
@@ -951,6 +1041,31 @@ namespace GeometryHelper.Dxf.Viewer
                         lines.Add(
                             new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + new GeoVector2(flat, 0.0) * arrow)
                         );
+                    }
+                }
+
+                // Words put on the arc, free or level, break it about them, as words in the middle of it do, and send the arrowheads
+                // outside where they cut into their room.
+                if (arrowsInside)
+                {
+                    double thetaAt = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X);
+                    LevelBreak(vertex, radius, at, textAngle, width, height, gap, thetaAt, out breakFrom, out breakTo);
+
+                    if (
+                        CutsArrows(
+                            breakFrom,
+                            breakTo,
+                            AlongSweep(thetaAt, from),
+                            from,
+                            to,
+                            from + (trim1 > 0.0 ? ChordTurn(radius, trim1) : 0.0),
+                            to - (trim2 > 0.0 ? ChordTurn(radius, trim2) : 0.0)
+                        )
+                    )
+                    {
+                        arrowsInside = false;
+                        breakFrom = 0.0;
+                        breakTo = 0.0;
                     }
                 }
             }
@@ -1206,6 +1321,33 @@ namespace GeometryHelper.Dxf.Viewer
         private static GeoVector2 UnitOf(GeoVector2 v) => v.Length > 1E-12 ? v / v.Length : new GeoVector2(1.0, 0.0);
 
         private static double Sign(double value) => value < 0.0 ? -1.0 : 1.0;
+
+        /// <summary>
+        /// Whether words standing on the arc, broken between two angles, cut into the room of an arrowhead at either end: the words'
+        /// middle (<paramref name="theta"/>) between the rays, their break reaching back past where an arrowhead's back is.
+        /// </summary>
+        private static bool CutsArrows(
+            double breakFrom,
+            double breakTo,
+            double theta,
+            double from,
+            double to,
+            double firstBack,
+            double secondBack
+        ) =>
+            breakTo > breakFrom
+            && theta > from + 1E-9
+            && theta < to - 1E-9
+            && ((breakFrom < firstBack && breakTo > from) || (breakTo > secondBack && breakFrom < to));
+
+        /// <summary>An angle brought within a turn above <paramref name="from"/>, so that it can be compared with the sweep that starts there.</summary>
+        private static double AlongSweep(double angle, double from)
+        {
+            double turn = 2.0 * Math.PI;
+            double a = angle - from;
+            a -= Math.Floor(a / turn) * turn;
+            return from + a;
+        }
 
         /// <summary>
         /// The angles about the vertex between which an arc through words centred on it is taken out: where the arc leaves the
