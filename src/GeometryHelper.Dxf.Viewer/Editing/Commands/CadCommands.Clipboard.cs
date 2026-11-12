@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using GeometryHelper.Dxf;
@@ -81,7 +82,21 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var fragment = new DxfDatabase(document.Database.Version);
-            document.Database.WblockCloneObjects(entities, fragment.ModelSpace);
+            DxfBlockTableRecord into = fragment.ModelSpace;
+
+            // The viewports of a layout go with what is copied beside them into a layout of the fragment, as model space holds none.
+            if (entities.Exists(e => e is DxfViewport))
+            {
+                DxfLayout sheet = fragment.Layouts.FirstOrDefault(l => l.LayoutName == "Layout1");
+
+                if (sheet != null)
+                {
+                    sheet.Initialize();
+                    into = sheet.BlockTableRecord;
+                }
+            }
+
+            document.Database.WblockCloneObjects(entities, into);
             GeoPoint2 corner = basePoint ?? (box.IsEmpty ? GeoPoint2.Origin : new GeoPoint2(box.Min.X, box.Min.Y));
             fragment.Insbase = new GeoPoint3(corner.X, corner.Y, 0.0);
             string plain = words.Count == 0 ? null : string.Join("\r\n", words);
@@ -297,6 +312,14 @@ namespace GeometryHelper.Dxf.Viewer
                 at = c.Input.Point;
             }
 
+            List<DxfEntity> held = Held(fragment);
+
+            if (mode == PasteMode.Block && held.Exists(e => e is DxfViewport))
+            {
+                c.Write("Viewports cannot be pasted as a block: PASTECLIP pastes them in a layout.");
+                yield break;
+            }
+
             if (mode == PasteMode.Block)
             {
                 c.Apply(null, s =>
@@ -311,10 +334,7 @@ namespace GeometryHelper.Dxf.Viewer
             var move = new GeoVector3(at.X - basePoint.X, at.Y - basePoint.Y, 0.0);
             c.Apply(null, s =>
             {
-                IReadOnlyList<DxfEntity> copies = fragment.WblockCloneObjects(
-                    new List<DxfEntity>(fragment.ModelSpace),
-                    c.Space.Block
-                );
+                IReadOnlyList<DxfEntity> copies = fragment.WblockCloneObjects(held, c.Space.Block);
                 GeoTransform3 transform = move.X == 0.0 && move.Y == 0.0 ? null : GeoTransform3.Translation(move);
 
                 foreach (DxfEntity copy in copies)
@@ -333,6 +353,31 @@ namespace GeometryHelper.Dxf.Viewer
                     s.Added(c.Space, copy);
                 }
             });
+        }
+
+        /// <summary>
+        /// The objects a clipboard's drawing holds to paste: those of its model space, or, where that holds none, those of its
+        /// layout (a copy that held viewports), without the viewport that shows the layout itself.
+        /// </summary>
+        private static List<DxfEntity> Held(DxfDatabase fragment)
+        {
+            var held = new List<DxfEntity>(fragment.ModelSpace);
+            DxfBlockTableRecord sheet = fragment
+                .Layouts.FirstOrDefault(l => l.LayoutName == "Layout1")
+                ?.BlockTableRecord;
+
+            if (held.Count == 0 && sheet != null)
+            {
+                foreach (DxfEntity entity in sheet)
+                {
+                    if (!entity.IsErased && !(entity is DxfViewport viewport && viewport.Number == 1))
+                    {
+                        held.Add(entity);
+                    }
+                }
+            }
+
+            return held;
         }
 
         /// <summary>Text of another app pasted as an MTEXT at the point given, in the current text style and height, its lines its paragraphs.</summary>

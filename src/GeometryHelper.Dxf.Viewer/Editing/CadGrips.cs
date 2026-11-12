@@ -501,7 +501,10 @@ namespace GeometryHelper.Dxf.Viewer
                         if (v.NonRectClipEntity is DxfEntity boundary)
                         {
                             boundary.TransformBy(GeoTransform3.Translation(shift));
-                            v.FitToClip();
+
+                            // The frame goes with its boundary and the view's centre stays, as a MOVE leaves it.
+                            GeoPoint3 centre = v.CenterPoint;
+                            v.FitToClip(new GeoPoint3(centre.X + shift.X, centre.Y + shift.Y, centre.Z));
                             return true;
                         }
 

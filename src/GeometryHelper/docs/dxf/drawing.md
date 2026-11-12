@@ -503,6 +503,13 @@ the frame changed), and `viewport.RemoveClip()` takes the clip off as the Delete
 keeping the frame. AutoCAD 2021's DXF of a viewport clipped to an entity and ours of the same agree group by group, and its
 AUDIT finds nothing in a drawing of three clipped viewports written as DXF or as DWG.
 
+`db.WblockCloneObjects` copies a clipped viewport as AutoCAD 2021's `WblockCloneObjects` and `DeepCloneObjects` do (probed in
+its console). Viewport and boundary copied together, into another drawing or into the same one, come out as a pair: the copy of
+the viewport names the copy of the boundary (group 340) and is its only reactor. The viewport alone copied into another drawing
+brings its boundary (appended after it, not among the entities given back), as it brings the annotation of a leader; copied
+within the drawing it keeps naming its original's boundary, which does not list it. A boundary copied alone is a plain entity
+with no reactor.
+
 ### Making a layout
 
 A layout is made as AutoCAD makes one, `var plan = new DxfLayout { LayoutName = "Plan 1-50" }`, then

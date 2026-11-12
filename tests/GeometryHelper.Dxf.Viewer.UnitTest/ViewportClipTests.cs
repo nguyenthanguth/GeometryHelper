@@ -220,9 +220,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(160.0, viewport.Width, 9);
             Assert.Equal(60.0, viewport.Height, 9);
 
-            // The paper frame moved 20 right and 5 up, so the view's centre moved 200 and 50 in model units: it still shows what it showed.
-            Assert.Equal(centreBefore.X + 200.0, viewport.ViewCenter.X, 9);
-            Assert.Equal(centreBefore.Y + 50.0, viewport.ViewCenter.Y, 9);
+            // The frame moved 20 right and 5 up with its boundary and the view's centre stayed, as AutoCAD 2021 leaves it (probe GhVq,
+            // MOVE 0,0 20,5): what the viewport showed goes with it.
+            Assert.Equal(centreBefore.X, viewport.ViewCenter.X, 9);
+            Assert.Equal(centreBefore.Y, viewport.ViewCenter.Y, 9);
             Assert.Equal(0.1, viewport.CustomScale, 9);
             DxfPolyline moved = Assert.IsType<DxfPolyline>(viewport.NonRectClipEntity);
             Near(new GeoPoint2(50, 35), moved.GetPoint2dAt(0));
@@ -368,6 +369,202 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 double distance = Math.Sqrt(Math.Pow(ring[i] - 110, 2) + Math.Pow(ring[i + 1] - 60, 2));
                 Assert.Equal(30.0, distance, 6);
             }
+        }
+
+        /// <summary>
+        /// The viewport of <see cref="WithViewport"/> clipped to a circle of radius 30 about (110, 60): 60 by 60 there, its
+        /// view about (1 000, 500) at 1:10, 600 high.
+        /// </summary>
+        private static CadDocument ClippedToACircle(out CadCommandSession session, out string handle, out string circle)
+        {
+            CadDocument document = WithViewport(out session, out handle);
+            Run(session, "CIRCLE", P(110, 60), "30");
+            circle = Assert.Single(All<DxfCircle>(document.CurrentSpace)).Handle;
+            Run(session, "VPCLIP", new[] { handle }, new[] { circle });
+            return document;
+        }
+
+        /// <summary>The viewports of the layout that are clipped, the first made first.</summary>
+        private static DxfViewport[] Clipped(CadDocument document) =>
+            All<DxfViewport>(document.CurrentSpace).Where(v => v.NonRectClipOn).ToArray();
+
+        private static void AssertView(
+            DxfViewport viewport,
+            double x,
+            double y,
+            double viewX,
+            double viewY,
+            double twistDegrees,
+            double viewHeight = 600.0
+        )
+        {
+            Assert.Equal(x, viewport.CenterPoint.X, 3);
+            Assert.Equal(y, viewport.CenterPoint.Y, 3);
+            Assert.Equal(viewX, viewport.ViewCenter.X, 3);
+            Assert.Equal(viewY, viewport.ViewCenter.Y, 3);
+            Assert.Equal(twistDegrees, viewport.TwistAngle * 180.0 / Math.PI, 3);
+            Assert.Equal(viewHeight, viewport.ViewHeight, 3);
+        }
+
+        [Fact]
+        public void ARotatedPair_TwistsTheView_AndWritesAutoCadsViewCentre()
+        {
+            CadDocument document = ClippedToACircle(
+                out CadCommandSession session,
+                out string handle,
+                out string circle
+            );
+
+            Run(session, "ROTATE", new[] { handle }, Enter, P(0, 0), "45");
+
+            // AutoCAD 2021 (probe GhVq, ROTATE 0,0 45): the frame about (35.3553, 120.2082), the view twisted 45 degrees and its
+            // centre at (767.1068, 2011.3203), which is the turn of 2 V - C' (V the view's centre, C' the frame's new centre).
+            DxfViewport viewport = Viewport(document, handle);
+            AssertView(viewport, 35.35534, 120.20815, 767.10678, 2011.32034, 45.0);
+            Assert.Equal(60.0, viewport.Width, 9);
+            Assert.Equal(60.0, viewport.Height, 9);
+            Assert.Equal(circle, viewport.NonRectClipEntity.Handle);
+            Near(new GeoPoint3(35.35534, 120.20815, 0), ((DxfCircle)viewport.NonRectClipEntity).Center, 1E-3);
+            Assert.Equal("ROTATE", document.NextUndo.Name);
+            Assert.True(document.Undo());
+            AssertView(Viewport(document, handle), 110.0, 60.0, 1000.0, 500.0, 0.0);
+        }
+
+        [Fact]
+        public void APairRotatedAboutItsOwnMiddle_KeepsItsFrame_AndAutoCadsViewCentre()
+        {
+            CadDocument document = ClippedToACircle(out CadCommandSession session, out string handle, out _);
+
+            Run(session, "ROTATE", new[] { handle }, Enter, P(110, 60), "90");
+
+            // AutoCAD 2021 (ROTATE 110,60 90): the frame where it was, twisted 90 degrees, the view's centre at (-940, 1890).
+            AssertView(Viewport(document, handle), 110.0, 60.0, -940.0, 1890.0, 90.0);
+        }
+
+        [Fact]
+        public void ARotationBackwards_WritesTheTwistAsAutoCadDoes_BetweenNoughtAndThreeHundredSixty()
+        {
+            CadDocument document = ClippedToACircle(out CadCommandSession session, out string handle, out _);
+
+            Run(session, "ROTATE", new[] { handle }, Enter, P(110, 60), "-30");
+
+            Assert.Equal(330.0, Viewport(document, handle).TwistAngle * 180.0 / Math.PI, 3);
+        }
+
+        [Fact]
+        public void ARotatedCopyOfAPair_IsTwistedAndTiedToItsOwnBoundary_WhileTheOriginalStays()
+        {
+            CadDocument document = ClippedToACircle(
+                out CadCommandSession session,
+                out string handle,
+                out string circle
+            );
+
+            Run(session, "ROTATE", new[] { handle }, Enter, P(0, 0), "C", "45");
+
+            DxfViewport[] pair = Clipped(document);
+            Assert.Equal(2, pair.Length);
+            AssertView(Viewport(document, handle), 110.0, 60.0, 1000.0, 500.0, 0.0);
+            Assert.Equal(circle, Viewport(document, handle).NonRectClipEntity.Handle);
+            DxfViewport copy = pair.Single(v => v.Handle != handle);
+            AssertView(copy, 35.35534, 120.20815, 767.10678, 2011.32034, 45.0);
+            Assert.NotEqual(circle, copy.NonRectClipEntity.Handle);
+            Assert.Equal(new[] { copy.Handle }, copy.NonRectClipEntity.GetPersistentReactorIds());
+        }
+
+        [Fact]
+        public void AMirroredCopyOfAPair_KeepsTheView_AndFollowsTheMirroredBoundary()
+        {
+            CadDocument document = ClippedToACircle(
+                out CadCommandSession session,
+                out string handle,
+                out string circle
+            );
+
+            Run(session, "MIRROR", new[] { handle }, Enter, P(0, 0), P(0, 100), Enter);
+
+            // AutoCAD 2021 (MIRROR 0,0 0,1 N): the copy's frame about (-110, 60) with the view's centre and twist as they were.
+            DxfViewport[] pair = Clipped(document);
+            Assert.Equal(2, pair.Length);
+            AssertView(Viewport(document, handle), 110.0, 60.0, 1000.0, 500.0, 0.0);
+            DxfViewport copy = pair.Single(v => v.Handle != handle);
+            AssertView(copy, -110.0, 60.0, 1000.0, 500.0, 0.0);
+            Assert.Equal(60.0, copy.Width, 9);
+            Assert.NotEqual(circle, copy.NonRectClipEntity.Handle);
+            Near(new GeoPoint3(-110, 60, 0), ((DxfCircle)copy.NonRectClipEntity).Center);
+            Assert.Equal(new[] { copy.Handle }, copy.NonRectClipEntity.GetPersistentReactorIds());
+        }
+
+        [Fact]
+        public void AMirrorThatErasesTheSource_LeavesOnePairAtTheMirroredPlace_WithTheViewKept()
+        {
+            CadDocument document = ClippedToACircle(
+                out CadCommandSession session,
+                out string handle,
+                out string circle
+            );
+
+            Run(session, "MIRROR", new[] { handle }, Enter, P(0, 0), P(0, 100), "Yes");
+
+            DxfViewport viewport = Assert.Single(Clipped(document));
+            Assert.Equal(handle, viewport.Handle);
+            AssertView(viewport, -110.0, 60.0, 1000.0, 500.0, 0.0);
+            Assert.Equal(circle, viewport.NonRectClipEntity.Handle);
+        }
+
+        [Fact]
+        public void APairMoved_KeepsItsView_AsAutoCadsMoveDoes()
+        {
+            CadDocument document = ClippedToACircle(out CadCommandSession session, out string handle, out _);
+
+            Run(session, "MOVE", new[] { handle }, Enter, P(0, 0), P(20, 5));
+
+            // AutoCAD 2021 (MOVE 0,0 20,5): the frame moved with its boundary, the view's centre where it was.
+            AssertView(Viewport(document, handle), 130.0, 65.0, 1000.0, 500.0, 0.0);
+        }
+
+        [Fact]
+        public void APairScaledByTwo_ScalesTheFrameAndTheViewHeight_AndMovesTheViewCentreByTheStep()
+        {
+            CadDocument document = ClippedToACircle(out CadCommandSession session, out string handle, out _);
+
+            Run(session, "SCALE", new[] { handle }, Enter, P(0, 0), "2");
+
+            // AutoCAD 2021 (SCALE 0,0 2): the frame 120 by 120 about (220, 120), its view 1 200 high about (2 100, 1 100).
+            DxfViewport viewport = Viewport(document, handle);
+            AssertView(viewport, 220.0, 120.0, 2100.0, 1100.0, 0.0, 1200.0);
+            Assert.Equal(120.0, viewport.Width, 9);
+        }
+
+        [Fact]
+        public void AClippedViewportCopiedAndPastedIntoAnotherDrawing_BringsItsBoundary_AndKeepsThePair()
+        {
+            CadDocument document = WithViewport(out CadCommandSession session, out string handle);
+            Run(session, "VPCLIP", new[] { handle }, Enter);
+            DrawL(session);
+            var clipboard = new CadMemoryClipboard();
+            session.Clipboard = clipboard;
+            Run(session, "COPYCLIP", new[] { handle }, Enter);
+            Assert.Equal(2, clipboard.GetData().Count);
+
+            CadDocument other = Blank();
+            other.CurrentSpace = other.Spaces[1];
+            CadCommandSession pasting = Session(other);
+            pasting.Clipboard = clipboard;
+            Run(pasting, "PASTECLIP", P(0, 0));
+
+            DxfViewport pasted = Assert.Single(All<DxfViewport>(other.CurrentSpace), v => v.NonRectClipOn);
+            DxfPolyline border = Assert.IsType<DxfPolyline>(pasted.NonRectClipEntity);
+            Assert.Equal(6, border.NumberOfVertices);
+            Assert.Equal(new[] { pasted.Handle }, border.GetPersistentReactorIds());
+
+            // The lower left corner of the pair, (30, 30), came to the point given: the frame 160 by 60 about (80, 30).
+            Near(new GeoPoint3(80, 30, 0), pasted.CenterPoint);
+            Assert.Equal(160.0, pasted.Width, 9);
+            Assert.Equal(1000.0, pasted.ViewCenter.X, 9);
+            Assert.Equal("PASTECLIP", other.NextUndo.Name);
+            AssertReopens(other);
+            Assert.Equal(handle, Viewport(document, handle).Handle);
         }
     }
 }

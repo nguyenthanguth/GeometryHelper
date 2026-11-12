@@ -268,6 +268,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             });
         }
 
+        [Fact]
+        public void ACornerOfTheBoundaryDraggedOnTheCanvas_FitsTheViewportsFrameToIt_InOneUndoStep()
+        {
+            OnClippedLayout(LShape, false, (model, canvas, viewport) =>
+            {
+                string border = viewport.NonRectClipEntity.Handle;
+
+                // The boundary and its viewport selected as one object show the boundary's corners as grips.
+                model.Document.Selection.Set(new[] { viewport.Handle, border });
+                canvas.RenderNow();
+                Assert.True(canvas.GripCount >= 7, "Only " + canvas.GripCount + " grips.");
+
+                // The L's second corner, (9.5, 2), dragged to (10.5, 2): the L is 8 wide from x = 2.5, its frame about x = 6.5.
+                Drag(canvas, At(canvas, 9.5, 2), At(canvas, 10.5, 2));
+
+                var moved = (DxfViewport)model.Document.FindEntity(viewport.Handle);
+                Assert.Equal(8.0, moved.Width, 9);
+                Assert.Equal(5.0, moved.Height, 9);
+                Assert.Equal(6.5, moved.CenterPoint.X, 9);
+                Assert.Equal(4.5, moved.CenterPoint.Y, 9);
+                Assert.Equal(0.002, moved.CustomScale, 9);
+                Assert.Equal(border, moved.NonRectClipEntity.Handle);
+                Assert.Equal(10.5, ((DxfPolyline)moved.NonRectClipEntity).GetPoint2dAt(1).X, 9);
+                Assert.True(model.HasUnsavedChanges);
+
+                Assert.True(model.Document.Undo());
+                var back = (DxfViewport)model.Document.FindEntity(viewport.Handle);
+                Assert.Equal(7.0, back.Width, 9);
+                Assert.Equal(6.0, back.CenterPoint.X, 9);
+            });
+        }
+
         private static int PixelAt(int[] pixels, CadCanvas canvas, double x, double y, double dx = 0.0)
         {
             canvas.View.DrawingToPixel(x, y, out double px, out double py);

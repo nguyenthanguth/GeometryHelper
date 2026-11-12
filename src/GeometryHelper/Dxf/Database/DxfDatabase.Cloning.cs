@@ -59,6 +59,12 @@ namespace GeometryHelper.Dxf
         /// alone, as before.
         /// </para>
         /// <para>
+        /// A viewport clipped by an entity (<see cref="DxfViewport.NonRectClipEntity"/>) copied together with that entity names its
+        /// copy (group 340), which lists the copy as its only reactor; copied alone into another drawing it brings the entity,
+        /// appended after it and not among those given back, and copied alone within this drawing it keeps naming its original's
+        /// entity, which does not list it, as AutoCAD 2021's <c>WblockCloneObjects</c> and <c>DeepCloneObjects</c> leave them.
+        /// </para>
+        /// <para>
         /// A rectangle of four LINEs with a HATCH that follows them, copied together into another drawing, comes out as four
         /// LINEs and a HATCH that follows those four, each LINE listing the HATCH among its reactors.
         /// </para>
@@ -158,22 +164,27 @@ namespace GeometryHelper.Dxf
             }
 
             // A LEADER copied into another drawing brings the annotation it points at by a hard pointer (340), as AutoCAD's
-            // WblockCloneObjects follows one; the annotation's copy is not among those given back.
+            // WblockCloneObjects follows one, and a clipped viewport the entity that clips it; the copy of either is not among
+            // those given back.
             int count = entities.Count;
 
             for (int i = 0; target != File && i < count; i++)
             {
+                DxfEntity pointed =
+                    entities[i] is DxfLeader leader ? leader.Annotation
+                    : entities[i] is DxfViewport clipped ? clipped.NonRectClipEntity
+                    : null;
+
                 if (
-                    entities[i] is DxfLeader leader
-                    && leader.Annotation is DxfEntity annotation
-                    && annotation.IsResident
-                    && !annotation.IsErased
-                    && annotation.Item.File == File
-                    && annotation.Item.Parent == null
-                    && given.Add(annotation.Item)
+                    pointed != null
+                    && pointed.IsResident
+                    && !pointed.IsErased
+                    && pointed.Item.File == File
+                    && pointed.Item.Parent == null
+                    && given.Add(pointed.Item)
                 )
                 {
-                    entities.Add(annotation);
+                    entities.Add(pointed);
                 }
             }
 
@@ -263,6 +274,22 @@ namespace GeometryHelper.Dxf
                         annotation != null && copyOf.TryGetValue(annotation.Item, out DxfEntity made) && made.IsResident
                             ? made
                             : null;
+                }
+                else if (entities[i] is DxfViewport viewport && copies[i] is DxfViewport shown)
+                {
+                    // The copy of a clipped viewport names the copy of its boundary where that was copied with it, and lists itself
+                    // as its reactor; a viewport copied alone within this drawing keeps its original's boundary, which does not list
+                    // it, as AutoCAD's deep clone leaves them. Copied alone into another drawing it brought its boundary (above).
+                    DxfEntity boundary = viewport.NonRectClipEntity;
+
+                    if (boundary != null && copyOf.TryGetValue(boundary.Item, out DxfEntity madeBoundary))
+                    {
+                        shown.TieClip(madeBoundary);
+                    }
+                    else if (target != File && viewport.NonRectClipOn)
+                    {
+                        shown.TieClip(null);
+                    }
                 }
             }
 
