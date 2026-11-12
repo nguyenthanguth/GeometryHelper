@@ -509,8 +509,9 @@ namespace GeometryHelper.Core
         /// Checks whether an oriented box overlaps a solid, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A box flat on some axis bounds no body and is read as its rectangle, its segment or its point: a box 100 by 100
-        /// by 0 lying on the floor is missed by a cube 40 on a side standing 20 over it.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, bounds no body and is read as its
+        /// rectangle, its segment or its point: a box 100 by 100 by 0 lying on the floor is missed by a cube 40 on a side
+        /// standing 20 over it.
         /// </remarks>
         public static bool CollidesWith(GeoObb3 box, GeoSolid3 solid, Tolerance tolerance)
         {
@@ -519,7 +520,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(box));
             }
 
-            if (box.IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment))
+            if (box.IsFlat(tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment))
             {
                 return rectangle != null
                     ? CollidesWith(rectangle, solid, tolerance)
@@ -744,8 +745,9 @@ namespace GeometryHelper.Core
         /// Checks whether a polygon overlaps an oriented box, within a tolerance.
         /// </summary>
         /// <remarks>
-        /// A box flat on some axis bounds no body and is read as its rectangle, its segment or its point: a box 100 by 100
-        /// by 0 lying on the floor is touched by a square standing upright across it.
+        /// A box flat on some axis, or no thicker than the point tolerance on two, bounds no body and is read as its
+        /// rectangle, its segment or its point: a box 100 by 100 by 0 lying on the floor is touched by a square standing
+        /// upright across it.
         /// </remarks>
         public static bool CollidesWith(GeoPolygon3 polygon, GeoObb3 box, Tolerance tolerance)
         {
@@ -754,7 +756,7 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(box));
             }
 
-            if (box.IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment))
+            if (box.IsFlat(tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment))
             {
                 return rectangle != null
                     ? CollidesWith(polygon, rectangle, tolerance)
