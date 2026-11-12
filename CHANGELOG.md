@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The Text Editor tab's Bullets and Numbering menu and the editor's right-click Bullets and Lists work as AutoCAD
+2021's: Off, Numbered, Lettered (Lowercase, Uppercase) and Bulleted label the selected paragraphs, or the caret's, one
+undo step each, "Plate" and "Beam" numbered written `\pxi-3,l3,t3;1.\tPlate\P2.\tBeam`; the ribbon's menu ticks the
+label every selected paragraph has, none where they differ. Start, Continue and Allow Auto Bullets and Numbering are
+grey, not built, and Allow Bullets and Lists grey and ticked. `CadMTextEditor.NumberingOf` gives a paragraph's label.
+
+**NEW.** An MTEXT in columns has AutoCAD 2021's grips, where it had its location alone: the column width at the first
+column's top right, the corner and the height, or for dynamic columns of their own heights a height under each column,
+and the gutter at the last column's top right, each doing what AutoCAD's MoveGripPointsAt does (probed on static and
+dynamic columns held at the top left, the middle and the bottom right). Two static columns 120 wide with a gutter of 20
+keep their total of 260 when the column width grip is dragged, the gutter taking the rest; the gutter grip dragged 50
+out makes the gutter 70. New grip kinds `MTextColumnWidth`, `MTextHeight`, `MTextSize`, `MTextGutter` and
+`MTextColumnHeight`; one undo step each, through the grip edit too.
+
+**CHANGED.** An MTEXT's grips are drawn as AutoCAD 2021 shows them: the location a square, the width a triangle pointing
+along the MTEXT, the height one pointing down and the corner one pointing into it, turned with the MTEXT, where all were
+squares; the corners of an MTEXT of no columns carry the way they point in `CadGrip.Direction` and drag as before.
+
 **NEW.** The presenter's canvas shows AutoCAD 2021's right-click menus, as its default SHORTCUTMENU 11 has them, their
 items, order and access keys read from AutoCAD's own menu file: with nothing selected the Default menu (Repeat LINE,
 Clipboard, Undo, Redo, Pan, Zoom, Quick Select..., Find..., Options...), with objects selected the Edit menu (the items of

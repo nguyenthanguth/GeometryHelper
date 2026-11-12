@@ -149,7 +149,11 @@ the MTEXT is written with the columns the editor ends with, No Columns too.
 one (checked against its TextEditor): each paragraph hangs 3 heights in with a tab stop there and opens with its label
 and a tab, "Plate" and "Beam" numbered `\pxi-3,l3,t3;1.\tPlate\P2.\tBeam`, lettered `a.\t` or `A.\t`, bulleted
 `{\fSymbol|b0|i0|c2|p18;·\t}`; a label already there is replaced, and Off takes the labels, the indent and the stop
-away. The ribbon's Bullets and Numbering menu does not offer it yet.
+away. The Text Editor tab's Bullets and Numbering menu offers it as AutoCAD 2021's does: Off, Numbered, Lettered
+(Lowercase, Uppercase) and Bulleted, the one every selected paragraph has ticked (`CadMTextEditor.NumberingOf` reads a
+paragraph's), none where they differ, then Start and Continue, Allow Auto Bullets and Numbering and Allow Bullets and
+Lists, grey as the editor does not build them, the last ticked as lists are always allowed. The editor's right-click
+menu has the same items under Bullets and Lists, with no list ticked, as AutoCAD's.
 
 The layout an MTEXT is drawn with is kept by the document from one drawing to the next, REGEN too, and taken again only
 where the words, the sizes, the spacing, the columns, the style's width and slant and the faces of the fonts are the same

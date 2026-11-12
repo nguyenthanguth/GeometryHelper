@@ -15,6 +15,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public static class CadMenus
     {
+        // The strokes of an item's icon, on and off, as the design draws them.
+        private static readonly Brush IconInk = Frozen(0xC9, 0xD1, 0xDB);
+        private static readonly Brush IconInkOff = Frozen(0x5B, 0x65, 0x73);
+
         private static ResourceDictionary _theme;
 
         /// <summary>Makes a context menu of items in the window's dark look (GhContextMenu, GhMenuItem), each item's tooltip shown even while it is off.</summary>
@@ -80,6 +84,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                     header = row;
                 }
+                else if (item.Icon != null)
+                {
+                    // The icon in its own room of 16 before the words, light on the dark menu, dim where the item is off.
+                    var row = new StackPanel { Orientation = Orientation.Horizontal };
+                    row.Children.Add(
+                        new System.Windows.Shapes.Path
+                        {
+                            Data = item.Icon.Length > 0 ? System.Windows.Media.Geometry.Parse(item.Icon) : null,
+                            Width = 16,
+                            Height = 16,
+                            Stroke = item.IsEnabled ? IconInk : IconInkOff,
+                            StrokeThickness = 1.3,
+                            StrokeStartLineCap = PenLineCap.Round,
+                            StrokeEndLineCap = PenLineCap.Round,
+                            Margin = new Thickness(0, 0, 8, 0),
+                            VerticalAlignment = VerticalAlignment.Center,
+                        }
+                    );
+                    row.Children.Add(
+                        item.AccessKey == '\0'
+                            ? new TextBlock { Text = item.Header, VerticalAlignment = VerticalAlignment.Center }
+                            : (UIElement)Words(item)
+                    );
+                    header = row;
+                }
 
                 var menuItem = new MenuItem
                 {
@@ -94,6 +123,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Fill(menuItem, item.Items);
                 menu.Items.Add(menuItem);
             }
+        }
+
+        private static Brush Frozen(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
         }
 
         /// <summary>

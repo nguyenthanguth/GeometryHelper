@@ -369,7 +369,17 @@
                     <Grid>
                         <Border x:Name="Row" Background="Transparent" Padding="0,4,8,4">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Left" Width="22" />
+                                <TextBlock
+                                    x:Name="Tick"
+                                    DockPanel.Dock="Left"
+                                    Width="22"
+                                    Text="&#x2713;"
+                                    TextAlignment="Center"
+                                    FontWeight="Bold"
+                                    Foreground="{StaticResource GhAccent}"
+                                    Visibility="Hidden"
+                                    VerticalAlignment="Center"
+                                />
                                 <TextBlock
                                     DockPanel.Dock="Right"
                                     Text="&#x25B8;"
@@ -404,6 +414,9 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
                         </Trigger>

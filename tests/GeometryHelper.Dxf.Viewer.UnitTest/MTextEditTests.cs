@@ -114,7 +114,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AnMTextOfNoWidth_OrInColumns_HasTheGripOfItsLocationAlone()
+        public void AnMTextOfNoWidth_HasTheGripOfItsLocationAlone_AndOneInStaticColumnsAutoCadsFive()
         {
             Made("II II II", 0.0, out DxfMText plain);
             At(0.0, 0.0, CadGripKind.Insertion, Assert.Single(CadGrips.Of(plain)));
@@ -124,7 +124,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 t.SetStaticColumns(20.0, 5.0, 2);
                 t.Height = 30.0;
             });
-            At(0.0, 0.0, CadGripKind.Insertion, Assert.Single(CadGrips.Of(columns)));
+            IReadOnlyList<CadGrip> grips = CadGrips.Of(columns);
+            Assert.Equal(5, grips.Count);
+            At(0.0, 0.0, CadGripKind.Insertion, grips[0]);
         }
 
         // AutoCAD 2021 moved each grip of a two-line MTEXT 2.5 high and 60 wide by (5, -3); here four times the size.

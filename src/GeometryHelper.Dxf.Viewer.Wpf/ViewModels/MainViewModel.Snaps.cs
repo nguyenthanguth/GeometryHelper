@@ -38,14 +38,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         internal CadMenuItemViewModel(string header, IReadOnlyList<CadMenuItemViewModel> items)
             : this(header, true, items) { }
 
-        /// <summary>Makes an item that opens a menu of its own, greyed where it is off: a grey one never opens its menu.</summary>
+        /// <summary>
+        /// Makes an item that opens a menu of its own, greyed where it is off: a grey one never opens its menu; ticked where
+        /// <paramref name="isChecked"/> says, as Lettered of Bullets and Numbering.
+        /// </summary>
         internal CadMenuItemViewModel(
             string header,
             bool isEnabled,
             IReadOnlyList<CadMenuItemViewModel> items,
-            char accessKey = '\0'
+            char accessKey = '\0',
+            bool? isChecked = null
         )
-            : this(header, (Action)null, isEnabled, accessKey: accessKey)
+            : this(header, (Action)null, isEnabled, isChecked: isChecked, accessKey: accessKey)
         {
             Items = items;
         }
@@ -83,6 +87,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the snap whose marker is drawn beside it; <see cref="CadSnapKind.None"/> for none.</summary>
         public CadSnapKind Marker { get; }
+
+        /// <summary>
+        /// The icon drawn before the words, a path on a grid of 16 as Numbered of Bullets and Numbering has; empty for the room
+        /// of one left blank, so that the words of a menu with icons line up; null for none.
+        /// </summary>
+        internal string Icon { get; set; }
 
         /// <summary>Gets what choosing it does; null for a separator.</summary>
         public ICommand Command { get; }
