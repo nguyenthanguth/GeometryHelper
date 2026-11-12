@@ -210,6 +210,7 @@ namespace GeometryHelper.Geometry
         /// <param name="frame">The frame the loop is laid out in.</param>
         /// <param name="loop">The loop in the plane.</param>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frame or the loop has a coordinate that is not a finite number.</exception>
         public GeoPolygonArc3(GeoCoordinateSystem3 frame, GeoPolygonArc2 loop)
             : this(
                 Lifted(frame, loop, out List<double> bulges, out List<GeoVector3> normals),
@@ -998,6 +999,18 @@ namespace GeometryHelper.Geometry
         {
             if (loop == null)
                 throw new ArgumentNullException(nameof(loop));
+
+            // Lifted, either would be vertices out of one plane, which is not where the fault lies.
+            Guard.Argument(
+                PlanarMap.IsFinite(frame),
+                nameof(frame),
+                "The frame has a coordinate that is not a finite number."
+            );
+            Guard.Argument(
+                Guard.AreValid(loop.Vertices),
+                nameof(loop),
+                "The loop has a coordinate that is not a finite number."
+            );
 
             var vertices = new List<GeoPoint3>(loop.VertexCount);
             bulges = new List<double>(loop.VertexCount);

@@ -791,6 +791,7 @@ namespace GeometryHelper.Dxf
         public DxfWriter Add(GeoSphere3 sphere, double chordTolerance, string layer = null)
         {
             Chords.Require(chordTolerance);
+            Core.Sphere3.RequireFiniteCentre(sphere);
             return Add(sphere.TriangulateSurface(chordTolerance), layer);
         }
 

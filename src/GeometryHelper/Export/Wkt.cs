@@ -224,6 +224,7 @@ namespace GeometryHelper.Export
         public static string Write(GeoSphere3 sphere, double chordTolerance)
         {
             Chords.Require(chordTolerance);
+            Core.Sphere3.RequireFiniteCentre(sphere);
 
             GeoTriangle3[] triangles = sphere.TriangulateSurface(chordTolerance);
             var parts = new List<string>(triangles.Length);

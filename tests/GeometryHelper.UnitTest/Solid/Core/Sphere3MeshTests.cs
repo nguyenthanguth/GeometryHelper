@@ -301,8 +301,12 @@ namespace GeometryHelper.UnitTest.Solid
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => default(GeoSphere3).TriangulateSurface(0.1));
             Assert.Throws<ArgumentOutOfRangeException>(() => default(GeoSphere3).ToSolid(0.1));
-            Assert.Throws<ArgumentException>(() => new GeoSphere3(P(double.NaN, 0, 0), 5).TriangulateSurface(0.1));
-            Assert.Throws<ArgumentException>(() => new GeoSphere3(P(0, double.PositiveInfinity, 0), 5).ToSolid(0.1));
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoSphere3(P(double.NaN, 0, 0), 5).TriangulateSurface(0.1)
+            );
+            Assert.Throws<InvalidOperationException>(() =>
+                new GeoSphere3(P(0, double.PositiveInfinity, 0), 5).ToSolid(0.1)
+            );
         }
 
         [Fact]

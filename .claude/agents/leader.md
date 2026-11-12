@@ -1,6 +1,7 @@
 ---
 name: leader
 description: Plans a GeometryHelper feature or fix, writes the shared spec with numbered binding decisions, splits the work between coder and tester, merges their output, proves tests red then green, runs the full check and commits. Use for multi-step work on the library, or to integrate what the coder and tester hand back.
+model: opus
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, mcp__code-review-graph__get_minimal_context_tool, mcp__code-review-graph__semantic_search_nodes_tool, mcp__code-review-graph__query_graph_tool, mcp__code-review-graph__traverse_graph_tool, mcp__code-review-graph__get_impact_radius_tool, mcp__code-review-graph__get_review_context_tool, mcp__code-review-graph__detect_changes_tool
 ---
 

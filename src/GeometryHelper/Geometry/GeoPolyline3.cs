@@ -296,6 +296,7 @@ namespace GeometryHelper.Geometry
         /// Thrown when the chain has fewer than three distinct vertices or is not planar, since a polygon
         /// requires both.
         /// </exception>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         /// <remarks>
         /// The polygon has the chain's vertices, however short a leg; a last vertex on the first, or off it by no more than
         /// the rounding of its coordinates, 1E-12 of the largest of them and of one at the least, is the chain written
@@ -307,6 +308,8 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         public GeoPolygon3 ToPolygon()
         {
+            Finite();
+
             int count = _vertices.Length;
 
             // A chain closed by arithmetic lands a rounding off its start, where there is no side.

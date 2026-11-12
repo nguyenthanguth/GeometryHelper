@@ -191,19 +191,32 @@ namespace GeometryHelper.Geometry
         /// Thrown when the triangle encloses no area. Ask <see cref="IsDegenerate()"/> first where that is
         /// possible: a polygon of three collinear points is not a polygon.
         /// </exception>
-        public GeoPolygon3 ToPolygon3() => new GeoPolygon3(A, B, C);
+        /// <exception cref="InvalidOperationException">Thrown when a corner has a coordinate that is not a finite number.</exception>
+        public GeoPolygon3 ToPolygon3()
+        {
+            Guard.FiniteShape(IsValid);
+
+            return new GeoPolygon3(A, B, C);
+        }
 
         /// <summary>
         /// Reads the triangle as a three-sided polygon, within a tolerance.
         /// </summary>
         /// <param name="tolerance">The tolerance that decides whether the three corners enclose an area.</param>
         /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
-        public GeoPolygon3 ToPolygon3(Tolerance tolerance) => new GeoPolygon3(new[] { A, B, C }, tolerance);
+        /// <exception cref="InvalidOperationException">Thrown when a corner has a coordinate that is not a finite number.</exception>
+        public GeoPolygon3 ToPolygon3(Tolerance tolerance)
+        {
+            Guard.FiniteShape(IsValid);
+
+            return new GeoPolygon3(new[] { A, B, C }, tolerance);
+        }
 
         /// <summary>
         /// Reads the triangle as a face with no holes in it.
         /// </summary>
         /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a corner has a coordinate that is not a finite number.</exception>
         public GeoFace3 ToFace3() => new GeoFace3(ToPolygon3());
 
         /// <summary>
@@ -211,6 +224,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="tolerance">The tolerance that decides whether the three corners enclose an area.</param>
         /// <exception cref="ArgumentException">Thrown when the triangle encloses no area.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a corner has a coordinate that is not a finite number.</exception>
         public GeoFace3 ToFace3(Tolerance tolerance) => new GeoFace3(ToPolygon3(tolerance), null, tolerance);
 
         /// <summary>

@@ -78,6 +78,11 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 
 ### In progress
 
+User note 2026-11-12 (basic features first, advanced later):
+- [ ] Grips: a polyline's midpoint grip drawn as AutoCAD's short bar, not a square; hovering a vertex grip offers Stretch Vertex / Add Vertex / Remove Vertex, a midpoint grip Stretch / Add Vertex / Convert to Arc; Grip size (GRIPSIZE) under Pickbox size in Global settings > Appearance > Cursor (design first) (M)
+- [ ] Ctrl+1 toggles PROPERTIES (open closes, closed opens); DRAWINGS gets Ctrl+2 by default and toggles the same way (S)
+- [ ] Progress meter on the status bar for open/save, callable by commands and plugins (in progress: progress-bar) (M)
+
 ### AutoCAD parity: High (daily use), in the order of value to a drafter
 
 The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md); copy here
@@ -274,7 +279,8 @@ the ones wanted.
 - [x] Try audit follow-ups: GetIntersections on flat/empty boxes, NaN/infinite input false in the segment Try members, fillet radius message
 - [x] Try audit follow-ups 2: flat and thin boxes crossed as their rectangle/segment/point, their booleans refused, LiesAlong, NaN Locate
 - [x] Try audit follow-ups 3: sliver triangle distance and closest point, Corner3 infinite radius, NaN shapes meet nothing (net48 spline hang gone)
-- [ ] Try audit follow-ups 4: NaN input: 1 700 faulty members down to 33 (done 2026-11-12); the 33 left are instance members of a NaN shape (DECIDED by recommendation: throw InvalidOperationException "the shape has a coordinate that is not a number") plus GeoXLine2.ClipTo and two arc constructors to name; docs say a NaN shape meets nothing while a polygon with one NaN vertex meets through its finite sides (DECIDED: narrow the docs to the NaN part); GeoLine3.GetPlaneWith documents the wrong exception; Clash.Neutral +3 % to check; DECIDED by recommendation 2026-11-12: keep the LN5 rule (a box thinner than the tolerance on one axis is booleaned as a body, the cube less it is the cube) and the documented segment-in-plane rule (no point), the flat box's outline crossing noted as the one exception (S-M)
+- [x] Try audit follow-ups 4: NaN input: 1 700 faulty members down to 33 (done 2026-11-12); the 33 left are instance members of a NaN shape (DECIDED by recommendation: throw InvalidOperationException "the shape has a coordinate that is not a number") plus GeoXLine2.ClipTo and two arc constructors to name; docs say a NaN shape meets nothing while a polygon with one NaN vertex meets through its finite sides (DECIDED: narrow the docs to the NaN part); GeoLine3.GetPlaneWith documents the wrong exception; Clash.Neutral +3 % to check; DECIDED by recommendation 2026-11-12: keep the LN5 rule (a box thinner than the tolerance on one axis is booleaned as a body, the cube less it is the cube) and the documented segment-in-plane rule (no point), the flat box's outline crossing noted as the one exception (S-M)
+- [ ] Try audit follow-ups 6 (advanced, later): re-read the 404 members reporting a meeting with a NaN shape against the narrowed rule; 132 members with their own InvalidOperationException messages; GetPlaneWith names `normal` for a parallel direction (S)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and

@@ -137,9 +137,12 @@ a point of NaN, and so for its crossings with a ray, a line, a circle, an arc, a
 triangle, for `TrySplitAtDistance`, `TryExtendTo` a point and `TryTrimExtendToCorner`. A loop with a vertex or a bulge of
 NaN no longer throws from `TryIntersectWith` of a segment.
 
-The same holds for the other shapes, in the plane and in space: a shape with a coordinate that is not a finite number
-meets nothing, so `GetIntersections` gives no points and the `Try` members answer false, where 352 members of a fuzz
-that gave one shape a NaN or an infinite coordinate gave points of NaN. The segment from (NaN, 20) to (150, 30) crosses
+The same holds for the other shapes, in the plane and in space: the part of a shape that has a coordinate that is not a
+finite number meets nothing, so `GetIntersections` gives no points from it and the `Try` members answer false for it,
+where 352 members of a fuzz that gave one shape a NaN or an infinite coordinate gave points of NaN. The rest of the shape
+still meets what it meets: the square 100 across with its corner at the origin moved to (NaN, 0) has two sides of NaN and
+two finite ones, so the segment from (50, 50) to (150, 50) crosses it at (100, 50), and the one from (50, -50) to
+(50, 50), which crosses only the bottom side running to that corner, meets it nowhere. The segment from (NaN, 20) to (150, 30) crosses
 no side of a triangle, a polygon, a face or a rectangle; a segment, a ray, a line, a chain or an edge of NaN in space
 meets no plane, triangle, polygon, face or other segment, and nor does a plane of NaN; an arc, a circle or an ellipse
 about a centre of NaN meets no flat shape or plane. `TryOffset` of an arc, a circle or a rectangle about a centre of NaN,
@@ -167,10 +170,17 @@ arc, collides with no segment and is NaN from one, where each threw for a box si
 where they answered true with pieces, points or a line of NaN: `TrySplitAt` of an arc about a centre of NaN,
 `ConvexHull2.TryOf` of points with one of NaN, `TrySplitAtParameter` of an edge, `TryExpand` of a box,
 `TryGetIntersectionLine` of planes, `TryToPoint2` of a point and `TrySplitBy` of a polygon or a face cut by a segment of
-NaN. A spline meets no arc, circle or ellipse about a centre of NaN, as it meets no segment of NaN. A few members of a
-shape with a coordinate of NaN still throw for a working of their own, having no argument to name: `ToPolygon` of a circle,
-a chain or a triangle in space, `ToSolid` of a sphere, `Extend` of an edge that is an arc and `OffsetInPlane` of a curved
-chain; and `ClipTo` of a line without ends by a rectangle of NaN still names a number of its own working.
+NaN. A spline meets no arc, circle or ellipse about a centre of NaN, as it meets no segment of NaN.
+
+A member of a shape with a coordinate that is not a finite number that has to make something of the shape itself, and has
+no argument to name, throws an `InvalidOperationException` saying the shape has a coordinate that is not a finite number,
+where it threw an `ArgumentException` naming vertices, a normal or a distance of its own working: `ToPolygon` of a circle
+about a centre of NaN, of a chain or of a triangle in space with a corner of NaN, `ToFace3` of such a triangle, `ToSolid` and
+`TriangulateSurface` of a ball, `Extend` and `ExtendToLength` of an edge that is an arc, `GetPlaneWith` of a segment,
+`OffsetInPlane` of a curved chain, `ClipTo` of a line without ends, and `GetShortestLineTo` a loop of arcs from an arc, a
+circle or a chain. A writer handed such a ball still names it, `sphere`. `ClipTo` names `rect` for a rectangle of NaN, the
+loop of arcs lifted out of a frame names `frame` or `loop`, and a curved chain names `vertices` for an arc with an end of
+NaN; a straight edge may still have one, as a segment may.
 
 ## Angle
 

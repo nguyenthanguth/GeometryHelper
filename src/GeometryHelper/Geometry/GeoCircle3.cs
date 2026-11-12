@@ -202,12 +202,15 @@ namespace GeometryHelper.Geometry
         /// <param name="segmentCount">How many edges the polygon should have; at least three.</param>
         /// <returns>A polygon inscribed in the circle, sharing its orientation.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when fewer than three segments are asked for.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the circle has a coordinate that is not a finite number.</exception>
         public GeoPolygon3 ToPolygon(int segmentCount)
         {
             if (segmentCount < 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(segmentCount), "A polygon needs at least 3 edges.");
             }
+
+            Guard.FiniteShape(IsFinite);
 
             GeoPoint3[] vertices = new GeoPoint3[segmentCount];
 
@@ -365,6 +368,11 @@ namespace GeometryHelper.Geometry
         public bool IsValid => Center.IsValid && Guard.IsUnit(Normal) && Radius > 0.0 && Guard.IsFinite(Radius);
 
         /// <summary>
+        /// Whether every coordinate is a finite number; a <c>default</c> circle, which is not valid, still is.
+        /// </summary>
+        internal bool IsFinite => Center.IsValid && Normal.IsValid && Guard.IsFinite(Radius);
+
+        /// <summary>
         /// Returns a string that represents the current circle.
         /// </summary>
         public override string ToString() => $"Circle3(Center: {Center}, Normal: {Normal}, Radius: {Radius:0.###})";
@@ -380,6 +388,7 @@ namespace GeometryHelper.Geometry
         /// The vertices lie on the circle, so the polygon is inscribed and encloses slightly less than the
         /// circle does: about 0.26 % less at the fifty edges the automatic tolerance gives.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the circle has a coordinate that is not a finite number.</exception>
         public GeoPolygon3 ToPolygon() => ToPolygonByChordTolerance(0.0);
 
         /// <summary>
@@ -394,8 +403,11 @@ namespace GeometryHelper.Geometry
         /// that are not kept, as for <see cref="GeoPolylineArc2.Flatten(double)"/>.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the circle has a coordinate that is not a finite number.</exception>
         public GeoPolygon3 ToPolygonByChordTolerance(double chordTolerance)
         {
+            Guard.FiniteShape(IsFinite);
+
             return ToPolygon(Math.Max(3, Internal.Tessellation.SegmentsForArc(Radius, Math.PI * 2.0, chordTolerance)));
         }
 
@@ -410,8 +422,11 @@ namespace GeometryHelper.Geometry
         /// short edge at the end.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the spacing is not a positive number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the circle has a coordinate that is not a finite number.</exception>
         public GeoPolygon3 ToPolygonBySpacing(double spacing)
         {
+            Guard.FiniteShape(IsFinite);
+
             return ToPolygon(Math.Max(3, Internal.Tessellation.SegmentsForSpacing(Length, Math.PI * 2.0, spacing)));
         }
 

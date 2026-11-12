@@ -545,10 +545,14 @@ namespace GeometryHelper.Geometry
         /// <param name="distance">How much length to add, measured along the edge; a negative distance takes it away.</param>
         /// <param name="end">Which end to move.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the edge is an arc with an end that is not a finite point.</exception>
         public GeoEdge2 Extend(double distance, LineEnd end, Tolerance tolerance)
         {
             if (IsArc)
             {
+                // A straight edge, as a segment, carries an end of NaN on; an arc has no centre to turn about.
+                Guard.FiniteShape(IsValid);
+
                 return new GeoEdge2(ToArc().Extend(distance, end, tolerance));
             }
 
@@ -568,10 +572,13 @@ namespace GeometryHelper.Geometry
         /// <param name="length">The length it should end up with, measured along the edge.</param>
         /// <param name="end">Which end to move; the other stays where it is.</param>
         /// <param name="tolerance">The tolerance.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the edge is an arc with an end that is not a finite point.</exception>
         public GeoEdge2 ExtendToLength(double length, LineEnd end, Tolerance tolerance)
         {
             if (IsArc)
             {
+                Guard.FiniteShape(IsValid);
+
                 return new GeoEdge2(ToArc().ExtendToLength(length, end, tolerance));
             }
 
