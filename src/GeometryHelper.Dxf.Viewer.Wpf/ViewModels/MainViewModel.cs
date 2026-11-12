@@ -2045,7 +2045,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void RaiseSpace()
         {
             ShowPendingView();
-            LoadGridToggle();
+            LoadDrafting();
             _current.Session.View = View;
             Raise(nameof(Space));
             Raise(nameof(View));

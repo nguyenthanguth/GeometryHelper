@@ -1033,6 +1033,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ucs.Angle,
                     CadImageCache.Version,
                     Through == null,
+                    OwnGridKey(space),
                 }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture))
             );
             var key = new SceneKey(document.GetDisplay(space), numbers);
@@ -1050,11 +1051,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 surface.Canvas.Flush();
             }
 
-            // The grid of model space and the Block Editor, or of a layout's paper space while no viewport is worked through.
-            bool dense =
-                ShowGrid
-                && (space.IsModel || space.IsBlockEditor || Through == null)
-                && DrawGrid(_scene, view, scale, ucs, space);
+            // The grid of model space and the Block Editor, of a layout's paper space, or of the viewport worked through.
+            bool dense = ShowGrid && DrawGrid(_scene, view, scale, ucs, space);
 
             // As AutoCAD says it, once as the grid comes on or the view goes to where it is too dense, not at each redraw.
             if (dense && !_gridTooDense && Session != null)
@@ -1067,6 +1065,62 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _sceneKey = key;
             _markedDirty = true;
             SceneRenders++;
+        }
+
+        /// <summary>
+        /// The snap and grid of the viewport whose grid a layout shows, its viewport 1 or the one worked through, and where the
+        /// one worked through lies and looks, as the kept picture's key holds them, so that GRIDUNIT set there or the
+        /// viewport's view changed draws the grid again; empty in model space and the Block Editor.
+        /// </summary>
+        private string OwnGridKey(CadSpace space)
+        {
+            DxfViewport through = space.IsModel ? null : Through;
+            DxfViewport own = space.IsModel ? null : through ?? SheetViewport(space);
+
+            if (own == null)
+            {
+                return string.Empty;
+            }
+
+            GeoVector2 grid = own.GridIncrement;
+            GeoVector2 snap = own.SnapIncrement;
+            GeoPoint2 origin = own.SnapBasePoint;
+            var numbers = new List<object>
+            {
+                own.Handle,
+                grid.X,
+                grid.Y,
+                snap.X,
+                snap.Y,
+                own.GridMajor,
+                SheetGridDisplay(own),
+                origin.X,
+                origin.Y,
+                own.SnapAngle,
+                own.SnapIsometric,
+                own.SnapIsoPair,
+            };
+
+            if (through != null)
+            {
+                GeoPoint3 centre = through.CenterPoint;
+                GeoPoint2 middle = through.ViewCenter;
+                numbers.AddRange(
+                    new object[]
+                    {
+                        centre.X,
+                        centre.Y,
+                        through.Width,
+                        through.Height,
+                        middle.X,
+                        middle.Y,
+                        through.ViewHeight,
+                        through.TwistAngle,
+                    }
+                );
+            }
+
+            return string.Join(",", numbers.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
         }
 
         /// <summary>The limits of model space as the kept picture's key holds them, so that LIMITS changed draws the grid again.</summary>
@@ -1901,23 +1955,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <see cref="SnapAngle"/> about <see cref="SnapBase"/>, or on the two axes of the isometric plane, as AutoCAD lays
         /// them. Where <see cref="GridStyle"/> asks dots for the space, only the pixels where two lines cross; where
         /// <see cref="GridDisplay"/> keeps the grid within the limits, none outside them in model space. In a layout's paper
-        /// space the grid of its sheet, as AutoCAD 2021 draws it apart from model space's: the spacing, major lines and
-        /// GRIDDISPLAY bits of the layout's viewport 1 (10 by 10, every 5 and 3 where it has none), square to the paper from
-        /// its origin, within the layout's limits without GRIDDISPLAY 1, on the paper 8 and 18 per cent darker than it.
+        /// space the grid of its sheet, as AutoCAD 2021 draws it apart from model space's: the spacing, major lines, GRIDDISPLAY
+        /// bits, base point, angle and isometric plane of the layout's viewport 1 (those of this canvas where it has none),
+        /// within the layout's limits without GRIDDISPLAY 1, on the paper 8 and 18 per cent darker than it. Through a viewport
+        /// (MSPACE) that viewport's own grid, laid in model space as the viewport shows it and drawn inside its frame alone,
+        /// within the limits of model space without GRIDDISPLAY 1; the sheet's is not drawn then.
         /// </summary>
         /// <returns>Whether the grid was left out as too dense to display, its lines closer than 6 pixels without GRIDDISPLAY 2.</returns>
         private bool DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs, CadSpace space)
         {
             bool paper = !space.IsModel;
-            DxfViewport sheet = paper ? SheetViewport(space) : null;
-            int every = Math.Max(1, paper ? (sheet?.GridMajor ?? 5) : GridMajor);
-            CadIsoplane? isoplane = paper ? null : Isoplane;
-            int display = paper ? (sheet != null ? SheetGridDisplay(sheet) : 3) : GridDisplay;
-            GeoVector2 sheetSpacing = sheet != null ? SheetGridSpacing(sheet) : new GeoVector2(10.0, 10.0);
-            double spacingX = paper ? sheetSpacing.X : GridSpacing;
-            double spacingY = paper ? sheetSpacing.Y : GridSpacingY;
-            double snapAngle = paper ? 0.0 : SnapAngle;
-            GeoPoint2 snapBase = paper ? GeoPoint2.Origin : SnapBase;
+            DxfViewport through = paper ? Through : null;
+            DxfViewport own = paper ? through ?? SheetViewport(space) : null;
+            CadView sheetView = view;
+
+            // Through a viewport the grid is laid in model space, as the viewport shows it, by the UCS model space works in.
+            if (through != null)
+            {
+                view = CadViewports.ModelView(view, through);
+                ucs = Document.Ucs.WorkingOf(Document.ModelSpace);
+            }
+
+            int every = Math.Max(1, own != null ? (int)own.GridMajor : GridMajor);
+            CadIsoplane? isoplane =
+                own == null ? Isoplane
+                : own.SnapIsometric ? (CadIsoplane)own.SnapIsoPair
+                : (CadIsoplane?)null;
+            int display = own != null ? SheetGridDisplay(own) : GridDisplay;
+            GeoVector2 ownSpacing = own != null ? SheetGridSpacing(own) : default;
+            double spacingX = own != null ? ownSpacing.X : GridSpacing;
+            double spacingY = own != null ? ownSpacing.Y : GridSpacingY;
+            double snapAngle = own != null ? own.SnapAngle : SnapAngle;
+            GeoPoint2 snapBase = own != null ? own.SnapBasePoint : SnapBase;
             int dottedIn =
                 space.IsBlockEditor ? 2
                 : space.IsModel ? 1
@@ -1967,20 +2036,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             bool turned = Math.Abs(Math.IEEERemainder(snapAngle, 2.0 * Math.PI)) > tolerance.EqualAngleRad;
             bool based = snapBase.DistanceTo(GeoPoint2.Origin) > tolerance.EqualPoint;
 
-            // GRIDDISPLAY without 1: the grid kept within the limits, of model space or of the layout, the pixels outside put
-            // back after.
+            // GRIDDISPLAY without 1: the grid kept within the limits, of model space (through a viewport too) or of the
+            // layout, the pixels outside put back after; through a viewport, those outside its frame as well.
             int[] before = null;
             DxfDatabase database = Document?.Database;
-            DxfLayout layout = paper ? space.Layout : null;
+            bool onSheet = paper && through == null;
+            DxfLayout layout = onSheet ? space.Layout : null;
+            bool limited =
+                (display & 1) == 0
+                && (
+                    onSheet ? layout != null
+                    : through != null ? database != null
+                    : space.IsModel && database != null
+                );
 
-            if ((display & 1) == 0 && (paper ? layout != null : space.IsModel && database != null))
+            if (limited || through != null)
             {
                 before = (int[])pixels.Clone();
             }
 
             void Put()
             {
-                if (before != null)
+                if (limited)
                 {
                     KeepWithinLimits(
                         pixels,
@@ -1989,15 +2066,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         height,
                         stride,
                         view,
-                        paper ? layout.Limits.MinPoint : database.Limmin,
-                        paper ? layout.Limits.MaxPoint : database.Limmax
+                        onSheet ? layout.Limits.MinPoint : database.Limmin,
+                        onSheet ? layout.Limits.MaxPoint : database.Limmax
+                    );
+                }
+
+                if (through != null)
+                {
+                    GeoPoint3 centre = through.CenterPoint;
+                    KeepWithinLimits(
+                        pixels,
+                        before,
+                        width,
+                        height,
+                        stride,
+                        sheetView,
+                        new GeoPoint2(centre.X - through.Width / 2.0, centre.Y - through.Height / 2.0),
+                        new GeoPoint2(centre.X + through.Width / 2.0, centre.Y + through.Height / 2.0)
                     );
                 }
 
                 Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
             }
 
-            if (isoplane.HasValue || turned || based || dots)
+            // Through a viewport, which may be twisted, the lines are found pixel by pixel.
+            if (isoplane.HasValue || turned || based || dots || through != null)
             {
                 // The lines of each way, given by the angle they run at in the world, through the base point: those up the
                 // grid the X spacing apart, those across it the Y spacing.
@@ -2066,13 +2159,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return false;
         }
 
-        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its grid; null where it has none.</summary>
+        /// <summary>The viewport 1 of a layout, which shows its sheet and holds its snap and grid; null where it has none.</summary>
         private static DxfViewport SheetViewport(CadSpace space) =>
             space.Layout?.GetViewports().FirstOrDefault(v => v.Number == 1 && !v.IsErased);
 
         /// <summary>
-        /// The GRIDDISPLAY of a layout's sheet, as AutoCAD reads it from the flags of its viewport 1: 1 beyond the limits, 2
-        /// adaptive, 4 subdivided, 8 following the UCS.
+        /// The GRIDDISPLAY of a viewport, a layout's viewport 1 or one worked through, as AutoCAD reads it from its flags: 1
+        /// beyond the limits, 2 adaptive, 4 subdivided, 8 following the UCS.
         /// </summary>
         private static int SheetGridDisplay(DxfViewport sheet) =>
             (sheet.GridBoundToLimits ? 0 : 1)
@@ -2080,7 +2173,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             | (sheet.GridSubdivisionRestricted ? 0 : 4)
             | (sheet.GridFollow ? 8 : 0);
 
-        /// <summary>The grid spacing of a layout's sheet, as its GRIDUNIT, the snap spacing taken along an axis where it is nought.</summary>
+        /// <summary>The grid spacing of a viewport, as its GRIDUNIT, the snap spacing taken along an axis where it is nought.</summary>
         private static GeoVector2 SheetGridSpacing(DxfViewport sheet)
         {
             GeoVector2 grid = sheet.GridIncrement;
@@ -2123,7 +2216,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The pixels of the grid outside the limits of model space (LIMMIN, LIMMAX) put back as they were before the grid,
-        /// as AutoCAD keeps the grid within them where GRIDDISPLAY has no 1.
+        /// as AutoCAD keeps the grid within them where GRIDDISPLAY has no 1; also those outside the frame of a viewport
+        /// worked through, whose grid is drawn inside it alone.
         /// </summary>
         private static void KeepWithinLimits(
             int[] pixels,

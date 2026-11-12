@@ -869,7 +869,9 @@ Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with O
 LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them, and SNAPMODE and GRIDMODE, with the
 toggles of the drawing shown, and writes each switched into that drawing: ORTHO into `$ORTHOMODE`, the lineweights into
 `$LWDISPLAY`, SNAP and GRID into its `*Active` viewport, as AutoCAD saves them with the drawing (see the status bar in
-[the app](app.md)); in a layout's paper space GRIDMODE is the layout's own, kept in the viewport 1 of its sheet.
+[the app](app.md)); in a layout's paper space the snap and grid variables are the layout's own, kept in the viewport 1 of
+its sheet, and through a viewport that viewport's, as AutoCAD 2021 keeps them. A point typed at SETVAR leaves the last
+point (LASTPOINT) where it was.
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
 selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
 adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,
