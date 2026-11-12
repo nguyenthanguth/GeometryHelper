@@ -535,6 +535,61 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>
+        /// Gives a layer the settings a set of LAYERP kept, those that differ: the way each is written is the way the edit of it
+        /// writes it (an external reference's layer marks what the drawing changed). The current layer is not frozen, and a
+        /// linetype the drawing no longer has is not given.
+        /// </summary>
+        internal static void Restore(DxfDatabase database, CadLayerLook look)
+        {
+            DxfLayerTableRecord layer = database.LayerTable[look.Name];
+            bool current = string.Equals(layer.Name, database.Clayer, StringComparison.OrdinalIgnoreCase);
+
+            if (layer.Color.ToString() != look.Color.ToString())
+            {
+                Write(layer, CadXrefLayers.Color, l => l.Color = look.Color);
+            }
+
+            if (layer.IsOff != look.IsOff)
+            {
+                Write(layer, CadXrefLayers.Off, l => l.IsOff = look.IsOff);
+            }
+
+            if (layer.IsFrozen != look.IsFrozen && !(look.IsFrozen && current))
+            {
+                Write(layer, CadXrefLayers.Frozen, l => l.IsFrozen = look.IsFrozen);
+            }
+
+            if (layer.IsLocked != look.IsLocked)
+            {
+                Write(layer, CadXrefLayers.Locked, l => l.IsLocked = look.IsLocked);
+            }
+
+            if (layer.IsPlottable != look.IsPlottable)
+            {
+                Write(layer, CadXrefLayers.Plot, l => l.IsPlottable = look.IsPlottable);
+            }
+
+            if (
+                !string.Equals(layer.LinetypeName, look.LinetypeName, StringComparison.OrdinalIgnoreCase)
+                && database.LinetypeTable.Has(look.LinetypeName ?? string.Empty)
+            )
+            {
+                string name = database.LinetypeTable[look.LinetypeName].Name;
+                Write(layer, CadXrefLayers.Linetype, l => l.LinetypeName = name);
+            }
+
+            if (layer.LineWeight != look.LineWeight)
+            {
+                Write(layer, CadXrefLayers.LineWeight, l => l.LineWeight = look.LineWeight);
+            }
+
+            if (layer.Transparency.ToString() != look.Transparency.ToString())
+            {
+                Write(layer, CadXrefLayers.Transparency, l => l.Transparency = look.Transparency);
+            }
+        }
+
         private static CadEditResult Set(
             CadDocument document,
             DxfLayerTableRecord layer,

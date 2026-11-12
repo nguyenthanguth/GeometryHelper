@@ -128,6 +128,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal bool JoinsPrevious { get; }
 
+        /// <summary>Gets or sets the set of layer settings the step kept for LAYERP, which undoing the step takes out; null for a step that changed none.</summary>
+        internal CadLayerChange LayerMade { get; set; }
+
+        /// <summary>Gets or sets the set of layer settings LAYERP took in the step, which undoing the step gives back; null for every other step.</summary>
+        internal CadLayerChange LayerUsed { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() => Name + " (" + Records.Count + ")";
     }

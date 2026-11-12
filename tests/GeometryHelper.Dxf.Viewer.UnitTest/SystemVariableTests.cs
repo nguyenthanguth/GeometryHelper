@@ -281,8 +281,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 registry.Variables.Select(v => v.Name)
             );
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
-            // Two commands more than before: SAVEAS, now of the presenter's own set (the window added it), and DXFOUT.
-            Assert.Equal(186, registry.Commands.Count);
+            // SAVEAS (now of the presenter's own set) and DXFOUT, then LAYERP and LAYERPMODE.
+            Assert.Equal(188, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

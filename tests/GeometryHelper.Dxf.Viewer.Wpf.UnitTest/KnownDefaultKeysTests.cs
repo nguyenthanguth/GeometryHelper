@@ -29,7 +29,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal("OSNAP", settings.Keys["F3"]);
                 Assert.False(settings.Keys.ContainsKey("Ctrl+S"));
                 Assert.False(settings.Keys.ContainsKey("F7"));
-                Assert.Equal(new[] { "M" }, settings.Aliases.Keys);
+                Assert.Equal("MOVE", settings.Aliases["M"]);
             }
         }
 

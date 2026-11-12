@@ -250,6 +250,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["MATCHPROP"] = "GhIconMatchProperties",
             ["LAYMCUR"] = "GhIconCurrent",
             ["LAYMCH"] = "GhIconMatch",
+            ["LAYERP"] = "GhIconLayerPrevious",
             ["PASTECLIP"] = "GhIconPaste",
             ["TABLE"] = "GhIconTable",
             ["QSELECT"] = "GhIconQuickSelect",

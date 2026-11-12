@@ -49,6 +49,7 @@
     <Geometry x:Key="GhIconLayers">M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5</Geometry>
     <Geometry x:Key="GhIconCurrent">M4 12l5 5L20 6</Geometry>
     <Geometry x:Key="GhIconMatch">M4 4h10v6H4zM10 14h10v6H10zM9 10v4</Geometry>
+    <Geometry x:Key="GhIconLayerPrevious">M10 6 4 12l6 6M4 12h12a4 4 0 0 1 0 8h-3</Geometry>
     <Geometry x:Key="GhIconMatchProperties">M5 3h10v6H5zM9 9v4M9 13h8v8H9z</Geometry>
     <Geometry x:Key="GhIconPaste">
         M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1

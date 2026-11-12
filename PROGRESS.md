@@ -79,8 +79,9 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 ### In progress
 
 User request 2026-11-13 (acad.pgp):
-- [ ] LAYERP (Layer Previous) with LAYERPMODE and the alias 2 (layerp, running) (S)
-- [ ] Default aliases as the maintainer's acad.pgp: 1 LAYISO, 2 LAYERP, 22 LAYON, 3 LAYOFF (with layerp) (S)
+- [x] LAYERP (Layer Previous) with LAYERPMODE (a command in AutoCAD 2021, not a variable), Home › Layers "Previous" button (layerp)
+- [x] Default aliases as the maintainer's acad.pgp: 1 LAYISO, 2 LAYERP, 22 LAYON, 3 LAYOFF, merged once into old settings files (layerp)
+- [ ] LAYERP follow-ups: check with U and a Layer manager session in the AutoCAD GUI (accoreconsole could not run it); decide whether viewport overrides (VP Freeze etc.) and layer descriptions are tracked; put the Previous button into the Design artifact; check its tooltip wording (S)
 
 Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap list comes from pgp-cmds1 and may move items between batches; each command with AutoCAD's prompts, one undo step, DXF/DWG as AutoCAD writes it, new dialogs designed first; 3D modelling, mesh, surfaces, render, materials, lights, cameras, point clouds, sheet sets, data links, constraints, animation and cloud commands left out):
 - [ ] Batch 1, drafting basics (pgp-cmds1, running): the exact gap list; missing aliases of commands we have; COLOR, LWEIGHT, DIVIDE, MEASURE, CHANGE, REDRAW/REDRAWALL/REGENALL, RENAME/-RENAME, ISOLATEOBJECTS/UNISOLATEOBJECTS/HIDEOBJECTS, CENTERMARK, CENTERLINE, DIMCENTER (L)

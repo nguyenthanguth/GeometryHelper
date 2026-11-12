@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** LAYERP (Layer Previous) and LAYERPMODE in the presenter, with the words of AutoCAD 2021 (read from its resources and
+probed in accoreconsole). LAYERP puts back the last change or set of changes made to the settings of layers (on or off,
+frozen, locked, plot, colour, linetype, lineweight, transparency, the current layer) without touching any other edit, and
+again and again for the sets before: LAYISO turning off two layers and moving the current one is one set, so is everything
+the Layer manager changed between its opening and its closing, so is one change of the layer box. A layer added, renamed or
+deleted stays as it is. It says `Restored previous layer status.` and, where they apply, the `*Warning*` and `*Note*` lines
+(the current layer left off, the previously current layer gone, a linetype no longer loaded), and `*No previous layer
+status*` with nothing kept. It is one undo step, so U after it brings the change back and the next LAYERP takes it again,
+and a layer edit undone with U leaves the sets. LAYERPMODE asks `Enter LAYERP mode [ON/OFF] <ON>:`; with OFF nothing is kept
+and LAYERP says `Layer-Previous is disabled. Use LAYERPMODE to turn it on.` (a command in AutoCAD 2021, not a system
+variable: SETVAR says `Unknown variable name.`). New: `CadDocument.LayerPreviousMode`, `CadDocument.BeginLayerSet` and
+`EndLayerSet`; Home › Layers has a Previous button. The viewport overrides of a layer (VP Freeze and the rest) are not kept.
+**NEW.** The aliases `1` LAYISO, `2` LAYERP, `22` LAYON and `3` LAYOFF of AutoCAD's acad.pgp are default aliases (134 in
+all, where the guide said 120). A settings file now lists the default aliases it has seen (`knownDefaultAliases`, as
+`knownDefaultKeys` lists keys), and one written before is given the four once, an alias of the same name that the user made
+or cleared never overwritten or put back.
+
 **NEW.** The grips on the clip boundary of a clipped block reference or external reference in the presenter, as AutoCAD 2021's
 `GetGripPoints` gives them (probed in accoreconsole): a selected reference has its insertion grip, an arrow at the middle of the
 boundary's first side and a grip at each corner of the rectangle or vertex of the polygon (`CadGripKind.ClipFlip` and
