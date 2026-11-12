@@ -1006,6 +1006,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     new[]
                     {
                         Number("Wheel zoom factor", "×", () => s.WheelZoomFactor, v => s.WheelZoomFactor = v),
+                        Toggle("Reverse the wheel", () => s.WheelZoomReversed, v => s.WheelZoomReversed = v),
                         Info("Zoom about the cursor", "Always"),
                         Info("Middle double-click", "Zoom extents"),
                     }

@@ -468,8 +468,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (view != null)
             {
-                c.Session.Views.Add(c.Document.CurrentSpace, view.VisibleBox);
+                DisplayBox was = view.VisibleBox;
                 view.ZoomTo(c.Document.GetDisplay(c.Space).Bounds.Union(c.Space.PaperBounds));
+                c.Document.RecordSpaceView(c.Document.CurrentSpace, view, was, "PLAN", false);
             }
         }
 

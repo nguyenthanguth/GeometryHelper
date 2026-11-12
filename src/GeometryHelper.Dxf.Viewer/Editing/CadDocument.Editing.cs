@@ -55,6 +55,8 @@ namespace GeometryHelper.Dxf.Viewer
         private bool _groupFailed;
         private bool _realTime;
         private CadUndoStep _realTimeStep;
+        private bool _realTimeView;
+        private CadUndoStep _realTimeViewStep;
         private readonly CadOwnerRegistry _owners = new CadOwnerRegistry();
         private ReadAhead _readUndo;
         private ReadAhead _readRedo;
@@ -711,8 +713,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position - 1];
             _realTimeStep = null;
+            _realTimeViewStep = null;
             _position--;
-            Reload(_states[_position], step.Records);
+            Move(step, true);
             Announce(CadChangeKind.Undo, step.Name, step.Records);
             return true;
         }
@@ -728,10 +731,29 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position];
             _realTimeStep = null;
+            _realTimeViewStep = null;
             _position++;
-            Reload(_states[_position], step.Records);
+            Move(step, false);
             Announce(CadChangeKind.Redo, step.Name, step.Records);
             return true;
+        }
+
+        /// <summary>
+        /// Brings the drawing and the views to where an undo or a redo of a step goes: the drawing read from the state the new
+        /// position holds, unless the step changed only the view of spaces, which leaves the drawing as it is and moves the views.
+        /// </summary>
+        private void Move(CadUndoStep step, bool undo)
+        {
+            if (IsViewOnly(step.Records))
+            {
+                ReadAround();
+            }
+            else
+            {
+                Reload(_states[_position], step.Records);
+            }
+
+            MoveViews(step.Records, undo);
         }
 
         /// <summary>Saves the drawing to the file it was opened from or last saved as.</summary>
@@ -847,6 +869,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Makes the edits one step: the drawing after them kept, the steps undone before forgotten.</summary>
         private void Commit(string name, List<CadEditRecord> records)
         {
+            // A zoom or a pan of a space's view changes nothing in the drawing: its step shares the state before it, so
+            // that no drawing is saved for it, and a real-time one straight after another joins that step.
+            if (IsViewOnly(records))
+            {
+                CommitView(name, records);
+                return;
+            }
+
             // A real-time zoom or pan straight after another joins its step: the drawing after both kept in its place.
             if (
                 _realTime
@@ -865,6 +895,20 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            ForgetRedo();
+
+            var step = new CadUndoStep(name, records.ToArray());
+            _steps.Add(step);
+            _states.Add(Keep());
+            _position++;
+            _realTimeStep = _realTime ? step : null;
+            _realTimeViewStep = null;
+            ReadAround();
+        }
+
+        /// <summary>Forgets the steps undone, which a new step cannot be redone after.</summary>
+        private void ForgetRedo()
+        {
             if (_steps.Count > _position)
             {
                 _steps.RemoveRange(_position, _steps.Count - _position);
@@ -875,12 +919,35 @@ namespace GeometryHelper.Dxf.Viewer
                     _savedPosition = -1;
                 }
             }
+        }
+
+        /// <summary>Makes the moves of the views of spaces one step, or joins them to the step before where it is a real-time one; the drawing is as the state before kept it.</summary>
+        private void CommitView(string name, List<CadEditRecord> records)
+        {
+            if (
+                _realTimeView
+                && _position > UndoFloor
+                && _position == _steps.Count
+                && _savedPosition != _position
+                && ReferenceEquals(_steps[_position - 1], _realTimeViewStep)
+            )
+            {
+                CadUndoStep before = _steps[_position - 1];
+                _realTimeViewStep = _steps[_position - 1] = new CadUndoStep(
+                    before.Name,
+                    JoinViews(before.Records, records)
+                );
+                return;
+            }
+
+            ForgetRedo();
 
             var step = new CadUndoStep(name, records.ToArray());
             _steps.Add(step);
-            _states.Add(Keep());
+            _states.Add(_states[_position]);
             _position++;
-            _realTimeStep = _realTime ? step : null;
+            _realTimeStep = null;
+            _realTimeViewStep = _realTimeView ? step : null;
             ReadAround();
         }
 
@@ -996,8 +1063,34 @@ namespace GeometryHelper.Dxf.Viewer
         /// </remarks>
         private void ReadAround(DxfDatabase left = null, KeptState leftState = null)
         {
-            KeptState undo = _position > UndoFloor && _position <= _states.Count ? _states[_position - 1] : null;
-            KeptState redo = _position + 1 < _states.Count ? _states[_position + 1] : null;
+            // A step of a view alone shares the state before it: the drawings wanted are those the nearest steps of the drawing go to.
+            KeptState shown = _position < _states.Count ? _states[_position] : null;
+            int back = _position - 1;
+
+            while (back > UndoFloor && ReferenceEquals(_states[back], shown))
+            {
+                back--;
+            }
+
+            int forward = _position + 1;
+
+            while (forward < _states.Count - 1 && ReferenceEquals(_states[forward], shown))
+            {
+                forward++;
+            }
+
+            KeptState undo = _position > UndoFloor && _position <= _states.Count ? _states[back] : null;
+            KeptState redo = _position + 1 < _states.Count ? _states[forward] : null;
+
+            if (ReferenceEquals(undo, shown))
+            {
+                undo = null;
+            }
+
+            if (ReferenceEquals(redo, shown))
+            {
+                redo = null;
+            }
             ReadAhead[] older = { _readUndo, _readRedo };
             _readUndo = Matching(older, undo)
                 ?? (undo == null ? null : StartReading(undo, undo == leftState ? left : null));

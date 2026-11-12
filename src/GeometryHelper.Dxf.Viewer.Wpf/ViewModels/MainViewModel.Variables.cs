@@ -11,7 +11,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport (in a layout's
     /// paper space into its viewport 1, through a viewport into that viewport, as AutoCAD 2021 keeps them), SNAPTYPE,
     /// POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
-    /// PICKBOX, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
+    /// PICKBOX, APERTURE, ZOOMWHEEL and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
     /// Input Search Options, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
     /// there.
@@ -124,6 +124,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     50,
                     () => _settings.AperturePixels,
                     v => ChangeSettings(s => s.AperturePixels = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "ZOOMWHEEL",
+                    0,
+                    1,
+                    () => _settings.WheelZoomReversed ? 1 : 0,
+                    v => ChangeSettings(s => s.WheelZoomReversed = v != 0)
                 )
             );
             registry.AddVariable(

@@ -65,6 +65,12 @@ namespace GeometryHelper.Dxf.Viewer
         public DisplayBox? PendingView { get; set; }
 
         /// <summary>
+        /// Gets or sets the view last recorded for this space as an undo step (<see cref="CadDocument.RecordSpaceView(CadSpace, CadView, DisplayBox, string, bool)"/>): the
+        /// one an undo or a redo of a zoom or a pan of the space puts back; null before any was.
+        /// </summary>
+        internal CadView ShownView { get; set; }
+
+        /// <summary>
         /// Gets the sheet of paper a layout is drawn on, in the units of paper space, as AutoCAD shows it behind the layout:
         /// the paper size of its plot settings about its plotted area, the printable area's lower left corner at the origin,
         /// so that a layout of A3 on its side with margins of 7.5 at the sides and 20 above and below lies from (-7.5, -20) to

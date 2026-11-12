@@ -396,6 +396,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private CadView _throughNow;
         private string _throughName;
 
+        // On the paper or in model space: the part of the space the view showed when the wheel or the middle button began to
+        // move it, recorded as one undo step and one ZOOM Previous entry once the view is still.
+        private DisplayBox? _gestureBefore;
+        private CadSpace _gestureSpace;
+        private CadView _gestureView;
+        private string _gestureName;
+
         /// <summary>Makes an empty canvas.</summary>
         public CadCanvas()
         {
@@ -750,6 +757,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how much a notch of the wheel zooms: 1.2 by default, as AutoCAD's ZOOMFACTOR (Global settings › Canvas and cursor).</summary>
         public double WheelZoomFactor { get; set; } = 1.2;
 
+        /// <summary>Gets or sets whether the wheel turned forward zooms out, as AutoCAD's ZOOMWHEEL 1; off by default, forward zooms in (Global settings › Canvas and cursor).</summary>
+        public bool WheelReversed { get; set; }
+
         /// <summary>Gets or sets how far from the cursor a click picks an entity, in device-independent pixels: 5 by default, as AutoCAD's PICKBOX.</summary>
         public double PickboxPixels { get; set; } = 5.0;
 
@@ -912,7 +922,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _renderQueued = false;
             StopQueue();
             _settle?.Stop();
-            CommitThrough();
+            CommitView();
             double scale = PixelScale;
             int width = (int)Math.Ceiling(ActualWidth * scale);
             int height = (int)Math.Ceiling(ActualHeight * scale);
@@ -1502,7 +1512,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Point p = PositionOf(e);
             double scale = PixelScale;
-            double factor = Math.Pow(WheelZoomFactor, e.Delta / 120.0);
+            double factor = Math.Pow(WheelZoomFactor, (WheelReversed ? -e.Delta : e.Delta) / 120.0);
 
             // Through a viewport its view zooms, the paper staying; through one whose display is locked, the paper zooms.
             if (MovesThrough)
@@ -1514,6 +1524,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
+                BeginGesture(view, "ZOOM");
                 view.ZoomAt(p.X * scale, p.Y * scale, factor);
             }
 
@@ -1930,6 +1941,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static void OnDocumentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var canvas = (CadCanvas)d;
+
+            // A gesture of the drawing left is not recorded in the one shown.
+            canvas._gestureBefore = null;
 
             if (e.OldValue is CadDocument old)
             {
@@ -3189,6 +3203,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else
                 {
+                    BeginGesture(View, "PAN");
                     View.Pan((p.X - from.X) * scale, (p.Y - from.Y) * scale);
                 }
 
@@ -3565,9 +3580,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            CommitGesture();
+            DisplayBox was = view.VisibleBox;
             view.ZoomTo(CadPicking.Extents(document, Space));
             ViewChanged?.Invoke(this, EventArgs.Empty);
             RequestRender();
+            Report(document.RecordSpaceView(Space, view, was, "ZOOM", false));
         }
 
         /// <summary>The viewport of the layout shown that is worked through (MSPACE); null on the paper and in model space.</summary>
@@ -3711,6 +3729,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Cursor = IdleCursor;
             _markedDirty = true;
             RequestRender();
+        }
+
+        /// <summary>
+        /// Records the view the wheel or the middle button gave the paper, model space or a viewport, which is not recorded yet:
+        /// one undo step and one ZOOM Previous entry for the gesture. The canvas does it once the view is still, and before it
+        /// draws; a shortcut that undoes or redoes does it first, so that it takes the gesture just made.
+        /// </summary>
+        internal void CommitView()
+        {
+            CommitGesture();
+            CommitThrough();
+        }
+
+        /// <summary>Remembers the part of a space the view shows, before the wheel or the middle button moves it; kept from the first move until the gesture is recorded.</summary>
+        private void BeginGesture(CadView view, string name)
+        {
+            if (_gestureBefore.HasValue || view == null)
+            {
+                return;
+            }
+
+            _gestureBefore = view.VisibleBox;
+            _gestureSpace = Space;
+            _gestureView = view;
+            _gestureName = name;
+        }
+
+        /// <summary>Records the gesture begun on the paper or in model space, named ZOOM or PAN after the move it began with; a refusal written on the command line.</summary>
+        private void CommitGesture()
+        {
+            if (!_gestureBefore.HasValue)
+            {
+                return;
+            }
+
+            DisplayBox before = _gestureBefore.Value;
+            CadSpace space = _gestureSpace;
+            CadView view = _gestureView;
+            string name = _gestureName;
+            _gestureBefore = null;
+            _gestureSpace = null;
+            _gestureView = null;
+            CadDocument document = Document;
+
+            if (document != null && space != null && view != null)
+            {
+                Report(document.RecordSpaceView(space, view, before, name, true));
+            }
         }
 
         /// <summary>

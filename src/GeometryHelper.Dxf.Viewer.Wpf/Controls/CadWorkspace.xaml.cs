@@ -370,11 +370,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (modifiers == ModifierKeys.Control && key == Key.Z && !inEditor)
             {
+                CanvasView.CommitView();
                 _model.Undo();
                 e.Handled = true;
             }
             else if (modifiers == ModifierKeys.Control && key == Key.Y && !inEditor)
             {
+                CanvasView.CommitView();
                 _model.Redo();
                 e.Handled = true;
             }
@@ -993,6 +995,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
             CanvasView.Options.FontName = settings.DrawingFont;
             CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
+            CanvasView.WheelReversed = settings.WheelZoomReversed;
             CanvasView.PickboxPixels = settings.PickboxPixels;
             CanvasView.AperturePixels = settings.AperturePixels;
             CanvasView.SelectByDragging = settings.SelectByDragging;

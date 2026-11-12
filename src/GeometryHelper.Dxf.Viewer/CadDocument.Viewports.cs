@@ -146,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Sets the view a viewport shows of model space, one undo step: the point at the middle of its frame and the height it
         /// shows, so its scale is its height over that one. A viewport 150 high given a view 3 000 high shows model space at
-        /// 1:20.
+        /// 1:20. The view it showed goes on the viewport's ZOOM Previous list, 20 at most.
         /// </summary>
         /// <param name="handle">The handle of the viewport.</param>
         /// <param name="viewCenter">The point of model space at the middle of the frame, as the viewport keeps it
@@ -192,20 +192,40 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Refuse(refused);
             }
 
+            var was = (DxfViewport)FindEntity(handle);
+            GeoPoint2 wasCenter = was.ViewCenter;
+            double wasHeight = was.ViewHeight;
             _realTime = realTime;
 
             try
             {
-                return ApplyEdit(
+                CadEditResult result = ApplyEdit(
                     name,
                     ViewRecord(handle, viewCenter, viewHeight),
                     ViewWriter(handle, viewCenter, viewHeight)
                 );
+
+                // The view it showed goes on the viewport's own ZOOM Previous list, one entry for each wheel gesture or pan.
+                if (result.Succeeded && !SameView(wasCenter, wasHeight, viewCenter, viewHeight))
+                {
+                    ViewHistory.Add(handle, wasCenter, wasHeight);
+                }
+
+                return result;
             }
             finally
             {
                 _realTime = false;
             }
+        }
+
+        /// <summary>Whether a viewport's view is where it was, within a hundred-thousandth of its height.</summary>
+        private static bool SameView(GeoPoint2 center, double height, GeoPoint2 otherCenter, double otherHeight)
+        {
+            double tolerance = Tolerance.Default.EqualVector * height;
+            return Math.Abs(center.X - otherCenter.X) <= tolerance
+                && Math.Abs(center.Y - otherCenter.Y) <= tolerance
+                && Math.Abs(height - otherHeight) <= tolerance;
         }
 
         /// <summary>Why a view cannot be given to a viewport; null where it can.</summary>

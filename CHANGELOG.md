@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** In the presenter the wheel and the middle button go on the ZOOM Previous list, on the paper of a layout, in
+model space and through a viewport alike, as AutoCAD 2021's: the rolls and drags made before the view is still are one
+entry of the list of the space or the viewport (20 each), and ZOOM Previous goes back through them with the typed ones. A
+double click of the middle button, ZOOM Extents, is an entry as typed. `CadDocument.SetViewportView` puts the view a
+viewport showed on its list too (the status bar's scale list does, as AutoCAD's ZOOM nXP does).
+**NEW.** In the presenter ZOOM, PAN and PLAN typed in model space and on the paper of a layout, ZOOM Previous, and the
+wheel and the middle button there are undo steps, as AutoCAD 2021's console, probed: ZOOM 2X, ZOOM 2X and -PAN took one U
+each, ZOOM Extents and ZOOM Previous a step each, in model space and on the paper; U and Ctrl+Z move the view back and
+REDO and Ctrl+Y forward, in order with the edits between them. The wheel's and the middle button's gestures made one after
+another are one step, as through a viewport. A step of the view alone keeps no copy of the drawing, so U takes it back
+without reading the drawing again, in a drawing of a million entities too; the drawing counts as changed after a zoom, as
+AutoCAD's (DBMOD 16). New `CadDocument.RecordSpaceView(space, view, before, name, realTime)` makes such a step.
+**NEW.** ZOOMWHEEL in the presenter, 0 or 1 as AutoCAD 2021's: 1 turns the wheel's direction round, forward zooming out.
+Global settings > Canvas and cursor has it as "Reverse the wheel", the settings file as `"wheelZoomReversed"`
+(`GlobalSettings.WheelZoomReversed`), and `CadCanvas.WheelReversed` carries it.
+
 **NEW.** The presenter's status bar has a progress meter, as AutoCAD 2021's: opening a drawing shows "Opening plan.dwg"
 with a bar from 0 to 100 % and Stop, and SAVE, SAVEAS and QSAVE show "Saving plan.dwg", the status bar drawn while the
 save runs. Commands, plugins and hosts start meters of their own with `CadProgress.Start(label)` (on
