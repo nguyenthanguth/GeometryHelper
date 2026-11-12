@@ -1418,37 +1418,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The row chosen of the AutoComplete list scrolled into sight after the arrows moved it.</summary>
         private void BringChosenIntoView()
         {
-            SuggestionList.UpdateLayout();
+            // Both lists, the command line's and the one under the box of dynamic input, show five rows at a time.
             int index = _model.Suggestions.ToList().FindIndex(s => s.IsSelected);
-            ItemsControl rows = FindChild<ItemsControl>(SuggestionList);
-
-            if (index >= 0 && rows?.ItemContainerGenerator.ContainerFromIndex(index) is FrameworkElement row)
-            {
-                row.BringIntoView();
-            }
-        }
-
-        private static T FindChild<T>(DependencyObject parent)
-            where T : DependencyObject
-        {
-            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                DependencyObject child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-
-                if (child is T found)
-                {
-                    return found;
-                }
-
-                T deeper = FindChild<T>(child);
-
-                if (deeper != null)
-                {
-                    return deeper;
-                }
-            }
-
-            return null;
+            SuggestionList.ShowRow(index);
+            CursorSuggestionList.ShowRow(index);
         }
 
         /// <summary>A right click on the command line: its menu, as AutoCAD's (Recent Commands, Input Settings, Copy, Copy History, Paste, Paste To CmdLine, Options…).</summary>

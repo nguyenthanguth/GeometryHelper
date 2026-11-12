@@ -68,7 +68,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The right-click menu of the drawing shown while no command runs: the menu of the cells of a table where cells are
-        /// selected (<see cref="TableCellViewModel.Menu"/>); else Reset Block, which runs RESETBLOCK on the selection, where it
+        /// selected (<see cref="TableCellViewModel.Menu"/>); else Reset Block, R its access key as AutoCAD's, which runs RESETBLOCK on the selection, where it
         /// holds a dynamic block reference, and Table Indicator Color where it holds a table; null where it holds neither.
         /// </summary>
         /// <returns>The items; null for no menu.</returns>
@@ -96,7 +96,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     new CadMenuItemViewModel(
                         "Reset Block",
                         () => StartCommand("RESETBLOCK"),
-                        toolTip: "Resets the selected dynamic block references to their default values (RESETBLOCK)"
+                        toolTip: "Resets the selected dynamic block references to their default values (RESETBLOCK)",
+                        accessKey: 'R'
                     )
                 );
             }

@@ -325,16 +325,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal('F', keys["From"]);
                 Assert.Equal('k', keys["Temporary track point"]);
-                Assert.Equal('2', keys["Mid Between 2 Points"]);
+                Assert.Equal('t', keys["Mid Between 2 Points"]);
+                Assert.Equal('t', keys["Point Filters"]);
                 Assert.Equal('E', keys["Endpoint"]);
                 Assert.Equal('M', keys["Midpoint"]);
                 Assert.Equal('I', keys["Intersection"]);
                 Assert.Equal('A', keys["Apparent Intersection"]);
                 Assert.Equal('x', keys["Extension"]);
                 Assert.Equal('C', keys["Center"]);
-                Assert.Equal('G', keys["Geometric Center"]);
+                Assert.Equal('\0', keys["Geometric Center"]);
                 Assert.Equal('Q', keys["Quadrant"]);
-                Assert.Equal('T', keys["Tangent"]);
+                Assert.Equal('g', keys["Tangent"]);
                 Assert.Equal('P', keys["Perpendicular"]);
                 Assert.Equal('l', keys["Parallel"]);
                 Assert.Equal('d', keys["Node"]);
@@ -343,8 +344,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal('N', keys["None"]);
                 Assert.Equal('O', keys["Osnap Settings..."]);
 
-                // No key is given twice, and each is a letter of its item's words.
-                char[] given = keys.Values.Where(k => k != '\0').Select(char.ToUpperInvariant).ToArray();
+                // As AutoCAD 2021's menu has them: no key is given twice but t, of Mid Be_tween and Poin_t Filters, which the key
+                // moves between; each is a letter of its item's words.
+                char[] given = keys.Where(k => k.Value != '\0' && k.Key != "Point Filters")
+                    .Select(k => char.ToUpperInvariant(k.Value))
+                    .ToArray();
                 Assert.Equal(given.Length, given.Distinct().Count());
                 Assert.All(keys.Where(k => k.Value != '\0'), k =>
                     Assert.Contains(char.ToUpperInvariant(k.Value), k.Key.ToUpperInvariant())
@@ -428,8 +432,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                             );
                         Assert.Equal('r', ((AccessText)((StackPanel)nearest.Header).Children[1]).AccessKey);
 
-                        // Point Filters has no key of its own, every letter of it being another item's.
-                        Assert.Equal("Point Filters", menu.Items.OfType<MenuItem>().ElementAt(3).Header);
+                        // Point Filters shares its t with Mid Between 2 Points, as AutoCAD's.
+                        Assert.Equal(
+                            "Poin_t Filters",
+                            Assert.IsType<AccessText>(menu.Items.OfType<MenuItem>().ElementAt(3).Header).Text
+                        );
                     }
                 }
                 catch (Exception ex)

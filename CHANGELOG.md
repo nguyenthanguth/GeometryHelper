@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's implied window asks on the command line as AutoCAD 2021's does: a click on nothing at the
+Command prompt shows "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and
+the Y of the cursor itself, where it showed nothing. The next click, or a corner typed (110,60), ends the box; F, WP or
+CP turns it into a fence or a polygon from the first corner until Enter; Esc writes "Command: Specify opposite corner or
+[Fence/WPolygon/CPolygon]: *Cancel*". Its corners take no object snap. `CadCommandSession.StartWindow`,
+`EndWindow`, `IsWindowing` and `IsWindowOpen` drive it.
+
+**NEW.** The presenter's cursor carries AutoCAD's badges: while a box is dragged a square 9 pixels across, 12 pixels
+right of the cursor and 21 above, filled blue for a window and dashed round a green middle for a crossing; while SCALE
+runs, a square with a smaller one filled in its lower left corner.
+
+**CHANGED.** No point prompt of the presenter marks its base point with a green square any more, as none of AutoCAD
+2021's does: SCALE's factor shows the amber rubber band alone from it.
+
+**CHANGED.** The Shift+right-click menu takes the access keys of AutoCAD 2021's own menu: t for Mid Between 2 Points and
+for Point Filters, g for Tangent, and none for Geometric Center, where it had 2, T and G. Reset Block of the canvas's
+right-click menu takes R.
+
+**CHANGED.** The AutoComplete list shows five rows at a time, at the command line and under the box of dynamic input,
+the rest scrolled to; the row the arrows choose is scrolled into sight in both, where the one at the cursor did not
+follow it.
+
 **CHANGED.** The presenter drags objects as AutoCAD 2021 does, after the maintainer's pictures of its SCALE: while
 MOVE, COPY, ROTATE, SCALE, MIRROR, ALIGN, an array or a grip edit waits for its point, the copy at the cursor is drawn in
 the objects' own colours, not dashed blue, and the rubber band from the base point is dashed amber, 16 pixels on and 9

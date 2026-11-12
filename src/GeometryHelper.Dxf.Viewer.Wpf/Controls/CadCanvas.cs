@@ -265,6 +265,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // window and dashed 4 on 2 off for a crossing, as AutoCAD 2021 draws them on its dark background (0, 24, 61 and 0, 61, 12).
         private static readonly Brush WindowFill = Frozen(new SolidColorBrush(Color.FromArgb(64, 0x00, 0x60, 0xF4)));
         private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(64, 0x00, 0xF4, 0x30)));
+
+        // The cursor badges of a window and a crossing, in the colours of their boxes at full strength.
+        private static readonly Brush BadgeWindow = Solid(0x0060F4);
+        private static readonly Brush BadgeCrossingMiddle = Solid(0x00F430);
         private static readonly Pen CrossingPenLight = Frozen(
             new Pen(Solid(0xE6E9ED), 1.0)
             {
@@ -317,7 +321,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen LightDottedPen = Frozen(
             new Pen(Solid(0x1A1A1A), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) }
         );
-        private static readonly Pen BasePen = Frozen(new Pen(Solid(0x3FB950), 2.0));
         private static readonly Pen ActiveFrameLight = Frozen(new Pen(Solid(0xE6E9ED), 3.0));
         private static readonly Pen ActiveFrameDark = Frozen(new Pen(Solid(0x1A1A1A), 3.0));
         private static readonly Brush TipFill = Solid(0x1A1E24);
@@ -508,6 +511,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => (ObjectSnap)GetValue(SnapProperty);
             set => SetValue(SnapProperty, value);
         }
+
+        /// <summary>The snaps a point is taken through now: none while the implied window runs, whose corners and points are where the cursor is, as AutoCAD's.</summary>
+        private ObjectSnap PointSnap => Session != null && Session.IsWindowing ? null : Snap;
 
         /// <summary>
         /// Gets or sets whether model space and the Block Editor show the grid (GRID, F7): lines across and up a little lighter
@@ -1309,12 +1315,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public void Cancel()
         {
+            CadCommandSession session = Session;
+            bool window = _boxOpen && session != null && session.IsWindowOpen;
+
             if (CancelGesture())
             {
+                // The implied window ends with its box, "*Cancel*" after its prompt.
+                if (window)
+                {
+                    session.Escape();
+                }
+
                 return;
             }
-
-            CadCommandSession session = Session;
 
             if (session != null && session.IsRunning)
             {
@@ -1557,18 +1570,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     _swallowUp = true;
                 }
-                else if (CadPicking.WantsPoint(Session))
-                {
-                    _pointDown = p;
-                }
                 else if (_boxOpen && _boxFrom.HasValue)
                 {
-                    // The click that ends a box started by a click; its release is not a click of its own.
+                    // The click that ends a box started by a click; its release is not a click of its own. The implied window
+                    // the command line asks about ends with it, the box shown selecting.
                     Point from = BoxCorner();
                     GeoPoint2 corner = _boxCorner;
                     CancelGesture();
+                    Session?.EndWindow();
                     _swallowUp = true;
                     SelectBox(corner, from, p, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+                }
+                else if (CadPicking.WantsPoint(Session))
+                {
+                    _pointDown = p;
                 }
                 else if (!IsRunning && _hotGrip >= 0)
                 {
@@ -1746,7 +1761,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else
                 {
-                    // A press on nothing leaves the box open, following the cursor to the click that ends it.
+                    // A press on nothing leaves the box open, following the cursor to the click that ends it; at the Command
+                    // prompt the command line asks for its opposite corner, F, WP and CP turning it into a fence or a polygon.
+                    Session?.StartWindow(corner);
                     _boxOpen = true;
                     _boxing = true;
                     _boxTo = at;
@@ -2975,7 +2992,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _snapped = CadPicking.Snap(
                     document,
                     WorkSpace,
-                    Snap,
+                    PointSnap,
                     cursor,
                     aperture,
                     session.Prompt.BasePoint,
@@ -3072,7 +3089,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _snapped = CadPicking.Snap(
                         document,
                         WorkSpace,
-                        Snap,
+                        PointSnap,
                         cursor,
                         aperture,
                         session.Prompt.BasePoint,
@@ -3179,7 +3196,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoPoint2 at = _restAt.Value;
             _restAt = null;
 
-            if (!CadPicking.Acquire(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint))
+            if (!CadPicking.Acquire(document, WorkSpace, PointSnap, at, _restAperture, session.Prompt.BasePoint))
             {
                 return false;
             }
@@ -3187,7 +3204,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _snapped = CadPicking.Snap(
                 document,
                 WorkSpace,
-                Snap,
+                PointSnap,
                 at,
                 _restAperture,
                 session.Prompt.BasePoint,
@@ -3263,7 +3280,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             .Snap(
                                 document,
                                 WorkSpace,
-                                Snap,
+                                PointSnap,
                                 at,
                                 aperture,
                                 Session.Prompt.BasePoint,
@@ -3278,7 +3295,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (
                 fields.HasValue
                     ? Session.Feed(fields.Value, false, control)
-                    : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control)
+                    : CadPicking.Click(document, WorkSpace, Session, PointSnap, at, aperture, shift, control)
             )
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -3844,7 +3861,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadSelectionBand band = Session?.Prompt?.Band;
 
-            if (band == null || band.Points.Count == 0 || !_cursor.HasValue)
+            // The box of the implied window is the one the canvas drags, drawn once.
+            if (band == null || band.Points.Count == 0 || !_cursor.HasValue || _boxFrom.HasValue)
             {
                 return;
             }
@@ -3950,6 +3968,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (picking)
             {
                 dc.DrawRectangle(null, pen, new Rect(at.X - box, at.Y - box, 2.0 * box, 2.0 * box));
+            }
+
+            DrawBadge(dc, at, luminance < 0.5);
+        }
+
+        /// <summary>
+        /// AutoCAD's cursor badge, a square 9 pixels across up and to the right of the cursor, its corner 12 pixels right of it
+        /// and 21 above: while a box is dragged, edged solid and filled blue for a window, edged dashed round a green middle for
+        /// a crossing; while SCALE runs, a square with a smaller one filled in its lower left corner. None otherwise.
+        /// </summary>
+        private void DrawBadge(DrawingContext dc, Point at, bool light)
+        {
+            var badge = new Rect(Math.Round(at.X) + 12.5, Math.Round(at.Y) - 20.5, 9.0, 9.0);
+
+            if (_boxing && _boxFrom.HasValue && _lasso == null)
+            {
+                if (_boxTo.X < BoxCorner().X)
+                {
+                    dc.DrawRectangle(null, light ? CrossingPenLight : CrossingPenDark, badge);
+                    dc.DrawRectangle(BadgeCrossingMiddle, null, new Rect(badge.X + 3.0, badge.Y + 3.0, 3.0, 3.0));
+                }
+                else
+                {
+                    dc.DrawRectangle(BadgeWindow, light ? CrossPenLight : CrossPenDark, badge);
+                }
+            }
+            else if (Session?.Current?.Name == "SCALE")
+            {
+                Pen pen = light ? CrossPenLight : CrossPenDark;
+                dc.DrawRectangle(null, pen, badge);
+                dc.DrawRectangle(pen.Brush, null, new Rect(badge.X, badge.Bottom - 4.0, 4.0, 4.0));
             }
         }
 
@@ -4398,7 +4447,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private GeoPoint2 BandEnd(GeoPoint2 cursor) =>
             _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind)) ? _snapped.Point : cursor;
 
-        /// <summary>While a point prompt waits: the base point, the rubber band to the snapped cursor, the snap's marker and its tip.</summary>
+        /// <summary>While a point prompt waits: the rubber band from the base point to the snapped cursor, the snap's marker and its tip.</summary>
         private void DrawPrompt(DrawingContext dc, CadView view, double scale)
         {
             CadCommandSession session = Session;
@@ -4435,18 +4484,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DrawGhost(dc, view, scale, target);
             bool band = DrawPreview(dc, view, scale, target);
 
-            // The window or polygon of "Select objects:" is drawn alone, as AutoCAD's: no rubber band or base point inside it.
-            if (basePoint.HasValue && session.Prompt.Band == null)
+            // The window or polygon of "Select objects:" is drawn alone, as AutoCAD's: no rubber band inside it. A preview drawn
+            // alone, as RECTANG's rectangle, has no rubber band beside it. No prompt marks its base point, as none of AutoCAD's
+            // does: SCALE's factor shows the band alone from it.
+            if (basePoint.HasValue && session.Prompt.Band == null && band)
             {
-                Point from = ToScreen(view, basePoint.Value, scale);
-
-                // A preview drawn alone, as RECTANG's rectangle, has no rubber band beside it.
-                if (band)
-                {
-                    dc.DrawLine(RubberPen, from, to);
-                }
-
-                dc.DrawRectangle(null, BasePen, new Rect(from.X - 5.0, from.Y - 5.0, 10.0, 10.0));
+                dc.DrawLine(RubberPen, ToScreen(view, basePoint.Value, scale), to);
             }
 
             DrawTracking(dc, view, scale, Session?.Prompt?.BasePoint);

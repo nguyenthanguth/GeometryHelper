@@ -265,12 +265,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt"), accessKey: 'k'),
                 new CadMenuItemViewModel("From", () => ModifyPoint("_from"), accessKey: 'F'),
-                new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p"), accessKey: '2'),
+                new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p"), accessKey: 't'),
                 new CadMenuItemViewModel(
                     "Point Filters",
+                    true,
                     new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
                         .Select(f => new CadMenuItemViewModel(f, () => ModifyPoint(f)))
-                        .ToList()
+                        .ToList(),
+                    't'
                 ),
                 CadMenuItemViewModel.Separator(),
             };
@@ -297,8 +299,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The access key of an object snap in the Shift+right-click menu, as AutoCAD's menu underlines it: Endpoint E,
-        /// Midpoint M, Intersection I, Apparent Intersection A, Extension X, Center C, Geometric Center G, Quadrant Q, Tangent
-        /// T, Perpendicular P, Parallel L, Node D, Insertion S, Nearest R.
+        /// Midpoint M, Intersection I, Apparent Intersection A, Extension X, Center C, Quadrant Q, Tangent G,
+        /// Perpendicular P, Parallel L, Node D, Insertion S, Nearest R; Geometric Center none, as in AutoCAD 2021's acad.cuix.
         /// </summary>
         private static char OverrideMenuKey(CadSnapKind kind)
         {
@@ -316,12 +318,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return 'x';
                 case CadSnapKind.Center:
                     return 'C';
-                case CadSnapKind.GeometricCenter:
-                    return 'G';
                 case CadSnapKind.Quadrant:
                     return 'Q';
                 case CadSnapKind.Tangent:
-                    return 'T';
+                    return 'g';
                 case CadSnapKind.Perpendicular:
                     return 'P';
                 case CadSnapKind.Parallel:
