@@ -316,7 +316,7 @@ namespace GeometryHelper.UnitTest.Packing
             var groups = new List<GeoRectangle2[]>();
             var sheet = new Sheet(PaperSize.A4);
 
-            Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(null, sheet));
+            Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack((List<GeoRectangle2[]>)null, sheet));
             Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(groups, null));
             Assert.Throws<ArgumentNullException>(() => SheetPacker.Pack(groups, sheet, null));
             Assert.Throws<ArgumentException>(() =>

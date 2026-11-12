@@ -42,6 +42,30 @@ namespace GeometryHelper.Packing.Algorithms
             Guard.IsFinite(MinX) && Guard.IsFinite(MinY) && Guard.IsFinite(Width) && Guard.IsFinite(Height);
 
         /// <summary>
+        /// Gets the footprint of a polygon: the upright box round its vertices.
+        /// </summary>
+        internal static Footprint Of(GeoPolygon2 polygon)
+        {
+            double minX = double.PositiveInfinity,
+                minY = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity,
+                maxY = double.NegativeInfinity;
+            foreach (GeoPoint2 vertex in polygon.Vertices)
+            {
+                if (vertex.X < minX)
+                    minX = vertex.X;
+                if (vertex.X > maxX)
+                    maxX = vertex.X;
+                if (vertex.Y < minY)
+                    minY = vertex.Y;
+                if (vertex.Y > maxY)
+                    maxY = vertex.Y;
+            }
+
+            return new Footprint(minX, minY, maxX - minX, maxY - minY);
+        }
+
+        /// <summary>
         /// Gets the footprint of a rectangle: exactly its own extent when it is not turned, the box round its corners
         /// when it is.
         /// </summary>
