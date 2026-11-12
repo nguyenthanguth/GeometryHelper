@@ -52,10 +52,10 @@ db.Save("copy.dxf");                                                 // every ot
 ```
 
 A drawing is saved as another version of AutoCAD with `db.Save("plan2010.dxf", "AC1024")`, or `Save(stream, version)`:
-R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) and R2018 (AC1032), as AutoCAD 2021's `SaveAs`
+R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) and R2018 (AC1032), as AutoCAD 2021's `SaveAs`
 writes one; the drawing in the memory stays of its own version, and its `Filename` is the path. A drawing saved in its own
-version is the bytes `Save(path)` writes. A drawing of R12 to R14 is saved as it is only, and a version that is none of the six
-is refused. Every kind of entity and object stays, as AutoCAD keeps them: a drawing of 1 300 lines, 130 hatches, 2 tables
+version is the bytes `Save(path)` writes. A drawing of R12 to R14 is saved as it is only (R12 is also written of a drawing of R2000 or later), and a version that is
+none of the seven is refused. Every kind of entity and object stays, as AutoCAD keeps them: a drawing of 1 300 lines, 130 hatches, 2 tables
 and 15 multileaders saved as R2000 has them all, with the header variables, the groups of each record and the counts of the
 classes (which AutoCAD opens no drawing of R2004 or later without) of that version; of its 785 records that carry a handle,
 735 are group for group, value for value, what AutoCAD 2021 wrote of the same drawing as R2000, and the others are what
@@ -67,6 +67,28 @@ another way, and the call gives it back as sentences: a table, whose cells are w
 becomes the INSERT of the block it is drawn with; a solid of R2013 or later, whose ACIS data is binary in the data store, has
 no text to write for R2010 and before and is left out; the visual styles are left out unless both versions are R2013 or later,
 and AutoCAD makes its own on opening.
+
+R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
+version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no
+CLASSES, no OBJECTS); the header of R12, 133 variables in its order, `$HANDLING` on and the names of the style, layer and
+linetype in capitals; the tables in R12's order with no block records, no handles and no extended data, ByBlock and ByLayer
+left out of the linetypes, a TrueType font written `txt`, a dimension style with every one of its values (a style of a later
+version holds those that differ from the imperial STANDARD's), and the handles an arrowhead is named by turned into the names
+of the blocks; the blocks `$MODEL_SPACE` and `$PAPER_SPACE` with the one paper space, the other layouts left out; each entity
+with the groups R12 has (no subclass markers, owners, reactors, lineweight, true colour or transparency), a dimension's
+bit 32 of its flags gone, an attribute's two flags as the extended data of AcDbAttr, a viewport's view as the extended data of
+ACAD MVIEW. What R12 does not hold is broken into what it does, and said: an LWPOLYLINE is a POLYLINE with its handle, an
+ellipse a 3D POLYLINE of 129 vertices and a spline one of 128, a ray and an infinite line a LINE to the extents of the
+drawing, all with their handles; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (a 3D
+polyline of two vertices for each edge) and a HATCH filled solid or with a gradient (SOLIDs, one colour for a gradient, a
+hatch with a normal other than (0, 0, 1) left out) are the lines, texts and polylines they break into, in an anonymous block
+`*U` (`*X` for a pattern hatch) numbered on from the highest of the drawing, with an INSERT that has the entity's handle,
+where they stood in a space, and in place where they stood in a block. A TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE
+frame, a 3DSOLID and a REGION, which AutoCAD breaks into lines with its solid modeler, and the layouts beyond the first,
+are left out and said. Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own
+R12 of it has (a text's extended data naming a handle that is not there), and selects 155 entities of model space where
+AutoCAD's own R12 gives 158, the three more being the REGION and the two solids; a long MTEXT is wrapped by the fonts AutoCAD
+has, and here by the words' own breaks, so that one MTEXT of 123 lines in AutoCAD is two here.
 
 There is no `ObjectId` and no transaction. An object is used directly, as AutoCAD's is once a transaction has opened it:
 an object read from the drawing is the same object each time it is reached, a change to it is written at once, and an

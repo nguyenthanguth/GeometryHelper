@@ -51,6 +51,37 @@ edge of words on it and to the far edge of words above it. An angle's words put 
 arc about them, and under 0 send the arrowheads outside, the arc whole, where they cut into an arrowhead's room ("60°" 6
 degrees from the first ray); words put under 1 within 6.875 of the arc (arrowheads and words 2.5 high, DIMGAP 0.625) have no
 leader, a distance fitted to what AutoCAD draws for eight sizes.
+**NEW.** A drawing is saved as R12: `DxfDatabase.Save(path, "AC1009")` and `Save(stream, "AC1009")` write a drawing of R2000 or
+later as AutoCAD 2021 writes the same drawing as R12, the rules read from AutoCAD's own R12 of one drawing of 1 300 lines, 130
+hatches, 2 tables and 15 multileaders beside its R2018. Four sections only; the 133 header variables of R12 in its order,
+`$HANDLING` on and the names in capitals; the tables of R12 with no block records, handles or extended data, no ByBlock or
+ByLayer, a TrueType font as `txt`, a dimension style with all its values, arrowheads named by their blocks; `$MODEL_SPACE` and
+`$PAPER_SPACE`, the other layouts left out; each entity with the groups R12 has, a viewport's view in the extended data of ACAD
+MVIEW. What R12 lacks is broken into what it holds, and said: an LWPOLYLINE is a POLYLINE, an ellipse a 3D polyline of 129
+vertices, a spline one of 128, a ray and an infinite line a LINE to the extents of the drawing (each with its handle); an MTEXT,
+a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (one 3D polyline for each edge) and a HATCH filled solid or
+with a gradient (SOLIDs, one colour for a gradient) are the lines, texts and polylines they break into, in an anonymous block
+`*U` or `*X` with an INSERT of the entity's handle where they stood in a space, in place where they stood in a block. Left
+out and said: a TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE frame, a 3DSOLID, a REGION (AutoCAD gives their edges as
+lines through its solid modeler), the layouts beyond the first, and a hatch whose normal is not (0, 0, 1). Opened in AutoCAD
+2021 the drawing above as R12 is clean to AUDIT but for the one fault AutoCAD's own R12 has, and selects 155 entities of model
+space where AutoCAD's gives 158 (the REGION and the two solids). A long MTEXT is wrapped at the words' own breaks, where
+AutoCAD wraps it by its fonts; a gradient is one colour, where AutoCAD makes bands. A drawing of R12 or R14 is still saved as
+it is only, to any other version.
+**NEW.** SAVEAS with FILEDIA 0 (or no window) asks what AutoCAD 2021 asks, in its words, read from its resources: `Current
+file format: AutoCAD 2018 Drawing` and `Enter file format [R14(LT98&LT97)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/
+2013(LT2013)/2018(LT2018)/Dxf/Template/Standards] <2018>:`; 2018 is the DWG, and the older formats, Template and Standards are
+refused with a line; Dxf asks `Current DXF settings: Precision= 16 Format= ASCII Preview= No Version= 2018`, `Enter decimal
+places of accuracy (0 to 16) or [Version] <16>:` and `Enter version [R12(LT2)/2000(LT2000)/.../2018(LT2018)] <2018>:` (R14
+refused), then `Save drawing as <file>:`. DXFOUT is new, a DXF copy of the drawing that leaves it as it was: the window's Create
+DXF File dialog, or `Enter DXF file name <Drawing1>:` and the same settings. `CadDocument.SaveCopy(path, version)` writes the
+copy; `CadExportJob.DxfSaveTypes`, `DxfTypeOfVersion` and `DxfVersionOfType` are the DXF types of Save Drawing As (R12 added, as
+`AutoCAD R12/LT2 DXF (*.dxf)`), which the window's Save As lists.
+**CHANGED.** QSAVE of a drawing with no file, and SAVEAS, with FILEDIA 0 now ask the file format before the file (the file
+alone was asked); SAVEAS is a command of the presenter's own set (`CadCommands`) that asks the window for its dialog or the
+typed file as QSAVE does (`UiRequested` "SAVEAS", with a `CadExportJob` for the typed file), where the window added it.
+`MainViewModel` lists R12 among the DXF types of Save Drawing As.
+
 **FIXED.** Edit Drawing Scales in the presenter now works as AutoCAD 2021's. Reset's question offers the three buttons AutoCAD's
 task dialog has, Metric scales (1:1 to 100:1, 17 scales), Imperial scales (1:1 and `1/128" = 1'-0"` to `1'-0" = 1'-0"`, 17)
 and Metric and Imperial scales (the metric ones then the 16 imperial ones that are not 1:1, 33), where it offered the

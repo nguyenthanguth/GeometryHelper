@@ -155,6 +155,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddPlotTo(registry);
             AddImageOutTo(registry);
             AddExportTo(registry);
+            AddSaveAsTo(registry);
             registry.Add(new CadCommand("QSELECT", QuickSelect));
             registry.Add(new CadCommand("FIND", Find, true));
             registry.Add(new CadCommand("DRAWORDER", DrawOrder, true));
@@ -221,8 +222,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// QSAVE (Ctrl+S): the drawing saved to its file, a DWG back as a DWG. One with no file yet asks the window for its Save
-        /// As dialog; with FILEDIA 0, "Save drawing as &lt;Drawing1.dwg&gt;:" on the command line instead, a name typed with no
-        /// extension given the offered one's, and the file handed to the window to save, or saved here with no window.
+        /// As dialog; with FILEDIA 0, SAVEAS's questions on the command line instead (<see cref="SaveAsTyped"/>), and the file
+        /// handed to the window to save, or saved here with no window.
         /// </summary>
         private static IEnumerable<CadPrompt> QuickSave(CadCommandContext c)
         {
@@ -244,48 +245,10 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string offered = c.Document.Title;
-            yield return CadPrompt.ForString("Save drawing as", offered);
-            string path = SaveName(c.Input, offered);
-
-            if (c.Session.Request("QSAVE", c.Document, path))
+            foreach (CadPrompt prompt in SaveAsTyped(c, c.Document.Title))
             {
-                yield break;
+                yield return prompt;
             }
-
-            try
-            {
-                c.Document.SaveAs(path);
-            }
-            catch (Exception exception)
-                when (exception is IOException
-                    || exception is UnauthorizedAccessException
-                    || exception is ArgumentException
-                    || exception is NotSupportedException
-                )
-            {
-                c.Write("Cannot save " + path + ": " + exception.Message);
-                yield break;
-            }
-
-            c.Write("Saved " + c.Document.FileName + ".");
-            SayLeftOut(c);
-        }
-
-        /// <summary>
-        /// The file typed at "Save drawing as", or the one offered where none is: one typed with no extension given the offered
-        /// one's, as AutoCAD gives a name typed there .dwg.
-        /// </summary>
-        internal static string SaveName(CadInput input, string offered)
-        {
-            string typed = input.Kind == CadInputKind.Text ? input.Text.Trim().Trim('"') : string.Empty;
-
-            if (typed.Length == 0)
-            {
-                return offered;
-            }
-
-            return Path.HasExtension(typed) ? typed : typed + Path.GetExtension(offered);
         }
 
         /// <summary>"Left out of the DWG, not written yet: IMAGE 1." where the drawing was just saved as a DWG that left something out.</summary>

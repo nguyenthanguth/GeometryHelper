@@ -200,7 +200,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Saves the drawing to a path in a version of AutoCAD, as AutoCAD's <c>SaveAs(path, version)</c> does, replacing whatever
-        /// is there: R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032). The drawing
+        /// is there: R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018
+        /// (AC1032). The drawing
         /// in the memory stays as it is, of its own version; <see cref="Filename"/> is the path from then on.
         /// </summary>
         /// <param name="path">The path of the file.</param>
@@ -208,7 +209,7 @@ namespace GeometryHelper.Dxf
         /// <returns>What could not be written in the version, a sentence each: the kinds left out and the kinds written another way;
         /// empty where nothing was.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path or the version is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the version is none of those six.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those seven.</exception>
         /// <exception cref="NotSupportedException">Thrown when the drawing is of R12 to R14 and the version is not its own: its
         /// records are not those of R2000 and later, and are saved as they are.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
@@ -229,6 +230,18 @@ namespace GeometryHelper.Dxf
         /// columns of an MTEXT and the lines of an attribute, which R2018 holds in an object embedded in it, are written as R2013
         /// writes them. Text beyond the code page of a drawing before R2007 is written as the escapes <c>\U+XXXX</c>, as
         /// <see cref="Parse(string)"/> keeps it.
+        /// </para>
+        /// <para>
+        /// R12 has no objects, no classes, no layouts beyond one paper space, no handles but those of its entities, and a few of the
+        /// kinds of entity: it is written as AutoCAD 2021 writes one drawing as R12. The header, the tables (no block records, no
+        /// handles, no extended data, names in capitals, a TrueType font named txt, a dimension style with every value) and the
+        /// groups of each entity are those of R12; the spaces are the blocks <c>$MODEL_SPACE</c> and <c>$PAPER_SPACE</c>; a viewport
+        /// keeps its view in its extended data (ACAD MVIEW). What R12 lacks is broken into what it holds: an LWPOLYLINE is a POLYLINE,
+        /// an ellipse (129 vertices) and a spline (128) a 3D POLYLINE, a ray and an infinite line a LINE to the extents of the
+        /// drawing; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (its edges) and a HATCH filled
+        /// solid or with a gradient (its SOLIDs, one colour for a gradient) are the entities they break into, in a block <c>*U</c> or
+        /// <c>*X</c> of the next number where they stood in a space, in place where they stood in a block. A TOLERANCE, a WIPEOUT, an
+        /// IMAGE, an underlay, an OLE frame, a 3DSOLID, a REGION and the layouts beyond the first are left out, and said.
         /// </para>
         /// </remarks>
         public IReadOnlyList<string> Save(string path, string version)
@@ -260,7 +273,7 @@ namespace GeometryHelper.Dxf
         /// <param name="version">The version, as <see cref="Version"/> names it.</param>
         /// <returns>What could not be written in the version, a sentence each; empty where nothing was.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the stream or the version is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the version is none of those six.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those seven.</exception>
         /// <exception cref="NotSupportedException">Thrown when the drawing is of R12 to R14 and the version is not its own.</exception>
         public IReadOnlyList<string> Save(Stream stream, string version)
         {
@@ -287,7 +300,7 @@ namespace GeometryHelper.Dxf
             if (!DxfVersions.IsWritten(target))
             {
                 throw new ArgumentException(
-                    "A drawing is saved as AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); "
+                    "A drawing is saved as AC1009 (R12), AC1015 (R2000), AC1018, AC1021, AC1024, AC1027 or AC1032 (R2018); "
                         + version
                         + " is none of them.",
                     nameof(version)

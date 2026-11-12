@@ -278,11 +278,10 @@ namespace GeometryHelper.UnitTest.Dxf
 
         [Theory]
         [InlineData("AC1014")]
-        [InlineData("AC1009")]
         [InlineData("AC1033")]
         [InlineData("R2000")]
         [InlineData("")]
-        public void AVersionThatIsNoneOfTheSix_IsRefused(string version)
+        public void AVersionThatIsNoneOfTheSeven_IsRefused(string version)
         {
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
 

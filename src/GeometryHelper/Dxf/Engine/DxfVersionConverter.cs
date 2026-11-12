@@ -23,6 +23,10 @@ namespace GeometryHelper.Dxf
     /// as the text of R2010 and earlier, and the visual styles, of a form of their own in each of the versions, are left to
     /// AutoCAD, which makes its own on opening.
     /// </para>
+    /// <para>
+    /// R12 (AC1009) is written by rules of its own (DxfVersionConverter.R12.cs and <see cref="DxfR12Explosion"/>): what R12 lacks is
+    /// first broken into what it holds, then the records are given the groups, tables and names R12 has.
+    /// </para>
     /// </remarks>
     internal sealed partial class DxfVersionConverter
     {
@@ -106,6 +110,12 @@ namespace GeometryHelper.Dxf
         internal static string Convert(string text, int target, IList<string> said)
         {
             var converter = new DxfVersionConverter(target);
+
+            if (target == DxfVersions.R12)
+            {
+                text = converter.R12Break(text);
+            }
+
             converter.Read(text);
             converter.Run();
 
@@ -291,6 +301,12 @@ namespace GeometryHelper.Dxf
 
         private void Run()
         {
+            if (_target == DxfVersions.R12)
+            {
+                RunR12();
+                return;
+            }
+
             Section header = Find("HEADER");
             _source = header == null ? -1 : VersionOf(header);
 
@@ -902,6 +918,17 @@ namespace GeometryHelper.Dxf
                         + DxfVersions.Name(_target)
                         + " cannot hold as it is: "
                         + string.Join(", ", Counted(_left))
+                        + "."
+                );
+            }
+
+            if (_broken.Count > 0)
+            {
+                said.Add(
+                    "Written as the lines, texts and polylines each breaks into, which "
+                        + DxfVersions.Name(_target)
+                        + " holds: "
+                        + string.Join(", ", Counted(_broken))
                         + "."
                 );
             }

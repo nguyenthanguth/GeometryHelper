@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -165,7 +166,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.StubDialogs();
             model.Execute("SAVEAS");
 
-            Assert.Equal("Save drawing as <plan-level2.dxf>:", model.Prompt);
+            Assert.StartsWith("Enter file format [", model.Prompt, StringComparison.Ordinal);
+            Assert.EndsWith("/Dxf/Template/Standards] <Dxf>:", model.Prompt, StringComparison.Ordinal);
             model.Escape();
             model.OpenCommand.Execute(null);
             model.Execute("BEDIT");

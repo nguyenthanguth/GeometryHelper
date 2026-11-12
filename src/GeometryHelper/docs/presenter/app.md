@@ -151,15 +151,28 @@ The presenter opens a DWG of AutoCAD 2000 to 2018 as it opens a DXF, read by the
   line, "Cannot open old.dwg: The DWG version AC1014 (R14) is not read yet; …", and not opened as a recovered DXF.
 - Save As (Ctrl+Shift+S, SAVEAS) shows Save Drawing As with AutoCAD 2018 Drawing (*.dwg) first and a DXF of each version after it,
   the newest first, as AutoCAD 2021 names them: AutoCAD 2018 DXF, AutoCAD 2013/LT2013 DXF, 2010/LT2010, 2007/LT2007,
-  2004/LT2004 and 2000/LT2000 (*.dxf); the type of the drawing's file is chosen first, the DXF of the version it was last
+  2004/LT2004, 2000/LT2000 and R12/LT2 (*.dxf); the type of the drawing's file is chosen first, the DXF of the version it was last
   saved as or of its own version, and DWG for a drawing opened from a DWG and for a new one. The type chosen is what is written:
   `CadDocument.SaveAs(path, version, progress)` turns the drawing into that version, as `DxfDatabase.Save(path, version)`
   does, and Save (Ctrl+S, QSAVE) writes it so again (`CadDocument.SaveVersion`), as AutoCAD's QSAVE keeps the format of the
-  last Save As. A name ending in .dwg is written as a DWG, of AutoCAD 2018 only, any other as a DXF; a DXF type chosen for a
+  last Save As. An R12 DXF is what AutoCAD writes of the drawing as R12 (see the drawing guide): the hatches, multileaders, texts of
+  several lines and the rest R12 lacks are the lines, texts and polylines they break into, and said after the save. A name ending in .dwg is written as a DWG, of AutoCAD 2018 only, any other as a DXF; a DXF type chosen for a
   name ending in .dwg is refused, "Cannot save a.dwg: A DWG is written as AutoCAD 2018 (AC1032) only, not as AC1024." Save of a
   drawing opened from a DWG writes it back as a DWG. A drawing of R14, which the list has no type for, is offered "DXF (*.dxf)"
-  as well, its own. With FILEDIA 0 the file is asked and the version is the one last chosen, the drawing's own where none was.
-  R12 (AutoCAD R12/LT2 DXF) is not offered: the library does not write it yet.
+  as well, its own. With FILEDIA 0 SAVEAS asks on the command line what the dialog would, in AutoCAD 2021's words: "Current file
+  format: AutoCAD 2018 Drawing" and "Enter file format [R14(LT98&LT97)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)/Dxf/Template/Standards]
+  &lt;2018&gt;:", Dxf as the default for a drawing that is a DXF. 2018 (or LT2018, or 2018(LT2018)) is the DWG; the older formats
+  and Template and Standards are refused with a line ("AutoCAD 2013(LT2013) Drawing (*.dwg) is not written: a DWG is saved as
+  AutoCAD 2018 (2018).") and the command ends. Dxf asks its settings, "Current DXF settings: Precision= 16 Format= ASCII
+  Preview= No Version= 2018" and "Enter decimal places of accuracy (0 to 16) or [Version] &lt;16&gt;:", where Version asks "Enter version
+  [R12(LT2)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/2013(LT2013)/2018(LT2018)] &lt;2018&gt;:" (R14 refused, "R14 is not written: a
+  DXF is saved as R12 or R2000 and later."); the places of accuracy are not set (coordinates are written in full, said for a
+  number under 16), and Binary, Preview and select Objects, which AutoCAD offers there, are not. Then "Save drawing as
+  &lt;Drawing1.dwg&gt;:" for the file, a name of another extension than the format's given its own (.dwg or .dxf), and a name of the
+  other (.dxf for the DWG, .dwg for a DXF) refused. QSAVE of a drawing with no file asks the same.
+- DXFOUT writes a DXF copy of the drawing and leaves the drawing as it was (its file, its version, whether it has changes not
+  saved): the window's Create DXF File dialog listing the DXF types (`CadDocument.SaveCopy(path, version)`), or with FILEDIA 0
+  "Enter DXF file name &lt;Drawing1&gt;:" then the settings as above, Enter taking the drawing's own version (2018 for a drawing that is a DWG).
 - What the version could not hold is said after "Saved plan.dxf.", a sentence each (`CadDocument.LeftOutOfDxf`): "Left out of
   the drawing, which AC1015 cannot hold as it is: 3DSOLID 2, VISUALSTYLE 24." or "Replaced by the block each is drawn with,
   written as AC1015 cannot write it: ACAD_TABLE 2.".
@@ -181,7 +194,8 @@ With FILEDIA 0 a command asks on the command line for the file it would show a f
 
 | Command | Asks | Then |
 |---|---|---|
-| QSAVE of a drawing with no file, SAVEAS | Save drawing as &lt;Drawing1.dwg&gt;: | saves there; a name with no extension takes the offered one's, .dwg for a new drawing or one opened from a DWG |
+| QSAVE of a drawing with no file, SAVEAS | Enter file format [...] &lt;2018&gt;:, for Dxf its settings, then Save drawing as &lt;Drawing1.dwg&gt;: | saves there; a name with no extension takes the format's: .dwg for 2018, .dxf for Dxf |
+| DXFOUT | Enter DXF file name &lt;Drawing1&gt;:, then the DXF settings | writes the copy, the drawing keeps its file |
 | XATTACH | Enter name of file to attach: | the Attach External Reference dialog shown with the file; a file not found said, no dialog |
 | IMAGEATTACH | Enter image file name to attach: | the Attach Image dialog shown with the picture |
 | INSERT, the Blocks palette's Browse… | Enter name of drawing file: | the palette shown again on Other drawing with that drawing's blocks |

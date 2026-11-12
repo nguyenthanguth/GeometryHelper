@@ -235,6 +235,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "QSAVE");
 
+            // As SAVEAS does, the format first: a drawing of DXF is offered Dxf, and its settings.
+            Assert.StartsWith("Enter file format [", session.PromptText, StringComparison.Ordinal);
+            Run(session, Enter, Enter);
             Assert.Equal("Save drawing as <Drawing1.dxf>:", session.PromptText);
             Run(session, path);
 

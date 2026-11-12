@@ -86,6 +86,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.SaveAsCommand.Execute(null);
 
+                // The format first, as AutoCAD asks it; Enter takes the offered one, and a name ending in .dxf then says a DXF.
+                Assert.StartsWith("Enter file format [", model.Prompt, StringComparison.Ordinal);
+                model.Enter();
                 Assert.Equal("Save drawing as <Drawing1.dwg>:", model.Prompt);
                 model.Execute(path);
 

@@ -405,14 +405,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The commands of the window this file adds: NEW, SAVEAS, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
+        /// The commands of the window this file adds: NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, INPUTSEARCHOPTIONS and -INPUTSEARCHOPTIONS
         /// (the command line's Input Search Options), the six toggles of the status bar, DYN the last, and DSETTINGS with
         /// AutoCAD's aliases DS and OS.
         /// </summary>
         private void AddWindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("NEW", NewBody));
-            registry.Add(new CadCommand("SAVEAS", SaveAsBody));
             registry.Add(new CadCommand("PROPERTIESCLOSE", PropertiesCloseBody));
             registry.Add(new CadCommand("RIBBON", RibbonBody));
             registry.Add(new CadCommand("RIBBONCLOSE", RibbonCloseBody));
@@ -465,29 +464,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _afterCommand = () => NewDrawing();
             return Array.Empty<CadPrompt>();
-        }
-
-        /// <summary>
-        /// SAVEAS: the window's Save As dialog; with no window, or FILEDIA 0, "Save drawing as &lt;file&gt;:" asked on the command
-        /// line, as AutoCAD asks it with FILEDIA 0, a name typed with no extension given the offered one's: .dwg for a drawing
-        /// opened from a DWG, which is saved as a DWG.
-        /// </summary>
-        private IEnumerable<CadPrompt> SaveAsBody(CadCommandContext c)
-        {
-            if (SaveAsRequested != null && c.Session.FileDialogs)
-            {
-                _afterCommand = () => SaveAsRequested?.Invoke(this, EventArgs.Empty);
-                yield break;
-            }
-
-            string offered = c.Document.FileName ?? c.Document.Title;
-            yield return CadPrompt.ForString("Save drawing as", offered);
-            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
-            string path =
-                typed.Length == 0 ? offered
-                : System.IO.Path.HasExtension(typed) ? typed
-                : typed + System.IO.Path.GetExtension(offered);
-            _afterCommand = () => SaveAs(path);
         }
 
         /// <summary>PROPERTIESCLOSE: Properties hidden.</summary>

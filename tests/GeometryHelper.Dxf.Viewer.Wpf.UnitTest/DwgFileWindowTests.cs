@@ -38,6 +38,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             "AutoCAD 2007/LT2007 DXF (*.dxf)",
             "AutoCAD 2004/LT2004 DXF (*.dxf)",
             "AutoCAD 2000/LT2000 DXF (*.dxf)",
+            "AutoCAD R12/LT2 DXF (*.dxf)",
         };
 
         [Fact]
@@ -149,6 +150,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.Execute("QSAVE");
 
+                // The format first, as SAVEAS asks it: Enter takes 2018, the DWG of AutoCAD 2018.
+                Assert.EndsWith("/Dxf/Template/Standards] <2018>:", model.Session.PromptText, StringComparison.Ordinal);
+                model.Enter();
                 Assert.Equal("Save drawing as <Drawing1.dwg>:", model.Session.PromptText);
                 model.Execute(path);
 
@@ -172,10 +176,64 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 string path = Path.Combine(folder.FullPath, "copy");
 
                 model.Execute("SAVEAS");
+                model.Enter();
                 model.Execute(path);
 
                 Assert.Equal(path + ".dwg", model.Document.FileName);
                 Assert.Equal("AC1032", Magic(path + ".dwg"));
+            }
+        }
+
+        [Fact]
+        public void SaveAsWithFiledia0_OfADxfOfAnotherVersion_IsWrittenInIt_AndTheDrawingIsKnownByIt()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel();
+                model.SaveAsRequested += (s, e) =>
+                    throw new Xunit.Sdk.XunitException("FILEDIA 0 shows no Save As dialog.");
+                model.NewDrawing();
+                model.Execute("FILEDIA");
+                model.Execute("0");
+                string path = Path.Combine(folder.FullPath, "old");
+
+                model.Execute("SAVEAS");
+                model.Execute("Dxf");
+                model.Execute("V");
+                model.Execute("2004");
+                model.Enter();
+                model.Execute(path);
+
+                Assert.Equal(path + ".dxf", model.Document.FileName);
+                Assert.Equal("AC1018", DxfDatabase.Open(path + ".dxf").Version);
+                Assert.Equal("AC1018", model.Document.SaveVersion);
+                Assert.Contains("Saved " + path + ".dxf.", model.History);
+                Assert.Contains(model.FileRows, r => r.Path == path + ".dxf");
+            }
+        }
+
+        [Fact]
+        public void DxfoutWithAWindow_ShowsCreateDxfFile_AndWritesACopy_TheDrawingKeepingItsName()
+        {
+            using (var folder = new TestFolder())
+            {
+                var model = new MainViewModel();
+                string path = Path.Combine(folder.FullPath, "out.dxf");
+                CadExportJob shown = null;
+                model.AskExportFile = job =>
+                {
+                    shown = job;
+                    job.FileName = path;
+                    job.FileType = "AutoCAD 2010/LT2010 DXF (*.dxf)";
+                };
+                model.NewDrawing();
+
+                model.Execute("DXFOUT");
+
+                Assert.Equal("Create DXF File", shown.Title);
+                Assert.Equal(CadExportJob.DxfSaveTypes, shown.FileTypes);
+                Assert.Equal("AC1024", DxfDatabase.Open(path).Version);
+                Assert.False(model.Document.HasFile);
             }
         }
 
