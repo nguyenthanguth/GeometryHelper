@@ -281,8 +281,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 registry.Variables.Select(v => v.Name)
             );
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
-            // Two commands more than before: SAVEAS, now of the presenter's own set (the window added it), and DXFOUT.
-            Assert.Equal(186, registry.Commands.Count);
+            // Two commands more than before: SAVEAS, now of the presenter's own set (the window added it), and DXFOUT; six more
+            // for the annotation batch of the acad.pgp plan (DIMOVERRIDE, MLEADEREDIT, TEXTALIGN, MLEADERALIGN, ATTIPEDIT, SPELL).
+            Assert.Equal(192, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);
