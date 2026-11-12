@@ -12,4 +12,8 @@
     <ItemGroup>
         <ProjectReference Include="..\GeometryHelper\GeometryHelper.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.UnitTest" />
+    </ItemGroup>
 </Project>
