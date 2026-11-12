@@ -641,6 +641,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskKeepMTextChanges = question =>
                     MTextUnsavedChangesWindow.Ask(Window.GetWindow(this), question);
+                _model.ShowParagraph = dialog => ParagraphWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowColumnSettings = dialog => ColumnSettingsWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskMTextSize = dialog => MTextSizeWindow.Ask(Window.GetWindow(this), dialog);
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);

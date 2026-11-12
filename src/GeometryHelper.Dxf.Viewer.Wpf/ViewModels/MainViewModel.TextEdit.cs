@@ -47,6 +47,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         public Func<MTextUnsavedChangesViewModel, bool?> AskKeepMTextChanges { get; set; }
 
+        /// <summary>Gets or sets what shows the MTEXT editor's Paragraph dialog, true for OK; null where no window shows it.</summary>
+        public Func<ParagraphViewModel, bool> ShowParagraph { get; set; }
+
+        /// <summary>Gets or sets what shows the MTEXT editor's Column Settings dialog, true for OK; null where no window shows it.</summary>
+        public Func<ColumnSettingsViewModel, bool> ShowColumnSettings { get; set; }
+
+        /// <summary>Gets or sets what shows the ruler's Set Mtext Width and Set Mtext Height, true for OK; null where no window shows them.</summary>
+        public Func<MTextSizeViewModel, bool> AskMTextSize { get; set; }
+
         /// <summary>Gets the contextual Text Editor tab, shown while an MTEXT is being written or edited.</summary>
         public CadWorkspaceExtension TextEditorTab
         {

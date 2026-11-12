@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The MTEXT editor's ruler works as AutoCAD 2021's: the tab type box (Left, Centre, Right, Decimal), a click on
+the ruler adding a tab stop at the nearest minor tick, stops dragged along it or off it, the first-line and hanging
+indents, the width arrows, and with columns a column's width, the gutter, the total and the height grips; each release
+one step of the editor's undo, Esc during a drag putting it back; a right-click gives Set Mtext Width and Set Mtext
+Height. The Paragraph dialog, the Column Settings dialog, the Paragraph panel's launcher and the Columns menu are built,
+and the paragraph codes are written as AutoCAD's own editor writes them: in an MTEXT 2.5 high a centre stop at 20 is
+`\pxtc8;`, a decimal one on a comma at 40 `\pxtD,16;`, a first line at 2 with the rest at 10 `\pxi-3.2,l4;`. New in
+`GeometryHelper.Dxf.Viewer`: `CadMTextParagraphFormat`, `CadMTextTabStop`, `CadMTextFrame`, and on `CadMTextEditor`
+`FormatOf`, `SetFormat`, `Frame`, `SetFrame`, `BeginChange`, `EndChange` and `InsertColumnBreak`.
+
+**CHANGED.** Line Spacing on the Text Editor tab sets the selected paragraphs' own multiple (`\pxsm1.5;`), as AutoCAD
+2021's does, where it set the MTEXT's line spacing factor; More… and Clear Paragraph Spacing are added.
+
+**FIXED.** A decimal tab stop on a comma (`\pxtD,16;`) was read as a left stop at 16 heights; the word after the tab is
+set on its comma now, as AutoCAD 2021 sets it, and one with no comma by its end. An MTEXT edited in the MTEXT editor
+wrote its column breaks (`\N`) back as paragraph breaks; they are kept.
+
 **FIXED.** `DistanceTo` of a `GeoTriangle3` and a point measured a triangle nearly on one line by a foot along a normal
 that is the rounding of its cross product: the point 5E-14 from two corners 1E-13 apart, of the triangle (35, 54, -67),
 (88, 96, -11), (88, 96.0000000000001, -11), was measured 2.12 away. Such a triangle, no higher than about 3E-8 of its

@@ -22,6 +22,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly CadDocument _document;
         private readonly DxfMText _text;
         private CadMTextLayout _layout;
+        private CadMTextFrame _frame;
         private IReadOnlyList<DisplayItem2> _parts = Array.Empty<DisplayItem2>();
         private int[] _lineStart = Array.Empty<int>();
         private int[] _lineEnd = Array.Empty<int>();
@@ -104,6 +105,52 @@ namespace GeometryHelper.Dxf.Viewer
                 _text.Width = width;
             }
 
+            Lay(editor, attachment, lineSpacing, rgb, layerRgb);
+        }
+
+        /// <summary>
+        /// Lays the words out again, as they are and in the box the editor has now (<see cref="CadMTextEditor.Frame"/>): its
+        /// width, defined height and columns, as the ruler and Column Settings change them.
+        /// </summary>
+        /// <param name="editor">The words and their box.</param>
+        /// <param name="attachment">The attachment point, 1 top left to 9 bottom right.</param>
+        /// <param name="lineSpacing">The line spacing factor, 0.25 to 4.</param>
+        /// <param name="rgb">The colour of letters of no colour of their own, 0xRRGGBB.</param>
+        /// <param name="layerRgb">The colour of letters coded ByLayer, 0xRRGGBB.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the editor is null.</exception>
+        public void Update(CadMTextEditor editor, int attachment, double lineSpacing, int rgb, int layerRgb)
+        {
+            if (editor == null)
+            {
+                throw new ArgumentNullException(nameof(editor));
+            }
+
+            if (!ReferenceEquals(editor.Frame, _frame))
+            {
+                try
+                {
+                    editor.Frame.ApplyTo(_text);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    // A file older than R2007 keeps no columns of this kind: the words are laid out in the box as it was.
+                    GeometryHelperLog.Debug("CadMTextEditorLayout: the columns were not shown: " + exception.Message);
+                }
+
+                _frame = editor.Frame;
+            }
+
+            Lay(editor, attachment, lineSpacing, rgb, layerRgb);
+        }
+
+        /// <summary>Gets the MTEXT's box as last laid out: the editor's frame; null before the first <see cref="Update(CadMTextEditor, int, double, int, int)"/> with it.</summary>
+        public CadMTextFrame Frame => _frame;
+
+        /// <summary>Gets how many columns the words stand in now: 1 with none, those the words fill with dynamic ones.</summary>
+        public int ColumnCount => _layout?.ColumnCount ?? 1;
+
+        private void Lay(CadMTextEditor editor, int attachment, double lineSpacing, int rgb, int layerRgb)
+        {
             if (attachment >= 1 && attachment <= 9)
             {
                 _text.Attachment = (DxfAttachmentPoint)attachment;

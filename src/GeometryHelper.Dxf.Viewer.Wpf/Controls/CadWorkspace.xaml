@@ -1252,13 +1252,41 @@
                         </StackPanel>
                     </local:RibbonPanel>
 
-                    <!-- Paragraph: justification and line spacing menus, bullets greyed, the five alignments. -->
+                    <!--
+                    Paragraph: justification and line spacing menus, bullets greyed, the five alignments; the launcher at the
+                    right of the title opens the Paragraph dialog.
+                    -->
                     <local:RibbonPanel
                         Title="Paragraph"
                         MinFullWidth="250"
                         MinCollapsedWidth="80"
                         Icon="{StaticResource IconJustify}"
                     >
+                        <local:RibbonPanel.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource GroupTitle}" Text="Paragraph" />
+                                <Button
+                                    Style="{StaticResource GhFlatButton}"
+                                    Width="16"
+                                    Height="14"
+                                    Padding="0"
+                                    Margin="4,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Focusable="False"
+                                    Command="{Binding ParagraphCommand}"
+                                    AutomationProperties.Name="Paragraph settings"
+                                    ToolTip="Paragraph: tab stops, indents, alignment, paragraph spacing and line spacing."
+                                >
+                                    <Path
+                                        Data="M2 2l6 6M8 4v4H4"
+                                        Stroke="{StaticResource GhText}"
+                                        StrokeThickness="1.4"
+                                        StrokeStartLineCap="Round"
+                                        StrokeEndLineCap="Round"
+                                    />
+                                </Button>
+                            </StackPanel>
+                        </local:RibbonPanel.Header>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -1285,7 +1313,7 @@
                                     Focusable="False"
                                     Click="OnEditorMenu"
                                     CommandParameter="LineSpacing"
-                                    ToolTip="Line spacing of the MTEXT"
+                                    ToolTip="Line spacing of the selected paragraphs; More… opens the Paragraph dialog"
                                 />
                                 <StackPanel Orientation="Horizontal">
                                     <ToggleButton
@@ -1333,7 +1361,7 @@
                         </StackPanel>
                     </local:RibbonPanel>
 
-                    <!-- Insert: Columns and Field greyed, the Symbol menu; medium, a column of small buttons. -->
+                    <!-- Insert: the Columns and Symbol menus, Field greyed; medium, a column of small buttons. -->
                     <local:RibbonPanel
                         Title="Insert"
                         MinFullWidth="222"
@@ -1345,7 +1373,11 @@
                                 Style="{StaticResource AdaptiveButton}"
                                 Tag="{StaticResource IconColumns}"
                                 Content="Columns ▾"
-                                ToolTip="Columns are not built yet"
+                                IsEnabled="True"
+                                Focusable="False"
+                                Click="OnEditorMenu"
+                                CommandParameter="Columns"
+                                ToolTip="Columns of the MTEXT: none, dynamic, static; column break, Column Settings"
                             />
                             <Button
                                 Style="{StaticResource AdaptiveButton}"

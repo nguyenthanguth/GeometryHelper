@@ -1,0 +1,350 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.ParagraphWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Paragraph"
+    Width="600"
+    Height="560"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:TextEqualsConverter x:Key="Is" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close, same as Cancel"
+                    />
+                    <TextBlock Text="Paragraph" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="#FF8A7A"
+                        TextWrapping="Wrap"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0"
+                    />
+                </DockPanel>
+            </Border>
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Tab" Margin="0">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top">
+                            <WrapPanel>
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Left"
+                                    Margin="0,0,10,6"
+                                    IsChecked="{Binding TabType, Converter={StaticResource Is}, ConverterParameter=Left}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Centre"
+                                    Margin="0,0,10,6"
+                                    IsChecked="{Binding TabType, Converter={StaticResource Is}, ConverterParameter=Centre}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Right"
+                                    Margin="0,0,10,6"
+                                    IsChecked="{Binding TabType, Converter={StaticResource Is}, ConverterParameter=Right}"
+                                />
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Decimal"
+                                    IsChecked="{Binding TabType, Converter={StaticResource Is}, ConverterParameter=Decimal}"
+                                />
+                            </WrapPanel>
+                            <DockPanel Margin="0,4,0,6">
+                                <TextBox
+                                    x:Name="PositionBox"
+                                    Tag="Position"
+                                    Width="90"
+                                    Style="{StaticResource BlockNumber}"
+                                    Text="{Binding PositionText, UpdateSourceTrigger=PropertyChanged}"
+                                    AutomationProperties.Name="Tab position"
+                                    KeyDown="OnPositionKey"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Add"
+                                    Margin="6,0,0,0"
+                                    Command="{Binding AddCommand}"
+                                    IsEnabled="{Binding CanAdd}"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Modify"
+                                    Margin="4,0,0,0"
+                                    Command="{Binding ModifyCommand}"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Remove"
+                                    Margin="4,0,0,0"
+                                    HorizontalAlignment="Left"
+                                    Command="{Binding RemoveCommand}"
+                                />
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                            <TextBlock
+                                Style="{StaticResource StyleLabel}"
+                                Text="Specify decimal style:"
+                                Margin="0,0,0,3"
+                                IsEnabled="{Binding IsDecimalStyleEnabled}"
+                            />
+                            <ComboBox
+                                Style="{StaticResource GhComboBox}"
+                                Width="110"
+                                HorizontalAlignment="Left"
+                                ItemsSource="{Binding DecimalStyles}"
+                                SelectedItem="{Binding DecimalStyle}"
+                                IsEnabled="{Binding IsDecimalStyleEnabled}"
+                                AutomationProperties.Name="Decimal style"
+                            />
+                        </StackPanel>
+                        <Grid>
+                            <ListBox
+                                x:Name="StopList"
+                                ItemsSource="{Binding Stops}"
+                                SelectedItem="{Binding SelectedStop}"
+                                Background="{StaticResource GhInput}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                Foreground="{StaticResource GhText}"
+                                AutomationProperties.Name="Tab stops"
+                                KeyDown="OnStopKey"
+                            >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Width="210">
+                                            <TextBlock
+                                                DockPanel.Dock="Right"
+                                                Text="{Binding Position}"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                            />
+                                            <TextBlock Text="{Binding Type}" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <TextBlock
+                                Text="No tab stops. Type a position and Add, or click the ruler."
+                                TextWrapping="Wrap"
+                                Margin="10"
+                                Foreground="{StaticResource GhTextMuted}"
+                                IsHitTestVisible="False"
+                                Visibility="{Binding HasNoStops, Converter={StaticResource Shown}}"
+                            />
+                        </Grid>
+                    </DockPanel>
+                </HeaderedContentControl>
+
+                <StackPanel Grid.Column="2">
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Left Indent" Margin="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Style="{StaticResource StyleLabel}"
+                                Text="First line:"
+                                VerticalAlignment="Center"
+                            />
+                            <TextBox
+                                Grid.Column="1"
+                                Tag="First line"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding FirstLineText, UpdateSourceTrigger=PropertyChanged}"
+                                AutomationProperties.Name="First line indent"
+                            />
+                            <TextBlock
+                                Grid.Row="1"
+                                Style="{StaticResource StyleLabel}"
+                                Text="Hanging:"
+                                VerticalAlignment="Center"
+                            />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Tag="Hanging"
+                                Margin="0,4,0,0"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding HangingText, UpdateSourceTrigger=PropertyChanged}"
+                                AutomationProperties.Name="Hanging indent"
+                            />
+                        </Grid>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Right Indent" Margin="0,8,0,0">
+                        <DockPanel>
+                            <TextBox
+                                DockPanel.Dock="Right"
+                                Width="110"
+                                Tag="Right"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding RightText, UpdateSourceTrigger=PropertyChanged}"
+                                AutomationProperties.Name="Right indent"
+                            />
+                            <TextBlock Style="{StaticResource StyleLabel}" Text="Right:" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </HeaderedContentControl>
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="Indents and positions in drawing units, from the left of the frame (or of the column)."
+                    />
+                    <CheckBox
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,10,0,4"
+                        Content="Paragraph Alignment"
+                        IsChecked="{Binding IsAlignmentOn}"
+                    />
+                    <WrapPanel IsEnabled="{Binding IsAlignmentOn}" Margin="20,0,0,0">
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            Margin="0,0,8,4"
+                            Content="Left"
+                            IsChecked="{Binding Alignment, Converter={StaticResource Is}, ConverterParameter=Left}"
+                        />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            Margin="0,0,8,4"
+                            Content="Centre"
+                            IsChecked="{Binding Alignment, Converter={StaticResource Is}, ConverterParameter=Centre}"
+                        />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            Margin="0,0,8,4"
+                            Content="Right"
+                            IsChecked="{Binding Alignment, Converter={StaticResource Is}, ConverterParameter=Right}"
+                        />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            Margin="0,0,8,4"
+                            Content="Justified"
+                            IsChecked="{Binding Alignment, Converter={StaticResource Is}, ConverterParameter=Justified}"
+                        />
+                        <RadioButton
+                            Style="{StaticResource BlockRadio}"
+                            Margin="0,0,8,4"
+                            Content="Distributed"
+                            IsChecked="{Binding Alignment, Converter={StaticResource Is}, ConverterParameter=Distributed}"
+                        />
+                    </WrapPanel>
+                    <CheckBox
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,8,0,4"
+                        Content="Paragraph Spacing"
+                        IsChecked="{Binding IsSpacingOn}"
+                    />
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsSpacingOn}" Margin="20,0,0,0">
+                        <TextBlock Style="{StaticResource StyleLabel}" Text="Before:" VerticalAlignment="Center" />
+                        <TextBox
+                            Width="80"
+                            Margin="6,0,12,0"
+                            Tag="Before"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding BeforeText, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Space before"
+                        />
+                        <TextBlock Style="{StaticResource StyleLabel}" Text="After:" VerticalAlignment="Center" />
+                        <TextBox
+                            Width="80"
+                            Margin="6,0,0,0"
+                            Tag="After"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding AfterText, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Space after"
+                        />
+                    </StackPanel>
+                    <CheckBox
+                        Style="{StaticResource BlockCheck}"
+                        Margin="0,10,0,4"
+                        Content="Paragraph Line Spacing"
+                        IsChecked="{Binding IsLineSpacingOn}"
+                    />
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsLineSpacingOn}" Margin="20,0,0,0">
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="110"
+                            ItemsSource="{Binding LineSpacingModes}"
+                            SelectedItem="{Binding LineSpacingMode}"
+                            AutomationProperties.Name="Line spacing"
+                        />
+                        <TextBlock
+                            Style="{StaticResource StyleLabel}"
+                            Text="At:"
+                            Margin="12,0,6,0"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBox
+                            Width="90"
+                            Tag="Line spacing"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding LineSpacingText, UpdateSourceTrigger=PropertyChanged}"
+                            AutomationProperties.Name="Line spacing value"
+                        />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

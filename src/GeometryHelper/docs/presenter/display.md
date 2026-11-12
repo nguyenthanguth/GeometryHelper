@@ -129,9 +129,34 @@ and a stack stands in the editor where it will be drawn. In "II II II" 20 wide t
 second line, 7 along it, and the space the first line breaks at stays at that line's end, at 20. A word typed past the
 width takes the caret down with it; Home, End and the arrows up and down follow the lines as they wrap; an Enter at the
 end makes an empty line for the caret, which the drawn MTEXT does not have. Typing in an MTEXT of 2 000 letters lays it
-out again in about 0.5 ms a key and draws it in about 1 ms. The editor still lacks AutoCAD's own aids: its ruler shows no
-indents or tab stops of the paragraph, the columns cannot be dragged, and a width code in times of a style whose width
-is not 1 is set as if the style's width were 1.
+out again in about 0.5 ms a key and draws it in about 1 ms. A width code in times of a style whose width is not 1 is
+still set as if the style's width were 1.
+
+The ruler on the editor's frame works as AutoCAD 2021's. The box at its left end gives the kind of the next tab stop,
+Left, Centre, Right or Decimal, each click the next; a click on the ruler adds a stop of that kind at the nearest minor
+tick to the selected paragraphs, or the caret's. A stop dragged along the ruler moves, snapping to the minor ticks; one
+dragged more than 12 pixels off it is removed. The upper triangle drags the first line's indent, the lower one the
+later lines', and the arrows at the right end the width. With columns the ruler spans every column, the gutters shaded:
+the arrows at the end of the first column drag the width of every column, the edge of the first gutter the gutter, the
+arrows at the end of static columns the total, and the grips under the frame the height (one grip, or one under each
+dynamic column of its own height). Each release is one step of the editor's undo, and Esc during a drag puts it back.
+A right-click on the ruler gives Set Mtext Width and Set Mtext Height. Ticks stand every 1, 2 or 5 × 10ⁿ units, the
+smallest at least 30 pixels apart, with four minor ticks between: at 6 pixels to a unit, a major tick every 5.
+
+The Paragraph dialog (the launcher of the Paragraph panel, Line Spacing › More…, the editor's right-click) sets the tab
+stops, the first-line, hanging and right indents, and, each ticked to be the paragraph's own, the alignment, the
+paragraph spacing and the line spacing. Everything is written as AutoCAD 2021's own text editor writes it, checked
+against it: in an MTEXT 2.5 high a left stop at 10, a centre one at 20, a right one at 30 and a decimal one at 40 write
+`\pxt4,c8,r12,d16;`, a decimal one on a comma `D,16`; a first line at 2 and the later lines at 10 write `\pxi-3.2,l4;`;
+2 before and 3 after `\pxb0.8,a1.2;`; 1.5x `\pxsm1.5;`. Only what differs from the paragraph before is written, and the
+paragraph after those changed is put back as AutoCAD puts it back: a stop set on the first of "A" and "B" writes
+`\pxt4;A\P\ptz;B`. Exactly and at least are distances as AutoCAD's paragraph spacing reads them, 2.5 spacing an MTEXT
+2.5 high as 1x does; as AutoCAD's own editor, it takes a multiple from 0.25x to 4x, those distances from 0.25 to 4, and a
+space before or after of nought or from 0.25 to 4. Line Spacing on the ribbon sets the paragraphs' own multiple, as
+AutoCAD's does, and Clear Paragraph Spacing takes it off. The Columns menu (No Columns, Dynamic Columns › Auto or Manual
+Height, Static Columns › 2 to 6, Insert Column Break, Alt+Enter, and Column Settings) and the Column Settings dialog set
+the columns; the box and the columns are written with the words when the editor closes, one undo step of the drawing.
+A column break typed is written `\N`, and one already there is kept as one.
 
 Esc ends an edit in place as AutoCAD 2021 ends it. In the edit box of a single-line text it drops what was typed: a
 TEXT that read "ROOM 1" and was typed over as "ROOM 2" still reads "ROOM 1", and nothing is added to the undo list. In

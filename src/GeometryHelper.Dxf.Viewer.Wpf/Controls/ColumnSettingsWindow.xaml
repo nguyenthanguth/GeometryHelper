@@ -1,0 +1,227 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.ColumnSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Column Settings"
+    Width="460"
+    Height="440"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:TextEqualsConverter x:Key="Is" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close, same as Cancel"
+                    />
+                    <TextBlock Text="Column Settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Notice}"
+                        Foreground="#FF8A7A"
+                        TextWrapping="Wrap"
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0"
+                    />
+                </DockPanel>
+            </Border>
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Column Type" Margin="0">
+                        <StackPanel>
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Content="Dynamic Columns"
+                                GroupName="ColumnType"
+                                IsChecked="{Binding ColumnType, Converter={StaticResource Is}, ConverterParameter=Dynamic}"
+                            />
+                            <StackPanel Margin="22,0,0,0" IsEnabled="{Binding IsHeightModeEnabled}">
+                                <RadioButton
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Auto Height"
+                                    GroupName="HeightMode"
+                                    IsChecked="{Binding AutoHeight}"
+                                />
+                                <RadioButton
+                                    x:Name="ManualHeight"
+                                    Style="{StaticResource BlockRadio}"
+                                    Content="Manual Height"
+                                    GroupName="HeightMode"
+                                    Checked="OnManualHeight"
+                                />
+                            </StackPanel>
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Content="Static Columns"
+                                GroupName="ColumnType"
+                                IsChecked="{Binding ColumnType, Converter={StaticResource Is}, ConverterParameter=Static}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Content="No Columns"
+                                GroupName="ColumnType"
+                                IsChecked="{Binding ColumnType, Converter={StaticResource Is}, ConverterParameter=None}"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Column Number" Margin="0,8,0,0">
+                        <TextBox
+                            Tag="Number"
+                            Width="80"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding CountText, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{Binding IsCountEnabled}"
+                            AutomationProperties.Name="Column number"
+                        />
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Height" Margin="0,8,0,0">
+                        <TextBox
+                            Tag="Height"
+                            Width="110"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource BlockNumber}"
+                            Text="{Binding HeightText, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{Binding IsHeightEnabled}"
+                            AutomationProperties.Name="Column height"
+                        />
+                    </HeaderedContentControl>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Width" Margin="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Style="{StaticResource StyleLabel}"
+                                Text="Column:"
+                                VerticalAlignment="Center"
+                                IsEnabled="{Binding IsColumnEnabled}"
+                            />
+                            <TextBox
+                                Grid.Column="1"
+                                Tag="Column"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding ColumnText, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding IsColumnEnabled}"
+                                AutomationProperties.Name="Column width"
+                            />
+                            <TextBlock
+                                Grid.Row="1"
+                                Style="{StaticResource StyleLabel}"
+                                Text="Gutter:"
+                                VerticalAlignment="Center"
+                                IsEnabled="{Binding IsColumnEnabled}"
+                            />
+                            <TextBox
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="0,4,0,0"
+                                Tag="Gutter"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding GutterText, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding IsColumnEnabled}"
+                                AutomationProperties.Name="Gutter width"
+                            />
+                            <TextBlock
+                                Grid.Row="2"
+                                Style="{StaticResource StyleLabel}"
+                                Text="Total:"
+                                VerticalAlignment="Center"
+                                IsEnabled="{Binding IsTotalEnabled}"
+                            />
+                            <TextBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="0,4,0,0"
+                                Tag="Total"
+                                Style="{StaticResource BlockNumber}"
+                                Text="{Binding TotalText, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{Binding IsTotalEnabled}"
+                                AutomationProperties.Name="Total width"
+                            />
+                        </Grid>
+                    </HeaderedContentControl>
+                    <Canvas Width="170" Height="64" Margin="0,10,0,0" HorizontalAlignment="Left">
+                        <Rectangle Canvas.Left="6" Canvas.Top="14" Width="64" Height="44" Stroke="#9AA4B1" />
+                        <Rectangle Canvas.Left="100" Canvas.Top="14" Width="64" Height="44" Stroke="#9AA4B1" />
+                        <Rectangle Canvas.Left="70" Canvas.Top="14" Width="30" Height="44" Fill="#2E343D" />
+                        <Path Stroke="#5B6573" Data="M12 22h52M12 28h52M12 34h44M106 22h52M106 28h36" />
+                        <Path Stroke="#3D9BFF" Data="M6 8h64M70 8h30M6 4v8M70 4v8M100 4v8" />
+                    </Canvas>
+                    <TextBlock
+                        Margin="0,6,0,0"
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="{Binding Formula}"
+                    />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="{Binding TypeNote}"
+                    />
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

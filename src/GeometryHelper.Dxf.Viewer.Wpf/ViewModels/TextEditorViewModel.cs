@@ -38,10 +38,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// The MTEXT editor of the window: the words being edited (<see cref="CadMTextEditor"/>) with the frame's width,
     /// justification and line spacing, and the contextual Text Editor tab as the design draws it: Style (the style, Annotative
     /// greyed, the height), Formatting (bold, italic, strikethrough, underline, overline, the font, the colour, upper and lower
-    /// case, clear formatting, oblique, tracking and width), Paragraph (justification, line spacing, the five alignments;
-    /// bullets and numbering greyed), Insert (the Symbol menu; columns and field greyed), Spell Check greyed, Tools (Find and
-    /// Replace), Options (ruler, undo, redo) and Close Text Editor. Close writes the words in AutoCAD's codes as the answer
-    /// of the prompt that opened the editor, one undo step; Esc asks whether to keep them.
+    /// case, clear formatting, oblique, tracking and width), Paragraph (justification, the paragraphs' line spacing with
+    /// More… and Clear Paragraph Spacing, the five alignments, the launcher of the Paragraph dialog; bullets and numbering
+    /// greyed), Insert (Columns with Column Settings, the Symbol menu; field greyed), Spell Check greyed, Tools (Find and
+    /// Replace), Options (ruler, undo, redo) and Close Text Editor. The ruler's drags, the dialogs and the menus are each
+    /// one step of the editor's undo. Close writes the words in AutoCAD's codes and the box (width, height, columns) as the
+    /// answer of the prompt that opened the editor, one undo step of the drawing; Esc asks whether to keep them.
     /// </summary>
     public sealed class TextEditorViewModel : ObservableObject
     {
@@ -52,7 +54,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _replace = string.Empty;
         private bool _matchCase;
         private string _findMessage = string.Empty;
-        private double _width;
         private int _attachment;
         private double _lineSpacing;
         private bool _boxChanged;
@@ -67,13 +68,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _model = model;
             Edit = edit;
-            _width = edit.Width;
             _attachment = edit.Attachment;
             _lineSpacing = lineSpacing > 0.0 ? lineSpacing : 1.0;
             StyleFont = styleFont;
             StyleIsShx = styleIsShx;
             int column = (edit.Attachment - 1) % 3;
-            Editor = new CadMTextEditor(edit.Value, edit.Height, styleFont, styleIsShx, "lcr"[column]);
+
+            // The box of the MTEXT edited, its columns kept; of an MTEXT being made or a table cell, the edit's width.
+            CadMTextFrame frame =
+                edit.Handle != null && !edit.IsTableCell && model?.Document?.FindEntity(edit.Handle) is DxfMText mtext
+                    ? CadMTextFrame.Of(mtext)
+                    : CadMTextFrame.Of(Math.Max(0.0, edit.Width));
+            Editor = new CadMTextEditor(edit.Value, edit.Height, frame, styleFont, styleIsShx, "lcr"[column]);
             Editor.Changed += (s, e) => Refresh();
             Fonts = new[] { styleFont ?? "Arial" }
                 .Concat(CadTrueTypeFonts.Families)
@@ -160,15 +166,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the name of the MTEXT's text style, the Style group's.</summary>
         public string StyleName => Edit.StyleName ?? "Standard";
 
-        /// <summary>Gets or sets the frame's width in drawing units, which the diamond of the ruler drags; nought for none.</summary>
+        /// <summary>
+        /// Gets or sets the frame's width in drawing units, which the arrows at the ruler's right end drag, one step of the
+        /// editor's undo: the MTEXT's, the total of static columns, a dynamic column's; nought for none.
+        /// </summary>
         public double Width
         {
-            get => _width;
+            get => Editor.Frame.Width;
             set
             {
-                if (Set(ref _width, Math.Max(0.0, value)))
+                if (value > 0.0 && !double.IsInfinity(value))
                 {
-                    _boxChanged = true;
+                    Editor.SetFrame(Editor.Frame.WithWidth(value));
+                }
+                else if (!Editor.Frame.HasColumns)
+                {
+                    Editor.SetFrame(CadMTextFrame.Of(0.0, Editor.Frame.Height));
                 }
             }
         }
@@ -390,7 +403,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the command of a justification of the Justification menu.</summary>
         public ICommand JustifyCommand { get; }
 
-        /// <summary>Gets the command of a factor of the Line Spacing menu.</summary>
+        /// <summary>Gets the command of a factor of the Line Spacing menu: the selected paragraphs, or the caret's, spaced at that multiple of their own (<c>\pxsm1.5;</c>), as AutoCAD 2021 sets them.</summary>
         public ICommand LineSpacingCommand { get; }
 
         /// <summary>Gets Find and Replace's Find Next.</summary>
@@ -409,7 +422,247 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ICommand CloseCommand { get; }
 
         /// <summary>Gets whether anything was changed: the words, the width, the justification or the line spacing.</summary>
-        public bool IsModified => Editor.IsModified || _boxChanged;
+        public bool IsModified => Editor.IsModified || _boxChanged || !Editor.Frame.Equals(Editor.OriginalFrame);
+
+        /// <summary>Gets the Paragraph panel's launcher, Line Spacing › More… and the editor's right-click › Paragraph…: the Paragraph dialog.</summary>
+        public ICommand ParagraphCommand => new DelegateCommand(_ => ShowParagraph(false));
+
+        /// <summary>
+        /// Opens the Paragraph dialog over the selected paragraphs, or the caret's, where the window shows it
+        /// (<see cref="MainViewModel.ShowParagraph"/>); OK applies it as one step of the editor's undo.
+        /// </summary>
+        /// <param name="lineSpacing">Whether it opens with Paragraph Line Spacing ticked, as Line Spacing › More… opens it.</param>
+        /// <returns>Whether OK was pressed.</returns>
+        public bool ShowParagraph(bool lineSpacing)
+        {
+            if (Edit.IsTableCell || _model?.ShowParagraph == null)
+            {
+                return false;
+            }
+
+            var dialog = new ParagraphViewModel(Editor, ColumnRoom(), Decimals, lineSpacing);
+            return _model.ShowParagraph(dialog) && dialog.Applied;
+        }
+
+        /// <summary>Opens Column Settings over the MTEXT where the window shows it (<see cref="MainViewModel.ShowColumnSettings"/>); OK sets the columns as one step of the editor's undo.</summary>
+        /// <returns>Whether OK was pressed.</returns>
+        public bool ShowColumnSettings()
+        {
+            if (Edit.IsTableCell || _model?.ShowColumnSettings == null)
+            {
+                return false;
+            }
+
+            var dialog = new ColumnSettingsViewModel(Editor.Frame, Editor.Height, LaidColumns(), Decimals);
+
+            if (!_model.ShowColumnSettings(dialog) || dialog.Result == null)
+            {
+                return false;
+            }
+
+            Editor.SetFrame(Fitted(dialog.Result));
+            return true;
+        }
+
+        /// <summary>The ruler's right-click: Set Mtext Width or Set Mtext Height, each one step of the editor's undo; with columns both act on every column.</summary>
+        /// <param name="height">Whether the height is asked, else the width.</param>
+        /// <returns>Whether a value was set.</returns>
+        public bool AskSize(bool height)
+        {
+            if (_model?.AskMTextSize == null)
+            {
+                return false;
+            }
+
+            CadMTextFrame frame = Editor.Frame;
+            double value =
+                height ? (frame.ColumnHeights.Count > 0 ? frame.ColumnHeights[0] : frame.Height)
+                : frame.HasColumns ? frame.ColumnWidth
+                : frame.Width;
+            var dialog = new MTextSizeViewModel(height, value, Decimals);
+
+            if (!_model.AskMTextSize(dialog))
+            {
+                return false;
+            }
+
+            Editor.SetFrame(
+                height ? frame.WithHeight(dialog.Value)
+                : frame.HasColumns ? frame.WithColumnWidth(dialog.Value)
+                : frame.WithWidth(dialog.Value)
+            );
+            return true;
+        }
+
+        /// <summary>Sets the columns of the Columns menu, one step of the editor's undo: none, dynamic of one height or of their own, static of a count.</summary>
+        /// <param name="type">The columns.</param>
+        /// <param name="count">How many static columns.</param>
+        /// <param name="autoHeight">Whether dynamic columns are all of one height.</param>
+        public void SetColumns(DxfColumnType type, int count = 2, bool autoHeight = true)
+        {
+            CadMTextFrame frame = Editor.Frame;
+            double gutter = frame.HasColumns ? frame.Gutter : 5.0 * Editor.Height;
+
+            if (type == DxfColumnType.NoColumns)
+            {
+                Editor.SetFrame(frame.WithColumns(DxfColumnType.NoColumns, frame.Width, 0.0, 1, false));
+                return;
+            }
+
+            double total = frame.HasColumns
+                ? (
+                    frame.ColumnType == DxfColumnType.StaticColumns
+                        ? frame.Width
+                        : frame.ColumnWidth * Math.Max(1, LaidColumns()) + gutter * (Math.Max(1, LaidColumns()) - 1)
+                )
+                : frame.Width;
+
+            if (!(total > 0.0))
+            {
+                total = Math.Max(Editor.Height, ActualSize()[0]);
+            }
+
+            if (type == DxfColumnType.StaticColumns)
+            {
+                double column = (total - ((count - 1) * gutter)) / count;
+
+                if (!(column > 0.0))
+                {
+                    gutter = 0.0;
+                    column = total / count;
+                }
+
+                Editor.SetFrame(Fitted(frame.WithColumns(type, column, gutter, count, false), count));
+                return;
+            }
+
+            double width = frame.HasColumns ? frame.ColumnWidth : total;
+            Editor.SetFrame(Fitted(frame.WithColumns(type, width, gutter, Math.Max(1, LaidColumns()), autoHeight), 1));
+        }
+
+        /// <summary>The Columns menu of the Insert panel and the editor's right-click, the MTEXT's type and height mode or count ticked.</summary>
+        private IReadOnlyList<CadMenuItemViewModel> ColumnsMenu()
+        {
+            CadMTextFrame frame = Editor.Frame;
+            bool dynamic = frame.ColumnType == DxfColumnType.DynamicColumns;
+            bool fixedCount = frame.ColumnType == DxfColumnType.StaticColumns;
+            return new[]
+            {
+                new CadMenuItemViewModel(
+                    "No Columns",
+                    () => SetColumns(DxfColumnType.NoColumns),
+                    true,
+                    null,
+                    !frame.HasColumns
+                ),
+                new CadMenuItemViewModel(
+                    "Dynamic Columns",
+                    new[]
+                    {
+                        new CadMenuItemViewModel(
+                            "Auto Height",
+                            () => SetColumns(DxfColumnType.DynamicColumns, 2, true),
+                            true,
+                            null,
+                            dynamic && frame.AutoHeight
+                        ),
+                        new CadMenuItemViewModel(
+                            "Manual Height",
+                            () => SetColumns(DxfColumnType.DynamicColumns, 2, false),
+                            true,
+                            null,
+                            dynamic && !frame.AutoHeight
+                        ),
+                    }
+                ),
+                new CadMenuItemViewModel(
+                    "Static Columns",
+                    Enumerable
+                        .Range(2, 5)
+                        .Select(n => new CadMenuItemViewModel(
+                            n.ToString(CultureInfo.InvariantCulture),
+                            () => SetColumns(DxfColumnType.StaticColumns, n),
+                            true,
+                            null,
+                            fixedCount && frame.ColumnCount == n
+                        ))
+                        .ToList()
+                ),
+                new CadMenuItemViewModel(string.Empty, null),
+                new CadMenuItemViewModel(
+                    "Insert Column Break",
+                    () => Editor.InsertColumnBreak(),
+                    frame.HasColumns,
+                    null,
+                    null,
+                    CadSnapKind.None,
+                    "Alt+Enter"
+                ),
+                new CadMenuItemViewModel(string.Empty, null),
+                new CadMenuItemViewModel("Column Settings…", () => ShowColumnSettings()),
+            };
+        }
+
+        /// <summary>A frame of columns given a height where it has none: the words' height shared over the columns, as they then flow.</summary>
+        private CadMTextFrame Fitted(CadMTextFrame frame, int over = 1)
+        {
+            if (!frame.HasColumns || frame.Height > 0.0)
+            {
+                return frame;
+            }
+
+            double high = Math.Max(Editor.Height * 5.0 / 3.0, ActualSize()[1] / Math.Max(1, over));
+            return frame.WithHeight(Math.Ceiling(high / Editor.Height) * Editor.Height);
+        }
+
+        /// <summary>The width a tab or an indent may reach: a column's, or the MTEXT's; the widest line's where it wraps at none.</summary>
+        private double ColumnRoom()
+        {
+            CadMTextFrame frame = Editor.Frame;
+            double room = frame.HasColumns ? frame.ColumnWidth : frame.Width;
+            return room > 0.0 ? room : ActualSize()[0];
+        }
+
+        /// <summary>The width and height the words take now, laid out as the canvas lays them; nought without a drawing.</summary>
+        private double[] ActualSize()
+        {
+            CadMTextEditorLayout layout = Laid();
+
+            if (layout == null)
+            {
+                return new double[2];
+            }
+
+            double[] box = layout.Box;
+            return new[] { box[2] - box[0], box[3] - box[1] };
+        }
+
+        /// <summary>How many columns the words stand in now.</summary>
+        private int LaidColumns() => Laid()?.ColumnCount ?? Math.Max(1, Editor.Frame.ColumnCount);
+
+        private CadMTextEditorLayout Laid()
+        {
+            CadDocument document = _model?.Document;
+
+            if (document == null)
+            {
+                return null;
+            }
+
+            var layout = new CadMTextEditorLayout(document, Edit);
+            layout.Update(Editor, _attachment, _lineSpacing, 0xFFFFFF, 0xFFFFFF);
+            return layout;
+        }
+
+        /// <summary>The decimals lengths are shown with: the drawing's LUPREC, 4 without a drawing.</summary>
+        internal int Decimals => Math.Max(0, Math.Min(8, _model?.Document?.Database.Luprec ?? 4));
+
+        /// <summary>The formats of the selected paragraphs, or the caret's.</summary>
+        private CadMTextParagraphFormat[] SelectedFormats()
+        {
+            (int first, int last) = Editor.SelectedParagraphs;
+            return Enumerable.Range(first, last - first + 1).Select(Editor.FormatOf).ToArray();
+        }
 
         /// <summary>
         /// Gets the items of a menu of the tab: Symbol (each symbol with its code, Other greyed), Justification and Line Spacing
@@ -448,15 +701,93 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         ))
                         .ToList();
                 case "LineSpacing":
+                    CadMTextParagraphFormat[] formats = SelectedFormats();
                     return LineSpacings
                         .Select(l => new CadMenuItemViewModel(
                             l.Name,
                             () => SetLineSpacing(l),
                             true,
                             null,
-                            (double)l.Value == _lineSpacing
+                            formats.All(f =>
+                                f.LineSpacing == 'm' && Math.Abs(f.LineSpacingValue - (double)l.Value) < 1E-9
+                            )
                         ))
+                        .Concat(
+                            new[]
+                            {
+                                new CadMenuItemViewModel(string.Empty, null),
+                                new CadMenuItemViewModel("More…", () => ShowParagraph(true)),
+                                new CadMenuItemViewModel(
+                                    "Clear Paragraph Spacing",
+                                    () => Editor.SetFormat(f => f.WithLineSpacing('\0', 1.0)),
+                                    formats.Any(f => f.LineSpacing != '\0')
+                                ),
+                            }
+                        )
                         .ToList();
+                case "Columns":
+                    return ColumnsMenu();
+                case "Editor":
+                    return new[]
+                    {
+                        new CadMenuItemViewModel(
+                            "Paragraph Alignment",
+                            new[]
+                            {
+                                new CadMenuItemViewModel(
+                                    "Left",
+                                    () => Editor.SetAlignment('l'),
+                                    true,
+                                    null,
+                                    IsAlignedLeft
+                                ),
+                                new CadMenuItemViewModel(
+                                    "Centre",
+                                    () => Editor.SetAlignment('c'),
+                                    true,
+                                    null,
+                                    IsAlignedCentre
+                                ),
+                                new CadMenuItemViewModel(
+                                    "Right",
+                                    () => Editor.SetAlignment('r'),
+                                    true,
+                                    null,
+                                    IsAlignedRight
+                                ),
+                                new CadMenuItemViewModel(
+                                    "Justified",
+                                    () => Editor.SetAlignment('j'),
+                                    true,
+                                    null,
+                                    IsJustified
+                                ),
+                                new CadMenuItemViewModel(
+                                    "Distributed",
+                                    () => Editor.SetAlignment('d'),
+                                    true,
+                                    null,
+                                    IsDistributed
+                                ),
+                            }
+                        ),
+                        new CadMenuItemViewModel("Paragraph…", () => ShowParagraph(false), !Edit.IsTableCell),
+                        new CadMenuItemViewModel(
+                            "Bullets and Lists",
+                            false,
+                            new[]
+                            {
+                                new CadMenuItemViewModel("Bullets and numbering are not built yet", () => { }, false),
+                            }
+                        ),
+                        new CadMenuItemViewModel("Columns", !Edit.IsTableCell, ColumnsMenu()),
+                    };
+                case "Ruler":
+                    return new[]
+                    {
+                        new CadMenuItemViewModel("Set Mtext Width…", () => AskSize(false)),
+                        new CadMenuItemViewModel("Set Mtext Height…", () => AskSize(true)),
+                    };
                 case "Case":
                     return new[]
                     {
@@ -481,14 +812,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Sets on the edit what the frame changed, before the words answer the prompt.</summary>
         internal void WriteBox()
         {
+            CadMTextFrame frame = Editor.Frame;
+            CadMTextFrame was = Editor.OriginalFrame;
+
+            // A width alone is written as before; a height or columns as the whole box.
+            if (!frame.Equals(was))
+            {
+                if (!frame.HasColumns && !was.HasColumns && Math.Abs(frame.Height - was.Height) <= 1E-9)
+                {
+                    Edit.NewWidth = frame.Width;
+                }
+                else
+                {
+                    Edit.NewFrame = frame;
+                }
+            }
+
             if (!_boxChanged)
             {
                 return;
-            }
-
-            if (_width != Edit.Width)
-            {
-                Edit.NewWidth = _width;
             }
 
             if (_attachment != Edit.Attachment)
@@ -553,12 +895,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void SetLineSpacing(TextEditorChoice choice)
         {
-            if (choice?.Value is double factor && factor != _lineSpacing)
+            // As AutoCAD 2021's Line Spacing menu: a multiple of the paragraphs' own (\pxsm1.5;), not the MTEXT's.
+            if (choice?.Value is double factor)
             {
-                _lineSpacing = factor;
-                _boxChanged = true;
-                Raise(nameof(LineSpacing));
-                Refresh();
+                Editor.SetFormat(f => f.WithLineSpacing('m', factor));
             }
         }
 
@@ -589,6 +929,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     nameof(CanUndo),
                     nameof(CanRedo),
                     nameof(IsModified),
+                    nameof(Width),
                 }
             )
             {
