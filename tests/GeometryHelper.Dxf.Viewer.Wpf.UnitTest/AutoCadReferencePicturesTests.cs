@@ -330,7 +330,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal('E', keys["Endpoint"]);
                 Assert.Equal('M', keys["Midpoint"]);
                 Assert.Equal('I', keys["Intersection"]);
-                Assert.Equal('A', keys["Apparent Intersection"]);
+                Assert.Equal('A', keys["Apparent Intersect"]);
                 Assert.Equal('x', keys["Extension"]);
                 Assert.Equal('C', keys["Center"]);
                 Assert.Equal('\0', keys["Geometric Center"]);
@@ -339,7 +339,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal('P', keys["Perpendicular"]);
                 Assert.Equal('l', keys["Parallel"]);
                 Assert.Equal('d', keys["Node"]);
-                Assert.Equal('s', keys["Insertion"]);
+                Assert.Equal('s', keys["Insert"]);
                 Assert.Equal('r', keys["Nearest"]);
                 Assert.Equal('N', keys["None"]);
                 Assert.Equal('O', keys["Osnap Settings..."]);

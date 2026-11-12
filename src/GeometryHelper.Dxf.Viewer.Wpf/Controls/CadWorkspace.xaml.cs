@@ -100,11 +100,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
             CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
-            // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip; the right-click
-            // menu of the selection offers Reset Block.
+            // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip. A right-click shows
+            // AutoCAD's Default, Edit, Command or Grips menu, the Edit menu offering Reset Block for a dynamic block.
             CanvasView.CustomGripClicked += (s, e) =>
                 ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
-            CanvasView.ShortcutMenuRequested += (s, e) => ShowMenu(_model?.ShortcutMenu(), CanvasView);
+            CanvasView.ShortcutMenuRequested += (s, e) => ShowMenu(_model?.CanvasMenu(), CanvasView);
 
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);

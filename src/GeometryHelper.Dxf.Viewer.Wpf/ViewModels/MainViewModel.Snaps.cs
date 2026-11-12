@@ -250,8 +250,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the point modifiers
         /// Temporary track point, From, Mid Between 2 Points and Point Filters (.X to .YZ), each started at the prompt as typed
-        /// (<see cref="ModifyPoint"/>); then the fourteen snaps, each taken for the next point alone (<see cref="OverrideSnap"/>),
-        /// None, then "Osnap Settings...". Empty while no point is asked.
+        /// (<see cref="ModifyPoint"/>); then the fourteen snaps in three groups, named as AutoCAD's menu names them (Apparent
+        /// Intersect, Insert), each taken for the next point alone (<see cref="OverrideSnap"/>), None, then "Osnap
+        /// Settings...". The Command menu of the canvas opens the same items under Osnap Overrides. Empty while no point is
+        /// asked.
         /// </summary>
         /// <returns>The items.</returns>
         public IReadOnlyList<CadMenuItemViewModel> SnapOverrideMenu()
@@ -261,6 +263,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Array.Empty<CadMenuItemViewModel>();
             }
 
+            return SnapOverrideItems();
+        }
+
+        /// <summary>The items of the Shift+right-click menu (<see cref="SnapOverrideMenu"/>), made whether or not a point is asked.</summary>
+        private List<CadMenuItemViewModel> SnapOverrideItems()
+        {
             var items = new List<CadMenuItemViewModel>
             {
                 new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt"), accessKey: 'k'),
@@ -276,19 +284,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
                 CadMenuItemViewModel.Separator(),
             };
-            items.AddRange(
-                OverrideMenuOrder
-                    .Select(k => SnapModeTable.First(i => i.Kind == k))
-                    .Select(i => new CadMenuItemViewModel(
-                        i.Name,
-                        () => OverrideSnap(i.Mode),
+            foreach (SnapModeInfo info in OverrideMenuOrder.Select(k => SnapModeTable.First(i => i.Kind == k)))
+            {
+                SnapModeInfo chosen = info;
+
+                // AutoCAD's menu names two snaps shorter than its Object Snap tab does.
+                string name =
+                    info.Kind == CadSnapKind.ApparentIntersection ? "Apparent Intersect"
+                    : info.Kind == CadSnapKind.Insertion ? "Insert"
+                    : info.Name;
+                items.Add(
+                    new CadMenuItemViewModel(
+                        name,
+                        () => OverrideSnap(chosen.Mode),
                         true,
                         null,
                         null,
-                        i.Kind,
-                        accessKey: OverrideMenuKey(i.Kind)
-                    ))
-            );
+                        info.Kind,
+                        accessKey: OverrideMenuKey(info.Kind)
+                    )
+                );
+
+                // Its three groups: ends and crossings, centres and tangents, the rest.
+                if (info.Kind == CadSnapKind.Extension || info.Kind == CadSnapKind.Tangent)
+                {
+                    items.Add(CadMenuItemViewModel.Separator());
+                }
+            }
+
             items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None), accessKey: 'N'));
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(
@@ -299,8 +322,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The access key of an object snap in the Shift+right-click menu, as AutoCAD's menu underlines it: Endpoint E,
-        /// Midpoint M, Intersection I, Apparent Intersection A, Extension X, Center C, Quadrant Q, Tangent G,
-        /// Perpendicular P, Parallel L, Node D, Insertion S, Nearest R; Geometric Center none, as in AutoCAD 2021's acad.cuix.
+        /// Midpoint M, Intersection I, Apparent Intersect A, Extension X, Center C, Quadrant Q, Tangent G,
+        /// Perpendicular P, Parallel L, Node D, Insert S, Nearest R; Geometric Center none, as in AutoCAD 2021's acad.cuix.
         /// </summary>
         private static char OverrideMenuKey(CadSnapKind kind)
         {
