@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Page setup name"
-    Width="400"
+    Width="420"
     SizeToContent="Height"
     WindowStyle="None"
     ResizeMode="NoResize"
@@ -11,12 +11,14 @@
     WindowStartupLocation="CenterOwner"
     Background="#262B33"
 >
-    <!-- Add Page Setup, from Add… of the Plot dialog; New Page Setup, from New… of the Page Setup Manager, which also asks what to start with. -->
+    <!-- Add Page Setup, from Add… of the Plot dialog, which also offers Import…; New Page Setup, from New… of the Page Setup Manager, which also asks what to start with. -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="ShownWhen" />
         </ResourceDictionary>
     </Window.Resources>
 
@@ -50,35 +52,59 @@
                 </DockPanel>
             </Border>
 
+            <!-- Footer: Import… at the left where it is offered; OK, Cancel and Help at the right. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                            IsEnabled="{Binding CanOk}"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Help" Padding="14,5" Click="OnHelp" />
+                    </StackPanel>
                     <Button
+                        HorizontalAlignment="Left"
                         Style="{StaticResource GhDialogButton}"
-                        Content="Cancel"
+                        Content="Import…"
                         Padding="14,5"
-                        Margin="0,0,8,0"
-                        Click="OnCancel"
-                        IsCancel="True"
+                        Click="OnImport"
+                        Visibility="{Binding CanImport, Converter={StaticResource ShownWhen}}"
+                        ToolTip="Copy page setups of another drawing into this one"
                     />
-                    <Button
-                        Style="{StaticResource StylePrimaryButton}"
-                        Content="OK"
-                        Padding="14,5"
-                        Click="OnOk"
-                        IsDefault="True"
-                        IsEnabled="{Binding CanOk}"
-                    />
-                </StackPanel>
+                </DockPanel>
             </Border>
 
             <StackPanel Margin="16,12">
                 <TextBlock Text="New page setup name:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6" />
                 <TextBox
                     x:Name="NameBox"
-                    Style="{StaticResource BlockBox}"
                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                     AutomationProperties.Name="New page setup name"
-                />
+                >
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource BlockBox}">
+                            <Style.Triggers>
+                                <!-- A name that is refused has a red frame, as well as its reason below. -->
+                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#F26B3A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
                 <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Margin="0,6,0,0">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -102,12 +128,30 @@
                         </Style>
                     </StackPanel.Style>
                     <TextBlock Text="Start with:" Foreground="{StaticResource GhTextMuted}" Margin="0,12,0,6" />
-                    <ComboBox
-                        Style="{StaticResource GhComboBox}"
-                        ItemsSource="{Binding StartWith}"
-                        SelectedItem="{Binding StartWithChoice, Mode=TwoWay}"
-                        AutomationProperties.Name="Start with"
-                    />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                        <ListBox
+                            ItemsSource="{Binding StartWith}"
+                            SelectedItem="{Binding StartWithChoice, Mode=TwoWay}"
+                            Height="170"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ItemContainerStyle="{StaticResource SetupRow}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            HorizontalContentAlignment="Stretch"
+                            AutomationProperties.Name="Start with"
+                        >
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock
+                                        Text="{Binding}"
+                                        Padding="8,5"
+                                        Foreground="{StaticResource GhText}"
+                                        TextTrimming="CharacterEllipsis"
+                                    />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
                 </StackPanel>
             </StackPanel>
         </DockPanel>

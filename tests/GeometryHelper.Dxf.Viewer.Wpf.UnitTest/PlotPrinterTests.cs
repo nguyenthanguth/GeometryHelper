@@ -302,7 +302,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void PlotToFile_IsTickedForAFile_AndOffForAPrinter()
+        public void PlotToFile_IsTickedForAFile_AndOffButStillOfferedForAPrinter()
         {
             PlotDialogViewModel dialog = Dialog(PlotPdfTests.Plan(), PlotPdfTests.AtOneToTwenty(), Network);
             Assert.True(dialog.PlotsToFile);
@@ -313,7 +313,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             dialog.Device = dialog.Devices.Single(d => d.Name == Network.Name);
             Assert.False(dialog.PlotsToFile);
-            Assert.Equal("Plot to file (a printer prints on paper)", dialog.PlotToFileText);
+            Assert.True(dialog.IsPlotToFileEnabled);
+            Assert.Equal("Plot to file", dialog.PlotToFileText);
         }
 
         [Fact]

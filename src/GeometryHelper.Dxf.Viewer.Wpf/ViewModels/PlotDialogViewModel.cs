@@ -86,6 +86,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             IReadOnlyList<CadPaper>
         >(StringComparer.OrdinalIgnoreCase);
         private int _copies = 1;
+        private bool _plotToFile;
+        private string _notice;
         private CadPaper _mmPaper;
         private CadPlotSettings _settings;
         private string _pageSetup = NoPageSetup;
@@ -144,15 +146,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (IPlotPrinter printer in _printers)
             {
-                devices.Add(
-                    new PlotDeviceRow(
-                        printer.Name,
-                        printer.IsNetwork ? "Windows · network" : "Windows",
-                        true,
-                        first,
-                        printer
-                    )
-                );
+                devices.Add(new PlotDeviceRow(printer.Name, PlotDeviceText.Hint(printer), true, first, printer));
                 first = false;
             }
 
@@ -205,14 +199,71 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the printer of Windows chosen; null for a plotter of the presenter's own.</summary>
         internal IPlotPrinter SelectedPrinter => IsPrinter ? PrinterNamed(_settings.DeviceName) : null;
 
-        /// <summary>Gets whether Plot to file is ticked: always, but for a printer of Windows.</summary>
-        public bool PlotsToFile => !IsPrinter;
+        /// <summary>
+        /// Gets or sets whether Plot to file is ticked: always for the PDF writer and a raster device, which write a file. For a
+        /// printer of Windows it is the user's to tick, unticked to begin with; ticked, OK says that a plot to file is not
+        /// supported for this printer (<see cref="TryAccept"/>) and prints nothing.
+        /// </summary>
+        public bool PlotsToFile
+        {
+            get => !IsPrinter || _plotToFile;
+            set
+            {
+                if (IsPrinter && Set(ref _plotToFile, value))
+                {
+                    Notice = null;
+                }
+            }
+        }
 
-        /// <summary>Gets the words of the Plot to file box: always for the PDF writer or a raster device, not offered for a printer.</summary>
+        /// <summary>Gets whether the Plot to file box can be ticked: for a printer of Windows, as AutoCAD leaves it; the file writers always plot to a file.</summary>
+        public bool IsPlotToFileEnabled => IsPrinter;
+
+        /// <summary>Gets the words of the Plot to file box: plain for a printer, which may be ticked, and with its reason for a file writer, where it is always ticked.</summary>
         public string PlotToFileText =>
-            IsPrinter ? "Plot to file (a printer prints on paper)"
+            IsPrinter ? "Plot to file"
             : IsRaster ? "Plot to file (always, for a raster device)"
             : "Plot to file (always, for PDF)";
+
+        /// <summary>Gets what the dialog says in its footer in place of the drawing and space, for OK that was refused; null for nothing.</summary>
+        public string Notice
+        {
+            get => _notice;
+            private set
+            {
+                if (Set(ref _notice, value))
+                {
+                    Raise(nameof(HasNotice));
+                    Raise(nameof(FooterText));
+                }
+            }
+        }
+
+        /// <summary>Gets whether there is a notice to show.</summary>
+        public bool HasNotice => !string.IsNullOrEmpty(_notice);
+
+        /// <summary>Gets the words of the footer: the notice where there is one, else the drawing and space (<see cref="Footer"/>).</summary>
+        public string FooterText => HasNotice ? _notice : Footer;
+
+        /// <summary>
+        /// Asks whether OK can go on: it cannot where a printer of Windows is chosen with Plot to file ticked, a plot written
+        /// through the printer's driver to a file not being supported, and the footer then says so (<see cref="Notice"/>). The Page Setup form, which plots nothing, is not held back.
+        /// </summary>
+        /// <returns>True when the dialog may close with OK.</returns>
+        public bool TryAccept()
+        {
+            if (!IsPageSetup && IsPrinter && _plotToFile)
+            {
+                Notice = "Plot to file is not supported for this printer: untick it to print on paper.";
+                return false;
+            }
+
+            Notice = null;
+            return true;
+        }
+
+        /// <summary>Gets the page of the guide the Help button opens.</summary>
+        public string HelpUrl => PlotHelp.PlotDialog;
 
         /// <summary>Gets whether the number of copies can be typed: for a printer of Windows alone.</summary>
         public bool IsCopiesEnabled => IsPrinter;
@@ -281,11 +332,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the name of the page setup of the drawing this form edits (the Page Setup Manager's Modify… and New…); null for the layout's own.</summary>
         public string PageSetupName { get; }
 
+        /// <summary>
+        /// Gets or sets whether the Page Setup Manager opened this form, as Modify… and New… do: Window&lt; and Add… are then
+        /// greyed, there being no canvas to pick on and the page setup being kept by OK. Set by the manager before it is shown.
+        /// </summary>
+        public bool OpenedFromManager { get; set; }
+
         /// <summary>Gets whether Window&lt; can be pressed: not while a named page setup is edited, which has no canvas to pick on.</summary>
-        public bool CanPickWindow => PageSetupName == null;
+        public bool CanPickWindow => PageSetupName == null && !OpenedFromManager;
 
         /// <summary>Gets whether Add… is offered: not while a named page setup is edited, which is kept by OK.</summary>
-        public bool CanAddPageSetup => PageSetupName == null;
+        public bool CanAddPageSetup => PageSetupName == null && !OpenedFromManager;
 
         /// <summary>
         /// Gets or sets how the window asks the name of a new page setup (Add Page Setup): true where OK was pressed. Null for
@@ -349,6 +406,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     bool wasFile = !_settings.IsPrinter;
                     bool wasRaster = _settings.IsRaster;
+                    _plotToFile = false;
+                    Notice = null;
 
                     if (value.Printer != null)
                     {
@@ -382,26 +441,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets what the plotter is: "GeometryHelper PDF · vector, built in", "GeometryHelper PNG · raster, built in".</summary>
-        public string PlotterText =>
-            _settings.DeviceName
-            + (
-                IsPrinter ? " · printer of Windows"
-                : IsRaster ? " · raster, built in"
-                : " · vector, built in"
-            );
+        public string PlotterText => PlotDeviceText.Plotter(_settings.DeviceName, IsRaster, IsPrinter);
 
-        /// <summary>Gets where it writes: File, or for a printer of Windows Printer, Network printer when it is on the network.</summary>
+        /// <summary>
+        /// Gets where it writes: File, or for a printer of Windows its port or share where it says
+        /// (<c>USB001</c>, <c>\\office-srv\Office printer</c>), else Printer, or Network printer when it is on the network.
+        /// </summary>
         public string WhereText =>
-            IsPrinter ? (SelectedPrinter?.IsNetwork == true ? "Network printer" : "Printer") : "File";
+            IsPrinter ? (SelectedPrinter == null ? "Printer" : PlotDeviceText.Where(SelectedPrinter)) : "File";
 
         /// <summary>Gets what it does.</summary>
-        public string DescriptionText =>
-            IsPrinter ? "Prints on paper through Windows, drawn at up to 300 dots to the inch."
-            : string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase)
-                ? "Writes a PNG image, lossless, one file per plot."
-            : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase)
-                ? "Writes a JPEG image, quality 90, one file per plot; no transparency."
-            : "Writes a PDF, one page per plot; text stays searchable.";
+        public string DescriptionText => PlotDeviceText.Description(_settings.DeviceName, IsPrinter);
 
         /// <summary>
         /// Gets the entries of the Paper size list: the ISO and ANSI sheets for the PDF plotter; for a raster device the sizes
@@ -849,7 +899,47 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var asked = new PageSetupNameViewModel("Add Page Setup", CadPlotSettings.PageSetupNames(Document));
+
+            if (AskImportFile != null && ShowImport != null)
+            {
+                asked.ImportPageSetups = ImportPageSetups;
+            }
+
             return ShowPageSetupName(asked) && asked.CanOk ? AddPageSetup(asked.Name) : null;
+        }
+
+        /// <summary>
+        /// Gets or sets how the window asks the drawing Import… of Add Page Setup copies page setups from, as its Select File
+        /// dialog: the path, or null where it was cancelled. Null for none, when Import… is not offered.
+        /// </summary>
+        public Func<string> AskImportFile { get; set; }
+
+        /// <summary>Gets or sets how the window shows Import Page Setups: true where OK was pressed. Null for none, when Import… is not offered.</summary>
+        public Func<ImportPageSetupsViewModel, bool> ShowImport { get; set; }
+
+        /// <summary>
+        /// Import… of Add Page Setup: copies page setups of another drawing in, as the Page Setup Manager's Import… does, and
+        /// lists them in the Page setup list.
+        /// </summary>
+        /// <returns>The names the drawing has now, for the name box to refuse; null where nothing was imported.</returns>
+        private IEnumerable<string> ImportPageSetups()
+        {
+            var manager = new PageSetupManagerViewModel(Document, Space, _printers)
+            {
+                AskImportFile = AskImportFile,
+                ShowImport = ShowImport,
+            };
+            CadEditResult result = manager.Import();
+
+            if (result == null || !result.Succeeded)
+            {
+                return null;
+            }
+
+            PageSetups = PageSetupList();
+            Raise(nameof(PageSetups));
+            Raise(nameof(PageSetup));
+            return CadPlotSettings.PageSetupNames(Document);
         }
 
         /// <summary>
@@ -858,11 +948,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// to layout is ticked. No file is written.
         /// </summary>
         /// <returns>The plot as it was laid on its sheet.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when no printer of Windows is chosen, there is nothing to plot, or the printer cannot take the job.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when no printer of Windows is chosen, Plot to file is ticked for it (not supported), there is nothing to plot, or the printer cannot take the job.</exception>
         public CadPlotPage Print()
         {
             IPlotPrinter printer = SelectedPrinter
                 ?? throw new InvalidOperationException("No printer of Windows is chosen.");
+
+            if (_plotToFile)
+            {
+                throw new InvalidOperationException("Plot to file is not supported for this printer.");
+            }
 
             if (_saveChanges)
             {
@@ -1064,6 +1159,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     nameof(IsRaster),
                     nameof(IsPrinter),
                     nameof(PlotsToFile),
+                    nameof(IsPlotToFileEnabled),
                     nameof(PlotToFileText),
                     nameof(IsCopiesEnabled),
                     nameof(CopiesText),

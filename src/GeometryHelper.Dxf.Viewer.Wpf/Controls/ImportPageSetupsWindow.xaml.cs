@@ -50,5 +50,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        private void OnHelp(object sender, RoutedEventArgs e) => PlotHelp.Open(Model.HelpUrl);
     }
 }

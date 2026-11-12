@@ -167,12 +167,15 @@ no named views. The file is written by the window, which holds the PDF writer.
 ## Printing on a printer of Windows
 
 The printers of Windows are listed in the Printer/plotter list after the three built-in plotters, by name, a printer on the
-network (`\\print\HP LaserJet M507`) marked Windows · network. Choosing one asks the printer for its sheets: the Paper size
+network (`\\print\HP LaserJet M507`) marked Windows · network, one on a USB port Windows · USB. Choosing one asks the printer for its sheets: the Paper size
 list is then the printer's own, each sheet as the driver names it (`A4`, `A3`, `Letter`) at its size upright, with the
 margins of the imageable area the driver gives for it. The sheet the plot was on stays where the printer has one of its size
 in either turn: a plot on ISO A3 (420 by 297) moves to the printer's A3 (297 by 420), still on its side, and a printer with
 no such sheet starts on the first it lists. A printer that lists no sheet at all offers the sheets of GeometryHelper PDF.
-Plot to file is not ticked for a printer, and Number of copies takes 1 to 999.
+Where says what the printer prints to: the port of a local printer (`USB001`), the share of one on the network
+(`\\office-srv\Office printer`), or just Printer where the queue does not say. Plot to file, plain, is offered for a printer,
+unticked, as AutoCAD leaves it; ticked, OK writes "Plot to file is not supported for this printer" in the footer and prints
+nothing, a plot not being written through a printer's driver to a file. Number of copies takes 1 to 999.
 
 OK on a printer draws the plot as the PDF writer does, through the same page [`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage)
 lays out, with the same scale, offset, centring, turn, plot style table and lineweights, then hands it to the printer; no
@@ -201,7 +204,10 @@ A name is any of up to 255 letters but `< > / \ " : ; ? * | , = ` and a back quo
 | `settings.SaveAsPageSetup(document, "A2 plan")` | writes the settings as the page setup of the name, added or, where the name has one (letters of either case the same), replaced; the layout is not touched |
 | `CadPlotSettings.SetCurrentPageSetup(document, space, "A2 plan")` | copies the page setup into the space's layout with its name, as AutoCAD's `CopyFrom` does |
 | `CadPlotSettings.CurrentPageSetupName(document, space)` | the name the layout keeps, as the drawing spells it; empty for none |
+| `CadPlotSettings.RenamePageSetup(document, "A2 plan", "Roof plan")` | gives the page setup another name (a change of letters alone is one); a layout set to it follows it. Refused for a name AutoCAD refuses or another page setup's |
+| `CadPlotSettings.DeletePageSetup(document, "Roof plan")` | takes the page setup out; a layout set to it keeps its settings and is set to none |
 | `CadPlotSettings.ImportPageSetups(document, source, names)` | copies page setups of another drawing, adding ` (2)`, ` (3)` where the name is taken |
+| `CadPlotSettings.ReadPageSetup(source, "A2 plan", isModel)` and `PageSetupIsModel(source, "A2 plan")` | read a page setup of a drawing opened with no document, and say whether it was made for model space (flag 1024), which Import Page Setups lists as Model or Layout |
 
 ```csharp
 CadPlotSettings settings = CadPlotSettings.Read(document, document.ModelSpace);
@@ -211,20 +217,38 @@ CadPlotSettings.SetCurrentPageSetup(document, document.ModelSpace, "a2 plan");
 // CurrentPageSetupName: "A2 plan"; the layout Model is on ISO A2, and one undo takes it back
 ```
 
-PAGESETUP opens the Page Setup Manager: the layout, "Current page setup: A2 plan", the drawing's page setups with Current
-beside the one the layout is set to and one line on how the one chosen plots (`ISO A2 (594.00 x 420.00 MM) · GeometryHelper PDF ·
-Window 1:20 · grayscale.ctb`), and four buttons. Set Current sets the layout to the page setup chosen. New… asks a name and
-what to start with, `<None>`, `*Model*` (the settings of a space, one for each) or a page setup, then shows the Page Setup
-dialog on it, and adds the page setup when OK is pressed there; nothing is added when either is cancelled. Modify… (or a double
-click) shows the Page Setup dialog on the one chosen and writes it back on OK. Import… asks a drawing, a DWG, DXF or DWT, lists
-its page setups in Import Page Setups, each ticked, and copies those left ticked. In the Page Setup dialog of the manager Window&lt;
-and Add… are greyed. Add… of the Plot dialog asks Add Page Setup and keeps the dialog's settings under the name, which is then
-the one chosen in the Page setup list; a name the drawing has, or one AutoCAD refuses, is shown in red with its reason and
-greys OK.
+PAGESETUP opens the Page Setup Manager, drawn as the Design artifact's board PageSetup draws it. At the top is "Current layout:
+Model" with a layout icon; the Page setups group holds "Current page setup: A2 plan" and the list, whose first row is the
+layout's own setup, `*Model*` (`*Layout1 (A2 plan)*` in a layout whose page setup is A2 plan), chosen when the manager opens,
+and under it the drawing's page setups by name. "Selected page setup details" is a group of its own: Device name, Plotter
+(`GeometryHelper PDF · vector, built in`), Plot size with its orientation (`594.00 x 420.00 mm (Landscape)`, `1920 x 1080 pixels
+(Landscape)`), Where (`File`, or the port or share of a printer; `—` for a printer this computer lacks) and Description. A box
+"Display when creating a new layout" at the foot keeps the system variable SHOWPAGESETUPFORNEWLAYOUTS (0, or 1 once ticked); the
+presenter makes no layouts of its own, so it only keeps the choice. Close is orange-red and Help opens this page.
+
+Set Current sets the layout to the page setup chosen (it is greyed on the layout's own row and on the current one). New… asks a
+name and what to start with, in a list box: `<None>` and `<Default output device>` (the defaults of a sheet in the space),
+`<Previous plot>` (the settings of the last plot or print of the session, the defaults before one), the layout's own setup
+(`*Model*`), then the page setups; it then shows the Page Setup dialog on it, and adds the page setup when OK is pressed there;
+nothing is added when either is cancelled. Modify… (or a double click) shows the Page Setup dialog on the one chosen and writes
+it back on OK; on the layout's own row it edits the layout, written as Apply to Layout writes it (one undo step named PLOT).
+Import… asks a drawing, a DWG, DXF or DWT, lists its page setups in Import Page Setups, under "Source drawing name:" and the
+drawing's full path, with a tick, the Name and the Location (Model or Layout) of each and the details of the one chosen, and
+copies those left ticked. In the Page Setup dialog of the manager Window&lt; and Add… are greyed.
+
+Right-click on a page setup gives Set Current, Rename and Delete. Rename turns its name into a box to type in (Enter or a click
+away takes it, Escape leaves it) and Delete takes the page setup out; each is one undo step named PAGESETUP. The layout's own
+row has Set Current alone, being current already, and there is no page setup of the drawing to rename or delete in it. A layout
+set to a page setup that is renamed follows the new name; one set to a page setup that is deleted keeps its settings and is set
+to none. New Page Setup, Add Page Setup, Import Page Setups and the Plot dialog put OK before Cancel and have a Help button.
+
+Add… of the Plot dialog asks Add Page Setup and keeps the dialog's settings under the name, which is then the one chosen in the
+Page setup list; a name the drawing has, or one AutoCAD refuses, is shown in red with its reason, the name box is framed in red
+and OK is greyed. Import… at the left of its footer asks a drawing as the manager's does and copies its page setups in, after
+which their names are taken.
 
 A page setup that names a printer of Windows (group 2) is chosen in the Plot dialog when the computer has the printer; AutoCAD's
-`DWG To PDF.pc3` and a printer this computer lacks are read as GeometryHelper PDF. Rename and Delete, which AutoCAD puts on the
-manager's right-click menu, are not built.
+`DWG To PDF.pc3` and a printer this computer lacks are read as GeometryHelper PDF.
 
 ## Plotting to an image
 

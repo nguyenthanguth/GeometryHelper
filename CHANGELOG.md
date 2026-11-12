@@ -49,7 +49,31 @@ with how each plots, the one the layout is set to, and Set Current, New… (a na
 Setup dialog), Modify… and Import… (the page setups of another drawing, a name already taken becoming `Name (2)`). Add… of
 the Plot dialog keeps its settings under a name. Each is one undo step named PAGESETUP. In code,
 `CadPlotSettings.SaveAsPageSetup`, `SetCurrentPageSetup`, `CurrentPageSetupName`, `ImportPageSetups`, `PageSetupNames` of
-another drawing and `CheckPageSetupName` do the same with no window. Rename and Delete are not built.
+another drawing and `CheckPageSetupName` do the same with no window.
+
+**CHANGED.** The Page Setup Manager and its dialogs follow the Design artifact's board (v130), toward AutoCAD 2021's.
+The layout's own setup is the first row of the list, `*Layout1*` (`*Layout1 (A2 plan)*` when a named page setup is current,
+`*Model*` from model space), chosen when the manager opens, and Modify… on it edits the layout; the blue "Current" tag is
+gone. "Current layout" has a layout icon, "Current page setup" stands in the Page setups group, and "Selected page setup
+details" is a group of its own with Device name, Plotter, Plot size with its orientation (`594.00 x 420.00 mm (Landscape)`),
+Where and Description (`PageSetupInfo`). A box "Display when creating a new layout", unticked, keeps the new system variable
+SHOWPAGESETUPFORNEWLAYOUTS (0 or 1, kept by the session; the presenter makes no layouts of its own). Close is orange-red, as in
+every manager, with a Help button, and OK comes before Cancel, with a Help button, in New Page Setup, Add Page Setup, Import
+Page Setups and the Plot dialog; Help opens the guide's page on plotting on the documentation site. Right-click on a row of the
+list gives Set Current, Rename (the name becomes a box to type in) and Delete, one undo step named PAGESETUP each; the layout's
+row has Set Current alone. In code `CadPlotSettings.RenamePageSetup` renames a page setup (a layout set to it follows it) and
+`DeletePageSetup` takes one out (a layout set to it keeps its settings and is set to none). New Page Setup starts with a list
+box of `<None>`, `<Default output device>`, `<Previous plot>` (the last plot or print of the session), the layout's own setup and
+the named page setups, in place of a combo that offered every space as `*Model*`. Import Page Setups says "Source drawing name:"
+with the full path on its own line, lists the page setups in columns (a tick, Name, Location: Model or Layout, from the flag 1024
+a page setup carries, `CadPlotSettings.PageSetupIsModel`) and shows the details of the one chosen; `ReadPageSetup(database,
+name, isModel)` reads a page setup of a drawing opened with no document. Add Page Setup has Import… at the left of its footer,
+copying page setups of another drawing in and refusing a name they now take. A red frame marks a refused name.
+**CHANGED.** The Plot dialog's printer box names where a printer prints: the port of a local printer (`USB001`) or the share of a
+network one (`\office-srv\Office printer`) in place of "Printer", and the list says Windows · USB for a printer on a USB port, as
+Windows · network for one on the network (`IPlotPrinterPort`, which `WindowsPlotPrinter` implements). Plot to file, plain, is
+offered for a printer, unticked, as AutoCAD leaves it; ticked, OK says in the footer "Plot to file is not supported for this
+printer" and prints nothing, writing a plot to a file through a printer's driver not being built.
 
 **NEW.** `DxfDBDictionary.SetAt` adds a named page setup, `db.PlotSettingsDictionary.SetAt("A3 plan", new
 DxfPlotSettings())`, written as AutoCAD 2021 writes a PLOTSETTINGS with its class listed in CLASSES; `DxfPlotSettings`

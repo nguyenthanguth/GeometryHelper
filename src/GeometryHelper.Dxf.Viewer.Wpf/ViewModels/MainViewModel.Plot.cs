@@ -10,6 +10,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed partial class MainViewModel
     {
+        /// <summary>The settings of the last plot or print made, which New Page Setup can start with as &lt;Previous plot&gt;.</summary>
+        private CadPlotSettings _previousPlot;
+
         /// <summary>Gets or sets how the workspace shows the Plot dialog: true when OK (or the preview's Plot) was pressed.</summary>
         public Func<PlotDialogViewModel, bool> ShowPlot { get; set; }
 
@@ -79,6 +82,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            _previousPlot = dialog.Settings.Clone();
+
             if (dialog.IsPrinter)
             {
                 Printed(sender, dialog);
@@ -128,6 +133,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (ShowPlotPreview(preview))
             {
+                _previousPlot = dialog.Settings.Clone();
                 if (dialog.IsPrinter)
                 {
                     Printed(sender, dialog);
@@ -232,6 +238,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _settings.NoteCustomPixelSize(size);
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
+            manager.Session = _current?.Session;
+            manager.PreviousPlot = () => _previousPlot;
             ShowPageSetupManager(manager);
         }
 

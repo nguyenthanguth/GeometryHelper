@@ -4,47 +4,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Page Setup Manager"
-    Width="640"
-    Height="440"
+    Width="660"
+    Height="580"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
     WindowStartupLocation="CenterOwner"
     Background="#262B33"
 >
-    <!-- Page Setup Manager, which PAGESETUP opens: the named page setups of the drawing, Set Current, New…, Modify… and Import…. -->
+    <!-- Page Setup Manager, which PAGESETUP opens: the layout's own setup and the named page setups of the drawing, the details of the one chosen, Set Current, New…, Modify… and Import…, and Rename and Delete on the list's menu. -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <Style x:Key="SetupRow" TargetType="ListBoxItem">
-                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ListBoxItem">
-                            <Border
-                                x:Name="Row"
-                                BorderBrush="{StaticResource GhHeader}"
-                                BorderThickness="0,1,0,0"
-                                Background="Transparent"
-                            >
-                                <ContentPresenter />
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter
-                                        TargetName="Row"
-                                        Property="Background"
-                                        Value="{StaticResource GhSelected}"
-                                    />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
+            <BooleanToVisibilityConverter x:Key="ShownWhen" />
 
             <Style x:Key="SideButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
                 <Setter Property="Padding" Value="8,5" />
@@ -85,15 +60,23 @@
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
-                    <Button
-                        DockPanel.Dock="Right"
-                        Style="{StaticResource StylePrimaryButton}"
-                        Content="Close"
-                        Padding="14,5"
-                        Click="OnClose"
-                        IsDefault="True"
-                        IsCancel="True"
-                    />
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource GhCloseButton}"
+                            Content="Close"
+                            Padding="14,5"
+                            Click="OnClose"
+                            IsDefault="True"
+                            IsCancel="True"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Help"
+                            Padding="14,5"
+                            Margin="8,0,0,0"
+                            Click="OnHelp"
+                        />
+                    </StackPanel>
                     <TextBlock
                         Text="{Binding Message}"
                         Foreground="#F26B3A"
@@ -113,75 +96,197 @@
                 </Grid.ColumnDefinitions>
 
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <TextBlock Text="{Binding LayoutText}" Foreground="{StaticResource GhTextMuted}" />
-                        <TextBlock Text="{Binding CurrentText}" FontWeight="SemiBold" Margin="0,2,0,0" />
+                    <!-- The layout the page setups are set on, with its icon. -->
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                        <local:IconView
+                            Size="14"
+                            StrokeThickness="1.8"
+                            Stroke="{StaticResource GhIcon}"
+                            Margin="0,0,6,0"
+                            VerticalAlignment="Center"
+                            Data="M4 5h16v14H4zM4 9h16M9 9v10"
+                        />
+                        <TextBlock Text="{Binding LayoutText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock
-                        DockPanel.Dock="Bottom"
-                        Text="{Binding DetailsText}"
-                        Foreground="{StaticResource GhTextMuted}"
-                        TextWrapping="Wrap"
-                        Margin="0,8,0,0"
-                        MinHeight="34"
-                    />
-                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+
+                    <!-- Selected page setup details, a grid under the list; then the box at the foot. -->
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                        <HeaderedContentControl
+                            Style="{StaticResource BlockGroup}"
+                            Header="Selected page setup details"
+                        >
+                            <Grid DataContext="{Binding SelectedInfo}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="96" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Text="Device name:"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="{Binding DeviceName}"
+                                    TextTrimming="CharacterEllipsis"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Text="Plotter:"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Text="{Binding Plotter}"
+                                    TextTrimming="CharacterEllipsis"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Text="Plot size:"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PlotSize}" Margin="0,0,0,4" />
+                                <TextBlock
+                                    Grid.Row="3"
+                                    Text="Where:"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock
+                                    Grid.Row="3"
+                                    Grid.Column="1"
+                                    Text="{Binding Where}"
+                                    TextTrimming="CharacterEllipsis"
+                                    Margin="0,0,0,4"
+                                />
+                                <TextBlock Grid.Row="4" Text="Description:" Foreground="{StaticResource GhTextMuted}" />
+                                <TextBlock
+                                    Grid.Row="4"
+                                    Grid.Column="1"
+                                    Text="{Binding Description}"
+                                    TextWrapping="Wrap"
+                                    MinHeight="30"
+                                />
+                            </Grid>
+                        </HeaderedContentControl>
+                        <CheckBox
+                            Style="{StaticResource StyleCheck}"
+                            Content="Display when creating a new layout"
+                            IsChecked="{Binding DisplayWhenCreatingLayout, Mode=TwoWay}"
+                            HorizontalAlignment="Left"
+                            Margin="0,10,0,0"
+                        />
+                    </StackPanel>
+
+                    <!-- Page setups: the current one, then the layout's own row and the named page setups. -->
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Page setups">
                         <DockPanel>
                             <TextBlock
                                 DockPanel.Dock="Top"
-                                Background="{StaticResource GhHeader}"
-                                Text="Page setups"
-                                Padding="8,6"
-                                FontSize="11"
-                                FontWeight="Medium"
-                                Foreground="{StaticResource GhTextMuted}"
+                                Text="{Binding CurrentText}"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,8"
                             />
-                            <ListBox
-                                ItemsSource="{Binding Items}"
-                                SelectedItem="{Binding Selected, Mode=TwoWay}"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                ItemContainerStyle="{StaticResource SetupRow}"
-                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                HorizontalContentAlignment="Stretch"
-                                AutomationProperties.Name="Page setups"
-                                MouseDoubleClick="OnModify"
-                            >
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type local:PageSetupRow}">
-                                        <DockPanel>
-                                            <TextBlock
-                                                DockPanel.Dock="Right"
-                                                Text="Current"
-                                                Padding="8,5"
-                                                Foreground="{StaticResource GhAccent}"
-                                            >
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="False">
-                                                                <Setter Property="Visibility" Value="Hidden" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <TextBlock
-                                                Text="{Binding Name}"
-                                                Padding="8,5"
-                                                FontWeight="SemiBold"
-                                                Foreground="{StaticResource GhText}"
-                                                TextTrimming="CharacterEllipsis"
+                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                                <ListBox
+                                    x:Name="Setups"
+                                    ItemsSource="{Binding Items}"
+                                    SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    ItemContainerStyle="{StaticResource SetupRow}"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                    HorizontalContentAlignment="Stretch"
+                                    AutomationProperties.Name="Page setups"
+                                    MouseDoubleClick="OnModify"
+                                    PreviewMouseRightButtonDown="OnListRightDown"
+                                >
+                                    <!-- The right-click menu: Set Current, Rename and Delete; the layout's own row has Set Current alone. -->
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu Style="{StaticResource GhContextMenu}">
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Set Current"
+                                                Click="OnSetCurrent"
+                                                IsEnabled="{Binding CanSetCurrent}"
                                             />
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Rename"
+                                                Click="OnRename"
+                                                Visibility="{Binding CanRename, Converter={StaticResource ShownWhen}}"
+                                            />
+                                            <MenuItem
+                                                Style="{StaticResource GhMenuItem}"
+                                                Header="Delete"
+                                                Click="OnDelete"
+                                                Visibility="{Binding CanDelete, Converter={StaticResource ShownWhen}}"
+                                            />
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:PageSetupRow}">
+                                            <Grid>
+                                                <TextBlock
+                                                    Text="{Binding Name}"
+                                                    Padding="8,5"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{StaticResource GhText}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                >
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBox
+                                                    Text="{Binding EditText, UpdateSourceTrigger=PropertyChanged}"
+                                                    Margin="4,2"
+                                                    AutomationProperties.Name="Page setup name"
+                                                    PreviewKeyDown="OnEditKey"
+                                                    LostKeyboardFocus="OnEditLostFocus"
+                                                    IsVisibleChanged="OnEditVisible"
+                                                >
+                                                    <TextBox.Style>
+                                                        <Style TargetType="TextBox" BasedOn="{StaticResource BlockBox}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBox.Style>
+                                                </TextBox>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
                         </DockPanel>
-                    </Border>
+                    </HeaderedContentControl>
                 </DockPanel>
 
-                <StackPanel Grid.Column="2" Margin="0,24,0,0">
+                <StackPanel Grid.Column="2" Margin="0,64,0,0">
                     <Button
                         Style="{StaticResource SideButton}"
                         Content="Set Current"

@@ -14,15 +14,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// copies, validated by the driver. Nothing here is run by a test, which gives <see cref="IPlotPrinter"/> a queue that
     /// prints nothing.
     /// </summary>
-    public sealed class WindowsPlotPrinter : IPlotPrinter
+    public sealed class WindowsPlotPrinter : IPlotPrinter, IPlotPrinterPort
     {
         private const double MillimetresPerUnit = 25.4 / 96.0;
 
         private readonly string _fullName;
+        private readonly string _port;
 
-        private WindowsPlotPrinter(string fullName)
+        private WindowsPlotPrinter(string fullName, string port)
         {
             _fullName = fullName;
+            _port = port ?? string.Empty;
         }
 
         /// <inheritdoc/>
@@ -30,6 +32,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <inheritdoc/>
         public bool IsNetwork => _fullName.StartsWith(@"\\", StringComparison.Ordinal);
+
+        /// <inheritdoc/>
+        public string Port => IsNetwork ? _fullName : _port;
 
         /// <summary>
         /// Lists the printers of Windows, local ones and those connected over the network, by name in ordinal order, letters of
@@ -48,7 +53,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         using (queue)
                         {
-                            printers.Add(new WindowsPlotPrinter(queue.FullName));
+                            printers.Add(new WindowsPlotPrinter(queue.FullName, PortOf(queue)));
                         }
                     }
                 }
@@ -66,6 +71,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             );
             return printers;
+        }
+
+        /// <summary>The port a queue prints to, as the spooler names it (<c>USB001</c>); empty where it will not say.</summary>
+        private static string PortOf(PrintQueue queue)
+        {
+            try
+            {
+                return queue.QueuePort?.Name ?? string.Empty;
+            }
+            catch (PrintSystemException exception)
+            {
+                GeometryHelperLog.Debug("WindowsPlotPrinter: no port for " + queue.FullName + ": " + exception.Message);
+                return string.Empty;
+            }
         }
 
         private static readonly EnumeratedPrintQueueTypes[] Kinds =

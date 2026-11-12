@@ -263,6 +263,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "REVCLOUDARCVARIANCE",
                     "REVCLOUDCREATEMODE",
                     "SELECTIONCYCLING",
+                    "SHOWPAGESETUPFORNEWLAYOUTS",
                     "SORTENTS",
                     "TEXTSIZE",
                     "TEXTSTYLE",

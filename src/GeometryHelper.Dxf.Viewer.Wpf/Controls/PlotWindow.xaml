@@ -175,7 +175,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- Footer: Preview…, Apply to Layout, the drawing and space, Cancel, OK and the fewer-options button. -->
+            <!-- Footer: Preview…, Apply to Layout, the drawing and space (or why OK was refused), OK, Cancel, Help and the fewer-options button. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
                     <Button
@@ -197,6 +197,15 @@
                     />
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="14,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                            IsDefault="True"
+                            IsEnabled="{Binding CanPlot}"
+                        />
+                        <Button
                             Style="{StaticResource GhDialogButton}"
                             Content="Cancel"
                             Padding="14,5"
@@ -205,13 +214,11 @@
                             IsCancel="True"
                         />
                         <Button
-                            Style="{StaticResource StylePrimaryButton}"
-                            Content="OK"
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Help"
                             Padding="14,5"
                             Margin="0,0,8,0"
-                            Click="OnOk"
-                            IsDefault="True"
-                            IsEnabled="{Binding CanPlot}"
+                            Click="OnHelp"
                         />
                         <Button
                             Style="{StaticResource GhDialogButton}"
@@ -223,7 +230,18 @@
                             ToolTip="The shorter form of the dialog is not built: the dialog stays expanded."
                         />
                     </StackPanel>
-                    <TextBlock Text="{Binding Footer}" Style="{StaticResource MutedText}" />
+                    <TextBlock Text="{Binding FooterText}" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                <Style.Triggers>
+                                    <!-- Why OK was refused is told here, in the orange of an error. -->
+                                    <DataTrigger Binding="{Binding HasNotice}" Value="True">
+                                        <Setter Property="Foreground" Value="#F26B3A" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </DockPanel>
             </Border>
 
@@ -411,8 +429,8 @@
                                 <CheckBox
                                     Style="{StaticResource StyleCheck}"
                                     Content="{Binding PlotToFileText}"
-                                    IsChecked="{Binding PlotsToFile, Mode=OneWay}"
-                                    IsEnabled="False"
+                                    IsChecked="{Binding PlotsToFile, Mode=TwoWay}"
+                                    IsEnabled="{Binding IsPlotToFileEnabled}"
                                     HorizontalAlignment="Left"
                                 />
                             </StackPanel>

@@ -139,4 +139,29 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- A row of a list of page setups: a hairline above it, the accent selection behind it (Page Setup Manager, Import Page
+         Setups, the starting points of New Page Setup). -->
+    <Style x:Key="SetupRow" TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border
+                        x:Name="Row"
+                        BorderBrush="{StaticResource GhHeader}"
+                        BorderThickness="0,1,0,0"
+                        Background="Transparent"
+                    >
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>
