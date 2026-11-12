@@ -20,6 +20,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         private const int Height = 600;
         private const int Grip = 0x3D9BFF;
         private const int Hot = 0xF85149;
+        private const int Pink = 0xFF7F7F;
 
         /// <summary>Runs a test on an STA thread: an MTEXT at 100,100 selected under a canvas of 800 by 600 showing 90,75 to 140,110.</summary>
         private static void OnCanvas(Action<DxfMText> make, Action<MainViewModel, CadCanvas> test)
@@ -103,10 +104,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Assert.Equal(Grip, Pixel(pixels, a, 3, -3));
                     Assert.Equal(Grip, Pixel(pixels, b, 0, 0));
                     Assert.Equal(Grip, Pixel(pixels, b, 1, 0));
-                    Assert.NotEqual(Grip, Pixel(pixels, b, 3, -3));
+                    Assert.NotEqual(Grip, Pixel(pixels, b, 5, -5));
                     Assert.Equal(Grip, Pixel(pixels, c, 0, 1));
-                    Assert.NotEqual(Grip, Pixel(pixels, c, 3, 3));
-                    Assert.NotEqual(Grip, Pixel(pixels, c, -3, 3));
+                    Assert.NotEqual(Grip, Pixel(pixels, c, 5, 5));
+                    Assert.NotEqual(Grip, Pixel(pixels, c, -5, 5));
                     Assert.Equal(Grip, Pixel(pixels, d, 3, 3));
                     Assert.NotEqual(Grip, Pixel(pixels, d, -3, -3));
                 }
@@ -114,7 +115,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void StaticColumns_HaveTheTrianglesOfAutoCadsGripPoints_AndTheOneUnderTheMouseIsRed()
+        public void StaticColumns_HaveTheTrianglesOfAutoCadsGripPoints_AndTheOneUnderTheMouseIsPink_AClickedOneRed()
         {
             OnCanvas(
                 t =>
@@ -130,18 +131,92 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     Point d = At(canvas, 26, -10);
                     int[] pixels = Pixels(canvas);
                     Assert.Equal(Grip, Pixel(pixels, b, 1, 0));
-                    Assert.NotEqual(Grip, Pixel(pixels, b, 3, -3));
+                    Assert.NotEqual(Grip, Pixel(pixels, b, 5, -5));
                     Assert.Equal(Grip, Pixel(pixels, e, 1, 0));
                     Assert.Equal(Grip, Pixel(pixels, c, 0, 1));
-                    Assert.NotEqual(Grip, Pixel(pixels, c, 3, 3));
+                    Assert.NotEqual(Grip, Pixel(pixels, c, 5, 5));
                     Assert.Equal(Grip, Pixel(pixels, d, 3, 3));
                     Assert.NotEqual(Grip, Pixel(pixels, d, -3, -3));
 
+                    // Under the cursor a grip is AutoCAD's pink (GRIPHOVER), as a plain grip's square is.
                     CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, e);
                     pixels = Pixels(canvas);
-                    Assert.Equal(Hot, Pixel(pixels, e, 1, 0));
-                    Assert.NotEqual(Hot, Pixel(pixels, e, 3, -3));
+                    Assert.Equal(Pink, Pixel(pixels, e, 1, 0));
+                    Assert.NotEqual(Pink, Pixel(pixels, e, 5, -5));
                     Assert.Equal(Grip, Pixel(pixels, b, 1, 0));
+
+                    // Clicked, the grip edit starts and it is the hot red.
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseDownEvent, e);
+                    CanvasMouseTests.Mouse(canvas, UIElement.MouseUpEvent, e);
+                    pixels = Pixels(canvas);
+                    Assert.True(model.Session.IsGripEditing);
+                    Assert.Equal(Hot, Pixel(pixels, e, 1, 0));
+                    Assert.NotEqual(Hot, Pixel(pixels, e, 5, -5));
+                }
+            );
+        }
+
+        /// <summary>The box (width, height) of the pixels near the grip colour within 30 pixels of a point; 0 by 0 where there are none.</summary>
+        private static Size Extent(int[] pixels, Point at, int colour)
+        {
+            int left = int.MaxValue,
+                right = int.MinValue,
+                top = int.MaxValue,
+                bottom = int.MinValue;
+
+            for (int y = (int)at.Y - 30; y <= (int)at.Y + 30; y++)
+            {
+                for (int x = (int)at.X - 30; x <= (int)at.X + 30; x++)
+                {
+                    if (x < 0 || y < 0 || x >= Width || y >= Height)
+                    {
+                        continue;
+                    }
+
+                    int rgb = pixels[y * Width + x] & 0xFFFFFF;
+                    int off =
+                        Math.Abs(((rgb >> 16) & 0xFF) - ((colour >> 16) & 0xFF))
+                        + Math.Abs(((rgb >> 8) & 0xFF) - ((colour >> 8) & 0xFF))
+                        + Math.Abs((rgb & 0xFF) - (colour & 0xFF));
+
+                    if (off > 60)
+                    {
+                        continue;
+                    }
+
+                    left = Math.Min(left, x);
+                    right = Math.Max(right, x);
+                    top = Math.Min(top, y);
+                    bottom = Math.Max(bottom, y);
+                }
+            }
+
+            return right < left ? new Size(0, 0) : new Size(right - left + 1, bottom - top + 1);
+        }
+
+        [Theory]
+        [InlineData(5, 15)]
+        [InlineData(8, 21)]
+        [InlineData(12, 29)]
+        public void TheTrianglesOfAnMText_AreAsLargeAsTheSquareAtEveryGripSize(int size, int square)
+        {
+            OnCanvas(
+                t => t.Height = 15.0,
+                (model, canvas) =>
+                {
+                    canvas.GripSize = size;
+                    int[] pixels = Pixels(canvas);
+
+                    // Each grip's box is the square's side, less the dark edge of a triangle (one pixel a side).
+                    foreach (Point at in new[] { At(canvas, 30, 0), At(canvas, 0, -15), At(canvas, 30, -15) })
+                    {
+                        Size extent = Extent(pixels, at, Grip);
+                        Assert.InRange(extent.Width, square - 3, square);
+                        Assert.InRange(extent.Height, square - 3, square);
+                    }
+
+                    // Not the old fixed 10 across, whatever the size.
+                    Assert.True(Extent(pixels, At(canvas, 30, 0), Grip).Width > 10);
                 }
             );
         }

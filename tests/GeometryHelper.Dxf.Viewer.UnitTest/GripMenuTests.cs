@@ -340,7 +340,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(session.IsGripEditing);
             Assert.Equal("** ADD VERTEX **", session.History.Last());
-            Assert.Equal("Specify new vertex point or [Base point/Copy/eXit]:", session.PromptText);
+            Assert.Equal("Specify new vertex point or [Base point/Copy/Undo/eXit]:", session.PromptText);
             Near(P(100, 0), session.Prompt.BasePoint.Value);
 
             Run(session, P(120, 25));
@@ -377,6 +377,155 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void UndoInsideAddVertexWithCopy_TakesTheLastVertexBack_AndTheNextOneGoesAfterTheOneBefore()
+        {
+            CadDocument document = Rectangle(false);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            Assert.True(session.StartGripAction("R1", 3, CadGripAction.AddVertex));
+
+            Run(session, "C", P(-10, 40), P(-20, 30));
+            Assert.Equal(6, Poly(document).NumberOfVertices);
+
+            Run(session, "U");
+
+            Assert.True(session.IsRunning);
+            Assert.Equal(5, Poly(document).NumberOfVertices);
+            Near(P(-10, 40), Poly(document).GetPoint2dAt(4));
+            Near(P(-10, 40), session.Prompt.BasePoint.Value);
+
+            // The vertex asked for next is after the one that is left, as if the undone one had not been put.
+            Run(session, P(-5, 20), "X");
+
+            DxfPolyline polyline = Poly(document);
+            Assert.Equal(6, polyline.NumberOfVertices);
+            Near(P(-10, 40), polyline.GetPoint2dAt(4));
+            Near(P(-5, 20), polyline.GetPoint2dAt(5));
+            Assert.True(document.Undo());
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void UndoInsideAddVertex_GivesBackTheArcSegmentThatWasSplit_WithItsBulgeAndWidths()
+        {
+            // A half circle from (0, 0) to (20, 0) tapering from 2 to 4 wide; a vertex put in it and taken back by Undo.
+            const string tapered =
+                "0\nLWPOLYLINE\n5\nH1\n8\n0\n100\nAcDbEntity\n100\nAcDbPolyline\n90\n2\n70\n0\n"
+                + "10\n0\n20\n0\n40\n2\n41\n4\n42\n1\n10\n20\n20\n0\n";
+            CadDocument document = CadDocument.From(TestDrawings.Drawing(null, null, tapered), "half.dxf");
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            Assert.True(session.StartGripAction("H1", 2, CadGripAction.AddVertex));
+
+            Run(session, "C", P(10, -10));
+            Assert.Equal(3, Poly(document, "H1").NumberOfVertices);
+
+            Run(session, "U");
+
+            DxfPolyline polyline = Poly(document, "H1");
+            Assert.Equal(2, polyline.NumberOfVertices);
+            Assert.Equal(1.0, polyline.GetBulgeAt(0), 9);
+            Assert.Equal(2.0, polyline.GetStartWidthAt(0), 9);
+            Assert.Equal(4.0, polyline.GetEndWidthAt(0), 9);
+            Assert.True(session.IsRunning);
+        }
+
+        [Fact]
+        public void UndoInsideAddVertex_WithNothingAddedYet_ChangesNothing_AndKeepsAsking()
+        {
+            CadDocument document = Rectangle(false);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            Assert.True(session.StartGripAction("R1", 1, CadGripAction.AddVertex));
+
+            Run(session, "U");
+
+            Assert.True(session.IsRunning);
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+            Assert.False(document.CanUndo);
+            Near(P(100, 0), session.Prompt.BasePoint.Value);
+        }
+
+        [Fact]
+        public void UndoInsideAddVertex_OfEveryVertexAdded_LeavesThePolylineAsItWas_AndTheRunStillOneUndoStep()
+        {
+            CadDocument document = Rectangle(false);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            Assert.True(session.StartGripAction("R1", 3, CadGripAction.AddVertex));
+
+            Run(session, "C", P(-10, 40), P(-20, 30), "U", "U", "U");
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+
+            Run(session, P(-10, 20), "X");
+
+            Assert.Equal(5, Poly(document).NumberOfVertices);
+            Assert.True(document.Undo());
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void UndoInsideAddVertex_ThenExit_LeavesNoUndoStepAtAll()
+        {
+            CadDocument document = Rectangle(false);
+            CadCommandSession session = Session(document);
+            session.Tolerance = Tolerance.Default;
+            Assert.True(session.StartGripAction("R1", 3, CadGripAction.AddVertex));
+
+            Run(session, "C", P(-10, 40), "U", "X");
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(4, Poly(document).NumberOfVertices);
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void RemoveVertexBetweenTwoArcs_JoinsItsNeighboursWithOneStraightSegment()
+        {
+            // AutoCAD 2021 words Remove Vertex "Remove vertex, and replace neighboring segments with line": a vertex with an
+            // arc either side leaves one line, the bulge of the arc it started dropped with it.
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Polyline("0", "D2", false, 0, 0, 0.5, 100, 0, -0.3, 100, 50, 0)
+                ),
+                "between.dxf"
+            );
+
+            Assert.True(CadGrips.RemoveVertex(document, "D2", 1).Succeeded);
+
+            DxfPolyline polyline = Poly(document, "D2");
+            Assert.Equal(2, polyline.NumberOfVertices);
+            Near(P(100, 50), polyline.GetPoint2dAt(1));
+            Assert.Equal(0.0, polyline.GetBulgeAt(0));
+        }
+
+        [Fact]
+        public void RemoveVertexOfAClosedPolyline_AtItsStart_StraightensTheClosingArcToo()
+        {
+            // The closing segment (vertex 3 back to vertex 0) is an arc; taking vertex 0 out joins vertex 3 to vertex 1 by a line.
+            CadDocument document = CadDocument.From(
+                TestDrawings.Drawing(
+                    null,
+                    null,
+                    TestDrawings.Polyline("0", "D3", true, 0, 0, 0.5, 100, 0, 0, 100, 50, 0, 0, 50, 0.4)
+                ),
+                "closing.dxf"
+            );
+
+            Assert.True(CadGrips.RemoveVertex(document, "D3", 0).Succeeded);
+
+            DxfPolyline polyline = Poly(document, "D3");
+            Assert.Equal(3, polyline.NumberOfVertices);
+            Near(P(100, 0), polyline.GetPoint2dAt(0));
+            Assert.Equal(0.0, polyline.GetBulgeAt(2));
+            Assert.Equal(0.0, polyline.GetBulgeAt(0));
+        }
+
+        [Fact]
         public void EscapeAtAddVertexOrConvertToArc_ChangesNothing_AndLeavesNoUndoStep()
         {
             CadDocument document = Rectangle();
@@ -404,7 +553,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(session.StartGripAction("R1", 4, CadGripAction.ConvertToArc));
 
             Assert.Equal("** CONVERT TO ARC **", session.History.Last());
-            Assert.Equal("Specify the arc midpoint:", session.PromptText);
+            Assert.Equal("Specify midpoint of arc segment:", session.PromptText);
             Assert.NotNull(session.Prompt.Preview);
 
             Run(session, P(50, -20));
@@ -416,7 +565,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void StretchVertexFromTheMenu_AsksStretchVertex_AndAPointMovesTheVertex()
+        public void StretchVertexFromTheMenu_AsksStretchAsAClickDoes_AndAPointMovesTheVertex()
         {
             CadDocument document = Rectangle();
             CadCommandSession session = Session(document);
@@ -424,7 +573,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(session.StartGripAction("R1", 2, CadGripAction.StretchVertex));
 
-            Assert.Equal("** STRETCH VERTEX **", session.History.Last());
+            // AutoCAD 2021's table of a polyline's grip modes (acdb24res.dll) gives "Stretch Vertex" the command line text
+            // "** STRETCH **", the one a click on the grip says.
+            Assert.Equal("** STRETCH **", session.History.Last());
             Assert.Equal("Specify stretch point or [Base point/Copy/Undo/eXit]:", session.PromptText);
 
             Run(session, P(110, 60));

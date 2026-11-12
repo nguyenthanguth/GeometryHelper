@@ -42,6 +42,20 @@ GRIPMULTIFUNCTIONAL (0 to 3, 3 by default; bit 2 turns the hover menu on) are ke
 (`"gripSize"`, `"gripMultifunctional"`). The grips of tables, MTEXT and dynamic blocks scale with the size, so at the
 default they are about twice as large as the fixed 8 pixels they had.
 
+**CHANGED.** The triangle grips of an MTEXT (width, height, corner, column grips) and of a table (width, height, size) now
+scale from GRIPSIZE like the squares: 15 pixels across at the default size of 5, 25 at 10, where they were a fixed 10 and
+12; the table's breaking triangle and the autofill diamond of a selected cell grow with the size too, and are as large as
+before at the default. Under the cursor these triangles, a dynamic block's custom grips and a table cell's grips are
+AutoCAD's pink (`#FF7F7F`, GRIPHOVER) as the squares are, a clicked grip the hot red; they were hot red as soon as the
+cursor touched them.
+**CHANGED.** Stretch Vertex from a polyline vertex's hover menu says `** STRETCH **`, as a click on the grip does, where
+it said `** STRETCH VERTEX **`: AutoCAD 2021's table of the polyline's grip modes gives Stretch Vertex that line.
+**NEW.** Add Vertex of a polyline's hover menu offers Undo: `Specify new vertex point or [Base point/Copy/Undo/eXit]:`.
+With Copy on, Undo takes the last vertex made back while the command runs, the arc segment it split given back with its
+bulge and widths, and the next vertex is asked after the one before; the whole run stays one undo step. Remove Vertex
+beside an arc was checked against AutoCAD's own wording ("replace neighboring segments with line") and already left one
+straight segment, with a test now for an arc either side and for the closing arc of a closed polyline.
+
 **NEW.** In a layout of the presenter, every viewport whose grid is on draws it in its frame, whether it is worked
 through or not, on the paper and through another viewport, as AutoCAD 2021 keeps a grid by viewport. Only the grid of
 the viewport worked through was drawn.

@@ -4487,32 +4487,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 bool clicked = _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
                 bool hot = i == _hotGrip || clicked;
 
+                // Under the cursor a grip is AutoCAD's pink, clicked the hot red, whatever its shape.
                 if (_grips[i].Grip.Custom != null)
                 {
-                    DrawCustomGrip(dc, view, scale, _grips[i].Grip, at, hot ? HotGripBrush : CustomGripBrush);
+                    DrawCustomGrip(
+                        dc,
+                        view,
+                        scale,
+                        _grips[i].Grip,
+                        at,
+                        clicked ? HotGripBrush
+                            : i == _hotGrip ? HoverGripBrush
+                            : CustomGripBrush
+                    );
                     continue;
                 }
 
+                Brush fill =
+                    clicked ? HotGripBrush
+                    : i == _hotGrip ? HoverGripBrush
+                    : GripBrush;
+
                 if (
-                    DrawTableGrip(dc, view, scale, _grips[i].Grip, at, hot)
-                    || DrawMTextGrip(dc, view, scale, _grips[i].Grip, at, hot)
+                    DrawTableGrip(dc, view, scale, _grips[i].Grip, at, fill)
+                    || DrawMTextGrip(dc, view, scale, _grips[i].Grip, at, fill)
                 )
                 {
                     continue;
                 }
 
-                // A plain grip: the grip colour edged dark; under the cursor AutoCAD's pink, clicked the hot red, neither edged.
-                DrawPlainGrip(
-                    dc,
-                    view,
-                    scale,
-                    _grips[i].Grip,
-                    at,
-                    clicked ? HotGripBrush
-                        : i == _hotGrip ? HoverGripBrush
-                        : GripBrush,
-                    !hot
-                );
+                // A plain grip: the grip colour edged dark; under the cursor or clicked, its colour and no edge.
+                DrawPlainGrip(dc, view, scale, _grips[i].Grip, at, fill, !hot);
             }
 
             DrawGripMenu(dc);
@@ -4665,12 +4670,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// A triangle grip of an MTEXT, as the design MTextGrips draws it: a width, a gutter or a height a triangle 10 across
-        /// pointing the way the grip does, from 4 behind its point to 6 ahead; a size, or a corner of the box pointing both
-        /// ways, a right triangle 12 across pointing into the corner; filled in the grip colour with a dark edge, as the
-        /// table's stretch grips. True where the grip is one of these; the location and a corner of no way are squares.
+        /// A triangle grip of an MTEXT, as the design MTextGrips draws it: a width, a gutter or a height a triangle pointing the
+        /// way the grip does, from 4 tenths of its size behind its point to 6 tenths ahead; a size, or a corner of the box
+        /// pointing both ways, a right triangle pointing into the corner; each as large as a plain grip's square (15 across at
+        /// the default grip size of 5, 25 at 10), filled as the squares are with a dark edge, as the table's stretch grips.
+        /// True where the grip is one of these; the location and a corner of no way are squares.
         /// </summary>
-        private bool DrawMTextGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, bool hot)
+        private bool DrawMTextGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, Brush fill)
         {
             bool triangle =
                 grip.Kind == CadGripKind.MTextColumnWidth
@@ -4697,11 +4703,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 scale
             );
             double angle = Math.Atan2(ahead.Y - at.Y, ahead.X - at.X);
+            // The triangle is 10 across on its grid and the corner's legs 12, so each one's scale makes its box the square's side.
             double d = 6.0 * Math.Sqrt(2.0);
             Point[] shape = triangle
-                ? Shape(at, angle, 1.0, -4, -5, 6, 0, -4, 5)
-                : Shape(at, angle, 1.0, d, 0, 0, d, 0, -d);
-            dc.DrawGeometry(hot ? HotGripBrush : GripBrush, CustomGripEdge, Polygon(shape));
+                ? Shape(at, angle, GripSquare / 10.0, -4, -5, 6, 0, -4, 5)
+                : Shape(at, angle, GripSquare / 12.0, d, 0, 0, d, 0, -d);
+            dc.DrawGeometry(fill, CustomGripEdge, Polygon(shape));
             return true;
         }
 

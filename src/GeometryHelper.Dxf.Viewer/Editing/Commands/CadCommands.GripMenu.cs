@@ -5,8 +5,8 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// The items of a multi-functional grip's hover menu (<see cref="CadCommandSession.StartGripAction"/>): the grip edit with
-    /// the vertex's own name, Add Vertex and Convert to Arc with their prompts, Remove Vertex and Convert to Line done at once.
+    /// The items of a multi-functional grip's hover menu (<see cref="CadCommandSession.StartGripAction"/>): the grip edit as a click on
+    /// the grip makes it, Add Vertex and Convert to Arc with their prompts, Remove Vertex and Convert to Line done at once.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -23,11 +23,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadGripAction.Stretch:
                 case CadGripAction.StretchVertex:
                     foreach (
-                        CadPrompt prompt in GripEdit(
-                            c,
-                            new[] { new KeyValuePair<string, int>(handle, gripIndex) },
-                            action == CadGripAction.StretchVertex ? "STRETCH VERTEX" : null
-                        )
+                        CadPrompt prompt in GripEdit(c, new[] { new KeyValuePair<string, int>(handle, gripIndex) })
                     )
                     {
                         yield return prompt;
@@ -65,10 +61,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// "** ADD VERTEX **" and "Specify new vertex point or [Base point/Copy/eXit]:", the polyline previewed with the vertex
-        /// at the cursor. A point puts the vertex after the grip's vertex and ends; with Copy on, each next vertex goes after
-        /// the one just made, until eXit, Enter or Esc. With a Base point given the vertex goes where the point lies from the
-        /// base as the grip lies from where it was.
+        /// "** ADD VERTEX **" and "Specify new vertex point or [Base point/Copy/Undo/eXit]:", the polyline previewed with the
+        /// vertex at the cursor. A point puts the vertex after the grip's vertex and ends; with Copy on, each next vertex goes
+        /// after the one just made, until eXit, Enter or Esc, and Undo takes the last vertex made back, the segment it split
+        /// given back as it was. With a Base point given the vertex goes where the point lies from the base as the grip lies
+        /// from where it was.
         /// </summary>
         private static IEnumerable<CadPrompt> GripAddVertex(CadCommandContext c, string handle, int gripIndex)
         {
@@ -79,6 +76,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 basePoint = origin;
             int at = gripIndex;
             bool multiple = false;
+            var made = new List<AddedVertex>();
             CadPreview preview = CadPreview.Reshaping(c, handle, (entity, point) =>
                 CadGrips.InsertVertexAfterAt(entity, after, origin + (point - basePoint))
             );
@@ -87,7 +85,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write("** ADD VERTEX" + (multiple ? " (multiple)" : string.Empty) + " **");
                 yield return CadPrompt
-                    .ForPoint("Specify new vertex point", basePoint, new[] { "Base point", "Copy", "eXit" })
+                    .ForPoint("Specify new vertex point", basePoint, new[] { "Base point", "Copy", "Undo", "eXit" })
                     .Previewing(preview);
                 CadInput input = c.Input;
 
@@ -106,6 +104,20 @@ namespace GeometryHelper.Dxf.Viewer
                     if (input.Is("Copy"))
                     {
                         multiple = true;
+                    }
+                    else if (input.Is("Undo"))
+                    {
+                        // The vertex made last goes, the drawing read back to before it, and the next one is asked as it was then.
+                        if (made.Count > 0)
+                        {
+                            AddedVertex last = made[made.Count - 1];
+                            made.RemoveAt(made.Count - 1);
+                            c.Document.BackTo(last.Mark);
+                            after = last.After;
+                            at = last.At;
+                            origin = last.Origin;
+                            basePoint = last.BasePoint;
+                        }
                     }
                     else if (input.Is("Base point"))
                     {
@@ -127,6 +139,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 GeoPoint2 target = origin + (input.Point - basePoint);
                 c.OpenUndoStep();
+                CadGroupMark mark = c.Document.MarkGroup();
                 CadEditResult result = CadGrips.AddVertex(c.Document, handle, at, target);
 
                 if (!result.Succeeded)
@@ -134,6 +147,8 @@ namespace GeometryHelper.Dxf.Viewer
                     c.Write(result.Message);
                     continue;
                 }
+
+                made.Add(new AddedVertex(mark, after, at, origin, basePoint));
 
                 if (!multiple)
                 {
@@ -148,7 +163,30 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>"** CONVERT TO ARC **" and "Specify the arc midpoint:", the polyline previewed bent through the cursor; a point makes the arc.</summary>
+        /// <summary>A vertex Add Vertex has made: the savepoint before it and where the next vertex was to go then, for Undo.</summary>
+        private sealed class AddedVertex
+        {
+            internal AddedVertex(CadGroupMark mark, int after, int at, GeoPoint2 origin, GeoPoint2 basePoint)
+            {
+                Mark = mark;
+                After = after;
+                At = at;
+                Origin = origin;
+                BasePoint = basePoint;
+            }
+
+            internal CadGroupMark Mark { get; }
+
+            internal int After { get; }
+
+            internal int At { get; }
+
+            internal GeoPoint2 Origin { get; }
+
+            internal GeoPoint2 BasePoint { get; }
+        }
+
+        /// <summary>"** CONVERT TO ARC **" and "Specify midpoint of arc segment:", the polyline previewed bent through the cursor; a point makes the arc.</summary>
         private static IEnumerable<CadPrompt> GripConvertToArc(CadCommandContext c, string handle, int gripIndex)
         {
             var polyline = (DxfPolyline)c.Document.FindEntity(handle);
