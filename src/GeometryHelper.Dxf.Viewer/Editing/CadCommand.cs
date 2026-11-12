@@ -297,6 +297,16 @@ namespace GeometryHelper.Dxf.Viewer
                     ["ISOLATE"] = "ISOLATEOBJECTS",
                     ["UNISOLATE"] = "UNISOLATEOBJECTS",
                     ["UNHIDE"] = "UNISOLATEOBJECTS",
+                    ["-P"] = "-PAN",
+                    ["-T"] = "-MTEXT",
+                    ["-LO"] = "-LAYOUT",
+                    ["XB"] = "XBIND",
+                    ["-XB"] = "-XBIND",
+                    ["-OS"] = "-OSNAP",
+                    ["CLI"] = "COMMANDLINE",
+                    ["POFF"] = "HIDEPALETTES",
+                    ["PON"] = "SHOWPALETTES",
+                    ["EXIT"] = "QUIT",
                 },
                 new Dictionary<string, string>
                 {

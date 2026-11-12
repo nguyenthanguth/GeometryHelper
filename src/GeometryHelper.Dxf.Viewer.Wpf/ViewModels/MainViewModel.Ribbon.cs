@@ -428,6 +428,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             registry.Add(new CadCommand("ISOPLANE", IsoplaneBody));
             registry.Add(new CadCommand("DSETTINGS", DraftingSettingsBody));
+            AddBatchFourBWindowCommands(registry);
             var aliases = new Dictionary<string, string> { ["DS"] = "DSETTINGS", ["OS"] = "DSETTINGS" };
             registry.Shortcuts = new CadShortcuts(registry.Shortcuts.Aliases.Concat(aliases), registry.Shortcuts.Keys);
         }

@@ -171,6 +171,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
             AddXrefsTo(registry);
             AddShapesBatchTo(registry);
+            AddBatchFourBTo(registry);
             AddVariablesTo(registry);
             AddPgpBasicsTo(registry);
         }
@@ -627,7 +628,13 @@ namespace GeometryHelper.Dxf.Viewer
             return factor > 0.0 && !double.IsInfinity(factor);
         }
 
-        private static IEnumerable<CadPrompt> Pan(CadCommandContext c)
+        private static IEnumerable<CadPrompt> Pan(CadCommandContext c) => PanBody(c, false);
+
+        /// <summary>
+        /// PAN and -PAN: the base point or displacement, then the second point. Typed as -PAN, Enter at the first prompt is
+        /// refused, "Requires two points, or a displacement followed by ENTER.", and the prompt asked again, as AutoCAD 2021 does.
+        /// </summary>
+        private static IEnumerable<CadPrompt> PanBody(CadCommandContext c, bool typed)
         {
             DxfViewport through = c.Document.ActiveViewport;
 
@@ -635,7 +642,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // Through a viewport its view is panned, one undo step; the paper stays.
                 string handle = through.Handle;
-                yield return CadPrompt.ForPoint("Specify base point or displacement");
+
+                foreach (CadPrompt prompt in PanBase(c, typed))
+                {
+                    yield return prompt;
+                }
 
                 if (!c.Input.IsPoint)
                 {
@@ -680,7 +691,10 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify base point or displacement");
+            foreach (CadPrompt prompt in PanBase(c, typed))
+            {
+                yield return prompt;
+            }
 
             if (!c.Input.IsPoint)
             {

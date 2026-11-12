@@ -1614,7 +1614,7 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (DxfLayout layout in LayoutsOf(database))
             {
                 CadSpace kept = _spaces.Find(s =>
-                    !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.OrdinalIgnoreCase)
+                    !s.IsModel && string.Equals(s.Name, layout.LayoutName, StringComparison.Ordinal)
                 );
 
                 if (kept == null)
@@ -1674,10 +1674,30 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gives each layout an edit added (LAYOUT New) a space of its own, after the others, as its tab is the last; a layout an
-        /// edit renamed (LAYOUT Rename) a space of its new name in the place of its old one.
+        /// edit renamed (LAYOUT Rename) a space of its new name in the place of its old one; takes the space of a layout an edit
+        /// erased (-LAYOUT Delete) out, the next tab shown where it was the one shown, else the one before it, else Model.
         /// </summary>
         private void AddNewSpaces()
         {
+            for (int i = _spaces.Count - 1; i >= 0; i--)
+            {
+                CadSpace gone = _spaces[i];
+
+                if (!gone.IsModel && gone.Layout != null && gone.Layout.IsErased)
+                {
+                    _spaces.RemoveAt(i);
+                    _displays.Remove(gone);
+                    _indexes.Remove(gone);
+                    _stale.Remove(gone);
+
+                    if (CurrentSpace == gone)
+                    {
+                        CurrentSpace = _spaces[Math.Min(i, _spaces.Count - 1)];
+                        Selection.Clear();
+                    }
+                }
+            }
+
             for (int i = 0; i < _spaces.Count; i++)
             {
                 CadSpace space = _spaces[i];
