@@ -340,12 +340,21 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The face in its new place.</returns>
-        public GeoFace3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the face would have vertices of NaN or infinity, which its polygons refuse.
+        /// </exception>
+        public GeoFace3 Translate(GeoVector3 vector)
+        {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
+            return TransformBy(GeoTransform3.Translation(vector));
+        }
 
         /// <summary>
         /// Applies a transformation to the boundary and every hole.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         /// <remarks>
         /// The boundary and the holes are transformed as <see cref="GeoPolygon3.TransformBy(GeoTransform3)"/> transforms a
         /// polygon. A move, or an even scaling turned, moved or mirrored besides, keeps the holes on the boundary's plane as
@@ -358,6 +367,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             return TransformBy(transform, transform.ReadCarrying());
         }

@@ -409,6 +409,11 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets this box as an oriented box aligned with the world axes.
         /// </summary>
+        /// <remarks>
+        /// A box with a corner that is not a finite point gives the oriented box about its centre, which is not one either,
+        /// of no size along an axis whose size is not a number: the box from (NaN, 30, -10) to (80, 70, 20) is the box about
+        /// (NaN, 50, 5) 0 by 40 by 30, which meets nothing, where it threw for a box size of NaN.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the box is empty.</exception>
         public GeoObb3 ToObb()
         {
@@ -417,8 +422,16 @@ namespace GeometryHelper.Geometry
                 throw new InvalidOperationException("An empty bounding box has no shape to convert.");
             }
 
+            if (!IsValid)
+            {
+                // The centre carries the NaN or the infinity, as a point does; a size that is not a number is none.
+                return new GeoObb3(Center, FiniteOrNone(SizeX), FiniteOrNone(SizeY), FiniteOrNone(SizeZ));
+            }
+
             return new GeoObb3(Center, SizeX, SizeY, SizeZ);
         }
+
+        private static double FiniteOrNone(double size) => Guard.IsFinite(size) ? size : 0.0;
 
         #endregion
 

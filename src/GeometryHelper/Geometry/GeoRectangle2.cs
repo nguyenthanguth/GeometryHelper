@@ -301,7 +301,8 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="other">The other rectangle to combine with.</param>
         /// <returns>A new GeoRectangle2 containing both rectangles, oriented along this rectangle's axis.</returns>
-        public GeoRectangle2 Combine(GeoRectangle2 other) => Combine((IEnumerable<GeoPoint2>)other.GetVertices());
+        /// <exception cref="ArgumentException">Thrown when the rectangle holding both would have a size that is not a finite number.</exception>
+        public GeoRectangle2 Combine(GeoRectangle2 other) => Combine(other.GetVertices(), nameof(other));
 
         /// <summary>
         /// Combines this rectangle with a point, returning a new rectangle that encloses both.
@@ -309,6 +310,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="point">The point to combine with.</param>
         /// <returns>A new GeoRectangle2 containing this rectangle and the point, oriented along this rectangle's axis.</returns>
+        /// <exception cref="ArgumentException">Thrown when the rectangle holding both would have a size that is not a finite number.</exception>
         public GeoRectangle2 Combine(GeoPoint2 point)
         {
             double cos = Math.Cos(AngleRad);
@@ -321,7 +323,7 @@ namespace GeometryHelper.Geometry
 
             ExpandLocalBounds(point, cos, sin, ref minX, ref maxX, ref minY, ref maxY);
 
-            return FromLocalBounds(minX, maxX, minY, maxY, cos, sin);
+            return FromLocalBounds(minX, maxX, minY, maxY, cos, sin, nameof(point));
         }
 
         /// <summary>
@@ -338,7 +340,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="points">The points to combine with. A null or empty sequence leaves the rectangle unchanged.</param>
         /// <returns>A new GeoRectangle2 containing this rectangle and all points, oriented along this rectangle's axis.</returns>
-        public GeoRectangle2 Combine(IEnumerable<GeoPoint2> points)
+        /// <exception cref="ArgumentException">Thrown when the rectangle holding them would have a size that is not a finite number.</exception>
+        public GeoRectangle2 Combine(IEnumerable<GeoPoint2> points) => Combine(points, nameof(points));
+
+        /// <summary>
+        /// Combines this rectangle with points given under a name, which a size that is not finite is refused by.
+        /// </summary>
+        private GeoRectangle2 Combine(IEnumerable<GeoPoint2> points, string name)
         {
             if (points == null)
             {
@@ -365,7 +373,7 @@ namespace GeometryHelper.Geometry
                 return this;
             }
 
-            return FromLocalBounds(minX, maxX, minY, maxY, cos, sin);
+            return FromLocalBounds(minX, maxX, minY, maxY, cos, sin, name);
         }
 
         /// <summary>
@@ -406,9 +414,17 @@ namespace GeometryHelper.Geometry
             double minY,
             double maxY,
             double cos,
-            double sin
+            double sin,
+            string name
         )
         {
+            // A point at infinity, or a rectangle about one, has no rectangle of finite size holding it.
+            Guard.Argument(
+                Guard.IsFinite(maxX - minX) && Guard.IsFinite(maxY - minY),
+                name,
+                "The rectangle holding it would have a size that is not a finite number."
+            );
+
             double localCenterX = (minX + maxX) * 0.5;
             double localCenterY = (minY + maxY) * 0.5;
 

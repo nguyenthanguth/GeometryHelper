@@ -426,6 +426,13 @@ namespace GeometryHelper.Core
         internal static SplineShape3 Of(GeoSpline3 spline, GeoArc3 arc)
         {
             var shape = new SplineShape3();
+
+            // An arc about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
+            if (!arc.Center.IsValid)
+            {
+                return shape;
+            }
+
             shape.Parts.Add(new SplinePartner(GeoSpline3.FromArc(arc).Curve));
             shape.InPlane = frame => Spline2.Of(null, Flat(frame, arc)).Parts;
 
@@ -472,6 +479,12 @@ namespace GeometryHelper.Core
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoCircle3 circle)
         {
+            // A circle about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
+            if (!circle.Center.IsValid)
+            {
+                return new SplineShape3();
+            }
+
             GeoPoint3 center = circle.Center;
             double radius = circle.Radius;
 
@@ -496,6 +509,12 @@ namespace GeometryHelper.Core
 
         internal static SplineShape3 Of(GeoSpline3 spline, GeoEllipse3 ellipse)
         {
+            // An ellipse about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
+            if (!ellipse.Center.IsValid)
+            {
+                return new SplineShape3();
+            }
+
             GeoPoint3 center = ellipse.Center;
             GeoVector3 major = ellipse.MajorAxis;
             GeoVector3 minor = ellipse.MinorAxis;

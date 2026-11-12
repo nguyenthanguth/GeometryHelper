@@ -147,9 +147,30 @@ and of an arc by a distance of NaN, `TrySplitAtDistance` of a segment, a chain o
 a polygon with a vertex of NaN, `TrySplitBy` of a curved chain with one, `TryExtendTo` a point or a plane in space,
 `TryTrimExtendToCorner` in space and `TryGetBarycentric` of a point of NaN answer false. A spline in the plane and a chain
 or a triangle with a corner of NaN or at infinity meet nowhere, where under .NET Framework 4.8 the search for where they
-meet never ended. Every finite answer is the same bit for bit. Some members still throw an `ArgumentException` from
-inside for such a shape, naming a radius, a box size or a control point of their own working rather than the shape
-given.
+meet never ended. Every finite answer is the same bit for bit.
+
+A member that cannot work with such a shape, or with a number that is not finite, refuses it by its own name, through
+an `ArgumentException`, rather than throwing from inside for a radius, a box size or a control point of its own working.
+`Chamfer` of a polygon or a chain with a vertex of NaN names `polygon` or `polyline`, where it ran on for ever;
+`GeoPlane3.FromThreePoints` and `FromThreePoints` of an arc name the point, a ray or a line through two points names
+`origin` or `through`, `GeoSolid3.Extrude`, `Revolve`, `Sweep` and `Pipe` name the profile, the placement or the path,
+`Fit` of a rectangle or a box names `points`, and the forms of `Chamfer`, `Extend` and `Offset` taking one distance name
+`distance`. A member of a shape that has no argument for it names the shape as the static form of the member does:
+`Ellipse3.ToPolygon` names `ellipse`.
+
+A polygon, a face, a body, a spline, an edge or a loop of arcs in space refuses a point that is not finite when it is
+built, and it is not moved to one either: `Translate` refuses a vector, and `TransformBy` a transformation, with an entry
+that is not a finite number, where the square 100 across moved by (NaN, 0, 0) came back with vertices of NaN that every
+query then threw for, wanting a plane of no normal. A box with a corner of NaN is, to `ToObb`, the box about a centre of
+NaN, and so meets nothing and is not a number away: the box from (NaN, 30, -10) to (80, 70, 20) gives no points with an
+arc, collides with no segment and is NaN from one, where each threw for a box size of NaN. The `Try` members answer false
+where they answered true with pieces, points or a line of NaN: `TrySplitAt` of an arc about a centre of NaN,
+`ConvexHull2.TryOf` of points with one of NaN, `TrySplitAtParameter` of an edge, `TryExpand` of a box,
+`TryGetIntersectionLine` of planes, `TryToPoint2` of a point and `TrySplitBy` of a polygon or a face cut by a segment of
+NaN. A spline meets no arc, circle or ellipse about a centre of NaN, as it meets no segment of NaN. A few members of a
+shape with a coordinate of NaN still throw for a working of their own, having no argument to name: `ToPolygon` of a circle,
+a chain or a triangle in space, `ToSolid` of a sphere, `Extend` of an edge that is an arc and `OffsetInPlane` of a curved
+chain; and `ClipTo` of a line without ends by a rectangle of NaN still names a number of its own working.
 
 ## Angle
 

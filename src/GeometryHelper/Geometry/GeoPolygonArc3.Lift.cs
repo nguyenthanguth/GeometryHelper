@@ -317,8 +317,11 @@ namespace GeometryHelper.Geometry
         /// rectangle 100 by 50 standing in the plane x = 20 and chamfered by 0.0003 is eight corners, where it was put back
         /// together within the global tolerance of a thousandth and came back its four.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a positive number.</exception>
         public GeoPolygonArc3 Chamfer(double distance, Tolerance tolerance)
         {
+            Corner2.RequirePositive(distance, nameof(distance));
+
             GeoCoordinateSystem3 frame = GetFrame();
 
             return LiftAsItIs(frame, Flat(frame).Chamfer(distance, distance, tolerance));

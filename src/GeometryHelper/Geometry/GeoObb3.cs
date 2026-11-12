@@ -104,7 +104,7 @@ namespace GeometryHelper.Geometry
         /// <param name="sizeZ">Full size along the local Z axis.</param>
         /// <param name="axisX">The direction the local X axis should follow.</param>
         /// <param name="axisY">A direction on the positive Y side of the local XY plane.</param>
-        /// <exception cref="ArgumentException">Thrown when the two directions are degenerate or parallel.</exception>
+        /// <exception cref="ArgumentException">Thrown when the two directions are degenerate or parallel, or either is not finite.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when any size is negative.</exception>
         /// <remarks>
         /// The axes are made orthonormal on the way in, so a Y direction that is not quite square to X is
@@ -112,7 +112,18 @@ namespace GeometryHelper.Geometry
         /// that costs and why it is done.
         /// </remarks>
         public GeoObb3(GeoPoint3 center, double sizeX, double sizeY, double sizeZ, GeoVector3 axisX, GeoVector3 axisY)
-            : this(new GeoCoordinateSystem3(center, axisX, axisY), sizeX, sizeY, sizeZ) { }
+            : this(Frame(center, axisX, axisY), sizeX, sizeY, sizeZ) { }
+
+        /// <summary>
+        /// The frame of a box from its centre and two axes, an axis that is not finite refused by its own name.
+        /// </summary>
+        private static GeoCoordinateSystem3 Frame(GeoPoint3 center, GeoVector3 axisX, GeoVector3 axisY)
+        {
+            Guard.Argument(axisX.IsValid, nameof(axisX), "The axis has a coordinate that is not a finite number.");
+            Guard.Argument(axisY.IsValid, nameof(axisY), "The axis has a coordinate that is not a finite number.");
+
+            return new GeoCoordinateSystem3(center, axisX, axisY);
+        }
 
         /// <summary>
         /// Initializes a box from a local coordinate system and its sizes.
@@ -446,7 +457,7 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="margin">How far to move every face outwards; negative moves them inwards.</param>
         /// <param name="result">The grown box, or this one where the margin shrank it past nothing.</param>
-        /// <returns>true when a box came back; otherwise, false.</returns>
+        /// <returns>true when a box came back; otherwise, false, as for a box about a centre that is not a finite point.</returns>
         /// <remarks>
         /// The box keeps its axes — every face moves along its own normal, so the corners stay square and the
         /// result is exact rather than a re-fit. There is no tolerance in it, and so no overload taking one.
@@ -471,7 +482,8 @@ namespace GeometryHelper.Geometry
             double sizeY = SizeY + growth;
             double sizeZ = SizeZ + growth;
 
-            if (sizeX < 0.0 || sizeY < 0.0 || sizeZ < 0.0)
+            // A box about a centre that is not a finite point grows into no box.
+            if (sizeX < 0.0 || sizeY < 0.0 || sizeZ < 0.0 || !Center.IsValid)
             {
                 return false;
             }

@@ -118,8 +118,15 @@ namespace GeometryHelper.Geometry
         /// Thrown when the segment is degenerate or the two directions are parallel, since neither case
         /// pins down a plane.
         /// </exception>
+        /// <exception cref="ArgumentException">Thrown when the direction is not finite.</exception>
         public GeoPlane3 GetPlaneWith(GeoVector3 inPlaneDirection)
         {
+            Guard.Argument(
+                inPlaneDirection.IsValid,
+                nameof(inPlaneDirection),
+                "The direction has a coordinate that is not a finite number."
+            );
+
             return new GeoPlane3(StartPoint, Direction.CrossProduct(inPlaneDirection));
         }
 

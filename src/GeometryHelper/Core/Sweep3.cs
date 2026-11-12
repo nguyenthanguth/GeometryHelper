@@ -23,6 +23,10 @@ namespace GeometryHelper.Core
         /// </summary>
         private const double SharpestTurnCosine = -0.985;
 
+        private const string NotFinitePlacement = "The placement has a coordinate that is not a finite number.";
+
+        private const string NotFiniteProfile = "The profile has a coordinate that is not a finite number.";
+
         #region Straight out
 
         internal static GeoSolid3 Extrude(GeoFace3 profile, GeoVector3 direction, Tolerance tolerance)
@@ -81,6 +85,8 @@ namespace GeometryHelper.Core
             }
 
             Guard.Finite(length, nameof(length), "A length has to be a number.");
+            Guard.Argument(PlanarMap.IsFinite(placement), nameof(placement), NotFinitePlacement);
+            Guard.Argument(PlanarMap.IsFinite(profile), nameof(profile), NotFiniteProfile);
 
             var holes = new List<GeoPolygon3>();
 
@@ -106,6 +112,8 @@ namespace GeometryHelper.Core
         {
             Guard.Positive(radius, nameof(radius), "A cylinder must have a positive radius.");
             Tessellation.RequireSegmentCount(segments, 3);
+            Guard.Argument(start.IsValid, nameof(start), Guard.NotFinitePoint);
+            Guard.Argument(end.IsValid, nameof(end), Guard.NotFinitePoint);
 
             GeoVector3 axis = start.GetVectorTo(end);
 
@@ -142,6 +150,13 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentNullException(nameof(profile));
             }
+
+            Guard.Argument(Guard.AreValid(profile.Vertices), nameof(profile), NotFiniteProfile);
+            Guard.Argument(
+                Guard.AreValid(path),
+                nameof(path),
+                "The path has a coordinate that is not a finite number."
+            );
 
             var points = new List<GeoPoint3>();
 
@@ -317,7 +332,7 @@ namespace GeometryHelper.Core
         internal static GeoSolid3 Revolve(
             GeoPolygon2 profile,
             GeoCoordinateSystem3 placement,
-            double angle,
+            double angleRad,
             double chordTolerance,
             Tolerance tolerance
         )
@@ -327,18 +342,20 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(profile));
             }
 
-            Guard.Positive(angle, nameof(angle), "An angle to revolve through has to be a positive number.");
+            Guard.Positive(angleRad, nameof(angleRad), "An angle to revolve through has to be a positive number.");
+            Guard.Argument(PlanarMap.IsFinite(placement), nameof(placement), NotFinitePlacement);
+            Guard.Argument(Guard.AreValid(profile.Vertices), nameof(profile), NotFiniteProfile);
 
-            if (angle > 2.0 * Math.PI + 1E-9)
+            if (angleRad > 2.0 * Math.PI + 1E-9)
             {
                 throw new ArgumentOutOfRangeException(
-                    nameof(angle),
-                    angle,
+                    nameof(angleRad),
+                    angleRad,
                     "A profile revolves through a whole turn at most."
                 );
             }
 
-            bool whole = angle >= 2.0 * Math.PI - 1E-9;
+            bool whole = angleRad >= 2.0 * Math.PI - 1E-9;
             double reach = 0.0;
 
             foreach (GeoPoint2 corner in profile.Vertices)
@@ -362,7 +379,7 @@ namespace GeometryHelper.Core
                 );
             }
 
-            int steps = Math.Max(whole ? 3 : 1, Tessellation.SegmentsForArc(reach, angle, chordTolerance));
+            int steps = Math.Max(whole ? 3 : 1, Tessellation.SegmentsForArc(reach, angleRad, chordTolerance));
 
             // Turned positively about the Y axis, a profile drawn in the XY plane moves towards -Z; wound
             // clockwise in its plane it is counter-clockwise about the way it moves.
@@ -378,7 +395,7 @@ namespace GeometryHelper.Core
 
             for (int j = 0; j < count; j++)
             {
-                double turn = angle * j / steps;
+                double turn = angleRad * j / steps;
                 double cos = Math.Cos(turn);
                 double sin = Math.Sin(turn);
                 GeoVector3 radial = placement.XAxis.Multiply(cos).Subtract(placement.ZAxis.Multiply(sin));

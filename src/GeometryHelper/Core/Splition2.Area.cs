@@ -268,7 +268,8 @@ namespace GeometryHelper.Core
 
             GeoVector2 direction = cutter.Direction;
 
-            if (direction.IsZeroLength(tolerance))
+            // A cutter with an end that is not a finite point cuts nothing.
+            if (direction.IsZeroLength(tolerance) || !cutter.IsValid)
             {
                 return false;
             }

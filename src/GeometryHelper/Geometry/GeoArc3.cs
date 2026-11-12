@@ -88,15 +88,8 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentOutOfRangeException(nameof(radius), "An arc must have a positive radius.");
             }
 
-            if (
-                double.IsNaN(startAngle)
-                || double.IsInfinity(startAngle)
-                || double.IsNaN(endAngle)
-                || double.IsInfinity(endAngle)
-            )
-            {
-                throw new ArgumentOutOfRangeException(nameof(startAngle), "An angle must be a number.");
-            }
+            Guard.Finite(startAngle, nameof(startAngle), "An angle must be a number.");
+            Guard.Finite(endAngle, nameof(endAngle), "An angle must be a number.");
 
             Center = center;
             Normal = unit;
@@ -166,8 +159,13 @@ namespace GeometryHelper.Geometry
         /// one of its three points by more than the tolerance, its radius past the reach of the digits, is refused too.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them, or so nearly that the arc through them would miss them.</exception>
+        /// <exception cref="ArgumentException">Thrown when a point is not a finite one.</exception>
         public static GeoArc3 FromThreePoints(GeoPoint3 start, GeoPoint3 middle, GeoPoint3 end, Tolerance tolerance)
         {
+            Guard.Argument(start.IsValid, nameof(start), Guard.NotFinitePoint);
+            Guard.Argument(middle.IsValid, nameof(middle), Guard.NotFinitePoint);
+            Guard.Argument(end.IsValid, nameof(end), Guard.NotFinitePoint);
+
             GeoVector3 toMiddle = start.GetVectorTo(middle);
             GeoVector3 toEnd = start.GetVectorTo(end);
             GeoVector3 normal = toMiddle.CrossProduct(toEnd);

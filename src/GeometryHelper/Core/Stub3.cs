@@ -150,8 +150,11 @@ namespace GeometryHelper.Core
             return touches;
         }
 
+        // A segment with a coordinate that is not a finite number has no rounding; it meets nothing at the tolerance given.
         private static Tolerance AsItIs(double rounding, Tolerance tolerance) =>
-            new Tolerance(rounding, tolerance.EqualVector, tolerance.EqualAngleRad, rounding);
+            Guard.IsFinite(rounding)
+                ? new Tolerance(rounding, tolerance.EqualVector, tolerance.EqualAngleRad, rounding)
+                : tolerance;
 
         /// <summary>
         /// The rounding of a point: 1E-12 of its largest coordinate, and of one at the least.

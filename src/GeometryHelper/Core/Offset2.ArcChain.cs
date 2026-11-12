@@ -168,6 +168,7 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the loop or the options are null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static GeoPolygonArc2[] Offset(
             GeoPolygonArc2 loop,
             double distance,
@@ -179,6 +180,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(loop));
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
+
+            RequireFinite(distance, nameof(distance));
 
             return Offset(loop, distance, options, tolerance, true);
         }
@@ -472,6 +475,7 @@ namespace GeometryHelper.Core
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain or the options are null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a finite number.</exception>
         public static GeoPolylineArc2[] Offset(
             GeoPolylineArc2 chain,
             double distance,
@@ -483,6 +487,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
+
+            RequireFinite(distance, nameof(distance));
 
             if (Math.Abs(distance) <= tolerance.EqualPoint)
             {

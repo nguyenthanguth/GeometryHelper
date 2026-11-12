@@ -611,14 +611,24 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The polygon in its new place.</returns>
-        public GeoPolygon3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the polygon would have vertices of NaN or infinity, which its constructor
+        /// refuses.
+        /// </exception>
+        public GeoPolygon3 Translate(GeoVector3 vector)
+        {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
+            return TransformBy(GeoTransform3.Translation(vector));
+        }
 
         /// <summary>
         /// Applies a transformation to every vertex.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="ArgumentException">
-        /// Thrown when the transformation flattens the polygon so that it no longer encloses an area.
+        /// Thrown when the transformation flattens the polygon so that it no longer encloses an area, or has an entry that
+        /// is not a finite number.
         /// </exception>
         /// <remarks>
         /// The polygon is transformed side for side, however short a side: at a millionth, the triangle (0, 0, 0),
@@ -639,6 +649,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             return TransformBy(transform, transform.ReadCarrying());
         }

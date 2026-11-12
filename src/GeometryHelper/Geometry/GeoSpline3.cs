@@ -354,10 +354,17 @@ namespace GeometryHelper.Geometry
         /// the knots 0, 0, 2/3, 1, 1.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a vertex has a coordinate that is not a finite number.</exception>
         public static GeoSpline3 FromPolyline(GeoPolyline3 polyline)
         {
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
+
+            Guard.Argument(
+                Guard.AreValid(polyline.Vertices),
+                nameof(polyline),
+                "The polyline has a coordinate that is not a finite number."
+            );
 
             return new GeoSpline3(NurbsCurve.FromChain(3, Flatten(polyline.Vertices)));
         }
@@ -374,8 +381,11 @@ namespace GeometryHelper.Geometry
         /// are the arc's own: the spline starts at <see cref="GeoArc3.StartPoint"/> and ends at its end point,
         /// but that an arc of a whole turn, and so the circle, ends on its start exactly, its first control point repeated.
         /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
         public static GeoSpline3 FromArc(GeoArc3 arc)
         {
+            Guard.Argument(arc.Center.IsValid, nameof(arc), "The arc has a coordinate that is not a finite number.");
+
             double sweep = arc.SweptAngle;
             int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI * 0.5) - 1E-9));
             double step = sweep / pieces;
@@ -421,8 +431,17 @@ namespace GeometryHelper.Geometry
         /// Every point of the curve is at the radius from the centre to rounding, in the plane of the circle, and its
         /// length is 2 pi times the radius to a relative 1E-12.
         /// </remarks>
-        public static GeoSpline3 FromCircle(GeoCircle3 circle) =>
-            FromArc(new GeoArc3(circle.Center, circle.Normal, circle.Radius, 0.0, 0.0));
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
+        public static GeoSpline3 FromCircle(GeoCircle3 circle)
+        {
+            Guard.Argument(
+                circle.Center.IsValid,
+                nameof(circle),
+                "The circle has a coordinate that is not a finite number."
+            );
+
+            return FromArc(new GeoArc3(circle.Center, circle.Normal, circle.Radius, 0.0, 0.0));
+        }
 
         #endregion
 
@@ -834,8 +853,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it.</param>
         /// <returns>The moved spline: the control points moved, the weights and knots as they were.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the control points would not be finite, which the constructor refuses.
+        /// </exception>
         public GeoSpline3 Translate(GeoVector3 vector)
         {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
             var moved = new double[_curve.Points.Length];
 
             for (int i = 0; i < _points.Length; i++)
@@ -861,10 +885,13 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation carries every control point to one point.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         public GeoSpline3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
                 throw new ArgumentNullException(nameof(transform));
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             var moved = new double[_curve.Points.Length];
 

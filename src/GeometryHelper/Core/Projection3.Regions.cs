@@ -466,6 +466,11 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         internal static GeoLine3 Join(GeoTriangle3 triangle, GeoPolygon3 polygon, double near, Tolerance tolerance)
         {
+            if (!triangle.IsValid)
+            {
+                return NotANumberAway(triangle);
+            }
+
             return JoinRegions(
                 Intersection3.EdgesOf(triangle),
                 Region(triangle),
@@ -484,6 +489,11 @@ namespace GeometryHelper.Core
         /// </summary>
         internal static GeoLine3 Join(GeoTriangle3 triangle, GeoFace3 face, double near, Tolerance tolerance)
         {
+            if (!triangle.IsValid)
+            {
+                return NotANumberAway(triangle);
+            }
+
             return JoinRegions(
                 Intersection3.EdgesOf(triangle),
                 Region(triangle),
@@ -826,6 +836,20 @@ namespace GeometryHelper.Core
         /// Joins a run of corners, closed round from the last to the first, to a plane: a segment of no length at the
         /// first point of contact, otherwise the perpendicular from the nearest corner, the first of those equally near.
         /// </summary>
+        /// <summary>
+        /// The segment of no number a triangle with a corner that is not a finite point stands from a region: the shape is
+        /// not a number away (amendment D7), and the plane its corners would give has no normal to build it with.
+        /// </summary>
+        private static GeoLine3 NotANumberAway(GeoTriangle3 triangle)
+        {
+            GeoPoint3 corner =
+                !triangle.A.IsValid ? triangle.A
+                : !triangle.B.IsValid ? triangle.B
+                : triangle.C;
+
+            return new GeoLine3(corner, corner);
+        }
+
         private static GeoLine3 JoinToPlane(IReadOnlyList<GeoPoint3> corners, GeoPlane3 plane)
         {
             // A corner that is not a number stands at no height, and the shape is not a number away (amendment D7): the

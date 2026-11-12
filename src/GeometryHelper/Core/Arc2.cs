@@ -500,7 +500,7 @@ namespace GeometryHelper.Core
         {
             double atEnds = tolerance.EqualPoint / Math.Max(arc.Length, tolerance.EqualPoint);
 
-            if (double.IsNaN(parameter) || parameter <= atEnds || parameter >= 1.0 - atEnds)
+            if (double.IsNaN(parameter) || parameter <= atEnds || parameter >= 1.0 - atEnds || !arc.Center.IsValid)
             {
                 pieces = new[] { arc };
                 return false;

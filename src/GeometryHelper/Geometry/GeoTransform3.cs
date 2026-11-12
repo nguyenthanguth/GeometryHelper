@@ -86,6 +86,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoTransform3 Clone() => new GeoTransform3(_m);
 
+        /// <summary>
+        /// Whether every entry of the matrix is a finite number: what a shape that refuses a vertex of NaN asks of the
+        /// transformation that moves it.
+        /// </summary>
+        internal bool IsFinite
+        {
+            get
+            {
+                foreach (double entry in _m)
+                {
+                    if (!Guard.IsFinite(entry))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         #region Factories
 
         /// <summary>
@@ -190,8 +210,15 @@ namespace GeometryHelper.Geometry
         /// <param name="axisOrigin">A point on the rotation axis.</param>
         /// <param name="axisDirection">The direction of the axis; it need not be normalized.</param>
         /// <param name="angleRad">The angle in radians, counter-clockwise seen from the axis tip.</param>
+        /// <exception cref="ArgumentException">Thrown when the direction has a coordinate that is not a finite number.</exception>
         public static GeoTransform3 RotationAxis(GeoPoint3 axisOrigin, GeoVector3 axisDirection, double angleRad)
         {
+            Guard.Argument(
+                axisDirection.IsValid,
+                nameof(axisDirection),
+                "The direction has a coordinate that is not a finite number."
+            );
+
             GeoVector3 offset = axisOrigin.ToVector();
 
             return Translation(offset)

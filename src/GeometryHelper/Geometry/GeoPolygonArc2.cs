@@ -672,7 +672,13 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Chamfers every corner that has room for it, cutting the same distance along both edges.
         /// </summary>
-        public GeoPolygonArc2 Chamfer(double distance) => Corner2.Chamfer(this, distance, distance, Tolerance.Global);
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a positive number.</exception>
+        public GeoPolygonArc2 Chamfer(double distance)
+        {
+            Corner2.RequirePositive(distance, nameof(distance));
+
+            return Corner2.Chamfer(this, distance, distance, Tolerance.Global);
+        }
 
         /// <summary>
         /// Chamfers every corner that has room for it, within a tolerance.

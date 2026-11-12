@@ -68,10 +68,14 @@ namespace GeometryHelper.Geometry
         /// <returns>The plane through the three points.</returns>
         /// <exception cref="ArgumentException">
         /// Thrown when the three points are collinear or two of them coincide, since such a set does not
-        /// pin down a plane.
+        /// pin down a plane, or a point is not a finite one.
         /// </exception>
         public static GeoPlane3 FromThreePoints(GeoPoint3 p1, GeoPoint3 p2, GeoPoint3 p3)
         {
+            Guard.Argument(p1.IsValid, nameof(p1), Guard.NotFinitePoint);
+            Guard.Argument(p2.IsValid, nameof(p2), Guard.NotFinitePoint);
+            Guard.Argument(p3.IsValid, nameof(p3), Guard.NotFinitePoint);
+
             GeoVector3 normal = p1.GetVectorTo(p2).CrossProduct(p1.GetVectorTo(p3));
 
             if (normal.IsZeroLength())

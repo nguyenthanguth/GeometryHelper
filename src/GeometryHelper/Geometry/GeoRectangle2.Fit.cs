@@ -22,7 +22,7 @@ namespace GeometryHelper.Geometry
         /// height along that line.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when there are no points.</exception>
+        /// <exception cref="ArgumentException">Thrown when there are no points, or a point is not a finite one.</exception>
         public static GeoRectangle2 Fit(IEnumerable<GeoPoint2> points, Tolerance tolerance) =>
             BoxFit.Rectangle(points, tolerance);
     }

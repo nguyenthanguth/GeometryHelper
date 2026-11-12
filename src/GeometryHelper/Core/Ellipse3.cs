@@ -513,8 +513,11 @@ namespace GeometryHelper.Core
         /// plane: counter-clockwise about the normal from the end of the major axis, symmetric about both axes.
         /// </returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a number, or needs more than 1 048 576 corners.</exception>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
         public static GeoPolygon3 ToPolygonByChordTolerance(GeoEllipse3 ellipse, double chordTolerance)
         {
+            RequireFinite(ellipse);
+
             return new GeoPolygon3(
                 Lift(ellipse, Ellipse2.ToPolygonByChordTolerance(Flat(ellipse), chordTolerance).Vertices)
             );
@@ -528,8 +531,11 @@ namespace GeometryHelper.Core
         /// <param name="spacing">The largest length allowed along the rim between two corners.</param>
         /// <returns>The polygon <see cref="Ellipse2.ToPolygonBySpacing(GeoEllipse2, double)"/> gives, put into the ellipse's plane.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the spacing is not a positive number.</exception>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
         public static GeoPolygon3 ToPolygonBySpacing(GeoEllipse3 ellipse, double spacing)
         {
+            RequireFinite(ellipse);
+
             return new GeoPolygon3(Lift(ellipse, Ellipse2.ToPolygonBySpacing(Flat(ellipse), spacing).Vertices));
         }
 
@@ -541,10 +547,23 @@ namespace GeometryHelper.Core
         /// <param name="segmentCount">How many edges; at least three.</param>
         /// <returns>The polygon <see cref="Ellipse2.ToPolygon(GeoEllipse2, int)"/> gives, put into the ellipse's plane.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when fewer than three edges are asked for.</exception>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
         public static GeoPolygon3 ToPolygon(GeoEllipse3 ellipse, int segmentCount)
         {
+            RequireFinite(ellipse);
+
             return new GeoPolygon3(Lift(ellipse, Ellipse2.ToPolygon(Flat(ellipse), segmentCount).Vertices));
         }
+
+        /// <summary>
+        /// Refuses an ellipse about a centre that is not a finite point, which a polygon of space cannot be cut from.
+        /// </summary>
+        private static void RequireFinite(GeoEllipse3 ellipse) =>
+            Guard.Argument(
+                ellipse.Center.IsValid,
+                nameof(ellipse),
+                "The ellipse has a coordinate that is not a finite number."
+            );
 
         /// <summary>
         /// Approximates the rim of an ellipse in space as a chain that strays no further from it than a chord tolerance,

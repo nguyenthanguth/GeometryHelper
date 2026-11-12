@@ -133,8 +133,18 @@ namespace GeometryHelper.Core
         /// <param name="frame">The frame the edge is laid out in.</param>
         /// <param name="edge">The edge in the plane; straight or curved.</param>
         /// <returns>The same edge, standing in the plane of the frame, bulging about its Z axis.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the edge is an arc and the frame or the edge has a coordinate that is not a finite number: an arc of
+        /// space bulges between two finite points.
+        /// </exception>
         public static GeoEdge3 ToEdge3(GeoCoordinateSystem3 frame, GeoEdge2 edge)
         {
+            if (edge.IsArc)
+            {
+                Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
+                Guard.Argument(edge.IsValid, nameof(edge), "The edge has a coordinate that is not a finite number.");
+            }
+
             GeoPoint3 start = ToPoint3(frame, edge.StartPoint);
             GeoPoint3 end = ToPoint3(frame, edge.EndPoint);
 
@@ -206,6 +216,9 @@ namespace GeometryHelper.Core
         /// <param name="chain">The chain in the plane.</param>
         /// <returns>The same chain, standing in the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the chain has an arc and the frame has a coordinate that is not a finite number.
+        /// </exception>
         public static GeoPolylineArc3 ToPolylineArc3(GeoCoordinateSystem3 frame, GeoPolylineArc2 chain)
         {
             if (chain == null)
@@ -254,6 +267,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(chain));
 
             result = null;
+
+            // A vertex that is not a finite point lies on no plane.
+            if (!Guard.AreValid(chain.Vertices))
+            {
+                return false;
+            }
 
             var edges = new List<GeoEdge2>(chain.EdgeCount);
 

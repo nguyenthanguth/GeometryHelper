@@ -72,6 +72,12 @@ namespace GeometryHelper.Core
                 throw new ArgumentNullException(nameof(solid));
             }
 
+            // A triangle with a corner that is not a finite point meets nothing.
+            if (!triangle.IsValid)
+            {
+                return new GeoPoint3[0];
+            }
+
             GeoSolid3 material = Material3.Whole(solid, tolerance);
             var found = new List<GeoPoint3>();
 

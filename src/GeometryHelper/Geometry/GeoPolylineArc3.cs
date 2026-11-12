@@ -89,6 +89,7 @@ namespace GeometryHelper.Geometry
         /// chain (0, 0, 0), (10, 0, 0), (10.0004, 0, 0), (20, 0, 0) with bulges 0, 0, 1 about Z is the straight edge
         /// to (10, 0, 0) and then the half circle of bulge 1 from there to (20, 0, 0).
         /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when a bulge is not a finite number.</exception>
         public GeoPolylineArc3(
             IEnumerable<GeoPoint3> vertices,
             IEnumerable<double> bulges,
@@ -104,6 +105,8 @@ namespace GeometryHelper.Geometry
             var keptNormals = new List<GeoVector3>();
 
             var givenBulges = bulges == null ? new List<double>() : new List<double>(bulges);
+
+            Guard.Argument(Guard.AreFinite(givenBulges), nameof(bulges), "A bulge has to be a finite number.");
             var givenNormals = normals == null ? new List<GeoVector3>() : new List<GeoVector3>(normals);
 
             int index = 0;
@@ -717,8 +720,13 @@ namespace GeometryHelper.Geometry
         /// (10, 0, 0), (10, 0, 10) filleted at 0.0005 moves with its arc 0.0007 across, where it was put back together
         /// within the global tolerance of a thousandth and came back turning at a corner.
         /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the ends of the arcs would not be finite, which their edges refuse.
+        /// </exception>
         public GeoPolylineArc3 Translate(GeoVector3 vector)
         {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
             var moved = new GeoPoint3[_vertices.Length];
 
             for (int i = 0; i < _vertices.Length; i++)
@@ -738,6 +746,7 @@ namespace GeometryHelper.Geometry
         /// Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off, as
         /// <see cref="GeoEdge3.TransformBy(GeoTransform3)"/> refuses it.
         /// </exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         /// <remarks>
         /// Every edge is carried across on its own, so a transformation that mirrors turns each arc over
         /// with the rest of the chain rather than leaving it bulging the wrong way.
@@ -748,6 +757,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             var edges = new List<GeoEdge3>();
 

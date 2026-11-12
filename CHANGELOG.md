@@ -62,6 +62,25 @@ starts it there too, where it returned false.
 Apparent Intersection and Insertion, and parts its snaps into AutoCAD's three groups by two lines, after Extension and
 after Tangent. The OSNAP menu of the status bar and Drafting Settings keep the longer names, as AutoCAD's do.
 
+**FIXED.** A member given a shape or a number that is not finite answers as the shapes of NaN do, or refuses the
+argument by its own name through an `ArgumentException`; it no longer throws from inside, naming a radius, a box size, a
+control point or a normal of its own working, nor runs on for ever. `Chamfer` of a polygon or a chain with a vertex of
+NaN ran on for ever (24 members of the fuzz), and names `polygon` or `polyline` now. `Translate` and `TransformBy` of a
+polygon, a face or a body in space, a spline, an edge or a loop of arcs refuse a vector or a transformation that is not
+finite, as their constructors refuse such a point, where the square 100 across moved by (NaN, 0, 0) came back with
+vertices of NaN that every query then threw for. A box with a corner of NaN is the box about a centre of NaN to `ToObb`,
+and meets nothing: the box from (NaN, 30, -10) to (80, 70, 20) gives no points with an arc and is NaN from a segment,
+where 273 members threw for a box size of NaN. `TrySplitAt` of an arc, `ConvexHull2.TryOf`, `TrySplitAtParameter` of an
+edge, `TryExpand` of a box, `TryGetIntersectionLine` of planes, `TryToPoint2` and `TrySplitBy` by a segment of NaN answer
+false, where they answered true with values of NaN or threw; a spline meets no arc, circle or ellipse about a centre of
+NaN; a triangle with a corner of NaN meets no body and is NaN from a polygon or a face. Factories and constructors name
+the argument: `GeoRay2(origin, through)` names `through`, `GeoPlane3.FromThreePoints` the point, `GeoArc3` its
+`endAngle`, `GeoSolid3.Extrude`, `Revolve`, `Sweep` and `Pipe` the profile, the placement or the path, and the forms of
+`Chamfer`, `Extend` and `Offset` taking one distance name `distance`. Of 9 950 public members fuzzed with one argument
+NaN or infinite, 1 700 threw from inside, hung or answered a `Try` with NaN before, and 33 do now, most of them a
+member of a shape of NaN with no argument of its own to name, all throwing and none hanging; every finite call of the
+fuzz gives the same bits as before.
+
 **NEW.** The presenter's implied window asks on the command line as AutoCAD 2021's does: a click on nothing at the
 Command prompt shows "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and
 the Y of the cursor itself, where it showed nothing. The next click, or a corner typed (110,60), ends the box; F, WP or
