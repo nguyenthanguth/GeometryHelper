@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     /// <remarks>
     /// A style changed draws again the dimensions drawn in it, each from its points as the DIM commands make it, but those an
-    /// owner keeps (a model drawing's) and those whose kind the commands do not make (ordinate, arc length, jogged), which keep
+    /// owner keeps and those whose kind the commands do not make (ordinate, arc length, jogged), which keep
     /// their pictures until AutoCAD next draws them.
     /// </remarks>
     public static class CadDimStyleEditor
@@ -68,12 +68,6 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The styles.</returns>
         public static IReadOnlyList<DxfDimStyleTableRecord> Styles(DxfDatabase database) =>
             database.DimStyleTable.Where(s => !string.IsNullOrEmpty(s.Name) && s.Name.IndexOf('$') < 0).ToList();
-
-        /// <summary>Gets whether a style is one a model drawing makes (its name starting GH_MODEL), which an update makes again from the drawing settings.</summary>
-        /// <param name="name">The style's name.</param>
-        /// <returns>True for GH_MODEL_10 and its like.</returns>
-        public static bool IsModelStyle(string name) =>
-            name != null && name.StartsWith("GH_MODEL", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Reads the variables of a style, or of the dimension style data a dimension or the header gives, by their names.</summary>
         /// <param name="style">The style.</param>

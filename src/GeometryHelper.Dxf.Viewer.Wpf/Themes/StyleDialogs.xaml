@@ -204,7 +204,7 @@
         </Setter>
     </Style>
 
-    <!-- A style of a list: the current mark, the name in semibold, then its font (text styles) or MODEL (a model drawing's). -->
+    <!-- A style of a list: the current mark, the name in semibold, then its font (text styles). -->
     <DataTemplate x:Key="StyleRowTemplate" DataType="{x:Type local:StyleRowViewModel}">
         <DockPanel>
             <TextBlock
@@ -223,17 +223,6 @@
                 Foreground="{StaticResource GhTextMuted}"
                 FontFamily="{StaticResource GhMonoFont}"
             />
-            <Border
-                DockPanel.Dock="Right"
-                Background="{StaticResource GhSelected}"
-                CornerRadius="3"
-                Padding="5,0"
-                Margin="6,0,0,0"
-                VerticalAlignment="Center"
-                Visibility="{Binding IsModel, Converter={StaticResource Shown}}"
-            >
-                <TextBlock Text="MODEL" FontSize="9" FontWeight="SemiBold" />
-            </Border>
             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
         </DockPanel>
         <DataTemplate.Triggers>

@@ -670,9 +670,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the weights the weight cell offers.</summary>
         public IReadOnlyList<string> WeightOptions => LayerManagerViewModel.WeightNames;
 
-        /// <summary>Gets the owner of the layer, a model drawing that wrote it; empty, as Part A writes none.</summary>
-        public string Owner => string.Empty;
-
         /// <inheritdoc/>
         public override string ToString() => Name;
 

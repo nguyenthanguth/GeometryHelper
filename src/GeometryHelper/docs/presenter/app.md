@@ -27,22 +27,22 @@ spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
-The presenter's Global settings dialog has eight categories. The JSON keeps three more groups, the defaults of drawings made
-from a model, which GeometryHelper.Drawing reads and which that dialog does not show: Drawing defaults, Data sources, and the
-font, height and width factor of drawing text. A file that holds them keeps them, and OK writes them back as they were.
+The presenter's Global settings dialog has eight categories, none of them about drawings made from a model. The JSON keeps the
+settings of those, which GeometryHelper.Drawing reads and neither that dialog nor the presenter shows or applies: the preset,
+sheet, orientation and projection of a new drawing, the model-change check and its interval, the DXF layout and opening the
+folder after an export, the colour of hidden lines, the decimals of dimensions and the height of titles, and the font, height and
+width factor of drawing text. A file that holds them keeps them, and OK writes them back as they were.
 
 | Category | Holds | Defaults |
 |---|---|---|
-| Appearance | the colours of the canvas, paper, visible and hidden lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, hidden lines `#9AA4B1`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
+| Appearance | the colours of the canvas, paper, visible lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
 | Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.5 a notch (1.01 to 4, ZOOMWHEEL turns it round; a file saved with 1.2 keeps 1.2), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
-| Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
+| Units and rounding | decimals of coordinates and angles; the separators | 2 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings, with each layer's colour, linetype, lineweight and plot flag; NEW (Ctrl+N) adds it to the new drawing | Visible, Hidden, Centre, Hatch, Dimension, Mark, Symbol, Sheet, Viewport (not plotted) |
 | Text and fonts | the UI font, chosen from the font families installed on Windows (each shown in its own face) or typed; what Esc in the MTEXT editor with changes does (Hidden messages); the replacement font of a font not found (FONTALT), the font mapping file (FONTMAP) and the fonts drawn in others | UI font Inter, Esc asks, `ghsimplex`, no mapping file, no substitutions |
 | Folder preference | the font search folders and the support file search folders (linetypes and hatch patterns), each in order | none |
 | Shortcuts | the aliases and the keys | AutoCAD's (see [Editing](editing.md#aliases-and-keys)) |
-| Save and export | the save folder, autosave, backups, the layout of an export | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups, `LayoutAndViewports` |
-| Drawing defaults (file only) | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
-| Data sources (file only) | whether the sources of a model are asked for changes, and how often | on, every 30 seconds (5 to 3 600) |
+| Save and export | the save folder, autosave, backups | empty, which is the user's Documents (a new model drawing goes into its folder `GeometryHelper Drawing`), 10 minutes, 3 backups |
 | Drawing text (file only) | the font a style's missing font is drawn in where the replacement is not found either, the heights and the width factor of drawing text: TEXT and MTEXT start from the text height and write the width factor, and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER and DIMANGULAR write their text at the text height | drawing font Arial, text 2.5, titles 5, width factor 0.8 |
 
 On the Shortcuts page a Keys cell takes the keys pressed in it, as the shortcut key box of AutoCAD's Customize User
@@ -209,7 +209,7 @@ tab (see [Command plugins](plugins.md)), a Settings tab, and the tabs a host add
 | Ctrl+O | opens a DWG or DXF (see [DWG files](#dwg-files)) |
 | Ctrl+W | switches selection cycling on and off, as AutoCAD 2021 |
 | Ctrl+S, Ctrl+Shift+S | saves, saves as |
-| Ctrl+N | asks a host for a new drawing from a model; where no host makes them, as in GeometryHelper DXF, makes a new drawing (NEW) |
+| Ctrl+N | runs the new document an extension offers (`MainViewModel.NewDocumentOffer`); where none does, as in GeometryHelper DXF, makes a new drawing (NEW) |
 | Ctrl+Z, Ctrl+Y | undo, redo |
 | Delete | erases the selection |
 | F3, F7, F8, F9, F10, F11, F12 | OSNAP, GRID, ORTHO, SNAP, POLAR, OTRACK, DYN |
@@ -365,7 +365,7 @@ list at the right; a click on the item runs the first entry of its list.
 
 | Item | Entries |
 |---|---|
-| New | Drawing (NEW); Drawing from a model, where a host makes them |
+| New | Drawing (NEW); the entry of the new document an extension offers, where one does |
 | Open | Drawing (the Open dialog, Ctrl+O) |
 | Save As | Drawing (SAVEAS); Drawing Template and Other Formats greyed |
 | Export | PDF (PLOT, to GeometryHelper PDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK), Other Formats (EXPORT) |
@@ -386,10 +386,12 @@ D:\plans\gone.dxf: it is taken off the recent files.` The list and its pins are 
 With no drawing open the canvas shows the start screen: the name of the app, Open DXF… (Ctrl+O), New, and Recent
 Documents with the same files and pins as the application menu, under PINNED and RECENT headings, each row with its
 preview, folder and when it was opened (`today 09:14`, `yesterday 16:40`, `2026-10-30`); the two buttons at its top right
-show the files as a list or as large pictures. GeometryHelper DXF, which makes no drawing from a model, offers `New ·
-Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line; GeometryHelper Drawing adds
-"New drawing from a model… · Ctrl+N" and calls NEW "Blank drawing". The window tells the two apart by whether a host
-handles `MainViewModel.NewFromModelRequested` (`MainViewModel.CanMakeFromModel`).
+show the files as a list or as large pictures. GeometryHelper DXF, which has no extension, offers `New ·
+Ctrl+N` (NEW) and says "Ctrl+O opens a DXF, Ctrl+N starts a new drawing." on the command line. An extension may offer a new
+document of its own, a `CadNewDocumentOffer` (its menu name, button text, tooltip, start-screen line, welcome line and what
+running it does) returned by `CadWorkspaceExtension.NewDocumentOffer`: the start screen then adds its button and calls NEW
+"Blank drawing", the New entry of the application menu lists it, and Ctrl+N runs it. GeometryHelper Drawing offers "New
+drawing from a model… · Ctrl+N" this way. The window tells the two apart by `MainViewModel.NewDocumentOffer` (`HasNewDocumentOffer`).
 
 ## The apps
 

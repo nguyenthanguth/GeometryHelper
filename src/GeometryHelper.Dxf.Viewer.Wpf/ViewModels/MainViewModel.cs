@@ -26,10 +26,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </remarks>
     public sealed partial class MainViewModel : ObservableObject
     {
-        /// <summary>The line the command line shows before anything has been written to it, where a host makes drawings from a model.</summary>
-        public const string WelcomeText = "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a drawing from a model.";
-
-        /// <summary>The line the command line shows before anything has been written to it, where no host makes drawings from a model: GeometryHelper DXF's.</summary>
+        /// <summary>The line the command line shows before anything has been written to it, where no extension offers a new document of its own (<see cref="NewDocumentOffer"/>).</summary>
         public const string NewDrawingWelcomeText = "Welcome. Ctrl+O opens a DXF, Ctrl+N starts a new drawing.";
 
         /// <summary>The label at the top left of the canvas in model space.</summary>
@@ -151,9 +148,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             LayerManagerCommand = new DelegateCommand(_ => StartCommand("LAYER"));
             MakeCurrentCommand = new DelegateCommand(_ => StartCommand("LAYMCUR"));
             MatchLayerCommand = new DelegateCommand(_ => StartCommand("LAYMCH"));
-            NewFromModelCommand = new DelegateCommand(
-                _ => _newFromModel?.Invoke(this, EventArgs.Empty),
-                _ => _newFromModel != null
+            NewOfferedDocumentCommand = new DelegateCommand(
+                _ => NewDocumentOffer?.Run(),
+                _ => NewDocumentOffer != null
             );
             SelectTabCommand = new DelegateCommand(p => SelectedTab = p as CadWorkspaceExtension);
 
@@ -162,59 +159,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Raised by Ctrl+N and the start screen's "New drawing from a model": a host that makes drawings from a model (Part B)
-        /// shows its New drawing dialog. With no handler the button is hidden and Ctrl+N makes a new empty drawing (NEW).
+        /// Gets what an extension offers as a new document of its own, beside NEW: the first offer of the extensions added, in
+        /// the order they were added; null where none offers one, as in GeometryHelper DXF. With an offer the start screen and
+        /// the New entry of the application menu show it and Ctrl+N runs it; without, Ctrl+N is NEW.
         /// </summary>
-        public event EventHandler NewFromModelRequested
-        {
-            add
-            {
-                _newFromModel += value;
-                OnNewFromModelChanged();
-            }
-            remove
-            {
-                _newFromModel -= value;
-                OnNewFromModelChanged();
-            }
-        }
+        public CadNewDocumentOffer NewDocumentOffer =>
+            _extensions.Select(e => e.NewDocumentOffer).FirstOrDefault(o => o != null);
 
-        private EventHandler _newFromModel;
-
-        /// <summary>
-        /// Gets whether a host makes drawings from a model, handling <see cref="NewFromModelRequested"/>: the start screen then
-        /// offers "New drawing from a model" and Ctrl+N asks for one; without, as in GeometryHelper DXF, Ctrl+N is NEW.
-        /// </summary>
-        public bool CanMakeFromModel => _newFromModel != null;
+        /// <summary>Gets whether an extension offers a new document (<see cref="NewDocumentOffer"/>).</summary>
+        public bool HasNewDocumentOffer => NewDocumentOffer != null;
 
         /// <summary>Gets the line under the name of the app on the start screen.</summary>
         public string StartScreenText =>
-            CanMakeFromModel
-                ? "Open and edit any 2D drawing, or make drawings from a model. No file is open."
-                : "Open and edit any 2D drawing. No file is open.";
+            NewDocumentOffer?.StartScreenText ?? "Open and edit any 2D drawing. No file is open.";
 
         /// <summary>
-        /// Ctrl+N: a new drawing from a model where a host makes them (<see cref="NewFromModelRequested"/>), else a new empty
-        /// drawing (NEW), as AutoCAD's Ctrl+N.
+        /// Ctrl+N: the new document an extension offers (<see cref="NewDocumentOffer"/>), else a new empty drawing (NEW), as
+        /// AutoCAD's Ctrl+N.
         /// </summary>
         public void NewByShortcut()
         {
-            if (CanMakeFromModel)
+            if (NewDocumentOffer != null)
             {
-                NewFromModelCommand.Execute(null);
+                NewOfferedDocumentCommand.Execute(null);
             }
             else
             {
                 NewDrawing();
             }
-        }
-
-        private void OnNewFromModelChanged()
-        {
-            ((DelegateCommand)NewFromModelCommand).RaiseCanExecuteChanged();
-            Raise(nameof(CanMakeFromModel));
-            Raise(nameof(StartScreenText));
-            Raise(nameof(RecentHistory));
         }
 
         /// <summary>Gets the extensions added, in the order they were added; their ribbon tabs follow Home in that order.</summary>
@@ -266,8 +238,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether Properties shows a banner.</summary>
         public bool HasPropertiesBanner => !string.IsNullOrEmpty(_banner);
 
-        /// <summary>Gets the command that raises <see cref="NewFromModelRequested"/> (Ctrl+N, the start screen's button).</summary>
-        public ICommand NewFromModelCommand { get; }
+        /// <summary>Gets the command that runs <see cref="NewDocumentOffer"/> (Ctrl+N, the start screen's button, the New entry of the application menu).</summary>
+        public ICommand NewOfferedDocumentCommand { get; }
 
         /// <summary>Gets the command that shows a ribbon tab, given its extension; null for Home.</summary>
         public ICommand SelectTabCommand { get; }
@@ -298,6 +270,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 extension.AddCommands(file.Session.Registry);
             }
 
+            ((DelegateCommand)NewOfferedDocumentCommand).RaiseCanExecuteChanged();
+            Raise(nameof(NewDocumentOffer));
+            Raise(nameof(HasNewDocumentOffer));
+            Raise(nameof(StartScreenText));
+            Raise(nameof(RecentHistory));
             Raise(nameof(Extensions));
             RefreshFromExtensions();
         }
@@ -355,7 +332,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => SetFilter(value, false, false);
         }
 
-        /// <summary>Gets or sets whether the list shows only the files an extension describes (the chip "Model drawings").</summary>
+        /// <summary>Gets or sets whether the list shows only the files an extension describes (the chip of its <see cref="CadWorkspaceExtension.FileKindName"/>).</summary>
         public bool FilterOwn
         {
             get => _ownOnly;
@@ -378,7 +355,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether an extension is added that names its files, so that its chips show.</summary>
         public bool HasOwnFiles => _extensions.Any(e => !string.IsNullOrEmpty(e.FileKindName));
 
-        /// <summary>Gets the text of the chip of the files extensions describe, with their number: "Model drawings 4".</summary>
+        /// <summary>Gets the text of the chip of the files extensions describe, with their number: "Plans from surveys 4".</summary>
         public string OwnChipText =>
             (_extensions.Select(e => e.FileKindName).FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? "Other")
             + " "
@@ -507,11 +484,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets the last three lines of <see cref="History"/>, those the command line shows above its input; before any,
-        /// <see cref="WelcomeText"/> where a host makes drawings from a model and <see cref="NewDrawingWelcomeText"/> where none does.
+        /// the welcome line of <see cref="NewDocumentOffer"/> where an extension offers one and <see cref="NewDrawingWelcomeText"/> where none does.
         /// </summary>
         public IReadOnlyList<string> RecentHistory =>
             History.Count == 0
-                ? new[] { CanMakeFromModel ? WelcomeText : NewDrawingWelcomeText }
+                ? new[] { NewDocumentOffer?.WelcomeText ?? NewDrawingWelcomeText }
                 : History.Skip(Math.Max(0, History.Count - HistoryShown)).ToList();
 
         /// <summary>Gets the prompt of the command running, empty with none.</summary>
@@ -2329,7 +2306,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The files the list shows: all but a file found in a folder that a document listed under another key is saved to,
-        /// as a model drawing just made is saved; the document's row stands for it.
+        /// as a document an extension just made is saved; the document's row stands for it.
         /// </summary>
         private IEnumerable<KnownFile> Listed()
         {
@@ -2470,11 +2447,72 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Blue: changed since it was saved, or edited by hand since it was made.</summary>
         Edited,
 
-        /// <summary>Amber: made from a model that has changed since.</summary>
+        /// <summary>Amber: made from something that has changed since.</summary>
         OutOfDate,
 
-        /// <summary>Green: made from the model as it is.</summary>
+        /// <summary>Green: made from what it was made from, as that is now.</summary>
         UpToDate,
+    }
+
+    /// <summary>
+    /// A new document an extension offers beside NEW (<see cref="CadWorkspaceExtension.NewDocumentOffer"/>): the words the
+    /// start screen, the application menu and the command line say for it, and what running it does.
+    /// </summary>
+    /// <remarks>
+    /// An extension that makes plans from surveys offers <c>new CadNewDocumentOffer("Plan from a survey", "New plan from a
+    /// survey…  ·  Ctrl+N", "Make a plan from a survey (PLANNEW)", "Open and edit any 2D drawing, or make plans from
+    /// surveys. No file is open.", "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a plan from a survey.", () => ShowDialog())</c>.
+    /// </remarks>
+    public sealed class CadNewDocumentOffer
+    {
+        /// <summary>Makes an offer.</summary>
+        /// <param name="name">The name of its entry in the New list of the application menu.</param>
+        /// <param name="buttonText">The text of its button on the start screen, with the key.</param>
+        /// <param name="description">The line under its entry in the application menu, and the tooltip of its button.</param>
+        /// <param name="startScreenText">The line under the name of the app on the start screen.</param>
+        /// <param name="welcomeText">The line the command line shows before anything has been written to it.</param>
+        /// <param name="run">What running it does: shows the extension's dialog, for one.</param>
+        /// <exception cref="ArgumentException">Thrown when a text is null or empty.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="run"/> is null.</exception>
+        public CadNewDocumentOffer(
+            string name,
+            string buttonText,
+            string description,
+            string startScreenText,
+            string welcomeText,
+            Action run
+        )
+        {
+            Name = Text(name, nameof(name));
+            ButtonText = Text(buttonText, nameof(buttonText));
+            Description = Text(description, nameof(description));
+            StartScreenText = Text(startScreenText, nameof(startScreenText));
+            WelcomeText = Text(welcomeText, nameof(welcomeText));
+            _run = run ?? throw new ArgumentNullException(nameof(run));
+        }
+
+        private readonly Action _run;
+
+        /// <summary>Gets the name of its entry in the New list of the application menu.</summary>
+        public string Name { get; }
+
+        /// <summary>Gets the text of its button on the start screen, with the key.</summary>
+        public string ButtonText { get; }
+
+        /// <summary>Gets the line under its entry in the application menu, and the tooltip of its button.</summary>
+        public string Description { get; }
+
+        /// <summary>Gets the line under the name of the app on the start screen.</summary>
+        public string StartScreenText { get; }
+
+        /// <summary>Gets the line the command line shows before anything has been written to it.</summary>
+        public string WelcomeText { get; }
+
+        /// <summary>Runs the offer: Ctrl+N, its button and its entry in the application menu do this.</summary>
+        public void Run() => _run();
+
+        private static string Text(string value, string name) =>
+            string.IsNullOrEmpty(value) ? throw new ArgumentException("The text is empty.", name) : value;
     }
 
     /// <summary>
@@ -2482,8 +2520,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// under, its label and line of detail, the text at its right, its dot, the title and the state texts.
     /// </summary>
     /// <remarks>
-    /// A drawing B-101 of the beam B1 made from Tekla is <c>new CadFileInfo("Tekla 2025 · model drawings", "B-101", "Beam B1 · rev B", "A2",
-    /// CadFileState.Edited, "B-101 · Beam B1", "Source: Tekla 2025 · connected", "1 drawing out of date")</c>.
+    /// A plan P-101 an extension made from a survey is <c>new CadFileInfo("Surveys", "P-101", "Level 2 · rev B", "A2",
+    /// CadFileState.Edited, "P-101 · Level 2", "Source: survey 7 · connected", "1 plan out of date")</c>.
     /// </remarks>
     public sealed class CadFileInfo
     {
@@ -2543,10 +2581,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// What a host adds to the presenter without the presenter knowing it (A16: Part B adds model drawings this way): a ribbon
-    /// tab after Home, shown while <see cref="IsTabVisible"/>; commands on the command line of every document; words for its
-    /// own documents in the DRAWINGS list, the title and the status bar; rows and a banner in Properties. It is added with
-    /// <see cref="MainViewModel.AddExtension"/>; every member has a default that adds nothing.
+    /// What a host adds to the presenter without the presenter knowing it (A16: Part B adds model drawings this way, in GeometryHelper.Drawing.Wpf): a ribbon
+    /// tab after Home, shown while <see cref="IsTabVisible"/>; commands on the command line of every document; a new
+    /// document of its own beside NEW; words for its own documents in the DRAWINGS list, the title and the status bar; rows
+    /// and a banner in Properties. It is added with <see cref="MainViewModel.AddExtension"/>; every member has a default that
+    /// adds nothing.
     /// </summary>
     public abstract class CadWorkspaceExtension : ObservableObject
     {
@@ -2554,11 +2593,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _isTabSelected;
         private object _tabContent;
 
-        /// <summary>Gets the name of the ribbon tab it adds, as "Drawing"; null for none.</summary>
+        /// <summary>Gets the name of the ribbon tab it adds, as "Surveys"; null for none.</summary>
         public virtual string TabHeader => null;
 
-        /// <summary>Gets the name of the chip of the DRAWINGS list for its documents, as "Model drawings"; null for none.</summary>
+        /// <summary>Gets the name of the chip of the DRAWINGS list for its documents, as "Plans from surveys"; null for none.</summary>
         public virtual string FileKindName => null;
+
+        /// <summary>
+        /// Gets the new document it offers beside NEW: the start screen, the New entry of the application menu and Ctrl+N
+        /// show and run it (see <see cref="MainViewModel.NewDocumentOffer"/>); null for none.
+        /// </summary>
+        public virtual CadNewDocumentOffer NewDocumentOffer => null;
 
         /// <summary>Gets or sets what its ribbon tab shows: a WPF element, or a view model the window has a template for.</summary>
         public object TabContent
@@ -2567,7 +2612,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _tabContent, value);
         }
 
-        /// <summary>Gets whether its ribbon tab is shown now, as the Drawing tab only while a model drawing is.</summary>
+        /// <summary>Gets whether its ribbon tab is shown now, as a tab of one kind of document only while one is open.</summary>
         public bool IsTabVisible
         {
             get => _isTabVisible;
@@ -2585,7 +2630,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="registry">The registry of the document's command line.</param>
         public virtual void AddCommands(CadCommandRegistry registry) { }
 
-        /// <summary>Runs a command typed with no document open, as DRAWINGNEW; false for one it does not know.</summary>
+        /// <summary>Runs a command typed with no document open, as one that makes a document; false for one it does not know.</summary>
         /// <param name="typed">The name or alias typed.</param>
         /// <returns>Whether it ran it.</returns>
         public virtual bool TryRunWithoutDocument(string typed) => false;
@@ -2617,7 +2662,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Tells the extension a DXF file has been opened (Open, or a row of the file list), before it is shown, so that it can
-        /// take a document of its own back: a model drawing saved and opened again registers its owner here.
+        /// take a document of its own back: a document it wrote, saved and opened again, registers its owner here.
         /// </summary>
         /// <param name="document">The document opened.</param>
         public virtual void DocumentOpened(CadDocument document) { }

@@ -328,7 +328,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- The categories; those for drawings made from a model tagged MODEL. -->
+                <!-- The categories. -->
                 <ListBox
                     Background="{StaticResource GhBg}"
                     BorderThickness="0"
@@ -350,21 +350,6 @@
                                                     Text="{Binding Name}"
                                                     Foreground="{StaticResource GhTextMuted}"
                                                 />
-                                                <Border
-                                                    Background="{StaticResource GhSelected}"
-                                                    CornerRadius="3"
-                                                    Padding="5,0"
-                                                    Margin="6,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    Visibility="{Binding IsModel, Converter={StaticResource Shown}}"
-                                                >
-                                                    <TextBlock
-                                                        Text="MODEL"
-                                                        FontSize="9"
-                                                        FontWeight="SemiBold"
-                                                        Foreground="{StaticResource GhText}"
-                                                    />
-                                                </Border>
                                             </StackPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>

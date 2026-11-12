@@ -617,15 +617,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Entry("Drawing", IconNew, "A new empty drawing of the metric template (NEW)", () => model.NewDrawing()),
             };
 
-            if (model.CanMakeFromModel)
+            CadNewDocumentOffer offer = model.NewDocumentOffer;
+
+            if (offer != null)
             {
                 items.Add(
-                    Entry(
-                        "Drawing from a model",
-                        "GhIconModel",
-                        "Make a drawing from the objects of a model (DRAWINGNEW)",
-                        () => model.NewFromModelCommand.Execute(null)
-                    )
+                    Entry(offer.Name, IconNew, offer.Description, () => model.NewOfferedDocumentCommand.Execute(null))
                 );
             }
 

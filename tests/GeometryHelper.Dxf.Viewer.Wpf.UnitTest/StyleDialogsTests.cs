@@ -183,7 +183,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void AModelDrawingsStyle_IsNoticed_AndOverrideWritesIntoTheDimensionsSelected()
+        public void AStyleNamedGhModel_IsAnyOtherStyle_AndOverrideWritesIntoTheDimensionsSelected()
         {
             MainViewModel model = Opened(out CadDocument document);
             string start = CadDimStyleEditor.Current(document.Database);
@@ -196,12 +196,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             DimStyleManagerViewModel manager = model.CreateDimStyleManager();
 
             manager.SelectedStyle = manager.Styles.Single(s => s.Name == "GH_MODEL_10");
-            Assert.Equal(
-                "A style named GH_MODEL_… is made by the model drawing. Changing it is a hand edit that an update keeps; its settings remake the rest.",
-                manager.Notice
+            Assert.False(manager.HasNotice);
+            Assert.Equal(string.Empty, manager.Notice);
+            Assert.StartsWith(
+                "The preview redraws as a value changes.",
+                manager.CreateModify().Notice,
+                StringComparison.Ordinal
             );
-            Assert.True(manager.SelectedStyle.IsModel);
-            Assert.Equal(manager.Notice, manager.CreateModify().Notice);
 
             DimStyleEditViewModel nothingSelected = manager.CreateOverride();
             Assert.StartsWith("Select dimensions before Override", nothingSelected.Notice, StringComparison.Ordinal);

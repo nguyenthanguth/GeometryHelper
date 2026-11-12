@@ -12,7 +12,7 @@ There are two kinds of settings, kept apart:
 
 ## Global settings
 
-The dialog is in the UI design (nine categories). Part A owns the shared ones; Drawing defaults, Data sources and the DXF layout part of Save and export belong to Part B and are tagged MODEL there. Its categories and defaults:
+The dialog is in the UI design (nine categories). Part A owns the shared ones; Drawing defaults, Data sources, the DXF layout part of Save and export, the hidden lines colour and the dimension decimals belong to Part B: since 2026-11-12 the presenter shows none of them (they stay in `GlobalSettings`, in the JSON file), and the Tekla drawing app shows them in its own settings. Its categories and defaults:
 
 | Category | Settings, for example | Default |
 |---|---|---|

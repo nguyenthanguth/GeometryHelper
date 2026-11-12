@@ -173,12 +173,6 @@
             <!-- The table of layers, then the notes. -->
             <DockPanel Margin="16,12">
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-                    <TextBlock
-                        Foreground="{StaticResource GhTextMuted}"
-                        TextWrapping="Wrap"
-                        Visibility="{Binding HasViewportColumns, Converter={StaticResource Hidden}}"
-                        Text="Layers marked with an owner were written by a model drawing. You can switch them off or change their colour; their entities are edited through the drawing."
-                    />
                     <StackPanel
                         Orientation="Horizontal"
                         Visibility="{Binding HasViewportColumns, Converter={StaticResource Shown}}"
@@ -224,13 +218,6 @@
                             <TextBlock Grid.Column="5" Style="{StaticResource HeadCell}" Text="Colour" />
                             <TextBlock Grid.Column="6" Style="{StaticResource HeadCell}" Text="Linetype" />
                             <TextBlock Grid.Column="7" Style="{StaticResource HeadCell}" Text="Weight" />
-                            <TextBlock
-                                Grid.Column="8"
-                                Width="106"
-                                Style="{StaticResource HeadCell}"
-                                Text="Owner"
-                                Visibility="{Binding HasViewportColumns, Converter={StaticResource Hidden}}"
-                            />
                             <StackPanel
                                 Grid.Column="8"
                                 Orientation="Horizontal"
@@ -498,14 +485,6 @@
                                             ItemsSource="{Binding WeightOptions}"
                                             SelectedItem="{Binding Weight, Mode=TwoWay}"
                                             ToolTip="Lineweight"
-                                        />
-                                        <TextBlock
-                                            Grid.Column="8"
-                                            Width="106"
-                                            Style="{StaticResource Cell}"
-                                            Text="{Binding Owner}"
-                                            Foreground="{StaticResource GhTextMuted}"
-                                            Visibility="{Binding DataContext.HasViewportColumns, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Hidden}}"
                                         />
                                         <!-- The VP cells, acting on the viewport worked through or selected; an override marked. -->
                                         <StackPanel

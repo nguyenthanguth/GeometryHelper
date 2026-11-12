@@ -20,8 +20,8 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
             var bench = new Bench();
 
             bench.Model.Execute("DN");
-            Assert.True(bench.Model.NewFromModelCommand.CanExecute(null));
-            bench.Model.NewFromModelCommand.Execute(null);
+            Assert.True(bench.Model.NewOfferedDocumentCommand.CanExecute(null));
+            bench.Model.NewOfferedDocumentCommand.Execute(null);
 
             Assert.Equal(2, bench.Requests.Count);
             Assert.All(bench.Requests, r => Assert.IsType<NewDrawingViewModel>(r.Model));
@@ -44,12 +44,15 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         {
             var bench = new Bench();
 
-            Assert.True(bench.Model.CanMakeFromModel);
+            Assert.True(bench.Model.HasNewDocumentOffer);
             Assert.Equal(
                 "Open and edit any 2D drawing, or make drawings from a model. No file is open.",
                 bench.Model.StartScreenText
             );
-            Assert.Equal(new[] { MainViewModel.WelcomeText }, bench.Model.RecentHistory);
+            Assert.Equal(
+                new[] { "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a drawing from a model." },
+                bench.Model.RecentHistory
+            );
             Assert.Contains(bench.Model.CreateAppMenu("GeometryHelper Drawing").Items[0].Items, i =>
                 i.Name == "Drawing from a model"
             );

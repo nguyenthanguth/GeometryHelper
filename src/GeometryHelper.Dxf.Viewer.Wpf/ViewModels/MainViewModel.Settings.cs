@@ -7,11 +7,11 @@ using GeometryHelper.Dxf.Viewer.Plugins;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
-    /// <summary>A source of model objects as Global settings › Data sources lists it: its name, its state and whether it can give objects.</summary>
+    /// <summary>A source of model objects a host that makes drawings from a model keeps beside the presenter: its name, its state and whether it can give objects. The presenter shows none.</summary>
     public sealed class CadSourceInfo
     {
         /// <summary>Makes a source as the list shows it.</summary>
-        /// <param name="name">The name, as "Tekla Structures".</param>
+        /// <param name="name">The name, as "Test bodies".</param>
         /// <param name="detail">Its state in words, as "Not connected · ...".</param>
         /// <param name="isAvailable">Whether it can give objects now.</param>
         public CadSourceInfo(string name, string detail, bool isAvailable)
@@ -74,7 +74,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets the file the settings are saved to by the dialog's OK: <see cref="GlobalSettings.DefaultPath"/> until set.</summary>
         public string SettingsPath { get; set; } = DefaultSettingsPath;
 
-        /// <summary>Gets or sets the model sources Global settings › Data sources lists, as a host that makes drawings from a model gives them.</summary>
+        /// <summary>Gets or sets the model sources a host that makes drawings from a model gives; nothing of the presenter shows or reads them.</summary>
         public IReadOnlyList<CadSourceInfo> SettingsSources
         {
             get => _sources;

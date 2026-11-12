@@ -91,7 +91,14 @@ namespace GeometryHelper.Drawing.Wpf
             ExportDxfCommand = new DelegateCommand(_ => ShowExport(), _ => _drawings.Count > 0);
             RunPluginCommand = new DelegateCommand(_ => ShowRunPlugin(), _ => _current != null);
 
-            model.NewFromModelRequested += (s, e) => ShowNewDrawing();
+            NewDocumentOffer = new CadNewDocumentOffer(
+                "Drawing from a model",
+                "New drawing from a model…  ·  Ctrl+N",
+                "Make a drawing from the objects of a model (DRAWINGNEW)",
+                "Open and edit any 2D drawing, or make drawings from a model. No file is open.",
+                "Welcome. Ctrl+O opens a DXF, Ctrl+N makes a drawing from a model.",
+                () => ShowNewDrawing()
+            );
             model.SettingsApplied += (s, e) => _settingsApplied = true;
             model.PropertyChanged += OnModelChanged;
             model.SettingsSources = _providers
@@ -108,6 +115,12 @@ namespace GeometryHelper.Drawing.Wpf
 
         /// <summary>Gets "Model drawings", the chip of the file list.</summary>
         public override string FileKindName => "Model drawings";
+
+        /// <summary>
+        /// Gets "Drawing from a model", the new document the start screen, the New entry of the application menu and Ctrl+N
+        /// offer: it shows the New drawing dialog (DRAWINGNEW).
+        /// </summary>
+        public override CadNewDocumentOffer NewDocumentOffer { get; }
 
         /// <summary>Gets the presenter's view model.</summary>
         public MainViewModel Model { get; }

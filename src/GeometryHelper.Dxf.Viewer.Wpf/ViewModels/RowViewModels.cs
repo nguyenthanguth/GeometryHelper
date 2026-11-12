@@ -65,7 +65,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             internal set => Set(ref _hasUnsavedChanges, value);
         }
 
-        /// <summary>Gets the short text at the right of the row, as a model drawing's sheet size "A2"; null for none.</summary>
+        /// <summary>Gets the short text at the right of the row, as a sheet size "A2"; null for none.</summary>
         public string Right { get; internal set; }
 
         /// <summary>Gets the dot: blue edited, amber out of date, green up to date, none.</summary>
