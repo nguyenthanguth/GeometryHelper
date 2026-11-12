@@ -17,8 +17,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private readonly List<string> _handles = new List<string>();
         private readonly List<double[]> _paths = new List<double[]>();
+        private readonly List<int> _pathColours = new List<int>();
         private readonly List<DisplayRay2> _rays = new List<DisplayRay2>();
         private readonly List<double[]> _dragPaths = new List<double[]>();
+        private readonly List<int> _dragColours = new List<int>();
         private readonly List<DisplayRay2> _dragRays = new List<DisplayRay2>();
         private IReadOnlyList<DisplayItem2> _dragItems;
         private double _dragTolerance;
@@ -27,6 +29,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private double _tolerance;
         private bool _built;
         private readonly List<double[]> _movedPaths = new List<double[]>();
+        private readonly List<int> _movedColours = new List<int>();
         private readonly List<DisplayRay2> _movedRays = new List<DisplayRay2>();
         private IReadOnlyList<string> _movedHandles;
         private DisplayList2 _movedList;
@@ -171,6 +174,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _paths.Clear();
+            _pathColours.Clear();
             _rays.Clear();
             _list = list;
             _tolerance = tolerance;
@@ -181,7 +185,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _paths;
             }
 
-            Gather(list, _handles, tolerance, _paths, _rays);
+            Gather(list, _handles, tolerance, _paths, _pathColours, _rays);
             return _paths;
         }
 
@@ -210,23 +214,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _movedPaths.Clear();
+            _movedColours.Clear();
             _movedRays.Clear();
             _movedHandles = handles;
             _movedList = list;
             _movedTolerance = tolerance;
-            Gather(list, handles, tolerance, _movedPaths, _movedRays);
+            Gather(list, handles, tolerance, _movedPaths, _movedColours, _movedRays);
             return _movedPaths;
         }
 
-        /// <summary>Gets the XLINEs and RAYs of the objects the last <see cref="Paths(CadDocument, CadSpace, IReadOnlyList{string}, double)"/> outlined, transformed and cut to a view.</summary>
-        public IReadOnlyList<double[]> MovedRays(Affine2 moved, DisplayBox view) => Clip(_movedRays, moved, view);
+        /// <summary>
+        /// Gets the XLINEs and RAYs of the objects the last <see cref="Paths(CadDocument, CadSpace, IReadOnlyList{string}, double)"/>
+        /// outlined, transformed and cut to a view; the colour of each added to <paramref name="colours"/> where it is given.
+        /// </summary>
+        public IReadOnlyList<double[]> MovedRays(Affine2 moved, DisplayBox view, List<int> colours = null) =>
+            Clip(_movedRays, moved, view, colours);
 
-        /// <summary>The outlines of the items of some objects of a display list, added to the paths and the rays.</summary>
+        /// <summary>
+        /// Gets the colours of the outlines one of the <c>Paths</c> methods gave, one for each, as 0xRRGGBB: the colour each
+        /// object is drawn in, so that a copy dragged shows in it, as AutoCAD 2021 drags objects in their own colours. Empty for
+        /// a list this ghost did not give.
+        /// </summary>
+        public IReadOnlyList<int> ColoursOf(IReadOnlyList<double[]> paths) =>
+            ReferenceEquals(paths, _paths) ? _pathColours
+            : ReferenceEquals(paths, _movedPaths) ? _movedColours
+            : ReferenceEquals(paths, _dragPaths) ? _dragColours
+            : (IReadOnlyList<int>)Array.Empty<int>();
+
+        /// <summary>The outlines of the items of some objects of a display list, added to the paths with their colours, and the rays.</summary>
         private static void Gather(
             DisplayList2 list,
             IReadOnlyList<string> handles,
             double tolerance,
             List<double[]> paths,
+            List<int> colours,
             List<DisplayRay2> rays
         )
         {
@@ -244,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                Outline(item, tolerance, paths, rays);
+                Outline(item, tolerance, paths, colours, rays);
             }
         }
 
@@ -254,7 +275,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// already applied; one that misses the view gives none. An XLINE level through the origin, moved by (10, 20), is the run from (-100, 20) to (100, 20) of
         /// the view from (-100, -100) to (100, 100).
         /// </summary>
-        public IReadOnlyList<double[]> Rays(Affine2 moved, DisplayBox view) => Clip(_rays, moved, view);
+        public IReadOnlyList<double[]> Rays(Affine2 moved, DisplayBox view, List<int> colours = null) =>
+            Clip(_rays, moved, view, colours);
 
         /// <summary>
         /// Gets the outlines of the block an INSERT drags (<see cref="CadPrompt.Drag"/>), in the block's own coordinates, as
@@ -275,23 +297,46 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _dragPaths.Clear();
+            _dragColours.Clear();
             _dragRays.Clear();
             _dragItems = items;
             _dragTolerance = tolerance;
 
             foreach (DisplayItem2 item in items)
             {
-                Outline(item, tolerance, _dragPaths, _dragRays);
+                Outline(item, tolerance, _dragPaths, _dragColours, _dragRays);
             }
 
             return _dragPaths;
         }
 
         /// <summary>Gets the XLINEs and RAYs of the block the last <see cref="Paths(CadBlockDrag, double)"/> outlined, transformed and cut to a view as <see cref="Rays"/> cuts those of objects.</summary>
-        public IReadOnlyList<double[]> DragRays(Affine2 moved, DisplayBox view) => Clip(_dragRays, moved, view);
+        public IReadOnlyList<double[]> DragRays(Affine2 moved, DisplayBox view, List<int> colours = null) =>
+            Clip(_dragRays, moved, view, colours);
 
-        /// <summary>The outline of one display item, each a run of X and Y, added to the paths; an XLINE or a RAY added to the rays.</summary>
-        private static void Outline(DisplayItem2 item, double tolerance, List<double[]> paths, List<DisplayRay2> rays)
+        /// <summary>
+        /// The outline of one display item, each a run of X and Y, added to the paths with the item's colour for each; an XLINE
+        /// or a RAY added to the rays.
+        /// </summary>
+        private static void Outline(
+            DisplayItem2 item,
+            double tolerance,
+            List<double[]> paths,
+            List<int> colours,
+            List<DisplayRay2> rays
+        )
+        {
+            int count = paths.Count;
+            Shape(item, tolerance, paths, rays);
+
+            for (int i = count; i < paths.Count; i++)
+            {
+                colours.Add(item.Style?.Rgb ?? 0xFFFFFF);
+            }
+        }
+
+        /// <summary>The runs of X and Y of one display item added to the paths; an XLINE or a RAY added to the rays.</summary>
+        private static void Shape(DisplayItem2 item, double tolerance, List<double[]> paths, List<DisplayRay2> rays)
         {
             switch (item)
             {
@@ -359,8 +404,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>XLINEs and RAYs transformed and cut to a view, each the X and Y of its two ends; one that misses the view gives none.</summary>
-        private static IReadOnlyList<double[]> Clip(IReadOnlyList<DisplayRay2> rays, Affine2 moved, DisplayBox view)
+        /// <summary>
+        /// XLINEs and RAYs transformed and cut to a view, each the X and Y of its two ends, its colour added to the colours where
+        /// they are given; one that misses the view gives none.
+        /// </summary>
+        private static IReadOnlyList<double[]> Clip(
+            IReadOnlyList<DisplayRay2> rays,
+            Affine2 moved,
+            DisplayBox view,
+            List<int> colours
+        )
         {
             var parts = new List<double[]>();
 
@@ -389,6 +442,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (placed.TryClip(view, out double x0, out double y0, out double x1, out double y1))
                 {
                     parts.Add(new[] { x0, y0, x1, y1 });
+                    colours?.Add(ray.Style?.Rgb ?? 0xFFFFFF);
                 }
             }
 
@@ -411,6 +465,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _handles.Clear();
             _paths.Clear();
+            _pathColours.Clear();
             _rays.Clear();
             _built = false;
         }

@@ -192,6 +192,8 @@ the ones wanted.
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
 - [ ] Previews follow-ups 2: a look by eye in the running app; text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
+- [x] Maintainer's AutoCAD pictures (2026-11-12): SCALE/ROTATE faded originals and own-colour copies, amber band, one scale field; window/crossing colours and edges, plain cross while dragging; Shift+right-click access keys; screenshot mode no longer shows real dialogs
+- [ ] Pictures follow-ups: implied window at the Command prompt with "Specify opposite corner or [Fence/WPolygon/CPolygon]:" and absolute X/Y DYN fields; the green base-point square AutoCAD's SCALE does not draw; cursor badges (if wanted); access keys of the canvas right-click menus; the snap-menu letters to confirm on the maintainer's AutoCAD; fading for MOVE/ROTATE/ALIGN/grips against AutoCAD pictures; SCALE of 100 000 entities timed (S)
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once

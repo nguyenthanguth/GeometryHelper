@@ -258,11 +258,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const double UcsIconLetter = 12.0;
         private const double UcsIconMargin = 12.0;
 
-        private static readonly Brush WindowFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3D, 0x9B, 0xFF)));
-        private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3F, 0xB9, 0x50)));
-        private static readonly Pen WindowPen = Frozen(new Pen(Solid(0x3D9BFF), 1.0));
-        private static readonly Pen CrossingPen = Frozen(
-            new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) }
+        /// <summary>The share of their own colour the objects a command is about to move keep while faded: a fifth, as AutoCAD 2021's SCALE shows them.</summary>
+        private const double FadedShare = 0.2;
+
+        // A window blue and a crossing green a quarter strong over the drawing, edged in the crosshair's colour, solid for a
+        // window and dashed 4 on 2 off for a crossing, as AutoCAD 2021 draws them on its dark background (0, 24, 61 and 0, 61, 12).
+        private static readonly Brush WindowFill = Frozen(new SolidColorBrush(Color.FromArgb(64, 0x00, 0x60, 0xF4)));
+        private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(64, 0x00, 0xF4, 0x30)));
+        private static readonly Pen CrossingPenLight = Frozen(
+            new Pen(Solid(0xE6E9ED), 1.0)
+            {
+                DashStyle = new DashStyle(new[] { 4.0, 2.0 }, 0.0),
+                DashCap = PenLineCap.Flat,
+            }
+        );
+        private static readonly Pen CrossingPenDark = Frozen(
+            new Pen(Solid(0x1A1A1A), 1.0)
+            {
+                DashStyle = new DashStyle(new[] { 4.0, 2.0 }, 0.0),
+                DashCap = PenLineCap.Flat,
+            }
         );
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
@@ -285,11 +300,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush BandHot = Frozen(new SolidColorBrush(Color.FromArgb(153, 0xD2, 0x99, 0x22)));
         private static readonly Pen CrossPenLight = Frozen(new Pen(Solid(0xE6E9ED), 1.0));
         private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
-        private static readonly Pen GhostPen = Frozen(
-            new Pen(Solid(0x3D9BFF), 1.2) { DashStyle = new DashStyle(new[] { 6.0, 3.0 }, 0.0) }
-        );
+
+        // The rubber band from the base point, dashed amber 16 on 9 off, as AutoCAD 2021 draws it while SCALE asks its factor.
         private static readonly Pen RubberPen = Frozen(
-            new Pen(Solid(0x3D9BFF), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) }
+            new Pen(Solid(0xD39E1A), 1.0)
+            {
+                DashStyle = new DashStyle(new[] { 16.0, 9.0 }, 0.0),
+                DashCap = PenLineCap.Flat,
+            }
         );
         private static readonly Pen DarkMarkerPen = Frozen(new Pen(Solid(0xFFFF00), CadSnapMarker.LineWidth));
         private static readonly Pen LightMarkerPen = Frozen(new Pen(Solid(0x1A1A1A), CadSnapMarker.LineWidth));
@@ -1142,13 +1160,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void DrawMarked(CadDocument document, CadSpace space, CadView view, SKImageInfo info)
         {
             CadCommandSession session = Session;
+            IReadOnlyList<string> faded = Faded();
             string marking = string.Join(
                 "|",
                 Options.SelectionColor,
                 Options.ShowLineWeights,
                 IsRunning,
                 document.Selection.Count,
-                session?.Gathering.Count ?? 0
+                session?.Gathering.Count ?? 0,
+                faded.Count
             );
 
             if (
@@ -1161,9 +1181,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             IReadOnlyCollection<string> highlighted = Highlighted(document);
+
+            if (faded.Count > 0)
+            {
+                // The objects a command is about to move are drawn faded where they stand, not highlighted.
+                var kept = new HashSet<string>(highlighted, StringComparer.OrdinalIgnoreCase);
+                kept.ExceptWith(faded);
+                highlighted = kept;
+            }
+
             Options.Selected = highlighted;
 
-            if (highlighted.Count == 0)
+            if (faded.Count > 0)
+            {
+                Fit(ref _marked, info);
+
+                using (SKSurface surface = SKSurface.Create(info, _marked.GetPixels(), _marked.RowBytes))
+                using (SKPixmap pixels = _marked.PeekPixels())
+                {
+                    Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
+                    Fade(surface.Canvas, document, faded);
+                    Highlight(surface.Canvas, document, highlighted, false, pixels);
+                    surface.Canvas.Flush();
+                }
+            }
+            else if (highlighted.Count == 0)
             {
                 _marked?.Dispose();
                 _marked = null;
@@ -1398,7 +1440,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 bool crossing = _boxTo.X < a.X;
                 drawingContext.DrawRectangle(
                     crossing ? CrossingFill : WindowFill,
-                    crossing ? CrossingPen : WindowPen,
+                    BoxPen(crossing),
                     new Rect(a, _boxTo)
                 );
             }
@@ -2506,8 +2548,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The ghost copy of the objects a transforming command took, dashed in the selection colour, under the transformation
-        /// the cursor gives; or the block INSERT drags, placed as the cursor would place it.
+        /// The ghost copy of the objects a transforming command took, in their own colours, under the transformation the cursor
+        /// gives; or the block INSERT drags, placed as the cursor would place it.
         /// </summary>
         private void DrawGhost(DrawingContext dc, CadView view, double scale, GeoPoint2 target)
         {
@@ -2551,43 +2593,79 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var geometry = new StreamGeometry();
+            DrawCopies(dc, view, scale, paths, new[] { m }, (n, colours) =>
+                drag != null ? _ghost.DragRays(n, grown, colours) : _ghost.Rays(n, grown, colours)
+            );
+        }
 
-            using (StreamGeometryContext context = geometry.Open())
+        /// <summary>
+        /// The copies of objects a command drags, as AutoCAD 2021 drags them: each outline in its object's colour as the drawing
+        /// shows it, one pixel wide, under each transformation given, with the XLINEs and RAYs the transformation places; a red
+        /// line moved by MOVE is drawn red at the cursor.
+        /// </summary>
+        private void DrawCopies(
+            DrawingContext dc,
+            CadView view,
+            double scale,
+            IReadOnlyList<double[]> paths,
+            IReadOnlyList<Affine2> moves,
+            Func<Affine2, List<int>, IReadOnlyList<double[]>> rays
+        )
+        {
+            int background = Options.BackgroundOf(WorkSpace);
+            IReadOnlyList<int> colours = _ghost.ColoursOf(paths);
+
+            // One figure for each colour, drawn in the order the colours first come.
+            var order = new List<int>();
+            var figures = new Dictionary<int, StreamGeometry>();
+            var contexts = new Dictionary<int, StreamGeometryContext>();
+
+            StreamGeometryContext ContextOf(int rgb)
             {
-                foreach (double[] xy in paths)
-                {
-                    for (int i = 0; i + 1 < xy.Length; i += 2)
-                    {
-                        Point p = ToScreen(view, new GeoPoint2(m.X(xy[i], xy[i + 1]), m.Y(xy[i], xy[i + 1])), scale);
+                int shown = PreviewColor(rgb, background);
 
-                        if (i == 0)
-                        {
-                            context.BeginFigure(p, false, false);
-                        }
-                        else
-                        {
-                            context.LineTo(p, true, false);
-                        }
-                    }
+                if (!contexts.TryGetValue(shown, out StreamGeometryContext context))
+                {
+                    order.Add(shown);
+                    figures[shown] = new StreamGeometry();
+                    context = figures[shown].Open();
+                    contexts[shown] = context;
                 }
 
-                foreach (double[] part in rays)
+                return context;
+            }
+
+            foreach (Affine2 m in moves)
+            {
+                for (int k = 0; k < paths.Count; k++)
                 {
-                    context.BeginFigure(ToScreen(view, new GeoPoint2(part[0], part[1]), scale), false, false);
-                    context.LineTo(ToScreen(view, new GeoPoint2(part[2], part[3]), scale), true, false);
+                    Trace(ContextOf(k < colours.Count ? colours[k] : 0xFFFFFF), view, scale, paths[k], m, false);
+                }
+
+                var rayColours = new List<int>();
+                IReadOnlyList<double[]> parts = rays(m, rayColours);
+
+                for (int k = 0; k < parts.Count; k++)
+                {
+                    Trace(ContextOf(rayColours[k]), view, scale, parts[k], Affine2.Identity, false);
                 }
             }
 
-            geometry.Freeze();
-            dc.DrawGeometry(null, GhostPen, geometry);
+            foreach (int rgb in order)
+            {
+                contexts[rgb].Close();
+                figures[rgb].Freeze();
+                var pen = new Pen(Solid(rgb), 1.0);
+                pen.Freeze();
+                dc.DrawGeometry(null, pen, figures[rgb]);
+            }
         }
 
         /// <summary>
         /// What the prompt waiting previews with the cursor at a point (<see cref="CadPrompt.Preview"/>), as AutoCAD 2021 drags
         /// the object about to be made: the entities the command would make, each in its own colour as it will be drawn, and
-        /// the copies of the objects it would move, dashed as the ghost of MOVE. False where the prompt has no preview or one
-        /// drawn without the rubber band.
+        /// the copies of the objects it would move, in their own colours as the ghost of MOVE. False where the prompt has no
+        /// preview or one drawn without the rubber band.
         /// </summary>
         private bool DrawPreview(DrawingContext dc, CadView view, double scale, GeoPoint2 target)
         {
@@ -2607,26 +2685,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (moves.Count > 0 && preview.Handles.Count > 0)
             {
                 IReadOnlyList<double[]> paths = _ghost.Paths(Document, WorkSpace, preview.Handles, tolerance);
-                var geometry = new StreamGeometry();
-
-                using (StreamGeometryContext context = geometry.Open())
-                {
-                    foreach (Affine2 m in moves)
-                    {
-                        foreach (double[] xy in paths)
-                        {
-                            Trace(context, view, scale, xy, m, false);
-                        }
-
-                        foreach (double[] part in _ghost.MovedRays(m, grown))
-                        {
-                            Trace(context, view, scale, part, Affine2.Identity, false);
-                        }
-                    }
-                }
-
-                geometry.Freeze();
-                dc.DrawGeometry(null, GhostPen, geometry);
+                DrawCopies(dc, view, scale, paths, moves, (m, colours) => _ghost.MovedRays(m, grown, colours));
             }
 
             IReadOnlyList<DisplayItem2> items = preview.Items(target);
@@ -3592,6 +3651,61 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             canvas.Restore();
         }
 
+        /// <summary>Draws entities faded over the canvas, as <see cref="Highlight"/> draws them highlighted; through a viewport, within its frame.</summary>
+        private void Fade(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles)
+        {
+            DxfViewport through = Through;
+
+            if (through == null)
+            {
+                _renderer.RenderFaded(canvas, document, Space, View, Options, handles, FadedShare);
+                return;
+            }
+
+            Rect frame = FrameOnScreen(through);
+            double scale = PixelScale;
+            canvas.Save();
+            canvas.ClipRect(
+                new SKRect(
+                    (float)(frame.Left * scale),
+                    (float)(frame.Top * scale),
+                    (float)(frame.Right * scale),
+                    (float)(frame.Bottom * scale)
+                )
+            );
+            _renderer.RenderFaded(canvas, document, document.ModelSpace, WorkView, Options, handles, FadedShare);
+            canvas.Restore();
+        }
+
+        /// <summary>
+        /// The objects the prompt waiting is about to move away from where they stand, drawn faded there while their copy
+        /// follows the cursor, as AutoCAD 2021 draws them: those of a preview that says so (<see cref="CadPreview.FadesOriginals"/>,
+        /// SCALE and ROTATE without Copy), and those MOVE drags to its second point. Empty for any other prompt, COPY's and
+        /// MIRROR's among them, whose objects stay.
+        /// </summary>
+        internal IReadOnlyList<string> Faded()
+        {
+            CadCommandSession session = Session;
+            CadPrompt prompt = session?.Prompt;
+
+            if (prompt == null || !session.IsRunning || prompt.Drag != null)
+            {
+                return Array.Empty<string>();
+            }
+
+            if (prompt.Preview != null)
+            {
+                return prompt.Preview.FadesOriginals ? prompt.Preview.Handles : Array.Empty<string>();
+            }
+
+            bool moving =
+                !session.IsGripEditing
+                && session.Current?.Name == "MOVE"
+                && prompt.BasePoint.HasValue
+                && CadGhost.Transform(session, prompt.BasePoint.Value).HasValue;
+            return moving ? _ghost.Handles : Array.Empty<string>();
+        }
+
         /// <summary>The grips of the selected entities while no command runs, and the tags of the selected viewports.</summary>
         private void FindGrips()
         {
@@ -3717,7 +3831,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             geometry.Freeze();
-            dc.DrawGeometry(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, geometry);
+            dc.DrawGeometry(crossing ? CrossingFill : WindowFill, BoxPen(crossing), geometry);
         }
 
         /// <summary>
@@ -3749,7 +3863,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         || (band.Kind == CadSelectionBandKind.Box && cursor.X < first.X);
                     dc.DrawRectangle(
                         crossing ? CrossingFill : WindowFill,
-                        crossing ? CrossingPen : WindowPen,
+                        BoxPen(crossing),
                         new Rect(ToScreen(view, first, scale), ToScreen(view, cursor, scale))
                     );
                     return;
@@ -3772,16 +3886,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             geometry.Freeze();
-            dc.DrawGeometry(
-                closed ? (crossing ? CrossingFill : WindowFill) : null,
-                crossing ? CrossingPen : WindowPen,
-                geometry
-            );
+            dc.DrawGeometry(closed ? (crossing ? CrossingFill : WindowFill) : null, BoxPen(crossing), geometry);
+        }
+
+        /// <summary>The edge of a selection window, lasso or polygon: in the crosshair's colour for the background, solid for a window and dashed for a crossing.</summary>
+        private Pen BoxPen(bool crossing)
+        {
+            int rgb = Space != null ? Options.BackgroundOf(Space) : Options.Background;
+            double luminance =
+                (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            return luminance < 0.5 ? (crossing ? CrossingPenLight : CrossPenLight)
+                : crossing ? CrossingPenDark
+                : CrossPenDark;
         }
 
         /// <summary>
         /// The crosshair at the cursor, as AutoCAD draws it: two lines across a share of the canvas, in the colour that shows on
-        /// its background, and the pickbox square at their meeting while no point is asked for.
+        /// its background, and the pickbox square at their meeting while no point is asked for and no window or lasso is being
+        /// dragged: the cursor of a window being dragged is the cross alone, as AutoCAD's.
         /// </summary>
         private void DrawCrosshair(DrawingContext dc)
         {
@@ -3802,7 +3924,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Point at = _mouse.Value;
             double half = _crosshairPercent / 100.0 * Math.Max(ActualWidth, ActualHeight) / 2.0;
             double box = PickboxPixels;
-            bool picking = !CadPicking.WantsPoint(Session);
+            bool windowing = (_boxing && _boxFrom.HasValue) || _lasso != null;
+            bool picking = !CadPicking.WantsPoint(Session) && !windowing;
             double gap = picking ? box : 0.0;
 
             // The lines run along the axes of the UCS, as AutoCAD's crosshair does; across and up in the world's. Turned by
@@ -4312,7 +4435,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DrawGhost(dc, view, scale, target);
             bool band = DrawPreview(dc, view, scale, target);
 
-            if (basePoint.HasValue)
+            // The window or polygon of "Select objects:" is drawn alone, as AutoCAD's: no rubber band or base point inside it.
+            if (basePoint.HasValue && session.Prompt.Band == null)
             {
                 Point from = ToScreen(view, basePoint.Value, scale);
 

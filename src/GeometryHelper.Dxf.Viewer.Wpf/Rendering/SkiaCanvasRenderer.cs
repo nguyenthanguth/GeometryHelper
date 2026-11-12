@@ -289,18 +289,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            PickIndex index = document.GetPickIndex(space);
-            var places = new List<int>();
-
-            foreach (string handle in handles)
-            {
-                places.AddRange(index.IndicesOf(handle));
-            }
-
-            places.Sort();
             Affine2 m = view.DrawingToScreen;
             double zoom = m.Scale;
-            DisplayBox visible = view.VisibleBox;
             int background = options.BackgroundOf(space);
 
             if (zoom <= 0.0)
@@ -308,19 +298,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var items = new List<DisplayItem2>(places.Count);
-
-            for (int k = 0; k < places.Count; k++)
-            {
-                DisplayItem2 item = index.List.Items[places[k]];
-
-                if ((k > 0 && places[k] == places[k - 1]) || !item.Bounds.Intersects(visible))
-                {
-                    continue;
-                }
-
-                items.Add(item);
-            }
+            List<DisplayItem2> items = VisibleItems(document, space, view, handles);
 
             if (
                 pixels != null
@@ -340,6 +318,109 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawHighlighted(canvas, document, item, m, zoom, options, stroke, fill, hover, background);
                 }
             }
+        }
+
+        /// <summary>
+        /// Draws entities faded over what the canvas holds, as AutoCAD 2021 draws the objects SCALE, ROTATE or MOVE is about to
+        /// move while their copy follows the cursor: each blanked out where it is drawn, then drawn again a share of its own
+        /// colour mixed into the background, a white line on black at 0.2 a dark grey of 51.
+        /// </summary>
+        /// <param name="canvas">The canvas holding the scene.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space shown.</param>
+        /// <param name="view">The view the scene was drawn at.</param>
+        /// <param name="options">How the scene was drawn.</param>
+        /// <param name="handles">The entities.</param>
+        /// <param name="share">The share of their own colour they keep, from 0 to 1.</param>
+        internal void RenderFaded(
+            SKCanvas canvas,
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            CanvasOptions options,
+            IReadOnlyCollection<string> handles,
+            double share
+        )
+        {
+            if (handles == null || handles.Count == 0)
+            {
+                return;
+            }
+
+            Affine2 m = view.DrawingToScreen;
+            double zoom = m.Scale;
+            int background = options.BackgroundOf(space);
+
+            if (zoom <= 0.0)
+            {
+                return;
+            }
+
+            List<DisplayItem2> items = VisibleItems(document, space, view, handles);
+
+            using (var blank = SKColorFilter.CreateBlendMode(Color(background, 255), SKBlendMode.SrcIn))
+            using (var stroke = NewStroke())
+            using (var fill = NewFill())
+            {
+                // Drawn as selected, at least two pixels wide, in the background's colour: the objects blanked out.
+                stroke.ColorFilter = blank;
+                fill.ColorFilter = blank;
+
+                foreach (DisplayItem2 item in items)
+                {
+                    DrawItem(canvas, document, item, m, zoom, options, stroke, fill, true, false, background);
+                }
+
+                stroke.ColorFilter = null;
+                fill.ColorFilter = null;
+
+                using (var layer = new SKPaint { Color = new SKColor(0, 0, 0, (byte)Math.Round(255.0 * share)) })
+                {
+                    canvas.SaveLayer(layer);
+
+                    foreach (DisplayItem2 item in items)
+                    {
+                        DrawItem(canvas, document, item, m, zoom, options, stroke, fill, false, false, background);
+                    }
+
+                    canvas.Restore();
+                }
+            }
+        }
+
+        /// <summary>The display items of entities that the view shows, in the order of the drawing, each once.</summary>
+        private static List<DisplayItem2> VisibleItems(
+            CadDocument document,
+            CadSpace space,
+            CadView view,
+            IReadOnlyCollection<string> handles
+        )
+        {
+            PickIndex index = document.GetPickIndex(space);
+            var places = new List<int>();
+
+            foreach (string handle in handles)
+            {
+                places.AddRange(index.IndicesOf(handle));
+            }
+
+            places.Sort();
+            DisplayBox visible = view.VisibleBox;
+            var items = new List<DisplayItem2>(places.Count);
+
+            for (int k = 0; k < places.Count; k++)
+            {
+                DisplayItem2 item = index.List.Items[places[k]];
+
+                if ((k > 0 && places[k] == places[k - 1]) || !item.Bounds.Intersects(visible))
+                {
+                    continue;
+                }
+
+                items.Add(item);
+            }
+
+            return items;
         }
 
         /// <summary>The fewest items drawn highlighted that are shared out among threads; fewer are drawn on the calling thread.</summary>

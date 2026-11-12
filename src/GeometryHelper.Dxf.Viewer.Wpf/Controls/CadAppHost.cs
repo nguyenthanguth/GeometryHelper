@@ -838,6 +838,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : model;
             root.DataContext = context;
 
+            // The workspace hooks the window's dialogs again once it is given the view model; none may open here either, so
+            // that WBLOCK typed by --run, as W, asks on the command line rather than showing Write Block.
+            if (!layers && dialogName == null)
+            {
+                model.StubDialogs();
+            }
+
             // A dialog sized to its content is measured again out of its window, its rows bound now.
             if (dialogName != null && window.SizeToContent != SizeToContent.Manual)
             {
