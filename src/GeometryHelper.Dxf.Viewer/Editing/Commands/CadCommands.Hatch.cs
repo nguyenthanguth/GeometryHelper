@@ -210,7 +210,33 @@ namespace GeometryHelper.Dxf.Viewer
             if (c.Input.Is("Gradient"))
             {
                 settings.Type = CadHatchType.Gradient;
-                yield return CadPrompt.ForString("Enter gradient name", settings.GradientName);
+
+                while (true)
+                {
+                    yield return CadPrompt.ForKeywordOrText(
+                        "Enter a gradient name or",
+                        new[] { "?", "Two color" },
+                        settings.GradientName
+                    );
+
+                    if (c.Input.Is("?"))
+                    {
+                        c.Write(string.Join(", ", CadHatchSettings.GradientNames) + ".");
+                        continue;
+                    }
+
+                    break;
+                }
+
+                if (c.Input.Is("Two color"))
+                {
+                    foreach (CadPrompt prompt in GradientColorsTyped(c, settings))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
 
                 if (c.Input.Kind == CadInputKind.Text)
                 {
@@ -226,6 +252,29 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         settings.GradientName = name;
                     }
+                }
+
+                yield return CadPrompt.ForAngle(
+                    "Specify an angle for the gradient",
+                    null,
+                    null,
+                    Counted(c, settings.Angle * Math.PI / 180.0)
+                );
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    settings.Angle = c.Input.Number * 180.0 / Math.PI;
+                }
+
+                yield return CadPrompt.ForKeyword(
+                    "Center the gradient",
+                    new[] { "Yes", "No" },
+                    settings.GradientCentered ? "Yes" : "No"
+                );
+
+                if (c.Input.Is("Yes") || c.Input.Is("No"))
+                {
+                    settings.GradientCentered = c.Input.Is("Yes");
                 }
 
                 yield break;
@@ -314,24 +363,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             List<CadBoundaryLoop> loops = KeptLoops(picks, settings);
             string fault = null;
-            CadEditResult result = c.Apply(null, s =>
-            {
-                DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
-                fault = settings.ApplyTo(hatch, s.Database, s.Document);
-                AppendLoops(hatch, loops);
-
-                if (settings.Associative)
-                {
-                    var objects = new List<IReadOnlyList<DxfEntity>>();
-
-                    foreach (CadBoundaryLoop loop in loops)
-                    {
-                        objects.Add(loop.Sources.Select(h => s.Document.FindEntity(h)).Where(e => e != null).ToList());
-                    }
-
-                    hatch.SetAssociatedObjects(objects);
-                }
-            });
+            CadEditResult result = c.Apply(null, s => AppendHatch(c, s, loops, settings, out fault));
 
             if (fault != null)
             {
@@ -342,6 +374,51 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write(result.Message);
             }
+        }
+
+        /// <summary>
+        /// Appends one hatch of the loops to the current space inside an edit: given the settings, the loops, and the objects
+        /// of the loops where the settings are associative. Gives the fault of the pattern where it is in no file.
+        /// </summary>
+        private static DxfHatch AppendHatch(
+            CadCommandContext c,
+            CadEditScope s,
+            List<CadBoundaryLoop> loops,
+            CadHatchSettings settings,
+            out string fault
+        )
+        {
+            DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
+            fault = settings.ApplyTo(hatch, s.Database, s.Document);
+            AppendLoops(hatch, loops);
+
+            if (settings.Associative)
+            {
+                var objects = new List<IReadOnlyList<DxfEntity>>();
+
+                foreach (CadBoundaryLoop loop in loops)
+                {
+                    objects.Add(loop.Sources.Select(h => s.Document.FindEntity(h)).Where(e => e != null).ToList());
+                }
+
+                hatch.SetAssociatedObjects(objects);
+            }
+
+            return hatch;
+        }
+
+        /// <summary>The closed polyline of a loop, its corners and the bulges of its edges, as BOUNDARY makes it.</summary>
+        private static DxfPolyline LoopPolyline(CadBoundaryLoop loop)
+        {
+            var polyline = new DxfPolyline();
+
+            for (int i = 0; i < loop.Vertices.Count; i++)
+            {
+                polyline.AddVertexAt(i, loop.Vertices[i], loop.Bulges[i], 0.0, 0.0);
+            }
+
+            polyline.Closed = true;
+            return polyline;
         }
 
         /// <summary>The loops of the picks a hatch is made of, each pick's as its island style keeps them.</summary>
@@ -479,53 +556,6 @@ namespace GeometryHelper.Dxf.Viewer
         /// BOUNDARY: "Pick internal point:" until Enter, each point's area and its islands made closed polylines on the current
         /// layer, "BOUNDARY created 2 polylines"; areas closed by ellipses or splines drawn through their points. One undo step.
         /// </summary>
-        private static IEnumerable<CadPrompt> Boundary(CadCommandContext c)
-        {
-            while (true)
-            {
-                yield return CadPrompt.ForPoint("Pick internal point");
-
-                if (!c.Input.IsPoint)
-                {
-                    yield break;
-                }
-
-                IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(
-                    c.Document,
-                    c.Space,
-                    c.Input.Point,
-                    c.Session.Tolerance,
-                    c.Session.WorkView?.VisibleBox
-                );
-
-                if (loops == null)
-                {
-                    c.Write("Valid hatch boundary not found.");
-                    continue;
-                }
-
-                CadEditResult result = c.Apply(null, s =>
-                {
-                    foreach (CadBoundaryLoop loop in loops)
-                    {
-                        var polyline = new DxfPolyline();
-
-                        for (int i = 0; i < loop.Vertices.Count; i++)
-                        {
-                            polyline.AddVertexAt(i, loop.Vertices[i], loop.Bulges[i], 0.0, 0.0);
-                        }
-
-                        polyline.Closed = true;
-                        s.Append(c.Space, Current(c, polyline));
-                    }
-                });
-
-                c.Write(
-                    result.Succeeded
-                        ? "BOUNDARY created " + Count(loops.Count, "polyline", "polylines")
-                        : result.Message
-                );
-            }
-        }
+        private static IEnumerable<CadPrompt> Boundary(CadCommandContext c) => BoundaryPoints(c, false);
     }
 }

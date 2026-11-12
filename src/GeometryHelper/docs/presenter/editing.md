@@ -194,13 +194,14 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 207 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 215 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?) |
@@ -214,6 +215,46 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+
+**Shapes and hatching (batch 3 of acad.pgp).**
+
+The prompts of these were read from AutoCAD 2021 (its resources and accoreconsole probes). SOLID asks `Specify first
+point:`, `Specify second point:`, `Specify third point:` and `Specify fourth point or <exit>:`, and keeps the corners in the
+order they are picked, so that the area runs 1, 2, 4, 3 round; Enter at the fourth makes a triangle of the third corner
+twice. It goes on with `Specify third point:`, the third and fourth corners of the last solid the first and second of the
+next (after a triangle, the third corner twice), until Enter; the whole command is one undo step. A strip of (0, 0), (10, 0),
+(0, 10), (10, 10), (0, 20), (10, 20) is two solids, the second from (0, 10) and (10, 10).
+
+-BOUNDARY asks `Specify internal point or [Advanced options]:` and makes the area round each point and its islands as closed
+polylines, `BOUNDARY created 2 polylines`. Advanced options asks `Enter an option [Island detection/Object type]:` until
+Enter: island detection off makes the outer loop alone, and BOUNDARY takes the same settings for the rest of the session.
+An object type of Region makes nothing: a region is ACIS data, which the presenter cannot write yet, and the command says so.
+REGION asks `Select objects:`, counts the loops the closed objects make (`2 loops extracted.`) and says the same of the
+regions: `0 Regions created.` where nothing closes, the ACIS limit where something does. AutoCAD's Boundary set is not built.
+
+-HATCH writes `Current hatch pattern:  ANSI31` and asks `Specify internal point or [Properties/Select objects/Advanced/DRaw
+order]:` until Enter, then makes the hatch as one undo step. A point in an area already specified says `This area has
+already been specified.`; Undo takes the last pick back; Select objects takes closed objects and asks again. Properties
+types the pattern as HATCHEDIT does and goes back to the prompt; for a gradient it asks `Enter a gradient name or [?/Two
+color] <GR_LINEAR>:`, `Specify an angle for the gradient <0>:` and `Center the gradient [Yes/No] <Yes>:`, and Two color the
+two colours typed as a name, an index or red, green and blue. Advanced asks `Enter an option [Retain boundary/Island
+detection/Style/Associativity/separate Hatches]:` until Enter: Retain boundary keeps polylines of the loops as well, Style is
+`[Ignore/Outer/Normal]`, separate Hatches makes one hatch of each pick. DRaw order asks `Enter draw order [do Not assign/send to
+Back/bring to Front/send beHind boundary/bring in front of bounDary] <send beHind boundary>:`, as AutoCAD starts: the hatch
+is put under the lowest object of its boundary (HATCH leaves the hatch on top). Gap tolerance, Boundary set, draW boundary,
+remove Boundaries, Origin, hatch COlor, LAyer, Transparency and ANnotative are not built, nor Single color. GRADIENT is HATCH
+with the type set to a gradient, as AutoCAD's ribbon takes it; HATCHTOBACK sends every hatch of the current space behind the
+other objects (`1 hatch object(s) sent to back.`, or `No hatch objects found.`).
+
+SPLINEDIT asks `Select spline:` and `Enter an option [Close/Move vertex/rEverse/convert to Polyline/Undo/eXit] <eXit>:`.
+For a spline of fit points Close makes the periodic cubic AutoCAD makes through them and its first point again (the
+spline through (0, 0), (10, 10), (20, 0), (30, 10) and (40, 0) gets the 8 control points AutoCAD wrote for it), and Open the
+open cubic through the points again. Move vertex marks the first control vertex and asks `Specify new location or
+[Next/Previous/Select point/eXit] <N>:`: a point moves the marked vertex, which stays marked, and a spline of fit points loses
+its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks `Specify a precision <10>:` and replaces
+the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command. Fit data, Join and Refine are
+not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT (the classic dialog
+is not in the presenter's design).
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it
@@ -1046,7 +1087,7 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 205 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 209 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 213 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 217 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 23 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an

@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Batch 3 of acad.pgp's 2D commands in the presenter, in the words of AutoCAD 2021 (read from its resources and probed
+in accoreconsole): SOLID (`SO`), -BOUNDARY (`-BO`), -HATCH (`-H`), GRADIENT (`GD`), HATCHTOBACK (`HB`), REGION (`REG`),
+SPLINEDIT (`SPE`) and CLASSICINSERT (`DDINSERT`), the eight added to the 142 default aliases and to the registry (196
+commands). SOLID keeps the corners in the order they are picked and goes on from the third and fourth corners of the last
+solid; Enter at the fourth makes a triangle. -BOUNDARY has Advanced options (island detection, object type); BOUNDARY takes the
+same settings. -HATCH asks for points, Select objects, Properties (typed, as HATCHEDIT), Advanced (Retain boundary, Island
+detection, Style, Associativity, separate Hatches) and DRaw order (under the boundary as AutoCAD starts), says `This area
+has already been specified.`, and makes one hatch, or one of each pick, as one undo step; GRADIENT is HATCH with a gradient;
+HATCHTOBACK sends every hatch of the space to the back. SPLINEDIT has Close and Open for a spline of fit points (the 8 control
+points AutoCAD wrote for the spline through (0, 0), (10, 10), (20, 0), (30, 10), (40, 0)), Move vertex, rEverse, convert to
+Polyline (53 vertices at precision 10, as AutoCAD made them) and Undo. Not built: AutoCAD's Boundary set, Gap tolerance, Origin,
+hatch COlor, LAyer, Transparency and Single color of -HATCH; SPLINEDIT's Fit data, Join and Refine; and the regions
+themselves: a region is ACIS data the presenter cannot write yet, so REGION and the Region object type of -BOUNDARY count the
+loops and make nothing, and say so.
+**CHANGED.** The typed form of a gradient (-HATCH Properties, HATCHEDIT with no window) asks what AutoCAD asks: `Enter a gradient
+name or [?/Two color] <GR_LINEAR>:`, `Specify an angle for the gradient <0>:` and `Center the gradient [Yes/No] <Yes>:`, where
+it asked `Enter gradient name` alone and left the angle and the centring as they were.
 **NEW.** LAYERP (Layer Previous) and LAYERPMODE in the presenter, with the words of AutoCAD 2021 (read from its resources and
 probed in accoreconsole). LAYERP puts back the last change or set of changes made to the settings of layers (on or off,
 frozen, locked, plot, colour, linetype, lineweight, transparency, the current layer) without touching any other edit, and
