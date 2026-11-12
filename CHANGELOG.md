@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32,
+48 and 256 pixels, on the exe, the taskbar and Alt+Tab, and an icon for the drawing files associated with it; both are
+written from their vector drawing by `Icons/make-icons.ps1`. `--register` associates .dxf and .dwg files with the app for
+the user alone (`HKEY_CURRENT_USER\Software\Classes`, no administrator): the ProgID `GeometryHelper.Drawing` with the file
+icon and the command `"app.exe" "%1"`, in the Open with list of both extensions, and their default only where no program
+has them. `--unregister` takes it out and leaves what other programs wrote. `CadAppHost.WindowIcon` sets the window's icon.
+**NEW.** `--tab Home` in the screenshot mode of both apps shows the Home tab; a tab name neither app knows exits with 2,
+`--tab Nowhere: no such tab.`, where it used to draw the Home tab without a word.
+
 **NEW.** In the presenter the row of a table cell grows while the cell is typed in, as AutoCAD 2021's in-place editor
 shows it: each line typed makes the row as high as the words need (in the Standard table style a data cell of two lines
 15.07 high instead of 9, of three 22.57), the lines taken out shrink it back, never below the height it stood at, the

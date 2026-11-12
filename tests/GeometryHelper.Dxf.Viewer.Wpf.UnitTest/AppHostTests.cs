@@ -74,7 +74,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         /// <summary>Runs the app built beside this test's build, the same configuration, and gives its exit code and its output.</summary>
-        private static (int Code, string Output) RunApp(params string[] args)
+        internal static (int Code, string Output) RunApp(params string[] args)
         {
             var bin = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
             string configuration = bin.Parent.Name;

@@ -3,3 +3,5 @@
 
 # The test drawings of the DWG reader, gzipped.
 *.gz binary
+# The icons of the apps, written by a script.
+*.ico binary

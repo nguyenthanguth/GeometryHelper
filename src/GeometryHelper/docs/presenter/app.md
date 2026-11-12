@@ -385,6 +385,37 @@ Drawing derives from `CadAppHost` to add its parts: the host's protected members
 the model drawing into the view model, make a drawing before the file is opened, draw its dialogs and select what its
 options name. A host of its own does the same.
 
+### The icon and the file association
+
+GeometryHelper DXF has an icon of its own, a white set square and an orange point on a blue tile, at 16, 24, 32, 48 and 256
+pixels: the exe carries it, and the window shows it on the taskbar and in Alt+Tab (`CadAppHost.WindowIcon`). A drawing file
+associated with the app shows a page with the same tile on it. Both are written from their vector drawing by
+`src/GeometryHelper.Dxf.App/Icons/make-icons.ps1` into `app.ico` and `drawing-file.ico`; the second is copied beside the exe.
+
+```
+GeometryHelper.Dxf.App.exe --register
+GeometryHelper.Dxf.App.exe --unregister
+```
+
+`--register` associates .dxf and .dwg files with the app for the user alone, under `HKEY_CURRENT_USER\Software\Classes`, so
+no administrator is asked for:
+
+| Key | Value |
+|---|---|
+| `GeometryHelper.Drawing` | `Drawing (GeometryHelper DXF)`, the type Explorer shows |
+| `GeometryHelper.Drawing\DefaultIcon` | `drawing-file.ico` beside the exe (the exe's own icon where the file is missing) |
+| `GeometryHelper.Drawing\shell\open\command` | `"…\GeometryHelper.Dxf.App.exe" "%1"` |
+| `.dxf\OpenWithProgids`, `.dwg\OpenWithProgids` | `GeometryHelper.Drawing`, so the app is in the Open with list |
+| `.dxf`, `.dwg` | `GeometryHelper.Drawing`, only where no program has the extension |
+
+An extension another program has (AutoCAD's `.dwg`, say) is left to it, and the app is one choice of Open with; Windows keeps
+the choice "Always use this app" itself. It writes one line, `.dxf and .dwg files open with GeometryHelper DXF: …`, and
+exits with 0, or with 1 and the reason where the registry refuses. `--unregister` takes out the ProgID and its Open with
+entries, and the default of an extension only where it is the app's; what other programs wrote stays. Run it again after
+moving the app, since the command names the exe where it was. A file opened from Explorer starts a new window of the app,
+one per file, even while the app runs. GeometryHelper Drawing takes the same two switches and writes the same ProgID, so
+the app registered last is the one that opens the files.
+
 ### Screenshots
 
 For a picture of the window in a test or a document:
@@ -404,7 +435,7 @@ it cannot read. Both apps take these options:
 | `--run "MOVE;0,0"` | types lines on the command line, parted by semicolons, an empty part being Enter |
 | `--cursor x,y` | puts the cursor on a point of the drawing, to show the snap and the rubber band of the prompt waiting |
 | `--toggle GRID,DYN` | switches status toggles |
-| `--tab Insert` | shows a ribbon tab: Insert, Annotate, View, Plugins, Settings, or a host's, as Drawing |
+| `--tab Insert` | shows a ribbon tab: Home (the default), Insert, Annotate, View, Plugins, Settings, or a host's, as Drawing; another name exits with 2, `--tab Nowhere: no such tab.` |
 | `--plugin path.dll` | loads a command plugin, every file trusted, into a folder of the run under the temporary folder |
 | `--layers` | draws the Layer manager instead of the window, the lines of `--run` typed first: `--space Layout1 --run MS --layers` shows its VP columns |
 | `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |

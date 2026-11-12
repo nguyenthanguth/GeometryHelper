@@ -26,6 +26,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// command plugins of <see cref="PluginFolder"/> on its startup list.
     /// </para>
     /// <para>
+    /// <c>app.exe --register</c> associates .dxf and .dwg files with the app for the user alone, under
+    /// <c>HKEY_CURRENT_USER\Software\Classes</c> with no administrator: the ProgID <c>GeometryHelper.Drawing</c>, the icon
+    /// <c>drawing-file.ico</c> beside the exe, the command <c>"app.exe" "%1"</c>, and the ProgID in the Open with list of each
+    /// extension, made its default only where no program has it. <c>app.exe --unregister</c> takes that out. Both exit with
+    /// 0 when done and 1 when the registry refuses.
+    /// </para>
+    /// <para>
     /// <c>app.exe --screenshot out.png [plan.dxf] [--size 1600 960] [--space "Layout1"] [--select H1,H2] [--run "MOVE;0,0"]
     /// [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert] [--dialog name] [--plugin path.dll]</c> draws the window
     /// with the drawing open, 1 600 by 960 unless <c>--size</c> says otherwise, and exits: 0 when written, 2 for arguments or a
@@ -34,8 +41,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>--type REC</c> types text and leaves it unsent, the AutoComplete list shown for it, and <c>--type {Down}</c> opens
     /// the options menu of dynamic input; <c>--dialog plot:png</c>, <c>plot:jpg</c> and <c>plot-custom</c> draw PLOT's
     /// dialog on a raster device and its Custom Image Size;
-    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Insert, Annotate, View,
-    /// Plugins, Settings or the header of a tab a host adds); <c>--plugin</c> loads a command plugin, every file trusted.
+    /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Home, Insert, Annotate, View,
+    /// Plugins, Settings or the header of a tab a host adds; another name exits with 2); <c>--plugin</c> loads a command
+    /// plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
     /// <c>save-changes</c>, <c>mtext-unsaved</c>, <c>options</c> or <c>settings:Category</c> (Global settings), <c>plugins</c>,
     /// <c>plugin-settings</c>, <c>plugin-untrusted</c>, <c>color</c>, <c>truecolor</c>, <c>truecolor-rgb</c>,
@@ -83,20 +91,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string PluginFolder { get; }
 
         /// <summary>
+        /// Gets or sets the icon of the window, shown on the taskbar and in Alt+Tab: an .ico of several sizes, as the app's
+        /// <c>app.ico</c>. Null, the default, leaves the exe's icon.
+        /// </summary>
+        public ImageSource WindowIcon { get; set; }
+
+        /// <summary>
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
-        /// argument is <c>--screenshot</c>.
+        /// argument is <c>--screenshot</c>, or the association of drawing files where it is <c>--register</c> or
+        /// <c>--unregister</c>.
         /// </summary>
-        /// <param name="args">The command-line arguments: a DXF file to open, or <c>--screenshot</c> and its options.</param>
-        /// <returns>The exit code: the window's, or for a screenshot 0 when written and 2 for arguments or a file it cannot read.</returns>
+        /// <param name="args">
+        /// The command-line arguments: a DXF file to open, <c>--screenshot</c> and its options, <c>--register</c> or
+        /// <c>--unregister</c>.
+        /// </param>
+        /// <returns>
+        /// The exit code: the window's; for a screenshot 0 when written and 2 for arguments or a file it cannot read; for
+        /// <c>--register</c> and <c>--unregister</c> 0 when done and 1 when the registry refused.
+        /// </returns>
         public int Run(string[] args)
         {
             args = args ?? Array.Empty<string>();
@@ -106,9 +127,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Screenshot(args);
             }
 
+            if (
+                args.Length > 0
+                && (
+                    string.Equals(args[0], "--register", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(args[0], "--unregister", StringComparison.OrdinalIgnoreCase)
+                )
+            )
+            {
+                string exe = Process.GetCurrentProcess().MainModule?.FileName;
+                return Associate(args[0], new CadRegistryUserClasses(), exe, Console.Out);
+            }
+
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             var model = new MainViewModel { Clipboard = new CadWindowsClipboard() };
             var window = new CadAppWindow(model, AppName);
+
+            if (WindowIcon != null)
+            {
+                window.Icon = WindowIcon;
+            }
+
             Attach(model, window.WorkspaceView);
 
             // Global settings: read from the user's file, a value that does not read falling back to its default; applied at once.
@@ -193,6 +232,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             finally
             {
                 plugins.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Associates .dxf and .dwg files with the app for the user (<c>--register</c>), or takes the association out
+        /// (<c>--unregister</c>), and says so: 0 when done, 1 when the registry refused.
+        /// </summary>
+        internal int Associate(string option, ICadUserClasses classes, string exePath, TextWriter output)
+        {
+            bool register = string.Equals(option, "--register", StringComparison.OrdinalIgnoreCase);
+
+            try
+            {
+                if (register)
+                {
+                    // The icon of a drawing file is the one beside the exe; where it is missing, the exe's own.
+                    string icon = Path.Combine(Path.GetDirectoryName(exePath) ?? "", "drawing-file.ico");
+                    CadFileAssociation.Register(classes, AppName, exePath, File.Exists(icon) ? icon : exePath + ",0");
+                    output.WriteLine(".dxf and .dwg files open with " + AppName + ": " + exePath + ".");
+                }
+                else
+                {
+                    CadFileAssociation.Unregister(classes);
+                    output.WriteLine(".dxf and .dwg files no longer open with " + AppName + ".");
+                }
+
+                GeometryHelperLog.Info("Program: " + option + " for " + exePath + ".");
+                return 0;
+            }
+            catch (Exception ex)
+                when (ex is UnauthorizedAccessException || ex is IOException || ex is System.Security.SecurityException)
+            {
+                GeometryHelperLog.Warn("Program: " + option + " failed.", ex);
+                output.WriteLine(
+                    ".dxf and .dwg files could not be " + (register ? "registered" : "unregistered") + ": " + ex.Message
+                );
+                return 1;
             }
         }
 
@@ -861,8 +937,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (tab != null)
             {
-                model.SelectedTab =
-                    string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
+                // Home is no extension: the tab shown where none is selected.
+                bool home = string.Equals(tab, "Home", StringComparison.OrdinalIgnoreCase);
+                CadWorkspaceExtension selected =
+                    home ? null
+                    : string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
                     : string.Equals(tab, "Settings", StringComparison.OrdinalIgnoreCase) ? model.SettingsTab
                     : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
@@ -870,6 +949,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     : model.Extensions.FirstOrDefault(e =>
                         string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase)
                     );
+
+                if (selected == null && !home)
+                {
+                    Console.Error.WriteLine("--tab " + tab + ": no such tab.");
+                    return 2;
+                }
+
+                model.SelectedTab = selected;
                 Layout(root, width, height);
             }
 
