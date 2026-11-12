@@ -153,6 +153,311 @@ namespace GeometryHelper.Dwg
             return true;
         }
 
+        /// <summary>
+        /// A MATERIAL: its name and description, its ambient, diffuse and specular colours, each a way (0 the object's own,
+        /// 1 its own colour), a factor and the colour itself where its own, then a map of each kind, diffuse, specular,
+        /// reflection, opacity, bump and refraction, among them the gloss, the opacity and the index of refraction, and from
+        /// R2007 the translucence, self-illumination, reflectivity, illumination model, channels and mode. DXF writes what
+        /// differs from a new material's values, as AutoCAD's DXF of it does; the settings of R2010 on are in the records
+        /// of its extension dictionary.
+        /// </summary>
+        private void ReadMaterial()
+        {
+            _object.Add(100, "AcDbMaterial");
+            _object.Add(1, T());
+            byte[] description = T();
+
+            if (description.Length > 0)
+            {
+                _object.Add(2, description);
+            }
+
+            ReadMaterialColour(70, 40, 90);
+            ReadMaterialColour(71, 41, 91);
+            ReadMaterialMap(42, 72, 3, 73, 74, 75, 43);
+            int specularWay = _data.RawChar();
+            double specularFactor = _data.BitDouble();
+            int specular = specularWay == 1 ? _data.BitLong() : 0;
+            var specularMap = new List<DwgGroup>();
+            List<DwgGroup> body = _object.Body;
+            _object.Body = specularMap;
+            ReadMaterialMap(46, 77, 4, 78, 79, 170, 47);
+            _object.Body = body;
+            AddIfNot(44, _data.BitDouble(), 0.5);
+            AddIfNot(76, specularWay, 0);
+            AddIfNot(45, specularFactor, 1.0);
+
+            if (specularWay == 1)
+            {
+                _object.Add(92, specular);
+            }
+
+            _object.Body.AddRange(specularMap);
+            ReadMaterialMap(48, 171, 6, 172, 173, 174, 49);
+            double opacity = _data.BitDouble();
+            AddIfNot(140, opacity, 1.0);
+            ReadMaterialMap(141, 175, 7, 176, 177, 178, 142);
+            ReadMaterialMap(143, 179, 8, 270, 271, 272, 144);
+            AddIfNot(145, _data.BitDouble(), 1.0);
+            ReadMaterialMap(146, 273, 9, 274, 275, 276, 147);
+
+            if (R2007Plus)
+            {
+                AddIfNot(148, _data.BitDouble(), 0.0);
+                AddIfNot(149, _data.BitDouble(), 0.0);
+                AddIfNot(468, _data.BitDouble(), 0.0);
+                AddIfNot(93, _data.BitLong(), 0);
+                AddIfNot(94, _data.BitLong(), 127);
+                AddIfNot(282, _data.BitLong(), 0);
+            }
+        }
+
+        /// <summary>A colour of a material: its way (<paramref name="way"/>), its factor, and its colour where it is its own.</summary>
+        private void ReadMaterialColour(int way, int factor, int colour)
+        {
+            int method = _data.RawChar();
+            AddIfNot(way, method, 0);
+            AddIfNot(factor, _data.BitDouble(), 1.0);
+
+            if (method == 1)
+            {
+                _object.Add(colour, _data.BitLong());
+            }
+        }
+
+        /// <summary>
+        /// A map of a material: its blend factor, its projection, tiling and automatic transform, its matrix of 16, its
+        /// source (0 the scene, 1 a file) and the file, written in the order DXF gives them.
+        /// </summary>
+        private void ReadMaterialMap(
+            int blend,
+            int source,
+            int file,
+            int projection,
+            int tiling,
+            int transform,
+            int matrix
+        )
+        {
+            AddIfNot(blend, _data.BitDouble(), 1.0);
+            int way = _data.RawChar();
+            int tile = _data.RawChar();
+            int auto = _data.RawChar();
+            var values = new double[16];
+
+            for (int i = 0; i < 16; i++)
+            {
+                values[i] = _data.BitDouble();
+            }
+
+            int from = _data.RawChar();
+            // AutoCAD leaves out the source of a refraction map where it is the scene, of the others where it is a file.
+            AddIfNot(source, from, source == 273 ? 0 : 1);
+
+            if (from == 1)
+            {
+                byte[] name = T();
+
+                if (name.Length > 0)
+                {
+                    _object.Add(file, name);
+                }
+            }
+
+            AddIfNot(projection, way, 2);
+            AddIfNot(tiling, tile, 1);
+            AddIfNot(transform, auto, 1);
+            bool identity = true;
+
+            for (int i = 0; i < 16 && identity; i++)
+            {
+                identity = values[i] == (i % 5 == 0 ? 1.0 : 0.0);
+            }
+
+            if (!identity)
+            {
+                foreach (double value in values)
+                {
+                    _object.Add(matrix, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The kinds of the 58 properties of a visual style of R2013 and later, in their order: 9 a whole number (DXF 90),
+        /// 4 a real (40), 6 a colour (62 and 420), 2 a yes or no (290), 1 a text (1).
+        /// </summary>
+        private const string VisualStyleKinds = "9999446996699496499969992949222222222944969962999296491244";
+
+        /// <summary>
+        /// A VISUALSTYLE of R2013 and later: its name, type and version, whether it is for AutoCAD's own use, then each of
+        /// its 58 properties, a value and how it is applied (176: 0 taken from the style it derives from, 1 set), which DXF
+        /// gives after their count (70 58).
+        /// </summary>
+        private void ReadVisualStyle()
+        {
+            _object.Add(100, "AcDbVisualStyle");
+            _object.Add(2, T());
+
+            if (!R2010Plus)
+            {
+                ReadVisualStyle2007();
+                return;
+            }
+
+            _object.Add(70, _data.BitLong());
+            int version = _data.BitShort();
+            _object.Add(177, R2013Plus ? version + 1 : version);
+            _object.Add(291, _data.Bit() ? 1 : 0);
+
+            if (R2013Plus)
+            {
+                _object.Add(70, VisualStyleKinds.Length);
+            }
+
+            int count = R2013Plus ? VisualStyleKinds.Length : VisualStyleCodes2010.Length;
+
+            for (int i = 0; i < count; i++)
+            {
+                int code = R2013Plus ? 0 : VisualStyleCodes2010[i];
+
+                switch (VisualStyleKinds[i])
+                {
+                    case '9':
+                        _object.Add(R2013Plus ? 90 : code, _data.BitLong());
+                        break;
+                    case '4':
+                        _object.Add(R2013Plus ? 40 : code, _data.BitDouble());
+                        break;
+                    case '6':
+                        AddColour(
+                            _object.Body,
+                            ReadStyleColour(),
+                            false,
+                            R2013Plus ? 62 : code,
+                            R2013Plus ? 420 : code + 358
+                        );
+                        break;
+                    case '2':
+                        _object.Add(R2013Plus ? 290 : code, _data.Bit() ? 1 : 0);
+                        break;
+                    default:
+                        _object.Add(1, T());
+                        break;
+                }
+
+                _object.Add(176, _data.BitShort());
+            }
+        }
+
+        /// <summary>The DXF groups of the 28 properties of a visual style of R2010, the first 28 of the later 58.</summary>
+        private static readonly int[] VisualStyleCodes2010 =
+        {
+            71,
+            72,
+            73,
+            90,
+            40,
+            41,
+            63,
+            74,
+            91,
+            64,
+            65,
+            75,
+            175,
+            42,
+            92,
+            66,
+            43,
+            76,
+            77,
+            78,
+            67,
+            79,
+            170,
+            171,
+            290,
+            93,
+            44,
+            173,
+        };
+
+        /// <summary>
+        /// A VISUALSTYLE of R2004 and R2007, each property in a place of its own, put into the order of DXF: the face's
+        /// lighting, its colour (62 always 5, which the file does not hold) and its mono colour, the edges, the display.
+        /// </summary>
+        private void ReadVisualStyle2007()
+        {
+            _object.Add(70, _data.BitLong());
+            _object.Add(71, _data.BitLong());
+            _object.Add(72, _data.BitLong());
+            _object.Add(73, _data.BitLong());
+            double opacity = _data.BitDouble();
+            double specular = _data.BitDouble();
+            DwgColour mono = ReadStyleColour();
+            _object.Add(90, _data.BitLong());
+            _object.Add(40, opacity);
+            _object.Add(41, specular);
+            _object.Add(62, 5);
+            AddColour(_object.Body, mono, false, 63, 421);
+            _object.Add(74, _data.BitLong());
+            _object.Add(91, _data.BitLong());
+            AddColour(_object.Body, ReadStyleColour(), false, 64, 422);
+            AddColour(_object.Body, ReadStyleColour(), false, 65, 423);
+            _object.Add(75, _data.BitLong());
+            int at = _object.Body.Count;
+            _object.Add(42, _data.BitDouble());
+            _object.Add(92, _data.BitLong());
+            AddColour(_object.Body, ReadStyleColour(), false, 66, 424);
+            _object.Add(43, _data.BitDouble());
+            _object.Add(76, _data.BitLong());
+            _object.Add(77, _data.BitLong());
+            _object.Add(78, _data.BitLong());
+            AddColour(_object.Body, ReadStyleColour(), false, 67, 425);
+            _object.Add(79, _data.BitLong());
+            _object.Add(170, _data.RawChar());
+            _object.Add(171, _data.BitLong());
+            _object.Add(290, _data.Bit() ? 1 : 0);
+            _object.Add(174, _data.BitLong());
+            _object.Body.Insert(at, new DwgGroup(175, _data.BitLong()));
+            _object.Add(93, _data.BitLong());
+            _object.Add(44, (double)_data.BitLong());
+            _object.Add(173, _data.BitLong());
+            double last = R2007Plus ? _data.BitDouble() : 0.0;
+            _object.Add(291, _data.Bit() ? 1 : 0);
+            _object.Add(45, last);
+        }
+
+        /// <summary>A colour of a visual style: a CMC colour, no colour (0xC8) given as 257.</summary>
+        private DwgColour ReadStyleColour()
+        {
+            DwgColour colour = ReadColour();
+
+            if (((colour.Raw >> 24) & 0xFF) == 0xC8)
+            {
+                colour.Index = 257;
+            }
+
+            return colour;
+        }
+
+        private void AddIfNot(int code, double value, double usual)
+        {
+            if (value != usual)
+            {
+                _object.Add(code, value);
+            }
+        }
+
+        private void AddIfNot(int code, int value, int usual)
+        {
+            if (value != usual)
+            {
+                _object.Add(code, value);
+            }
+        }
+
         private void ReadDictionaryVariable()
         {
             int schema = _data.RawChar();

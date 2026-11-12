@@ -129,6 +129,11 @@ namespace GeometryHelper.Dwg
             container.Objects = Join(file, pages, Need(sections, "AcDb:AcDbObjects"), ref budget);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
 
+            if (sections.TryGetValue("AcDb:AcDsPrototype_1b", out Descriptor store))
+            {
+                container.DataStore = Join(file, pages, store, ref budget);
+            }
+
             if (sections.TryGetValue("AcDb:Template", out Descriptor template))
             {
                 byte[] data = Join(file, pages, template, ref budget);

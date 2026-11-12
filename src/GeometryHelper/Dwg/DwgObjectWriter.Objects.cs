@@ -69,6 +69,141 @@ namespace GeometryHelper.Dwg
             _data.Bit(scale.Int(290) != 0);
         }
 
+        /// <summary>
+        /// A MATERIAL, from the groups DXF gives where they differ from a new material's: its name and description, its
+        /// colours and maps, and the settings of R2007 (the reader's <c>ReadMaterial</c> gives the defaults).
+        /// </summary>
+        private void WriteMaterial()
+        {
+            DwgGroups material = _record.Of("AcDbMaterial");
+            T(material.Text(1));
+            T(material.Text(2));
+            WriteMaterialColour(material, 70, 40, 90);
+            WriteMaterialColour(material, 71, 41, 91);
+            WriteMaterialMap(material, 42, 72, 3, 73, 74, 75, 43);
+            WriteMaterialColour(material, 76, 45, 92);
+            WriteMaterialMap(material, 46, 77, 4, 78, 79, 170, 47);
+            _data.BitDouble(material.Double(44, 0.5));
+            WriteMaterialMap(material, 48, 171, 6, 172, 173, 174, 49);
+            _data.BitDouble(material.Double(140, 1.0));
+            WriteMaterialMap(material, 141, 175, 7, 176, 177, 178, 142);
+            WriteMaterialMap(material, 143, 179, 8, 270, 271, 272, 144);
+            _data.BitDouble(material.Double(145, 1.0));
+            WriteMaterialMap(material, 146, 273, 9, 274, 275, 276, 147);
+            _data.BitDouble(material.Double(148));
+            _data.BitDouble(material.Double(149));
+            _data.BitDouble(material.Double(468));
+            _data.BitLong(material.Int(93));
+            _data.BitLong(material.Int(94, 127));
+            _data.BitLong(material.Int(282));
+        }
+
+        private void WriteMaterialColour(DwgGroups material, int way, int factor, int colour)
+        {
+            int method = material.Int(way);
+            _data.RawChar(method);
+            _data.BitDouble(material.Double(factor, 1.0));
+
+            if (method == 1)
+            {
+                _data.BitLong(material.Int(colour));
+            }
+        }
+
+        private void WriteMaterialMap(
+            DwgGroups material,
+            int blend,
+            int source,
+            int file,
+            int projection,
+            int tiling,
+            int transform,
+            int matrix
+        )
+        {
+            _data.BitDouble(material.Double(blend, 1.0));
+            _data.RawChar(material.Int(projection, 2));
+            _data.RawChar(material.Int(tiling, 1));
+            _data.RawChar(material.Int(transform, 1));
+            List<string> values = material.Each(matrix);
+
+            for (int i = 0; i < 16; i++)
+            {
+                _data.BitDouble(
+                    values.Count == 16 ? DwgRecord.Double(values[i])
+                    : i % 5 == 0 ? 1.0
+                    : 0.0
+                );
+            }
+
+            int from = material.Int(source, source == 273 ? 0 : 1);
+            _data.RawChar(from);
+
+            if (from == 1)
+            {
+                T(material.Text(file));
+            }
+        }
+
+        /// <summary>
+        /// A VISUALSTYLE of the form of R2013 and later, its 58 properties given after their count (70 58), each a value and
+        /// how it is applied (176); left out by <see cref="TypeOf"/> where the record is of an older form.
+        /// </summary>
+        private void WriteVisualStyle()
+        {
+            DwgGroups style = _record.Of("AcDbVisualStyle");
+            var groups = new List<KeyValuePair<int, string>>(style.All);
+            T(style.Text(2));
+            _data.BitLong(style.Int(70));
+            _data.BitShort(style.Int(177, 3) - 1);
+            _data.Bit(style.Int(291) != 0);
+            int at = groups.FindIndex(g => g.Key == 70 && g.Value.Trim() == "58") + 1;
+
+            for (; at < groups.Count; at++)
+            {
+                int code = groups[at].Key;
+                string value = groups[at].Value;
+
+                switch (code)
+                {
+                    case 90:
+                        _data.BitLong(DwgRecord.Int(value));
+                        break;
+                    case 40:
+                        _data.BitDouble(DwgRecord.Double(value));
+                        break;
+                    case 62:
+                        int index = DwgRecord.Int(value);
+                        bool rgb = at + 1 < groups.Count && groups[at + 1].Key == 420;
+                        _data.BitShort(0);
+                        _data.BitLong(
+                            rgb ? unchecked((int)0xC2000000) | (DwgRecord.Int(groups[at + 1].Value) & 0xFFFFFF)
+                            : index == 257 ? unchecked((int)0xC8000000)
+                            : index == 256 ? unchecked((int)0xC0000000)
+                            : index == 0 ? unchecked((int)0xC1000000)
+                            : unchecked((int)0xC3000000) | (index & 0xFF)
+                        );
+                        _data.RawChar(0);
+                        break;
+                    case 290:
+                        _data.Bit(DwgRecord.Int(value) != 0);
+                        break;
+                    case 1:
+                        T(value);
+                        break;
+                    case 176:
+                        _data.BitShort(DwgRecord.Int(value));
+                        break;
+                }
+            }
+        }
+
+        /// <summary>Whether a VISUALSTYLE is of the form of R2013 and later, its properties after their count (70 58).</summary>
+        private static bool IsListedVisualStyle(DwgRecord record) =>
+            new List<KeyValuePair<int, string>>(record.Of("AcDbVisualStyle").All).Exists(g =>
+                g.Key == 70 && g.Value.Trim() == "58"
+            );
+
         private void WriteGroup()
         {
             DwgGroups group = _record.Of("AcDbGroup");

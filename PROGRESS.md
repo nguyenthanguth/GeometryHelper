@@ -170,8 +170,12 @@ the ones wanted.
         (197 of 255 indexes were wrong)
   - [x] W4 Every entity and object: VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, IMAGE, WIPEOUT, MLINE, tables to
         R2007, solids in R2000/R2013/R2018, book colours, multiline attributes; 0 differences in all 6 versions (L)
-  - [ ] W4b: tables from R2010 (TABLECONTENT, CELLSTYLEMAP), ACDSDATA, SAB to SAT for R2004-R2010, SHAPE names, MATERIAL,
-        VISUALSTYLE, RASTERVARIABLES/WIPEOUTVARIABLES, OLE2FRAME, proxies, dynamic block data (L)
+  - [ ] W4b (done: tables from R2010, TABLECONTENT, CELLSTYLEMAP, RASTERVARIABLES/WIPEOUTVARIABLES since W5b; MATERIAL and
+        VISUALSTYLE read in every version and written; ACDSDATA read from R2013): SAB to SAT for R2004-R2010, ACIS written
+        with its data store, SHAPE names (DECIDED by recommendation 2026-11-12: an optional support-folder list on the
+        reader, as DxfSupportFiles takes, default none = the shape number kept), OLE2FRAME (needs GUI samples), proxies,
+        dynamic block data, ACDBDETAILVIEWSTYLE/ACDBSECTIONVIEWSTYLE (the last types of a new drawing left out),
+        ACDBASSOCPERSSUBENTMANAGER (L)
   - [x] W5 Writing R2018 (AutoCAD 2021's own): `DwgWriter`, our own LZ77; 19 drawings open in AutoCAD with AUDIT 0 and
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [x] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE (R2010 form, TABLESTYLE, TABLECONTENT), multiline attributes, RASTERVARIABLES/WIPEOUTVARIABLES; reader reads R2010+ tables

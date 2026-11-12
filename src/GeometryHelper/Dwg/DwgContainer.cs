@@ -188,6 +188,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The value of <c>$MEASUREMENT</c> (0 English, 1 metric), or -1 where the file has not the section that carries it.</summary>
         public int Measurement { get; private set; }
 
+        /// <summary>From R2013 the data store (AcDb:AcDsPrototype_1b), which holds the ACIS data of the solids; null where the file has none.</summary>
+        public byte[] DataStore { get; private set; }
+
         /// <summary>
         /// The version string of a file, its first six bytes, where they are those of a DWG (<c>AC</c> and four digits or
         /// such); null where the bytes are not the start of a DWG.

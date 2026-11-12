@@ -26,8 +26,6 @@ namespace GeometryHelper.UnitTest.Dwg
         {
             "ACDBDETAILVIEWSTYLE",
             "ACDBSECTIONVIEWSTYLE",
-            "MATERIAL",
-            "VISUALSTYLE",
             "CLASS CELLSTYLEMAP",
         };
 

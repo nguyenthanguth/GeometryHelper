@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,9 +23,7 @@ namespace GeometryHelper.UnitTest.Dwg
             "ACDBDETAILVIEWSTYLE",
             "ACDBSECTIONVIEWSTYLE",
             "CELLSTYLEMAP",
-            "MATERIAL",
             "TABLESTYLE",
-            "VISUALSTYLE",
             "ACDBASSOCPERSSUBENTMANAGER",
             "SHAPE",
             // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
@@ -32,9 +31,6 @@ namespace GeometryHelper.UnitTest.Dwg
             "ACDBDATATABLE",
             "DATATABLE",
             "TABLECONTENT",
-            // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
-            "ACDSRECORD",
-            "ACDSSCHEMA",
         };
 
         private readonly List<(GeometryHelperLogLevel Level, string Message)> _written =
@@ -255,6 +251,49 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal("x", tables[1].GetTextString(1, 3, 0));
         }
 
+        [Theory]
+        [InlineData("matvis_AC1018")]
+        [InlineData("matvis_AC1021")]
+        [InlineData("matvis_AC1024")]
+        [InlineData("matvis_AC1027")]
+        [InlineData("matvis_AC1032")]
+        public void TheMaterialsAndVisualStyles_AreRead_AsAutoCadWritesTheirDxf(string drawing)
+        {
+            // Made by probe GhW4b: a material of colours of its own, glossy and half seen through, one of a file in every
+            // map with the settings of R2010, the visual style GH style, a line and a layer taking the two.
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(
+                DwgAnswerKey.Key(drawing),
+                DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing))
+            );
+
+            Assert.Empty(result.Differences);
+            Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
+            Assert.True(result.Paired >= 330, "Only " + result.Paired + " records were paired.");
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Fact]
+        public void AMaterialOfColoursOfItsOwn_IsRead_WithTheGroupsThatDifferFromANewMaterials()
+        {
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("matvis_AC1032")));
+
+            // GhRed: ambient 0.5 of RGB 40, 10, 10, diffuse 0.8 of 200, 30, 30, gloss 0.3, opacity 0.7, refraction 1.5,
+            // and the settings of R2007: translucence 0.2, self-illumination 0.1, reflectivity 0.3, the metal shader.
+            DwgAnswerKey.Record red = Assert.Single(records, r =>
+                r.Type == "MATERIAL" && r.Groups.Any(g => g.Key == 1 && g.Value == "GhRed")
+            );
+            string Value(int code) => red.Groups.Single(g => g.Key == code).Value;
+            Assert.Equal(unchecked((int)0xC2280A0A).ToString(CultureInfo.InvariantCulture), Value(90));
+            Assert.Equal("0.8", Value(41));
+            Assert.Equal("0.3", Value(44));
+            Assert.Equal("0.7", Value(140));
+            Assert.Equal("1.5", Value(145));
+            Assert.Equal("0.1", Value(149));
+            Assert.Equal("1", Value(93));
+            Assert.Equal("11", Value(94));
+            Assert.DoesNotContain(red.Groups, g => g.Key == 43);
+        }
+
         [Fact]
         public void ACircleOfAColourOfABook_IsRead_WithTheColourItsBookGives()
         {
@@ -304,6 +343,40 @@ namespace GeometryHelper.UnitTest.Dwg
                 box.Groups.Single(g => g.Key == 2).Value
             );
             Assert.Contains(box.Groups, g => g.Key == 100 && g.Value == "AcDb3dSolid");
+        }
+
+        [Theory]
+        [InlineData("acis_AC1027")]
+        [InlineData("acis_AC1032")]
+        public void TheAcisDataOfR2013On_IsRead_IntoTheSectionAcdsdata(string drawing)
+        {
+            // Made by probe GhW4b: a box 30 by 20 by 10, a sphere of radius 8, a cylinder of radius 5 and a region of a
+            // circle, their SAB data in the data store of the file, each a record of the section ACDSDATA by its handle.
+            byte[] dxf = DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing));
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), dxf);
+
+            Assert.Empty(result.Differences);
+            Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
+            Assert.Equal(4, DwgAnswerKey.Parse(dxf).Count(r => r.Type == "ACDSRECORD"));
+            Assert.Equal(5, DwgAnswerKey.Parse(dxf).Count(r => r.Type == "ACDSSCHEMA"));
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Fact]
+        public void TheAcisDataOfAPlateOf400Holes_IsRead_FromThePagesOfItsStore()
+        {
+            // A plate 400 by 400 by 10 with 20 by 20 holes: 515 873 bytes of SAB, past 0x40000, kept in a page of its own.
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("acisbig_AC1032")));
+
+            DwgAnswerKey.Record data = Assert.Single(records, r => r.Type == "ACDSRECORD");
+            Assert.Equal("515873", data.Groups.Single(g => g.Key == 94).Value.Trim());
+            Assert.StartsWith(
+                "414349532042696E61727946696C65",
+                data.Groups.First(g => g.Key == 310).Value,
+                StringComparison.Ordinal
+            );
+            Assert.Equal(515873 * 2, data.Groups.Where(g => g.Key == 310).Sum(g => g.Value.Length));
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
         }
 
         [Fact]
@@ -437,7 +510,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 .Message;
             Assert.DoesNotContain(" HATCH ", skipped);
             Assert.DoesNotContain(" LEADER ", skipped);
-            Assert.Contains("MATERIAL 3", skipped);
+            Assert.Contains("ACDBDETAILVIEWSTYLE 1", skipped);
+            Assert.DoesNotContain("MATERIAL", skipped);
 
             string summary = Assert
                 .Single(_written, line =>

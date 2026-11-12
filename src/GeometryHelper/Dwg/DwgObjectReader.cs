@@ -672,7 +672,7 @@ namespace GeometryHelper.Dwg
                 groups.Add(new DwgGroup(indexCode, colour.Index));
             }
 
-            if (colour.Rgb >= 0)
+            if (colour.Rgb >= 0 && rgbCode >= 0)
             {
                 groups.Add(new DwgGroup(rgbCode, colour.Rgb));
             }
@@ -1084,6 +1084,12 @@ namespace GeometryHelper.Dwg
                     return R2007Plus && ReadTableContentObject();
                 case "TABLEGEOMETRY":
                     ReadTableGeometry();
+                    return true;
+                case "MATERIAL":
+                    ReadMaterial();
+                    return true;
+                case "VISUALSTYLE":
+                    ReadVisualStyle();
                     return true;
                 default:
                     return false;

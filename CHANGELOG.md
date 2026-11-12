@@ -114,6 +114,16 @@ Editor tab's Paragraph panel opens the Paragraph dialog from either.
 2021's Bullets and Numbering writes them, "Plate", "Beam" numbered `\pxi-3,l3,t3;1.\tPlate\P2.\tBeam` and bulleted with
 `{\fSymbol|b0|i0|c2|p18;·\t}`; Off takes the list away. The ribbon's menu does not offer it yet.
 
+**NEW.** `DwgReader` reads the MATERIAL and VISUALSTYLE objects of every version, AutoCAD 2000 to 2018, into the
+groups AutoCAD's own DXF of them gives: of a material what differs from a new material's values (a red of its own,
+RGB 200, 30, 30 at 0.8, glossy at 0.3, gives 91, 44 and nothing of the maps it has not), of a visual style the form of
+its version, from AutoCAD 2013 its 58 properties each with how it is applied. Of AutoCAD 2013 and later it reads the
+data store too, which holds the ACIS data of the solids, into the section ACDSDATA AutoCAD writes: a record of SAB
+bytes for each REGION, 3DSOLID and BODY, a large one (515 873 bytes for a plate of 400 holes) from the pages it is kept
+in. Before, the materials, visual styles and ACIS data of the drawing were left out. `DwgWriter` writes MATERIAL and
+VISUALSTYLE (of the form of AutoCAD 2013 and later): AutoCAD opens such a drawing with `AUDIT` 0 and its own DXF of it is
+the one it was written from, and the 24 visual styles of a new drawing are AutoCAD's own bits.
+
 **CHANGED.** The presenter drags objects as AutoCAD 2021 does, after the maintainer's pictures of its SCALE: while
 MOVE, COPY, ROTATE, SCALE, MIRROR, ALIGN, an array or a grip edit waits for its point, the copy at the cursor is drawn in
 the objects' own colours, not dashed blue, and the rubber band from the base point is dashed amber, 16 pixels on and 9
