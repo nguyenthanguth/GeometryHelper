@@ -102,6 +102,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private Rect _oldOutline = Rect.Empty;
         private bool _selecting;
 
+        // The line the caret stands at the end of, where End or a click past the line's end put it at a break between two
+        // letters with no space, whose place is the first of the next line; -1 where it stands on its place's own line.
+        private int _endOfLine = -1;
+        private int _endPlace = -1;
+
         /// <summary>Makes the frame; it takes the keyboard focus when shown.</summary>
         public CadMTextEditBox()
         {
@@ -235,6 +240,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private double Top => (_model == null || _model.IsRulerShown ? RulerHeight : 0.0) + Pad;
 
+        /// <summary>
+        /// Gets the line the caret is drawn on: the line of its place, but where End or a click past the end of a line put it at a
+        /// break between two letters with no space, as between two ideographs, the end of that line, though its place is the
+        /// first of the next; Up and Down go on from there.
+        /// </summary>
+        public int CaretLine
+        {
+            get
+            {
+                Relayout();
+                return _layout == null || _model == null ? 0 : CaretLineNow();
+            }
+        }
+
         /// <summary>Gets the place of the editor nearest a point of the frame, for a click.</summary>
         /// <param name="point">The point.</param>
         /// <returns>The place.</returns>
@@ -308,8 +327,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (IsKeyboardFocused && _model.Editor.SelectionLength == 0)
                 {
                     int caret = _model.Editor.Caret;
-                    int line = _layout.LineOfPlace(caret);
-                    double x = PixelX(_layout.XOf(caret));
+                    int line = CaretLineNow();
+                    double x = PixelX(
+                        line == _layout.LineOfPlace(caret) ? _layout.XOf(caret) : _layout.RightOf(caret - 1)
+                    );
                     dc.DrawLine(
                         Caret,
                         new Point(x, PixelY(_layout.TopOf(line))),
@@ -397,6 +418,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else
             {
                 _model.Editor.MoveTo(PlaceAt(at), (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
+                KeepAtEndOfLineAt(at);
                 _selecting = true;
                 CaptureMouse();
             }
@@ -593,7 +615,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return true;
                     }
 
-                    int line = _layout.LineOfPlace(editor.Caret);
+                    int line = CaretLineNow();
+                    double caretX =
+                        line == _layout.LineOfPlace(editor.Caret)
+                            ? _layout.XOf(editor.Caret)
+                            : _layout.RightOf(editor.Caret - 1);
 
                     if (key == System.Windows.Input.Key.Home)
                     {
@@ -602,6 +628,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     else if (key == System.Windows.Input.Key.End)
                     {
                         editor.MoveTo(control ? editor.Length : _layout.LineEnd(line), shift);
+
+                        if (!control)
+                        {
+                            KeepAtEndOf(line);
+                        }
                     }
                     else
                     {
@@ -609,7 +640,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                         if (at >= 0 && at < _layout.LineCount)
                         {
-                            editor.MoveTo(_layout.PlaceOnLine(at, _layout.XOf(editor.Caret)), shift);
+                            editor.MoveTo(_layout.PlaceOnLine(at, caretX), shift);
+                            KeepAtEndOf(at);
                         }
                     }
 
@@ -1197,7 +1229,60 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return pen;
         }
 
-        private void OnEditorChanged(object sender, EventArgs e) => Restale();
+        private void OnEditorChanged(object sender, EventArgs e)
+        {
+            _endOfLine = -1;
+            Restale();
+        }
+
+        /// <summary>The line the caret is drawn on: its place's, or the line it was put at the end of (<see cref="CaretLine"/>).</summary>
+        private int CaretLineNow()
+        {
+            int caret = _model.Editor.Caret;
+            return
+                _endOfLine >= 0
+                && caret == _endPlace
+                && _endOfLine < _layout.LineCount
+                && _layout.LineEnd(_endOfLine) == caret
+                ? _endOfLine
+                : _layout.LineOfPlace(caret);
+        }
+
+        /// <summary>Keeps the caret a click put at the first place of a line at the end of the line before, where the click was on that line, past its end.</summary>
+        private void KeepAtEndOfLineAt(Point at)
+        {
+            if (_layout == null || _layout.LineCount == 0)
+            {
+                return;
+            }
+
+            int line = _layout.LineOfPlace(_model.Editor.Caret) - 1;
+            double x = UnitX(at.X);
+            double y = UnitY(at.Y);
+
+            if (
+                line >= 0
+                && y <= _layout.TopOf(line)
+                && y >= _layout.BottomOf(line)
+                && x >= _layout.XOf(_layout.LineStart(line))
+            )
+            {
+                KeepAtEndOf(line);
+            }
+        }
+
+        /// <summary>Keeps the caret at the end of a line where its place is the first of the next: the line broke between two letters with no space.</summary>
+        private void KeepAtEndOf(int line)
+        {
+            int caret = _model.Editor.Caret;
+
+            if (_layout != null && line >= 0 && _layout.LineEnd(line) == caret && _layout.LineOfPlace(caret) != line)
+            {
+                _endOfLine = line;
+                _endPlace = caret;
+                InvalidateVisual();
+            }
+        }
 
         private void OnModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

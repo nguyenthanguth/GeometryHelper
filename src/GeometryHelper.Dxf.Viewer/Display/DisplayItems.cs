@@ -968,8 +968,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the strokes of the letters where the text is drawn in an SHX font, each a polyline of x, y pairs in the
-        /// drawing's coordinates, the text's height, width factor, slant, alignment, angle and turning over already taken;
-        /// null where the canvas draws the text in <see cref="FontName"/>.
+        /// drawing's coordinates, the text's height, width factor, slant, alignment, angle and turning over already taken,
+        /// then the lines a TEXT's <c>%%U</c>, <c>%%K</c> and <c>%%O</c> draw under, through and over its letters, one
+        /// segment each; null where the canvas draws the text in <see cref="FontName"/>.
         /// </summary>
         public IReadOnlyList<double[]> Strokes { get; }
 

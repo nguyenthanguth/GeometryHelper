@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -18,6 +20,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     public sealed class CadMTextEditor
     {
+        // The look of a list's bullet, as AutoCAD 2021's Bullets and Numbering writes it: the Symbol font, its symbol character set.
+        private static readonly CadMTextLook BulletLook = CadMTextContent
+            .Parse("{\\fSymbol|b0|i0|c2|p18;x}", 1.0)
+            .Paragraphs[0]
+            .Runs[0]
+            .Look;
+
         private readonly Stack<State> _undo = new Stack<State>();
         private readonly Stack<State> _redo = new Stack<State>();
         private List<Cell> _cells = new List<Cell>();
@@ -57,7 +66,31 @@ namespace GeometryHelper.Dxf.Viewer
             bool styleIsShx = false,
             char defaultAlignment = 'l'
         )
+            : this(contents, height, frame, 1.0, styleFont, styleIsShx, defaultAlignment) { }
+
+        /// <summary>
+        /// Opens the words of an MTEXT in a style of letters of another width for editing in its box: a width in times of the
+        /// style's (<c>{\W1.2x;ABC}</c>) is read as times that width, 0.96 in a style of 0.8, as AutoCAD 2021 draws it, and
+        /// written back as that width (<c>\W0.9600;</c>).
+        /// </summary>
+        /// <param name="contents">The words with their codes.</param>
+        /// <param name="height">The MTEXT's height.</param>
+        /// <param name="frame">The MTEXT's box as it is (<see cref="CadMTextFrame.Of(DxfMText)"/>); null for none.</param>
+        /// <param name="styleWidth">The width factor of the MTEXT's style; 1 where it is not above nought.</param>
+        /// <param name="styleFont">The font of the MTEXT's style: a TrueType family (Arial) or an SHX file (romans); null for none known.</param>
+        /// <param name="styleIsShx">Whether the style's font is an SHX file, whose letters cannot be bold or italic.</param>
+        /// <param name="defaultAlignment">How a paragraph with no alignment code is aligned, l, c or r, as the MTEXT's attachment says.</param>
+        public CadMTextEditor(
+            string contents,
+            double height,
+            CadMTextFrame frame,
+            double styleWidth,
+            string styleFont = null,
+            bool styleIsShx = false,
+            char defaultAlignment = 'l'
+        )
         {
+            StyleWidth = styleWidth > 0.0 && !double.IsInfinity(styleWidth) ? styleWidth : 1.0;
             Height = height;
             StyleFont = styleFont;
             StyleIsShx = styleIsShx;
@@ -65,7 +98,7 @@ namespace GeometryHelper.Dxf.Viewer
             Original = contents ?? string.Empty;
             OriginalFrame = frame ?? CadMTextFrame.Of(0.0);
             Frame = OriginalFrame;
-            Load(CadMTextContent.Parse(Original, height));
+            Load(CadMTextContent.Parse(Original, height, StyleWidth));
         }
 
         /// <summary>Raised when the words, the looks, the caret or the selection change.</summary>
@@ -76,6 +109,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the MTEXT's height, of which a run's height is written as a factor.</summary>
         public double Height { get; }
+
+        /// <summary>Gets the width factor of the MTEXT's style, of which a width in times (<c>\W1.2x;</c>) is read; 1 for none given.</summary>
+        public double StyleWidth { get; }
 
         /// <summary>Gets the font of the MTEXT's style.</summary>
         public string StyleFont { get; }
@@ -254,39 +290,95 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             (int first, int last) = SelectedParagraphs;
-            int count = _paragraphCodes.Count;
-            var formats = new CadMTextParagraphFormat[count];
-            CadMTextParagraphFormat format = CadMTextParagraphFormat.Default;
+            string[] codes = FormatCodes(change, first, last);
 
-            for (int p = 0; p < count; p++)
+            if (codes == null)
             {
-                format = CadMTextParagraphFormat.Read(format, _paragraphCodes[p], Height);
-                formats[p] = format;
+                return;
             }
 
-            var wanted = (CadMTextParagraphFormat[])formats.Clone();
-            bool changed = false;
+            Save();
+            _paragraphCodes = new List<string>(codes);
+            Raise();
+        }
 
-            for (int p = first; p <= last; p++)
+        /// <summary>
+        /// Labels the selected paragraphs, or the caret's, as a list, as AutoCAD 2021's Bullets and Numbering does, one undo
+        /// step: each opens with its label and a tab, the paragraphs hanging 3 heights in with a tab stop there, and a label one
+        /// had is replaced. In an MTEXT 2.5 high, "Plate", "Beam" numbered is written <c>\pxi-3,l3,t3;1.\tPlate\P2.\tBeam</c>
+        /// and bulleted <c>\pxi-3,l3,t3;{\fSymbol|b0|i0|c2|p18;·\t}Plate\P{\fSymbol|b0|i0|c2|p18;·\t}Beam</c>, as AutoCAD's
+        /// TextEditor writes them (probed). <see cref="CadMTextNumbering.Off"/> takes the labels, the indent and the stop away.
+        /// </summary>
+        /// <param name="numbering">The labels.</param>
+        public void SetNumbering(CadMTextNumbering numbering)
+        {
+            (int first, int last) = SelectedParagraphs;
+            double hang = 3.0 * Height;
+            bool listed = numbering != CadMTextNumbering.Off;
+            string[] codes = FormatCodes(
+                f =>
+                    listed
+                        ? f.WithIndents(0.0, hang, f.RightIndent)
+                            .WithTabStops(
+                                new[] { new CadMTextTabStop(hang) }.Concat(
+                                    f.TabStops.Where(t => t.Position > hang + 1E-9)
+                                )
+                            )
+                        : f.WithIndents(0.0, 0.0, f.RightIndent)
+                            .WithTabStops(f.TabStops.Where(t => Math.Abs(t.Position - hang) > 1E-9)),
+                first,
+                last
+            );
+            var starts = new List<int>();
+            int at = 0;
+
+            for (int p = 0; p <= last; p++)
             {
-                wanted[p] = change(formats[p]) ?? formats[p];
-                changed |= !wanted[p].Equals(formats[p]);
+                if (p >= first)
+                {
+                    starts.Add(at);
+                }
+
+                while (at < _cells.Count && !_cells[at].Break)
+                {
+                    at++;
+                }
+
+                at++;
             }
 
-            if (!changed)
+            bool any = codes != null;
+
+            for (int k = starts.Count - 1; k >= 0 && !any; k--)
+            {
+                any = LabelLength(starts[k]) > 0;
+            }
+
+            if (!any && !listed)
             {
                 return;
             }
 
             Save();
 
-            for (int p = first; p <= Math.Min(last + 1, count - 1); p++)
+            if (codes != null)
             {
-                CadMTextParagraphFormat before = p == 0 ? CadMTextParagraphFormat.Default : wanted[p - 1];
-                string codes = wanted[p].WriteAfter(before, Height) + OtherCodes(_paragraphCodes[p]);
-                _paragraphCodes[p] = codes.Length == 0 ? null : codes;
+                _paragraphCodes = new List<string>(codes);
             }
 
+            // From the last paragraph back, so that the places of those before stay as they were.
+            for (int k = starts.Count - 1; k >= 0; k--)
+            {
+                int start = starts[k];
+                int removed = LabelLength(start);
+                _cells.RemoveRange(start, removed);
+                List<Cell> label = listed ? Label(numbering, k, start) : new List<Cell>();
+                _cells.InsertRange(start, label);
+                Caret = Shifted(Caret, start, removed, label.Count);
+                Anchor = Shifted(Anchor, start, removed, label.Count);
+            }
+
+            _pending = null;
             Raise();
         }
 
@@ -369,7 +461,7 @@ namespace GeometryHelper.Dxf.Viewer
             !string.Equals(Contents, Original, StringComparison.Ordinal)
             && !string.Equals(
                 Contents,
-                CadMTextContent.Parse(Original, Height).Write(Height, DefaultAlignment),
+                CadMTextContent.Parse(Original, Height, StyleWidth).Write(Height, DefaultAlignment),
                 StringComparison.Ordinal
             );
 
@@ -908,6 +1000,124 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The codes of a paragraph that are not its indents, stops or spacing, kept as they were (\pn... and the like).</summary>
+        /// <summary>
+        /// The paragraph codes with the paragraphs from <paramref name="first"/> to <paramref name="last"/> changed, each written
+        /// as what differs from the paragraph before and the paragraph after them written back to how it was; null where no
+        /// format changes.
+        /// </summary>
+        private string[] FormatCodes(Func<CadMTextParagraphFormat, CadMTextParagraphFormat> change, int first, int last)
+        {
+            int count = _paragraphCodes.Count;
+            var formats = new CadMTextParagraphFormat[count];
+            CadMTextParagraphFormat format = CadMTextParagraphFormat.Default;
+
+            for (int p = 0; p < count; p++)
+            {
+                format = CadMTextParagraphFormat.Read(format, _paragraphCodes[p], Height);
+                formats[p] = format;
+            }
+
+            var wanted = (CadMTextParagraphFormat[])formats.Clone();
+            bool changed = false;
+
+            for (int p = first; p <= last; p++)
+            {
+                wanted[p] = change(formats[p]) ?? formats[p];
+                changed |= !wanted[p].Equals(formats[p]);
+            }
+
+            if (!changed)
+            {
+                return null;
+            }
+
+            string[] codes = _paragraphCodes.ToArray();
+
+            for (int p = first; p <= Math.Min(last + 1, count - 1); p++)
+            {
+                CadMTextParagraphFormat before = p == 0 ? CadMTextParagraphFormat.Default : wanted[p - 1];
+                string written = wanted[p].WriteAfter(before, Height) + OtherCodes(_paragraphCodes[p]);
+                codes[p] = written.Length == 0 ? null : written;
+            }
+
+            return codes;
+        }
+
+        /// <summary>
+        /// How many places a list's label takes at the start of a paragraph, its tab with it: a bullet, a number or letters and
+        /// a full stop, then a tab; nought where the paragraph opens with none.
+        /// </summary>
+        private int LabelLength(int start)
+        {
+            int i = start;
+
+            while (i < _cells.Count && !_cells[i].Break && _cells[i].Code == null && _cells[i].Text != "\t")
+            {
+                i++;
+            }
+
+            if (i >= _cells.Count || _cells[i].Break || _cells[i].Code != null || i == start)
+            {
+                return 0;
+            }
+
+            var label = new StringBuilder();
+
+            for (int k = start; k < i; k++)
+            {
+                label.Append(_cells[k].Text);
+            }
+
+            string text = label.ToString();
+            bool bullet = text == "·" || text == "•";
+            bool numbered =
+                text.Length >= 2
+                && text[text.Length - 1] == '.'
+                && (
+                    text.Take(text.Length - 1).All(c => c >= '0' && c <= '9')
+                    || text.Take(text.Length - 1).All(c => c >= 'a' && c <= 'z')
+                    || text.Take(text.Length - 1).All(c => c >= 'A' && c <= 'Z')
+                );
+            return bullet || numbered ? i - start + 1 : 0;
+        }
+
+        /// <summary>The label of the <paramref name="index"/>th paragraph of a list, from nought, its tab after it, in the look of the paragraph's first letter.</summary>
+        private List<Cell> Label(CadMTextNumbering numbering, int index, int start)
+        {
+            if (numbering == CadMTextNumbering.Bullet)
+            {
+                return new List<Cell> { new Cell("·", BulletLook, null), new Cell("\t", BulletLook, null) };
+            }
+
+            string mark;
+
+            if (numbering == CadMTextNumbering.Number)
+            {
+                mark = (index + 1).ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                // a to z, then aa, ab and on as the columns of a sheet are named.
+                var letters = new StringBuilder();
+
+                for (int n = index; n >= 0; n = (n / 26) - 1)
+                {
+                    letters.Insert(0, (char)((numbering == CadMTextNumbering.LetterUpper ? 'A' : 'a') + (n % 26)));
+                }
+
+                mark = letters.ToString();
+            }
+
+            CadMTextLook look = start < _cells.Count && !_cells[start].Break ? _cells[start].Look : CadMTextLook.Plain;
+            return (mark + ".\t").Select(c => new Cell(c.ToString(), look, null)).ToList();
+        }
+
+        /// <summary>A place moved by a label of <paramref name="removed"/> places at <paramref name="start"/> replaced by one of <paramref name="added"/>: one inside the old label goes after the new.</summary>
+        private static int Shifted(int place, int start, int removed, int added) =>
+            place >= start + removed ? place + added - removed
+            : place > start ? start + added
+            : place;
+
         private static string OtherCodes(string codes)
         {
             if (string.IsNullOrEmpty(codes))

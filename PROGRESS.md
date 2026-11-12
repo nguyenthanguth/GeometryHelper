@@ -273,12 +273,9 @@ the ones wanted.
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and
       their collections stopped each other's timers (now one serial collection); layer off 85 -> 23 ms by testing the
       layer before the entity's own visibility (S)
-- [ ] MTEXT follow-ups: (ruler, column drag, Paragraph and Column Settings dialogs and ribbon controls done 2026-11-12); `\W1.2x;` in a style of width not 1, the
-- [ ] MTEXT ruler follow-ups: a look at the ruler in the running app against design v126; the launcher in the collapsed Paragraph panel (RibbonPanel template); MTEXT's Columns option winning over the editor's; undo-step labels; static/dynamic defaults when switching from none (unprobed); bullets and lists (S)
-      caret at a soft break between ideographs; triangle width/height grips;
-      parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
-      defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
-      TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
+- [ ] MTEXT parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller defined height, manual columns at bottom or middle attachment, column grips (M). Done: ruler, dialogs, `\W..x`, caret, EXPLODE run fonts and colours, TEXT %%U/%%O/%%K, warm display of 10 000 MTEXTs
+- [x] MTEXT ruler follow-ups: collapsed-panel launcher, Columns option into the editor, \W..x with the style width, caret at soft breaks, numbering codes
+- [ ] MTEXT follow-ups 3: Bullets and Numbering menu entries (need design, code ready: SetNumbering); triangle grips (canvas picture; AutoCAD's grip points known); static/dynamic defaults from no columns (needs GUI); undo-step labels (unclear); TrueType %%U/%%O/%%K lines; first-draw cost of the layout cache; MIRROR/InkOf measuring %%U as letters; core DxfFonts \W..x; a look at the ruler in the running app (S)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the

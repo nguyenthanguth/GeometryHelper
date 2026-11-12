@@ -765,6 +765,21 @@ namespace GeometryHelper.Dxf.Viewer
                 style,
                 place + 1
             );
+
+            // The editor opens with the columns the Columns option gave, and what it makes of them is written.
+            if (columns != DxfColumnType.NoColumns && count <= 100)
+            {
+                edit.Frame = CadMTextFrame
+                    .Of(boxWidth, columnHeight)
+                    .WithColumns(
+                        columns,
+                        columnWidth,
+                        gutter,
+                        columns == DxfColumnType.StaticColumns ? count : 1,
+                        true
+                    );
+            }
+
             yield return CadPrompt.ForInPlaceEdit("Enter text", edit);
 
             if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
@@ -821,19 +836,15 @@ namespace GeometryHelper.Dxf.Viewer
                 ApplyBox(text, edit);
                 s.Append(c.Space, Current(c, text));
 
-                if (columns == DxfColumnType.StaticColumns)
+                if (edit.Frame == null && columns == DxfColumnType.StaticColumns)
                 {
+                    // More static columns than the editor takes, as the Columns option gave them.
                     text.SetStaticColumns(columnWidth, gutter, count);
-                    text.Height = columnHeight;
-                }
-                else if (columns == DxfColumnType.DynamicColumns)
-                {
-                    text.SetDynamicColumns(columnWidth, gutter, true);
                     text.Height = columnHeight;
                 }
                 else
                 {
-                    // The height and columns given in the editor, once the MTEXT is in the drawing.
+                    // The height and columns given in the editor, or those it opened with, once the MTEXT is in the drawing.
                     refused = ApplyFrame(text, edit);
                 }
             });

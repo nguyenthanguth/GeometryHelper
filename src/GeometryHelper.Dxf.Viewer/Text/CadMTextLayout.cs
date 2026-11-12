@@ -94,13 +94,24 @@ namespace GeometryHelper.Dxf.Viewer
             double styleOblique
         )
         {
+            return Of(new Inputs(text, null, styleWidth, styleOblique), content, faceOf);
+        }
+
+        /// <summary>Lays out the words of an MTEXT read into <paramref name="inputs"/>, as <see cref="Of(DxfMText, CadMTextContent, Func{CadMTextLook, CadFontFace}, double, double)"/> does.</summary>
+        internal static CadMTextLayout Of(
+            Inputs inputs,
+            CadMTextContent content,
+            Func<CadMTextLook, CadFontFace> faceOf
+        )
+        {
             var layout = new CadMTextLayout();
-            new Builder(layout, text, content, faceOf, styleWidth, styleOblique, false).Build();
+            new Builder(layout, inputs, content, faceOf, false).Build();
             return layout;
         }
 
         /// <summary>
-        /// Lays out the words of an MTEXT being edited as <see cref="Of"/> does, and finds where each place of the editor
+        /// Lays out the words of an MTEXT being edited as <see cref="Of(DxfMText, CadMTextContent, Func{CadMTextLook, CadFontFace}, double, double)"/>
+        /// does, and finds where each place of the editor
         /// (<see cref="CadMTextEditor"/>: a letter, a symbol or a stack one, a paragraph break one) stands: <see cref="Places"/>.
         /// An empty paragraph at the end is a line of its own here, for the caret after the last break to stand on.
         /// </summary>
@@ -113,8 +124,127 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             var layout = new CadMTextLayout();
-            new Builder(layout, text, content, faceOf, styleWidth, styleOblique, true).Build();
+            new Builder(layout, new Inputs(text, null, styleWidth, styleOblique), content, faceOf, true).Build();
             return layout;
+        }
+
+        /// <summary>
+        /// What a layout reads of an MTEXT and its style, each read once: the words as written, the height, the width, the
+        /// attachment, the line spacing, the columns and the defined height, with the style's width factor and slant. Laid out
+        /// from inputs the same to the bit, in faces drawn alike, an MTEXT comes out the same to the bit, which is what lets a
+        /// document keep a layout from one drawing of its MTEXT to the next.
+        /// </summary>
+        internal sealed class Inputs
+        {
+            private readonly DxfMText _text;
+            private readonly List<double> _columnHeights = new List<double>();
+
+            /// <summary>Reads an MTEXT's inputs; <paramref name="contents"/> its words where they are to be compared, else null.</summary>
+            internal Inputs(DxfMText text, string contents, double styleWidth, double styleOblique)
+            {
+                _text = text;
+                Contents = contents;
+                StyleWidth = styleWidth;
+                StyleOblique = styleOblique;
+                TextHeight = text.TextHeight;
+                Width = text.Width;
+                Attachment = text.Attachment;
+                LineSpacingStyle = text.LineSpacingStyle;
+                LineSpacingFactor = text.LineSpacingFactor;
+                ColumnType = text.ColumnType;
+                ColumnWidth = text.ColumnWidth;
+                Height = text.Height;
+
+                // The rest of the columns only where there are columns: the layout reads none of it otherwise.
+                if (HasColumns)
+                {
+                    ColumnAutoHeight = text.ColumnAutoHeight;
+                    ColumnCount = text.ColumnCount;
+                    ColumnGutterWidth = text.ColumnGutterWidth;
+                }
+            }
+
+            /// <summary>Whether the words stand in columns: a kind of columns and a column width.</summary>
+            internal bool HasColumns => ColumnType != DxfColumnType.NoColumns && ColumnWidth > 0.0;
+
+            internal string Contents { get; }
+
+            internal double StyleWidth { get; }
+
+            internal double StyleOblique { get; }
+
+            internal double TextHeight { get; }
+
+            internal double Width { get; }
+
+            internal DxfAttachmentPoint Attachment { get; }
+
+            internal DxfLineSpacingStyle LineSpacingStyle { get; }
+
+            internal double LineSpacingFactor { get; }
+
+            internal DxfColumnType ColumnType { get; }
+
+            internal double ColumnWidth { get; }
+
+            internal bool ColumnAutoHeight { get; }
+
+            internal int ColumnCount { get; }
+
+            internal double ColumnGutterWidth { get; }
+
+            internal double Height { get; }
+
+            /// <summary>The height of a column of their own heights, read as the layout comes to it, the columns before it with it.</summary>
+            internal double ColumnHeight(int column)
+            {
+                while (_columnHeights.Count <= column)
+                {
+                    _columnHeights.Add(_text.GetColumnHeight(_columnHeights.Count));
+                }
+
+                return _columnHeights[column];
+            }
+
+            /// <summary>
+            /// Whether other inputs, read since, are these to the bit: the words, every number and the heights of the columns
+            /// these came to. Not a measure of nearness: a layout kept is taken only for inputs that cannot lay out otherwise.
+            /// </summary>
+            internal bool IsSameAs(Inputs other)
+            {
+                if (
+                    !string.Equals(Contents, other.Contents, StringComparison.Ordinal)
+                    || !Bits(StyleWidth, other.StyleWidth)
+                    || !Bits(StyleOblique, other.StyleOblique)
+                    || !Bits(TextHeight, other.TextHeight)
+                    || !Bits(Width, other.Width)
+                    || Attachment != other.Attachment
+                    || LineSpacingStyle != other.LineSpacingStyle
+                    || !Bits(LineSpacingFactor, other.LineSpacingFactor)
+                    || ColumnType != other.ColumnType
+                    || !Bits(ColumnWidth, other.ColumnWidth)
+                    || ColumnAutoHeight != other.ColumnAutoHeight
+                    || ColumnCount != other.ColumnCount
+                    || !Bits(ColumnGutterWidth, other.ColumnGutterWidth)
+                    || !Bits(Height, other.Height)
+                )
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < _columnHeights.Count; i++)
+                {
+                    if (!Bits(_columnHeights[i], other.ColumnHeight(i)))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            private static bool Bits(double a, double b) =>
+                BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
         }
 
         /// <summary>Where each place of the words stands; null but for a layout made by <see cref="OfEditor"/>.</summary>
@@ -315,7 +445,7 @@ namespace GeometryHelper.Dxf.Viewer
         private sealed class Builder
         {
             private readonly CadMTextLayout _layout;
-            private readonly DxfMText _text;
+            private readonly Inputs _text;
             private readonly CadMTextContent _content;
             private readonly Func<CadMTextLook, CadFontFace> _faceOf;
             private readonly double _styleWidth;
@@ -330,11 +460,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             public Builder(
                 CadMTextLayout layout,
-                DxfMText text,
+                Inputs text,
                 CadMTextContent content,
                 Func<CadMTextLook, CadFontFace> faceOf,
-                double styleWidth,
-                double styleOblique,
                 bool editing
             )
             {
@@ -343,10 +471,10 @@ namespace GeometryHelper.Dxf.Viewer
                 _text = text;
                 _content = content;
                 _faceOf = faceOf;
-                _styleWidth = styleWidth;
-                _styleOblique = styleOblique;
+                _styleWidth = text.StyleWidth;
+                _styleOblique = text.StyleOblique;
                 _h = text.TextHeight;
-                _columns = text.ColumnType != DxfColumnType.NoColumns && text.ColumnWidth > 0.0;
+                _columns = text.HasColumns;
                 _width = _columns ? text.ColumnWidth : Math.Max(0.0, text.Width);
             }
 
@@ -1566,7 +1694,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (manual)
                 {
-                    double own = column < _text.ColumnCount ? _text.GetColumnHeight(column) : 0.0;
+                    double own = column < _text.ColumnCount ? _text.ColumnHeight(column) : 0.0;
                     return own > 0.0 ? own : _text.Height;
                 }
 

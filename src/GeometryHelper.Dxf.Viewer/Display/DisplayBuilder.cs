@@ -1734,7 +1734,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             // The spaces before and after the words kept: AutoCAD justifies the words by them (mirror-insert GHMI1), "ABC " on the
             // right of its baseline a space further left than "ABC".
-            string value = CleanText(text.TextString, false).Trim('\n');
+            string value = TextMarks(CleanText(text.TextString, false).Trim('\n'), out byte[] marks);
 
             if (value.Trim().Length == 0 || text.Height <= 0.0)
             {
@@ -1794,9 +1794,64 @@ namespace GeometryHelper.Dxf.Viewer
                     handle,
                     layerName,
                     text.Oblique,
-                    backward
+                    backward,
+                    marks
                 )
             );
+        }
+
+        /// <summary>
+        /// The words of a TEXT without its codes that line letters, <c>%%U</c> under, <c>%%K</c> through and <c>%%O</c> over
+        /// them, each turning its line on or off for the letters after it, of any case; <paramref name="marks"/> says of each
+        /// letter left which lines it has (1 under, 2 through, 4 over), null where the words have no such code. "%%uAB%%uC" is
+        /// "ABC", A and B lined under.
+        /// </summary>
+        private static string TextMarks(string value, out byte[] marks)
+        {
+            marks = null;
+
+            if (value.IndexOf("%%", StringComparison.Ordinal) < 0)
+            {
+                return value;
+            }
+
+            var words = new StringBuilder(value.Length);
+            var lined = new List<byte>(value.Length);
+            byte now = 0;
+            bool any = false;
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '%' && i + 2 < value.Length && value[i + 1] == '%')
+                {
+                    char code = char.ToLowerInvariant(value[i + 2]);
+                    byte mark = (byte)(
+                        code == 'u' ? 1
+                        : code == 'k' ? 2
+                        : code == 'o' ? 4
+                        : 0
+                    );
+
+                    if (mark != 0)
+                    {
+                        now ^= mark;
+                        any = true;
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                words.Append(value[i]);
+                lined.Add(now);
+            }
+
+            if (!any)
+            {
+                return value;
+            }
+
+            marks = lined.ToArray();
+            return words.ToString();
         }
 
         /// <summary>
@@ -2090,7 +2145,8 @@ namespace GeometryHelper.Dxf.Viewer
             string handle,
             string layerName,
             double oblique,
-            bool backward
+            bool backward,
+            byte[] marks = null
         )
         {
             if (face.Shx == null)
@@ -2128,7 +2184,8 @@ namespace GeometryHelper.Dxf.Viewer
                 oblique,
                 backward,
                 descent,
-                out double width
+                out double width,
+                marks
             );
             return new DisplayText2(
                 value,
@@ -2181,7 +2238,9 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = Math.Atan2(direction.Y, direction.X);
             Affine2 m = frame.Matrix;
             double turn = Orient(m, rotation, false, false, out bool backward);
-            CadFontFace face = FaceOfCode(text.Contents) ?? FaceOf(text.TextStyleName);
+            string contents = text.Contents;
+            string styleName = text.TextStyleName;
+            CadFontFace face = FaceOfCode(contents) ?? FaceOf(styleName);
 
             // The text keeps its words, height and attachment as one text has them, for what reads it; it is drawn by its parts,
             // the words laid out as AutoCAD lays them.
@@ -2191,14 +2250,14 @@ namespace GeometryHelper.Dxf.Viewer
                 m.Y(at.X, at.Y),
                 text.TextHeight * m.Scale,
                 turn,
-                WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)),
+                WidthOf(contents, WidthFactorOf(styleName)),
                 horizontal,
                 vertical,
                 style,
                 handle,
                 layerName,
                 face.Name,
-                ObliqueOf(text.TextStyleName),
+                ObliqueOf(styleName),
                 backward
             );
             CadMTextLayout layout = LayoutOf(text);

@@ -17,11 +17,22 @@ namespace GeometryHelper.Dxf.Viewer
     /// </remarks>
     internal static class ShxText
     {
+        /// <summary>How far left of its letters' pens AutoCAD 2021 starts and ends a line under, over or through the letters of a TEXT in an SHX font, over the height, across at the width factor.</summary>
+        private const double MarkShift = 0.15;
+
         /// <summary>
         /// The strokes of a text in the drawing's coordinates, and the width of its widest line: from the start of the
         /// baseline to the last pen for a line on the left, the width of its box for one centred or on the right. A letter
         /// neither font has is drawn as the font's question mark; a space the font has not moves the pen by its A.
         /// </summary>
+        /// <remarks>
+        /// <paramref name="marks"/>, where given, says of each letter of the text whether it is lined under (1), through (2)
+        /// or over (4), as a TEXT's <c>%%U</c>, <c>%%K</c> and <c>%%O</c> line it; null for none. AutoCAD 2021 draws such a
+        /// line 0.2 of the height below the baseline, half the height above it or 1.2 heights above it, along the pens of the
+        /// letters lined but 0.15 of the height (at the width factor) left of them, slanted as the letters are, and boxes the
+        /// words with the line for their justification (probed: simplex 10 high, "%%uA" is lined from -1.5 to 8.976, the
+        /// pen 10.476 on; "%%uAB" centred on nought starts at -8.738, not at the -8.571 of "AB").
+        /// </remarks>
         internal static List<double[]> Strokes(
             CadFontFace face,
             string text,
@@ -35,7 +46,8 @@ namespace GeometryHelper.Dxf.Viewer
             double oblique,
             bool backward,
             double descent,
-            out double width
+            out double width,
+            byte[] marks = null
         )
         {
             string[] lines = text.Split('\n');
@@ -53,6 +65,9 @@ namespace GeometryHelper.Dxf.Viewer
             var strokes = new List<double[]>();
             var placed = new List<KeyValuePair<ShxGlyph, double>>();
             var lefts = new List<double>();
+            var lined = new List<byte>();
+            double markShift = MarkShift * height * widthFactor;
+            int offset = 0;
             width = 0.0;
 
             for (int l = 0; l < lines.Length; l++)
@@ -60,11 +75,13 @@ namespace GeometryHelper.Dxf.Viewer
                 string line = lines[l];
                 placed.Clear();
                 lefts.Clear();
+                lined.Clear();
                 double pen = 0.0;
                 int i = 0;
 
                 while (i < line.Length)
                 {
+                    int at = offset + i;
                     ShxGlyph glyph = Pick(face, line, ref i, out ShxFont from);
 
                     if (glyph == null)
@@ -75,8 +92,11 @@ namespace GeometryHelper.Dxf.Viewer
                     double scale = height / from.Above;
                     placed.Add(new KeyValuePair<ShxGlyph, double>(glyph, scale));
                     lefts.Add(pen);
+                    lined.Add(marks != null && at < marks.Length ? marks[at] : (byte)0);
                     pen += glyph.Advance * scale * widthFactor;
                 }
+
+                offset += line.Length + 1;
 
                 // The box the line is justified by: its ink upright, or from its start to its last pen where it ends in a space.
                 double inkLeft = double.MaxValue;
@@ -105,6 +125,20 @@ namespace GeometryHelper.Dxf.Viewer
                     spaced ? (inked ? Math.Max(pen, inkRight) : pen)
                     : inked ? inkRight
                     : 0.0;
+                bool anyLined = false;
+
+                // The lines under, over and through letters box the words with their ink.
+                for (int k = 0; k < placed.Count; k++)
+                {
+                    if (lined[k] != 0)
+                    {
+                        double from = lefts[k] - markShift;
+                        double to = lefts[k] + (placed[k].Key.Advance * placed[k].Value * widthFactor) - markShift;
+                        boxLeft = inked || anyLined ? Math.Min(boxLeft, from) : from;
+                        boxRight = inked || anyLined ? Math.Max(boxRight, to) : to;
+                        anyLined = true;
+                    }
+                }
                 width = Math.Max(
                     width,
                     horizontal == 0 ? pen
@@ -136,6 +170,58 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         strokes.Add(drawn);
+                    }
+                }
+
+                if (!anyLined)
+                {
+                    continue;
+                }
+
+                // Each line along the letters it lines, one stroke for the letters next to each other lined alike.
+                foreach (byte mark in new byte[] { 1, 2, 4 })
+                {
+                    double up =
+                        (
+                            mark == 1 ? -0.2
+                            : mark == 2 ? 0.5
+                            : 1.2
+                        ) * height;
+
+                    for (int k = 0; k < placed.Count; k++)
+                    {
+                        if ((lined[k] & mark) == 0)
+                        {
+                            continue;
+                        }
+
+                        int last = k;
+
+                        while (last + 1 < placed.Count && (lined[last + 1] & mark) != 0)
+                        {
+                            last++;
+                        }
+
+                        double from = left + lefts[k] - markShift + (up * slant);
+                        double to =
+                            left
+                            + lefts[last]
+                            + (placed[last].Key.Advance * placed[last].Value * widthFactor)
+                            - markShift
+                            + (up * slant);
+                        double ly = baseline + up;
+                        double fx = backward ? -from : from;
+                        double tx = backward ? -to : to;
+                        strokes.Add(
+                            new[]
+                            {
+                                x + (fx * cos) - (ly * sin),
+                                y + (fx * sin) + (ly * cos),
+                                x + (tx * cos) - (ly * sin),
+                                y + (tx * sin) + (ly * cos),
+                            }
+                        );
+                        k = last;
                     }
                 }
             }
