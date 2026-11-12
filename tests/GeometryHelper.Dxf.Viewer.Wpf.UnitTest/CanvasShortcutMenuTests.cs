@@ -89,7 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "Isolate", "SteeringWheels", "Action Recorder", "Convert PS to MS", "QuickCalc" },
+                    new[] { "SteeringWheels", "Action Recorder", "Convert PS to MS", "QuickCalc" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
                 Assert.All(items.Where(i => !i.IsSeparator && !i.IsEnabled && i.Items.Count == 0), i =>
@@ -206,7 +206,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     items.Select(i => i.AccessKey).ToArray()
                 );
                 Assert.Equal(
-                    new[] { "Isolate", "Add Selected", "Select Similar", "QuickCalc", "Quick Properties" },
+                    new[] { "Add Selected", "Select Similar", "QuickCalc", "Quick Properties" },
                     items.Where(i => !i.IsSeparator && !i.IsEnabled).Select(i => i.Header).ToArray()
                 );
 

@@ -373,22 +373,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.CommandText = "WAL";
             model.ShowSuggestions();
 
-            // Design CmdContentSection: Blocks (1) over WALL_TAG, Layers (2) over WALL-FINISH and WALLS, each expanded.
+            // Design CmdContentSection: the command REDRAWALL (its middle matches), then Blocks (1) over WALL_TAG, Layers (2) over
+            // WALL-FINISH and WALLS, each expanded.
             IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions;
-            Assert.Equal(new[] { "Blocks", "WALL_TAG", "Layers", "WALL-FINISH", "WALLS" }, rows.Select(r => r.Name));
-            CommandSuggestionViewModel layers = rows[2];
+            Assert.Equal(
+                new[] { "REDRAWALL", "Blocks", "WALL_TAG", "Layers", "WALL-FINISH", "WALLS" },
+                rows.Select(r => r.Name)
+            );
+            CommandSuggestionViewModel layers = rows[3];
             Assert.True(layers.IsHeader);
             Assert.True(layers.IsExpanded);
             Assert.Equal("2", layers.Note);
             Assert.Null(layers.ContentType);
-            Assert.False(rows[1].IsHeader);
+            Assert.False(rows[2].IsHeader);
             Assert.True(rows[0].IsSelected);
 
             // A click on the header (or Enter on it) collapses it and keeps the list open, the header chosen.
             Assert.True(model.RunSuggestion(layers));
             Assert.True(model.IsSuggestionListOpen);
             Assert.False(layers.IsExpanded);
-            Assert.Equal(new[] { "Blocks", "WALL_TAG", "Layers" }, model.Suggestions.Select(r => r.Name));
+            Assert.Equal(new[] { "REDRAWALL", "Blocks", "WALL_TAG", "Layers" }, model.Suggestions.Select(r => r.Name));
             Assert.Same(layers, model.SelectedSuggestion);
             Assert.False(model.IsCommandRunning);
 
@@ -403,6 +407,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             // The arrows walk over the headers too.
             model.MoveSuggestion(-10);
+            Assert.Equal("REDRAWALL", model.SelectedSuggestion.Name);
+            model.MoveSuggestion(1);
             Assert.Equal("Blocks", model.SelectedSuggestion.Name);
             model.MoveSuggestion(1);
             Assert.Equal("WALL_TAG", model.SelectedSuggestion.Name);

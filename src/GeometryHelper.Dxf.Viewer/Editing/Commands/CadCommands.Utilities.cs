@@ -500,18 +500,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// white or an index 1 to 255, one undo step; Enter keeps it. The header holds an index alone, so Truecolor, red, green
         /// and blue, and COlorbook are refused, said on the command line.
         /// </summary>
-        private static IEnumerable<CadPrompt> CurrentColor(CadCommandContext c)
+        private static IEnumerable<CadPrompt> CurrentColor(CadCommandContext c) =>
+            CurrentColorAsked(c, "Enter new object color", ColorShown);
+
+        /// <summary>The prompt of CECOLOR and -COLOR, each in its own words and with its own way of offering the colour.</summary>
+        private static IEnumerable<CadPrompt> CurrentColorAsked(
+            CadCommandContext c,
+            string message,
+            Func<DxfColor, string> offered
+        )
         {
             DxfColor old = c.Database.Cecolor;
-            string shown =
-                old.IsByLayer ? "BYLAYER"
-                : old.IsByBlock ? "BYBLOCK"
-                : CadPropertyEditor.ColorName(old).ToLowerInvariant();
-            yield return CadPrompt.ForKeywordOrText(
-                "Enter new object color",
-                new[] { "Truecolor", "COlorbook" },
-                shown
-            );
+            string shown = offered(old);
+            yield return CadPrompt.ForKeywordOrText(message, new[] { "Truecolor", "COlorbook" }, shown);
 
             if (c.Input.Is("Truecolor") || c.Input.Is("COlorbook"))
             {
@@ -550,7 +551,7 @@ namespace GeometryHelper.Dxf.Viewer
                             CadEditRecordKind.SettingChanged,
                             null,
                             "$CECOLOR",
-                            shown,
+                            ColorShown(old),
                             CadPropertyEditor.ColorName(color)
                         ),
                     },

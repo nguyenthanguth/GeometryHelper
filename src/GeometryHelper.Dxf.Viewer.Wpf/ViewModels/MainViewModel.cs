@@ -1751,6 +1751,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
 
                     break;
+                case "COLOR":
+                    // COLOR: the Select Color dialog for the colour of new objects, once the command has ended; with no
+                    // dialog to show, the command asks -COLOR's prompt.
+                    if (PickColor != null)
+                    {
+                        _afterCommand = PickCurrentColor;
+                        e.Handled = true;
+                    }
+
+                    break;
                 case "OPTIONS":
                     if (_settingsRequested != null)
                     {

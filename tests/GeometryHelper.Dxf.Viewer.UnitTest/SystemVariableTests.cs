@@ -281,7 +281,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 registry.Variables.Select(v => v.Name)
             );
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
-            Assert.Equal(184, registry.Commands.Count);
+            Assert.Equal(197, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

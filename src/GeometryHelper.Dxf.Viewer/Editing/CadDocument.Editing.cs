@@ -813,6 +813,31 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// Gets the handles of the objects ISOLATEOBJECTS and HIDEOBJECTS hid, which UNISOLATEOBJECTS shows again: hidden for the
+        /// session only, as AutoCAD's OBJECTISOLATIONMODE 0, so that a save writes them shown.
+        /// </summary>
+        internal SortedSet<string> IsolationHidden { get; } = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The objects isolation hid that are hidden still, shown for a save; the caller hides them again after it.</summary>
+        private List<DxfEntity> ShowIsolated()
+        {
+            var hidden = new List<DxfEntity>();
+
+            foreach (string handle in IsolationHidden)
+            {
+                DxfEntity entity = FindEntity(handle);
+
+                if (entity != null && !entity.Visible)
+                {
+                    hidden.Add(entity);
+                    entity.Visible = true;
+                }
+            }
+
+            return hidden;
+        }
+
         /// <summary>Saves the drawing to the file it was opened from or last saved as.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the drawing has no file yet (it was opened from a stream or
         /// given in memory) or a group of edits is open; use <see cref="SaveAs(string)"/>.</exception>
@@ -879,7 +904,20 @@ namespace GeometryHelper.Dxf.Viewer
             _shownState = null;
             _ucs?.WriteTo(Database);
             var said = new List<string>();
-            LeftOutOfDwg = CadDrawingFile.Save(Database, full, version, said, progress);
+            List<DxfEntity> hidden = ShowIsolated();
+
+            try
+            {
+                LeftOutOfDwg = CadDrawingFile.Save(Database, full, version, said, progress);
+            }
+            finally
+            {
+                foreach (DxfEntity entity in hidden)
+                {
+                    entity.Visible = false;
+                }
+            }
+
             LeftOutOfDxf = said.AsReadOnly();
             SaveVersion = version;
             _ucs?.Saved();

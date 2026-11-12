@@ -255,7 +255,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             ShortcutRowViewModel move = dialog.Shortcuts.Single(r => r.Command == "MOVE");
             ShortcutRowViewModel properties = dialog.Shortcuts.Single(r => r.Command == "PROPERTIES");
             Assert.Equal("Ctrl+1", properties.Keys);
-            Assert.Equal("CH, PR", properties.Aliases);
+            Assert.Equal("CH, DDCHPROP, DDMODIFY, MO, PR, PROPS", properties.Aliases);
             Assert.DoesNotContain(dialog.Shortcuts, r => r.HasConflict);
 
             move.Keys = "Ctrl+1";
