@@ -88,7 +88,8 @@ namespace GeometryHelper.Dxf.Viewer
                     gap,
                     arrow,
                     trim,
-                    farTrim
+                    farTrim,
+                    scale
                 );
             }
 
@@ -245,6 +246,13 @@ namespace GeometryHelper.Dxf.Viewer
             picture.Add(text);
             AddFrame(picture, style, wordsAt, angle, width, height, gap);
 
+            // AutoCAD 2021 records words standing off their line by the point of the line they stand by: "R20" above a
+            // radius's line put 40 out at 30 degrees under DIMTAD 1 writes (34.641, 20) as group 11, its middle 0.18 above.
+            if ((words2.Standing - wordsAt).Length > 1E-12)
+            {
+                RecordWordsBy(text, words2.Standing);
+            }
+
             // The centre mark where the line stands outside and DIMTOFL draws none through the circle.
             if (textOut && !style.Dimtofl)
             {
@@ -258,10 +266,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The picture of a radius or a diameter whose words were put off its line under DIMTMOVE 2, as AutoCAD 2021 draws it:
-        /// the words at their point, turned along the line; the line inside from the centre, or the back of the far arrowhead,
-        /// to the back of the arrowhead inside the rim, taken out for DIMGAP and half their width either side where it runs
-        /// through them. A diameter of 40 at 30 degrees with "%%c40" put 8 out along its line has its line from 17.5 back to
-        /// 4.229 and from 11.771 on to 17.5.
+        /// the words at their point, turned along the line, or level under DIMTIH; the line inside from the centre, or the back
+        /// of the far arrowhead, to the back of the arrowhead inside the rim, taken out where it runs through them for DIMGAP and
+        /// half their width either side, or as much of it as runs through their box grown by DIMGAP where they are level. A
+        /// diameter of 40 at 30 degrees with "%%c40" put 8 out along its line has its line from 17.5 back to 4.229 and from
+        /// 11.771 on to 17.5.
         /// </summary>
         private static List<DxfEntity> FreeRadial(
             DxfDimStyleTableRecord style,
@@ -279,7 +288,8 @@ namespace GeometryHelper.Dxf.Viewer
             double gap,
             double arrow,
             double trim,
-            double farTrim
+            double farTrim,
+            double scale
         )
         {
             GeoPoint2 from = diameter ? far + u * farTrim : center;
@@ -291,30 +301,55 @@ namespace GeometryHelper.Dxf.Viewer
             bool onLine = Math.Abs(across) < height / 2.0 + gap;
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
             double reach = (chord - center).Length;
-            bool pushed =
-                !diameter
-                && onLine
-                && along < reach
-                && (along - width / 2.0 - gap <= 0.0 || along + width / 2.0 + gap >= reach);
+
+            // DIMTIH keeps free words level, inside the circle or out, as AutoCAD 2021 draws them whatever DIMTOH says.
+            if (style.Dimtih)
+            {
+                angle = 0.0;
+            }
+
+            double lineAngle = Math.Atan2(u.Y, u.X);
+            double half = style.Dimtih ? Chord(width, height, gap, angle - lineAngle) : width / 2.0 + gap;
+            // Over a rim from outside, or inside reaching the rim (a diameter's the back of its arrowhead); over a radius's
+            // centre by half their width and the gap, level or not.
+            bool overRim = along - half <= reach && along + half >= (diameter ? reach - trim : reach);
+            bool overFarRim = diameter && along + half >= -reach && along - half <= -(reach - farTrim);
+            bool pushed = onLine && (overRim || overFarRim || (!diameter && along - width / 2.0 - gap <= 0.0));
 
             if (pushed)
             {
-                // Words on a radius's line over its centre or its rim put its arrowhead outside, pointing in, on a line an
-                // arrowhead long, and its line runs whole from the centre to the rim, as AutoCAD 2021 draws "R20" put 1 out
-                // under DIMTMOVE 2; put 8 out they leave the arrowhead inside and the line broken about them.
-                lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>
+                // Words on the line over a rim, or over a radius's centre, put the arrowheads outside, pointing in, each on a
+                // line an arrowhead long; DIMTOFL runs the line whole from the centre, or the far rim, to the rim, else the
+                // centre is marked. AutoCAD 2021 draws "R20" so put 1 out under ISO-25 and 19.4 to 20.6 out under acad.dwt's
+                // Standard; put 8 out the arrowhead stays inside and the line is broken about the words.
+                lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
+
+                if (style.Dimtofl)
                 {
-                    new KeyValuePair<GeoPoint2, GeoPoint2>(center, chord),
-                };
+                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(diameter ? far : center, chord));
+                }
 
                 if (trim > 0.0)
                 {
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(chord + u * trim, chord + u * (2.0 * trim)));
                 }
+
+                if (diameter && farTrim > 0.0)
+                {
+                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(far - u * farTrim, far - u * (2.0 * farTrim)));
+                }
             }
             else if (onLine)
             {
-                lines = Broken(lines, location - new GeoVector2(-u.Y, u.X) * across, u, width / 2.0 + gap);
+                GeoPoint2 foot = location - new GeoVector2(-u.Y, u.X) * across;
+                lines = Broken(lines, foot, u, half);
+
+                // Words reaching past the back of a radius's arrowhead short of the rim: AutoCAD 2021 still draws the line
+                // from the back of the arrowhead out to their end, over the arrowhead.
+                if (along + half > reach - trim && along - half < reach - trim)
+                {
+                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(chord - u * trim, foot + u * half));
+                }
             }
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> line in lines)
@@ -326,13 +361,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (diameter)
             {
-                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, far, -u, arrow);
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, far, pushed ? u : -u, arrow);
             }
 
             text.Location = P3(location);
             text.Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
             picture.Add(text);
             AddFrame(picture, style, location, angle, width, height, gap);
+
+            if (pushed && !style.Dimtofl)
+            {
+                AddCenterMark(picture, style, center, reach, scale);
+            }
+
             picture.Add(Definition(diameter ? far : center));
             picture.Add(Definition(chord));
             return picture;
@@ -458,6 +499,9 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>How far past the bend the middle of words beside a line stands: DIMGAP and half their width.</summary>
             internal double Beside => _gap + _width / 2.0;
 
+            /// <summary>The point of their line or landing the words last laid out stand by: their middle without their lift off it.</summary>
+            internal GeoPoint2 Standing { get; private set; }
+
             /// <summary>Whether the words stand on the line: DIMTAD 0, and for words kept level inside, DIMTAD 1 and 4 as well.</summary>
             internal bool On(bool levelInside) => _tad == 0 || (levelInside && (_tad == 1 || _tad == 4));
 
@@ -492,16 +536,33 @@ namespace GeometryHelper.Dxf.Viewer
                         lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, bend));
                     }
 
+                    // Outside on a line within 15 degrees of level, as AutoCAD 2021 draws them: words on it have no landing,
+                    // standing a gap past the bend, and words off it the landing under them; both are recorded by the bend.
+                    bool nearlyLevel = outside && Math.Abs(way.Y) <= Math.Sin(Math.PI / 12.0) + 1E-12;
+
+                    if (nearlyLevel && on)
+                    {
+                        Standing = bend;
+                        return bend + x * (_gap + _width / 2.0) + up * _onOffset;
+                    }
+
                     double landing = on ? _arrow : _width + _gap + (_box ? _gap : 0.0);
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + x * landing));
-                    return on
-                        ? bend + x * (_arrow + _gap + _width / 2.0) + up * _onOffset
-                        : bend + x * (_gap + _width / 2.0) + up * (Side * _lift);
+                    Standing = on ? bend + x * (_arrow + _gap + _width / 2.0) : bend + x * (_gap + _width / 2.0);
+                    GeoPoint2 at = Standing + (on ? up * _onOffset : up * (Side * _lift));
+
+                    if (nearlyLevel)
+                    {
+                        Standing = bend;
+                    }
+
+                    return at;
                 }
 
                 var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
                 var above = new GeoVector2(-readable.Y, readable.X);
                 GeoPoint2 middle = clearOfBend ? bend + way * (_gap + _width / 2.0) : bend;
+                Standing = middle;
 
                 if (on)
                 {
@@ -549,6 +610,7 @@ namespace GeometryHelper.Dxf.Viewer
                     new KeyValuePair<GeoPoint2, GeoPoint2>(from, to),
                 };
                 lines.AddRange(on ? Broken(whole, at, way, half) : whole);
+                Standing = at;
 
                 if (on)
                 {

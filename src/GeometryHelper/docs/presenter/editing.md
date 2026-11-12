@@ -231,7 +231,9 @@ broken about them below 0.7; a DIMGAP below nought draws a box round the words, 
 
 DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
 DIMTEDIT moves to run through the point given, the words above it there (on it for DIMTAD 0, the line broken a gap
-clear of them, and run on to a gap short of them past an end). Under 2 the fit puts them over the line, away from the
+clear of them, and run on to a gap short of them past an end); kept level by DIMTOH past an end, they stand on a level
+landing, or with none a gap past the end where the line is within 15 degrees of level, as AutoCAD 2021 draws them at 5,
+10 and 15 degrees. Under 2 the fit puts them over the line, away from the
 points, DIMEXE, one and a half DIMGAP and half their height out (their height more where they stand below it as they
 read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its line; DIMTEDIT puts their middle at the
 point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
@@ -277,14 +279,26 @@ on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" mo
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
-A radius put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over its
-centre or its rim put its arrowhead outside, pointing in, and its line runs whole from the centre to the rim: "R20" put 1
-out. Put 8 out they leave the arrowhead inside and the line broken about them.
+A radius put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
+radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
+outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,
+to the rim, else DIMCEN marks the centre: "R20" put 1 out under ISO-25, and in acad.dwt's Standard "R20" put 19.4 to
+20.6 out. Put 8 out they leave the arrowhead inside and the line broken about them. DIMTIH keeps words put under 2 level,
+inside the circle or out, whatever DIMTOH says, and the line is broken where it runs through their box grown by DIMGAP:
+"R20" of Arial 0.18 high put 10 out at 30 degrees breaks it from 9.636 to 10.364. Words outside kept level on a line
+within 15 degrees of level stand on no landing of their own, a gap past the end of the line, as on a linear dimension.
+A radius or a diameter records its words (group 11) as AutoCAD 2021 does: under DIMTMOVE 1 and 2 by the point they were
+put at, under 0 by the point of the line or landing they stand by, their middle without DIMTAD's lift: "R20" put 40 out
+at 30 degrees under DIMTAD 1 writes (34.641, 20), its middle 0.18 above the line.
 The words are measured in the font of the dimension's text style, laid out as the canvas lays out an MTEXT, as AutoCAD
 measures them: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, "100" of ghsimplex 6.071 wide and widened 1.5
 times 9.107. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on the document
-find it, the canvas's own ghsimplex wherever fonts are on; the style's width factor and oblique angle count. Words of a
-font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
+find it, the canvas's own ghsimplex wherever fonts are on; the style's width factor and oblique angle count. An SHX
+letter is measured as AutoCAD measures its ink: an arc of less than a half circle reaches the rectangle of its chord
+and of the line along it touching the arc, a longer one the square about its circle, so that isocp.shx's 3 is 0.441421
+of the height wide where its strokes are 0.4; where the pen is put down counts though it moves no further (monotxt.shx's
+1, half the height wide); ink left of the pen, as italic.shx's f, does not count. Words whose ink has no width, as "I"
+of isocp.shx, are nought wide; words of a font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
 length of an arc: below 90 degrees of sweep its extension lines run along the middle of the arc, from 90 up from the
 centre; the arc symbol stands before the words (DIMARCSYM 0), over them (1) or nowhere (2); Partial measures between two
 points of the arc, and Leader, offered past 90 degrees, draws a leader from the words' arc to the arc measured. A point
@@ -329,7 +343,11 @@ writes `41` again though DIMASZ is back to 2.5, and based on one made on L1 at D
 `1070 40, 1040 2`, DIMBASELINE's line twice DIMDLI further out. DIMCONTINUE draws each linear
 and angular dimension with DIMTMOVE 1 where that is nought and writes it first (`279 41` from that base): words too wide
 for a continued dimension of 0.5 stand over its line past a leader from its middle. DIMBASELINE adds nothing of its own,
-nor do the rows of ordinate dimensions and QDIM; a style that holds DIMTMOVE 1 already gets no `279`. DIMRADIUS and
+nor do the rows of ordinate dimensions and QDIM; a style that holds DIMTMOVE 1 already gets no `279`. DIMCONTINUEMODE,
+kept by the session and 1 as it starts, set to 0 draws the rows in the current style, overrides and DIMSCALE on the
+current layer, whatever DIMLAYER or DIM's LAyer names, as AutoCAD 2021 does: from that dimension made on L1 at DIMSCALE
+2, with L2 current at 1, DIMCONTINUE goes on L2 writing `279` alone and DIMBASELINE writes nothing, its line DIMDLI
+further out. DIMRADIUS and
 DIMDIAMETER write DIMUPT 1 (`1070 288, 1070 1`) where the style has it off, and DIMJOGGED writes DIMJOGANG whatever the
 style has (`1070 50, 1040 45`), so that a change of the style's jog angle leaves it as it was made.
 
@@ -886,7 +904,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

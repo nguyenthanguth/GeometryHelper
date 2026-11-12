@@ -126,10 +126,13 @@ namespace GeometryHelper.Dxf.Viewer
                 // AutoCAD 2021 (DIMCONTINUEMODE 1) draws the row in the style of the dimension it goes on from, with its overrides
                 // and its DIMSCALE, on its layer whatever layer is current or DIMLAYER names, and DIMCONTINUE each linear and
                 // angular dimension of it with DIMTMOVE 1 where that is nought, written first (279 1, then 40, 41 and 176 the base
-                // has): words too wide for a short one stand over its line past a leader.
-                DxfDimStyleTableRecord style = RowStyle(c, chain.Base);
-                DxfDimStyleTableRecord moving = RowStyle(c, chain.Base);
-                string layer = chain.Base?.Layer;
+                // has): words too wide for a short one stand over its line past a leader. Under DIMCONTINUEMODE 0 it draws the row
+                // in the current style with its overrides and DIMSCALE, on the current layer whatever DIMLAYER names, DIMCONTINUE
+                // still writing 279 1.
+                bool fromBase = ContinuesFromBase(c);
+                DxfDimStyleTableRecord style = fromBase ? RowStyle(c, chain.Base) : DimStyle(c);
+                DxfDimStyleTableRecord moving = fromBase ? RowStyle(c, chain.Base) : DimStyle(c);
+                string layer = fromBase ? chain.Base?.Layer : c.Database.Clayer;
 
                 if (!baseline && moving.Dimtmove == 0)
                 {
@@ -330,6 +333,12 @@ namespace GeometryHelper.Dxf.Viewer
             || dimension is DxfAlignedDimension
             || dimension is DxfPoint3AngularDimension
             || dimension is DxfLineAngularDimension2;
+
+        /// <summary>
+        /// Whether DIMCONTINUE and DIMBASELINE draw a row in the style, scale and layer of the dimension it goes on from
+        /// (DIMCONTINUEMODE 1, as the session starts), or in the current ones (0).
+        /// </summary>
+        private static bool ContinuesFromBase(CadCommandContext c) => c.Remembered("dimcontinuemode", 1.0) != 0.0;
 
         /// <summary>
         /// The variables a row is drawn by, as AutoCAD 2021 takes them under DIMCONTINUEMODE 1: the style of the dimension it

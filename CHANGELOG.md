@@ -28,6 +28,31 @@ right-click menu takes R.
 the rest scrolled to; the row the arrows choose is scrolled into sight in both, where the one at the cursor did not
 follow it.
 
+**FIXED.** The presenter measures the ink of SHX letters as AutoCAD 2021 does, for an MTEXT's lines and a dimension's
+words: an arc of less than a half circle reaches the rectangle of its chord and of the line along it touching the arc, a
+longer one the square about its circle, so that isocp.shx's 3 is 0.441421 of the height wide where its strokes are 0.4
+(31 of the 94 letters of isocp, isocp2, isocp3, isoct, isoct2 and isoct3 were measured narrower); where the pen is put
+down counts though it moves no further, monotxt.shx's 1 half the height wide, not a third; and ink left of the pen is not
+counted, as in a TrueType font, italic.shx's f 0.809524 wide, not 0.857143, at any oblique angle. Words whose ink has
+no width, as "I" of isocp.shx, are measured nought wide, where the picture took 0.7 of their height a letter. Of 1 422
+words in 13 SHX fonts measured in AutoCAD, 17 differ now, all words of spaces alone, a hard space or letters the font
+lacks, where 308 did.
+
+**NEW.** DIMCONTINUEMODE, kept by the session and 1 as it starts: set to 0, DIMCONTINUE and DIMBASELINE draw their rows
+in the current dimension style, overrides and DIMSCALE on the current layer, whatever DIMLAYER or DIM's LAyer names, as
+AutoCAD 2021 does; DIMCONTINUE still writes `279 1`.
+
+**FIXED.** A radius and a diameter the presenter makes record their words (group 11) as AutoCAD 2021 does: under DIMTMOVE
+1 by the point they were put at, "R20" of Arial put 40 out at 30 degrees in acad.dwt's Standard writing (34.641, 20)
+where its middle is (35.440, 20); under DIMTMOVE 0 by the point of the line or landing they stand by, without DIMTAD's
+lift. Words put off the line under DIMTMOVE 2 stand level where DIMTIH says so, whatever DIMTOH says, the line broken
+about their box; words over the rim, from inside or out, put the arrowheads outside with the centre marked where DIMTOFL
+is off, as over a radius's centre. Words kept level outside on a line within 15 degrees of level stand with no landing, a
+gap past its end, on a radius and on a linear dimension alike, as AutoCAD 2021 draws them from 5 to 15 degrees: of 1 152
+aligned dimensions under DIMTMOVE 0 and DIMTOH, 24 are placed otherwise now, at exactly 15 or 90 degrees off level, where
+AutoCAD's own rounding decides, where 104 were; 1 584 radius and diameter dimensions under DIMTMOVE, DIMTOH, DIMTIH and
+DIMTAD match AutoCAD's group 11, words and lines.
+
 **CHANGED.** The presenter drags objects as AutoCAD 2021 does, after the maintainer's pictures of its SCALE: while
 MOVE, COPY, ROTATE, SCALE, MIRROR, ALIGN, an array or a grip edit waits for its point, the copy at the cursor is drawn in
 the objects' own colours, not dashed blue, and the rubber band from the base point is dashed amber, 16 pixels on and 9

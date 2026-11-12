@@ -188,6 +188,13 @@ namespace GeometryHelper.Dxf.Viewer
                         inked = true;
                     }
                 }
+
+                for (int p = 0; inked && p + 1 < glyph.Reach.Count; p += 2)
+                {
+                    double x = (glyph.Reach[p] + (glyph.Reach[p + 1] * lean)) * scale;
+                    left = Math.Min(left, x);
+                    right = Math.Max(right, x);
+                }
             }
             else
             {
@@ -246,6 +253,15 @@ namespace GeometryHelper.Dxf.Viewer
                     top = inked ? Math.Max(top, y) : y;
                     inked = true;
                 }
+            }
+
+            // An arc reaches further for AutoCAD's measure than its strokes go (ShxGlyph.Reach).
+            for (int p = 0; inked && p + 1 < glyph.Reach.Count; p += 2)
+            {
+                left = Math.Min(left, glyph.Reach[p] * scale);
+                right = Math.Max(right, glyph.Reach[p] * scale);
+                bottom = Math.Min(bottom, glyph.Reach[p + 1] * scale);
+                top = Math.Max(top, glyph.Reach[p + 1] * scale);
             }
 
             return new Letter(glyph.Advance * scale, left, right, bottom, top, inked);

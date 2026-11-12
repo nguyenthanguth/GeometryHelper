@@ -308,6 +308,19 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // Whether DIMCONTINUE and DIMBASELINE draw in the style and on the layer of the dimension they go on from (1) or in
+            // the current ones (0), kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "DIMCONTINUEMODE",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, "dimcontinuemode", 1.0),
+                    (c, v) => c.Remember("dimcontinuemode", v)
+                )
+            );
+
             // REVCLOUD's approximate arc length (nought until set), whether its arcs vary about it (1) or keep to it (0), and the
             // type it starts with, 0 Freehand, 1 Rectangular, 2 Polygonal, kept by the session.
             registry.AddVariable(

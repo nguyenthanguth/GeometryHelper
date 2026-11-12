@@ -24,9 +24,13 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class ShxGlyph
     {
         internal ShxGlyph(double advance, IReadOnlyList<double[]> strokes)
+            : this(advance, strokes, Array.Empty<double>()) { }
+
+        internal ShxGlyph(double advance, IReadOnlyList<double[]> strokes, IReadOnlyList<double> reach)
         {
             Advance = advance;
             Strokes = strokes;
+            Reach = reach;
         }
 
         /// <summary>Gets how far the letter moves the pen along the baseline, in the font's units: 6 for the A of txt.shx.</summary>
@@ -34,6 +38,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the strokes, each a polyline of x, y pairs in the font's units from the letter's start on the baseline; empty for a space.</summary>
         public IReadOnlyList<double[]> Strokes { get; }
+
+        /// <summary>
+        /// The points, x, y pairs in the font's units, that AutoCAD 2021 takes the letter's arcs to reach when it measures its
+        /// ink, though nothing is drawn there: an arc under a half circle reaches the rectangle of its chord and of the line
+        /// along it touching the arc, a longer one the square about its circle. isocp.shx's 3 is 0.4 of the height wide by its
+        /// strokes and 0.441421 by these, as AutoCAD measures it.
+        /// </summary>
+        internal IReadOnlyList<double> Reach { get; }
     }
 
     /// <summary>
@@ -189,7 +201,7 @@ namespace GeometryHelper.Dxf.Viewer
                     var pen = new Pen();
                     Draw(number, pen);
                     pen.Lift();
-                    glyph = new ShxGlyph(pen.X, pen.Strokes.ToArray());
+                    glyph = new ShxGlyph(pen.X, pen.Strokes.ToArray(), pen.Reach.ToArray());
                     _glyphs.Add(number, glyph);
                 }
 
@@ -431,6 +443,13 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             pen.Lift();
                         }
+                        else
+                        {
+                            // Where the pen is put down counts for AutoCAD's measure though it moves no further, as the
+                            // foot of monotxt.shx's 1 does.
+                            pen.Reach.Add(pen.X);
+                            pen.Reach.Add(pen.Y);
+                        }
                     }
                 }
                 else if (code == 3 || code == 4)
@@ -668,6 +687,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             internal List<double[]> Strokes { get; } = new List<double[]>();
 
+            internal List<double> Reach { get; } = new List<double>();
+
             /// <summary>Ends the stroke being drawn, kept where it has two points or more.</summary>
             internal void Lift()
             {
@@ -713,11 +734,52 @@ namespace GeometryHelper.Dxf.Viewer
                 double sx = r * Math.Cos(start);
                 double sy = r * Math.Sin(start);
 
+                if (Down)
+                {
+                    Reaches(r, start, sweep);
+                }
+
                 for (int k = 1; k <= n; k++)
                 {
                     double a = start + (sweep * k / n);
                     To(x0 + (((r * Math.Cos(a)) - sx) * Across), y0 + (((r * Math.Sin(a)) - sy) * Upward));
                 }
+            }
+
+            /// <summary>
+            /// Keeps the points AutoCAD takes an arc from where the pen stands to reach when it measures ink: the corners of
+            /// the rectangle of its chord and of the line along it touching the arc's middle where it turns less than a half
+            /// circle, the corners of the square about its circle where it turns more. A half circle is measured by its
+            /// rectangle where, taken counter-clockwise, it starts on the X axis or below it, and by its square where it starts
+            /// above, as AutoCAD measures the 16 half circles of octant arcs.
+            /// </summary>
+            private void Reaches(double r, double start, double sweep)
+            {
+                double turn = Math.Abs(sweep);
+                double first = sweep >= 0.0 ? start : start + sweep;
+                double from = first - (2.0 * Math.PI * Math.Floor(first / (2.0 * Math.PI)));
+                bool whole = turn > Math.PI + 1E-9 || (turn > Math.PI - 1E-9 && from > 1E-9 && from < Math.PI - 1E-9);
+                double cx = X - (r * Math.Cos(start) * Across);
+                double cy = Y - (r * Math.Sin(start) * Upward);
+
+                if (whole)
+                {
+                    Reach.Add(cx - (r * Across));
+                    Reach.Add(cy - (r * Upward));
+                    Reach.Add(cx + (r * Across));
+                    Reach.Add(cy + (r * Upward));
+                    return;
+                }
+
+                double rise = r * (1.0 - Math.Cos(turn / 2.0));
+                double middle = start + (sweep / 2.0);
+                double ux = rise * Math.Cos(middle);
+                double uy = rise * Math.Sin(middle);
+                double end = start + sweep;
+                Reach.Add(X + (ux * Across));
+                Reach.Add(Y + (uy * Upward));
+                Reach.Add(cx + (((r * Math.Cos(end)) + ux) * Across));
+                Reach.Add(cy + (((r * Math.Sin(end)) + uy) * Upward));
             }
 
             /// <summary>An arc to a point a vector of the font's units away, by its bulge, the tangent of a quarter of its sweep; a straight move where it has none.</summary>

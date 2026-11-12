@@ -97,6 +97,12 @@ AutoCAD 2021 was found to follow on 155 MTEXTs of 536 lines:
   long stands whole past the width, and `\~` holds two words together. A width of 0 wraps nothing. The attachment (71)
   hangs the lines by a corner, a side or the middle of the box the width and the lines make; a defined height (46)
   taller than the lines moves no line.
+- **Ink.** A line starts at the ink of its first letter, but ink left of the pen is not counted: italic.shx's f, whose
+  tail runs left of where the pen stands, is 0.809524 of the height wide and stands out of the box, as in AutoCAD. An
+  SHX letter's ink is measured as AutoCAD measures it: an arc of less than a half circle reaches the rectangle of its
+  chord and of the line along it touching the arc, a longer one the square about its circle (isocp.shx's 3 is 0.441421
+  of the height wide, its strokes 0.4), and where the pen is put down counts though it moves no further (monotxt.shx's
+  1 is half the height wide).
 - **Line spacing.** From one baseline to the next is 5/3 of the text height times the factor (44). Under `Exactly`
   (73 = 2) it is that whatever the runs. Under `AtLeast` (73 = 1) each line has a top, the height of its tallest run or
   of its stack, its first baseline that far below the top of the MTEXT; the next line's top lies the factor times
