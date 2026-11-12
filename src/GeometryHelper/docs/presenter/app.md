@@ -23,7 +23,7 @@ value that is missing keeps its default while one that is not valid falls back t
 of `"autosaveMinutes": 999` gives 10, the range being 0 to 240. A setter refuses a value out of its range, so the dialog can
 say why: a wheel zoom of 0.5 would zoom out on the wheel turned in, and `WheelZoomFactor = 0.5` throws "The value has to be
 from 1.01 to 4." `Clone()` makes a copy that shares nothing; `ToJson()` gives the text `Save` writes, LF line ends and two
-spaces of indent, 3 214 characters for the defaults.
+spaces of indent, 7 984 characters for the defaults.
 
 ### The categories
 
@@ -32,7 +32,7 @@ The nine categories are those of the Global settings dialog, and of the JSON.
 | Category | Holds | Defaults |
 |---|---|---|
 | Appearance | the colours of the canvas, paper, visible and hidden lines, selection and grips; the crosshair, pickbox and grip size; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, hidden lines `#9AA4B1`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grip size 5 (a square 15 pixels across; 1 to 255), grid off, line weights shown |
-| Canvas and cursor | the wheel zoom, the object snaps, the aperture, the polar increment, what F3 does | 1.2 a notch (1.01 to 4), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
+| Canvas and cursor | the wheel zoom and its direction, the object snaps, the aperture, the polar increment, what F3 does | 1.2 a notch (1.01 to 4, ZOOMWHEEL turns it round), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |
@@ -199,9 +199,9 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 
 | Mouse | Does |
 |---|---|
-| wheel | zooms about the cursor, 1.2 times a notch; through a viewport, its view (unless its display is locked) |
-| middle button dragged | pans |
-| middle button double-clicked | zooms to the extents, the paper included in a layout; through a viewport, its view to model space's extents |
+| wheel | zooms about the cursor, 1.2 times a notch (ZOOMWHEEL 1 turns the direction round); through a viewport, its view (unless its display is locked). In model space, on the paper and through a viewport alike, the rolls made before the view is still are one gesture: one entry of the ZOOM Previous list of the space or the viewport, and one undo step named ZOOM, which U and Ctrl+Z take back and REDO and Ctrl+Y put again |
+| middle button dragged | pans, recorded as the wheel is, a step named PAN |
+| middle button double-clicked | zooms to the extents, the paper included in a layout; through a viewport, its view to model space's extents; one ZOOM Previous entry and one undo step, as ZOOM Extents typed |
 | left double click in a layout | inside a viewport's frame works through it (MSPACE); off every frame goes back to the paper (PSPACE); a click in another viewport's frame works through that one |
 | MODEL / PAPER on the status bar, Ctrl+R | in a layout a button, raised on the paper and pressed through a viewport: MSPACE or PSPACE; Ctrl+R the next viewport; on the Model tab a label. The scale beside it opens its list: in a layout the viewport's (Scale to fit, the standard scales, Custom...), grey while the padlock after it locks the viewport's display; on the Model tab the annotation scale (CANNOSCALE) |
 | left click, no command running | picks within the pickbox; Shift+click adds or removes; a click on nothing starts a box, the implied window: the command line asks "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and the Y of the cursor itself. The next click, or a point typed, ends the box; F, WP or CP turns it into a fence or a polygon whose first point is the corner, asking its next points until Enter; Esc cancels it, "*Cancel*" after the prompt in the history. Its corners take no object snap |

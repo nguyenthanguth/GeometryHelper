@@ -131,9 +131,10 @@ the ones wanted.
       manager; New VP Freeze on viewports made through the core's API (S)
 - [x] SCALELISTEDIT dialog, in-place layer rename, Edit Layer State with Description, Input Search Options (designed, checked against AutoCAD 2021)
 - [ ] Dialog follow-ups: AutoCAD lists system variables separately only after Tab (ours below a rule); Remember corrections range 2-10 and the Reset/duplicate-scale texts from the design (unverified); Visual Style content finds nothing (no visual styles); a drawing without $MEASUREMENT resets to the metric list (S)
-- [ ] Layouts follow-ups: wheel and middle-button
+- [x] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
+- [ ] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms; ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper (S)
 - [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and

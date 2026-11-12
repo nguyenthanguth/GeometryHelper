@@ -304,6 +304,9 @@ namespace GeometryHelper.Dxf.Viewer
             set => _wheelZoomFactor = Range(value, 1.01, 4.0, nameof(WheelZoomFactor));
         }
 
+        /// <summary>Gets or sets whether the wheel turned forward zooms out and backward zooms in, the other way about: off by default, as AutoCAD's ZOOMWHEEL 0.</summary>
+        public bool WheelZoomReversed { get; set; }
+
         /// <summary>Gets or sets the object snaps on: those of <see cref="CadSnapModes.All"/> but Nearest by default, Node and Geometric Center off.</summary>
         public CadSnapModes Snaps { get; set; } = CadSnapModes.All & ~CadSnapModes.Nearest;
 
@@ -948,6 +951,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Close();
             w.Open("canvas");
             w.Value("wheelZoomFactor", _wheelZoomFactor);
+            w.Value("wheelZoomReversed", WheelZoomReversed);
             w.Value("shortcutMenu", _shortcutMenu);
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
             w.Value("aperturePixels", _aperturePixels);
@@ -1197,6 +1201,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("appearance", "grid", v => _s.Grid = v);
                 Flag("appearance", "showLineWeights", v => _s.ShowLineWeights = v);
                 Number("canvas", "wheelZoomFactor", v => _s.WheelZoomFactor = v);
+                Flag("canvas", "wheelZoomReversed", v => _s.WheelZoomReversed = v);
                 Number("canvas", "shortcutMenu", v => _s.ShortcutMenu = Whole(v));
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));

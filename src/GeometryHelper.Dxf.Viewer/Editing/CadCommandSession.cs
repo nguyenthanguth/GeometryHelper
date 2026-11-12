@@ -949,7 +949,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The views ZOOM Previous goes back to: a list for each space and for each viewport of a layout.</summary>
-        internal CadViewHistory Views { get; } = new CadViewHistory();
+        internal CadViewHistory Views => Document.ViewHistory;
 
         /// <summary>The system variable SETVAR was given last, which it offers next.</summary>
         internal string LastVariable { get; set; }

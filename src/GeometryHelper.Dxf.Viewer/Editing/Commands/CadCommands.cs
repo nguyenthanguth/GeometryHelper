@@ -398,6 +398,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 view.ZoomTo(previous, 0.0);
+                c.Document.RecordSpaceView(shown, view, before, "ZOOM", false, false);
                 yield break;
             }
             else if (c.Input.IsPoint || c.Input.Is("Window"))
@@ -456,7 +457,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Session.Views.Add(shown, before);
+            c.Document.RecordSpaceView(shown, view, before, "ZOOM", false);
         }
 
         /// <summary>
@@ -712,8 +713,9 @@ namespace GeometryHelper.Dxf.Viewer
                 move = move * (through.Height / through.ViewHeight);
             }
 
-            c.Session.Views.Add(c.Document.CurrentSpace, view.VisibleBox);
+            DisplayBox was = view.VisibleBox;
             view.Pan(move.X * view.PixelsPerUnit, -move.Y * view.PixelsPerUnit);
+            c.Document.RecordSpaceView(c.Document.CurrentSpace, view, was, "PAN", false);
         }
 
         /// <summary>

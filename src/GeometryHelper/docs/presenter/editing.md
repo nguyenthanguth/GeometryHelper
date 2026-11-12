@@ -905,7 +905,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -1142,7 +1142,18 @@ AutoCAD combines consecutive real-time zooms and pans by default (UNDO Control C
 `SetViewportView(handle, center, height, name, realTime: true)` joins such a change to the one before. ZOOM Previous goes
 back through views of the viewport worked through alone, as AutoCAD keeps a list for each viewport, for the paper of each
 layout and for model space: a viewport never zoomed answers "No previous view saved." while another has views to go back
-to. Each list keeps the last 20 views typed ZOOM and PAN left, as AutoCAD 2021's console, zoomed 30 times, gives 20 back.
+to. Each list keeps the last 20 views ZOOM, PAN, the wheel and the middle button left, as AutoCAD 2021's console, zoomed
+30 times, gives 20 back; the wheel's rolls and the middle button's drags made before the view is still are one view of
+the list, a viewport's view set by `SetViewportView` another. ZOOM Extents by a double click of the middle button
+counts as typed.
+
+Model space and the paper are zoomed and panned the same way: ZOOM, PAN, PLAN, the wheel and the middle button on the
+paper, in model space and through a viewport whose display is locked are undo steps too, one each for what is typed (as
+AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X, -PAN and ZOOM Extents one U each, in model space and on the paper), and
+ZOOM Previous is a step of its own. A step of the view alone keeps no copy of the drawing: U moves the view back to the
+part of the space it showed, and the drawing is not read again, so a wheel gesture in a drawing of a million entities
+costs nothing. `CadDocument.RecordSpaceView(space, view, before, name, realTime)` makes such a step and the list entry;
+the canvas calls it once the view is still. A drawing so zoomed counts as changed, as AutoCAD's does (DBMOD 16).
 ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a viewport 100 high shows 5 000 of model space,
 1:50. A viewport whose display is locked keeps its view, and the paper is
 zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
