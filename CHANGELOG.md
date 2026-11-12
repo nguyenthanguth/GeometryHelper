@@ -16,6 +16,21 @@ opened from a file is not changed. `CadTemplate.AddLayers(database, layers)` is 
 the Drawings list: the default key of the new shortcut target RIBBON (23 default keys now), which a settings file saved
 before it gets once when it is read, if Ctrl+3 and RIBBON are both unbound. The typed commands RIBBON (shows the ribbon) and
 RIBBONCLOSE (hides it) work as AutoCAD's, with or without a drawing open; `MainViewModel.IsRibbonShown` holds it.
+**NEW.** In the presenter's Global settings > Shortcuts a Keys cell takes the keys pressed in it, as the shortcut key box of
+AutoCAD's Customize User Interface does: Ctrl+Shift+D pressed shows `Ctrl+Shift+D`, Backspace or Delete clears the keys and
+Esc gives back those the cell had; a letter alone or with Shift alone is typing and is not taken. The keys used to be typed.
+**NEW.** **Import acad.pgp…**, left of Reset to AutoCAD defaults, reads the aliases of a `.pgp` file you pick
+(`ALIAS, *COMMAND`, a hyphen kept, `;` comments and external commands passed over) and merges them into the aliases, the
+file's winning, saying how many were added, changed, unchanged, skipped for a command the app does not have, and not read.
+**CHANGED.** A notch of the wheel zooms 1.5 times by default (`GlobalSettings.WheelZoomFactor`), where it zoomed 1.2 times; a
+settings file that holds a factor keeps it.
+**CHANGED.** The presenter's Global settings has eight categories. Drawing defaults, Data sources and the Drawing text rows
+of Text and fonts are gone from it, being the defaults of drawings made from a model; `GlobalSettings` still reads and writes
+them, and GeometryHelper.Drawing still uses them. Fonts is now **Folder preference**, the font and support file search
+folders alone; the replacement font, the font mapping file and the substitutions are on Text and fonts, whose UI font is a
+box of the font families installed on Windows, each in its own face, that also takes a name typed.
+`GlobalSettingsViewModel.IsFontsPage`, `IsSourcesPage` and `Sources` give way to `IsFolderPreferencePage` and
+`IsTextAndFontsPage`.
 
 **NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is

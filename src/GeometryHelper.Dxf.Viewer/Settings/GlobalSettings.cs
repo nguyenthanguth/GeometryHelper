@@ -62,14 +62,15 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The categories are those of the dialog: Appearance, Canvas and cursor, Drawing defaults and Data sources (for drawings
-    /// made from a model), Units and rounding, Layers, colours and lines, Text and fonts, Shortcuts, and Save and export. A
-    /// setter refuses a value out of its range, so that the dialog can say why: a wheel zoom factor of 0.5 is refused, it
-    /// would zoom out on the wheel turned in.
+    /// The categories of the presenter's dialog are Appearance, Canvas and cursor, Units and rounding, Layers, colours and
+    /// lines, Text and fonts, Folder preference, Shortcuts, and Save and export. The defaults of drawings made from a model
+    /// (Drawing defaults, Data sources, and the height, width factor and font of drawing text) are kept in the file too, for
+    /// GeometryHelper.Drawing, though that dialog does not show them. A setter refuses a value out of its range, so that the
+    /// dialog can say why: a wheel zoom factor of 0.5 is refused, it would zoom out on the wheel turned in.
     /// </para>
     /// <para>
     /// The defaults are AutoCAD's where it has one: a black canvas, white paper, selection and grips #3D9BFF, a pickbox of 5
-    /// pixels, a wheel zoom of 1.2 times, the snaps but Nearest, AutoCAD's aliases and keys (<see cref="CadShortcuts.Default"/>).
+    /// pixels, a wheel zoom of 1.5 times, the snaps but Nearest, AutoCAD's aliases and keys (<see cref="CadShortcuts.Default"/>).
     /// </para>
     /// </remarks>
     public sealed partial class GlobalSettings
@@ -117,7 +118,7 @@ namespace GeometryHelper.Dxf.Viewer
         private string _polarAddedAngles = string.Empty;
         private double _polarDistance;
         private int _gridStyle;
-        private double _wheelZoomFactor = 1.2;
+        private double _wheelZoomFactor = 1.5;
         private string _preset = "Assembly";
         private string _sheetSize = "A2";
         private string _orientation = "Landscape";
@@ -296,7 +297,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         // ---- Canvas and cursor
 
-        /// <summary>Gets or sets how much a notch of the wheel zooms, 1.01 to 4: 1.2 by default.</summary>
+        /// <summary>Gets or sets how much a notch of the wheel zooms, 1.01 to 4: 1.5 by default; a file that holds another keeps it.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public double WheelZoomFactor
         {
