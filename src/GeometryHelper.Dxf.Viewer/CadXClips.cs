@@ -232,5 +232,151 @@ namespace GeometryHelper.Dxf.Viewer
 
             return ring;
         }
+
+        /// <summary>
+        /// Takes a boundary that <see cref="Inverted"/> made, or AutoCAD wrote for a clip turned inside out, back to its polygon:
+        /// the seven points of the slit and the box round it left out. The slit is found wherever the ring starts: a point and
+        /// the point a slit's width from it, a run of the four corners of an axis-aligned box between the slit's two passes, the
+        /// passes ending on one side of the box and running square to it. A polygon of the clip, not a keyhole, is not one.
+        /// </summary>
+        /// <param name="boundary">The points of the boundary, in the clip coordinate system.</param>
+        /// <param name="polygon">The polygon, in the order <see cref="Inverted"/> was given it where the slit lies within the ring,
+        /// else from the point after the slit; empty where the boundary is not a keyhole.</param>
+        /// <returns>true where the boundary is a keyhole.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
+        public static bool TryUninvert(IReadOnlyList<GeoPoint2> boundary, out IReadOnlyList<GeoPoint2> polygon)
+        {
+            if (boundary == null)
+            {
+                throw new ArgumentNullException(nameof(boundary));
+            }
+
+            polygon = new GeoPoint2[0];
+            int n = boundary.Count;
+
+            // A polygon of three points at least, and the seven of the slit.
+            if (n < 10)
+            {
+                return false;
+            }
+
+            for (int k = 0; k < n; k++)
+            {
+                if (!IsSlitAt(boundary, k))
+                {
+                    continue;
+                }
+
+                var kept = new List<GeoPoint2>(n - 7);
+
+                if (k + 7 <= n)
+                {
+                    for (int i = 0; i < k; i++)
+                    {
+                        kept.Add(boundary[i]);
+                    }
+
+                    for (int i = k + 7; i < n; i++)
+                    {
+                        kept.Add(boundary[i]);
+                    }
+                }
+                else
+                {
+                    for (int i = 7; i < n; i++)
+                    {
+                        kept.Add(boundary[(k + i) % n]);
+                    }
+                }
+
+                polygon = kept;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether the seven points from index k, round the ring, are the slit and the box <see cref="Inverted"/> opens, and the point after them the vertex it leaves from.</summary>
+        private static bool IsSlitAt(IReadOnlyList<GeoPoint2> ring, int k)
+        {
+            const double Eps = 1E-6;
+            int n = ring.Count;
+            GeoPoint2 a = ring[k];
+            GeoPoint2 b = ring[(k + 1) % n];
+            GeoPoint2 t = ring[(k + 6) % n];
+            GeoPoint2 v = ring[(k + 7) % n];
+
+            // The first pass out is a slit's width from the vertex, the second as far from the point it ends on, the same way.
+            double wx = a.X - v.X;
+            double wy = a.Y - v.Y;
+            double width = Math.Sqrt(wx * wx + wy * wy);
+
+            if (Math.Abs(width - Slit) > Eps || Math.Abs(b.X - t.X - wx) > Eps || Math.Abs(b.Y - t.Y - wy) > Eps)
+            {
+                return false;
+            }
+
+            // The pass runs across the slit's width.
+            double px = t.X - v.X;
+            double py = t.Y - v.Y;
+
+            if (Math.Abs(px * wx + py * wy) > Eps * Math.Max(1.0, Math.Sqrt(px * px + py * py)))
+            {
+                return false;
+            }
+
+            // Four corners of a box, each side along an axis, the box with some width and height.
+            var corners = new GeoPoint2[4];
+            double minX = double.MaxValue,
+                minY = double.MaxValue,
+                maxX = double.MinValue,
+                maxY = double.MinValue;
+
+            for (int i = 0; i < 4; i++)
+            {
+                corners[i] = ring[(k + 2 + i) % n];
+                minX = Math.Min(minX, corners[i].X);
+                maxX = Math.Max(maxX, corners[i].X);
+                minY = Math.Min(minY, corners[i].Y);
+                maxY = Math.Max(maxY, corners[i].Y);
+            }
+
+            if (maxX - minX <= Eps || maxY - minY <= Eps)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                GeoPoint2 from = corners[i];
+                GeoPoint2 to = corners[(i + 1) % 4];
+                bool atX = Math.Abs(from.X - minX) <= Eps || Math.Abs(from.X - maxX) <= Eps;
+                bool atY = Math.Abs(from.Y - minY) <= Eps || Math.Abs(from.Y - maxY) <= Eps;
+                bool alongX = Math.Abs(from.Y - to.Y) <= Eps && Math.Abs(from.X - to.X) > Eps;
+                bool alongY = Math.Abs(from.X - to.X) <= Eps && Math.Abs(from.Y - to.Y) > Eps;
+
+                if (!atX || !atY || alongX == alongY)
+                {
+                    return false;
+                }
+            }
+
+            // The slit's passes end on one side of the box: the first pass on the side the first corner is on the way to, the
+            // slit running square to that side.
+            bool onVertical = Math.Abs(t.X - minX) <= Eps || Math.Abs(t.X - maxX) <= Eps;
+            bool onHorizontal = Math.Abs(t.Y - minY) <= Eps || Math.Abs(t.Y - maxY) <= Eps;
+            bool insideX = t.X >= minX - Eps && t.X <= maxX + Eps;
+            bool insideY = t.Y >= minY - Eps && t.Y <= maxY + Eps;
+
+            if (!insideX || !insideY || (!onVertical && !onHorizontal))
+            {
+                return false;
+            }
+
+            // Square to a vertical side the slit runs along x, its width along y; square to a horizontal one, the other way.
+            bool alongXSlit = Math.Abs(py) <= Eps && Math.Abs(wx) <= Eps;
+            bool alongYSlit = Math.Abs(px) <= Eps && Math.Abs(wy) <= Eps;
+            return (onVertical && alongXSlit) || (onHorizontal && alongYSlit);
+        }
     }
 }

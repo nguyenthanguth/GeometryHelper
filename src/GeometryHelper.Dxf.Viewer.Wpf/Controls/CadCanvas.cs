@@ -464,7 +464,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public event EventHandler SnapMenuRequested;
 
         /// <summary>
-        /// Raised by a click on a dynamic block's flip, visibility or lookup grip, as AutoCAD's: the window flips the block, or
+        /// Raised by a click on a dynamic block's flip, visibility or lookup grip, or on the arrow of a clip boundary, as AutoCAD's: the window flips the block, or
         /// shows the grip's list at the cursor. A drag grip starts the grip edit instead.
         /// </summary>
         public event EventHandler<CadGripEventArgs> CustomGripClicked;
@@ -1732,10 +1732,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (
                         (Keyboard.Modifiers & ModifierKeys.Shift) == 0
-                        && (kind == CadGripKind.CustomFlip || kind == CadGripKind.CustomList)
+                        && (
+                            kind == CadGripKind.CustomFlip
+                            || kind == CadGripKind.CustomList
+                            || kind == CadGripKind.ClipFlip
+                        )
                     )
                     {
-                        // A dynamic block's flip grip flips it and a visibility or lookup grip lists its values, as AutoCAD's.
+                        // A dynamic block's flip grip flips it and a visibility or lookup grip lists its values, as AutoCAD's; the arrow of a clip boundary turns the clip inside out.
                         _hot.Clear();
                         _swallowUp = true;
                         CustomGripClicked?.Invoke(this, new CadGripEventArgs(grip.Key, grip.Value));
@@ -4979,7 +4983,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 grip.Kind == CadGripKind.MTextColumnWidth
                 || grip.Kind == CadGripKind.MTextGutter
                 || grip.Kind == CadGripKind.MTextHeight
-                || grip.Kind == CadGripKind.MTextColumnHeight;
+                || grip.Kind == CadGripKind.MTextColumnHeight
+                || grip.Kind == CadGripKind.ClipFlip;
             bool corner = grip.Kind == CadGripKind.MTextSize;
 
             // A corner of an MTEXT's box of no columns: its way along, down or both, the two at once as long as a diagonal.

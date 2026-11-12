@@ -84,7 +84,8 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] Save Drawing As listing each DXF version plainly (2018 down to 2000): DxfDatabase.Save(path, version), groups trimmed as AutoCAD's own files show, AUDIT 0 in AutoCAD 2021; DWG stays 2018 only (DECIDED by recommendation 2026-11-12)
 - [ ] DXF versions follow-ups: R12 (AutoCAD explodes hatches, MTEXT, splines, tables into primitives); FILEDIA 0 SAVEAS asking AutoCAD's "Enter file format" and DXFOUT's version list; binary solids below R2013 (SAB to SAT for ACDSDATA); tables across R2007 (not as an INSERT); visual styles across R2007/R2010/R2013; MTEXT column xdata back to the embedded object going up (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
-- [ ] XCLIP follow-ups: grips on the clip frame to edit the boundary; EXPLODE of a clipped block (what AutoCAD keeps); REFEDIT; Clipdepth planes drawn in 3D views; a look at the grip crosshair pull in the running app (S)
+- [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
+- [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):

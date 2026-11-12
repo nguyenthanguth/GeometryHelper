@@ -1438,6 +1438,33 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// A point of the clip boundary as the reference stands in the world: the point taken into the block through the filter's
+        /// matrices and placed by <see cref="BlockTransform"/>, as <see cref="ClipOutline"/> does for the whole ring.
+        /// </summary>
+        internal GeoPoint3 ClipPointInWorld(DxfSpatialFilter filter, GeoPoint2 clipPoint)
+        {
+            GeoPoint2 block = filter.ToBlock(clipPoint);
+            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            return BlockTransform.Transform(new GeoPoint3(block.X + origin.X, block.Y + origin.Y, 0.0));
+        }
+
+        /// <summary>The way back from <see cref="ClipPointInWorld"/>: the point of the clip coordinate system that stands at a point of the world.</summary>
+        /// <returns>false where the reference or the filter flattens space.</returns>
+        internal bool TryClipPointOfWorld(DxfSpatialFilter filter, GeoPoint3 world, out GeoPoint2 clipPoint)
+        {
+            clipPoint = default;
+
+            if (!BlockTransform.TryGetInverse(out GeoTransform3 unplaced, new Tolerance(1E-12, 1E-12)))
+            {
+                return false;
+            }
+
+            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            GeoPoint3 block = unplaced.Transform(world);
+            return filter.TryFromBlock(new GeoPoint2(block.X - origin.X, block.Y - origin.Y), out clipPoint);
+        }
+
+        /// <summary>
         /// Clips the block the reference places to a boundary, as AutoCAD's XCLIP New boundary does: the part of the block outside
         /// the boundary is no longer shown, and the part inside is. A SPATIAL_FILTER is written into the dictionary ACAD_FILTER of
         /// the reference's extension dictionary, each made as AutoCAD makes it, with the boundary as given, the matrix that carries
