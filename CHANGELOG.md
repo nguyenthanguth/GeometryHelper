@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A dynamic block saved from the presenter's Block Editor (BSAVE, or BCLOSE with Save) has the anonymous *U
+blocks its INSERTs place worked out anew from the new definition, at each INSERT's values, as AutoCAD 2021's
+`UpdateAnonymousBlocks` works them: GH_PANEL, whose INSERTs of Width 150 and 200 placed *U1 and *U2, given a circle of
+radius 10 at (50, 25) and saved, has them place new blocks *U3 and *U4, stretched to 150 and 200 with the circle, the
+INSERT that shared *U1 sharing *U3, each INSERT keeping its values, and *U1 and *U2 left placed by none, as AutoCAD leaves
+them. One undo takes it back with the save. The INSERTs kept showing the block as it was before the save.
+
+**NEW.** LIST writes the overrides of a dimension's style as AutoCAD 2021 does, for every type of dimension: "dimension
+style overrides:" after the style, then each variable by name in alphabetical order (" DIMASZ      5.0000",
+" DIMCLRD     1 (red)", " DIMBLK      Dot", " DIMJOGANG   30", " DIMSE1      On"), distances in the drawing's units with
+nought feet and nought inches after whole feet left out (5", 1', 1'-3 1/2"), DIMSCALE and the other factors to LUPREC
+places, DIMJOGANG in the drawing's angle units, arrowheads by AutoCAD's names and DIMFXLEN as DIMFXL.
+
+**FIXED.** A dimension's override of DIMJOGANG is read and written in radians, as AutoCAD 2021 keeps it in the list
+DSTYLE: 30 degrees is `1040 0.5235987755982988`. The library read and wrote degrees there, so a dimension AutoCAD gave a
+jog angle of 30 degrees read as 0.0091 radians, and one the library or DIMJOGGED wrote at 45 degrees reached AutoCAD as 45
+radians. A DIMSTYLE record keeps degrees, as before.
+
 **FIXED.** ATTSYNC of a dynamic block, by Name or by Select, brings in line the INSERTs of its anonymous *U blocks too,
 against the dynamic block's own definitions, each keeping its dynamic properties: an attribute an action moves stands
 where the INSERT's values put it. GH_PANEL with TAG locked in a stretch of its Width, an INSERT at (1 000, 500) set to a

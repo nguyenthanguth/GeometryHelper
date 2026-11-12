@@ -1168,7 +1168,7 @@ namespace GeometryHelper.Dxf
             set => Set(V("Dimgap"), value);
         }
 
-        /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimjogang"/> in radians, as AutoCAD's <c>Dimjogang</c>: its override (in degrees), else its style's.</summary>
+        /// <summary>Gets or sets the dimension's <see cref="DxfDimStyleTableRecord.Dimjogang"/> in radians, as AutoCAD's <c>Dimjogang</c>: its override (in radians, as AutoCAD keeps it), else its style's.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not finite.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased, or its file is older than R2007.</exception>
         public double Dimjogang
@@ -2347,7 +2347,7 @@ namespace GeometryHelper.Dxf
             {
                 return variable.IsReference
                     ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text)
-                    : variable.Read(text);
+                    : variable.FromOverride(text);
             }
 
             DxfDimStyleTableRecord style = read.Style;
@@ -2358,6 +2358,38 @@ namespace GeometryHelper.Dxf
             }
 
             return variable.IsReference ? null : variable.Read(null);
+        }
+
+        /// <summary>
+        /// The variables the dimension overrides of its style, each with the value of its override as <see cref="Get"/> reads
+        /// it, as AutoCAD's LIST lists them under "dimension style overrides:": every one its list DSTYLE names that the library
+        /// knows, the first where two name one, whether or not it is the style's own value; a block, a linetype or a text style
+        /// as its record, null where the override names none. In the order of the variables' groups.
+        /// </summary>
+        internal List<KeyValuePair<DxfDimVariable, object>> OverriddenVariables()
+        {
+            var overridden = new List<KeyValuePair<DxfDimVariable, object>>();
+            bool r12 = !Item.File.HasMarkers;
+            StyleReading read = ReadStyle();
+
+            foreach (int code in read.Codes)
+            {
+                DxfDimVariable variable = DxfDimVariable.OfCode(code, r12);
+
+                if (variable != null && read.Override(code, out string text))
+                {
+                    overridden.Add(
+                        new KeyValuePair<DxfDimVariable, object>(
+                            variable,
+                            variable.IsReference
+                                ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text)
+                                : variable.FromOverride(text)
+                        )
+                    );
+                }
+            }
+
+            return overridden;
         }
 
         /// <summary>
@@ -2426,7 +2458,7 @@ namespace GeometryHelper.Dxf
             }
             else
             {
-                text = variable.Write(value);
+                text = variable.ToOverride(value);
             }
 
             WriteOverride(variable, text, r12);
@@ -2513,11 +2545,22 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The text of the dimension's override of the variable of a group; false where it overrides none.</summary>
             internal bool Override(int code, out string text) => _overrides.TryGetValue(code, out text);
+
+            /// <summary>The groups the dimension overrides, in their order.</summary>
+            internal List<int> Codes
+            {
+                get
+                {
+                    var codes = new List<int>(_overrides.Keys);
+                    codes.Sort();
+                    return codes;
+                }
+            }
         }
 
         /// <summary>
         /// Writes an override of a variable that is no block, linetype or text style whether or not it is the style's own, as
-        /// AutoCAD 2021's DIMJOGGED writes DIMJOGANG on every dimension it makes: <c>1070 50, 1040 45</c> with 45 degrees in
+        /// AutoCAD 2021's DIMJOGGED writes DIMJOGANG on every dimension it makes: <c>1070 50, 1040 0.7853981633974483</c>, 45 degrees in
         /// the style too. In place where the dimension has one of the variable, else last.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is one AutoCAD does not take.</exception>
@@ -2527,7 +2570,7 @@ namespace GeometryHelper.Dxf
             variable.Check(value, nameof(value));
             DxfFile file = Item.File;
             file.Requires(variable.Since, variable.Name.ToUpperInvariant(), variable.SinceSaid);
-            WriteOverride(variable, variable.Write(value), !file.HasMarkers);
+            WriteOverride(variable, variable.ToOverride(value), !file.HasMarkers);
         }
 
         /// <summary>

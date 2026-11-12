@@ -80,62 +80,10 @@ namespace GeometryHelper.Dxf
             Block block = Block.Of(dynamic);
             GeoVector3 factors = insert.ScaleFactors;
             double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
-
-            // The values the INSERT has now, by the parameter's node: lengths and positions in the block's own units, angles,
-            // flip states; and the visibility state.
             var values = new Dictionary<string, double[]>(StringComparer.Ordinal);
             var labels = new Dictionary<string, string>(StringComparer.Ordinal);
             var users = new Dictionary<string, object>(StringComparer.Ordinal);
-            string state = null;
-
-            foreach (Param parameter in block.Parameters)
-            {
-                values[parameter.Id] = (double[])parameter.Own.Clone();
-            }
-
-            foreach (User user in block.Users)
-            {
-                users[user.Id] = user.Own;
-            }
-
-            foreach (DxfDynamicBlockReferenceProperty property in DxfDynamicProperties.Of(insert, dynamic))
-            {
-                if (property.Node == null)
-                {
-                    continue;
-                }
-
-                if (users.ContainsKey(property.Node))
-                {
-                    users[property.Node] = property.Value;
-                }
-                else if (property.Value is string name)
-                {
-                    if (block.Lookups.Exists(l => l.Id == property.Node))
-                    {
-                        labels[property.Node] = name;
-                    }
-                    else
-                    {
-                        state = name;
-                    }
-                }
-                else if (values.TryGetValue(property.Node, out double[] now) && property.Part < now.Length)
-                {
-                    double read =
-                        property.Value is short flag ? flag
-                        : property.Value is double number ? number
-                        : double.NaN;
-
-                    if (!double.IsNaN(read))
-                    {
-                        now[property.Part] =
-                            property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance
-                                ? read / scale
-                                : read;
-                    }
-                }
-            }
+            string state = ReadNow(insert, dynamic, block, scale, values, labels, users);
 
             // A base point a grip moved: AutoCAD keeps it where the INSERT saved it and works the actions from there, drawing the
             // array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y 99.30 down to
@@ -388,7 +336,7 @@ namespace GeometryHelper.Dxf
                 values
             );
             DxfBlockConstraints.Solution solution = Solve(block, values, dynamic);
-            Write(insert, dynamic, block, values, state, labels, users, solution);
+            Write(insert, dynamic, block, values, state, labels, users, solution, false);
 
             foreach (KeyValuePair<DxfAttributeReference, GeoTransform3> attribute in follow)
             {
@@ -496,6 +444,213 @@ namespace GeometryHelper.Dxf
             }
 
             return Followed(insert, dynamic, block, own, values);
+        }
+
+        /// <summary>
+        /// Works out anew, as AutoCAD's <c>UpdateAnonymousBlocks</c> does once a dynamic block is defined anew, each anonymous
+        /// block of it that an INSERT places: a new *U block made from the block as it is now, at the values of the first
+        /// INSERT that places the old one, every INSERT of the old one turned to it with its representation data and cache
+        /// written anew, and the old one left in the table placed by none. A panel whose INSERTs of Width 150 and 200 placed
+        /// *U1 and *U2 has them placed by *U3 and *U4 once a circle is added to it, each holding the circle, as AutoCAD 2021
+        /// made them (plugin GhAn1); an anonymous block no INSERT places is passed over, as AutoCAD passed over *U1 and *U2 when
+        /// it updated the panel again. One whose INSERT the library does not work out (<see cref="Set"/> refuses it) is left as
+        /// it was, and so are its INSERTs.
+        /// </summary>
+        /// <returns>The names of the anonymous blocks made, in the order of the table of those they take the place of.</returns>
+        /// <exception cref="NotSupportedException">Thrown when the block is one the library does not work out.</exception>
+        internal static List<string> UpdateAnonymous(DxfBlockTableRecord dynamic)
+        {
+            var made = new List<string>();
+            IReadOnlyList<DxfBlockTableRecord> anonymousBlocks = dynamic.GetAnonymousBlocks();
+            var placing = new Dictionary<string, List<DxfBlockReference>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfBlockTableRecord anonymous in anonymousBlocks)
+            {
+                placing[anonymous.Name] = new List<DxfBlockReference>();
+            }
+
+            // The INSERTs of each, found in one walk of the drawing, in the order of the block table and of each block.
+            if (placing.Count > 0)
+            {
+                foreach (DxfBlockTableRecord block in dynamic.Item.File.Database.BlockTable)
+                {
+                    foreach (DxfEntity entity in block)
+                    {
+                        if (
+                            entity is DxfBlockReference insert
+                            && !insert.IsErased
+                            && placing.TryGetValue(insert.Name, out List<DxfBlockReference> found)
+                            && insert.IsDynamicBlock
+                            && string.Equals(
+                                insert.DynamicBlockTableRecord?.Handle,
+                                dynamic.Handle,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        {
+                            found.Add(insert);
+                        }
+                    }
+                }
+            }
+
+            foreach (DxfBlockTableRecord anonymous in anonymousBlocks)
+            {
+                List<DxfBlockReference> inserts = placing[anonymous.Name];
+
+                if (inserts.Count == 0)
+                {
+                    continue;
+                }
+
+                // Each INSERT read before any is written, so that one the library does not work out leaves them all alone.
+                var blocks = new List<Block>();
+                var values = new List<Dictionary<string, double[]>>();
+                var labels = new List<Dictionary<string, string>>();
+                var users = new List<Dictionary<string, object>>();
+                var states = new List<string>();
+
+                try
+                {
+                    foreach (DxfBlockReference insert in inserts)
+                    {
+                        Block block = Block.Of(dynamic);
+                        GeoVector3 factors = insert.ScaleFactors;
+                        double scale = Math.Max(
+                            Math.Abs(factors.X),
+                            Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z))
+                        );
+                        var now = new Dictionary<string, double[]>(StringComparer.Ordinal);
+                        var labelled = new Dictionary<string, string>(StringComparer.Ordinal);
+                        var held = new Dictionary<string, object>(StringComparer.Ordinal);
+                        states.Add(ReadNow(insert, dynamic, block, scale, now, labelled, held));
+                        Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
+                        Dictionary<string, double[]> carried = Carried(block, now);
+
+                        foreach (Param parameter in block.Parameters)
+                        {
+                            if (
+                                !(parameter is Spot)
+                                && !(parameter is Dimensional)
+                                && bases.TryGetValue(parameter.Id, out double[] saved)
+                                && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
+                                    parameter.BaseNow(carried),
+                                    Tolerance.Default
+                                )
+                            )
+                            {
+                                throw new NotSupportedException(
+                                    "The INSERT "
+                                        + insert.Handle
+                                        + " keeps a base point of a parameter of the block "
+                                        + dynamic.Name
+                                        + " away from the block's own, as a grip moved it."
+                                );
+                            }
+                        }
+
+                        blocks.Add(block);
+                        values.Add(now);
+                        labels.Add(labelled);
+                        users.Add(held);
+                    }
+                }
+                catch (NotSupportedException exception)
+                {
+                    GeometryHelperLog.Debug(
+                        "DxfDynamicBlockRepresentation: the anonymous block "
+                            + anonymous.Name
+                            + " of "
+                            + dynamic.Name
+                            + " is left as it was: "
+                            + exception.Message
+                    );
+                    continue;
+                }
+
+                DxfBlockConstraints.Solution solution = Solve(blocks[0], values[0], dynamic);
+                Write(inserts[0], dynamic, blocks[0], values[0], states[0], labels[0], users[0], solution, true);
+                DxfBlockTableRecord fresh = inserts[0].AnonymousBlockTableRecord;
+                made.Add(fresh.Name);
+
+                for (int i = 1; i < inserts.Count; i++)
+                {
+                    inserts[i].BlockTableRecord = fresh;
+                    Cache(inserts[i], dynamic, blocks[i], values[i], states[i], labels[i], users[i]);
+                }
+            }
+
+            return made;
+        }
+
+        /// <summary>
+        /// Reads the values an INSERT has now, by the node of each parameter, into the values of its block's own: lengths and
+        /// positions in the block's own units (the INSERT's divided by its scale), angles and flip states; the labels of its
+        /// lookups and the values of its user parameters too.
+        /// </summary>
+        /// <returns>The name of the visibility state it shows; null where it names none.</returns>
+        private static string ReadNow(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            double scale,
+            Dictionary<string, double[]> values,
+            Dictionary<string, string> labels,
+            Dictionary<string, object> users
+        )
+        {
+            string state = null;
+
+            foreach (Param parameter in block.Parameters)
+            {
+                values[parameter.Id] = (double[])parameter.Own.Clone();
+            }
+
+            foreach (User user in block.Users)
+            {
+                users[user.Id] = user.Own;
+            }
+
+            foreach (DxfDynamicBlockReferenceProperty property in DxfDynamicProperties.Of(insert, dynamic))
+            {
+                if (property.Node == null)
+                {
+                    continue;
+                }
+
+                if (users.ContainsKey(property.Node))
+                {
+                    users[property.Node] = property.Value;
+                }
+                else if (property.Value is string name)
+                {
+                    if (block.Lookups.Exists(l => l.Id == property.Node))
+                    {
+                        labels[property.Node] = name;
+                    }
+                    else
+                    {
+                        state = name;
+                    }
+                }
+                else if (values.TryGetValue(property.Node, out double[] now) && property.Part < now.Length)
+                {
+                    double read =
+                        property.Value is short flag ? flag
+                        : property.Value is double number ? number
+                        : double.NaN;
+
+                    if (!double.IsNaN(read))
+                    {
+                        now[property.Part] =
+                            property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance
+                                ? read / scale
+                                : read;
+                    }
+                }
+            }
+
+            return state;
         }
 
         /// <summary>
@@ -967,8 +1122,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Makes the INSERT place the block worked out at the values given: its anonymous block filled anew where no other INSERT
-        /// places it, else a new one, the solution of its constraints written into it where there is one; then its
-        /// representation data and cache written.
+        /// places it, else a new one (always a new one where asked, as <see cref="UpdateAnonymous"/> asks), the solution of its
+        /// constraints written into it where there is one; then its representation data and cache written.
         /// </summary>
         private static void Write(
             DxfBlockReference insert,
@@ -978,7 +1133,8 @@ namespace GeometryHelper.Dxf
             string state,
             Dictionary<string, string> labels,
             Dictionary<string, object> users,
-            DxfBlockConstraints.Solution solution
+            DxfBlockConstraints.Solution solution,
+            bool fresh
         )
         {
             DxfFile file = insert.Item.File;
@@ -986,7 +1142,7 @@ namespace GeometryHelper.Dxf
             DxfBlockTableRecord anonymous = insert.AnonymousBlockTableRecord;
 
             // The anonymous block is the INSERT's own where no other INSERT places it.
-            bool own = anonymous != null;
+            bool own = anonymous != null && !fresh;
 
             if (own)
             {

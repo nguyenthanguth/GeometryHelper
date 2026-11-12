@@ -86,6 +86,31 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// The name AutoCAD 2021's LIST gives the arrowhead a dimension's override names: the name of its own block without the
+        /// underscore, as ArchTick for <c>_ArchTick</c> and Open90 for <c>_Open90</c>; ClosedFilled for none; the block's own
+        /// name for a user arrow.
+        /// </summary>
+        internal static string ListedName(DxfBlockTableRecord block)
+        {
+            if (block == null)
+            {
+                return "ClosedFilled";
+            }
+
+            string name = block.Name ?? string.Empty;
+
+            foreach (KeyValuePair<string, string> pair in Table)
+            {
+                if (pair.Value.Length > 0 && string.Equals(pair.Value, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value.Substring(1);
+                }
+            }
+
+            return name;
+        }
+
+        /// <summary>
         /// Gets the block of an arrowhead in a drawing, made as AutoCAD makes it the first time a style or a leader uses it:
         /// <c>_ArchTick</c> for Architectural tick, its shape one unit long (<see cref="CadArrowheads"/>); null for Closed
         /// filled. A drawing that has the block, by a name of either case, keeps its own. A user arrow is the block of that

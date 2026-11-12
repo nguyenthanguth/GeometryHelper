@@ -722,7 +722,15 @@ points are the UCS's and its rotation and obliquing angle are counted from the U
 horizontal and one turned 90 rotated by 60, its text angle left as it is; a jogged radius writes its centre, chord point,
 override centre and jog point. Each object's kind stands two places before its layer, as AutoCAD names it:
 "MULTILEADER  Layer:", "LWPOLYLINE  Layer:", "BLOCK REFERENCE  Layer:" for an INSERT or a MINSERT, "ACAD_TABLE  Layer:".
-What the drawing keeps stays counter-clockwise from the X axis.
+What the drawing keeps stays counter-clockwise from the X axis. A dimension that overrides its style lists
+"dimension style overrides:" after its style, then each variable overridden by name in alphabetical order, the name set
+in twelve places after a space, as AutoCAD 2021 lists them for every type of dimension: " DIMASZ      5.0000",
+" DIMBLK      Dot", " DIMCLRD     1 (red)", " DIMJOGANG   30", " DIMSE1      On", " DIMTXSTY    GHSTYLE". Distances
+are written in the drawing's units, nought feet and nought inches after whole feet left out (5", 1', 1'-3 1/2" in
+architectural units); DIMSCALE, DIMALTF, DIMLFAC, DIMTVP and DIMTFAC as plain numbers to LUPREC places; DIMJOGANG in the
+drawing's angle units; colours 1 to 7 with their names, others by number, BYBLOCK and BYLAYER; arrowheads by AutoCAD's
+names (ArchTick, ClosedFilled for none) and a user arrow by its block's name; DIMFXLEN and its switch as DIMFXL and
+DIMFXLON.
 `CadUnits.ToDirection` and `FromDirection` are the two conversions, and `session.CountAngle(radians)` the second with
 the drawing's settings.
 
@@ -830,7 +838,11 @@ name not in it makes a new, empty block; -BEDIT asks `Enter block name or [?]:`.
 its own ([`CadDocument.BlockEditor`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor), `CadSpace.IsBlockEditor`), where
 every command draws into and modifies the block's own entities, each an undo step; undo stops where the block was opened
 or last saved. BSAVE (BS) redefines the block and draws every INSERT anew (their attributes are not synchronised, as
-ATTSYNC is not run), merging the session so far into one undo step, `BEDIT`; BSAVEAS copies the content to a new block
+ATTSYNC is not run), merging the session so far into one undo step, `BEDIT`. A dynamic block saved so has the anonymous
+*U blocks its INSERTs place worked out anew from the new definition at each INSERT's values, as AutoCAD 2021's
+`UpdateAnonymousBlocks` works them: a panel whose INSERTs of Width 150 and 200 placed *U1 and *U2, given a circle and
+saved, has them place *U3 and *U4, each stretched to its width with the circle, INSERTs that shared *U1 sharing *U3, and
+*U1 and *U2 left in the drawing placed by none, as AutoCAD leaves them; BSAVEAS copies the content to a new block
 and goes on with it, the one opened left as it was. BCLOSE (BC) asks `Save changes to DOOR? [Save/Discard/Cancel]
 <Save>:` of a block with changes not saved; Discard reads the drawing back as it stood when the block was opened or last
 saved, so a new block never saved is not made. A door of one line given a second and saved shows both in every INSERT,
