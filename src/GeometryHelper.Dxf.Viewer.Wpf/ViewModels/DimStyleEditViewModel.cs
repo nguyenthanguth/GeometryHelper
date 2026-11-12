@@ -173,7 +173,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Description => Describe(_tab);
 
         /// <summary>
-        /// Gets the notice under the description: why OK was refused; else the model drawing's notice of a style it makes; else
+        /// Gets the notice under the description: why OK was refused; else
         /// what OK does, as "The preview redraws as a value changes. OK writes the style to the file and redraws the 38
         /// dimensions that use it, as one undo step."
         /// </summary>
@@ -184,11 +184,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (_refused.Length > 0)
                 {
                     return _refused;
-                }
-
-                if (CadDimStyleEditor.IsModelStyle(StyleName))
-                {
-                    return ManagerNotices.ModelStyle;
                 }
 
                 switch (Mode)
@@ -1101,10 +1096,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>The notices of the dimension style dialogs.</summary>
     internal static class ManagerNotices
     {
-        /// <summary>The notice of the styles a model drawing makes.</summary>
-        internal const string ModelStyle =
-            "A style named GH_MODEL_… is made by the model drawing. Changing it is a hand edit that an update keeps; its settings remake the rest.";
-
         /// <summary>The notice of Override: what OK writes, and into how many dimensions.</summary>
         internal static string Override(int count) =>
             count == 0

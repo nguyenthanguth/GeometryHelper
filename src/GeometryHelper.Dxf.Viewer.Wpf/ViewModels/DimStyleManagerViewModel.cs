@@ -214,7 +214,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// AutoCAD's Dimension Style Manager (DIMSTYLE, D): the dimension styles of the drawing (all, or those in use), a preview
     /// of the one selected drawn by the DIM commands' builders with its description, Set current, New, Modify, Override, Compare,
-    /// and Rename and Delete of its list's menu. A style a model drawing makes (GH_MODEL_...) is marked MODEL and noticed.
+    /// and Rename and Delete of its list's menu.
     /// </summary>
     public sealed class DimStyleManagerViewModel : ObservableObject
     {
@@ -380,14 +380,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     )
             );
 
-        /// <summary>
-        /// Gets the notice under the description: why an edit was refused; else, where the drawing has styles a model drawing
-        /// makes (GH_MODEL_...), what changing one does; else empty, the notice hidden.
-        /// </summary>
-        public string Notice =>
-            _notice.Length > 0 ? _notice
-            : Styles.Any(s => s.IsModel) ? ManagerNotices.ModelStyle
-            : string.Empty;
+        /// <summary>Gets the notice under the description: why an edit was refused; else empty, the notice hidden.</summary>
+        public string Notice => _notice;
 
         /// <summary>Gets the command of Set Current.</summary>
         public ICommand SetCurrentCommand { get; }

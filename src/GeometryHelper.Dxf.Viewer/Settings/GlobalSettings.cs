@@ -63,9 +63,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// <remarks>
     /// <para>
     /// The categories of the presenter's dialog are Appearance, Canvas and cursor, Units and rounding, Layers, colours and
-    /// lines, Text and fonts, Folder preference, Shortcuts, and Save and export. The defaults of drawings made from a model
-    /// (Drawing defaults, Data sources, and the height, width factor and font of drawing text) are kept in the file too, for
-    /// GeometryHelper.Drawing, though that dialog does not show them. A setter refuses a value out of its range, so that the
+    /// lines, Text and fonts, Folder preference, Shortcuts, and Save and export. The settings of drawings made from a model
+    /// (the preset, sheet, orientation and projection of a new drawing, the model-change check, the DXF layout and opening
+    /// the folder after an export, the colour of hidden lines, the decimals of dimensions and the height of view titles)
+    /// are kept in the file too, for GeometryHelper.Drawing, though neither that dialog nor the presenter shows or applies
+    /// them. A setter refuses a value out of its range, so that the
     /// dialog can say why: a wheel zoom factor of 0.5 is refused, it would zoom out on the wheel turned in.
     /// </para>
     /// <para>

@@ -31,6 +31,25 @@ folders alone; the replacement font, the font mapping file and the substitutions
 box of the font families installed on Windows, each in its own face, that also takes a name typed.
 `GlobalSettingsViewModel.IsFontsPage`, `IsSourcesPage` and `Sources` give way to `IsFolderPreferencePage` and
 `IsTextAndFontsPage`.
+**CHANGED.** What was left of the Tekla drawing (Part B) in the presenter, GeometryHelper DXF, is gone; the one hook Part B needs
+is neutral. The presenter's Global settings no longer shows the Hidden lines colour, the Dimension
+decimals, or the DXF export section (the layout, "Sheet in model space", and "Open the folder after export"), and its
+categories no longer carry a MODEL tag. The Dimension Style Manager, the dimension style edit dialog and the style boxes of
+the Annotate tab no longer mark a style named `GH_MODEL_...` as MODEL or say that an update keeps its changes: such a style
+is any other style. The Layer manager no longer has its Owner column (always empty) or its note about layers a model drawing
+wrote. The canvas no longer draws a layer named Hidden in the colour of Global settings' hidden lines: a layer is drawn in its
+own colour, as AutoCAD draws it. `GlobalSettings` still reads and writes `DefaultPreset`, `DefaultSheetSize`,
+`DefaultOrientation`, `DefaultProjection`, `CheckForModelChanges`, `CheckEverySeconds`, `ExportLayout`, `OpenAfterExport`,
+`HiddenLines` and `DimensionDecimals` for GeometryHelper.Drawing; the presenter shows and applies none of them.
+**BREAKING.** `MainViewModel.NewFromModelRequested`, `CanMakeFromModel`, `NewFromModelCommand` and `WelcomeText` are removed
+from the presenter. An extension that makes a document of its own returns a `CadNewDocumentOffer` (the menu name, button
+text, tooltip, start-screen line, welcome line and the action) from the new `CadWorkspaceExtension.NewDocumentOffer`; the
+view model gives `MainViewModel.NewDocumentOffer`, `HasNewDocumentOffer` and `NewOfferedDocumentCommand`, and Ctrl+N, the
+start screen and the New entry of the application menu use it. GeometryHelper.Drawing.Wpf offers "Drawing from a model" this
+way. Without an offer nothing about models shows.
+**BREAKING.** Removed from the presenter: `CadDimStyleEditor.IsModelStyle`, `StyleRowViewModel.IsModel`,
+`GlobalSettingCategory.IsModel`, `LayerRowViewModel.Owner`, `CanvasOptions.HiddenLineColor` and
+`CanvasOptions.HiddenLayerName`.
 
 **NEW.** `DxfTable.TextStringForEditing(row, col)` gives the text of a cell as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` does, and the presenter's editor of a table cell opens with it: a number as it is

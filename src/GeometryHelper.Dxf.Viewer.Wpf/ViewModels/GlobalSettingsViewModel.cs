@@ -248,21 +248,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<GlobalSettingRow> Rows { get; }
     }
 
-    /// <summary>A category of the list at the left: its name, and the MODEL tag of those for drawings made from a model.</summary>
+    /// <summary>A category of the list at the left: its name and the line on top of its page.</summary>
     public sealed class GlobalSettingCategory
     {
-        internal GlobalSettingCategory(string name, bool isModel, string intro)
+        internal GlobalSettingCategory(string name, string intro)
         {
             Name = name;
-            IsModel = isModel;
             Intro = intro;
         }
 
         /// <summary>Gets the name.</summary>
         public string Name { get; }
-
-        /// <summary>Gets whether it is for drawings made from a model, tagged MODEL.</summary>
-        public bool IsModel { get; }
 
         /// <summary>Gets the line on top of its page.</summary>
         public string Intro { get; }
@@ -665,43 +661,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 new GlobalSettingCategory(
                     "Appearance",
-                    false,
                     "Applies to every drawing on this machine. Press Apply to see it on the canvas at once; the values are kept for the next start."
                 ),
                 new GlobalSettingCategory(
                     "Canvas and cursor",
-                    false,
                     "How the canvas zooms, picks and snaps, as AutoCAD does by default."
                 ),
                 new GlobalSettingCategory(
                     "Units and rounding",
-                    false,
                     "Units are millimetres throughout; these settings change how values are shown."
                 ),
                 new GlobalSettingCategory(
                     "Layers, colours and lines",
-                    false,
                     "The layers written to new drawings, with their colour, linetype and lineweight."
                 ),
                 new GlobalSettingCategory(
                     "Text and fonts",
-                    false,
                     "The font of the app, what draws a font of a drawing not found (FONTALT, the font mapping file and the substitutions), and the answers of hidden messages (AutoCAD’s Hidden Message Settings): set one back to Ask, or Reset to defaults, to be asked again. A font not found is drawn in GeometryHelper Simplex (ghsimplex), the presenter's own single-stroke font, by default."
                 ),
                 new GlobalSettingCategory(
                     "Folder preference",
-                    false,
                     "Where the files a drawing names are looked for, as AutoCAD's support file search path. The folder of the drawing is looked in first, then the folders listed here in order; AutoCAD's own folders are not looked in unless listed."
                 ),
                 new GlobalSettingCategory(
                     "Shortcuts",
-                    false,
                     "Commands, aliases and keys default to AutoCAD's. Click a Keys cell and press the keys (Backspace or Delete clears it, Esc gives the old ones back); type aliases parted by commas. Import acad.pgp… takes the aliases of an acad.pgp you pick. A key or an alias used twice is shown in red."
                 ),
                 new GlobalSettingCategory(
                     "Save and export",
-                    false,
-                    "Where drawings are saved and how they are exported."
+                    "Where drawings are saved, how often a drawing with changes is saved aside and how many backups are kept."
                 ),
             };
             CategoryCommand = new DelegateCommand(p =>
@@ -1038,7 +1026,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             v => s.BlockEditorBackground = v
                         ),
                         Colour("Visible lines on dark", () => s.VisibleLines, v => s.VisibleLines = v),
-                        Colour("Hidden lines", () => s.HiddenLines, v => s.HiddenLines = v),
                         Colour("Selected objects", () => s.Selection, v => s.Selection = v),
                         Colour("Grip", () => s.Grip, v => s.Grip = v),
                         Colour("Table indicator", () => s.TableIndicatorColor, v => s.TableIndicatorColor = v),
@@ -1166,13 +1153,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             v => s.CoordinateDecimals = Whole(v),
                             examples
                         ),
-                        Number(
-                            "Dimension decimals",
-                            null,
-                            () => s.DimensionDecimals,
-                            v => s.DimensionDecimals = Whole(v),
-                            examples
-                        ),
                         Choice(
                             "Thousands separator",
                             GlobalSettings.ThousandsSeparators,
@@ -1202,7 +1182,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             };
 
             // The font of drawing text, its height and width factor are the defaults of drawings made from a model, kept in the
-            // file for GeometryHelper.Drawing and not shown here, as Drawing defaults and Data sources.
+            // file for GeometryHelper.Drawing and not shown here, as the other settings of drawings made from a model are not.
             _pages["Text and fonts"] = new[]
             {
                 new GlobalSettingSection(
@@ -1263,25 +1243,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Text("Save folder", () => s.SaveFolder, v => s.SaveFolder = v),
                         Number("Autosave every", "min", () => s.AutosaveMinutes, v => s.AutosaveMinutes = Whole(v)),
                         Number("Backups kept", null, () => s.BackupsKept, v => s.BackupsKept = Whole(v)),
-                    }
-                ),
-                new GlobalSettingSection(
-                    "DXF export",
-                    new[]
-                    {
-                        Choice(
-                            "Layout",
-                            new[] { "Layout + viewports (like MVIEW)", "Sheet in model space" },
-                            () =>
-                                s.ExportLayout == "SheetInModelSpace"
-                                    ? "Sheet in model space"
-                                    : "Layout + viewports (like MVIEW)",
-                            v =>
-                                s.ExportLayout =
-                                    v == "Sheet in model space" ? "SheetInModelSpace" : "LayoutAndViewports"
-                        ),
-                        Info("Version", "AutoCAD 2013 (AC1027)"),
-                        Toggle("Open the folder after export", () => s.OpenAfterExport, v => s.OpenAfterExport = v),
                     }
                 ),
             };

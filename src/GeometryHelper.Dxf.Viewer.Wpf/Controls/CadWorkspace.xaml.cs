@@ -15,12 +15,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The presenter's whole window content, laid out as AutoCAD's own (A20): the title bar, the ribbon, the DRAWINGS list on
     /// the left, the canvas with the command line under it, Properties on the right and the status bar. Its data context is a
-    /// <see cref="MainViewModel"/>; a window or a host such as a Tekla plugin puts it in and lets it run.
+    /// <see cref="MainViewModel"/>; a window or a host such as a plugin of another program puts it in and lets it run.
     /// </summary>
     /// <remarks>
     /// Keys as AutoCAD's: Esc closes the AutoComplete list, then cancels the command, then clears the selection; Ctrl+O opens a
-    /// DXF, Ctrl+W switches selection cycling, Ctrl+N asks a host for a new drawing from a model
-    /// (<see cref="MainViewModel.NewFromModelRequested"/>) or, with no such host, makes a new drawing (NEW), Ctrl+S saves, Ctrl+Shift+S
+    /// DXF, Ctrl+W switches selection cycling, Ctrl+N runs the new document an extension offers
+    /// (<see cref="MainViewModel.NewDocumentOffer"/>) or, with none, makes a new drawing (NEW), Ctrl+S saves, Ctrl+Shift+S
     /// saves as, Ctrl+Z undoes and Ctrl+Y redoes, Delete erases the selection; F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR,
     /// F11 OTRACK, F12 DYN (the prompt and what is typed shown beside the cursor, Tab moving between its fields at a point prompt), and
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
@@ -354,7 +354,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else if (modifiers == ModifierKeys.Control && key == Key.N)
             {
-                // A drawing from a model where the host makes them, else NEW, as in AutoCAD.
+                // The new document an extension offers, else NEW, as in AutoCAD.
                 _model.NewByShortcut();
                 e.Handled = true;
             }
@@ -984,7 +984,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.AperturePixels = settings.AperturePixels;
             CanvasView.SelectByDragging = settings.SelectByDragging;
             CanvasView.Options.VisibleLineColor = settings.VisibleLines;
-            CanvasView.Options.HiddenLineColor = settings.HiddenLines;
             CanvasView.Options.GripColor = settings.Grip;
             CanvasView.Options.CustomGripColor = DxfColor
                 .FromColorIndex(DxfColorMethod.ByAci, (short)settings.GripDynamicColor)

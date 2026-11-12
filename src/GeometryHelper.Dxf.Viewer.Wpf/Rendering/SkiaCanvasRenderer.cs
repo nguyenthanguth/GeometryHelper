@@ -44,15 +44,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets what white and black lines (AutoCAD's colour 7) are drawn as on a dark canvas, 0xRRGGBB: white by default.</summary>
         public int VisibleLineColor { get; set; } = 0xFFFFFF;
 
-        /// <summary>
-        /// Gets or sets the colour the entities of the layer <see cref="HiddenLayerName"/> are drawn in, 0xRRGGBB, as Global
-        /// settings gives hidden lines; null, the default, for their own colour.
-        /// </summary>
-        public int? HiddenLineColor { get; set; }
-
-        /// <summary>Gets or sets the layer of the hidden lines <see cref="HiddenLineColor"/> colours: Hidden by default, as a model drawing names it.</summary>
-        public string HiddenLayerName { get; set; } = "Hidden";
-
         /// <summary>Gets or sets the colour of the grips as 0xRRGGBB: #3D9BFF by default.</summary>
         public int GripColor { get; set; } = 0x3D9BFF;
 
@@ -1109,7 +1100,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The colour an item is drawn in: its own, the hidden lines' on their layer, turned to show on the background; the
+        /// The colour an item is drawn in: its own, turned to show on the background; the
         /// selection colour when selected; its own taken halfway to the selection colour when under the cursor.
         /// </summary>
         private SKColor ColorOf(DisplayItem2 item, CanvasOptions options, bool isSelected, bool isHover, int background)
@@ -1119,13 +1110,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Color(CadPlotStyles.Map(_plot.Table, item.Style.Rgb), 255);
             }
 
-            int own =
-                options.HiddenLineColor.HasValue
-                && item.Layer != null
-                && string.Equals(item.Layer, options.HiddenLayerName, StringComparison.OrdinalIgnoreCase)
-                    ? options.HiddenLineColor.Value
-                    : item.Style.Rgb;
-            int rgb = isSelected ? options.SelectionColor : Visible(own, background, options.VisibleLineColor);
+            int rgb = isSelected
+                ? options.SelectionColor
+                : Visible(item.Style.Rgb, background, options.VisibleLineColor);
 
             if (isHover && !isSelected)
             {

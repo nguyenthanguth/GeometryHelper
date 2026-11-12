@@ -161,8 +161,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Dimension style manager · styles.dxf", manager.Title);
             Assert.Equal("Current: Standard", manager.CurrentStyleText);
             Assert.Equal("2 styles · double-click a style to modify it", manager.Footer);
-            Assert.Equal(new[] { false, true }, manager.Styles.Select(s => s.IsModel));
-            Assert.True(manager.HasNotice);
+            Assert.False(manager.HasNotice);
             Assert.False(manager.IsNoticeWarning);
             Assert.Equal(
                 "Standard · arrows closed filled 0.18 · text 0.18 centred on the line · overall scale 1 · Used by 1 dimension.",
@@ -178,7 +177,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheAnnotateStyleBoxes_TickTheCurrentStyle_MarkAModelDrawingsStyle_AndEndInTheDialogsItem()
+        public void TheAnnotateStyleBoxes_TickTheCurrentStyle_MarkNoStyle_AndEndInTheDialogsItem()
         {
             MainViewModel model = Opened(out CadDocument document);
             Assert.True(CadDimStyleEditor.Add(document, "GH_MODEL_10", "Standard", null).Succeeded);
@@ -188,7 +187,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(new[] { "Standard", "GH_MODEL_10", "Dimension style…" }, items.Select(i => i.Name));
             Assert.Equal(new[] { false, true, false }, items.Select(i => i.IsCurrent));
-            Assert.Equal(new[] { string.Empty, "model", string.Empty }, items.Select(i => i.Hint));
+            Assert.Equal(new[] { string.Empty, string.Empty, string.Empty }, items.Select(i => i.Hint));
             Assert.True(items.Last().IsDialog);
             Assert.Equal("Text style…", model.TextStyleItems.Last().Name);
             Assert.Equal("Multileader style…", model.MLeaderStyleItems.Last().Name);

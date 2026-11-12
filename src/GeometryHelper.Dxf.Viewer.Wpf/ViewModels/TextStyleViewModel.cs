@@ -13,7 +13,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// A style of the list of the Text Style dialog or the Dimension Style Manager: its name, whether it is current, how many
-    /// texts or dimensions are drawn in it, the font of a text style and whether a model drawing makes it.
+    /// texts or dimensions are drawn in it, and the font of a text style.
     /// </summary>
     public sealed class StyleRowViewModel : ObservableObject
     {
@@ -36,9 +36,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets what the list shows after the name: the font of a text style, as romans.shx or Arial; empty for a dimension style.</summary>
         public string Detail { get; }
-
-        /// <summary>Gets whether a model drawing makes the style (GH_MODEL_...), marked MODEL in the list.</summary>
-        public bool IsModel => CadDimStyleEditor.IsModelStyle(Name);
 
         /// <inheritdoc/>
         public override string ToString() => Name;

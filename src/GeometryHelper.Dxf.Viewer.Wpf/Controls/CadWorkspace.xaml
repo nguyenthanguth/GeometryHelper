@@ -739,7 +739,7 @@
 
             <!--
             A style box: the combo box's look, opened by a click on it (StyleBox), with no button of its own; its list on the
-            header's colour, the current style ticked, a model drawing's marked "model", the dialog's item last under a line. In
+            header's colour, the current style ticked, the dialog's item last under a line. In
             a medium panel the box narrows 118 to 84 and its caption goes, the tooltip still naming what it sets.
             -->
             <Style x:Key="StyleBoxItem" TargetType="ComboBoxItem">
@@ -3082,7 +3082,7 @@
                         Command="{Binding SelectTabCommand}"
                         Margin="0,0,4,0"
                     />
-                    <!-- The tabs extensions add after Home, as the Drawing tab of a model drawing, in the light accent of a contextual tab. -->
+                    <!-- The tabs extensions add after Home, as a tab for one kind of document, in the light accent of a contextual tab. -->
                     <ItemsControl ItemsSource="{Binding Extensions}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -4933,8 +4933,8 @@
                     </Canvas>
                     <!--
                     The start screen (design S1StartDxf): the app, Open, New, and Recent Documents as a list or as large pictures.
-                    "New drawing from a model" shows only where a host makes drawings from a model; without one, as GeometryHelper
-                    DXF, the third button is NEW with Ctrl+N.
+                    The button of a new document an extension offers shows only where one does; without, as GeometryHelper DXF, the
+                    third button is NEW with Ctrl+N.
                     -->
                     <StackPanel
                         Width="760"
@@ -4960,18 +4960,18 @@
                             />
                             <Button
                                 Style="{StaticResource SecondaryButton}"
-                                Content="New drawing from a model…  ·  Ctrl+N"
+                                Content="{Binding NewDocumentOffer.ButtonText}"
                                 IsEnabled="True"
-                                Command="{Binding NewFromModelCommand}"
-                                ToolTip="Make a drawing from the objects of a model (DRAWINGNEW)"
-                                Visibility="{Binding CanMakeFromModel, Converter={StaticResource Shown}}"
+                                Command="{Binding NewOfferedDocumentCommand}"
+                                ToolTip="{Binding NewDocumentOffer.Description}"
+                                Visibility="{Binding HasNewDocumentOffer, Converter={StaticResource Shown}}"
                             />
                             <Button IsEnabled="True" Command="{Binding NewCommand}" ToolTip="A new empty drawing (NEW)">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                         <Setter Property="Content" Value="New  ·  Ctrl+N" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding CanMakeFromModel}" Value="True">
+                                            <DataTrigger Binding="{Binding HasNewDocumentOffer}" Value="True">
                                                 <Setter Property="Content" Value="Blank drawing" />
                                             </DataTrigger>
                                         </Style.Triggers>

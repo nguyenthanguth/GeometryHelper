@@ -180,7 +180,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<StyleBoxItemViewModel> TextStyleItems =>
             Items(TextStyleNames, CurrentTextStyle, ManageTextStyles);
 
-        /// <summary>Gets the items of the dimension style box: the styles, the current one ticked, a model drawing's marked "model", then "Dimension style…".</summary>
+        /// <summary>Gets the items of the dimension style box: the styles, the current one ticked, then "Dimension style…".</summary>
         public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems =>
             Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
 
@@ -315,7 +315,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         : new StyleBoxItemViewModel(
                             n,
                             string.Equals(n, current, StringComparison.OrdinalIgnoreCase),
-                            CadDimStyleEditor.IsModelStyle(n) ? "model" : string.Empty,
+                            string.Empty,
                             false
                         )
                 )
@@ -343,8 +343,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// An item of a style box of the Annotate tab: a style's name, ticked where it is current, with a hint after it ("model"
-    /// for a style a model drawing makes); or the last item, which opens the style dialog, under a line.
+    /// An item of a style box of the Annotate tab: a style's name, ticked where it is current, with a hint after it ("IMAGEFRAME 1"
+    /// for the image frame box); or the last item, which opens the style dialog, under a line.
     /// </summary>
     public sealed class StyleBoxItemViewModel
     {
@@ -362,7 +362,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the style is the current one, ticked.</summary>
         public bool IsCurrent { get; }
 
-        /// <summary>Gets the hint after the name: "model" for GH_MODEL_10 and its like; empty for the others.</summary>
+        /// <summary>Gets the hint after the name, as "IMAGEFRAME 1" in the image frame box; empty for a style.</summary>
         public string Hint { get; }
 
         /// <summary>Gets whether the item opens the style dialog rather than naming a style.</summary>

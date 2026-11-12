@@ -58,7 +58,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 },
                 dialog.Categories.Select(c => c.Name)
             );
-            Assert.DoesNotContain(dialog.Categories, c => c.IsModel);
             Assert.Equal(
                 new[] { "Interface", "Hidden messages", "Font not found", "Font mapping" },
                 dialog.Sections.Select(s => s.Title)

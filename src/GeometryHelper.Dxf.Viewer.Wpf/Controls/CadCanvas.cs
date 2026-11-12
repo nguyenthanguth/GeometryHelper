@@ -1113,8 +1113,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     o.ShowLineWeights,
                     o.FontName,
                     o.VisibleLineColor,
-                    o.HiddenLineColor,
-                    o.HiddenLayerName,
                     ShowGrid,
                     GridSpacing,
                     GridSpacingY,

@@ -176,7 +176,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheRendererDrawsHiddenAndVisibleLinesInTheColoursOfTheSettings()
+        public void TheRendererDrawsALayerNamedHiddenAsAnyOther_ItsColour7InTheVisibleLineColour()
         {
             var database = new DxfDatabase("AC1027");
             database.LayerTable.Add(new DxfLayerTableRecord { Name = "Hidden", ColorIndex = 7 });
@@ -187,7 +187,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = CadDocument.From(database, "lines.dxf");
             var view = new CadView(200, 200);
             view.ZoomTo(new DisplayBox(-10, -10, 110, 60));
-            var options = new CanvasOptions { HiddenLineColor = 0x00FF00, VisibleLineColor = 0xFF0000 };
+            var options = new CanvasOptions { VisibleLineColor = 0xFF0000 };
 
             using (var bitmap = new SKBitmap(200, 200))
             using (var canvas = new SKCanvas(bitmap))
@@ -196,7 +196,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 renderer.Render(canvas, document, document.ModelSpace, view, options);
 
                 Assert.True(Strongest(bitmap, view, 50, 0, out SKColor hidden));
-                Assert.True(hidden.Green > 120 && hidden.Red < 60, hidden.ToString());
+                Assert.True(hidden.Red > 120 && hidden.Green < 60, hidden.ToString());
                 Assert.True(Strongest(bitmap, view, 50, 50, out SKColor visible));
                 Assert.True(visible.Red > 120 && visible.Green < 60, visible.ToString());
             }

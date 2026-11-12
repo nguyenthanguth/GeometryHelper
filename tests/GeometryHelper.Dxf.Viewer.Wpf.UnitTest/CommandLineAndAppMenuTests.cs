@@ -935,11 +935,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         // ---- The start screen of each app
 
         [Fact]
-        public void WithNoHostForModelDrawings_TheStartScreenIsGeometryHelperDxfs_AndCtrlNMakesANewDrawing()
+        public void WithNoExtensionOfferingANewDocument_TheStartScreenIsGeometryHelperDxfs_AndCtrlNMakesANewDrawing()
         {
             var model = new MainViewModel();
 
-            Assert.False(model.CanMakeFromModel);
+            Assert.Null(model.NewDocumentOffer);
+            Assert.False(model.HasNewDocumentOffer);
             Assert.Equal("Open and edit any 2D drawing. No file is open.", model.StartScreenText);
             Assert.Equal(new[] { MainViewModel.NewDrawingWelcomeText }, model.RecentHistory);
             Assert.Equal(
@@ -954,31 +955,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void WithAHostForModelDrawings_TheStartScreenOffersThem_AndCtrlNAsksTheHost()
+        public void WithAnExtensionOfferingANewDocument_TheStartScreenOffersIt_AndCtrlNRunsIt()
         {
             var model = new MainViewModel();
             var raised = new List<string>();
             model.PropertyChanged += (s, e) => raised.Add(e.PropertyName);
             int asked = 0;
-            EventHandler handler = (s, e) => asked++;
 
-            model.NewFromModelRequested += handler;
+            model.AddExtension(new SurveyExtension(() => asked++));
 
-            Assert.True(model.CanMakeFromModel);
-            Assert.Contains(nameof(MainViewModel.CanMakeFromModel), raised);
+            Assert.True(model.HasNewDocumentOffer);
+            Assert.Contains(nameof(MainViewModel.NewDocumentOffer), raised);
+            Assert.Contains(nameof(MainViewModel.HasNewDocumentOffer), raised);
             Assert.Equal(
-                "Open and edit any 2D drawing, or make drawings from a model. No file is open.",
+                "Open and edit any 2D drawing, or make plans from surveys. No file is open.",
                 model.StartScreenText
             );
-            Assert.Equal(new[] { MainViewModel.WelcomeText }, model.RecentHistory);
+            Assert.Equal(new[] { "Welcome. Ctrl+N makes a plan from a survey." }, model.RecentHistory);
+            Assert.True(model.NewOfferedDocumentCommand.CanExecute(null));
             model.NewByShortcut();
             Assert.Equal(1, asked);
             Assert.False(model.HasDocument);
-            Assert.Contains(model.CreateAppMenu().Items[0].Items, i => i.Name == "Drawing from a model");
+            model.NewOfferedDocumentCommand.Execute(null);
+            Assert.Equal(2, asked);
+            Assert.Contains(model.CreateAppMenu().Items[0].Items, i => i.Name == "Plan from a survey");
+        }
 
-            model.NewFromModelRequested -= handler;
-            Assert.False(model.CanMakeFromModel);
-            Assert.DoesNotContain(model.CreateAppMenu().Items[0].Items, i => i.Name == "Drawing from a model");
+        private sealed class SurveyExtension : CadWorkspaceExtension
+        {
+            public SurveyExtension(Action run) =>
+                NewDocumentOffer = new CadNewDocumentOffer(
+                    "Plan from a survey",
+                    "New plan from a survey…  ·  Ctrl+N",
+                    "Make a plan from a survey (PLANNEW)",
+                    "Open and edit any 2D drawing, or make plans from surveys. No file is open.",
+                    "Welcome. Ctrl+N makes a plan from a survey.",
+                    run
+                );
+
+            public override CadNewDocumentOffer NewDocumentOffer { get; }
         }
 
         // ---- The application menu
