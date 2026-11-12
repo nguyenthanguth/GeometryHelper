@@ -114,11 +114,11 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="inPlaneDirection">A second direction the plane must contain.</param>
         /// <returns>The plane through the start point spanned by this segment and the supplied direction.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the segment is degenerate or the two directions are parallel, since neither case
-        /// pins down a plane.
+        /// <exception cref="ArgumentException">
+        /// Thrown when the segment has no length or the two directions are parallel, since neither case pins down a
+        /// plane, or when the direction is not finite.
         /// </exception>
-        /// <exception cref="ArgumentException">Thrown when the direction is not finite.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the segment has an end that is not a finite point.</exception>
         public GeoPlane3 GetPlaneWith(GeoVector3 inPlaneDirection)
         {
             Guard.Argument(
@@ -126,6 +126,7 @@ namespace GeometryHelper.Geometry
                 nameof(inPlaneDirection),
                 "The direction has a coordinate that is not a finite number."
             );
+            Guard.FiniteShape(IsValid);
 
             return new GeoPlane3(StartPoint, Direction.CrossProduct(inPlaneDirection));
         }

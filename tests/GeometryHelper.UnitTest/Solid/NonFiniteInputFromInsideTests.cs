@@ -302,6 +302,139 @@ namespace GeometryHelper.UnitTest.Solid
             );
         }
 
+        [Fact]
+        public void AShapeWithACoordinateOfNaN_IsRefusedAsItIs_NotByAnArgumentOfTheWorking()
+        {
+            // Each threw an ArgumentException naming something it had made of the shape: vertices said collinear, a
+            // normal of no length, a distance or a length of the arc, a sphere, a chain out of the loop's plane.
+            var nan3 = new GeoPoint3(double.NaN, 0, 0);
+            var circle = new GeoCircle3(nan3, new GeoVector3(0, 0, 1), 30);
+            var triangle = new GeoTriangle3(nan3, new GeoPoint3(100, 0, 0), new GeoPoint3(0, 100, 0));
+            var arc = new GeoArc3(nan3, new GeoVector3(0, 0, 1), 30, 0.3, 2.8);
+            var polyline = new GeoPolyline3(nan3, new GeoPoint3(100, 0, 0), new GeoPoint3(100, 100, 0));
+            var chain = new GeoPolylineArc3(polyline);
+            var bent = new GeoEdge2(new GeoPoint2(double.NaN, 0), new GeoPoint2(100, 0), 0.5);
+            var loop = new GeoPolygonArc3(Floor);
+
+            Refused(() => circle.ToPolygon());
+            Refused(() => circle.ToPolygon(16));
+            Refused(() => circle.ToPolygonByChordTolerance(0.1));
+            Refused(() => circle.ToPolygonBySpacing(5));
+            Refused(() => polyline.ToPolygon());
+            Refused(() => triangle.ToPolygon3());
+            Refused(() => triangle.ToPolygon3(Tol));
+            Refused(() => triangle.ToFace3());
+            Refused(() => triangle.ToFace3(Tol));
+            Refused(() => new GeoSphere3(nan3, 50).ToSolid(0.1));
+            Refused(() => new GeoSphere3(nan3, 50).TriangulateSurface(0.1));
+            Refused(() => bent.Extend(10, LineEnd.End, Tol));
+            Refused(() => bent.ExtendToLength(200, LineEnd.End, Tol));
+            Refused(() => new GeoLine3(nan3, new GeoPoint3(100, 0, 0)).GetPlaneWith(new GeoVector3(0, 1, 0)));
+            Refused(() => chain.OffsetInPlane(5, new GeoVector3(0, 0, 1), Tol));
+            Refused(() => arc.GetShortestLineTo(loop, Tol));
+            Refused(() => circle.GetShortestLineTo(loop, Tol));
+            Refused(() => polyline.GetShortestLineTo(loop, Tol));
+            Refused(() => chain.GetShortestLineTo(loop, Tol));
+
+            // The same shapes made finite answer as they did.
+            var finite = new GeoCircle3(new GeoPoint3(50, 50, 0), new GeoVector3(0, 0, 1), 30);
+            Assert.Equal(16, finite.ToPolygon(16).Vertices.Count);
+            Assert.Equal(20.0, finite.GetShortestLineTo(loop, Tol).Length, 9);
+        }
+
+        [Fact]
+        public void ClippingALineToARectangleOfNaN_NamesTheRectangle()
+        {
+            // It threw for a distance "from" of its own working, a rectangle of NaN and a line of NaN alike.
+            var rect = new GeoRectangle2(new GeoPoint2(double.NaN, 50), 100, 100);
+            var line = new GeoXLine2(new GeoPoint2(-50, 50), new GeoVector2(1, 0));
+            var lineOfNaN = new GeoXLine2(new GeoPoint2(double.NaN, 50), new GeoVector2(1, 0));
+            var square = new GeoRectangle2(new GeoPoint2(50, 50), 100, 100);
+
+            Assert.Equal("rect", Name(() => line.ClipTo(rect, Tol)));
+            Assert.Equal("rect", Name(() => line.ClipTo(rect)));
+            Refused(() => lineOfNaN.ClipTo(square, Tol));
+
+            GeoLine2? clipped = line.ClipTo(square, Tol);
+            Assert.NotNull(clipped);
+            Assert.Equal(100.0, clipped.Value.Length, 12);
+        }
+
+        [Fact]
+        public void TheConstructorsOfTheArcsInSpace_NameTheirOwnArguments()
+        {
+            // The loop lifted out of a frame said its vertices were out of one plane, for a frame or a loop of NaN; the
+            // chain named the start point of an edge of its own working.
+            var arcs = new GeoPolygonArc2(
+                new[] { new GeoPoint2(0, 0), new GeoPoint2(100, 0), new GeoPoint2(100, 100), new GeoPoint2(0, 100) },
+                new[] { 0.0, 0.3, 0.0, 0.0 }
+            );
+            var frameOfNaN = new GeoCoordinateSystem3(
+                new GeoPoint3(double.NaN, 0, 0),
+                GeoVector3.XAxis,
+                GeoVector3.YAxis
+            );
+            var corners = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(double.NaN, 0, 0), new GeoPoint3(100, 100, 0) };
+
+            Assert.Equal("frame", Name(() => new GeoPolygonArc3(frameOfNaN, arcs)));
+            Assert.Equal(
+                "loop",
+                Name(() => new GeoPolygonArc3(GeoCoordinateSystem3.Global, new GeoPolygonArc2(SquareOfNaN)))
+            );
+            Assert.Equal(
+                "vertices",
+                Name(() =>
+                    new GeoPolylineArc3(corners, new[] { 0.5, 0.5 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis })
+                )
+            );
+            Assert.Equal(
+                "vertices",
+                Name(() =>
+                    new GeoPolylineArc3(corners, new[] { 0.5, 0.5 }, new[] { GeoVector3.ZAxis, GeoVector3.ZAxis }, Tol)
+                )
+            );
+
+            // A straight chain may still carry a vertex of NaN, as a segment may; and a finite loop is lifted as it was.
+            Assert.Equal(3, new GeoPolylineArc3(corners).VertexCount);
+            Assert.Equal(4, new GeoPolygonArc3(GeoCoordinateSystem3.Global, arcs).VertexCount);
+        }
+
+        [Fact]
+        public void APlaneThroughASegment_AlongItsOwnDirection_IsRefusedAsDocumented()
+        {
+            // The documentation said InvalidOperationException; the plane's constructor has always thrown an
+            // ArgumentException for a normal of no length.
+            var line = new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+
+            Assert.Throws<ArgumentException>(() => line.GetPlaneWith(new GeoVector3(1, 0, 0)));
+            Assert.Equal(1.0, line.GetPlaneWith(new GeoVector3(0, 1, 0)).Normal.Z, 12);
+        }
+
+        [Fact]
+        public void ASquareWithACornerOfNaN_MeetsThroughItsFiniteSides_AndNotThroughTheOthers()
+        {
+            // The guide's example: the part of NaN meets nothing, the rest meets what it meets.
+            GeoPoint2[] across = SquareOfNaN.GetIntersections(
+                new GeoLine2(new GeoPoint2(50, 50), new GeoPoint2(150, 50)),
+                Tol
+            );
+            GeoPoint2[] up = SquareOfNaN.GetIntersections(
+                new GeoLine2(new GeoPoint2(50, -50), new GeoPoint2(50, 50)),
+                Tol
+            );
+
+            GeoPoint2 crossing = Assert.Single(across);
+            Assert.Equal(100.0, crossing.X, 12);
+            Assert.Equal(50.0, crossing.Y, 12);
+            Assert.Empty(up);
+        }
+
+        private static void Refused(Action action)
+        {
+            InvalidOperationException e = Assert.Throws<InvalidOperationException>(action);
+            Assert.Contains("not a finite number", e.Message);
+        }
+
         private static string Name(Action action) =>
             Assert.IsAssignableFrom<ArgumentException>(Record.Exception(action)).ParamName;
     }

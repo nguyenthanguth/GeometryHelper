@@ -33,6 +33,24 @@ namespace GeometryHelper
             "The transformation has to be a matrix of finite numbers: the shape cannot have a point that is not.";
 
         /// <summary>
+        /// What a shape with a coordinate that is not a finite number says when asked to be made into another shape.
+        /// </summary>
+        internal const string NotFiniteShape = "The shape has a coordinate that is not a finite number.";
+
+        /// <summary>
+        /// Refuses to work on a shape of which a coordinate is not a finite number: the fault is the shape's, not an
+        /// argument's, so it is not named as one.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the shape is not finite.</exception>
+        internal static void FiniteShape(bool finite)
+        {
+            if (!finite)
+            {
+                throw new InvalidOperationException(NotFiniteShape);
+            }
+        }
+
+        /// <summary>
         /// Refuses a value that is not a finite number of nought or more.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is negative, NaN or infinite.</exception>

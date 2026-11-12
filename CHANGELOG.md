@@ -81,6 +81,22 @@ NaN or infinite, 1 700 threw from inside, hung or answered a `Try` with NaN befo
 member of a shape of NaN with no argument of its own to name, all throwing and none hanging; every finite call of the
 fuzz gives the same bits as before.
 
+**CHANGED.** The last 33 of those members throw what they mean. A member of a shape with a coordinate that is not a
+finite number that has to make something of the shape itself throws an `InvalidOperationException`, "The shape has a
+coordinate that is not a finite number.", where it threw an `ArgumentException` naming vertices said collinear, a normal
+of no length or a distance of its own working: `ToPolygon` of a circle about a centre of NaN, of a chain or a triangle in
+space with a corner of NaN, `ToFace3` of such a triangle, `ToSolid` and `TriangulateSurface` of a ball, `Extend` and
+`ExtendToLength` of an edge that is an arc, `GetPlaneWith` of a segment, `OffsetInPlane` of a curved chain, `ClipTo` of a
+line without ends, and `GetShortestLineTo` a loop of arcs from an arc, a circle, a chain or a curved chain. A writer
+handed such a ball still names `sphere`. `ClipTo` names `rect` for a rectangle of NaN, where it named a distance `from`;
+`GeoPolygonArc3(frame, loop)` names `frame` or `loop`, where it said its vertices were out of one plane; and
+`GeoPolylineArc3` names `vertices` for an edge that bulges from a vertex of NaN, where it named `startPoint`. The
+documentation of `GetPlaneWith` gives the `ArgumentException` it has always thrown for a segment of no length or a
+direction along it, not an `InvalidOperationException`. The guide now says the part of a shape that is not finite meets
+nothing, not the whole shape: the square 100 across with one corner moved to (NaN, 0) still crosses the segment from
+(50, 50) to (150, 50) at (100, 50). The fuzz finds none of the 33 left; its 9 950 finite calls give the same bits as
+before, under .NET Framework 4.8 and .NET 10.
+
 **NEW.** The presenter's implied window asks on the command line as AutoCAD 2021's does: a click on nothing at the
 Command prompt shows "Specify opposite corner or [Fence/WPolygon/CPolygon]:", and DYN shows it with two fields, the X and
 the Y of the cursor itself, where it showed nothing. The next click, or a corner typed (110,60), ends the box; F, WP or

@@ -42,8 +42,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this circle does not lie in the loop's plane.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this circle has a coordinate that is not a finite number.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop) =>
-            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(Finite()).Reverse();
 
         /// <summary>
         /// Gets the shortest line from this circle to the boundary of a curved loop in the same plane, within a
@@ -52,8 +53,19 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this circle does not lie in the loop's plane.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this circle has a coordinate that is not a finite number.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance) =>
-            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(Finite(), tolerance).Reverse();
+
+        /// <summary>
+        /// This circle, refused where a coordinate of it is not a finite number.
+        /// </summary>
+        private GeoCircle3 Finite()
+        {
+            Guard.FiniteShape(IsFinite);
+
+            return this;
+        }
 
         /// <summary>
         /// Gets the shortest segment joining this circle to a point, using the default tolerance.

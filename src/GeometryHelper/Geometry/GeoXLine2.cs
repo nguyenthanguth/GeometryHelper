@@ -215,6 +215,8 @@ namespace GeometryHelper.Geometry
         /// Gets the part of this line inside a rectangle, using the default tolerance.
         /// </summary>
         /// <returns>The segment where the line is inside the rectangle, running along the direction of the line; null when it misses.</returns>
+        /// <exception cref="ArgumentException">Thrown when the rectangle has a coordinate or a size that is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this line has a coordinate that is not a finite number.</exception>
         public GeoLine2? ClipTo(GeoRectangle2 rect) => ClipTo(rect, Tolerance.Global);
 
         /// <summary>
@@ -235,8 +237,20 @@ namespace GeometryHelper.Geometry
         /// ends no more than the tolerance outside the rectangle on either axis. One that misses it by more gives null.
         /// </para>
         /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the rectangle has a coordinate or a size that is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this line has a coordinate that is not a finite number.</exception>
         public GeoLine2? ClipTo(GeoRectangle2 rect, Tolerance tolerance)
         {
+            Guard.FiniteShape(Origin.IsValid && Direction.IsValid);
+            Guard.Argument(
+                rect.Center.IsValid
+                    && Guard.IsFinite(rect.Width)
+                    && Guard.IsFinite(rect.Height)
+                    && Guard.IsFinite(rect.AngleRad),
+                nameof(rect),
+                "The rectangle has a coordinate or a size that is not a finite number."
+            );
+
             if (TryClip(rect, 0.0, tolerance, out double near, out double far))
             {
                 return ToLine(near, far);

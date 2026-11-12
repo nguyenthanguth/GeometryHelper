@@ -236,6 +236,7 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between a face and the sphere, in drawing units. Zero picks 0.2 % of the radius.</param>
         /// <returns>A closed body whose faces face outwards, every corner of them on the sphere.</returns>
         /// <exception cref="ArgumentException">Thrown when the ball is not valid, as a <c>default</c> one is.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the centre of the ball has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a finite number, or needs more than 1 048 576 triangles.</exception>
         /// <remarks>
         /// <para>
@@ -262,6 +263,7 @@ namespace GeometryHelper.Geometry
         /// <param name="chordTolerance">The largest gap allowed between a triangle and the sphere, in drawing units. Zero picks 0.2 % of the radius.</param>
         /// <returns>The triangles of <see cref="ToSolid(double)"/>, counter-clockwise seen from outside, in a fixed order.</returns>
         /// <exception cref="ArgumentException">Thrown when the ball is not valid, as a <c>default</c> one is.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the centre of the ball has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a finite number, or needs more than 1 048 576 triangles.</exception>
         public GeoTriangle3[] TriangulateSurface(double chordTolerance) => Sphere3.Triangulate(this, chordTolerance);
 

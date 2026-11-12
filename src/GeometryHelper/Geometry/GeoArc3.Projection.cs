@@ -34,8 +34,9 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this arc does not lie in the loop's plane.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this arc has a coordinate that is not a finite number.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop) =>
-            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this).Reverse();
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(Finite()).Reverse();
 
         /// <summary>
         /// Gets the shortest line from this arc to the boundary of a curved loop in the same plane, within a tolerance:
@@ -44,8 +45,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when this arc does not lie in the loop's plane.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when this arc has a coordinate that is not a finite number.</exception>
         public GeoLine3 GetShortestLineTo(GeoPolygonArc3 loop, Tolerance tolerance) =>
-            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(this, tolerance).Reverse();
+            (loop ?? throw new ArgumentNullException(nameof(loop))).GetShortestLineTo(Finite(), tolerance).Reverse();
+
+        /// <summary>
+        /// This arc, refused where a coordinate of it is not a finite number; a <c>default</c> one, which is not valid,
+        /// still is finite.
+        /// </summary>
+        private GeoArc3 Finite()
+        {
+            Guard.FiniteShape(
+                Center.IsValid
+                    && Normal.IsValid
+                    && Guard.IsFinite(Radius)
+                    && Guard.IsFinite(StartAngle)
+                    && Guard.IsFinite(SweptAngle)
+            );
+
+            return this;
+        }
 
         /// <summary>
         /// Gets the shortest segment joining this arc to a point, using the default tolerance.

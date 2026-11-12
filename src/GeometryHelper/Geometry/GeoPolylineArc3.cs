@@ -89,7 +89,9 @@ namespace GeometryHelper.Geometry
         /// chain (0, 0, 0), (10, 0, 0), (10.0004, 0, 0), (20, 0, 0) with bulges 0, 0, 1 about Z is the straight edge
         /// to (10, 0, 0) and then the half circle of bulge 1 from there to (20, 0, 0).
         /// </remarks>
-        /// <exception cref="ArgumentException">Thrown when a bulge is not a finite number.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a bulge is not a finite number, or a vertex at either end of an edge that bulges is not a finite point.
+        /// </exception>
         public GeoPolylineArc3(
             IEnumerable<GeoPoint3> vertices,
             IEnumerable<double> bulges,
@@ -146,6 +148,14 @@ namespace GeometryHelper.Geometry
             // rather than into a wrong answer somewhere later on.
             for (int i = 0; i < EdgeCount; i++)
             {
+                // An arc bulges between two finite vertices, which the edge would refuse by names of its own; a straight
+                // edge, as a segment, may have an end of NaN.
+                Guard.Argument(
+                    _bulges[i] == 0.0 || (_vertices[i].IsValid && _vertices[i + 1].IsValid),
+                    nameof(vertices),
+                    Guard.NotFinitePoint
+                );
+
                 GeoEdge3 edge = new GeoEdge3(_vertices[i], _vertices[i + 1], _bulges[i], _normals[i], tolerance);
 
                 _bulges[i] = edge.Bulge;
@@ -642,49 +652,66 @@ namespace GeometryHelper.Geometry
         /// vertices, because any three vertices are flat. An arc comes back as an arc with its radius moved by
         /// the distance, so a bar set out at one cover can be moved to another without being straightened.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal) =>
-            Offset3.OffsetInPlane(this, distance, planeNormal);
+            Offset3.OffsetInPlane(Finite(), distance, planeNormal);
 
         /// <summary>
         /// Gets the curve parallel to this chain at a distance to its left within its plane, within a tolerance.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, Tolerance tolerance) =>
-            Offset3.OffsetInPlane(this, distance, planeNormal, tolerance);
+            Offset3.OffsetInPlane(Finite(), distance, planeNormal, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to this chain at a distance to its left within its plane, with the given shape
         /// of corner.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetJoin join) =>
-            Offset3.OffsetInPlane(this, distance, planeNormal, join);
+            Offset3.OffsetInPlane(Finite(), distance, planeNormal, join);
 
         /// <summary>
         /// Gets the curve parallel to this chain at a distance to its left within its plane, with the given shape
         /// of corner, within a tolerance.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(
             double distance,
             GeoVector3 planeNormal,
             OffsetJoin join,
             Tolerance tolerance
-        ) => Offset3.OffsetInPlane(this, distance, planeNormal, join, tolerance);
+        ) => Offset3.OffsetInPlane(Finite(), distance, planeNormal, join, tolerance);
 
         /// <summary>
         /// Gets the curve parallel to this chain at a distance to its left within its plane, as the options say.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(double distance, GeoVector3 planeNormal, OffsetOptions options) =>
-            Offset3.OffsetInPlane(this, distance, planeNormal, options);
+            Offset3.OffsetInPlane(Finite(), distance, planeNormal, options);
 
         /// <summary>
         /// Gets the curve parallel to this chain at a distance to its left within its plane, as the options say,
         /// within a tolerance. A negative distance goes to the right.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the chain has a coordinate that is not a finite number.</exception>
         public GeoPolylineArc3[] OffsetInPlane(
             double distance,
             GeoVector3 planeNormal,
             OffsetOptions options,
             Tolerance tolerance
-        ) => Offset3.OffsetInPlane(this, distance, planeNormal, options, tolerance);
+        ) => Offset3.OffsetInPlane(Finite(), distance, planeNormal, options, tolerance);
+
+        /// <summary>
+        /// This chain, refused where a coordinate of it is not a finite number; its bulges are refused by the
+        /// constructor, and a straight edge carries no normal.
+        /// </summary>
+        private GeoPolylineArc3 Finite()
+        {
+            Guard.FiniteShape(Guard.AreValid(_vertices));
+
+            return this;
+        }
 
         #endregion
 

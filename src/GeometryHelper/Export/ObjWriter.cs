@@ -503,6 +503,7 @@ namespace GeometryHelper.Export
         public ObjWriter Add(GeoSphere3 sphere, double chordTolerance, string name = null)
         {
             Chords.Require(chordTolerance);
+            Core.Sphere3.RequireFiniteCentre(sphere);
             return Add(sphere.TriangulateSurface(chordTolerance), name);
         }
 

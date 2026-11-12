@@ -27,6 +27,18 @@ namespace GeometryHelper.Core
 
         private static readonly double Phi = (1.0 + Math.Sqrt(5.0)) / 2.0;
 
+        /// <summary>
+        /// Refuses a ball handed to a writer with a centre that is not a finite number: there the ball is an argument, and is
+        /// named as one, where the ball's own members refuse themselves.
+        /// </summary>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
+        internal static void RequireFiniteCentre(GeoSphere3 sphere) =>
+            Guard.Argument(
+                sphere.Center.IsValid,
+                nameof(sphere),
+                "A sphere to be meshed must have a centre that is a number."
+            );
+
         // The corners of the icosahedron, on three golden rectangles, all the same distance from the centre.
         private static readonly double[][] Corners =
         {
@@ -96,17 +108,15 @@ namespace GeometryHelper.Core
         /// <summary>
         /// Gets the chord tolerance a ball is meshed within, which is the automatic share of the radius where none is given.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when the ball is not valid.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the tolerance is negative or not a finite number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the ball has no radius, or the tolerance is negative or not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the centre of the ball has a coordinate that is not a finite number.</exception>
         internal static double MeshTolerance(GeoSphere3 sphere, double chordTolerance)
         {
             // A default ball has no radius, and a centre that is not a number would put every corner nowhere.
             Guard.Positive(sphere.Radius, "radius", "A sphere to be meshed must have a positive radius.");
 
-            if (!sphere.Center.IsValid)
-            {
-                throw new ArgumentException("A sphere to be meshed must have a centre that is a number.", "sphere");
-            }
+            // The ball is the instance it is asked of, not an argument.
+            Guard.FiniteShape(sphere.Center.IsValid);
 
             Guard.NonNegative(
                 chordTolerance,
