@@ -100,7 +100,8 @@ namespace GeometryHelper.Geometry
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the bulge is not a number.</exception>
         /// <exception cref="ArgumentException">
         /// Thrown when a bulge that is not nought comes with a normal of no length, or with one the chord does not lie square
-        /// to within the tolerance, or when the two points are one to the last digit.
+        /// to within the tolerance, or when the two points are one to the last digit, or when a bulge that is not nought
+        /// comes with a point that is not a finite one.
         /// </exception>
         public GeoEdge3(GeoPoint3 startPoint, GeoPoint3 endPoint, double bulge, GeoVector3 normal, Tolerance tolerance)
         {
@@ -126,6 +127,10 @@ namespace GeometryHelper.Geometry
                     nameof(normal)
                 );
             }
+
+            // An arc bulges between two finite points; a straight edge, as a segment, may have an end of NaN.
+            Guard.Argument(startPoint.IsValid, nameof(startPoint), Guard.NotFinitePoint);
+            Guard.Argument(endPoint.IsValid, nameof(endPoint), Guard.NotFinitePoint);
 
             GeoVector3 chord = startPoint.GetVectorTo(endPoint);
 
@@ -414,10 +419,17 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Moves the edge by a vector.
         /// </summary>
-        public GeoEdge3 Translate(GeoVector3 vector) =>
-            IsArc
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the ends would not be finite, which the constructor refuses.
+        /// </exception>
+        public GeoEdge3 Translate(GeoVector3 vector)
+        {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
+            return IsArc
                 ? new GeoEdge3(StartPoint.Add(vector), EndPoint.Add(vector), Bulge, Normal)
                 : new GeoEdge3(StartPoint.Add(vector), EndPoint.Add(vector));
+        }
 
         /// <summary>
         /// Applies a transformation to the edge.
@@ -430,6 +442,7 @@ namespace GeometryHelper.Geometry
         /// ends and its middle land would stand further than the global point tolerance off, as the arc is refused
         /// (<see cref="GeoArc3.TransformBy(GeoTransform3)"/>).
         /// </exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         /// <remarks>
         /// The normal is carried by the transformation as well, so an edge turned about any axis keeps
         /// bulging the way it did. A transformation that mirrors turns the plane over, which is why the
@@ -448,6 +461,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             GeoPoint3 start = transform.Transform(StartPoint);
             GeoPoint3 end = transform.Transform(EndPoint);

@@ -41,6 +41,8 @@ namespace GeometryHelper.Core
                 throw new ArgumentException("There are no points to fit round.", nameof(points));
             }
 
+            Guard.Argument(Guard.AreValid(all), nameof(points), Guard.NotFinitePoint);
+
             IReadOnlyList<GeoPoint2> corners = ConvexHull2.TryOf(all, out GeoPolygon2 hull, tolerance)
                 ? hull.Vertices
                 : all;
@@ -179,6 +181,8 @@ namespace GeometryHelper.Core
             {
                 throw new ArgumentException("There are no points to fit round.", nameof(points));
             }
+
+            Guard.Argument(Guard.AreValid(all), nameof(points), Guard.NotFinitePoint);
 
             var corners = new List<GeoPoint3>();
             var normals = new List<GeoVector3>();

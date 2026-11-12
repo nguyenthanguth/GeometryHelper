@@ -89,7 +89,7 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentException">
         /// Thrown when fewer than three distinct vertices are given, when they do not lie in one plane, or
-        /// when an arc bulges out of that plane.
+        /// when an arc bulges out of that plane, or when a bulge is not a finite number.
         /// </exception>
         public GeoPolygonArc3(
             IEnumerable<GeoPoint3> vertices,
@@ -106,6 +106,8 @@ namespace GeometryHelper.Geometry
             var keptNormals = new List<GeoVector3>();
 
             var givenBulges = bulges == null ? new List<double>() : new List<double>(bulges);
+
+            Guard.Argument(Guard.AreFinite(givenBulges), nameof(bulges), "A bulge has to be a finite number.");
             var givenNormals = normals == null ? new List<GeoVector3>() : new List<GeoVector3>(normals);
 
             int index = 0;
@@ -756,8 +758,13 @@ namespace GeometryHelper.Geometry
         /// standing in the plane x = 20 and filleted at 0.0005 moves with its eight edges, four of them arcs, where it was
         /// put back together within the global tolerance of a thousandth and came back its four corners.
         /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the vertices would not be finite, which the constructor refuses.
+        /// </exception>
         public GeoPolygonArc3 Translate(GeoVector3 vector)
         {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
             var moved = new GeoPoint3[_vertices.Length];
 
             for (int i = 0; i < _vertices.Length; i++)
@@ -780,12 +787,15 @@ namespace GeometryHelper.Geometry
         /// Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off, as
         /// <see cref="GeoEdge3.TransformBy(GeoTransform3)"/> refuses it.
         /// </exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         public GeoPolygonArc3 TransformBy(GeoTransform3 transform)
         {
             if (transform == null)
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             var edges = new List<GeoEdge3>(EdgeCount);
 

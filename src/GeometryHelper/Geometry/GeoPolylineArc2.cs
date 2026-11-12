@@ -432,12 +432,15 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation would skew or stretch an arc into part of an ellipse it would land visibly off.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         public GeoPolylineArc2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             var edges = new List<GeoEdge2>(EdgeCount);
 
@@ -462,7 +465,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="distance">How far back along each edge the cut is measured.</param>
         /// <returns>The chamfered chain; corners between two straight edges are cut and the rest are left alone.</returns>
-        public GeoPolylineArc2 Chamfer(double distance) => Corner2.Chamfer(this, distance, distance, Tolerance.Global);
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance is not a positive number.</exception>
+        public GeoPolylineArc2 Chamfer(double distance)
+        {
+            Corner2.RequirePositive(distance, nameof(distance));
+
+            return Corner2.Chamfer(this, distance, distance, Tolerance.Global);
+        }
 
         /// <summary>
         /// Chamfers every corner that has room for it, within a tolerance.

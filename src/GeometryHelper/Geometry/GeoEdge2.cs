@@ -249,7 +249,8 @@ namespace GeometryHelper.Geometry
             first = this;
             second = this;
 
-            if (double.IsNaN(parameter) || parameter <= 0.0 || parameter >= 1.0)
+            // An edge with an end that is not a finite point has no place to be cut at.
+            if (double.IsNaN(parameter) || parameter <= 0.0 || parameter >= 1.0 || !IsValid)
             {
                 return false;
             }

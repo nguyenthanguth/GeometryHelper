@@ -299,6 +299,13 @@ namespace GeometryHelper.Core
         internal static SplineShape Of(GeoSpline2 spline, GeoEllipse2 ellipse)
         {
             var shape = new SplineShape();
+
+            // An ellipse about a centre of NaN is nowhere, as a segment of NaN is: a shape of no pieces.
+            if (!ellipse.Center.IsValid)
+            {
+                return shape;
+            }
+
             shape.Parts.Add(new EllipsePartner(ellipse));
 
             // The same test the ellipse's own distances make: inside or on the rim, exactly.

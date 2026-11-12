@@ -42,9 +42,20 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="origin">The origin point.</param>
         /// <param name="through">A point the ray passes through.</param>
-        /// <exception cref="ArgumentException">Thrown when the two points coincide.</exception>
+        /// <exception cref="ArgumentException">Thrown when the two points coincide, or either is not a finite point.</exception>
         public GeoRay3(GeoPoint3 origin, GeoPoint3 through)
-            : this(origin, origin.GetVectorTo(through)) { }
+            : this(origin, Toward(origin, through)) { }
+
+        /// <summary>
+        /// The direction from one point to another, each refused by its own name where it is not a finite point.
+        /// </summary>
+        private static GeoVector3 Toward(GeoPoint3 origin, GeoPoint3 through)
+        {
+            Guard.Argument(origin.IsValid, nameof(origin), Guard.NotFinitePoint);
+            Guard.Argument(through.IsValid, nameof(through), Guard.NotFinitePoint);
+
+            return origin.GetVectorTo(through);
+        }
 
         /// <summary>
         /// Initializes a ray from a direction that is already normalized.

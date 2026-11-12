@@ -15,6 +15,24 @@ namespace GeometryHelper
     internal static class Guard
     {
         /// <summary>
+        /// What a member that needs a finite point says to one that is not.
+        /// </summary>
+        internal const string NotFinitePoint = "The point has a coordinate that is not a finite number.";
+
+        /// <summary>
+        /// What a shape whose constructor refuses a point that is not finite says to a vector that would move it to one.
+        /// </summary>
+        internal const string NotFiniteVector =
+            "The vector has to be finite: the shape cannot have a point that is not.";
+
+        /// <summary>
+        /// What a shape whose constructor refuses a point that is not finite says to a transformation that would carry it
+        /// to one.
+        /// </summary>
+        internal const string NotFiniteTransform =
+            "The transformation has to be a matrix of finite numbers: the shape cannot have a point that is not.";
+
+        /// <summary>
         /// Refuses a value that is not a finite number of nought or more.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is negative, NaN or infinite.</exception>

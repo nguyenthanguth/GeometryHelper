@@ -33,13 +33,22 @@ namespace GeometryHelper.Core
         /// Cuts every corner of a straight chain back by the same distance.
         /// </summary>
         public static GeoPolyline3 Chamfer(GeoPolyline3 polyline, double distance) =>
-            Chamfer(polyline, distance, distance, Tolerance.Global);
+            Chamfer(polyline, distance, Tolerance.Global);
 
         /// <summary>
         /// Cuts every corner of a straight chain back by the same distance, within a tolerance.
         /// </summary>
-        public static GeoPolyline3 Chamfer(GeoPolyline3 polyline, double distance, Tolerance tolerance) =>
-            Chamfer(polyline, distance, distance, tolerance);
+        public static GeoPolyline3 Chamfer(GeoPolyline3 polyline, double distance, Tolerance tolerance)
+        {
+            if (polyline == null)
+            {
+                throw new ArgumentNullException(nameof(polyline));
+            }
+
+            RequirePositiveDistance(distance, nameof(distance));
+
+            return Chamfer(polyline, distance, distance, tolerance);
+        }
 
         /// <summary>
         /// Cuts every corner of a straight chain back, by one distance along the way in and another along the way out.
@@ -66,6 +75,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
+        /// <exception cref="ArgumentException">Thrown when a vertex has a coordinate that is not a finite number.</exception>
         public static GeoPolyline3 Chamfer(
             GeoPolyline3 polyline,
             double distance1,
@@ -80,6 +90,13 @@ namespace GeometryHelper.Core
 
             RequirePositiveDistance(distance1, nameof(distance1));
             RequirePositiveDistance(distance2, nameof(distance2));
+
+            // A vertex of NaN would have the search for room at each corner run on for ever.
+            Guard.Argument(
+                Guard.AreValid(polyline.Vertices),
+                nameof(polyline),
+                "The chain has a coordinate that is not a finite number."
+            );
 
             List<GeoPoint3> vertices = BuildCut(polyline.Vertices, false, distance1, distance2, tolerance, "chain");
 
@@ -176,13 +193,22 @@ namespace GeometryHelper.Core
         /// Cuts every corner of a straight loop back by the same distance.
         /// </summary>
         public static GeoPolygon3 Chamfer(GeoPolygon3 polygon, double distance) =>
-            Chamfer(polygon, distance, distance, Tolerance.Global);
+            Chamfer(polygon, distance, Tolerance.Global);
 
         /// <summary>
         /// Cuts every corner of a straight loop back by the same distance, within a tolerance.
         /// </summary>
-        public static GeoPolygon3 Chamfer(GeoPolygon3 polygon, double distance, Tolerance tolerance) =>
-            Chamfer(polygon, distance, distance, tolerance);
+        public static GeoPolygon3 Chamfer(GeoPolygon3 polygon, double distance, Tolerance tolerance)
+        {
+            if (polygon == null)
+            {
+                throw new ArgumentNullException(nameof(polygon));
+            }
+
+            RequirePositiveDistance(distance, nameof(distance));
+
+            return Chamfer(polygon, distance, distance, tolerance);
+        }
 
         /// <summary>
         /// Cuts every corner of a straight loop back, by one distance along the way in and another along the way out.
@@ -312,13 +338,22 @@ namespace GeometryHelper.Core
         /// Cuts every corner of a curved chain back by the same distance.
         /// </summary>
         public static GeoPolylineArc3 Chamfer(GeoPolylineArc3 chain, double distance) =>
-            Chamfer(chain, distance, distance, Tolerance.Global);
+            Chamfer(chain, distance, Tolerance.Global);
 
         /// <summary>
         /// Cuts every corner of a curved chain back by the same distance, within a tolerance.
         /// </summary>
-        public static GeoPolylineArc3 Chamfer(GeoPolylineArc3 chain, double distance, Tolerance tolerance) =>
-            Chamfer(chain, distance, distance, tolerance);
+        public static GeoPolylineArc3 Chamfer(GeoPolylineArc3 chain, double distance, Tolerance tolerance)
+        {
+            if (chain == null)
+            {
+                throw new ArgumentNullException(nameof(chain));
+            }
+
+            RequirePositiveDistance(distance, nameof(distance));
+
+            return Chamfer(chain, distance, distance, tolerance);
+        }
 
         /// <summary>
         /// Cuts every corner of a curved chain back, by one distance along the way in and another along the way out.

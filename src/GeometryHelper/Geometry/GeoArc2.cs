@@ -134,8 +134,13 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the three points share a line, so no circle passes through them, or so nearly that the arc through them would miss them.</exception>
+        /// <exception cref="ArgumentException">Thrown when a point is not a finite one.</exception>
         public static GeoArc2 FromThreePoints(GeoPoint2 start, GeoPoint2 middle, GeoPoint2 end, Tolerance tolerance)
         {
+            Guard.Argument(start.IsValid, nameof(start), Guard.NotFinitePoint);
+            Guard.Argument(middle.IsValid, nameof(middle), Guard.NotFinitePoint);
+            Guard.Argument(end.IsValid, nameof(end), Guard.NotFinitePoint);
+
             GeoVector2 toMiddle = start.GetVectorTo(middle);
             GeoVector2 toEnd = start.GetVectorTo(end);
 
@@ -340,7 +345,14 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Gets the circle the arc lies on.
         /// </summary>
-        public GeoCircle2 GetCircle() => new GeoCircle2(Center, Radius);
+        /// <remarks>
+        /// An arc whose radius is not a finite number, as the arc of an edge with an end of NaN is, lies on the circle of no
+        /// radius about a centre of NaN, which meets nothing, where it threw for a radius of NaN.
+        /// </remarks>
+        public GeoCircle2 GetCircle() =>
+            Guard.IsFinite(Radius)
+                ? new GeoCircle2(Center, Radius)
+                : new GeoCircle2(new GeoPoint2(double.NaN, double.NaN), 0.0);
 
         /// <summary>
         /// Gets the point of the arc at an angle, whether or not the arc reaches that far.

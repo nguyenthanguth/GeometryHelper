@@ -82,6 +82,26 @@ namespace GeometryHelper.Geometry
         /// </summary>
         public GeoTransform2 Clone() => new GeoTransform2(_m);
 
+        /// <summary>
+        /// Whether every entry of the matrix is a finite number: what a shape that refuses a vertex of NaN asks of the
+        /// transformation that moves it.
+        /// </summary>
+        internal bool IsFinite
+        {
+            get
+            {
+                foreach (double entry in _m)
+                {
+                    if (!Guard.IsFinite(entry))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
         #region Factories
 
         /// <summary>

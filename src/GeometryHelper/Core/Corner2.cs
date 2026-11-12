@@ -28,14 +28,21 @@ namespace GeometryHelper.Core
         /// <param name="distance">How far back along each edge the cut is measured.</param>
         /// <returns>The chamfered polygon.</returns>
         public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance) =>
-            Chamfer(polygon, distance, distance, Tolerance.Global);
+            Chamfer(polygon, distance, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a polygon that has room for it, cutting the same distance along both
         /// edges, within a tolerance.
         /// </summary>
-        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance, Tolerance tolerance) =>
-            Chamfer(polygon, distance, distance, tolerance);
+        public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance, Tolerance tolerance)
+        {
+            if (polygon == null)
+                throw new ArgumentNullException(nameof(polygon));
+
+            RequirePositive(distance, nameof(distance));
+
+            return Chamfer(polygon, distance, distance, tolerance);
+        }
 
         /// <summary>
         /// Chamfers every corner of a polygon that has room for it, using the default tolerance.
@@ -68,6 +75,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
+        /// <exception cref="ArgumentException">Thrown when a vertex has a coordinate that is not a finite number.</exception>
         public static GeoPolygon2 Chamfer(GeoPolygon2 polygon, double distance1, double distance2, Tolerance tolerance)
         {
             if (polygon == null)
@@ -75,6 +83,9 @@ namespace GeometryHelper.Core
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
+
+            // A vertex of NaN would have the search for room at each corner run on for ever.
+            Guard.Argument(Guard.AreValid(polygon.Vertices), nameof(polygon), NotFinitePolygon);
 
             List<GeoPoint2> vertices = Build(polygon.Vertices, true, distance1, distance2, tolerance, "polygon");
 
@@ -86,14 +97,21 @@ namespace GeometryHelper.Core
         /// edges, using the default tolerance.
         /// </summary>
         public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance) =>
-            Chamfer(polyline, distance, distance, Tolerance.Global);
+            Chamfer(polyline, distance, Tolerance.Global);
 
         /// <summary>
         /// Chamfers every corner of a chain that has room for it, cutting the same distance along both
         /// edges, within a tolerance.
         /// </summary>
-        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance, Tolerance tolerance) =>
-            Chamfer(polyline, distance, distance, tolerance);
+        public static GeoPolyline2 Chamfer(GeoPolyline2 polyline, double distance, Tolerance tolerance)
+        {
+            if (polyline == null)
+                throw new ArgumentNullException(nameof(polyline));
+
+            RequirePositive(distance, nameof(distance));
+
+            return Chamfer(polyline, distance, distance, tolerance);
+        }
 
         /// <summary>
         /// Chamfers every corner of a chain that has room for it, using the default tolerance.
@@ -121,6 +139,7 @@ namespace GeometryHelper.Core
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the chain is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when either distance is not a positive number.</exception>
+        /// <exception cref="ArgumentException">Thrown when a vertex has a coordinate that is not a finite number.</exception>
         public static GeoPolyline2 Chamfer(
             GeoPolyline2 polyline,
             double distance1,
@@ -133,6 +152,9 @@ namespace GeometryHelper.Core
 
             RequirePositive(distance1, nameof(distance1));
             RequirePositive(distance2, nameof(distance2));
+
+            // A vertex of NaN would have the search for room at each corner run on for ever.
+            Guard.Argument(Guard.AreValid(polyline.Vertices), nameof(polyline), NotFiniteChain);
 
             List<GeoPoint2> vertices = Build(polyline.Vertices, false, distance1, distance2, tolerance, "chain");
 
@@ -713,7 +735,11 @@ namespace GeometryHelper.Core
             return count;
         }
 
-        private static void RequirePositive(double value, string name)
+        private const string NotFinitePolygon = "The polygon has a coordinate that is not a finite number.";
+
+        private const string NotFiniteChain = "The chain has a coordinate that is not a finite number.";
+
+        internal static void RequirePositive(double value, string name)
         {
             if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0.0)
             {

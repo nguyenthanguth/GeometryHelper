@@ -71,7 +71,8 @@ namespace GeometryHelper.Core
             hull = null;
             var sorted = new List<GeoPoint2>(points);
 
-            if (sorted.Count < 3)
+            // A point that is not a finite one has no place in a hull.
+            if (sorted.Count < 3 || !Guard.AreValid(sorted))
             {
                 return false;
             }

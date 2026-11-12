@@ -364,10 +364,13 @@ namespace GeometryHelper.Geometry
         /// 0, 0, 2/3, 1, 1.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the polyline is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when a vertex has a coordinate that is not a finite number.</exception>
         public static GeoSpline2 FromPolyline(GeoPolyline2 polyline)
         {
             if (polyline == null)
                 throw new ArgumentNullException(nameof(polyline));
+
+            Guard.Argument(Guard.AreValid(polyline.Vertices), nameof(polyline), NotFinitePolyline);
 
             return new GeoSpline2(NurbsCurve.FromChain(2, Flatten(polyline.Vertices)));
         }
@@ -384,8 +387,11 @@ namespace GeometryHelper.Geometry
         /// 50. The ends are the arc's own: the spline starts at <see cref="GeoArc2.StartPoint"/> and ends at its end point,
         /// but that an arc of a whole turn, and so the circle, ends on its start exactly, its first control point repeated.
         /// </remarks>
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
         public static GeoSpline2 FromArc(GeoArc2 arc)
         {
+            Guard.Argument(arc.Center.IsValid, nameof(arc), "The arc has a coordinate that is not a finite number.");
+
             double sweep = arc.SweptAngle;
             int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI * 0.5) - 1E-9));
             double step = sweep / pieces;
@@ -431,8 +437,19 @@ namespace GeometryHelper.Geometry
         /// knots 0, 0, 0, 1/4, 1/4, 1/2, 1/2, 3/4, 3/4, 1, 1, 1. Every point of the curve is at 100 from the origin to
         /// rounding, and its length is 2 pi times 100 to a relative 1E-12.
         /// </remarks>
-        public static GeoSpline2 FromCircle(GeoCircle2 circle) =>
-            FromArc(new GeoArc2(circle.Center, circle.Radius, 0.0, 0.0));
+        /// <exception cref="ArgumentException">Thrown when the centre has a coordinate that is not a finite number.</exception>
+        public static GeoSpline2 FromCircle(GeoCircle2 circle)
+        {
+            Guard.Argument(
+                circle.Center.IsValid,
+                nameof(circle),
+                "The circle has a coordinate that is not a finite number."
+            );
+
+            return FromArc(new GeoArc2(circle.Center, circle.Radius, 0.0, 0.0));
+        }
+
+        private const string NotFinitePolyline = "The polyline has a coordinate that is not a finite number.";
 
         #endregion
 
@@ -845,8 +862,13 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it.</param>
         /// <returns>The moved spline: the control points moved, the weights and knots as they were.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the control points would not be finite, which the constructor refuses.
+        /// </exception>
         public GeoSpline2 Translate(GeoVector2 vector)
         {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
             var moved = new double[_curve.Points.Length];
 
             for (int i = 0; i < _points.Length; i++)
@@ -872,10 +894,13 @@ namespace GeometryHelper.Geometry
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the transformation carries every control point to one point.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         public GeoSpline2 TransformBy(GeoTransform2 transform)
         {
             if (transform == null)
                 throw new ArgumentNullException(nameof(transform));
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             var moved = new double[_curve.Points.Length];
 

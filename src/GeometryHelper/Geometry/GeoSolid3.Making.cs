@@ -68,7 +68,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume.</exception>
+        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume, or the profile or the placement has a coordinate that is not a finite number.</exception>
         public static GeoSolid3 Extrude(
             GeoPolygon2 profile,
             GeoCoordinateSystem3 placement,
@@ -100,7 +100,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume.</exception>
+        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume, or the profile or the placement has a coordinate that is not a finite number.</exception>
         public static GeoSolid3 Extrude(
             GeoFace2 profile,
             GeoCoordinateSystem3 placement,
@@ -131,7 +131,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume.</exception>
+        /// <exception cref="ArgumentException">Thrown when the length is too short to sweep out any volume, or the profile or the placement has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Extrude(
             GeoPolygonArc2 profile,
@@ -147,6 +147,16 @@ namespace GeometryHelper.Geometry
             }
 
             Guard.Finite(length, nameof(length), "A length has to be a number.");
+            Guard.Argument(
+                PlanarMap.IsFinite(placement),
+                nameof(placement),
+                "The placement has a coordinate that is not a finite number."
+            );
+            Guard.Argument(
+                Guard.AreValid(profile.Vertices),
+                nameof(profile),
+                "The profile has a coordinate that is not a finite number."
+            );
 
             return Sweep3.Extrude(
                 new GeoFace3(profile.ToPolygon3(placement, chordTolerance)),
@@ -172,7 +182,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance deciding whether the two ends are one.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive or there are fewer than three sides.</exception>
-        /// <exception cref="ArgumentException">Thrown when the two ends are the same point.</exception>
+        /// <exception cref="ArgumentException">Thrown when the two ends are the same point, or either is not a finite one.</exception>
         public static GeoSolid3 Cylinder(
             GeoPoint3 start,
             GeoPoint3 end,
@@ -203,7 +213,7 @@ namespace GeometryHelper.Geometry
         /// not checked.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the profile or the path has a coordinate that is not a finite number.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolyline3 path, Tolerance tolerance) =>
             Sweep3.Sweep(profile, Vertices(path), null, tolerance);
 
@@ -223,7 +233,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the up direction runs along it.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the up direction runs along it, or the profile or the path has a coordinate that is not a finite number.</exception>
         public static GeoSolid3 Sweep(GeoPolygon2 profile, GeoPolyline3 path, GeoVector3 up, Tolerance tolerance) =>
             Sweep3.Sweep(profile, Vertices(path), up, tolerance);
 
@@ -244,7 +254,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the profile or the path has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(
             GeoPolygon2 profile,
@@ -276,7 +286,7 @@ namespace GeometryHelper.Geometry
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile or the path is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the up direction runs along it.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the up direction runs along it, or the profile or the path has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Sweep(
             GeoPolygon2 profile,
@@ -303,7 +313,7 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the path has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolyline3 path, double radius, double chordTolerance, Tolerance tolerance) =>
             Sweep3.Sweep(Sweep3.Circle(radius, chordTolerance), Vertices(path), null, tolerance);
@@ -326,7 +336,7 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the radius is not positive.</exception>
-        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path has no length or turns back on itself, or the path has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Pipe(GeoPolylineArc3 path, double radius, double chordTolerance, Tolerance tolerance) =>
             Sweep3.Sweep(Sweep3.Circle(radius, chordTolerance), Vertices(path, chordTolerance), null, tolerance);
@@ -356,7 +366,7 @@ namespace GeometryHelper.Geometry
         /// <returns>The body, wound outwards.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the profile is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle is not above nought or is more than a whole turn.</exception>
-        /// <exception cref="ArgumentException">Thrown when the profile reaches across the axis or lies along it.</exception>
+        /// <exception cref="ArgumentException">Thrown when the profile reaches across the axis or lies along it, or the profile or the placement has a coordinate that is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the chord tolerance would cut one curve into more than 1 048 576 pieces.</exception>
         public static GeoSolid3 Revolve(
             GeoPolygon2 profile,

@@ -139,7 +139,8 @@ namespace GeometryHelper.Core
         {
             GeoPoint3 local = frame.ToLocal(point);
 
-            if (Math.Abs(local.Z) > tolerance.EqualPlanar)
+            // A point, or a frame, that is not a finite one lies on no plane.
+            if (Math.Abs(local.Z) > tolerance.EqualPlanar || !local.IsValid)
             {
                 result = new GeoPoint2(0.0, 0.0);
                 return false;
@@ -357,7 +358,7 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
         /// <exception cref="ArgumentException">
         /// Thrown when the polygon, seen along the Z axis of the frame, encloses no area within the global tolerance: seen
-        /// edge-on, it is a line.
+        /// edge-on, it is a line; or when the frame has a coordinate that is not a finite number.
         /// </exception>
         /// <remarks>
         /// The polygon is laid out side for side, however short a side: only a side seen end-on, along the Z axis of the
@@ -370,6 +371,8 @@ namespace GeometryHelper.Core
         {
             if (polygon == null)
                 throw new ArgumentNullException(nameof(polygon));
+
+            Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
 
             List<GeoPoint2> kept = FlattenSideForSide(frame, polygon.Vertices, true);
 
@@ -411,7 +414,10 @@ namespace GeometryHelper.Core
         /// <param name="polygon">The polygon in the plane.</param>
         /// <returns>The polygon in space, on the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the polygon is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the polygon encloses no area, which no plane of space can carry.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the polygon encloses no area, which no plane of space can carry, or the frame or the polygon has a
+        /// coordinate that is not a finite number.
+        /// </exception>
         /// <remarks>
         /// The polygon is laid in side for side, however short a side: the triangle (0, 0), (10, 0), (10, 10) with every
         /// corner cut by 0.3 and shrunk in the plane by a thousandth keeps its six corners, 0.0003 apart, where the global
@@ -422,6 +428,10 @@ namespace GeometryHelper.Core
         {
             if (polygon == null)
                 throw new ArgumentNullException(nameof(polygon));
+
+            // A polygon of space refuses a vertex that is not a finite point.
+            Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
+            Guard.Argument(Guard.AreValid(polygon.Vertices), nameof(polygon), NotFinitePolygon);
 
             // The corners of a polygon stand apart already; only two laid on the very same point become one.
             return new GeoPolygon3(Lift(frame, polygon.Vertices), default(Tolerance), Tolerance.Global);
@@ -434,7 +444,7 @@ namespace GeometryHelper.Core
         /// <param name="face">The face.</param>
         /// <returns>The face in the plane of the frame, holes and all.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when the boundary or a hole, seen along the Z axis of the frame, encloses no area within the global tolerance.</exception>
+        /// <exception cref="ArgumentException">Thrown when the boundary or a hole, seen along the Z axis of the frame, encloses no area within the global tolerance, or the frame has a coordinate that is not a finite number.</exception>
         /// <remarks>
         /// The boundary and every hole are laid out side for side, as <see cref="ProjectToPolygon2(GeoCoordinateSystem3, GeoPolygon3)"/>
         /// lays out a polygon.
@@ -443,6 +453,8 @@ namespace GeometryHelper.Core
         {
             if (face == null)
                 throw new ArgumentNullException(nameof(face));
+
+            Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
 
             var holes = new List<GeoPolygon2>(face.Holes.Count);
 
@@ -558,6 +570,7 @@ namespace GeometryHelper.Core
         /// <param name="face">The face in the plane.</param>
         /// <returns>The face in space, on the plane of the frame.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the frame or the face has a coordinate that is not a finite number.</exception>
         /// <remarks>
         /// The boundary and every hole are laid in side for side, as <see cref="ToPolygon3(GeoCoordinateSystem3, GeoPolygon2)"/>
         /// lays a polygon: a square hole 2 across with a corner cut by 0.3, shrunk in the plane by a thousandth, keeps its
@@ -567,6 +580,10 @@ namespace GeometryHelper.Core
         {
             if (face == null)
                 throw new ArgumentNullException(nameof(face));
+
+            // A face of space refuses a vertex that is not a finite point.
+            Guard.Argument(IsFinite(frame), nameof(frame), NotFiniteFrame);
+            Guard.Argument(IsFinite(face), nameof(face), "The face has a coordinate that is not a finite number.");
 
             var holes = new List<GeoPolygon3>(face.Holes.Count);
 
@@ -813,6 +830,34 @@ namespace GeometryHelper.Core
             }
 
             return lifted;
+        }
+
+        private const string NotFiniteFrame = "The frame has a coordinate that is not a finite number.";
+
+        private const string NotFinitePolygon = "The polygon has a coordinate that is not a finite number.";
+
+        /// <summary>
+        /// Whether a frame's origin and axes are finite: a frame without axes, as <c>default</c> is, still is.
+        /// </summary>
+        internal static bool IsFinite(GeoCoordinateSystem3 frame) =>
+            frame.Origin.IsValid && frame.XAxis.IsValid && frame.YAxis.IsValid && frame.ZAxis.IsValid;
+
+        internal static bool IsFinite(GeoFace2 face)
+        {
+            if (!Guard.AreValid(face.Boundary.Vertices))
+            {
+                return false;
+            }
+
+            foreach (GeoPolygon2 hole in face.Holes)
+            {
+                if (!Guard.AreValid(hole.Vertices))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         #endregion

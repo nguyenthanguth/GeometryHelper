@@ -66,6 +66,7 @@ namespace GeometryHelper.Core
         public static GeoLine2 Extend(GeoLine2 line, double distance, LineEnd end, Tolerance tolerance)
         {
             ValidateEnd(end);
+            RequireFinite(distance, nameof(distance));
 
             return end == LineEnd.Start
                 ? Extend(line, distance, 0.0, tolerance)

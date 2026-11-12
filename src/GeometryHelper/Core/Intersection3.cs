@@ -1248,6 +1248,12 @@ namespace GeometryHelper.Core
 
             GeoPoint3 origin = GeoPoint3.Origin.Add(n1.Multiply(c1)).Add(n2.Multiply(c2));
 
+            // A plane through a point that is not a finite one meets the other nowhere.
+            if (!origin.IsValid)
+            {
+                return false;
+            }
+
             // The angle has been judged above, by the shape's reach when it has one. The ray would judge the sine
             // again as a length, against the vector tolerance, and refuse planes half a degree apart that the test
             // above has just found crossing, so it is given the direction already of unit length.
@@ -2357,6 +2363,12 @@ namespace GeometryHelper.Core
             foreach (GeoPoint3 corner in box.GetCorners())
             {
                 reach = Math.Max(reach, Parametrization3.GetDistanceAtPoint(ray, corner));
+            }
+
+            // A ray or a box with a coordinate that is not a finite number meets nothing.
+            if (!Guard.IsFinite(reach))
+            {
+                return new GeoPoint3[0];
             }
 
             // A ray running away from every corner can still start within the tolerance of the box, and then touches it at

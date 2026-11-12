@@ -27,7 +27,7 @@ namespace GeometryHelper.Geometry
         /// 13.548779 by 30 by 42.513057. Points all in one plane give a box of no depth.
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentException">Thrown when there are no points.</exception>
+        /// <exception cref="ArgumentException">Thrown when there are no points, or a point is not a finite one.</exception>
         public static GeoObb3 Fit(IEnumerable<GeoPoint3> points, Tolerance tolerance) => BoxFit.Box(points, tolerance);
     }
 }

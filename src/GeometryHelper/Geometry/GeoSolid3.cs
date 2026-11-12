@@ -946,12 +946,21 @@ namespace GeometryHelper.Geometry
         /// </summary>
         /// <param name="vector">How far to move it, and which way.</param>
         /// <returns>The solid in its new place.</returns>
-        public GeoSolid3 Translate(GeoVector3 vector) => TransformBy(GeoTransform3.Translation(vector));
+        /// <exception cref="ArgumentException">
+        /// Thrown when the vector is not finite: the solid would have vertices of NaN or infinity, which its faces refuse.
+        /// </exception>
+        public GeoSolid3 Translate(GeoVector3 vector)
+        {
+            Guard.Argument(vector.IsValid, nameof(vector), Guard.NotFiniteVector);
+
+            return TransformBy(GeoTransform3.Translation(vector));
+        }
 
         /// <summary>
         /// Applies a transformation to every face and opening.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the transformation is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the transformation has an entry that is not a finite number.</exception>
         /// <remarks>
         /// Each face is transformed as <see cref="GeoFace3.TransformBy(GeoTransform3)"/> transforms it. The block 100 by
         /// 70 by 40 whose top is 0.0009 off flat, scaled by 10 or by 1 000 and turned, stays closed with its volume times
@@ -964,6 +973,8 @@ namespace GeometryHelper.Geometry
             {
                 throw new ArgumentNullException(nameof(transform));
             }
+
+            Guard.Argument(transform.IsFinite, nameof(transform), Guard.NotFiniteTransform);
 
             return TransformBy(transform, transform.ReadCarrying());
         }
