@@ -22,9 +22,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             "AutoCAD 2007/LT2007 DXF (*.dxf)",
             "AutoCAD 2004/LT2004 DXF (*.dxf)",
             "AutoCAD 2000/LT2000 DXF (*.dxf)",
+            "AutoCAD R12/LT2 DXF (*.dxf)",
         };
 
-        private static readonly string[] Versions = { "AC1032", "AC1027", "AC1024", "AC1021", "AC1018", "AC1015" };
+        private static readonly string[] Versions =
+        {
+            "AC1032",
+            "AC1027",
+            "AC1024",
+            "AC1021",
+            "AC1018",
+            "AC1015",
+            "AC1009",
+        };
 
         /// <summary>A drawing of the version with one line, in a folder, opened in a window's view model.</summary>
         private static MainViewModel Opened(TestFolder folder, string version, string name = "plan.dxf")

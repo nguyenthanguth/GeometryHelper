@@ -21,6 +21,59 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The DWG type of Save As, the one the DWG writer writes, listed first as AutoCAD 2021 lists it.</summary>
         public const string Dwg = "AutoCAD 2018 Drawing (*.dwg)";
 
+        // The DXF types of Save As, as AutoCAD 2021 lists them, the newest first, each with the version it writes.
+        private static readonly KeyValuePair<string, string>[] DxfTypes =
+        {
+            new KeyValuePair<string, string>("AutoCAD 2018 DXF (*.dxf)", "AC1032"),
+            new KeyValuePair<string, string>("AutoCAD 2013/LT2013 DXF (*.dxf)", "AC1027"),
+            new KeyValuePair<string, string>("AutoCAD 2010/LT2010 DXF (*.dxf)", "AC1024"),
+            new KeyValuePair<string, string>("AutoCAD 2007/LT2007 DXF (*.dxf)", "AC1021"),
+            new KeyValuePair<string, string>("AutoCAD 2004/LT2004 DXF (*.dxf)", "AC1018"),
+            new KeyValuePair<string, string>("AutoCAD 2000/LT2000 DXF (*.dxf)", "AC1015"),
+            new KeyValuePair<string, string>("AutoCAD R12/LT2 DXF (*.dxf)", "AC1009"),
+        };
+
+        /// <summary>
+        /// Gets the DXF types of AutoCAD 2021's Save Drawing As and of DXFOUT, the newest first, each a version
+        /// <see cref="DxfDatabase.Save(string, string)"/> writes: "AutoCAD 2018 DXF (*.dxf)" down to "AutoCAD R12/LT2 DXF (*.dxf)".
+        /// </summary>
+        public static IReadOnlyList<string> DxfSaveTypes { get; } =
+            Array.AsReadOnly(DxfTypes.Select(t => t.Key).ToArray());
+
+        /// <summary>Gets the DXF type of Save As that writes a version, as AutoCAD 2021 lists it: "AutoCAD 2018 DXF (*.dxf)" for AC1032.</summary>
+        /// <param name="version">The version as <c>$ACADVER</c> names it, letters of either case.</param>
+        /// <returns>The type; "DXF (*.dxf)" for a version none of them writes, R14 among them.</returns>
+        public static string DxfTypeOfVersion(string version)
+        {
+            string named = (version ?? string.Empty).Trim();
+
+            foreach (KeyValuePair<string, string> type in DxfTypes)
+            {
+                if (string.Equals(type.Value, named, StringComparison.OrdinalIgnoreCase))
+                {
+                    return type.Key;
+                }
+            }
+
+            return "DXF (*.dxf)";
+        }
+
+        /// <summary>Gets the version a DXF type of Save As writes: AC1024 for "AutoCAD 2010/LT2010 DXF (*.dxf)".</summary>
+        /// <param name="fileType">The type.</param>
+        /// <returns>The version; null for the DWG type and for "DXF (*.dxf)", which are written as they are.</returns>
+        public static string DxfVersionOfType(string fileType)
+        {
+            foreach (KeyValuePair<string, string> type in DxfTypes)
+            {
+                if (string.Equals(type.Key, fileType, StringComparison.Ordinal))
+                {
+                    return type.Value;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Gets the types of AutoCAD 2021's Export Data dialog, as its help lists them for EXPORT: 3D DWF, 3D DWFx, ACIS,
         /// Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN. Of these the presenter

@@ -1242,7 +1242,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                     else
                     {
-                        _current.Document.SaveAs(path, VersionOfType(fileType), meter);
+                        _current.Document.SaveAs(path, CadExportJob.DxfVersionOfType(fileType), meter);
                     }
                 }
             }
@@ -1292,17 +1292,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
-        // The DXF types of Save Drawing As, as AutoCAD 2021 lists them, the newest first, each with the version it writes.
-        private static readonly KeyValuePair<string, string>[] DxfTypes =
-        {
-            new KeyValuePair<string, string>("AutoCAD 2018 DXF (*.dxf)", "AC1032"),
-            new KeyValuePair<string, string>("AutoCAD 2013/LT2013 DXF (*.dxf)", "AC1027"),
-            new KeyValuePair<string, string>("AutoCAD 2010/LT2010 DXF (*.dxf)", "AC1024"),
-            new KeyValuePair<string, string>("AutoCAD 2007/LT2007 DXF (*.dxf)", "AC1021"),
-            new KeyValuePair<string, string>("AutoCAD 2004/LT2004 DXF (*.dxf)", "AC1018"),
-            new KeyValuePair<string, string>("AutoCAD 2000/LT2000 DXF (*.dxf)", "AC1015"),
-        };
-
         /// <summary>
         /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the type
         /// <see cref="CadExportJob.Dwg"/>, then a DXF of each version <see cref="DxfDatabase.Save(string, string)"/> writes, as
@@ -1323,7 +1312,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             CadDocument document = _current.Document;
             string own = document.SaveVersion ?? document.Database.Version;
-            string dxf = DxfTypeOf(own);
+            string dxf = CadExportJob.DxfTypeOfVersion(own);
             bool dwg = (document.FileName ?? document.Title).EndsWith(".dwg", StringComparison.OrdinalIgnoreCase);
             string name = document.Title;
 
@@ -1338,7 +1327,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ? System.IO.Path.GetDirectoryName(document.FileName)
                     : null;
             var types = new List<string> { CadExportJob.Dwg };
-            types.AddRange(DxfTypes.Select(t => t.Key));
+            types.AddRange(CadExportJob.DxfSaveTypes);
 
             if (!types.Contains(dxf))
             {
@@ -1351,36 +1340,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 dwg ? CadExportJob.Dwg : dxf,
                 folder == null ? name : System.IO.Path.Combine(folder, name)
             );
-        }
-
-        /// <summary>The DXF type of Save As of a version, as AutoCAD 2021 lists it: "AutoCAD 2018 DXF (*.dxf)" for AC1032; "DXF (*.dxf)" for one it lists not.</summary>
-        private static string DxfTypeOf(string version)
-        {
-            string named = (version ?? string.Empty).Trim();
-
-            foreach (KeyValuePair<string, string> type in DxfTypes)
-            {
-                if (string.Equals(type.Value, named, StringComparison.OrdinalIgnoreCase))
-                {
-                    return type.Key;
-                }
-            }
-
-            return "DXF (*.dxf)";
-        }
-
-        /// <summary>The version a DXF type of Save As writes, AC1024 for "AutoCAD 2010/LT2010 DXF (*.dxf)"; null for the DWG type and for "DXF (*.dxf)", which are written as they are.</summary>
-        private static string VersionOfType(string fileType)
-        {
-            foreach (KeyValuePair<string, string> type in DxfTypes)
-            {
-                if (string.Equals(type.Key, fileType, StringComparison.Ordinal))
-                {
-                    return type.Value;
-                }
-            }
-
-            return null;
         }
 
         /// <summary>Makes the view model of the Layer manager over the drawing shown; null with none. Dispose it when the dialog closes.</summary>
@@ -1764,15 +1723,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     e.Handled = true;
                     break;
                 case "QSAVE":
-                    if (e.Payload is string typed)
+                    if (SaveAsRequested != null)
                     {
-                        // FILEDIA 0: the file typed at "Save drawing as", saved once the command has ended, as SAVEAS saves it.
-                        _afterCommand = () => SaveAs(typed);
+                        SaveAsRequested(this, EventArgs.Empty);
+                        e.Handled = true;
+                    }
+
+                    break;
+                case "SAVEAS":
+                    if (e.Payload is CadExportJob typed)
+                    {
+                        // FILEDIA 0: the file and type typed at SAVEAS's questions, saved once the command has ended.
+                        _afterCommand = () => SaveAs(typed.FileName, typed.FileType);
                         e.Handled = true;
                     }
                     else if (SaveAsRequested != null)
                     {
-                        SaveAsRequested(this, EventArgs.Empty);
+                        _afterCommand = () => SaveAsRequested?.Invoke(this, EventArgs.Empty);
                         e.Handled = true;
                     }
 
@@ -1848,6 +1815,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "EXPORT":
                 case "-EXPORT":
+                case "DXFOUT":
                     OnExportFileRequested(e);
                     break;
                 case "QSELECT":

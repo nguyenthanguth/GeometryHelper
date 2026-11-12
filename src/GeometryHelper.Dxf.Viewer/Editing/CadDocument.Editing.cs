@@ -850,7 +850,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Saves the drawing to a file in a version of AutoCAD, as AutoCAD 2021's Save Drawing As does with the type chosen: a DXF
-        /// of R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as
+        /// of R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as
         /// <see cref="DxfDatabase.Save(string, string)"/> writes it; the version is kept in <see cref="SaveVersion"/>, so that
         /// <see cref="Save"/> writes it again, as AutoCAD's QSAVE keeps the format of the last Save As. What the version could not
         /// hold is said in <see cref="LeftOutOfDxf"/>.
@@ -897,6 +897,50 @@ namespace GeometryHelper.Dxf.Viewer
                     false
                 )
             );
+        }
+
+        /// <summary>
+        /// Writes a copy of the drawing as a DXF of a version, as AutoCAD's <c>DXFOUT</c> does: the drawing keeps its file, its
+        /// <see cref="SaveVersion"/> and whether it has changes not saved, and the copy is not the file it is known by.
+        /// </summary>
+        /// <param name="path">The path of the copy.</param>
+        /// <param name="version">The version, as AC1024; null for the drawing's own.</param>
+        /// <returns>What the version could not hold, a sentence each, as <see cref="DxfDatabase.Save(string, string)"/> says it.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the version is none of those of a DXF.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the drawing is of R14 and the version is not its own.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
+        public IReadOnlyList<string> SaveCopy(string path, string version)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (_groupDepth > 0)
+            {
+                throw new InvalidOperationException("A command is running: end it before saving.");
+            }
+
+            _ucs?.WriteTo(Database);
+
+            using (var stream = new MemoryStream())
+            {
+                IReadOnlyList<string> said = Array.Empty<string>();
+
+                if (version == null)
+                {
+                    Database.Save(stream);
+                }
+                else
+                {
+                    said = Database.Save(stream, version);
+                }
+
+                File.WriteAllBytes(Path.GetFullPath(path), stream.ToArray());
+                GeometryHelperLog.Info("CadDocument: wrote a DXF copy " + path + ".");
+                return said;
+            }
         }
 
         /// <summary>

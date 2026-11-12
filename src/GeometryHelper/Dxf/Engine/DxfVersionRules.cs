@@ -16,7 +16,10 @@ namespace GeometryHelper.Dxf
     /// </remarks>
     internal static class DxfVersions
     {
-        /// <summary>The versions a drawing is saved as, oldest first: R2000, R2004, R2007, R2010, R2013 and R2018.</summary>
+        /// <summary>The number of R12 (AC1009), which a drawing is saved as by rules of its own (<see cref="DxfVersionConverter"/>).</summary>
+        internal const int R12 = 1009;
+
+        /// <summary>The versions of R2000 and later a drawing is saved as, oldest first: R2000, R2004, R2007, R2010, R2013 and R2018.</summary>
         internal static readonly string[] Written = { "AC1015", "AC1018", "AC1021", "AC1024", "AC1027", "AC1032" };
 
         // The header variables a version brought, by variable: nought for one R2000 has.
@@ -121,8 +124,8 @@ namespace GeometryHelper.Dxf
         /// <summary>The name of a version as it stands in <c>$ACADVER</c>, <c>AC1015</c> for 1015.</summary>
         internal static string Name(int number) => "AC" + number.ToString(CultureInfo.InvariantCulture);
 
-        /// <summary>Whether a drawing is saved as the version, one of <see cref="Written"/>.</summary>
-        internal static bool IsWritten(int number) => Array.IndexOf(Written, Name(number)) >= 0;
+        /// <summary>Whether a drawing is saved as the version: R12, or one of <see cref="Written"/>.</summary>
+        internal static bool IsWritten(int number) => number == R12 || Array.IndexOf(Written, Name(number)) >= 0;
 
         /// <summary>The version that brought a header variable: nought for one R2000 has.</summary>
         internal static int SinceOfVariable(string variable) =>
