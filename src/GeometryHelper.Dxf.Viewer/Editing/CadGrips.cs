@@ -149,7 +149,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets the way a custom grip's arrow points, in the plan: along a linear parameter, across a flip parameter's line; the
         /// way a table's stretch or breaking grip points, along the table, down it, or both; the way an MTEXT's triangle grip
-        /// points, along it, down it, or into a corner (the two at once); nought for a grip of no arrow.
+        /// points, along it, down it, or into a corner (the two at once); the way the bar of a polyline's segment middle lies,
+        /// a unit vector along the chord (also the tangent at the middle of an arc segment); nought for a grip of no arrow.
         /// </summary>
         public GeoVector2 Direction { get; }
 
@@ -277,14 +278,21 @@ namespace GeometryHelper.Dxf.Viewer
 
                     for (int i = 0; i < segments; i++)
                     {
-                        AddOwn(
-                            CadGripKind.SegmentMiddle,
-                            SegmentMiddle(
-                                polyline.GetPoint2dAt(i),
-                                polyline.GetPoint2dAt((i + 1) % n),
-                                polyline.GetBulgeAt(i)
-                            ),
-                            below
+                        GeoPoint2 from = polyline.GetPoint2dAt(i);
+                        GeoPoint2 to = polyline.GetPoint2dAt((i + 1) % n);
+
+                        // The way the grip's bar lies: along the chord, which is also the tangent at an arc's middle.
+                        GeoVector2 chord = to - from;
+                        double length = chord.Length;
+                        var along = length > 0.0 ? new GeoVector2(chord.X / length, chord.Y / length) : default;
+
+                        grips.Add(
+                            new CadGrip(
+                                grips.Count,
+                                CadGripKind.SegmentMiddle,
+                                Own(SegmentMiddle(from, to, polyline.GetBulgeAt(i)), below),
+                                below ? new GeoVector2(-along.X, along.Y) : along
+                            )
                         );
                     }
 

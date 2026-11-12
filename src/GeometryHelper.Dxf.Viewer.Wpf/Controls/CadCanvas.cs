@@ -252,7 +252,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>How long the cursor rests on a point before it is acquired for tracking, Extension or Parallel: half a second.</summary>
         private const int RestMilliseconds = 500;
-        private const double GripSize = 8.0;
+        private const double GripHoverDelay = 400.0;
         private const int GripLimit = 100;
         private const double UcsIconArm = 44.0;
         private const double UcsIconLetter = 12.0;
@@ -285,6 +285,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         );
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
+
+        // A plain grip under the cursor, AutoCAD's GRIPHOVER (colour 11), and the dark contour a plain grip is edged in
+        // (GRIPCONTOUR, colour 251).
+        private static readonly Brush HoverGripBrush = Solid(0xFF7F7F);
+        private static readonly Pen GripContour = Frozen(new Pen(Solid(0x5A5A5A), 1.0));
 
         // A dynamic block's custom grips, in AutoCAD's dynamic grip colour (GRIPDYNCOLOR, CanvasOptions.CustomGripColor) and
         // edged dark, as the design draws them.
@@ -380,6 +385,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private GeoPoint2? _restAt;
         private double _restAperture;
         private int _hotGrip = -1;
+        private int _gripSize = 5;
+        private int _gripMultifunctional = 3;
+
+        // The hover menu of the grip under the cursor: its items, the grip it is of, its box and the box the cursor may move in
+        // without closing it (the menu and the grip), the row under the cursor, and the wait before it opens.
+        private IReadOnlyList<CadGripMenuItem> _menu;
+        private int _menuGrip = -1;
+        private GripAt _menuAt;
+        private Rect _menuBox;
+        private Rect _menuArea;
+        private int _menuRow = -1;
+        private DispatcherTimer _menuTimer;
 
         // The tip of the custom grip under the cursor: "Width = 900.00 · snaps 800 / 900 / 1000"; null for none.
         private string _gripTip;
@@ -752,6 +769,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets or sets how far from the cursor a click picks an entity, in device-independent pixels: 5 by default, as AutoCAD's PICKBOX.</summary>
         public double PickboxPixels { get; set; } = 5.0;
+
+        /// <summary>
+        /// Gets or sets the size of the grips, 1 to 255: 5 by default, as AutoCAD's GRIPSIZE (Global settings › Appearance ›
+        /// Cursor). A plain grip is a square <c>2 × size + 5</c> device-independent pixels across (15 at 5, 25 at 10); the bar
+        /// of a polyline's segment middle is 22 by 6 at 5, and the table, MTEXT and dynamic block grips scale with it.
+        /// </summary>
+        public int GripSize
+        {
+            get => _gripSize;
+            set
+            {
+                value = Math.Min(255, Math.Max(1, value));
+
+                if (value != _gripSize)
+                {
+                    _gripSize = value;
+                    CloseGripMenu();
+                    InvalidateVisual();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets which ways to the options of a multi-functional grip are on, 0 to 3: 3 by default, as AutoCAD's
+        /// GRIPMULTIFUNCTIONAL. Bit 2 shows the hover menu once the cursor has rested <see cref="GripMenuDelay"/> on the grip;
+        /// bit 1, Ctrl cycling, is not acted on.
+        /// </summary>
+        public int GripMultifunctional
+        {
+            get => _gripMultifunctional;
+            set
+            {
+                _gripMultifunctional = Math.Min(3, Math.Max(0, value));
+
+                if ((_gripMultifunctional & 2) == 0)
+                {
+                    CloseGripMenu();
+                }
+            }
+        }
+
+        /// <summary>Gets how long the cursor rests on a multi-functional grip before its menu opens: 400 milliseconds.</summary>
+        public static TimeSpan GripMenuDelay => TimeSpan.FromMilliseconds(GripHoverDelay);
+
+        /// <summary>Gets the side of the square of a plain grip, in device-independent pixels (<see cref="GripShapes.Square"/>).</summary>
+        private double GripSquare => GripShapes.Square(_gripSize);
 
         /// <summary>Gets or sets how far from the cursor a point snaps, in device-independent pixels: 10 by default, as AutoCAD's APERTURE.</summary>
         public double AperturePixels { get; set; } = 10.0;
@@ -1362,12 +1425,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool CancelGesture()
         {
             bool any =
-                _boxFrom.HasValue
+                _menu != null
+                || _boxFrom.HasValue
                 || _cycler.IsArmed
                 || (_hot.Count > 0 && !_gripEditing)
                 || _tableDrag != null
                 || _cellPress.HasValue;
             CancelTableGesture();
+            CloseGripMenu();
             _cycler.Disarm();
             _boxFrom = null;
             _lasso = null;
@@ -1531,6 +1596,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (e.ChangedButton == MouseButton.Right)
             {
                 _rightPressedAt = e.Timestamp;
+            }
+
+            // A click on a row of the hover menu chooses it; a click anywhere else closes the menu and goes on.
+            if (_menu != null)
+            {
+                int row = e.ChangedButton == MouseButton.Left ? MenuRowAt(p) : -1;
+
+                if (row >= 0)
+                {
+                    ChooseGripMenuRow(row);
+                    _swallowUp = true;
+                    e.Handled = true;
+                    return;
+                }
+
+                CloseGripMenu();
             }
 
             if (TableMouseDown(e.ChangedButton, p))
@@ -1853,6 +1934,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             base.OnMouseLeave(e);
             _rest?.Stop();
             _restAt = null;
+            CloseGripMenu();
 
             if (_mouse.HasValue)
             {
@@ -2031,12 +2113,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnSelectionChanged(object sender, EventArgs e)
         {
+            CloseGripMenu();
             _markedDirty = true;
             RequestRender();
         }
 
         private void OnPromptChanged(object sender, EventArgs e)
         {
+            CloseGripMenu();
             _snapped = null;
             _ghost.Follow(Session);
             _markedDirty = true;
@@ -3264,15 +3348,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _snapped = null;
+
+            // The cursor on the hover menu, or between it and its grip, keeps it open and the grip hovered.
+            if (_menu != null && TrackMenu(p))
+            {
+                return;
+            }
+
             int hot = -1;
 
             if (!IsRunning)
             {
                 for (int i = 0; i < _grips.Count; i++)
                 {
-                    view.DrawingToPixel(_grips[i].Grip.Point.X, _grips[i].Grip.Point.Y, out double gx, out double gy);
-
-                    if (Math.Abs(gx / scale - p.X) <= GripSize * 0.75 && Math.Abs(gy / scale - p.Y) <= GripSize * 0.75)
+                    if (OnGrip(view, scale, _grips[i], p))
                     {
                         hot = i;
                         break;
@@ -3284,6 +3373,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _hotGrip = hot;
                 _gripTip = hot >= 0 ? GripTip(document, _grips[hot]) : null;
+                CloseGripMenu();
+                WaitForGripMenu();
                 InvalidateVisual();
             }
 
@@ -3900,6 +3991,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _hotGrip = -1;
                 _gripTip = null;
+                CloseGripMenu();
                 return;
             }
 
@@ -3938,6 +4030,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _hotGrip = -1;
             }
+
+            KeepGripMenuIfSame();
 
             // The tip reads the values anew, as an edit may have changed them.
             _gripTip = _hotGrip >= 0 ? GripTip(document, _grips[_hotGrip]) : null;
@@ -4387,14 +4481,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void DrawGrips(DrawingContext dc, CadView view, double scale)
         {
-            double half = GripSize / 2.0;
-
             for (int i = 0; i < _grips.Count; i++)
             {
                 Point at = ToScreen(view, _grips[i].Grip.Point, scale);
-                bool hot =
-                    i == _hotGrip
-                    || _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
+                bool clicked = _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
+                bool hot = i == _hotGrip || clicked;
 
                 if (_grips[i].Grip.Custom != null)
                 {
@@ -4410,12 +4501,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                dc.DrawRectangle(
-                    hot ? HotGripBrush : GripBrush,
-                    null,
-                    new Rect(at.X - half, at.Y - half, GripSize, GripSize)
+                // A plain grip: the grip colour edged dark; under the cursor AutoCAD's pink, clicked the hot red, neither edged.
+                DrawPlainGrip(
+                    dc,
+                    view,
+                    scale,
+                    _grips[i].Grip,
+                    at,
+                    clicked ? HotGripBrush
+                        : i == _hotGrip ? HoverGripBrush
+                        : GripBrush,
+                    !hot
                 );
             }
+
+            DrawGripMenu(dc);
 
             // The tip of a custom grip hovered, beside it, as the design shows: the values it drives and the steps they snap to.
             if (_gripTip != null && _hotGrip >= 0 && _hotGrip < _grips.Count)
@@ -4526,7 +4626,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private void DrawCustomGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, Brush fill)
         {
-            double k = GripSize / 12.0 * 1.25;
+            double k = GripSquare / 12.0 * 1.25;
 
             // The way the arrow points on the screen: the grip's direction carried by the view, the screen's y down.
             Point ahead = ToScreen(

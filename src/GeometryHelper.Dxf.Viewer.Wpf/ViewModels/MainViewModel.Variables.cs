@@ -11,7 +11,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// SNAPISOPAIR, SNAPUNIT, GRIDUNIT and GRIDDISPLAY, written into the drawing's <c>*Active</c> viewport (in a layout's
     /// paper space into its viewport 1, through a viewport into that viewport, as AutoCAD 2021 keeps them), SNAPTYPE,
     /// POLARDIST, GRIDSTYLE and SNAPGRIDLEGACY of the settings file, AUTOSNAP, POLARANG, POLARMODE and POLARADDANG,
-    /// PICKBOX, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
+    /// PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE and GRIPDYNCOLOR of Global settings, INPUTSEARCHDELAY and INPUTSEARCHOPTIONFLAGS of the command line's
     /// Input Search Options, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas
     /// follow. ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them
     /// there.
@@ -115,6 +115,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     50,
                     () => _settings.PickboxPixels,
                     v => ChangeSettings(s => s.PickboxPixels = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "GRIPSIZE",
+                    1,
+                    255,
+                    () => _settings.GripSize,
+                    v => ChangeSettings(s => s.GripSize = v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Integer(
+                    "GRIPMULTIFUNCTIONAL",
+                    0,
+                    3,
+                    () => _settings.GripMultifunctional,
+                    v => ChangeSettings(s => s.GripMultifunctional = v)
                 )
             );
             registry.AddVariable(
@@ -362,7 +380,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Raised when a value of Global settings is changed from the command line or a dialog other than Global settings:
-        /// PICKBOX, APERTURE, GRIPDYNCOLOR, LWDISPLAY, POLARANG, the increment of Drafting Settings, the command line's Input
+        /// PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, GRIPDYNCOLOR, LWDISPLAY, POLARANG, the increment of Drafting Settings, the command line's Input
         /// Settings; and when what the settings remember changes: a command used, a misspelling corrected, a file opened or
         /// pinned. The window keeps the settings in use in the settings file, as it keeps DYN and OSMODE.
         /// </summary>
