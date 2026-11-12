@@ -134,8 +134,15 @@ the box 100 by 100 by 0 cross nowhere. `CollidesWith` and `DistanceTo` of a tria
 solid or another box read a box flat on some axis as the shape it has become, where they threw: flat on one axis its
 rectangle, on two its segment, on all three its point. The box 100 by 100 by 0 about (50, 50, 0) is 20 from the
 triangle with corners (10, 10, 20), (90, 10, 20) and (10, 90, 20), and touched by a square standing upright across it;
-the box 100 by 0 by 0 is the segment along its X axis. A box with its faces is read as its body, as before, bit for bit,
-and an empty axis-aligned box is still refused. A box,
+the box 100 by 0 by 0 is the segment along its X axis. A box no thicker than the point tolerance on two axes is read
+the same way by these and by `GetIntersections` of a triangle, a polygon, a face or a plane, since its body is four
+slivers and two ends below the tolerance: the box 100 by 0.000002 by 0.000002 is the segment 100 long down its middle,
+20 from a cube 40 on a side standing 20 over it, where it was measured +Infinity, touching a solid it runs through,
+which it missed, and crossed by the plane x = 30 nowhere, as the segment is; on all three axes it is its centre. A side
+no longer than the point tolerance is thin, as `IsDegenerate()` reads it, so a box 100 by 0.001 by 0.001 is a segment
+at the default tolerance and one 100 by 0.0015 by 0.0015 a body. A box thinner than the tolerance on one axis alone,
+the plate 100 by 100 by 0.000002, keeps its body. A box with its faces and at least two sides longer than the point
+tolerance is read as its body, as before, bit for bit, and an empty axis-aligned box is still refused. A box,
 oriented or not, gives crossings only where a shape comes within the point tolerance of it, as `CollidesWith` reads
 it: a segment along X standing 0.000714 off both faces past an edge of the box 10 by 10 by 10, 0.00101 from it, crosses
 nothing, where it was given two points, and so for a ray, a line without ends, a chain and an arc ending near a corner.

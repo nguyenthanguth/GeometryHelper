@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `CollidesWith`, `DistanceTo` and `GetIntersections` of a triangle, a polygon, a face, a plane, a solid or
+another box against a box no thicker than the point tolerance on two axes, `GeoObb3` or `GeoAabb3`, read its body of
+four slivers and two ends below the tolerance and answered wrongly: the box 100 by 0.000002 by 0.000002 was +Infinity
+from a cube 40 on a side standing 20 over it, and missed a solid it ran through. Such a box is now read as a box flat on
+those axes is, the segment along the third, and on all three its centre: it is 20 from the cube and touches the solid,
+and `GetIntersections` of a triangle, a polygon, a face or a plane with it gives no points, as with the flat box, where
+the body gave one to four. A side no longer than the point tolerance is thin, as `IsDegenerate()` reads it: a box 100
+by 0.001 by 0.001 is a segment at the default tolerance and one 100 by 0.0015 by 0.0015 a body. A box thinner than the
+tolerance on one axis alone, the plate 100 by 100 by 0.000002, keeps its body, and a box with at least two sides longer
+than the tolerance answers bit for bit as before. Over 79 methods taking a box, 259 of 4 740 answers for such boxes
+disagreed with the box flat on the same axes, and 3 do now, boxes 100 000 from the origin whose sides round a hair over
+0.001.
+
 **NEW.** `DxfTolerance.GeometricExtents` is the box of the frame's rows as AutoCAD 2021 gives it, where the drawing's
 `FontSearchPath` measures its words: each row twice the text height high, each cell its ink and the text height wide,
 `{\Fgdt;j}%%v0.1` at (0, 0, 0) in a style of Arial 0.18 high from (0, -0.18, 0) to (0.92296, 0.18, 0), as AutoCAD

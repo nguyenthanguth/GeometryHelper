@@ -293,39 +293,54 @@ namespace GeometryHelper.Geometry
         }
 
         /// <summary>
-        /// Reads a box flat on some axis, where <see cref="HasFaces"/> is false, as the shape it has become: false for a box
-        /// with its faces. Flat on one axis it is its rectangle, the first face of <see cref="GetFacesWithArea"/>; flat on two
-        /// it is the segment along the third, and the rectangle is null; flat on all three it is its centre, a segment of no
-        /// length.
+        /// Reads a box flat on some axis, where <see cref="HasFaces"/> is false, or no thicker than the point tolerance on two
+        /// axes or three, as the shape it has become: false for a box with its faces. Flat on one axis it is its rectangle,
+        /// the first face of <see cref="GetFacesWithArea"/>; flat or that thin on two it is the segment along the third, and
+        /// the rectangle is null; on all three it is its centre, a segment of no length. A box 100 by 0.000002 by 0.000002 is
+        /// the segment 100 long down its middle, its four long faces slivers and its two ends below the tolerance either way;
+        /// a plate 100 by 100 by 0.000002 keeps its faces, and so does a box 100 by 0.0015 by 0.0015.
         /// </summary>
-        internal bool IsFlat(out GeoPolygon3 rectangle, out GeoLine3 segment)
+        internal bool IsFlat(Tolerance tolerance, out GeoPolygon3 rectangle, out GeoLine3 segment)
         {
             rectangle = null;
             segment = default(GeoLine3);
 
-            if (HasFaces)
+            if (IsBody(tolerance))
             {
                 return false;
             }
 
-            GeoPolygon3[] faces = GetFacesWithArea();
+            double nought = Nought();
+            bool x = ExtentX > nought && SizeX > tolerance.EqualPoint,
+                y = ExtentY > nought && SizeY > tolerance.EqualPoint,
+                z = ExtentZ > nought && SizeZ > tolerance.EqualPoint;
 
-            if (faces.Length > 0)
+            if ((x ? 1 : 0) + (y ? 1 : 0) + (z ? 1 : 0) >= 2)
             {
-                rectangle = faces[0];
+                rectangle = GetFacesWithArea()[0];
                 return true;
             }
 
-            double nought = Nought();
             GeoVector3 along =
-                ExtentX > nought ? AxisX.Multiply(ExtentX)
-                : ExtentY > nought ? AxisY.Multiply(ExtentY)
-                : ExtentZ > nought ? AxisZ.Multiply(ExtentZ)
+                x ? AxisX.Multiply(ExtentX)
+                : y ? AxisY.Multiply(ExtentY)
+                : z ? AxisZ.Multiply(ExtentZ)
                 : GeoVector3.Zero;
 
             segment = new GeoLine3(Center.Subtract(along), Center.Add(along));
             return true;
         }
+
+        /// <summary>
+        /// Whether the box is read as its body, where <see cref="IsFlat"/> is false: it has its faces, and at least two of
+        /// its sides are longer than the point tolerance.
+        /// </summary>
+        internal bool IsBody(Tolerance tolerance) =>
+            HasFaces
+            && (SizeX > tolerance.EqualPoint ? 1 : 0)
+                + (SizeY > tolerance.EqualPoint ? 1 : 0)
+                + (SizeZ > tolerance.EqualPoint ? 1 : 0)
+                >= 2;
 
         /// <summary>The size on an axis a box has to exceed to have faces across it: <see cref="FlatShare"/> of its reach.</summary>
         private double Nought() =>
