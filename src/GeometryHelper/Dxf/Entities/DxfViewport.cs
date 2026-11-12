@@ -278,12 +278,239 @@ namespace GeometryHelper.Dxf
             set => SetBit(0x4000, value, -1, 0);
         }
 
-        /// <summary>Gets or sets whether the viewport is clipped by another entity (flag 0x10000 of group 90, the entity group 340), as AutoCAD's <c>NonRectClipOn</c>.</summary>
+        /// <summary>Gets or sets whether the viewport is clipped by another entity (flag 0x10000 of group 90, the entity group 340), as AutoCAD's <c>NonRectClipOn</c>; <see cref="ClipTo"/> and <see cref="RemoveClip"/> set it with the entity.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased, or set in a file older than R2000.</exception>
         public bool NonRectClipOn
         {
             get => Bit(0x10000);
             set => SetBit(0x10000, value, -1, 0);
+        }
+
+        #endregion
+
+        #region The clip boundary
+
+        /// <summary>
+        /// Gets the entity that clips the viewport (group 340), as AutoCAD's <c>NonRectClipEntityId</c> names it: a circle, an
+        /// ellipse, a closed polyline or a closed spline of the same layout, drawn as the border of the viewport. Null for a
+        /// viewport that is not clipped (<see cref="NonRectClipOn"/>), one whose boundary the drawing no longer holds, and one of a
+        /// file older than R2000.
+        /// </summary>
+        public DxfEntity NonRectClipEntity
+        {
+            get
+            {
+                string handle = InMview || !IsResident ? null : GetString(340)?.Trim();
+
+                if (string.IsNullOrEmpty(handle) || !NonRectClipOn)
+                {
+                    return null;
+                }
+
+                DxfEntity found = Item.File.Database?.EntityByHandle(handle);
+                return found == null || found.IsErased ? null : found;
+            }
+        }
+
+        /// <summary>
+        /// Clips the viewport to a closed entity of its layout, as the VPCLIP command does with an object: the viewport shows
+        /// model space only inside the boundary, and its frame becomes the box of the boundary, its view kept in place. A
+        /// viewport 100 by 80 about (100, 100) at 1:2 clipped to a circle of radius 30 about (110, 105) is 60 by 60 about
+        /// (110, 105), the model point at its centre now the one that lay 10 right and 5 above, 20 and 10 in model units. The
+        /// boundary stays the entity it is, with the viewport among its reactors (102 <c>{ACAD_REACTORS</c>), as AutoCAD writes
+        /// it; the boundary the viewport had before stays an entity of the layout, let go.
+        /// </summary>
+        /// <param name="boundary">A circle, a whole ellipse, a closed polyline (LWPOLYLINE or 2D POLYLINE) or a closed spline of the
+        /// viewport's block, which is not the viewport.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the boundary is not an entity of the viewport's block, is erased, has no area, or is not a closed circle, ellipse, polyline or spline, as AutoCAD says "Clip object must be closed."</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the viewport is erased or in no file, or the file is older than R2000, which has no such link.</exception>
+        public void ClipTo(DxfEntity boundary)
+        {
+            if (boundary == null)
+            {
+                throw new ArgumentNullException(nameof(boundary));
+            }
+
+            CheckClippable();
+
+            if (
+                ReferenceEquals(boundary, this)
+                || boundary.IsErased
+                || !boundary.IsResident
+                || !ReferenceEquals(boundary.Owner, Owner)
+            )
+            {
+                throw new ArgumentException(
+                    "The boundary has to be an entity of the viewport's own layout, and not the viewport.",
+                    nameof(boundary)
+                );
+            }
+
+            if (
+                !(
+                    boundary is DxfCircle
+                    || boundary is DxfEllipse
+                    || boundary is DxfPolyline
+                    || boundary is DxfPolyline2d
+                    || boundary is DxfSpline
+                ) || !((DxfCurve)boundary).Closed
+            )
+            {
+                throw new ArgumentException(
+                    "Clip object must be closed: a circle, a whole ellipse, a closed polyline or a closed spline.",
+                    nameof(boundary)
+                );
+            }
+
+            GeoAabb3 box = boundary.GeometricExtents;
+            double least = Tolerance.Default.EqualPoint;
+
+            if (!(box.Max.X - box.Min.X > least) || !(box.Max.Y - box.Min.Y > least))
+            {
+                throw new ArgumentException("The boundary has no area to show the viewport through.", nameof(boundary));
+            }
+
+            DxfEntity before = NonRectClipEntity;
+            var groups = new List<KeyValuePair<int, string>>(FitGroups(box));
+            groups.Add(new KeyValuePair<int, string>(340, boundary.Handle));
+            groups.AddRange(FlagGroups(Flags() | 0x10000));
+            SetGroups(groups.ToArray());
+
+            if (before != null && !ReferenceEquals(before, boundary))
+            {
+                Item.File.SetReactor(before.Item, Handle, false);
+            }
+
+            Item.File.SetReactor(boundary.Item, Handle, true);
+        }
+
+        /// <summary>
+        /// Fits the frame of the viewport to the box of its clip boundary again, as AutoCAD does when the boundary is moved,
+        /// scaled, stretched or turned: the frame is the box of the boundary, and the view keeps its scale and its place, so
+        /// that a boundary moved 10 to the right takes the viewport 10 to the right showing what it showed. Nothing for a
+        /// viewport that is not clipped, and nothing where the frame is already the box.
+        /// </summary>
+        /// <returns>Whether the frame changed.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
+        public bool FitToClip()
+        {
+            DxfEntity boundary = NonRectClipEntity;
+
+            if (boundary == null)
+            {
+                return false;
+            }
+
+            KeyValuePair<int, string>[] groups = FitGroups(boundary.GeometricExtents);
+
+            if (groups.Length == 0)
+            {
+                return false;
+            }
+
+            SetGroups(groups);
+            return true;
+        }
+
+        /// <summary>
+        /// Takes the clip off the viewport, as the Delete of VPCLIP does: the boundary is erased, the link and the flag go, and the
+        /// frame stays the box the boundary had. Nothing for a viewport that is not clipped.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the viewport is erased.</exception>
+        public void RemoveClip()
+        {
+            DxfEntity boundary = NonRectClipEntity;
+            var groups = new List<KeyValuePair<int, string>>();
+
+            if (GetString(340) != null)
+            {
+                groups.Add(new KeyValuePair<int, string>(340, null));
+            }
+
+            if (NonRectClipOn)
+            {
+                groups.AddRange(FlagGroups(Flags() & ~0x10000));
+            }
+
+            if (groups.Count > 0)
+            {
+                SetGroups(groups.ToArray());
+            }
+
+            if (boundary != null)
+            {
+                Item.File.SetReactor(boundary.Item, Handle, false);
+                boundary.Erase();
+            }
+        }
+
+        private void CheckClippable()
+        {
+            if (!IsResident || IsErased)
+            {
+                throw new InvalidOperationException(
+                    "The viewport is in no layout to clip: append it to one first, and not erased."
+                );
+            }
+
+            Item.File.Requires(1015, "a viewport's clip boundary", "R2000 (AC1015)");
+        }
+
+        /// <summary>
+        /// The groups that make the frame the box and keep the view where it was: the centre, width and height, and the view's
+        /// centre moved by the step of the frame's centre over the view's scale (the view centre is in the viewport's own
+        /// coordinates, which run along its sides), its height the new height over that scale. Only the groups that change.
+        /// </summary>
+        private KeyValuePair<int, string>[] FitGroups(GeoAabb3 box)
+        {
+            GeoPoint3 now = CenterPoint;
+            double x = (box.Min.X + box.Max.X) / 2.0;
+            double y = (box.Min.Y + box.Max.Y) / 2.0;
+            double width = box.Max.X - box.Min.X;
+            double height = box.Max.Y - box.Min.Y;
+            var groups = new List<KeyValuePair<int, string>>();
+
+            if (!Same(x, now.X) || !Same(y, now.Y))
+            {
+                groups.Add(new KeyValuePair<int, string>(10, Real(x)));
+                groups.Add(new KeyValuePair<int, string>(20, Real(y)));
+            }
+
+            double oldWidth = Width;
+            double oldHeight = Height;
+            double viewHeight = ViewHeight;
+
+            if (!Same(width, oldWidth))
+            {
+                groups.Add(new KeyValuePair<int, string>(40, Real(width)));
+            }
+
+            if (!Same(height, oldHeight))
+            {
+                groups.Add(new KeyValuePair<int, string>(41, Real(height)));
+            }
+
+            if (oldHeight > 0.0 && viewHeight > 0.0)
+            {
+                double scale = oldHeight / viewHeight;
+                GeoPoint2 center = ViewCenter;
+                double centerX = center.X + (x - now.X) / scale;
+                double centerY = center.Y + (y - now.Y) / scale;
+
+                if (!Same(centerX, center.X) || !Same(centerY, center.Y))
+                {
+                    groups.Add(new KeyValuePair<int, string>(12, Real(centerX)));
+                    groups.Add(new KeyValuePair<int, string>(22, Real(centerY)));
+                }
+
+                if (!Same(height / scale, viewHeight))
+                {
+                    groups.Add(new KeyValuePair<int, string>(45, Real(height / scale)));
+                }
+            }
+
+            return groups.ToArray();
         }
 
         #endregion

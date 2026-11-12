@@ -2332,7 +2332,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     );
                 }
 
-                if (through != null)
+                // A viewport clipped by an entity keeps its grid inside the entity's outline, as it keeps its picture.
+                DisplayClip2 outline = through == null ? null : CadViewportClips.OutlineOf(through);
+
+                if (outline != null)
+                {
+                    KeepWithinOutline(
+                        pixels,
+                        before,
+                        width,
+                        height,
+                        stride,
+                        sheetView,
+                        outline.Flatten(0.1 / sheetView.PixelsPerUnit)
+                    );
+                }
+                else if (through != null)
                 {
                     GeoPoint3 centre = through.CenterPoint;
                     KeepWithinLimits(
@@ -2520,6 +2535,67 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         int at = iy * stride + ix;
                         pixels[at] = before[at];
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The pixels of the grid outside the outline of a clipped viewport put back as they were before the grid, each pixel kept
+        /// that lies inside the ring (paper units) or within half a pixel of its edges, as <see cref="KeepWithinLimits"/> keeps
+        /// those of a rectangle.
+        /// </summary>
+        private static void KeepWithinOutline(
+            int[] pixels,
+            int[] before,
+            int width,
+            int height,
+            int stride,
+            CadView view,
+            double[] ring
+        )
+        {
+            using (var mask = new SKBitmap(new SKImageInfo(width, height, SKColorType.Alpha8, SKAlphaType.Premul)))
+            using (var canvas = new SKCanvas(mask))
+            using (var builder = new SKPathBuilder())
+            using (var paint = new SKPaint { IsAntialias = false, Color = SKColors.White })
+            {
+                canvas.Clear(SKColors.Transparent);
+                canvas.Translate(0.5f, 0.5f);
+
+                for (int i = 0; i < ring.Length / 2; i++)
+                {
+                    view.DrawingToPixel(ring[2 * i], ring[2 * i + 1], out double px, out double py);
+
+                    if (i == 0)
+                    {
+                        builder.MoveTo((float)px, (float)py);
+                    }
+                    else
+                    {
+                        builder.LineTo((float)px, (float)py);
+                    }
+                }
+
+                builder.Close();
+                SKPath path = builder.Detach();
+                canvas.DrawPath(path, paint);
+                paint.IsStroke = true;
+                paint.StrokeWidth = 1f;
+                canvas.DrawPath(path, paint);
+                path.Dispose();
+                var alpha = new byte[mask.RowBytes * height];
+                Marshal.Copy(mask.GetPixels(), alpha, 0, alpha.Length);
+
+                for (int iy = 0; iy < height; iy++)
+                {
+                    for (int ix = 0; ix < width; ix++)
+                    {
+                        if (alpha[iy * mask.RowBytes + ix] == 0)
+                        {
+                            int at = iy * stride + ix;
+                            pixels[at] = before[at];
+                        }
                     }
                 }
             }
@@ -3754,7 +3830,132 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return new Rect(a, b);
         }
 
-        private bool InsideFrame(DxfViewport viewport, Point p) => View != null && FrameOnScreen(viewport).Contains(p);
+        /// <summary>
+        /// The outline of a viewport clipped by an entity on the canvas, in device-independent pixels, arcs kept to a tenth of a
+        /// pixel; null for a viewport that is its frame, or with no view to put it in.
+        /// </summary>
+        private Point[] OutlineOnScreen(DxfViewport viewport)
+        {
+            CadView view = View;
+            DisplayClip2 clip = view == null ? null : CadViewportClips.OutlineOf(viewport);
+
+            if (clip == null)
+            {
+                return null;
+            }
+
+            double scale = PixelScale;
+            double[] ring = clip.Flatten(0.1 * scale / view.PixelsPerUnit);
+            var points = new Point[ring.Length / 2];
+
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i] = ToScreen(view, new GeoPoint2(ring[2 * i], ring[2 * i + 1]), scale);
+            }
+
+            return points;
+        }
+
+        /// <summary>The frame of a viewport as a shape to clip to: its rectangle, or the outline of the entity that clips it.</summary>
+        private System.Windows.Media.Geometry FrameGeometry(DxfViewport viewport)
+        {
+            Point[] outline = OutlineOnScreen(viewport);
+
+            if (outline == null || outline.Length < 3)
+            {
+                return new RectangleGeometry(FrameOnScreen(viewport));
+            }
+
+            var figure = new PathFigure
+            {
+                StartPoint = outline[0],
+                IsClosed = true,
+                IsFilled = true,
+            };
+            figure.Segments.Add(new PolyLineSegment(outline.Skip(1), true));
+            return new PathGeometry(new[] { figure });
+        }
+
+        /// <summary>The frame of a viewport as a path of the picture being drawn, in pixels of the picture; null for a rectangle.</summary>
+        private SKPath FrameSkPath(DxfViewport viewport, double scale)
+        {
+            Point[] outline = OutlineOnScreen(viewport);
+
+            if (outline == null || outline.Length < 3)
+            {
+                return null;
+            }
+
+            using (var builder = new SKPathBuilder())
+            {
+                builder.MoveTo((float)(outline[0].X * scale), (float)(outline[0].Y * scale));
+
+                for (int i = 1; i < outline.Length; i++)
+                {
+                    builder.LineTo((float)(outline[i].X * scale), (float)(outline[i].Y * scale));
+                }
+
+                builder.Close();
+                return builder.Detach();
+            }
+        }
+
+        /// <summary>Clips a picture being drawn to the frame of a viewport: its rectangle, or the outline of the entity that clips it.</summary>
+        private void ClipToFrame(SKCanvas canvas, DxfViewport viewport)
+        {
+            double scale = PixelScale;
+
+            using (SKPath outline = FrameSkPath(viewport, scale))
+            {
+                if (outline != null)
+                {
+                    canvas.ClipPath(outline, SKClipOperation.Intersect, true);
+                    return;
+                }
+            }
+
+            Rect frame = FrameOnScreen(viewport);
+            canvas.ClipRect(
+                new SKRect(
+                    (float)(frame.Left * scale),
+                    (float)(frame.Top * scale),
+                    (float)(frame.Right * scale),
+                    (float)(frame.Bottom * scale)
+                )
+            );
+        }
+
+        private bool InsideFrame(DxfViewport viewport, Point p)
+        {
+            if (View == null)
+            {
+                return false;
+            }
+
+            Point[] outline = OutlineOnScreen(viewport);
+
+            if (outline == null || outline.Length < 3)
+            {
+                return FrameOnScreen(viewport).Contains(p);
+            }
+
+            bool inside = false;
+
+            for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)
+            {
+                if (
+                    (outline[i].Y > p.Y) != (outline[j].Y > p.Y)
+                    && p.X
+                        < (outline[j].X - outline[i].X) * (p.Y - outline[i].Y) / (outline[j].Y - outline[i].Y)
+                            + outline[i].X
+                )
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
+        }
 
         /// <summary>The viewport of the layout shown whose frame holds a point of the canvas, the one drawn last where frames overlap; null for none.</summary>
         private DxfViewport FrameAt(Point p)
@@ -3953,7 +4154,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             var moved = new MatrixTransform(s, 0.0, 0.0, s, tx / scale, ty / scale);
             moved.Freeze();
-            dc.PushClip(new RectangleGeometry(FrameOnScreen(through)));
+            dc.PushClip(FrameGeometry(through));
             dc.PushTransform(moved);
             dc.DrawImage(_bitmap, new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale));
             dc.Pop();
@@ -3973,7 +4174,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int rgb = Options.Paper;
             double luminance =
                 (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
-            dc.DrawRectangle(null, luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark, FrameOnScreen(through));
+            Pen pen = luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark;
+            Point[] outline = OutlineOnScreen(through);
+
+            if (outline == null || outline.Length < 3)
+            {
+                dc.DrawRectangle(null, pen, FrameOnScreen(through));
+                return;
+            }
+
+            dc.DrawGeometry(null, pen, FrameGeometry(through));
         }
 
         /// <summary>
@@ -3996,17 +4206,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            Rect frame = FrameOnScreen(through);
-            double scale = PixelScale;
             canvas.Save();
-            canvas.ClipRect(
-                new SKRect(
-                    (float)(frame.Left * scale),
-                    (float)(frame.Top * scale),
-                    (float)(frame.Right * scale),
-                    (float)(frame.Bottom * scale)
-                )
-            );
+            ClipToFrame(canvas, through);
             _renderer.RenderHighlight(canvas, document, document.ModelSpace, WorkView, Options, handles, hover);
             canvas.Restore();
         }
@@ -4022,17 +4223,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            Rect frame = FrameOnScreen(through);
-            double scale = PixelScale;
             canvas.Save();
-            canvas.ClipRect(
-                new SKRect(
-                    (float)(frame.Left * scale),
-                    (float)(frame.Top * scale),
-                    (float)(frame.Right * scale),
-                    (float)(frame.Bottom * scale)
-                )
-            );
+            ClipToFrame(canvas, through);
             _renderer.RenderFaded(canvas, document, document.ModelSpace, WorkView, Options, handles, FadedShare);
             canvas.Restore();
         }

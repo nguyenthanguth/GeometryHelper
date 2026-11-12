@@ -100,6 +100,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("VPLAYER", ViewportLayer));
             registry.Add(new CadCommand("LAYVPI", LayerViewportIsolate));
             registry.Add(new CadCommand("VPSCALE", ViewportScale));
+            registry.Add(new CadCommand("VPCLIP", ViewportClip));
             registry.Add(new CadCommand("-SCALELISTEDIT", ScaleListEdit));
             registry.Add(new CadCommand("SCALELISTEDIT", ScaleListDialog));
             registry.Add(new CadCommand("MEASUREGEOM", MeasureGeom));

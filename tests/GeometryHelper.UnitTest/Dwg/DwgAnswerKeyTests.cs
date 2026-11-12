@@ -144,6 +144,14 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(9.0, paper.Height, 9);
             Assert.Contains(viewports, v => v.GetFrozenLayers().Count == 1 && v.Locked);
             Assert.Contains(viewports, v => v.NonRectClipOn);
+            DxfViewport clipped = viewports.First(v => v.NonRectClipOn);
+            Assert.NotNull(clipped.NonRectClipEntity);
+            Assert.Contains(clipped.Handle, clipped.NonRectClipEntity.GetPersistentReactorIds());
+            Assert.Equal(
+                clipped.Width,
+                clipped.NonRectClipEntity.GeometricExtents.Max.X - clipped.NonRectClipEntity.GeometricExtents.Min.X,
+                6
+            );
             Assert.Contains(viewports, v => Math.Abs(v.LensLength - 35.0) < 1E-9);
         }
 

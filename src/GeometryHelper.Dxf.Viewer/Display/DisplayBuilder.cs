@@ -1720,6 +1720,9 @@ namespace GeometryHelper.Dxf.Viewer
                     handle,
                     layerName
                 )
+                {
+                    Clip = CadViewportClips.OutlineOf(viewport),
+                }
             );
         }
 

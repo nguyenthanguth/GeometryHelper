@@ -194,11 +194,11 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 182 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 183 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -1213,6 +1213,32 @@ the twist (`ToView` and `FromView`, AutoCAD's TRANS from the world to the view),
 the paper, where AutoCAD's console puts it. Entered, the canvas's view in model units turns with it (`CadView.Twist`):
 picks, snaps and boxes (taken as turned polygons), the crosshair and the UCS icon follow the turn, PAN moves the view by
 the model distance given, and ZOOM Window fits the box as the view turns it.
+
+### Clipping a viewport
+
+VPCLIP clips a viewport of the layout shown as AutoCAD 2021's does, word for word as its console prints them: `Select viewport
+to clip:` (a line or a circle picked says `Object selected was not a viewport.` and asks again), then `Select clipping
+object or [Polygonal] <Polygonal>:`. A closed polyline, circle, ellipse or closed spline picked becomes the border of the
+viewport and the frame its box, the view kept in place (a viewport 200 by 100 about (110, 60) at 1:10, clipped to a circle
+of radius 30 about (110, 60), is 60 by 60 there with its view height 600); an open polyline says `Clip object must be
+closed.`, a viewport `Invalid: Clip entity not currently regen'ed.`, and the command asks `Select object to clip viewport:`
+again. Polygonal asks `Specify start point:` and `Specify next point or [Arc/Length/Undo]:` (with Close from the second
+segment on) as PLINE does, the arcs by their end point or Angle, CEnter, Direction, Radius and Second pt (`Enter an arc boundary
+option`), and Enter closes the polygon with a straight edge; two points and Enter say `Clip polyline must have at least 3
+vertices.` and change nothing. The polygon is a LWPOLYLINE on the current layer, which stays an entity of the layout; Delete,
+for a viewport that is clipped (`Viewport does not have clip boundary associated.` for one that is not), erases the boundary
+and leaves the frame as it was. Each run is one undo step, VPCLIP, and clipping a viewport again leaves the boundary it had
+before in the layout. Worked through a viewport (MSPACE), VPCLIP writes
+`Switching to Paper space.`, asks on the paper and goes back into the viewport, writing `Switching to Model space.`, as
+AutoCAD 2021's console does. The viewport and its boundary are one object to a pick and to every command that takes objects, as
+AutoCAD 2021 counts them (`2 found`): picking either selects both, ERASE of either erases both, MOVE, SCALE and COPY take
+both (the copy of the viewport tied to the copy of its boundary), and the viewport follows its boundary whenever an edit
+changes it, a corner dragged by its grip too: the frame is the box of the boundary again, its view keeping its scale and
+its place. A clipped viewport has its middle as its only grip, which moves the boundary with it. ROTATE and MIRROR of the
+pair turn the boundary and fit the frame to it; AutoCAD 2021 also twists the view by the angle, which the presenter does not.
+Through the viewport (MSPACE) the cursor, the picks and the snaps work inside the outline alone, the thick frame follows it,
+and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips) gives
+`WithPartners` and `WhyNotClip`.
 
 ### Grip modes
 

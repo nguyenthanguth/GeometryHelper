@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Viewports clipped by an entity, as AutoCAD 2021's VPCLIP makes them, probed in its console (probe GhVc1) and
+checked in its AUDIT, which found nothing in a drawing of three clipped viewports written as DXF and as DWG. In the core
+`DxfViewport.NonRectClipEntity` reads the entity (group 340, with the flag 0x10000 of group 90, and the viewport among the
+entity's reactors), `ClipTo(entity)` clips the viewport to a circle, a whole ellipse, a closed polyline or a closed
+spline of its layout, `FitToClip()` fits the frame to the entity again and `RemoveClip()` takes the clip off, erasing
+the entity. The frame is the box of the entity and the view stays in place: a viewport 100 by 80 about (100, 100) at 1:2
+clipped to a rectangle from (70, 70) to (150, 140) is 80 by 70 about (110, 105) with its view centre at (20, 10) and its
+view height 140, as AutoCAD gives; AutoCAD's own DWG of R2000 and R2018 read to the same boxes. In the presenter VPCLIP
+asks AutoCAD's prompts (a polygon of points with Arc, Length, Undo and Close as PLINE asks them, or an object picked,
+or Delete), one undo step; the viewport shows model space, its grid and its highlight through the outline of the entity
+alone, a circle or the arcs of a polyline kept exact to a tenth of a pixel, in the canvas and in the renderer a plot or an image is drawn by;
+a double click works through it only inside the outline, and the cursor, the picks and the snaps of MSPACE stay
+inside it. The viewport and its boundary are one object to a pick (`CadViewportClips.WithPartners`, AutoCAD's `2 found`):
+ERASE, MOVE, SCALE and COPY take both, the viewport follows its boundary when an edit or a grip changes it, a clipped
+viewport has its middle as its only grip, and `DisplayViewport2.Clip` (a `DisplayClip2`) carries the outline. A viewport
+that is not clipped is drawn and edited as before.
+
 **NEW.** In the presenter the snap and grid are undo steps, as AutoCAD 2021's U takes them, probed in its console: GRID,
 SNAP, SETVAR and a snap or grid variable typed alone (GRIDMODE, SNAPMODE, ORTHOMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY,
 SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR) are a step each, named by the command, so that after a line, GRID 50

@@ -272,6 +272,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // The associative dimensions tied to what the edit changed follow it, in the same step.
                 followed = CadDimAssociation.Follow(this, planned, scope.Records);
+
+                // A viewport clipped by an entity follows the entity: its frame is the box of the entity again.
+                followed.AddRange(CadViewportClips.Follow(this, planned, scope.Records));
             }
             catch (Exception exception)
             {

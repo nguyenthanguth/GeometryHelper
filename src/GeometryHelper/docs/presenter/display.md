@@ -205,6 +205,14 @@ turns the view, the layers frozen in that viewport only, and the model-space dis
 target and turned by the twist, is taken back to the point of model space it stands for.
 Because a viewport draws model space, an edit in model space drops the display lists of every layout too.
 
+A viewport clipped by an entity (VPCLIP) has its `Clip`, a [`DisplayClip2`](xref:GeometryHelper.Dxf.Viewer.DisplayClip2): the
+boundary as a closed ring of paper units, a circle as two vertices with the bulge 1 and the arcs of a polyline kept as
+arcs, an ellipse or a spline sampled finely, `Flatten(tolerance)` cutting the arcs to a chord that lies no farther than the
+tolerance and `Contains` and `DistanceToEdge` answering for a point. The canvas draws model space through that outline in
+place of the frame (arcs kept to a tenth of a pixel), draws no frame of its own, since the boundary entity is the border and
+is drawn as itself, and a pick finds the viewport by the distance to the outline. [`CadViewportClips.OutlineOf(viewport)`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips)
+makes the outline from the viewport. A viewport that is not clipped is drawn as it was, its frame a rectangle.
+
 ### Keeping the lists
 
 A display list and its index are kept until an edit touches the space, when its own are dropped and made again the next time

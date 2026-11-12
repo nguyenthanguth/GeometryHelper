@@ -42,7 +42,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets the objects a pick takes with PICKSTYLE on: those given, then the other members of each selectable group any of
         /// them is in, in ordinal order of their handles. A line and a circle of the group G1 and a text of none: picking the
-        /// line gives the line and the circle. With PICKSTYLE off, those given.
+        /// line gives the line and the circle. With PICKSTYLE off, those given. Either way a viewport clipped by an entity is taken
+        /// with it, and the entity with its viewport (<see cref="CadViewportClips.WithPartners"/>).
         /// </summary>
         /// <param name="handles">The handles picked.</param>
         /// <returns>The handles with the members of their groups, each once.</returns>
@@ -54,7 +55,8 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(handles));
             }
 
-            var given = new List<string>(handles);
+            // A viewport clipped by an entity and the entity are one object to a pick, whatever PICKSTYLE says.
+            var given = new List<string>(CadViewportClips.WithPartners(this, handles));
 
             if ((PickStyle & 1) == 0 || given.Count == 0)
             {
