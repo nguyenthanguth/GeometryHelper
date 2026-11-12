@@ -56,6 +56,22 @@ than the tolerance answers bit for bit as before. Over 79 methods taking a box, 
 disagreed with the box flat on the same axes, and 3 do now, boxes 100 000 from the origin whose sides round a hair over
 0.001.
 
+**FIXED.** The presenter's linear dimensions lay out words the fit moves out under DIMTMOVE 1 and 2 as AutoCAD 2021 does
+where DIMTOH keeps them level, as acad.dwt's Standard does: DIMEXE, half DIMGAP and their height out, square off the
+middle of the line, the leader straight to there and a level landing on away from the line, at any angle of it. The
+dimension of 0.5 DIMCONTINUE adds after one of 100 in Standard has its leader straight up from (100.25, 20), its landing
+on to x 100.43 and its arrowheads outside, as AutoCAD draws it, where the presenter ran the leader to (100.372, 20.405)
+and kept the arrowheads inside; "4" of a dimension of 4 under ISO-25's sizes stands 6.5625 off its line, not 5.9375.
+Arrowheads need two lengths and two DIMGAPs between the extension lines (6.25 with ISO-25's sizes, where 5.625 was
+taken), and words above the line their width and a gap each side: a dimension of 6 under DIMATFIT 2 has its arrowheads
+outside, as in AutoCAD.
+
+**FIXED.** DIMCONTINUE and DIMBASELINE draw in the style of the dimension they go on from, with its overrides, as AutoCAD
+2021 does under DIMCONTINUEMODE 1: from a dimension made with DIMASZ 4 over ISO-25 they write `41` again, and from one
+of another style they are of that style, where the presenter drew them in the current style. DIMBASELINE writes no
+DIMTMOVE of its own, nor do rows of ordinate dimensions and QDIM, as AutoCAD 2021 writes them; a baseline dimension
+based on a continued one takes its `279 1` with the rest.
+
 **NEW.** `DxfTolerance.GeometricExtents` is the box of the frame's rows as AutoCAD 2021 gives it, where the drawing's
 `FontSearchPath` measures its words: each row twice the text height high, each cell its ink and the text height wide,
 `{\Fgdt;j}%%v0.1` at (0, 0, 0) in a style of Arial 0.18 high from (0, -0.18, 0) to (0.92296, 0.18, 0), as AutoCAD
@@ -90,9 +106,9 @@ values. `new DxfDatabase("AC1015")` is the text of `new DxfWriter().ToString()` 
 **CHANGED.** The presenter's new dimensions are drawn by the header in every drawing, its DIMSTYLE naming a style of it or
 not: where it names none, they are drawn in the style fallen back on (Standard, else the first) and write each variable
 other than that style's, and leaders are compared with the same style, where dimensions were drawn by the style alone and
-leaders compared with AutoCAD's own values. As AutoCAD 2021, DIMCONTINUE and DIMBASELINE draw and write DIMTMOVE 1 where
-it is nought (`279` first on a continued dimension, in the order of the groups on a baseline one), DIMRADIUS and
-DIMDIAMETER write DIMUPT 1 (`288`), and DIMJOGGED writes DIMJOGANG (`50`) whatever the style has.
+leaders compared with AutoCAD's own values. As AutoCAD 2021, DIMCONTINUE draws and writes DIMTMOVE 1 where it is nought
+(`279` first, of linear and angular dimensions), DIMRADIUS and DIMDIAMETER write DIMUPT 1 (`288`) where the style has it
+off, and DIMJOGGED writes DIMJOGANG (`50`) whatever the style has.
 
 **CHANGED.** The presenter's new dimensions are drawn by the drawing's current dimension variables and write each that
 differs from their style as an override, in the order of their groups, as AutoCAD 2021 does for every kind (linear,

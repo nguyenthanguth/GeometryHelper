@@ -7,9 +7,10 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>The dimensions made in a row: DIMCONTINUE, DIMBASELINE and QDIM.</summary>
     /// <remarks>
-    /// Each dimension is made as the DIM commands make one, in the current dimension style, with its picture in a block of its
-    /// own. DIMCONTINUE and DIMBASELINE go on from the last linear, ordinate or angular dimension of the space, or one selected:
-    /// a row of 100 and 200 from (0, 0) along a dimension line 30 below gives, continued to (300, 0), a dimension of 200 on the
+    /// Each dimension is made as the DIM commands make one, with its picture in a block of its own: QDIM's in the current
+    /// dimension style, DIMCONTINUE's and DIMBASELINE's in the style and with the overrides of the dimension they go on from,
+    /// as AutoCAD 2021 makes them. DIMCONTINUE and DIMBASELINE go on from the last linear, ordinate or angular dimension of
+    /// the space, or one selected: a row of 100 and 200 from (0, 0) along a dimension line 30 below gives, continued to (300, 0), a dimension of 200 on the
     /// same line; based on it, a dimension of 300 from (0, 0) on a line DIMDLI further out. Of an ordinate dimension, either
     /// gives another from the same origin along the same axis, its leader ending level with the last's. The whole run is one
     /// undo step, and Undo inside takes back the last dimension made, as AutoCAD's.
@@ -54,6 +55,9 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>What the vertex of an angular row is tied to, as the third point of the next dimension; null for none.</summary>
             public DxfOsnapPointRef VertexTie { get; set; }
 
+            /// <summary>The dimension the row goes on from, whose style and overrides it is drawn in.</summary>
+            public DxfDimension Base { get; set; }
+
             public Chain Copy() => (Chain)MemberwiseClone();
         }
 
@@ -68,22 +72,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> DimChain(CadCommandContext c, bool baseline)
         {
-            DxfDimStyleTableRecord style = DimStyle(c);
-
-            if (style == null)
+            if (DimStyle(c) == null)
             {
                 c.Write("The drawing has no dimension style to draw in.");
                 yield break;
-            }
-
-            // AutoCAD 2021 draws each linear and angular dimension of the row with DIMTMOVE 1 where it is nought, and writes it,
-            // DIMCONTINUE's override first, DIMBASELINE's in the order of the groups (279 1, then 41 and 176 typed): words too
-            // wide for a short one stand over its line past a leader.
-            DxfDimStyleTableRecord moving = DimStyle(c);
-
-            if (moving.Dimtmove == 0)
-            {
-                moving.Keep(DxfDimVariable.Named("Dimtmove"), 1);
             }
 
             int first = baseline ? 0 : 279;
@@ -129,6 +121,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     continue;
+                }
+
+                // AutoCAD 2021 (DIMCONTINUEMODE 1) draws the row in the style of the dimension it goes on from, with its overrides,
+                // and DIMCONTINUE each linear and angular dimension of it with DIMTMOVE 1 where that is nought, written first
+                // (279 1, then 41 and 176 the base has): words too wide for a short one stand over its line past a leader.
+                DxfDimStyleTableRecord style = RowStyle(c, chain.Base);
+                DxfDimStyleTableRecord moving = RowStyle(c, chain.Base);
+
+                if (!baseline && moving.Dimtmove == 0)
+                {
+                    moving.Keep(DxfDimVariable.Named("Dimtmove"), 1);
                 }
 
                 double spacing = baseline ? style.Dimdli * (Dimscale(c) > 0.0 ? Dimscale(c) : 1.0) : 0.0;
@@ -324,6 +327,25 @@ namespace GeometryHelper.Dxf.Viewer
             || dimension is DxfLineAngularDimension2;
 
         /// <summary>
+        /// The variables a row is drawn by, as AutoCAD 2021 takes them under DIMCONTINUEMODE 1: the style of the dimension it
+        /// goes on from and that dimension's overrides, whatever style is current; the current ones where its style is gone. A
+        /// row based on a dimension made with DIMASZ 0.3 over Standard writes <c>41 0.3</c> again.
+        /// </summary>
+        private static DxfDimStyleTableRecord RowStyle(CadCommandContext c, DxfDimension from)
+        {
+            string name = from?.DimensionStyleName;
+
+            if (string.IsNullOrEmpty(name) || !c.Database.DimStyleTable.Has(name))
+            {
+                return DimStyle(c);
+            }
+
+            DxfDimStyleTableRecord drawn = from.GetDimstyleData();
+            drawn.Name = c.Database.DimStyleTable[name].Name;
+            return drawn;
+        }
+
+        /// <summary>
         /// The row a dimension starts: its line or arc, and the origin the next dimension starts from, its second (continued) or
         /// first (baseline) extension line's, or the one nearer the point it was picked at; null where it cannot be read.
         /// </summary>
@@ -331,7 +353,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             GeoPoint2 first;
             GeoPoint2 second;
-            var chain = new Chain();
+            var chain = new Chain { Base = dimension };
 
             switch (dimension)
             {

@@ -471,6 +471,90 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void WordsTheFitMovesOutUnderDimtoh_StandSquareOffTheMiddleOfTheLine_DimexeHalfAGapAndTheirHeightOut()
+        {
+            // AutoCAD 2021, DIMTOH on: the words "4" of a dimension of 4 with its line 20 below stand under DIMTMOVE 2 1.25 +
+            // 0.3125 + 2.5 + 2.5 = 6.5625 below the middle of the line (not 5.9375 as with DIMTOH off).
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 2;
+                s.Dimtoh = true;
+            });
+            Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
+            Near(new GeoPoint3(2, -26.5625, 0), Words(Made(session)).Location);
+
+            // Under DIMTMOVE 1 the leader runs straight down to there (not a third as far along again), then a landing as wide
+            // as the words and a gap each side, the words above it.
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 1;
+                s.Dimtoh = true;
+            });
+            Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
+            DxfDimension dimension = Made(session);
+            Assert.True(HasLine(dimension, P(2, -20), P(2, -26.5625)));
+            Assert.True(HasLine(dimension, P(2, -26.5625), P(2 + 1.75 + 2 * Gap, -26.5625)));
+            Near(new GeoPoint3(2 + Gap + 0.875, -26.5625 + Lift, 0), Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTheFitMovesOffASlantingLineUnderDimtoh_StandLevelPastALeaderSquareToTheLine()
+        {
+            // AutoCAD 2021, DIMTOH on, an aligned dimension of 4 at 30 degrees, its line 20 off up and to the left: under DIMTMOVE 1
+            // a leader square to the line from its middle, 4.0625 long, then a level landing on away from the line, to the left,
+            // as wide as the words and a gap each side, the words level above it. Under 2 the words stand level at the knee.
+            var along = new GeoVector2(Math.Cos(Math.PI / 6.0), Math.Sin(Math.PI / 6.0));
+            var up = new GeoVector2(-along.Y, along.X);
+            GeoPoint2 middle = P(0, 0) + along * 2.0 + up * 20.0;
+            GeoPoint2 knee = middle + up * 4.0625;
+            CadCommandSession session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 1;
+                s.Dimtoh = true;
+            });
+            Run(session, "DAL", P(0, 0), P(0, 0) + along * 4.0, middle);
+            DxfDimension dimension = Made(session);
+            Assert.True(HasLine(dimension, middle, knee));
+            Assert.True(HasLine(dimension, knee, knee + new GeoVector2(-(1.75 + 2 * Gap), 0)));
+            DxfMText words = Words(dimension);
+            Near(new GeoPoint3(knee.X - Gap - 0.875, knee.Y + Lift, 0), words.Location, 1E-6);
+            Assert.Equal(0.0, words.Rotation, 9);
+
+            session = Metric(s =>
+            {
+                s.Dimatfit = 0;
+                s.Dimtmove = 2;
+                s.Dimtoh = true;
+            });
+            Run(session, "DAL", P(0, 0), P(0, 0) + along * 4.0, middle);
+            words = Words(Made(session));
+            Near(new GeoPoint3(knee.X, knee.Y, 0), words.Location, 1E-6);
+            Assert.Equal(0.0, words.Rotation, 9);
+        }
+
+        [Fact]
+        public void TheArrowheadsNeedTwiceTheirLengthAndTwiceTheGap_AndWordsAboveTheLineTheirWidthAndTwiceTheGap()
+        {
+            // AutoCAD 2021: arrowheads of 2.5 and DIMGAP 0.625 need 6.25 between the extension lines; under DIMATFIT 2 a dimension
+            // of 6 has them outside, the words past the second extension line.
+            CadCommandSession session = Metric(s => s.Dimatfit = 2);
+            Run(session, "DLI", P(0, 0), P(6, 0), P(3, -20));
+            DxfDimension dimension = Made(session);
+            Assert.Equal(-Arrow, SolidXs(dimension).Min(), 9);
+            Assert.Equal(6 + Arrow, SolidXs(dimension).Max(), 9);
+            Assert.True(Words(dimension).Location.X > 6 + 2 * Arrow);
+
+            // Words above the line need their width and a gap each side: under DIMATFIT 1 those of a dimension of 2.5 go out.
+            session = Metric(s => s.Dimatfit = 1);
+            Run(session, "DLI", P(0, 0), P(2.5, 0), P(1.25, -20));
+            dimension = Made(session);
+            Assert.True(Words(dimension).Location.X > 2.5 + 2 * Arrow);
+        }
+
+        [Fact]
         public void DimteditUnderDimtmove1_DrawsALeaderToWordsFarFromTheLine_AndUnder2PutsTheWordsAtThePoint()
         {
             // AutoCAD 2021: "100" moved to 10 above the line, 10 left of its middle: a leader from the middle to 0.625 short of the

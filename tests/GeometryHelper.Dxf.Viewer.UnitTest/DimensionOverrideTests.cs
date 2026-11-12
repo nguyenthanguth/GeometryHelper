@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 using Xunit;
 using static GeometryHelper.Dxf.Viewer.UnitTest.EditingDrawings;
 
@@ -161,6 +162,101 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void AShortDimensionDimcontinueAdds_HasItsArrowheadsOutside_AndItsLeaderStraightUpUnderStandardsDimtoh_AsAutoCad()
+        {
+            // AutoCAD 2021, acad.dwt's Standard (DIMTOH on, arrowheads 0.18, DIMGAP 0.09, DIMEXE 0.18): the dimension of 0.5
+            // DIMCONTINUE adds has its arrowheads outside, on lines from 99.82 to 99.64 and from 100.68 to 100.86, the line
+            // between the extension lines drawn for the leader, the leader straight up from (100.25, 20) DIMEXE, half DIMGAP
+            // and the words' height (0.1838 in txt.shx: to y 20.4088), the landing two gaps on to x 100.43 and the words a gap
+            // past it, on its level. The arrowheads need twice their length and twice DIMGAP, 0.54, between the lines.
+            CadDocument document = Blank();
+            StandardCurrent(document.Database);
+            CadCommandSession session = Session(document);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+
+            Run(session, "DCO", P(100.5, 0), Enter, Enter);
+
+            DxfRotatedDimension dimension = All<DxfRotatedDimension>(document.ModelSpace).Last();
+            List<DxfLine> lines = dimension.DimBlock.OfType<DxfLine>().ToList();
+            Assert.Contains(lines, l => Joins(l, 99.82, 20, 99.64, 20));
+            Assert.Contains(lines, l => Joins(l, 100.68, 20, 100.86, 20));
+            Assert.Contains(lines, l => Joins(l, 100, 20, 100.5, 20));
+            DxfLine leader = Assert.Single(lines, l => Joins(l, 100.25, 20, 100.25, l.EndPoint.Y) && l.EndPoint.Y > 20);
+            double knee = leader.EndPoint.Y;
+            DxfMText words = dimension.DimBlock.OfType<DxfMText>().Single();
+            Assert.Equal(0.18 + 0.045 + words.TextHeight, knee - 20, 9);
+            Assert.Contains(lines, l => Joins(l, 100.25, knee, 100.43, knee));
+            Assert.Equal(knee, words.Location.Y, 9);
+            Assert.True(words.Location.X > 100.52);
+            // Each arrowhead from its back outside the extension line to its tip on it.
+            Assert.Equal(
+                new[] { "100.5 100.68", "99.82 100" },
+                dimension
+                    .DimBlock.OfType<DxfSolid>()
+                    .Select(s => Enumerable.Range(0, 3).Select(i => s.GetPointAt((short)i).X).ToArray())
+                    .Select(xs => Math.Round(xs.Min(), 9) + " " + Math.Round(xs.Max(), 9))
+                    .OrderBy(t => t, StringComparer.Ordinal)
+            );
+        }
+
+        [Fact]
+        public void ARowGoesOnInTheStyleAndOverridesOfItsBase_AndDimcontinueAloneAddsDimtmove1_AsAutoCad()
+        {
+            // AutoCAD 2021 (DIMCONTINUEMODE 1): a dimension made with DIMASZ 4 over the style writes 41; with DIMASZ back to
+            // the style's, DIMBASELINE from it writes 41 again and no DIMTMOVE, and DIMCONTINUE from that one 279 1 first, then
+            // 41. An angle's DIMBASELINE writes nothing, its DIMCONTINUE 279; an ordinate's rows nothing. A row from a dimension
+            // of another style is drawn in that style, whatever style is current.
+            CadDocument document = Metric();
+            DxfDatabase db = document.Database;
+            db.Dimasz = 4.0;
+            CadCommandSession session = Session(document);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, 20));
+            db.Dimasz = 2.5;
+
+            Run(session, "DBA", P(150, 0), Enter, Enter);
+            Run(session, "DCO", P(250, 0), Enter, Enter);
+
+            List<DxfDimension> made = All<DxfDimension>(document.ModelSpace);
+            Assert.Equal(new[] { "41", "41", "279 41" }, made.Select(Groups));
+            Assert.All(made, d => Assert.Equal(4.0, d.Dimasz));
+
+            Run(session, "DAN", Enter, P(0, 150), P(60, 150), P(40, 190), P(50, 170));
+            Run(session, "DBA", P(0, 210), Enter, Enter);
+            Run(session, "DAN", Enter, P(200, 150), P(260, 150), P(240, 190), P(250, 170));
+            Run(session, "DCO", P(200, 210), Enter, Enter);
+            Run(session, "DOR", P(300, 10), P(300, -30));
+            Run(session, "DCO", P(320, 10), Enter, Enter);
+            Run(session, "DBA", P(340, 10), Enter, Enter);
+
+            made = All<DxfDimension>(document.ModelSpace);
+            Assert.Equal(new[] { "", "", "", "279", "", "", "" }, made.Skip(3).Select(Groups));
+
+            // Saved from the current variables, as -DIMSTYLE Save makes one.
+            DxfDimStyleTableRecord other = db.GetDimstyleData();
+            other.Name = "Other";
+            db.DimStyleTable.Add(other);
+            db.Dimstyle = "Other";
+            db.SetDimstyleData(db.DimStyleTable["Other"]);
+            Run(session, "DLI", P(0, -100), P(100, -100), P(50, -80));
+            db.Dimstyle = "ISO-25";
+            db.SetDimstyleData(db.DimStyleTable["ISO-25"]);
+
+            Run(session, "DCO", P(200, -100), Enter, Enter);
+
+            DxfDimension continued = All<DxfDimension>(document.ModelSpace).Last();
+            Assert.Equal("Other", continued.DimensionStyleName);
+            Assert.Equal("279", Groups(continued));
+        }
+
+        /// <summary>Whether a line runs between the two points, either way, to 1E-9.</summary>
+        private static bool Joins(DxfLine line, double x1, double y1, double x2, double y2)
+        {
+            bool At(GeoPoint3 p, double x, double y) => Math.Abs(p.X - x) < 1E-9 && Math.Abs(p.Y - y) < 1E-9;
+            return (At(line.StartPoint, x1, y1) && At(line.EndPoint, x2, y2))
+                || (At(line.StartPoint, x2, y2) && At(line.EndPoint, x1, y1));
+        }
+
+        [Fact]
         public void ABlankDrawing_DrawsANewDimensionByItsHeader_InIso25_WhichItHolds()
         {
             // A blank DxfDatabase is acadiso.dwt's in its dimensions: ISO-25 current, the header holding its values.
@@ -257,8 +353,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<DxfDimension> made = All<DxfDimension>(document.ModelSpace);
             Assert.Equal(9, made.Count);
+            // DIMBASELINE takes its base's DIMSCALE and adds no DIMTMOVE (AutoCAD 2021, probed 2026-11-12).
             Assert.Equal(
-                new[] { "40", "40 279", "40", "40", "40 288", "40 288", "40 50", "40", "40" },
+                new[] { "40", "40", "40", "40", "40 288", "40 288", "40 50", "40", "40" },
                 made.Select(Groups)
             );
             Assert.All(made, d => Assert.Equal(2.0, d.Dimscale, 9));

@@ -1284,9 +1284,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <remarks>
         /// With arrowheads of 2.5 and DIMGAP 0.625, a dimension of 100 has its words "100", 5.3 wide, in the middle; of 5, its
         /// words "5" inside and its arrowheads outside on lines 2.5 long; of 7, under DIMATFIT 3, its arrowheads inside and its
-        /// words 3.9 past the second extension line, as AutoCAD 2021 draws them. Words need their width between the extension
-        /// lines, and DIMGAP each side where the line is broken for them; the arrowheads two lengths and DIMGAP; ticks, and the
-        /// other arrowheads that take no room (<see cref="CadArrowheads.TakesNoRoom"/>), never move out.
+        /// words 3.9 past the second extension line, as AutoCAD 2021 draws them. Words need their width and DIMGAP each side
+        /// between the extension lines, on the line or above it; the arrowheads two lengths and two DIMGAPs, 6.25 (a dimension
+        /// of 6.24 has them outside, of 6.26 inside); ticks, and the other arrowheads that take no room
+        /// (<see cref="CadArrowheads.TakesNoRoom"/>), never move out.
         /// </remarks>
         private static LinearLayout LayOut(
             DxfDimStyleTableRecord style,
@@ -1331,8 +1332,8 @@ namespace GeometryHelper.Dxf.Viewer
             // turned box, as AutoCAD 2021 draws them: turned 45 or 30, along the line or across it alike.
             bool centred = tad == 0 || wordsAngle.HasValue || (!level && (tad == 1 || tad == 4));
             double half = Chord(width, height, gap, inside - angle);
-            double needText = centred ? 2.0 * half : width;
-            double needArrows = ticks ? 0.0 : 2.0 * arrow + gap;
+            double needText = centred ? 2.0 * half : width + 2.0 * gap;
+            double needArrows = ticks ? 0.0 : 2.0 * (arrow + gap);
             double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * (arrow + gap)) : Math.Max(needText, needArrows);
             bool textInside;
             bool arrowsInside;
@@ -1382,8 +1383,9 @@ namespace GeometryHelper.Dxf.Viewer
             int outerSide = just == 1 ? 1 : 2;
             double outward2 = style.Dimtoh ? 0.0 : angle;
 
-            // Words moved out by the fit go over the line where DIMTMOVE is 1 or 2, not beside it past an extension line.
-            bool over = !textInside && !placed.HasValue && style.Dimtmove != 0 && Parallel(outward2, angle);
+            // Words moved out by the fit go over the line where DIMTMOVE is 1 or 2, not beside it past an extension line, level
+            // where DIMTOH keeps them so.
+            bool over = !textInside && !placed.HasValue && style.Dimtmove != 0;
 
             for (int end = 1; end <= 2 && arrowsOut; end++)
             {
@@ -1444,13 +1446,16 @@ namespace GeometryHelper.Dxf.Viewer
                 // Over the line, on the side away from the points: DIMEXE, one and a half DIMGAP and half the words' height
                 // out, their height more where they stand below it as they read, no nearer than an arrowhead. DIMTMOVE 2 puts the
                 // words' middle there; 1 a leader's end, a third as far along again, then a landing on to the words (two gaps
-                // long, the words past a gap, on it for DIMTAD 0; under them, as wide as they are and a gap each side). AutoCAD
-                // 2021 draws the line between the extension lines again for the leader where the arrowheads stand outside.
+                // long, the words past a gap, on it for DIMTAD 0; under them, as wide as they are and a gap each side). Words
+                // DIMTOH keeps level stand DIMEXE, half DIMGAP and their height out, square off the middle of the line, and under
+                // 1 the leader runs square to the line and the landing level, on away from the line. AutoCAD 2021 draws the line
+                // between the extension lines again for the leader where the arrowheads stand outside.
                 var points = new GeoPoint2((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
                 double side = (middle - points).X * above.X + (middle - points).Y * above.Y < 0.0 ? -1.0 : 1.0;
-                double clearance = beyond + 1.5 * gap + height / 2.0;
+                bool levelled = style.Dimtoh;
+                double clearance = levelled ? beyond + gap / 2.0 + height : beyond + 1.5 * gap + height / 2.0;
                 double off = Math.Max(arrow, side > 0.0 ? clearance : clearance + height);
-                layout.Angle = angle;
+                layout.Angle = outward2;
 
                 if (style.Dimtmove == 2)
                 {
@@ -1458,14 +1463,24 @@ namespace GeometryHelper.Dxf.Viewer
                     return layout;
                 }
 
-                GeoPoint2 knee = middle + readable * (0.3 * off) + above * (side * off);
+                GeoPoint2 knee = middle + readable * (levelled ? 0.0 : 0.3 * off) + above * (side * off);
+                GeoVector2 landing = readable;
+                GeoVector2 upward = above;
+
+                if (!Parallel(outward2, angle))
+                {
+                    landing = new GeoVector2(knee.X < middle.X - 1E-9 ? -1.0 : 1.0, 0.0);
+                    upward = new GeoVector2(0.0, 1.0);
+                    offLine = tad == 0 ? raised : Side(tad, upward, p1, p2, middle) * lift;
+                }
+
                 bool onLanding = tad == 0;
                 double start2 = onLanding ? 3.0 * gap : gap;
 
                 // No further out than an arrowhead and a gap, the words stand centred where they would start, with no leader.
                 if (off <= arrow + gap)
                 {
-                    layout.At = knee + readable * start2 + above * offLine;
+                    layout.At = knee + landing * start2 + upward * offLine;
                     return layout;
                 }
 
@@ -1473,10 +1488,10 @@ namespace GeometryHelper.Dxf.Viewer
                 layout.Outside.Add(
                     new KeyValuePair<GeoPoint2, GeoPoint2>(
                         knee,
-                        knee + readable * (onLanding ? 2.0 * gap : width + 2.0 * gap)
+                        knee + landing * (onLanding ? 2.0 * gap : width + 2.0 * gap)
                     )
                 );
-                layout.At = knee + readable * (start2 + width / 2.0) + above * offLine;
+                layout.At = knee + landing * (start2 + width / 2.0) + upward * offLine;
 
                 if (arrowsOut)
                 {
