@@ -135,7 +135,8 @@ the ones wanted.
 - [x] Layouts follow-ups: wheel and middle-button
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
-- [ ] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms; ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper (S)
+- [x] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms
+- [ ] Layouts follow-ups 3: ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper; CTAB variable; Find's ZoomToObjects and VIEW restore switching space as steps; MSPACE/PSPACE as steps if AutoCAD makes them so (S)
 - [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and

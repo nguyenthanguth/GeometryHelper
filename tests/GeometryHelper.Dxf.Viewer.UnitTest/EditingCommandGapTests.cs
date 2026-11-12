@@ -354,6 +354,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "LAYOUT", "S", "sheet a");
             Assert.Equal("Sheet A", document.CurrentSpace.Name);
 
+            // The switch is a step of its own: the first undo shows Model again, the second takes the name back.
+            Assert.True(document.Undo());
+            Assert.Same(document.ModelSpace, document.CurrentSpace);
             Assert.True(document.Undo());
             Assert.Equal(new[] { "Model", "Layout1" }, document.Spaces.Select(s => s.Name));
 

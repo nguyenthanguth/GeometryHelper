@@ -263,7 +263,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal("PAPER", model.SpaceLabel);
                 Assert.Equal(string.Empty, model.ViewportLabel);
-                Assert.Equal("room.dxf · Layout1", model.Title);
+                // The switch is an undo step and a change of the drawing, as AutoCAD's DBMOD 29 after LAYOUT Set says.
+                Assert.Equal("room.dxf* · Layout1", model.Title);
                 Assert.Equal(0, model.Document.Selection.Count);
                 Assert.True(model.SpaceTabs[1].IsActive);
                 Assert.False(model.SpaceTabs[0].IsActive);

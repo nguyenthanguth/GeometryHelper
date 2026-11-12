@@ -40,16 +40,16 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayBox before,
             string name,
             bool realTime
-        ) => RecordSpaceView(space, view, before, name, realTime, true);
+        ) => RecordSpaceView(space, view, before, name, realTime, null);
 
-        /// <summary>Records the move of a space's view as <see cref="RecordSpaceView(CadSpace, CadView, DisplayBox, string, bool)"/>; ZOOM Previous, which takes its entry off the list, keeps none.</summary>
+        /// <summary>Records the move of a space's view as <see cref="RecordSpaceView(CadSpace, CadView, DisplayBox, string, bool)"/>; ZOOM Previous, which has taken its entry off the list already, passes it as <paramref name="taken"/> and keeps none.</summary>
         internal CadEditResult RecordSpaceView(
             CadSpace space,
             CadView view,
             DisplayBox before,
             string name,
             bool realTime,
-            bool keepPrevious
+            DisplayBox? taken
         )
         {
             if (space == null)
@@ -76,8 +76,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             space.ShownView = view;
 
-            if (keepPrevious)
+            // The list before and after the step, which U and REDO put back with the view.
+            DisplayBox[] listBefore;
+
+            if (taken.HasValue)
             {
+                listBefore = CadViewHistory.Pushed(ViewHistory.Boxes(space), taken.Value);
+            }
+            else
+            {
+                listBefore = ViewHistory.Boxes(space);
                 ViewHistory.Add(space, before);
             }
 
@@ -91,6 +99,7 @@ namespace GeometryHelper.Dxf.Viewer
             )
             {
                 Space = space.Name,
+                ViewList = new CadViewListChange(listBefore, ViewHistory.Boxes(space)),
             };
             var records = new List<CadEditRecord> { record };
 
@@ -152,6 +161,7 @@ namespace GeometryHelper.Dxf.Viewer
                     )
                     {
                         Space = record.Space,
+                        ViewList = CadViewListChange.Join(last.ViewList, record.ViewList),
                     };
                 }
                 else
@@ -163,12 +173,16 @@ namespace GeometryHelper.Dxf.Viewer
             return joined.ToArray();
         }
 
-        /// <summary>Moves the views of the spaces to what a step undone or redone left them: the old boxes from the last record back, or the new ones from the first on.</summary>
+        /// <summary>
+        /// Moves the views of the spaces, and the ZOOM Previous lists the steps changed with them, to what a step undone or
+        /// redone left them: the old boxes and lists from the last record back, or the new ones from the first on.
+        /// </summary>
         private void MoveViews(IReadOnlyList<CadEditRecord> records, bool undo)
         {
             for (int k = 0; k < records.Count; k++)
             {
                 CadEditRecord record = records[undo ? records.Count - 1 - k : k];
+                MoveViewList(record, undo);
 
                 if (!IsSpaceView(record))
                 {
@@ -180,6 +194,78 @@ namespace GeometryHelper.Dxf.Viewer
                 if (space?.ShownView != null && TryBox(undo ? record.OldValue : record.NewValue, out DisplayBox box))
                 {
                     space.ShownView.ZoomTo(box, 0.0);
+                }
+            }
+        }
+
+        /// <summary>Puts the ZOOM Previous list a record's step changed back as it was before the step, or forward as it was after.</summary>
+        private void MoveViewList(CadEditRecord record, bool undo)
+        {
+            CadViewListChange change = record.ViewList;
+
+            if (change == null)
+            {
+                return;
+            }
+
+            if (change.BoxesBefore != null)
+            {
+                CadSpace space = SpaceNamed(record.Space);
+
+                if (space != null)
+                {
+                    ViewHistory.Restore(space, undo ? change.BoxesBefore : change.BoxesAfter);
+                }
+            }
+            else if (record.Handle != null)
+            {
+                ViewHistory.Restore(record.Handle, undo ? change.ViewsBefore : change.ViewsAfter);
+            }
+        }
+
+        /// <summary>
+        /// Puts on a viewport's ZOOM Previous list the view it showed before the step <paramref name="result"/> made, and notes
+        /// on the step's record how the list was, so that U takes the entry off again and REDO puts it back.
+        /// </summary>
+        internal void KeepViewportView(CadEditResult result, string handle, GeoPoint2 center, double height)
+        {
+            KeyValuePair<GeoPoint2, double>[] before = ViewHistory.Views(handle);
+            ViewHistory.Add(handle, center, height);
+            NoteViewList(result, handle, before, ViewHistory.Views(handle));
+        }
+
+        /// <summary>
+        /// Notes on the record of the step <paramref name="result"/> made that ZOOM Previous took the view
+        /// (<paramref name="center"/>, <paramref name="height"/>) off a viewport's list, so that U puts the entry back and REDO
+        /// takes it off again.
+        /// </summary>
+        internal void TookViewportView(CadEditResult result, string handle, GeoPoint2 center, double height)
+        {
+            KeyValuePair<GeoPoint2, double>[] after = ViewHistory.Views(handle);
+            NoteViewList(
+                result,
+                handle,
+                CadViewHistory.Pushed(after, new KeyValuePair<GeoPoint2, double>(center, height)),
+                after
+            );
+        }
+
+        private static void NoteViewList(
+            CadEditResult result,
+            string handle,
+            KeyValuePair<GeoPoint2, double>[] before,
+            KeyValuePair<GeoPoint2, double>[] after
+        )
+        {
+            foreach (CadEditRecord record in result.Records)
+            {
+                if (
+                    record.Kind == CadEditRecordKind.PropertyChanged
+                    && string.Equals(record.Handle, handle, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(record.Property, "View", StringComparison.Ordinal)
+                )
+                {
+                    record.ViewList = new CadViewListChange(before, after);
                 }
             }
         }

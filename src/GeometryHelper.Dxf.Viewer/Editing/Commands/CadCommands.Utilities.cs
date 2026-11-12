@@ -626,11 +626,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (space != c.Document.CurrentSpace)
-            {
-                c.Document.CurrentSpace = space;
-                c.Document.Selection.Clear();
-            }
+            c.Document.ShowSpace(space);
         }
 
         private static CadSpace FindLayout(CadCommandContext c, string name)

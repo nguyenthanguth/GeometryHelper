@@ -93,6 +93,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal Action<CadDocument, bool> Replay { get; set; }
 
+        /// <summary>
+        /// Gets or sets what the step of a view did to a ZOOM Previous list, so that U and REDO move the list with the view; null
+        /// for every other record.
+        /// </summary>
+        internal CadViewListChange ViewList { get; set; }
+
         /// <inheritdoc/>
         public override string ToString() =>
             Kind

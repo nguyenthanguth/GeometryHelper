@@ -403,7 +403,7 @@ namespace GeometryHelper.Drawing.Wpf
 
             if (sheet != null)
             {
-                Model.SelectSpace(sheet);
+                Model.SelectSpace(sheet, asStep: false);
             }
 
             Current = entry;

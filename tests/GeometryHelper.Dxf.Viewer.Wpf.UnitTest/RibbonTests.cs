@@ -113,6 +113,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.SelectSpaceCommand.Execute(model.SpaceTabs[2]);
                 Assert.Equal("Layout2", model.Space.Name);
 
+                // The switch to Layout2 is a step of its own: the first undo shows Model again, the second takes the tab back.
+                Assert.True(model.Undo());
+                Assert.True(model.IsModelSpace);
                 Assert.True(model.Undo());
 
                 Assert.Equal(new[] { "Model", "Layout1" }, model.SpaceTabs.Select(t => t.Name));

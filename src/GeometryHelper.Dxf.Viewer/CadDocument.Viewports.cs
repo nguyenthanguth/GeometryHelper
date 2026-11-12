@@ -208,7 +208,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // The view it showed goes on the viewport's own ZOOM Previous list, one entry for each wheel gesture or pan.
                 if (result.Succeeded && !SameView(wasCenter, wasHeight, viewCenter, viewHeight))
                 {
-                    ViewHistory.Add(handle, wasCenter, wasHeight);
+                    KeepViewportView(result, handle, wasCenter, wasHeight);
                 }
 
                 return result;
