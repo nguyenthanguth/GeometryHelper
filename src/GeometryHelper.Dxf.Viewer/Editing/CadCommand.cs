@@ -222,6 +222,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["Ctrl+Y"] = "REDO",
                     ["Ctrl+S"] = "QSAVE",
                     ["Ctrl+1"] = "PROPERTIES",
+                    ["Ctrl+2"] = "DRAWINGS",
                     ["Ctrl+A"] = "SELECTALL",
                     ["Ctrl+C"] = "COPYCLIP",
                     ["Ctrl+X"] = "CUTCLIP",

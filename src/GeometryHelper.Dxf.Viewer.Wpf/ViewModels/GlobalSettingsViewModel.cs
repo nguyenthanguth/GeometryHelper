@@ -538,6 +538,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["U"] = "Undo the last step",
             ["REDO"] = "Redo the step undone",
             ["PROPERTIES"] = "Show or hide Properties",
+            ["DRAWINGS"] = "Show or hide the Drawings list",
             ["MATCHPROP"] = "Copy properties from one object to others",
             ["LAYER"] = "Open the Layer manager",
             ["OPTIONS"] = "Open Global settings",

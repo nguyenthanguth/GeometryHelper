@@ -303,6 +303,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // A key given PROPERTIES (Ctrl+1) or DRAWINGS (Ctrl+2) shows the panel when it is hidden and hides it when it is
+            // shown, as AutoCAD's Ctrl+1; typed, PROPERTIES still shows Properties and PROPERTIESCLOSE hides it.
+            if (target == "PROPERTIES")
+            {
+                if (IsPropertiesPanelShown)
+                {
+                    IsPropertiesPanelShown = false;
+                }
+                else
+                {
+                    IsPropertiesPanelShown = true;
+                    PropertiesRequested?.Invoke(this, EventArgs.Empty);
+                }
+
+                return true;
+            }
+
+            if (target == "DRAWINGS")
+            {
+                IsFileListShown = !IsFileListShown;
+                return true;
+            }
+
             StatusToggleViewModel toggle = FindToggle(target);
 
             if (toggle != null)
