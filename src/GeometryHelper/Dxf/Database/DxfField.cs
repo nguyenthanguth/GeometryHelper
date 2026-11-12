@@ -599,8 +599,8 @@ namespace GeometryHelper.Dxf
             return file.OwnerOf(top);
         }
 
-        /// <summary>Gives a field another owner: its owner (the first 330) and its reactor of the old owner made the new one.</summary>
-        private static void Reown(DxfFile file, DxfItem item, string oldOwner, string newOwner)
+        /// <summary>Gives a field, or another object, another owner: its owner (the first 330) and its reactor of the old owner made the new one.</summary>
+        internal static void Reown(DxfFile file, DxfItem item, string oldOwner, string newOwner)
         {
             IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(item);
             bool braced = false;

@@ -21,6 +21,28 @@ AutoCAD 2021 gives them. TEXTEDIT reads a frame's row written by hand that leave
 `{\Fgdt;j}%%v0.1%%vA%%vB` opens as the position, 0.1, to A and B, where A was read as a second tolerance, and `0.1%%vA`
 keeps its 0.1 as the first tolerance, where it was lost.
 
+**FIXED.** ATTSYNC keeps the extended data and the extension dictionary of an attribute it makes anew because its tag
+stands out of order, as it keeps those of one synced in place: AutoCAD 2021's `SetAttributeFromBlock` kept both, the
+dictionary's handle too. An INSERT of GB with GRID before LEVEL, GRID carrying data of an application and an XRECORD,
+synced to a block that defines LEVEL first, keeps both on the new GRID; they were lost. ATTSYNC by Select on an INSERT of
+a dynamic block asks "ATTSYNC block GH_PANEL?", the dynamic block AutoCAD's `DynamicBlockTableRecord` names, where it
+named the anonymous block the INSERT places, "*U1".
+
+**CHANGED.** -ARRAY's corner prompt of a unit cell draws the cell alone, a rectangle from the first corner to the cursor,
+as AutoCAD 2021's does; it drew every copy the cell would make.
+
+**NEW.** With DYN on, an angle override typed at a point prompt shows in the angle field locked, as AutoCAD 2021's: `<30`
+at LINE's next point shows 30 wherever the cursor is until the point is given.
+
+**FIXED.** LIST writes an ellipse and a dimension as AutoCAD 2021 does, line for line, checked in accoreconsole under four
+pairs of ANGBASE and ANGDIR. An elliptical arc from 30 to 120 degrees reads "Start Angle: 60" and "End Angle: 330" with
+ANGBASE 90 and ANGDIR 1, after its length, centre, axes and ends; a whole ellipse its area and circumference. A dimension
+is a DIMENSION, then whether it is associative, its type (horizontal, vertical, rotated, aligned, angular, arc, radial,
+diameter, X or Y ordinate), its defining points, its obliquing and text angles counted from ANGBASE (30 reads 60), the
+rotation of a rotated one as an amount turned by ANGDIR alone (30 reads 330 clockwise), its text position and text, its
+style and whether it is annotative. Both wrote the rows of the Properties palette, and a dimension's kind ran into its
+layer, "ROTATED DIMENSIONLayer".
+
 **NEW.** `DxfTolerance.GeometricExtents` is the box of the frame's rows as AutoCAD 2021 gives it, where the drawing's
 `FontSearchPath` measures its words: each row twice the text height high, each cell its ink and the text height wide,
 `{\Fgdt;j}%%v0.1` at (0, 0, 0) in a style of Arial 0.18 high from (0, -0.18, 0) to (0.92296, 0.18, 0), as AutoCAD

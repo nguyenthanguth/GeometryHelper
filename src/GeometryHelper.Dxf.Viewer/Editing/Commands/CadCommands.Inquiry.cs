@@ -228,9 +228,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
                 CadSpace space = c.Document.FindSpace(handle);
+                // A dimension of any type is a DIMENSION, two spaces before its layer, as AutoCAD 2021 writes it.
                 c.Write(
                     new string(' ', 18)
-                        + CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10)
+                        + (
+                            entity is DxfDimension
+                                ? "DIMENSION  "
+                                : CadProperties.KindOf(entity).ToUpperInvariant().PadRight(10)
+                        )
                         + "Layer: \""
                         + entity.Layer
                         + "\""
@@ -247,7 +252,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline and a point, the rows Properties shows for the others.</summary>
+        /// <summary>The lines LIST writes of an object's shape: AutoCAD's for a line, a circle, an arc, a polyline, a point, an ellipse and a dimension (a jogged radius aside), the rows Properties shows for the others.</summary>
         private static IEnumerable<string> Listed(CadCommandContext c, DxfEntity entity, string handle, CadSpace space)
         {
             switch (entity)
@@ -300,6 +305,20 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDBPoint point:
                     yield return "                at point, " + At(c, point.Position);
                     yield break;
+                case DxfEllipse ellipse:
+                    foreach (string line in ListedEllipse(c, ellipse))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
+                case DxfDimension dimension when !(dimension is DxfRadialDimensionLarge):
+                    foreach (string line in ListedDimension(c, dimension))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
             }
 
             foreach (CadPropertyGroup group in CadProperties.Describe(c.Document, space, new[] { handle }).Groups)
@@ -314,6 +333,164 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return "                  " + row.Label + " = " + row.Value;
                 }
             }
+        }
+
+        /// <summary>
+        /// The lines LIST writes of an ellipse, as AutoCAD 2021 writes them: its area and circumference whole, else its length,
+        /// its ends and its start and end angles, these counted as the drawing counts angles (an arc from 30 to 120 degrees reads
+        /// 60 and 330 with ANGBASE 90 and ANGDIR 1); its centre, axes and radius ratio either way.
+        /// </summary>
+        private static IEnumerable<string> ListedEllipse(CadCommandContext c, DxfEllipse ellipse)
+        {
+            bool whole = ellipse.Closed;
+
+            if (whole)
+            {
+                yield return Labelled("Area", Length(ellipse.Area));
+                yield return Labelled("Circumference", Length(ellipse.GetDistanceAtParameter(ellipse.EndParam)));
+            }
+            else
+            {
+                yield return Labelled("Length", Length(ellipse.GetDistanceAtParameter(ellipse.EndParam)));
+            }
+
+            yield return Labelled("Center", Spaced(c, ellipse.Center, false));
+            yield return Labelled("Major Axis", Spaced(c, ellipse.Center + ellipse.MajorAxis, true, ellipse.Center));
+            yield return Labelled("Minor Axis", Spaced(c, ellipse.Center + ellipse.MinorAxis, true, ellipse.Center));
+
+            if (!whole)
+            {
+                yield return Labelled("Start Point", Spaced(c, ellipse.StartPoint, false));
+                yield return Labelled("End Point", Spaced(c, ellipse.EndPoint, false));
+                yield return Labelled("Start Angle", Degrees(c, c.Session.CountAngle(ellipse.StartAngle)));
+                yield return Labelled("End Angle", Degrees(c, c.Session.CountAngle(ellipse.EndAngle)));
+            }
+
+            yield return Labelled("Radius Ratio", Length(ellipse.RadiusRatio));
+        }
+
+        /// <summary>A line of an ellipse's list, its label set right to end at the 34th place: "             Center: X = ...".</summary>
+        private static string Labelled(string label, string value) => label.PadLeft(33) + ": " + value;
+
+        /// <summary>
+        /// A point, or a vector from another point, as LIST writes those of an ellipse: "X = 600.0000 , Y = -300.0000, Z = 0.0000",
+        /// in the UCS.
+        /// </summary>
+        private static string Spaced(CadCommandContext c, GeoPoint3 world, bool vector, GeoPoint3 from = default)
+        {
+            CadUcs ucs = c.Session.Ucs;
+            GeoPoint3 p = ucs.IsWorld ? world : ucs.ToUcs(world);
+
+            if (vector)
+            {
+                GeoPoint3 o = ucs.IsWorld ? from : ucs.ToUcs(from);
+                p = new GeoPoint3(p.X - o.X, p.Y - o.Y, p.Z - o.Z);
+            }
+
+            return "X = " + Length(p.X).PadRight(9) + ", Y = " + Length(p.Y).PadRight(9) + ", Z = " + Length(p.Z);
+        }
+
+        /// <summary>
+        /// The lines LIST writes of a dimension, as AutoCAD 2021 writes them: whether it is associative, its type, its defining
+        /// points, its obliquing and text angles where it has them, its text position and text, its style and whether it is
+        /// annotative. The rotation of a rotated dimension is an amount turned, counted the way ANGDIR counts from the X axis (30
+        /// reads 330 with ANGDIR 1, whatever ANGBASE is); the obliquing and text angles are directions, counted from ANGBASE (30
+        /// reads 60 with ANGBASE 90 and ANGDIR 1), as AutoCAD writes them.
+        /// </summary>
+        private static IEnumerable<string> ListedDimension(CadCommandContext c, DxfDimension dimension)
+        {
+            double tolerance = c.Session.Tolerance.EqualAngleRad;
+            yield return "associative: " + (dimension.DimAssoc != null ? "yes" : "no");
+            double oblique = 0.0;
+
+            switch (dimension)
+            {
+                case DxfRotatedDimension rotated:
+                    double turn = rotated.Rotation;
+                    bool horizontal = Math.Abs(Math.IEEERemainder(turn, 2.0 * Math.PI)) <= tolerance;
+                    bool vertical = Math.Abs(Math.IEEERemainder(turn - Math.PI / 2.0, 2.0 * Math.PI)) <= tolerance;
+                    yield return "type: "
+                        + (
+                            horizontal ? "horizontal"
+                            : vertical ? "vertical"
+                            : "rotated"
+                        );
+
+                    if (!horizontal && !vertical)
+                    {
+                        yield return " rotation:" + Degrees(c, c.Database.Angdir ? -turn : turn).PadLeft(7);
+                    }
+
+                    yield return "1st extension  defining point: " + At(c, rotated.XLine1Point);
+                    yield return "2nd extension  defining point: " + At(c, rotated.XLine2Point);
+                    yield return "dimension line defining point: " + At(c, rotated.DimLinePoint);
+                    oblique = rotated.Oblique;
+                    break;
+                case DxfAlignedDimension aligned:
+                    yield return "type: aligned";
+                    yield return "1st extension  defining point: " + At(c, aligned.XLine1Point);
+                    yield return "2nd extension  defining point: " + At(c, aligned.XLine2Point);
+                    yield return "dimension line defining point: " + At(c, aligned.DimLinePoint);
+                    oblique = aligned.Oblique;
+                    break;
+                case DxfLineAngularDimension2 lines:
+                    yield return "type: angular";
+                    yield return "first line     defining point: " + At(c, lines.XLine1Start);
+                    yield return "first line     defining point: " + At(c, lines.XLine1End);
+                    yield return "second line    defining point: " + At(c, lines.XLine2Start);
+                    yield return "second line    defining point: " + At(c, lines.XLine2End);
+                    yield return "dimension arc defining point: " + At(c, lines.ArcPoint);
+                    break;
+                case DxfPoint3AngularDimension three:
+                    yield return "type: arc";
+                    yield return "1st extension defining point: " + At(c, three.XLine1Point);
+                    yield return "2nd extension defining point: " + At(c, three.XLine2Point);
+                    yield return "arc center    defining point: " + At(c, three.CenterPoint);
+                    yield return "dimension arc defining point: " + At(c, three.ArcPoint);
+                    break;
+                case DxfArcDimension arc:
+                    yield return "type: arc";
+                    yield return "1st extension defining point: " + At(c, arc.XLine1Point);
+                    yield return "2nd extension defining point: " + At(c, arc.XLine2Point);
+                    yield return "arc center    defining point: " + At(c, arc.CenterPoint);
+                    yield return "dimension arc defining point: " + At(c, arc.ArcPoint);
+                    break;
+                case DxfRadialDimension radial:
+                    yield return "type: radial";
+                    yield return "center defining point: " + At(c, radial.Center);
+                    yield return "defining point:        " + At(c, radial.ChordPoint);
+                    break;
+                case DxfDiametricDimension diametric:
+                    yield return "type: diameter";
+                    yield return "       defining point: " + At(c, diametric.FarChordPoint);
+                    yield return "defining point:        " + At(c, diametric.ChordPoint);
+                    break;
+                case DxfOrdinateDimension ordinate:
+                    yield return "type: " + (ordinate.UsingXAxis ? "X" : "Y") + " ordinate";
+                    yield return "feature      defining point: " + At(c, ordinate.DefiningPoint);
+                    yield return "leader       defining point: " + At(c, ordinate.LeaderEndPoint);
+                    yield return "feature UCS  defining point: " + At(c, ordinate.Origin);
+                    break;
+            }
+
+            if (Math.Abs(Math.IEEERemainder(oblique, 2.0 * Math.PI)) > tolerance)
+            {
+                yield return "obliquing angle:" + Degrees(c, c.Session.CountAngle(oblique)).PadLeft(7);
+            }
+
+            if (Math.Abs(Math.IEEERemainder(dimension.TextRotation, 2.0 * Math.PI)) > tolerance)
+            {
+                yield return "text angle:" + Degrees(c, c.Session.CountAngle(dimension.TextRotation)).PadLeft(7);
+            }
+
+            yield return (dimension.UsingDefaultTextPosition ? "default" : "user specified")
+                + " text position: "
+                + At(c, dimension.TextPosition);
+            yield return string.IsNullOrEmpty(dimension.DimensionText)
+                ? "default text"
+                : "dimension text modifier: " + dimension.DimensionText;
+            yield return "dimension style: \"" + dimension.DimensionStyleName + "\"";
+            yield return "Annotative: " + (dimension.Annotative == DxfAnnotativeStates.True ? "Yes" : "No");
         }
 
         /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>

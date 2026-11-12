@@ -2668,8 +2668,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// &lt;Yes&gt;:", then every INSERT of it brought in line with its attribute definitions, as AutoCAD's: one attribute for
         /// each definition not constant, in the block's order, its value kept where the INSERT had the tag; those of tags the
         /// block no longer defines removed; each placed and styled from its definition as the INSERT places it. "?" lists the
-        /// blocks with attributes. A block picked that has no attribute definitions is refused, "This block has no attribute
-        /// definitions.", and another asked for. One undo step.
+        /// blocks with attributes. An INSERT of a dynamic block picked names the dynamic block, not the anonymous *U block it
+        /// places. A block picked that has no attribute definitions is refused, "This block has no attribute definitions.", and
+        /// another asked for. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeSync(CadCommandContext c)
         {
@@ -2727,20 +2728,24 @@ namespace GeometryHelper.Dxf.Viewer
                             yield break;
                         }
 
-                        if (
-                            c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference picked
-                            && picked.BlockTableRecord != null
-                        )
+                        // An INSERT of a dynamic block stands for that block, not for the anonymous *U block it places, as
+                        // AutoCAD's DynamicBlockTableRecord names it.
+                        DxfBlockTableRecord block = c.Document.FindEntity(c.Input.Handles[0])
+                            is DxfBlockReference picked
+                            ? picked.DynamicBlockTableRecord
+                            : null;
+
+                        if (block != null)
                         {
                             // A block with no attribute definitions is refused and another asked for, as Autodesk's help
                             // for Select has it, before the question of syncing.
-                            if (!picked.BlockTableRecord.OfType<DxfAttributeDefinition>().Any())
+                            if (!block.OfType<DxfAttributeDefinition>().Any())
                             {
                                 c.Write("This block has no attribute definitions.");
                                 continue;
                             }
 
-                            name = picked.BlockTableRecord.Name;
+                            name = block.Name;
                             break;
                         }
 
@@ -2882,7 +2887,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Brings the attributes of one INSERT in line with the definitions of its block, in their order: an attribute of a
         /// tag the INSERT has (the first of it not yet taken) is placed and styled again from its definition, its value kept,
         /// where it stands in order; one out of order, or of a tag it has not, is made anew after the others, a definition on
-        /// layer 0 giving it the INSERT's layer, as INSERT gives it; one of a tag no longer defined is erased.
+        /// layer 0 giving it the INSERT's layer, as INSERT gives it, and one made anew for an attribute out of order keeps that
+        /// attribute's extended data and extension dictionary; one of a tag no longer defined is erased.
         /// </summary>
         private static void Sync(DxfBlockReference insert, List<DxfAttributeDefinition> definitions)
         {
@@ -2924,12 +2930,6 @@ namespace GeometryHelper.Dxf.Viewer
                 else
                 {
                     appending = true;
-
-                    if (at >= 0)
-                    {
-                        old[at].Erase();
-                    }
-
                     attribute = new DxfAttributeReference();
                     made = true;
                     attribute.SetAttributeFromBlock(definition, transform);
@@ -2948,6 +2948,16 @@ namespace GeometryHelper.Dxf.Viewer
                 if (made)
                 {
                     insert.AttributeCollection.AppendAttribute(attribute);
+
+                    // The attribute made anew in the place of one out of order keeps its extended data and extension
+                    // dictionary, as one synced in place keeps them through SetAttributeFromBlock (AutoCAD 2021 kept both,
+                    // the dictionary's handle too).
+                    if (at >= 0)
+                    {
+                        attribute.XData = old[at].XData;
+                        old[at].MoveExtensionDictionaryTo(attribute);
+                        old[at].Erase();
+                    }
                 }
             }
 

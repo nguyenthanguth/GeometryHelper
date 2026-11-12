@@ -685,14 +685,22 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 corner = c.Input.Point;
 
-                    // The copies the unit cell to the cursor would make, as the array is made of it. AutoCAD's help
-                    // for -ARRAY describes no preview at this prompt; the copies are kept as at the other prompts.
+                    // The unit cell alone, a rectangle square to the UCS from the first corner to the cursor, as AutoCAD's
+                    // corner prompt draws it: no copies.
+                    CadUcs ucs = c.Session.Ucs;
                     yield return CadPrompt
                         .ForPoint("Specify opposite corner", corner)
-                        .Previewing(CadPreview.Moving(c, c.Selected, input =>
+                        .Previewing(CadPreview.MakingOne(c, input =>
                             {
-                                GeoVector2 drawn = c.Session.Ucs.ToUcs(input.Point - corner);
-                                return RectangularMoves(c, rows, columns, drawn.X, drawn.Y).ConvertAll(CadPreview.Flat);
+                                GeoPoint2 from = ucs.ToUcs(corner);
+                                GeoPoint2 to = ucs.ToUcs(input.Point);
+                                var cell = new DxfPolyline();
+                                cell.AddVertexAt(0, ucs.ToWorld(from), 0.0, 0.0, 0.0);
+                                cell.AddVertexAt(1, ucs.ToWorld(new GeoPoint2(to.X, from.Y)), 0.0, 0.0, 0.0);
+                                cell.AddVertexAt(2, ucs.ToWorld(to), 0.0, 0.0, 0.0);
+                                cell.AddVertexAt(3, ucs.ToWorld(new GeoPoint2(from.X, to.Y)), 0.0, 0.0, 0.0);
+                                cell.Closed = true;
+                                return Current(c, cell);
                             }));
 
                     if (!c.Input.IsPoint)

@@ -189,11 +189,12 @@ the ones wanted.
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
-- [ ] Previews follow-ups 2: a look by eye in the running app; -ARRAY unit cell previewed as a rectangle only as AutoCAD's corner prompt (DECIDED by recommendation 2026-11-12: follow AutoCAD, replace the old preview test); text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
+- [ ] Previews follow-ups 2: a look by eye in the running app; text items moved, not redrawn, in the paste preview (S). Done: paste preview 3x faster, -ARRAY row distance in drawing units, TEXT Align (AutoCAD shows no box), ALL on hand-written DXF
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
-- [ ] Angle follow-ups: ATTSYNC: XData kept on attributes it re-makes, and Select on a dynamic block naming its own block, not *U (DECIDED by recommendation 2026-11-12: both); the angle override in the DYN angle field; LIST for dimensions and ellipses with counted angles (S)
+- [x] Angle follow-ups: ATTSYNC keeps XData and names the dynamic block, the angle override in the DYN field, LIST of ellipses and dimensions as AutoCAD
+- [ ] ATTSYNC and LIST follow-ups: ATTSYNC of a dynamic block also syncs its *U INSERTs against the dynamic block's definitions (DECIDED by recommendation 2026-11-12); LIST of jogged radius, Y ordinate, rotations 180/270, non-world UCS, "associative: yes"; other long kind names running into "Layer:" (MULTILEADER) (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [ ] Command line follow-ups: collapsible content section, hatch thumbnail on hover, visual

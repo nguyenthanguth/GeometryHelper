@@ -160,6 +160,31 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gives the object's extension dictionary, with what it holds, to another object of its file, as ATTSYNC keeps an
+        /// attribute's when it makes the attribute anew: the dictionary keeps its handle, is owned by the other object and names
+        /// it as its reactor, and this one has none from then on. Nothing where this one has none or the other has one.
+        /// </summary>
+        internal void MoveExtensionDictionaryTo(DxfDBObject other)
+        {
+            string handle = IsResident ? _item.File.ExtensionDictionaryOf(_item) : null;
+
+            if (handle == null || !other.IsResident || other.ExtensionDictionary != null)
+            {
+                return;
+            }
+
+            DxfFile file = _item.File;
+            DxfItem dictionary = file.ObjectItem(handle);
+            file.SetExtensionDictionary(_item, null);
+            file.SetExtensionDictionary(other._item, handle);
+
+            if (dictionary != null)
+            {
+                DxfField.Reown(file, dictionary, Handle, other.Handle);
+            }
+        }
+
+        /// <summary>
         /// Gets the bytes the object keeps under a key, as AutoCAD's <c>GetBinaryDataForKey</c>: those of the XRECORD of that name
         /// in its extension dictionary, its groups 310 one after another.
         /// </summary>
