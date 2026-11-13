@@ -10,8 +10,10 @@ namespace GeometryHelper.Dxf
     /// Breaks what R12 cannot hold into what it can, in a drawing of a later version, before it is written as R12, as AutoCAD
     /// 2021 does when it saves one as R12: an LWPOLYLINE is a POLYLINE, an ellipse or a spline the 3D POLYLINE of 128 segments,
     /// a ray or an infinite line a LINE to the extents of the drawing, an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an
-    /// MLINE and a table the lines, texts and polylines they break into; a space gets an INSERT of a block of those pieces
-    /// where the entity stood, a block holds them where it stood. What breaks into nothing is left out.
+    /// MLINE and a table the lines, texts and polylines they break into, a 3DSOLID and a REGION the lines, circles, arcs, points
+    /// and 3D polylines of the edges of their faces; a space gets an INSERT of a block of those pieces where the entity stood, a
+    /// block holds them where it stood. A dynamic block is given the anonymous name AutoCAD writes for it. What breaks into
+    /// nothing is left out.
     /// </summary>
     /// <remarks>
     /// The pieces are made in a block of the drawing of their own (<c>GHR12_</c> and the handle), so that the text of the
@@ -90,6 +92,14 @@ namespace GeometryHelper.Dxf
 
             /// <summary>How many layouts beyond the first of paper space hold entities, which R12 has no block for.</summary>
             internal int Layouts { get; set; }
+
+            /// <summary>The anonymous name each dynamic block is given, by its own name in capitals: R12 has no dynamic blocks, and AutoCAD writes them as <c>*U</c> blocks.</summary>
+            internal Dictionary<string, string> Renamed { get; } =
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>How many uses of an edge by a face were left out of the lines of a REGION or a 3DSOLID, by kind, as the edge is a spline.</summary>
+            internal SortedDictionary<string, int> Skipped { get; } =
+                new SortedDictionary<string, int>(StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -102,6 +112,7 @@ namespace GeometryHelper.Dxf
         {
             var plan = new Plan();
             var extents = new Extents(database);
+            NameDynamicBlocks(database, plan);
 
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
@@ -151,14 +162,43 @@ namespace GeometryHelper.Dxf
                     }
 
                     var pieces = new List<DxfEntity>();
+                    bool wireBody = false;
 
-                    if (!Dropped.Contains(type))
+                    if (entity is DxfUnknownEntity solid && (type == "REGION" || type == "3DSOLID"))
+                    {
+                        // The edges of its faces as lines, arcs and 3D polylines, as AutoCAD writes them: none for a solid with
+                        // no edges (a sphere) still gives its block, empty.
+                        IReadOnlyList<DxfEntity> wires = solid.WireParts(out int skipped);
+
+                        if (wires != null)
+                        {
+                            wireBody = true;
+
+                            foreach (DxfEntity wire in wires)
+                            {
+                                Reduce(wire, extents, pieces);
+                            }
+
+                            if (skipped > 0)
+                            {
+                                plan.Skipped[type] =
+                                    (plan.Skipped.TryGetValue(type, out int before) ? before : 0) + skipped;
+                            }
+                        }
+                    }
+                    else if (!Dropped.Contains(type))
                     {
                         Reduce(entity, extents, pieces);
                     }
 
                     var made = new List<DxfEntity>();
                     DxfBlockTableRecord scratch = null;
+
+                    if (wireBody && pieces.Count == 0)
+                    {
+                        scratch = new DxfBlockTableRecord { Name = Scratch + entity.Handle };
+                        database.BlockTable.Add(scratch);
+                    }
 
                     foreach (DxfEntity piece in pieces)
                     {
@@ -190,7 +230,7 @@ namespace GeometryHelper.Dxf
                         }
                     }
 
-                    if (made.Count == 0)
+                    if (made.Count == 0 && !(wireBody && scratch != null))
                     {
                         plan.Left[entity.Handle] = type;
                     }
@@ -206,6 +246,60 @@ namespace GeometryHelper.Dxf
             }
 
             return plan;
+        }
+
+        /// <summary>
+        /// Gives each dynamic block an anonymous name, as AutoCAD 2021 does when it saves a drawing as R12, which has no dynamic
+        /// blocks: the block table keeps its place, the name is <c>*U</c> and the first number above that of the anonymous block
+        /// before it (the first number free where none comes before), so that <c>my-dynamic-block</c> between <c>*T16</c> and
+        /// <c>*U18</c> becomes <c>*U17</c>. Its INSERTs name it so too.
+        /// </summary>
+        private static void NameDynamicBlocks(DxfDatabase database, Plan plan)
+        {
+            var used = new HashSet<int>();
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                if (AnonymousNumber(block.Name, out int number))
+                {
+                    used.Add(number);
+                }
+            }
+
+            int before = 0;
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                string name = block.Name ?? string.Empty;
+
+                if (AnonymousNumber(name, out int number))
+                {
+                    before = number;
+                }
+                else if (!block.IsLayout && !block.IsAnonymous && block.IsDynamicBlock)
+                {
+                    int free = before + 1;
+
+                    while (!used.Add(free))
+                    {
+                        free++;
+                    }
+
+                    before = free;
+                    plan.Renamed[name] = "*U" + free.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+        }
+
+        /// <summary>Whether a name is that of an anonymous block, <c>*U17</c> or <c>*D3</c>, and its number.</summary>
+        private static bool AnonymousNumber(string name, out int number)
+        {
+            number = 0;
+            return name != null
+                && name.Length > 2
+                && name[0] == '*'
+                && char.IsLetter(name[1])
+                && int.TryParse(name.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out number);
         }
 
         /// <summary>The name of an entity's record type: LWPOLYLINE, MTEXT, ACAD_TABLE.</summary>

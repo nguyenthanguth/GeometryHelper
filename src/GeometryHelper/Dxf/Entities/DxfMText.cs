@@ -624,8 +624,10 @@ namespace GeometryHelper.Dxf
         /// width, height and spread, in braces or not, of a TrueType font before its first letter alone and spread not at all,
         /// as AutoCAD 2021 sets the letters after such a change on from the ink of those before it (checks F2 and F4); the codes
         /// that hold letters in a line (<c>\A</c>), line them under, over or through (<c>\L</c>, <c>\O</c>, <c>\K</c>) and colour
-        /// them (<c>\C</c>, <c>\c</c>); a style as wide as high and upright; letters its font has; no columns. Slanted letters
-        /// (<c>\Q</c>), other fonts (<c>\f</c>), stacks (<c>\S</c>), indents and tabs (<c>\p</c>) are not measured.
+        /// them (<c>\C</c>, <c>\c</c>); a style as wide as high and upright; letters its font has; no columns, or dynamic ones of
+        /// a count of one, which AutoCAD 2021 writes for an MTEXT it has wrapped; a line feed (<c>^J</c>) among the words is a
+        /// new paragraph. Slanted letters (<c>\Q</c>), other fonts (<c>\f</c>), stacks (<c>\S</c>), indents and tabs (<c>\p</c>)
+        /// are not measured.
         /// </para>
         /// </remarks>
         public double ActualWidth => Layout()?.ActualWidth ?? Number(42, 0.0);
@@ -709,6 +711,10 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The MTEXT's words laid out in lines, as <see cref="ActualWidth"/> measures them; null where they are not.</summary>
+        /// <summary>Whether the words flow in one column: an MTEXT with no columns, or dynamic columns of a count of one, which AutoCAD 2021 writes for the MTEXT of a box it has wrapped.</summary>
+        private bool OneColumn() =>
+            ColumnType == DxfColumnType.NoColumns || (ColumnType == DxfColumnType.DynamicColumns && ColumnCount <= 1);
+
         private DxfMTextLayout Layout()
         {
             DxfFonts fonts = IsResident ? Item.File.Database?.Fonts : null;
@@ -720,12 +726,7 @@ namespace GeometryHelper.Dxf
 
             DxfTextStyleTableRecord style = TextStyle;
 
-            if (
-                style == null
-                || !Same(style.XScale, 1.0)
-                || style.ObliquingAngle != 0.0
-                || ColumnType != DxfColumnType.NoColumns
-            )
+            if (style == null || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0 || !OneColumn())
             {
                 return null;
             }

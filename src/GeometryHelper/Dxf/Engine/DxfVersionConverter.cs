@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace GeometryHelper.Dxf
@@ -113,16 +114,17 @@ namespace GeometryHelper.Dxf
         /// <param name="text">The text of the file, of R2000 to R2018.</param>
         /// <param name="target">The version, as 1015 for AC1015.</param>
         /// <param name="said">Where what was left out or replaced is told, a sentence each; null for nowhere.</param>
+        /// <param name="fontSearchPath">The folders of the fonts an MTEXT broken into texts for R12 is laid out in, as <see cref="DxfDatabase.FontSearchPath"/>; null for none.</param>
         /// <returns>The text, in the line ends and the padding of the codes of the text given.</returns>
         /// <exception cref="NotSupportedException">Thrown when the file is older than R2000, or names no version.</exception>
         /// <exception cref="FormatException">Thrown when the text is not groups of a code and a value.</exception>
-        internal static string Convert(string text, int target, IList<string> said)
+        internal static string Convert(string text, int target, IList<string> said, string fontSearchPath = null)
         {
             var converter = new DxfVersionConverter(target);
 
             if (target == DxfVersions.R12)
             {
-                text = converter.R12Break(text);
+                text = converter.R12Break(text, fontSearchPath);
             }
 
             converter.Read(text);
@@ -957,6 +959,33 @@ namespace GeometryHelper.Dxf
                         + DxfVersions.Name(_target)
                         + " holds: "
                         + string.Join(", ", Counted(_broken))
+                        + "."
+                );
+            }
+
+            if (_plan != null && _plan.Renamed.Count > 0)
+            {
+                said.Add(
+                    "Dynamic blocks, which "
+                        + DxfVersions.Name(_target)
+                        + " does not have, are written as the anonymous blocks they are drawn with: "
+                        + string.Join(
+                            ", ",
+                            _plan
+                                .Renamed.OrderBy(r => r.Key, StringComparer.OrdinalIgnoreCase)
+                                .Select(r => r.Key + " as " + r.Value)
+                        )
+                        + "."
+                );
+            }
+
+            if (_plan != null && _plan.Skipped.Count > 0)
+            {
+                said.Add(
+                    "Edges that are splines, which the lines of a REGION or a 3DSOLID in "
+                        + DxfVersions.Name(_target)
+                        + " do not hold, are left out of them: "
+                        + string.Join(", ", Counted(_plan.Skipped))
                         + "."
                 );
             }

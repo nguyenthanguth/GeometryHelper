@@ -40,6 +40,30 @@ namespace GeometryHelper.Dxf
         /// <summary>The body in SAT text, its lines as AutoCAD keeps them in DXF with the cipher undone; null where it holds no planar body.</summary>
         internal static AcisBody FromSat(IReadOnlyList<string> lines)
         {
+            List<Record> records = SatRecords(lines);
+            return records == null ? null : Body(records);
+        }
+
+        /// <summary>
+        /// The wires of the body in SAT text, as <see cref="FromSat"/> takes its lines: every use of an edge by a face, whatever
+        /// the face lies on; null where the data holds no body or is not read.
+        /// </summary>
+        internal static AcisWires WiresFromSat(IReadOnlyList<string> lines)
+        {
+            List<Record> records = SatRecords(lines);
+
+            try
+            {
+                return records == null ? null : Wires(records);
+            }
+            catch (NotSupportedException)
+            {
+                return null;
+            }
+        }
+
+        private static List<Record> SatRecords(IReadOnlyList<string> lines)
+        {
             if (lines.Count < 4)
             {
                 return null;
@@ -63,7 +87,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return Body(records);
+            return records;
         }
 
         private static Record SatRecord(string piece)
@@ -183,7 +207,25 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        private static List<Record> SabRecords(byte[] sab)
+        /// <summary>The wires of the body in SAB bytes, as <see cref="WiresFromSat"/> gives them; null where the bytes are not SAB as AutoCAD writes it.</summary>
+        internal static AcisWires WiresFromSab(byte[] sab)
+        {
+            try
+            {
+                return Wires(SabRecords(sab, true));
+            }
+            catch (Exception e)
+                when (e is FormatException
+                    || e is ArgumentException
+                    || e is IndexOutOfRangeException
+                    || e is NotSupportedException
+                )
+            {
+                return null;
+            }
+        }
+
+        private static List<Record> SabRecords(byte[] sab, bool subtypes = false)
         {
             var records = new List<Record>();
             int at = 15 + 16;
@@ -304,7 +346,14 @@ namespace GeometryHelper.Dxf
                     }
                     case 0x0F:
                     case 0x10:
-                        throw new FormatException("A subtype: not a planar body.");
+                        // The braces of a spline's data stand inside one record: the wires of a body, which reads only
+                        // the records of its edges, go past them.
+                        if (!subtypes)
+                        {
+                            throw new FormatException("A subtype: not a planar body.");
+                        }
+
+                        break;
                     default:
                         throw new FormatException("A tag not known.");
                 }
@@ -375,12 +424,154 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Every use of an edge by a face of the body, in the order the data lists them (the lumps, shells, faces, loops and
+        /// coedges, each by the pointer to the next): a straight edge or an arc of an ellipse as the edge itself runs, a vertex
+        /// where an edge has no curve, nothing for a coedge of any other curve, which is counted. Faces of any surface give
+        /// theirs; only a flat face gives its normal.
+        /// </summary>
+        private static AcisWires Wires(List<Record> records)
+        {
+            bool history = records.Count > 0 && records[0].Name == "asmheader";
+            int o = Own(history);
+
+            Record At(Token pointer) =>
+                pointer.Kind == 'p' && pointer.Number >= 0 && pointer.Number < records.Count
+                    ? records[(int)pointer.Number]
+                    : null;
+            Token Field(Record record, int index) =>
+                index < record.Tokens.Count ? record.Tokens[index] : default(Token);
+
+            Record body = records.Find(r => r.Name == "body");
+
+            if (body == null)
+            {
+                return null;
+            }
+
+            var items = new List<AcisWire>();
+            int skipped = 0;
+
+            for (Record lump = At(Field(body, o)); lump != null; lump = At(Field(lump, o)))
+            {
+                for (Record shell = At(Field(lump, o + 1)); shell != null; shell = At(Field(shell, o)))
+                {
+                    for (Record face = At(Field(shell, o + 2)); face != null; face = At(Field(face, o)))
+                    {
+                        Record surface = At(Field(face, o + 4));
+                        bool planar = surface != null && surface.Name == "plane-surface";
+                        AcisVec normal = default(AcisVec);
+
+                        if (planar)
+                        {
+                            normal = Vec(surface, o + 3, Field).Unit;
+
+                            if (Field(face, o + 5).Number != 0.0)
+                            {
+                                normal = -normal;
+                            }
+                        }
+
+                        for (Record loop = At(Field(face, o + 1)); loop != null; loop = At(Field(loop, o)))
+                        {
+                            Record first = At(Field(loop, o + 1));
+                            Record coedge = first;
+                            int guard = 0;
+
+                            while (coedge != null && guard++ < 1000000)
+                            {
+                                Record edge = At(Field(coedge, o + 3));
+                                Record curve = edge == null ? null : At(Field(edge, history ? o + 5 : o + 3));
+                                AcisWire wire = null;
+
+                                try
+                                {
+                                    if (edge == null)
+                                    {
+                                        skipped++;
+                                    }
+                                    else if (curve == null)
+                                    {
+                                        // An edge of no curve is its vertex alone, as the apex of a cone.
+                                        Record vertex = At(Field(edge, o));
+                                        wire =
+                                            vertex == null
+                                                ? null
+                                                : new AcisWire(null, PointOf(vertex, o, At, Field), planar, normal);
+                                        skipped += wire == null ? 1 : 0;
+                                    }
+                                    else if (curve.Name == "straight-curve" || curve.Name == "ellipse-curve")
+                                    {
+                                        wire = new AcisWire(
+                                            Edge(coedge, o, history, At, Field, false),
+                                            default(AcisVec),
+                                            planar,
+                                            normal
+                                        );
+                                    }
+                                    else
+                                    {
+                                        skipped++;
+                                    }
+                                }
+                                catch (InvalidOperationException)
+                                {
+                                    skipped++;
+                                }
+
+                                if (wire != null)
+                                {
+                                    items.Add(wire);
+                                }
+
+                                coedge = At(Field(coedge, o));
+
+                                if (coedge == first)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            var wires = new AcisWires(items, skipped);
+            Record transform = At(Field(body, o + 2));
+
+            if (transform == null || transform.Name != "transform")
+            {
+                return wires;
+            }
+
+            return TryTransform(transform, history ? 2 : 1, out GeoTransform3 moved)
+                ? moved == null
+                    ? wires
+                    : wires.Transformed(moved)
+                : null;
+        }
+
+        /// <summary>
         /// The body with the transform record of its body applied: a matrix of three rows (a point is a row, so its image is the
         /// point times the matrix), a translation and a scale, as ACIS keeps them. The identity leaves the body as it is; a body
         /// with a shear is not read.
         /// </summary>
         private static AcisBody Moved(AcisBody body, Record transform, int o)
         {
+            if (!TryTransform(transform, o, out GeoTransform3 moved))
+            {
+                return null;
+            }
+
+            return moved == null ? body : body.Transformed(moved);
+        }
+
+        /// <summary>
+        /// The transformation a transform record holds: null for the identity, which leaves a body as it is; false where the
+        /// record shears.
+        /// </summary>
+        private static bool TryTransform(Record transform, int o, out GeoTransform3 moved)
+        {
+            moved = null;
             double Number(int index) => transform.Tokens.Count > o + index ? transform.Tokens[o + index].Number : 0.0;
 
             double scale = Number(12);
@@ -393,7 +584,7 @@ namespace GeometryHelper.Dxf
 
             if (identity)
             {
-                return body;
+                return true;
             }
 
             // The flags that follow: rotate, reflect, shear. A shear is a transformation that scales more one way than another.
@@ -401,7 +592,7 @@ namespace GeometryHelper.Dxf
 
             if (shear.Kind == 's' ? shear.Text == "shear" : shear.Number != 0.0)
             {
-                return null;
+                return false;
             }
 
             var matrix = new double[4, 4];
@@ -417,7 +608,8 @@ namespace GeometryHelper.Dxf
             }
 
             matrix[3, 3] = 1.0;
-            return body.Transformed(new GeoTransform3(matrix));
+            moved = new GeoTransform3(matrix);
+            return true;
         }
 
         private static AcisFace Face(
@@ -485,13 +677,17 @@ namespace GeometryHelper.Dxf
         private static AcisVec Vec(Record record, int index, Func<Record, int, Token> field) =>
             new AcisVec(field(record, index).Number, field(record, index + 1).Number, field(record, index + 2).Number);
 
-        /// <summary>The edge of a coedge as it runs along the loop: its curve between its parameters, turned over where the coedge runs against the edge.</summary>
+        /// <summary>
+        /// The edge of a coedge as it runs along the loop: its curve between its parameters, turned over where the coedge runs
+        /// against the edge; as the edge itself runs where <paramref name="alongLoop"/> is false.
+        /// </summary>
         private static AcisCurve Edge(
             Record coedge,
             int o,
             bool history,
             Func<Token, Record> at,
-            Func<Record, int, Token> field
+            Func<Record, int, Token> field,
+            bool alongLoop = true
         )
         {
             Record edge = at(field(coedge, o + 3));
@@ -578,7 +774,7 @@ namespace GeometryHelper.Dxf
                 read = read.Reversed();
             }
 
-            return field(coedge, o + 4).Number != 0.0 ? read.Reversed().MarkedAgainstEdge() : read;
+            return alongLoop && field(coedge, o + 4).Number != 0.0 ? read.Reversed().MarkedAgainstEdge() : read;
         }
 
         private static AcisVec PointOf(Record vertex, int o, Func<Token, Record> at, Func<Record, int, Token> field)

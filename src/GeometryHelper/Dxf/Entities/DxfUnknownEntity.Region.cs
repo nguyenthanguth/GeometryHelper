@@ -225,7 +225,68 @@ namespace GeometryHelper.Dxf
             + " is not flat faces of lines and arcs of ellipses, which are all the library reads: explode it in AutoCAD, whose solid modeler breaks it.";
 
         /// <summary>The body of the ACIS data of the entity, null where it holds none that is readable.</summary>
-        private AcisBody ReadBody()
+        private AcisBody ReadBody() => ReadAcis(AcisReader.FromSab, AcisReader.FromSat);
+
+        /// <summary>
+        /// The lines, arcs and points AutoCAD writes for a REGION or a 3DSOLID saved as R12, read from the ACIS data of the entity:
+        /// every use of an edge by a face, face by face and loop by loop, each a new entity with the entity's look. A straight
+        /// edge is a LINE from its start to its end, carrying the normal of its face where the face is flat; a circle or an arc a
+        /// CIRCLE or an ARC about the normal of a flat face, else about its own; an ellipse an ELLIPSE (which the saving breaks
+        /// into a 3D polyline); an edge of no curve, as the apex of a cone, a POINT. An edge that is a spline is left out.
+        /// </summary>
+        /// <param name="skipped">How many uses of an edge were left out as splines or other curves.</param>
+        /// <returns>The entities, in no file; null for an entity that is neither a REGION nor a 3DSOLID or whose data is not read.</returns>
+        internal IReadOnlyList<DxfEntity> WireParts(out int skipped)
+        {
+            skipped = 0;
+
+            if (DxfName != "REGION" && DxfName != "3DSOLID")
+            {
+                return null;
+            }
+
+            AcisWires wires = ReadAcis(AcisReader.WiresFromSab, AcisReader.WiresFromSat);
+
+            if (wires == null)
+            {
+                return null;
+            }
+
+            skipped = wires.Skipped;
+            var parts = new List<DxfEntity>(wires.Items.Count);
+
+            foreach (AcisWire wire in wires.Items)
+            {
+                DxfEntity part;
+
+                if (wire.Curve == null)
+                {
+                    part = new DxfDBPoint(new GeoPoint3(wire.Point.X, wire.Point.Y, wire.Point.Z));
+                }
+                else
+                {
+                    DxfCurve curve = DxfRegionShape.ToEntity(
+                        wire.Curve,
+                        wire.IsPlanar || wire.Curve.IsLine ? wire.FaceNormal : wire.Curve.Normal
+                    );
+
+                    if (wire.IsPlanar && curve is DxfLine line)
+                    {
+                        line.Normal = new GeoVector3(wire.FaceNormal.X, wire.FaceNormal.Y, wire.FaceNormal.Z);
+                    }
+
+                    part = curve;
+                }
+
+                GiveLook(part);
+                parts.Add(part);
+            }
+
+            return parts.AsReadOnly();
+        }
+
+        private T ReadAcis<T>(Func<byte[], T> fromSab, Func<IReadOnlyList<string>, T> fromSat)
+            where T : class
         {
             IReadOnlyList<DxfTypedValue> groups = GetOwnGroups(0);
             var lines = new List<string>();
@@ -253,10 +314,10 @@ namespace GeometryHelper.Dxf
             if (binary)
             {
                 byte[] sab = SabOfRegion();
-                return sab == null ? null : AcisReader.FromSab(sab);
+                return sab == null ? null : fromSab(sab);
             }
 
-            return lines.Count == 0 ? null : AcisReader.FromSat(lines);
+            return lines.Count == 0 ? null : fromSat(lines);
         }
 
         /// <summary>The SAB of a region of R2013 or R2018: from the data store of its file, or kept with it while it is in none.</summary>

@@ -83,22 +83,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="NotSupportedException">Thrown when the transformation scales more one way than another, or shears.</exception>
         internal AcisBody Transformed(GeoTransform3 transform)
         {
-            GeoVector3 x = transform.Transform(new GeoVector3(1.0, 0.0, 0.0));
-            GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
-            GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
-
-            if (
-                !DxfOcsTransform.IsUniform(x, y)
-                || !DxfOcsTransform.IsUniform(y, z)
-                || !DxfOcsTransform.IsUniform(x, z)
-            )
-            {
-                throw new NotSupportedException(
-                    "A region is moved by a transformation that scales alike in every direction, as AutoCAD moves one: this one scales more one way than another or shears."
-                );
-            }
-
-            bool mirrors = x.TripleProduct(y, z) < 0.0;
+            bool mirrors = Mirrors(transform);
             var faces = new List<AcisFace>(Faces.Count);
 
             foreach (AcisFace face in Faces)
@@ -117,6 +102,28 @@ namespace GeometryHelper.Dxf
             }
 
             return new AcisBody(faces);
+        }
+
+        /// <summary>Whether a transformation that scales alike in every direction turns the space over (a mirror).</summary>
+        /// <exception cref="NotSupportedException">Thrown when the transformation scales more one way than another, or shears.</exception>
+        internal static bool Mirrors(GeoTransform3 transform)
+        {
+            GeoVector3 x = transform.Transform(new GeoVector3(1.0, 0.0, 0.0));
+            GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
+            GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
+
+            if (
+                !DxfOcsTransform.IsUniform(x, y)
+                || !DxfOcsTransform.IsUniform(y, z)
+                || !DxfOcsTransform.IsUniform(x, z)
+            )
+            {
+                throw new NotSupportedException(
+                    "A region is moved by a transformation that scales alike in every direction, as AutoCAD moves one: this one scales more one way than another or shears."
+                );
+            }
+
+            return x.TripleProduct(y, z) < 0.0;
         }
 
         /// <summary>

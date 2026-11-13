@@ -116,12 +116,25 @@ drawing, all with their handles; an MTEXT, a pattern HATCH, a LEADER, a MULTILEA
 polyline of two vertices for each edge) and a HATCH filled solid or with a gradient (SOLIDs, one colour for a gradient, a
 hatch with a normal other than (0, 0, 1) left out) are the lines, texts and polylines they break into, in an anonymous block
 `*U` (`*X` for a pattern hatch) numbered on from the highest of the drawing, with an INSERT that has the entity's handle,
-where they stood in a space, and in place where they stood in a block. A TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE
-frame, a 3DSOLID and a REGION, which AutoCAD breaks into lines with its solid modeler, and the layouts beyond the first,
-are left out and said. Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own
-R12 of it has (a text's extended data naming a handle that is not there), and selects 155 entities of model space where
-AutoCAD's own R12 gives 158, the three more being the REGION and the two solids; a long MTEXT is wrapped by the fonts AutoCAD
-has, and here by the words' own breaks, so that one MTEXT of 123 lines in AutoCAD is two here.
+where they stood in a space, and in place where they stood in a block; the INSERT is on the drawing's current layer and in its
+current colour and linetype (`$CLAYER`, `$CECOLOR`, `$CELTYPE`), the look of the entity being on its pieces, and a hatch's keeps
+the colours of its gradient in its extended data. A 3DSOLID and a REGION are the edges of their faces, face by face and loop by
+loop, as AutoCAD writes them: a box 40 by 30 by 20 is 24 LINEs, four to each face, each carrying the normal of its face
+((0, 0, 1) left out); a cylinder is four CIRCLEs, those of the flat ends about their normal and those of the curved face about
+their own; the apex of a cone is a POINT, a sphere an empty block, an ellipse a 3D polyline of 129 vertices; an edge that is a
+spline is left out, and said. The ACIS reader behind it gives the edges of a face on any surface, not only the planes that a
+region has. The words of an MTEXT are laid out in the fonts of the drawing (`FontSearchPath`) as AutoCAD wraps them, so that the
+long MTEXT of AutoCAD's sample is the 123 TEXTs of AutoCAD's own R12. A dynamic block, which R12 has not, is written as the
+anonymous block AutoCAD gives it: `*U` and the first number above that of the anonymous block before it in the table
+(`my-dynamic-block` between `*T16` and `*U18` is `*U17`), its INSERTs naming that. The name of a symbol is as R12 holds it,
+a character that is no letter, digit, `$`, `-` or `_` an underscore and the name cut to 26 characters
+(`{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}` is `_18B73A54-FA43-428C-ADCB-C`), or AutoCAD discards the drawing. A TOLERANCE, a
+WIPEOUT, an IMAGE, an underlay, an OLE frame and the layouts beyond the first are left out and said. A gradient hatch is the
+SOLIDs of its triangles in one colour: AutoCAD writes the triangles of its own display mesh, 2 for a LINEAR gradient of any
+rectangle, as here, and 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here.
+Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
+extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
+ten drawings of dynamic blocks open with a clean AUDIT.
 
 There is no `ObjectId` and no transaction. An object is used directly, as AutoCAD's is once a transaction has opened it:
 an object read from the drawing is the same object each time it is reached, a change to it is written at once, and an

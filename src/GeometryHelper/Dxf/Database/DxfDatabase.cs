@@ -234,14 +234,19 @@ namespace GeometryHelper.Dxf
         /// <para>
         /// R12 has no objects, no classes, no layouts beyond one paper space, no handles but those of its entities, and a few of the
         /// kinds of entity: it is written as AutoCAD 2021 writes one drawing as R12. The header, the tables (no block records, no
-        /// handles, no extended data, names in capitals, a TrueType font named txt, a dimension style with every value) and the
+        /// handles, no extended data, names as R12 holds them, a TrueType font named txt, a dimension style with every value) and the
         /// groups of each entity are those of R12; the spaces are the blocks <c>$MODEL_SPACE</c> and <c>$PAPER_SPACE</c>; a viewport
         /// keeps its view in its extended data (ACAD MVIEW). What R12 lacks is broken into what it holds: an LWPOLYLINE is a POLYLINE,
         /// an ellipse (129 vertices) and a spline (128) a 3D POLYLINE, a ray and an infinite line a LINE to the extents of the
-        /// drawing; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (its edges) and a HATCH filled
-        /// solid or with a gradient (its SOLIDs, one colour for a gradient) are the entities they break into, in a block <c>*U</c> or
-        /// <c>*X</c> of the next number where they stood in a space, in place where they stood in a block. A TOLERANCE, a WIPEOUT, an
-        /// IMAGE, an underlay, an OLE frame, a 3DSOLID, a REGION and the layouts beyond the first are left out, and said.
+        /// drawing; an MTEXT (its words laid out in the <see cref="FontSearchPath"/> of the drawing, so that a long one is wrapped as
+        /// AutoCAD wraps it), a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (its edges) and a HATCH filled
+        /// solid or with a gradient (its SOLIDs, one colour for a gradient) are the entities they break into, and a 3DSOLID and a
+        /// REGION the lines, circles, arcs, points and 3D polylines of the edges of their faces (a box 40 by 30 by 20 is 24 LINEs; an
+        /// edge that is a spline is left out), in a block <c>*U</c> or <c>*X</c> of the next number where they stood in a space, in
+        /// place where they stood in a block; the INSERT is on the current layer and in the current colour of the drawing. A dynamic
+        /// block is written as the anonymous block <c>*U</c> AutoCAD gives it, and a name R12 does not allow is an underscore for
+        /// each character it does not and cut to 26 characters. A TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE frame and the
+        /// layouts beyond the first are left out, and said.
         /// </para>
         /// </remarks>
         public IReadOnlyList<string> Save(string path, string version)
@@ -315,7 +320,7 @@ namespace GeometryHelper.Dxf
             }
 
             var told = new List<string>();
-            string text = DxfVersionConverter.Convert(File.ToText(), target, told);
+            string text = DxfVersionConverter.Convert(File.ToText(), target, told, FontSearchPath);
             said = told.AsReadOnly();
             GeometryHelperLog.Info(
                 "DxfDatabase: saved as "

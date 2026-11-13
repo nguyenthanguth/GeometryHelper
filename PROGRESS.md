@@ -110,7 +110,7 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       -OSNAP rarer short names; whether HIDEPALETTES hides the command line; HATCHEDIT's Click to set new origin; visual
       styles drawn; spelling of dimension text and xrefs; the hidden internal visual style names and Check Spelling's
       punctuation default checked in AutoCAD; CadTiledViewports.Rename and -RENAME VPort agreeing (S)
-- [ ] Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
+- [ ] (dialogs8, running) Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
@@ -161,7 +161,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         ribbon tab; the batch buttons moved into the panel bodies (Hatch split in Draw, Check Spelling and Text Align, Align,
         Model Viewports); Plot Stamp user fields and .pss files; Boundary Creation New; an expandable Xbind tree; LWUNITS and
         LWDEFAULT
-  - [ ] Dialogs 7 follow-ups: Insert Layout dialog (LAYOUT Template) and Template description (SAveas); .pss location,
+  - [ ] (dialogs8, running) Dialogs 7 follow-ups: Insert Layout dialog (LAYOUT Template) and Template description (SAveas); .pss location,
         orientation and several user fields checked against a file AutoCAD writes; LWDEFAULT's refusal wording; the app
         menu's Export > PDF running EXPORTPDF and an Import entry; Collect in the Leaders panel once MLEADERCOLLECT exists;
         look at the windows in the running app (S)
@@ -208,7 +208,14 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] New drawing gets the default layers of Global settings > Layers, colour and lines; Ctrl+3 toggles the ribbon area like Ctrl+1/Ctrl+2 (RIBBON/RIBBONCLOSE)
 - [x] Save Drawing As listing each DXF version plainly (2018 down to 2000): DxfDatabase.Save(path, version), groups trimmed as AutoCAD's own files show, AUDIT 0 in AutoCAD 2021; DWG stays 2018 only (DECIDED by recommendation 2026-11-12)
 - [x] DXF versions follow-ups 1: R12 written as AutoCAD's own (exploding what R12 lacks), FILEDIA 0 SAVEAS "Enter file format", DXFOUT and its version list, CadDocument.SaveCopy (saveas2)
-- [ ] (r12b, running) R12 follow-ups: 3DSOLID/REGION wireframe (needs an ACIS reader); gradient bands (AutoCAD writes 312); MTEXT wrapped by font metrics (2 TEXTs vs 123); dynamic blocks flattened to *U; repeat the AutoCAD check on a real model (M)
+- [x] R12 follow-ups 1 (r12b): 3DSOLID and REGION written as their edges, as AutoCAD (27 of 30 probes equal record for
+      record, the sample's solids and region identical); MTEXT wrapped by font metrics (123 TEXTs, as AutoCAD); dynamic
+      blocks as *U; fixed: symbol names, the AcDbAttr APPID, the anonymous flag and polyline vertex looks that made AutoCAD
+      discard the R12 (the sample now audits as AutoCAD's own, 10 dynamic-block drawings AUDIT 0)
+- [ ] R12 follow-ups 2: gradient hatches as AutoCAD's display mesh (LINEAR 2, CYLINDER 152, SPHERICAL 332 triangles on a
+      100 by 60 rectangle); R14_HATCH_DATA and ACAD_MLEADERVER xdata on the INSERTs; ellipse polylines' first-vertex
+      header and 6-figure vertices; table, multileader, pattern hatch and MESH piece counts; names colliding after cleaning;
+      AutoCAD's extra APPIDs; BODY, surfaces and spline-edge solids (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids

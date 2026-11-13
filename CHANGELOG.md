@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A 3DSOLID and a REGION saved as R12 are the edges of their faces, as AutoCAD 2021 writes them (probed in its console:
+30 solids and regions made in side databases and written with `DxfOut` at R12, beside their SAT at R2000): face by face, loop by
+loop, each edge once for each face that uses it, as a LINE from the start of the edge to its end carrying the normal of its face
+where the face is flat ((0, 0, 1) left out), a CIRCLE or an ARC about the normal of a flat face and about its own where the face
+is curved, an ellipse as the 3D polyline of 129 vertices, an edge of no curve (the apex of a cone) as a POINT, in an anonymous
+block `*U` with an INSERT of the entity's handle (in place in a block). A box 40 by 30 by 20 is 24 LINEs, four to each of its six
+faces; a cylinder four CIRCLEs; a cone two CIRCLEs and the POINT of its apex; a sphere an empty block; a region with a circular
+hole the circle first and then the four lines of the outer loop; a region off the XY plane has lines that carry its normal,
+(0, -0.644, 0.765) for 0.7 radians about X. 27 of the 30 solids and regions made for the probe come out as AutoCAD's own R12,
+record for record (the other three hold an ellipse, whose 3D polyline AutoCAD starts at its first vertex and writes with six
+figures), and so do the sample's two solids (24 and 30 lines) and its region (7). The ACIS reader gives the wires of any solid, not only of flat faces: a face on a cone, a
+sphere, a torus or a spline is passed over to read its edges that are straight or elliptical. Edges that are splines are left
+out of the lines and said (`3DSOLID 2`).
+**NEW.** An MTEXT saved as R12 is wrapped by the fonts of the drawing: `DxfDatabase.Save` takes the saving drawing's
+`FontSearchPath` to the MTEXTs it breaks into TEXTs, so that the long MTEXT of AutoCAD's sample, which was 2 TEXTs, is the 123 of
+AutoCAD's own R12. For this an MTEXT of dynamic columns with one column (what AutoCAD 2021 writes for any MTEXT it wrapped) is
+laid out as one of none, and a line feed among the words (`^J`) is a new paragraph, as AutoCAD's Explode takes it; the
+`ActualWidth`, `ActualHeight`, `GeometricExtents` and Explode of such an MTEXT are measured where the drawing has fonts (the
+sample's, 15.2606 wide, as AutoCAD wrote its group 42).
+**NEW.** A dynamic block saved as R12 is the anonymous block AutoCAD writes for it, which R12 has in place of dynamic blocks: its
+place in the block table kept, its name `*U` and the first number above the anonymous block before it (`my-dynamic-block` between
+`*T16` and `*U18` is `*U17`, as AutoCAD's own R12 of the sample has it, where the first free number is taken if none comes before),
+with its anonymous flag and the name in its INSERTs; said (`my-dynamic-block as *U17`).
+**FIXED.** A drawing saved as R12 that AutoCAD 2021 discarded on opening it, found by opening the R12 of AutoCAD's sample and of its
+ten dynamic block drawings (the sample and seven of the ten were discarded; now all of them open, AUDIT 0 errors for the ten, and
+the one fault AutoCAD's own R12 of the sample has for the sample, 159 entities selected as in AutoCAD's own): the name of a
+symbol is as R12 holds it, any character but a letter, digit, `$`, `-` and `_` an underscore and the name cut to 26 characters
+(`{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}` is `_18B73A54-FA43-428C-ADCB-C`, `Plates {1} of the second floor north wing` is
+`PLATES__1__OF_THE_SECOND_F`), in the tables and on every entity that names it ("Improper table entry name"); the extended data
+of AcDbAttr an attribute keeps its flags in has its application in the table ("Invalid application name in 1001 group"); a block
+named anonymous has the flag of an anonymous block ("Invalid anonymous block"). The vertices and the end of a polyline made of a
+lightweight one carry its linetype and colour, as AutoCAD's do (AUDIT mended "linetype != owner's").
+**CHANGED.** The INSERT that stands in a space for an entity R12 breaks into its pieces is on the drawing's current layer, in its
+current colour and linetype (`$CLAYER`, `$CECOLOR`, `$CELTYPE`; layer 0 and no colour or linetype where they are the defaults)
+as AutoCAD writes it, where it took the entity's own, which are on the pieces; the INSERT of a hatch is of the linetype CONTINUOUS
+with no colour and keeps the colours of its gradient (`GRADIENTCOLOR1ACI`, `GRADIENTCOLOR2ACI`, the indices of the first and the
+second) in its extended data. A gradient hatch is still its SOLIDs of one colour: AutoCAD writes the triangles of its own display
+mesh, uncoloured, 2 for a LINEAR gradient of any rectangle (as here) and 152 for a CYLINDER, 332 for a SPHERICAL, 56 for a
+HEMISPHERICAL and 57 for a CURVED one on a rectangle 100 by 60, which is not worked out here.
 **NEW.** Annotative objects, third round (probed in AutoCAD 2021's console, plugin GHA3): arc length and jogged radius dimensions
 are annotative as AutoCAD writes them (an arc length one the angular context class with the point of its arc, a jogged one
 `ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS` with the chord point, the centre it is measured from and the jog) and get a second scale
@@ -824,12 +863,8 @@ vertices, a spline one of 128, a ray and an infinite line a LINE to the extents 
 a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (one 3D polyline for each edge) and a HATCH filled solid or
 with a gradient (SOLIDs, one colour for a gradient) are the lines, texts and polylines they break into, in an anonymous block
 `*U` or `*X` with an INSERT of the entity's handle where they stood in a space, in place where they stood in a block. Left
-out and said: a TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE frame, a 3DSOLID, a REGION (AutoCAD gives their edges as
-lines through its solid modeler), the layouts beyond the first, and a hatch whose normal is not (0, 0, 1). Opened in AutoCAD
-2021 the drawing above as R12 is clean to AUDIT but for the one fault AutoCAD's own R12 has, and selects 155 entities of model
-space where AutoCAD's gives 158 (the REGION and the two solids). A long MTEXT is wrapped at the words' own breaks, where
-AutoCAD wraps it by its fonts; a gradient is one colour, where AutoCAD makes bands. A drawing of R12 or R14 is still saved as
-it is only, to any other version.
+out and said: a TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE frame, the layouts beyond the first, and a hatch whose
+normal is not (0, 0, 1). A drawing of R12 or R14 is still saved as it is only, to any other version.
 **NEW.** SAVEAS with FILEDIA 0 (or no window) asks what AutoCAD 2021 asks, in its words, read from its resources: `Current
 file format: AutoCAD 2018 Drawing` and `Enter file format [R14(LT98&LT97)/2000(LT2000)/2004(LT2004)/2007(LT2007)/2010(LT2010)/
 2013(LT2013)/2018(LT2018)/Dxf/Template/Standards] <2018>:`; 2018 is the DWG, and the older formats, Template and Standards are

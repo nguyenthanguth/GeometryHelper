@@ -1008,7 +1008,13 @@ namespace GeometryHelper.Dxf
                     number = Sign(font, char.ToLowerInvariant(words[i + 2]));
                     i += 3;
                 }
-                else if (c == '\n' || c == '\r')
+                else if (c == '\n')
+                {
+                    // A line feed in the words (^J), as AutoCAD 2021 writes between the paragraphs of some MTEXTs, is a new paragraph.
+                    number = Paragraph;
+                    i++;
+                }
+                else if (c == '\r')
                 {
                     return null;
                 }
