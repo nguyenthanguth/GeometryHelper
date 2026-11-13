@@ -42,6 +42,19 @@ insertion point of a panel whose left edge a stretch of the base point holds, dr
 set twice in a row (AutoCAD 2021: Width 140 and then 120 left Width 120, in one session or two), where the library added a record
 for each.
 
+**FIXED.** The words of an angle of three points and of an arc length dimension (DIMARC) are fitted and placed as AutoCAD 2021 does,
+measured on its console (about 10 000 new dimensions made by both, besides the earlier sets): level words of an angle fit by what their box takes of the chord
+across the arc's turn, as an arc length dimension's already did (rays 10 long, the arc 12 out, chords of 0.2 to 1.6: 56 of 432
+pictures differed, now 4), and run out to the right where the arc point stands more than 0.05 above the vertex, else to the left
+(a first ray from -3 to 5 degrees and from 180: 27 of 48 differed, now none). The room the words and arrowheads are fitted
+against is the chord and a third of what the arc has beyond it, which counts from wide sweeps (the arc of 1 through 120 degrees
+dimensioned on itself keeps its arrowheads between its rays: 66 of 1 428 differed, now 23). An arc length dimension: the arc
+point goes to the far side of the words, two thirds round for words nearer the first end than the middle and a third for the
+rest, so DIMJUST 1 puts it a third round (3.61 degrees, not 6.39, on the arc of 3 through 10 put 3.6 out: 288 of 864 differed,
+now none); words between the rays under DIMJUST 1 and 2 stand an arrowhead and a gap from their ray, then half of what the fit
+asked for along the arc (turned words within 0.001, level ones within 0.035: 57 of 108 differed, now 26); the arc symbol over the
+words (DIMARCSYM 1) takes 0.4 of their height more (711 of 3 024 differed, now 656). An angle of 60 degrees whose words just fill
+its chord (radius 30, text 4 high, DIMADEC 4) now keeps them between its rays, as AutoCAD does. Every other picture is as it was.
 **NEW.** A 3DSOLID and a REGION saved as R12 are the edges of their faces, as AutoCAD 2021 writes them (probed in its console:
 30 solids and regions made in side databases and written with `DxfOut` at R12, beside their SAT at R2000): face by face, loop by
 loop, each edge once for each face that uses it, as a LINE from the start of the edge to its end carrying the normal of its face

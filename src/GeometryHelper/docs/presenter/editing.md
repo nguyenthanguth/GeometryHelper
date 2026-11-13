@@ -873,12 +873,23 @@ out, and two thirds where the words do not fit between the extension lines (the 
 lines): the arc of 50 from 10 to 40 degrees put 70 out, below 90 degrees, has it a third of the way between where its
 extension lines meet its arc, at 21.45 degrees, not at 20; an angle of 20 degrees at radius 1 in text 0.18 high, its arc put
 1.2 out, has its words outside and its arc point at 13.33 degrees, where one of 40 degrees has it at 13.33 too, a third of 40.
+An arc length dimension has it on the far side from its words: two thirds of the way for words nearer its first end than its
+middle (outside past the first end, DIMJUST 0 and 2; beside the first ray, DIMJUST 2), a third for words in the middle or
+nearer the second end (outside past the second end, DIMJUST 1; beside the second ray, DIMJUST 1). The arc of 3 through 10
+degrees put 3.6 out has it at 3.61 degrees for DIMJUST 1 and at 6.39 for DIMJUST 0 and 2.
 Words kept level (DIMTIH) fit by what they take of the chord across the turn of the arc: their width (with the arc symbol
 and four gaps) times the sine of the direction of the arc's middle, and their height (and four gaps) times its cosine, the
 two joined at 45 degrees; the arc of 10 put 12 out takes its level words from a chord of 0.57 at 1.6 degrees to 1.43 at 92,
 so the arc of 3 through 20 degrees from 10 (a chord of 1.04) keeps its words "1.0472" between its extension lines, an arrowhead
-outside each end. Level words outside stand past the first end of the arc, to the right where it points up from the
-horizontal and to the left where it points down, the room of the arc symbol between the landing and them whichever side.
+outside each end. An angle of three points fits its level words so too (rays 10 long, the arc 12 out, chords of 0.2 to 1.6: 56
+of 432 differed from AutoCAD, now 4), and the arc symbol over the words (DIMARCSYM 1) adds 0.4 of their height. What they and
+the arrowheads are fitted against is the chord and a third of what the arc has beyond it, which counts from wide sweeps on: the
+arc of 1 through 120 degrees dimensioned on itself (a chord of 1.73) keeps its words and both arrowheads between its extension
+lines. Level words outside stand past the first end of the arc (the second for DIMJUST 1), to the right where it points up from
+the horizontal and to the left where it points down, the room of the arc symbol between the landing and them whichever side;
+the words of an angle run right where its arc point, two thirds round, stands more than 0.05 above the vertex, else left.
+Words between the extension lines under DIMJUST 1 and 2 of an arc length dimension stand an arrowhead and a gap from their
+ray, then half of what the fit asked for, along the arc, past the middle where the arc is short.
 A dimension put on its arc has its extension lines run in from the ends where two arrowheads fit between them, out where they
 do not, and one scaled until its arc point is nearer the centre than the arc is, as AutoCAD 2021 keeps the arc moved in,
 is measured on that arc (the arc of 1 through 20 degrees put 1.2 out and scaled by 5 reads 1.7453, not the rest of the circle).

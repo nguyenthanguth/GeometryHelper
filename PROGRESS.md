@@ -333,10 +333,13 @@ the ones wanted.
       turn, as AutoCAD (the 4 regressed rows and 33 of 48 small-arc rows now 0 off; tar sets 7 031 differing of 11 156 down
       to 1 962), the outside side from the arc's start direction, extension lines of a dimension on its arc, the sector
       test after a scale; harness .claude/gk/dims-harness10
-- [ ] (assoc5, running) Associative dimensions follow-ups 5: angular three-point dimensions with level words fitted the same way (tar16: 56 of
-      432 differ; DECIDED by recommendation: match AutoCAD even though angular pictures change); DIMJUST 1/2 of DIMARC
-      (tar9 288, tar13 57); DIMARCSYM 1 (about 0.07 more height); the radial case (sweep >= 90, arrowheads in); AutoCAD's
-      arc-point offset after a scale (-g d sweep^2, g 0.002-0.014, no closed form) (S)
+- [x] Associative dimensions follow-ups 5 (assoc5): angles fit level words across the arc's turn as DIMARC (tar16 56 of
+      432 to 4), the angle's words left or right by its arc point, DIMJUST 1/2 of DIMARC (tar9 288 of 864 to 0), DIMARCSYM
+      1 in the fit, the radial room rule (tar24 1 656 of 5 152 to 415); 45 untouched sets byte-identical; harness
+      .claude/gk/dims-harness12
+- [ ] Associative dimensions follow-ups 6: level words beside a ray under DIMJUST (up to 0.035 off; tar13 26); DIMARCSYM 0
+      radial thresholds over 120 degrees (up to 0.05); four borderline tar16 rows; the rest of tar2, tar8, tar10-tar12;
+      AutoCAD's arc-point offset after a scale (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -391,7 +394,7 @@ the ones wanted.
         number in R2013+), table styles without a row text style (Standard written), Unicode escapes of old DXF names and
         texts written as letters; 71 of 71 committed test DWGs and 113 of 120 AutoCAD drawings rewritten at AUDIT 0 (the 7
         others carry their originals' errors), none refused
-  - [ ] DWG follow-ups 5: the dynamic block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8
+  - [ ] (dwg11, running: the first four) DWG follow-ups 5: the dynamic block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8
         sheets); CELLSTYLEMAP of R2000/R2004; a custom cell style without a text style; \M+ escapes; sweep, revolve and
         drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00 (dxfver3);
         tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
