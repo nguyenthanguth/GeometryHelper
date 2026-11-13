@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** CHANGE (`-CH`), RENAME (`REN`) and -RENAME (`-REN`) in the presenter, in the words of AutoCAD 2021 (read from its
+resources and probed in accoreconsole). CHANGE takes a change point (the end of each line nearest it, which with ORTHOMODE on
+keeps the line horizontal or vertical; the radius of a lone circle; the insertion point of a lone text or block) or Enter,
+which asks each circle its radius, each text its insertion point, style, height, rotation and words, each block its insertion
+point and rotation, and an attribute definition its tag, prompt and default value; the Properties option asks Color, Elev,
+LAyer, LType, ltScale, LWeight, Thickness and TRansparency until Enter, each offering what the run set last, and asks Material
+and Annotative without changing anything. An arc, a polyline or a point has no change point and CHANGE says so. -RENAME
+renames a block, dimension style, layer, linetype, multileader style, text style, table style, UCS, view or viewport
+configuration with every reference to it, as one undo step, asking the old name again for a wildcard or a name nothing has.
+RENAME has no dialog yet (to be designed): it says so and runs -RENAME. Public helpers `CadBlocks.Rename`,
+`CadLinetypes.Rename`, `CadMLeaderStyleEditor.Rename` and `CadTableStyleEditor.Rename` join the layer, dimension style and
+text style ones. The three commands are added to the registry (218 commands) and the three aliases to the defaults. Not built:
+CENTERMARK and CENTERLINE, whose geometry and DXF form could not be probed (the console cannot pick), and the colour of
+DIMCENTER's lines.
+**NEW.** A linetype of a drawing renamed by setting `DxfLinetypeTableRecord.Name`, with every reference to it by name: the
+entities, layers and styles of multilines that draw with it, and the header's `Celtype`, `Dimltype`, `Dimltex1` and
+`Dimltex2`; ByLayer, ByBlock and Continuous keep their names, and the name of another linetype is refused. A viewport of the
+VPORT table can be renamed the same way, its one record.
 **NEW.** Batch 3 of acad.pgp's 2D commands in the presenter, in the words of AutoCAD 2021 (read from its resources and probed
 in accoreconsole): SOLID (`SO`), -BOUNDARY (`-BO`), -HATCH (`-H`), GRADIENT (`GD`), HATCHTOBACK (`HB`), REGION (`REG`),
 SPLINEDIT (`SPE`) and CLASSICINSERT (`DDINSERT`), the eight added to the 142 default aliases and to the registry (196

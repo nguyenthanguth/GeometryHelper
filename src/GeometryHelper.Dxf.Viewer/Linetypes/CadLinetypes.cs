@@ -292,6 +292,71 @@ namespace GeometryHelper.Dxf.Viewer
             || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Renames a linetype with everything drawn with it, as -RENAME LType does: the entities, the layers, the styles of
+        /// multilines and the current linetype name it. Refused for ByLayer, ByBlock and Continuous, which AutoCAD keeps, and for
+        /// a linetype of an external reference, <c>Cannot rename linetype "X".</c>; for a name AutoCAD does not take,
+        /// <c>Invalid linetype name.</c>; and for the name of another linetype, letters of either case the same,
+        /// <c>Linetype "X" already exists.</c>
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The linetype's name, letters of either case the same.</param>
+        /// <param name="newName">The new name.</param>
+        /// <returns>What came of it; the name it has already is done with nothing written.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            string typed = (name ?? string.Empty).Trim();
+            DxfLinetypeTableRecord record = document.Database.LinetypeTable.FirstOrDefault(l =>
+                string.Equals(l.Name, typed, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (record == null)
+            {
+                return CadEditResult.Refuse("Cannot find linetype \"" + typed + "\".");
+            }
+
+            string was = record.Name;
+
+            if (IsKept(was) || record.IsDependent)
+            {
+                return CadEditResult.Refuse("Cannot rename linetype \"" + was + "\".");
+            }
+
+            string wanted = (newName ?? string.Empty).Trim();
+
+            if (!CadLayerEditor.IsLayerName(wanted))
+            {
+                return CadEditResult.Refuse("Invalid linetype name.");
+            }
+
+            if (string.Equals(wanted, was, StringComparison.Ordinal))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            if (
+                !string.Equals(wanted, was, StringComparison.OrdinalIgnoreCase)
+                && document.Database.LinetypeTable.Has(wanted)
+            )
+            {
+                return CadEditResult.Refuse(
+                    "Linetype \"" + document.Database.LinetypeTable[wanted].Name + "\" already exists."
+                );
+            }
+
+            return document.ApplyEdit(
+                "RENAME",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename linetype", was, wanted) },
+                s => s.Database.LinetypeTable[was].Name = wanted
+            );
+        }
+
         /// <summary>Gets the lengths of a linetype of the drawing, as its LTYPE holds them; none for Continuous or one the drawing has not.</summary>
         /// <param name="database">The drawing.</param>
         /// <param name="name">The linetype's name.</param>

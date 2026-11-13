@@ -199,14 +199,14 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <value>
         /// Set on a record made in code, before it is added to its table; on a layer, a block or a text style of a file, it is
-        /// renamed with every reference to it, as <see cref="DxfLayerTableRecord"/>, <see cref="DxfBlockTableRecord"/> and
-        /// <see cref="DxfTextStyleTableRecord"/> say. The name it has changes nothing.
+        /// renamed with every reference to it, as <see cref="DxfLayerTableRecord"/>, <see cref="DxfBlockTableRecord"/>,
+        /// <see cref="DxfLinetypeTableRecord"/> and <see cref="DxfTextStyleTableRecord"/> say. The name it has changes nothing.
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name set on a record of a file is one AutoCAD does not take, or
         /// that of another record of its table.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when set on a record of a file of a kind not renamed yet, a
-        /// linetype, or on one AutoCAD does not rename, as layer 0 or the text style Standard.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set on a record of a file of a kind not renamed yet, or on
+        /// one AutoCAD does not rename, as layer 0, the text style Standard or the linetype Continuous.</exception>
         public virtual string Name
         {
             get => Item == null ? _name : DxfReader.NameOf(Item.File.ValueOf(Item, 2) ?? string.Empty);
