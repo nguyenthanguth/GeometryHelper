@@ -689,14 +689,14 @@ point. Under 1 the same place is a leader's end, the leader from the middle of t
 a landing on to the words. Words DIMTOH keeps level stand DIMEXE, half DIMGAP and their height out instead, square off
 the middle of the line and level at any angle of it: that "4" 6.5625 below, and the "0.5000" of a continued dimension
 of 0.5 in acad.dwt's Standard on a leader straight up from the middle to 0.4088 (Arial's 0.1838 high words, acad.dwt's Standard text style being Arial), a level
-landing two gaps long on away from the line, the words a gap past it; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
-the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+landing two gaps long on away from the line, the words a gap past it; DIMTEDIT draws a leader to words at or beyond a DIMGAP plus the larger of an arrowhead and half the words' height with DIMEXE from the line (probed over arrowheads of 1.5 to 6, words 2.5 and 4 high, gaps of 0.3 to 1.5 and DIMEXE 0 to 2.5), 3.15 with ISO-25's sizes and 4.625 with arrowheads of 4, the words starting at the point, and none to words nearer.
 DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
 top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
 DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line. Under DIMTMOVE 1 words
 put past an end of the line, on its way, have the line run on from the end to them, to the near edge of words on it and
 to the far edge of words above it, a gap past each: "100" 5 wide put 20 past the end of a line 100 long has it run on to
 116.875 on it and 123.125 above it.
+Words that reach within an arrowhead and the gap and their width of an extension line are laid again as AutoCAD 2021 draws them: "100" of Arial (5.28 wide, 6.53 with its gaps) on a line 100 long, arrowheads 2.5. Under 0, put before the line within 5.765 of it they stand 5.765 before it, a line 2.5 long run back to them and the arrowheads inside; put exactly on the first extension line (as AutoCAD reads a point there, a point at 0 and not 0.001) they stand 5.765 past the second, the line run on 2.5 to them; put on the line between the extension lines within 5.765 of one, they stay and the arrowheads turn out on lines 2.5 long, the line running whole from one extension line to the other, broken a gap clear of the words only where that leaves some before them (3.5 in: from 0 to 0.235 and from 6.765). Words above the line, clear of the arrowheads, leave them inside. Under 1 and 2 words on the line within that reach turn the arrowheads out and leave the line whole, and words put before an end of it have the line run back to them only once they stand clear of the arrowhead's length, never a break where it would take only one end of the line. A letter the face lacks is measured as AutoCAD 2021 draws it from another font where the canvas gives no measure: U+4E2D of Arial 2.5 high is 2.7095 wide and 3.2821 high, U+2205 2.4454 and 2.6927.
 Moved words are drawn by AutoCAD 2021's rules for an ordinate dimension too: DIMTEDIT runs its leader to the words, a gap
 short of them on it (DIMTAD 0) or under them where they stand beside it, jogged where the point is to one side of the
 feature: the point (1200, 0) measuring 1200, its words moved to (1208, 50), has
@@ -843,7 +843,7 @@ circle, its line from a centre put in place of one off the drawing: along the ra
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the
 arrowhead at the rim. Words put on the other side of the rim from the foot of the centre drawn go three quarters of the
-way from that centre to the rim, as AutoCAD 2021 puts them: put 80 out at 14 degrees they stand at (36.38, -15.905). Its
+way from that centre to the rim, as AutoCAD 2021 puts them: put 80 out at 14 degrees they stand at (36.38, -15.905). Under DIMTIH the words stay level, on the line whatever DIMTAD says where it is not level, and the line is broken where it runs through their box grown by the gap; where that box reaches past the back of the arrowhead the line is still drawn from the back to the box's far end, over the arrowhead, as AutoCAD 2021 draws it: "R8" put 4 along a radius of 8 at 30 degrees has a line from 5.5 to 6.708. Its
 grips are the chord point, the centre drawn, the jog and the words. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Angular on an arc asks "Specify angular dimension location or [Radius/Diameter/Mtext/Text/text aNgle/Undo]",

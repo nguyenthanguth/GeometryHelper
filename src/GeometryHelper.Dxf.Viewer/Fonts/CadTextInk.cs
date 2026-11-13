@@ -267,6 +267,15 @@ namespace GeometryHelper.Dxf.Viewer
             return new Letter(glyph.Advance * scale, left, right, bottom, top, inked);
         }
 
+        /// <summary>How wide and how high (in heights of the text) AutoCAD 2021 sets a Han character or the empty set where the face has none; false for the others.</summary>
+        private static bool Substitute(int c, out double wide, out double high)
+        {
+            bool han = (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0xF900 && c <= 0xFAFF);
+            wide = han ? 2.7095 / 2.5 : 2.4454 / 2.5;
+            high = han ? 3.2821 / 2.5 : 2.6927 / 2.5;
+            return han || c == 0x2205;
+        }
+
         private Letter OfOutline(string text, ref int i, int c)
         {
             int from = i;
@@ -277,6 +286,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (glyph == null)
             {
                 Func<string, bool, bool, string, double> measure = CadTrueTypeFonts.MeasureWidth;
+
+                // Without a measure from the canvas, a letter the face lacks is as wide and high as the font AutoCAD 2021 draws it
+                // from instead (SimSun for a Han character, the symbol font of Windows for the empty set): U+4E2D of arial.ttf 2.5
+                // high is 2.7095 wide and 3.2821 high, U+2205 2.4454 wide and 2.6927 high.
+                if (measure == null && !blank && Substitute(c, out double wide, out double high))
+                {
+                    return new Letter(wide, 0.0, wide, 0.0, high, true);
+                }
+
                 double advance =
                     measure != null ? measure(_face.Name, _bold, _italic, text.Substring(from, i - from)) : 0.6;
                 return new Letter(advance, 0.0, blank ? 0.0 : advance, 0.0, blank ? 0.0 : 1.0, !blank);

@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Dimension pictures against AutoCAD 2021 (probed in accoreconsole: 588 linear dimensions of words put by DIMTEDIT every
+half unit across the first extension line, 4 680 more over DIMASZ, DIMTXT, DIMGAP and DIMDEC, 2 352 and 390 of the leader's
+distance, 288 jogged radii): words of a linear dimension that reach within an arrowhead and the gap and their width of an
+extension line are laid again as AutoCAD lays them. Under DIMTMOVE 0 they are moved out to 5.765 beside the line (a line 2.5 long
+run back, the arrowheads inside), a point exactly on the first extension line goes to the far side of the second, and words on
+the line between the extension lines turn the arrowheads out, the line whole unless a piece is left before the words; under 1
+and 2 words so near leave the arrowheads and the line as they are, the line run on to words past an end only once they clear the
+arrowhead's length. Words above the line leave the arrowheads inside. The linear sets that differed from AutoCAD (words near the
+lines, 125 of 588) now agree on all 588 and all 4 680 (the second set of 672: 256 differing, now 14, all of a point exactly on an extension line, which AutoCAD decides by rounding noise). DIMTEDIT's leader under DIMTMOVE 1 appears a gap plus the larger of
+an arrowhead and half the words' height with DIMEXE off the line, as AutoCAD draws it for any arrowhead, text, gap or extension
+(it was a gap and half the height and half the arrowhead: wrong for arrowheads over 2.5). A jogged radius keeps level words
+level and on the line under DIMTIH, breaking it where it runs through their box, and draws the stub from the back of the
+arrowhead to the box's far end where the words reach past it (162 of 288 pictures differed, 18 now). The arc of an angle whose
+words only have a corner clipped by it is broken where the circle meets the box, not up to the words' angle (2 of 112, 0 now).
+Letters Arial lacks, a Han character and U+2205, are measured as AutoCAD sets them from another font (U+4E2D 2.7095 wide, 3.2821
+high; U+2205 2.4454, 2.6927) where the canvas gives no measure, which fixes the height of their words. Still differing, parked:
+words of an angle put past the end of its sector (the distance of the leader by their angle, 74 of 712), a jogged radius whose words are
+moved to the jog (18 of 288), level words with DIMTAD 1 or 4 in a tight circle and under DIMTMOVE 1 behind the centre (99 of 1 584,
+36 of 1 024). Tests: 23 new in the viewer suite.
+
 **NEW.** CTAB in the presenter, as AutoCAD 2021's console took it (probed): `CTAB` and `SETVAR CTAB` ask `Enter new value for CTAB
 <"Model">:` and show the layout named, in letters of either case, as one undo step named CTAB; Enter keeps the layout, and a name
 no layout has, a pattern, `.` and `?` too, says `Cannot set CTAB to that value.` The undo step of a layout switch is named as the
