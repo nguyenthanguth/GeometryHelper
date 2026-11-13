@@ -156,7 +156,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             AttachTiles(file);
                         }
 
-                        var dialog = new ViewportsViewModel((CadTiledViewports)e.Payload);
+                        var dialog = ReferenceEquals(e.Payload, document.TiledViewports)
+                            ? new ViewportsViewModel(document)
+                            : new ViewportsViewModel((CadTiledViewports)e.Payload);
 
                         while (ShowViewports(dialog) && !dialog.Apply()) { }
 

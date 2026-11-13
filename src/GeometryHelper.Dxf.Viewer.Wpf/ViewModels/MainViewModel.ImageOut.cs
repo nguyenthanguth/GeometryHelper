@@ -50,5 +50,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             AskExportFile(e.Export);
             e.Handled = true;
         }
+
+        /// <summary>
+        /// Gets or sets how the workspace shows AutoCAD's Insert Object dialog, which INSERTOBJ shows: true when OK was pressed.
+        /// With none, INSERTOBJ shows the Open dialog for the file alone.
+        /// </summary>
+        public Func<InsertObjectViewModel, bool> ShowInsertObject { get; set; }
+
+        /// <summary>INSERTOBJ's file: the Insert Object dialog, its Browse... the Open dialog; else the Open dialog alone.</summary>
+        private void OnInsertObjectRequested(CadUiRequestEventArgs e)
+        {
+            if (e.Export == null || ShowInsertObject == null)
+            {
+                OnExportFileRequested(e);
+                return;
+            }
+
+            var dialog = new InsertObjectViewModel(e.Export) { BrowseFile = AskExportFile };
+
+            if (!ShowInsertObject(dialog) || !dialog.Accept())
+            {
+                dialog.Cancel();
+            }
+
+            e.Handled = true;
+        }
     }
 }

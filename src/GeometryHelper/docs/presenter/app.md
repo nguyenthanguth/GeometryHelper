@@ -118,8 +118,10 @@ one once the command has ended; `Cannot find the specified drawing file.` where 
 DRAWINGRECOVERY (DRM) lists on the command line the copies [autosave](#autosave) keeps, those beside the drawings of the Drawings
 list and of the drawings open, by folder, drawing and age, the newest first, `  1  plan.autosave1.dxf  12 KB  saved 2026-11-13
 08:12`, and "Enter number of the backup file to open <none>:" opens the one chosen as a drawing of its own; a number out of the list
-says `Requires a number from 1 to 3.` and asks again. AutoCAD's Drawing Recovery Manager palette, its thumbnails and its RECOVERALL,
-which also recovers the external references, are not built; RECOVER repairs a damaged file. QVDRAWING (QVD) shows the Drawings list
+says `Requires a number from 1 to 3.` and asks again. In the window it shows the Drawing Recovery Manager palette instead: the
+Backup Files, each with the drawing it is of, when it was saved and its size, Details of the one picked, and Open (or a
+double-click) opening it while the palette stays; `No backup files were found beside the drawings listed.` where there are
+none. Its thumbnails and AutoCAD's RECOVERALL, which also recovers the external references, are not built; RECOVER repairs a damaged file. QVDRAWING (QVD) shows the Drawings list
 and QVDRAWINGCLOSE (QVDC) hides it, QVLAYOUT (QVL) shows the Model and layout tabs at the foot of the window and QVLAYOUTCLOSE
 (QVLC) hides them: the presenter's own quick views, with no thumbnails of the drawings or the layouts, which AutoCAD draws.
 

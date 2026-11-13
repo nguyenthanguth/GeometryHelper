@@ -11,11 +11,79 @@ using SkiaSharp;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The preview of the Viewports dialog: each tile a dark box in the area, the current one, the first, framed in the
-    /// accent, each labelled *Current* as AutoCAD labels the view it will show.
+    /// The preview of the Viewports dialog: each tile a dark box in the area, the one picked framed in the accent, each
+    /// labelled with the view it will show (*Current* where none is given), as AutoCAD labels them. A click in a tile picks it.
     /// </summary>
     public sealed class CadTilePreview : FrameworkElement
     {
+        /// <summary>The words in each tile, in the order of the tiles; *Current* for a tile with none.</summary>
+        public static readonly DependencyProperty LabelsProperty = DependencyProperty.Register(
+            nameof(Labels),
+            typeof(IReadOnlyList<string>),
+            typeof(CadTilePreview),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender)
+        );
+
+        /// <summary>The tile picked, by its place in the tiles; framed in the accent.</summary>
+        public static readonly DependencyProperty PickedProperty = DependencyProperty.Register(
+            nameof(Picked),
+            typeof(int),
+            typeof(CadTilePreview),
+            new FrameworkPropertyMetadata(
+                0,
+                FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault
+            )
+        );
+
+        /// <summary>Gets or sets the words in each tile.</summary>
+        public IReadOnlyList<string> Labels
+        {
+            get => (IReadOnlyList<string>)GetValue(LabelsProperty);
+            set => SetValue(LabelsProperty, value);
+        }
+
+        /// <summary>Gets or sets the tile picked.</summary>
+        public int Picked
+        {
+            get => (int)GetValue(PickedProperty);
+            set => SetValue(PickedProperty, value);
+        }
+
+        /// <summary>Gets the tile at a point of the preview, by its place in the tiles; -1 for none.</summary>
+        /// <param name="point">The point, in device-independent pixels.</param>
+        /// <returns>The place of the tile.</returns>
+        public int TileAt(Point point)
+        {
+            IReadOnlyList<DisplayBox> boxes = Boxes;
+
+            for (int i = 0; boxes != null && i < boxes.Count; i++)
+            {
+                if (CadTilesView.Place(boxes[i], ActualWidth, ActualHeight, 1.5).Contains(point))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <inheritdoc/>
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+            int at = TileAt(e.GetPosition(this));
+
+            if (at >= 0)
+            {
+                Picked = at;
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters) =>
+            new PointHitTestResult(this, hitTestParameters.HitPoint);
+
         /// <summary>The tiles drawn, as shares of the area from (0, 0) at the lower left; the current one first.</summary>
         public static readonly DependencyProperty BoxesProperty = DependencyProperty.Register(
             nameof(Boxes),
@@ -56,9 +124,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                dc.DrawRectangle(Tile, i == 0 ? Accent : null, rect);
+                IReadOnlyList<string> labels = Labels;
+                dc.DrawRectangle(Tile, i == Picked ? Accent : null, rect);
                 var label = new FormattedText(
-                    "*Current*",
+                    labels != null && i < labels.Count && !string.IsNullOrEmpty(labels[i]) ? labels[i] : "*Current*",
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
                     new Typeface("Consolas"),

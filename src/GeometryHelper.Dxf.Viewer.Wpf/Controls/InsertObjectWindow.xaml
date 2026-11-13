@@ -1,0 +1,188 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.InsertObjectWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+    Title="Insert Object"
+    Width="560"
+    Height="300"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Shows" />
+            <local:BoolToVisibilityConverter x:Key="Hides" Invert="True" />
+            <Style x:Key="Radio" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="Margin" Value="0,0,0,10" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design InsertObject and InsertObjectNew: Create New (nothing to make) or Create from File, Link greyed, Result. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Insert Object" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="18,5"
+                        IsEnabled="{Binding CanAccept}"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Margin="0,18,0,0">
+                    <RadioButton
+                        Style="{StaticResource Radio}"
+                        Content="Create New"
+                        IsChecked="{Binding IsCreateNew, Mode=TwoWay}"
+                    />
+                    <RadioButton
+                        Style="{StaticResource Radio}"
+                        Content="Create from File"
+                        IsChecked="{Binding IsFromFile, Mode=TwoWay}"
+                    />
+                </StackPanel>
+
+                <!-- Create New: the Object Type list, empty, the presenter making no OLE object. -->
+                <DockPanel Grid.Column="2" Visibility="{Binding IsCreateNew, Converter={StaticResource Shows}}">
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Text="Object Type:"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,0,0,4"
+                    />
+                    <CheckBox
+                        DockPanel.Dock="Bottom"
+                        Style="{StaticResource GhCheckBox}"
+                        Content="Display As Icon"
+                        IsEnabled="False"
+                        Margin="0,6,0,0"
+                    />
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="{StaticResource GhInput}"
+                    >
+                        <TextBlock
+                            Text="No object type can be made here."
+                            Foreground="{StaticResource GhTextMuted}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                        />
+                    </Border>
+                </DockPanel>
+
+                <!-- Create from File: File with Browse..., Link and Display As Icon greyed. -->
+                <StackPanel Grid.Column="2" Visibility="{Binding IsCreateNew, Converter={StaticResource Hides}}">
+                    <TextBlock Text="File:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                    <DockPanel Margin="0,0,0,8">
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Browse..."
+                            Padding="10,4"
+                            Margin="6,0,0,0"
+                            Click="OnBrowse"
+                        />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Padding="6,3"
+                            FontFamily="{StaticResource GhMonoFont}"
+                            AutomationProperties.Name="File"
+                            Text="{Binding File, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox
+                            Style="{StaticResource GhCheckBox}"
+                            Content="Link"
+                            IsEnabled="{Binding CanLink}"
+                            Margin="0,0,16,0"
+                        />
+                        <CheckBox Style="{StaticResource GhCheckBox}" Content="Display As Icon" IsEnabled="False" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Border
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    BorderBrush="{StaticResource GhBorder}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                    Margin="0,10,0,0"
+                >
+                    <StackPanel>
+                        <TextBlock Text="Result" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <TextBlock
+                            Text="{Binding Result}"
+                            TextWrapping="Wrap"
+                            Foreground="{StaticResource GhTextMuted}"
+                        />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

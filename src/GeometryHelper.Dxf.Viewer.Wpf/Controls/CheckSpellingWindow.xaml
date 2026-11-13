@@ -71,8 +71,26 @@
                         Click="OnClose"
                         IsCancel="True"
                     />
+                    <Button
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Settings..."
+                        Padding="12,5"
+                        Margin="0,0,8,0"
+                        Click="OnSettings"
+                    />
+                    <Button
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Undo"
+                        Padding="12,5"
+                        Margin="0,0,8,0"
+                        IsEnabled="{Binding CanUndo}"
+                        Click="OnUndo"
+                    />
                     <TextBlock
-                        Text="Close writes the changes made as one step of undo."
+                        Text="Undo takes back the last answer. Close writes the changes as one step of undo."
+                        TextTrimming="CharacterEllipsis"
                         Foreground="{StaticResource GhTextMuted}"
                         VerticalAlignment="Center"
                     />

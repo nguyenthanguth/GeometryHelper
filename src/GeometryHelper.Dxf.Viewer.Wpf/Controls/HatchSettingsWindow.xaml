@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Hatch"
     Width="900"
-    Height="600"
+    Height="636"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -277,6 +277,16 @@
                         Content="Specified origin (Origin X, Y)"
                         Margin="0,0,0,6"
                         IsChecked="{Binding IsSpecifiedOrigin, Mode=TwoWay}"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Click to set new origin"
+                        Padding="10,4"
+                        Margin="18,0,0,6"
+                        HorizontalAlignment="Left"
+                        ToolTip="Closes the dialog to pick the origin point, then shows it again"
+                        IsEnabled="{Binding CanPickOrigin}"
+                        Click="OnPickOrigin"
                     />
                     <StackPanel Style="{StaticResource Row}" Margin="18,0,0,6">
                         <CheckBox

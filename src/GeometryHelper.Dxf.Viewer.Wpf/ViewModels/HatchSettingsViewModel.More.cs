@@ -291,6 +291,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _storeAsDefault, value);
         }
 
+        /// <summary>Gets whether Click to set new origin is offered: by HATCH, not by HATCHEDIT, whose dialog asks no point.</summary>
+        public bool CanPickOrigin { get; }
+
+        /// <summary>
+        /// Gets whether the dialog closed for Click to set new origin: HATCH asks "Specify origin point:" and shows this dialog
+        /// again with the point taken by <see cref="TakeOrigin"/>.
+        /// </summary>
+        public bool IsPickingOrigin { get; private set; }
+
+        /// <summary>Click to set new origin: the dialog closes to have the origin picked; nothing where it is not offered.</summary>
+        public void ClickToSetOrigin() => IsPickingOrigin = CanPickOrigin;
+
+        /// <summary>
+        /// The origin picked after Click to set new origin: Specified origin on, Default to boundary extents off, the point as
+        /// Origin X, Y.
+        /// </summary>
+        /// <param name="x">The X of the point.</param>
+        /// <param name="y">The Y of the point.</param>
+        public void TakeOrigin(double x, double y)
+        {
+            IsPickingOrigin = false;
+            DefaultToExtents = false;
+            IsSpecifiedOrigin = true;
+            OriginX = x.ToString("0.####", CultureInfo.InvariantCulture);
+            OriginY = y.ToString("0.####", CultureInfo.InvariantCulture);
+            Raise(nameof(OriginX));
+            Raise(nameof(OriginY));
+        }
+
+        /// <summary>The origin was not picked (Esc at "Specify origin point:"): the dialog is shown again as it was.</summary>
+        public void KeepOrigin() => IsPickingOrigin = false;
+
         /// <summary>Gets whether the origin given is for this HATCH alone: specified, not a corner, not stored as default.</summary>
         public bool IsOriginOnce => IsSpecifiedOrigin && !DefaultToExtents && !_storeAsDefault;
 

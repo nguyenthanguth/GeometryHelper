@@ -14,6 +14,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+            model.PickColor = dialog => SelectColorWindow.Pick(this, dialog);
+            model.PickLinetype = dialog => SelectLinetypeWindow.Pick(this, dialog);
         }
 
         /// <summary>Gets the view model.</summary>
@@ -38,6 +40,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnAdd(object sender, RoutedEventArgs e) => Model.Add();
+
+        private void OnLinetype(object sender, RoutedEventArgs e) => Model.ChooseLinetype();
 
         private void OnDelete(object sender, RoutedEventArgs e) => Model.Delete();
 

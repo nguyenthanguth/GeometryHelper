@@ -160,10 +160,30 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The settings of HATCH: the window's dialog; with no window, the pattern and its scale and angle asked.</summary>
+        /// <summary>
+        /// The answer of the window's Hatch dialog closed by Click to set new origin; asked again, the point picked is its
+        /// payload, or these words where none was.
+        /// </summary>
+        private const string HatchOriginAnswer = "Click to set new origin";
+
+        /// <summary>
+        /// The settings of HATCH: the window's dialog, closed and shown again around "Specify origin point:" for its Click to
+        /// set new origin; with no window, the pattern and its scale and angle asked.
+        /// </summary>
         private static IEnumerable<CadPrompt> HatchSettingsAsked(CadCommandContext c)
         {
-            if (c.Session.Request("HATCHSETTINGS", c.Document))
+            CadUiRequestEventArgs asked = c.Session.Ask("HATCHSETTINGS", c.Document, null);
+
+            // Click to set new origin closes the dialog: the point is asked and the dialog shown again with it, until it closes
+            // otherwise. Esc at the point shows it again as it was.
+            while (asked.Handled && asked.Answer == HatchOriginAnswer)
+            {
+                yield return CadPrompt.ForPoint("Specify origin point");
+                object picked = c.Input.IsPoint ? (object)c.Input.Point : null;
+                asked = c.Session.Ask("HATCHSETTINGS", c.Document, picked ?? HatchOriginAnswer);
+            }
+
+            if (asked.Handled)
             {
                 yield break;
             }

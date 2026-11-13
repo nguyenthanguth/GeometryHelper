@@ -17,7 +17,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The first entry of Standard viewports: the tiles as they are.</summary>
         public const string ActiveConfiguration = "*Active Model Configuration*";
 
+        private static readonly HashSet<string> InternalVisualStyles = new HashSet<string>(
+            new[]
+            {
+                "Basic",
+                "Brighten",
+                "ColorChange",
+                "Dim",
+                "EdgeColorOff",
+                "Facepattern",
+                "Flat",
+                "FlatWithEdges",
+                "Gouraud",
+                "GouraudWithEdges",
+                "JitterOff",
+                "Linepattern",
+                "OverhangOff",
+                "Thicken",
+            },
+            StringComparer.OrdinalIgnoreCase
+        );
+
         private readonly CadTiledViewports _tiles;
+        private readonly Dictionary<int, string> _tileViews = new Dictionary<int, string>();
+        private int _picked;
+        private string _visualStyle;
+        private string _renameText;
         private string _configuration = ActiveConfiguration;
         private string _newName = string.Empty;
         private string _applyTo = "Display";
@@ -34,6 +59,161 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _applyTo = tiles.AppliesToCurrentViewport ? "Current Viewport" : "Display";
             Configurations = new[] { ActiveConfiguration }.Concat(CadTiledViewports.StandardNames).ToList();
             _named = _tiles.Names.FirstOrDefault();
+            _renameText = _named ?? string.Empty;
+            Views = new[] { CurrentView };
+            VisualStyles = new[] { Wireframe2D };
+            _visualStyle = Wireframe2D;
+        }
+
+        /// <summary>
+        /// Makes the dialog over the tiles of a drawing, with its model views for Change view to and its visual styles for
+        /// Visual Style.
+        /// </summary>
+        /// <param name="document">The drawing.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
+        public ViewportsViewModel(CadDocument document)
+            : this((document ?? throw new ArgumentNullException(nameof(document))).TiledViewports)
+        {
+            Views = new[] { CurrentView }
+                .Concat(
+                    document
+                        .Database.ViewTable.Where(v => !v.IsPaperspaceView)
+                        .Select(v => v.Name)
+                        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(n => n, StringComparer.Ordinal)
+                )
+                .ToList();
+            VisualStyles = VisualStyleNames(document.Database.GetVisualStyleList());
+            _visualStyle = VisualStyles.Contains(Wireframe2D) ? Wireframe2D : VisualStyles[0];
+        }
+
+        /// <summary>The first entry of Change view to: the view the tile is split from.</summary>
+        public const string CurrentView = "*Current*";
+
+        /// <summary>The name AutoCAD's Visual Style list gives the style 2dWireframe, the one the presenter draws.</summary>
+        public const string Wireframe2D = "2D Wireframe";
+
+        /// <summary>Gets the entries of Change view to: *Current*, then the model views of the drawing by name.</summary>
+        public IReadOnlyList<string> Views { get; }
+
+        /// <summary>
+        /// Gets or sets the tile of the preview picked, by its place in <see cref="Preview"/>: the one Change view to sets, framed
+        /// in the accent. Clicking a tile picks it.
+        /// </summary>
+        public int PickedTile
+        {
+            get => _picked;
+            set
+            {
+                int count = Preview.Count;
+
+                if (Set(ref _picked, Math.Max(0, Math.Min(value, Math.Max(0, count - 1)))))
+                {
+                    Raise(nameof(ChangeViewTo));
+                }
+            }
+        }
+
+        /// <summary>Gets or sets the view the tile picked is given: *Current* or a name of <see cref="Views"/>.</summary>
+        public string ChangeViewTo
+        {
+            get => _tileViews.TryGetValue(_picked, out string view) ? view : CurrentView;
+            set
+            {
+                if (value == null || value == ChangeViewTo || !Views.Contains(value))
+                {
+                    return;
+                }
+
+                if (value == CurrentView)
+                {
+                    _tileViews.Remove(_picked);
+                }
+                else
+                {
+                    _tileViews[_picked] = value;
+                }
+
+                Raise(nameof(ChangeViewTo));
+                Raise(nameof(PreviewLabels));
+            }
+        }
+
+        /// <summary>Gets the words in each tile of the preview: the view it will show, *Current* where none is given.</summary>
+        public IReadOnlyList<string> PreviewLabels =>
+            Enumerable
+                .Range(0, Preview.Count)
+                .Select(i => _tileViews.TryGetValue(i, out string view) ? view : CurrentView)
+                .ToList();
+
+        /// <summary>
+        /// Gets the entries of Visual Style: the visual styles of the drawing as AutoCAD's list names them, 2D Wireframe alone
+        /// where the drawing has none. The presenter draws each as 2D Wireframe.
+        /// </summary>
+        public IReadOnlyList<string> VisualStyles { get; }
+
+        /// <summary>Gets or sets the entry of Visual Style picked; it changes nothing the presenter draws.</summary>
+        public string VisualStyle
+        {
+            get => _visualStyle;
+            set
+            {
+                if (value != null && VisualStyles.Contains(value))
+                {
+                    Set(ref _visualStyle, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The entries of the Visual Style list for the names of a drawing's visual styles: 2dWireframe as 2D Wireframe, the
+        /// styles AutoCAD keeps for its own use (Basic, Brighten, ColorChange, Dim, EdgeColorOff, Facepattern, Flat,
+        /// FlatWithEdges, Gouraud, GouraudWithEdges, JitterOff, Linepattern, OverhangOff, Thicken) left out, the others in the
+        /// order given; 2D Wireframe alone where none is left.
+        /// </summary>
+        /// <param name="names">The names, as <see cref="DxfDatabase.GetVisualStyleList"/> gives them.</param>
+        /// <returns>The entries.</returns>
+        public static IReadOnlyList<string> VisualStyleNames(IEnumerable<string> names)
+        {
+            List<string> shown = (names ?? Enumerable.Empty<string>())
+                .Where(n => !string.IsNullOrEmpty(n) && !InternalVisualStyles.Contains(n))
+                .Select(n => string.Equals(n, "2dWireframe", StringComparison.OrdinalIgnoreCase) ? Wireframe2D : n)
+                .ToList();
+            return shown.Count > 0 ? shown : new List<string> { Wireframe2D };
+        }
+
+        /// <summary>Gets or sets the name typed beside Rename on Named Viewports; picking a configuration puts its name in.</summary>
+        public string RenameText
+        {
+            get => _renameText;
+            set => Set(ref _renameText, value ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Rename on Named Viewports: the configuration picked takes the name typed, one undo step; refused with AutoCAD's words
+        /// in <see cref="Message"/> for a name taken or not valid.
+        /// </summary>
+        /// <returns>Whether it was renamed.</returns>
+        public bool RenameNamed()
+        {
+            if (Named == null)
+            {
+                return false;
+            }
+
+            string refused = _tiles.Rename(Named, RenameText);
+
+            if (refused != null)
+            {
+                Message = refused;
+                return false;
+            }
+
+            Message = null;
+            string wanted = RenameText.Trim();
+            Raise(nameof(Names));
+            Named = _tiles.Names.FirstOrDefault(n => string.Equals(n, wanted, StringComparison.OrdinalIgnoreCase));
+            return true;
         }
 
         /// <summary>Gets the entries of Standard viewports, in AutoCAD's order.</summary>
@@ -47,7 +227,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _configuration, value))
                 {
-                    Raise(nameof(Preview));
+                    PreviewChanged();
                 }
             }
         }
@@ -70,7 +250,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _applyTo, value))
                 {
-                    Raise(nameof(Preview));
+                    PreviewChanged();
                 }
             }
         }
@@ -84,7 +264,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 if (Set(ref _isNamedTab, value))
                 {
                     Raise(nameof(IsNewTab));
-                    Raise(nameof(Preview));
+                    PreviewChanged();
                 }
             }
         }
@@ -107,7 +287,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _named, value))
                 {
-                    Raise(nameof(Preview));
+                    RenameText = value ?? string.Empty;
+                    PreviewChanged();
                 }
             }
         }
@@ -173,15 +354,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Named == null || _tiles.Restore(Named);
             }
 
+            List<string> views = PreviewLabels.ToList();
+
             if (Configuration != ActiveConfiguration)
             {
-                string refused = _tiles.SplitAs(Configuration, ApplyTo == "Display");
+                string refused = _tiles.SplitAs(Configuration, ApplyTo == "Display", views);
 
                 if (refused != null)
                 {
                     Message = refused;
                     return false;
                 }
+            }
+            else
+            {
+                _tiles.ShowViews(views);
             }
 
             if (NewName.Trim().Length > 0)
@@ -203,6 +390,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _tiles.Delete(Named.Replace("*", "`*").Replace("?", "`?").Replace("#", "`#").Replace("@", "`@"));
             Named = _tiles.Names.FirstOrDefault();
             Raise(nameof(Names));
+        }
+
+        /// <summary>The preview changed: the views given to its tiles are dropped, the first tile picked.</summary>
+        private void PreviewChanged()
+        {
+            _tileViews.Clear();
+            _picked = 0;
+            Raise(nameof(Preview));
+            Raise(nameof(PreviewLabels));
+            Raise(nameof(PickedTile));
+            Raise(nameof(ChangeViewTo));
         }
 
         private static DisplayBox Box(CadTiledViewport t) => new DisplayBox(t.Left, t.Bottom, t.Right, t.Top);

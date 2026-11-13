@@ -1,0 +1,151 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.CheckSpellingSettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Check Spelling Settings"
+    Width="400"
+    Height="400"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Box" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+            <Style x:Key="Group" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Padding" Value="10,8,10,4" />
+                <Setter Property="Margin" Value="0,0,0,10" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design CheckSpellingSettings: Include and Options; Dimension Text and External References greyed. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Check Spelling Settings"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnCancel"
+                        IsCancel="True"
+                    />
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="18,5"
+                        Click="OnOk"
+                        IsDefault="True"
+                    />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <Border Style="{StaticResource Group}">
+                    <StackPanel>
+                        <TextBlock Text="Include" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Dimension Text"
+                            IsEnabled="{Binding CanCheckDimensionText}"
+                            IsChecked="{Binding DimensionText, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Block Attributes"
+                            IsChecked="{Binding BlockAttributes, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="External References"
+                            IsEnabled="{Binding CanCheckExternalReferences}"
+                            IsChecked="{Binding ExternalReferences, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Group}">
+                    <StackPanel>
+                        <TextBlock Text="Options" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Ignore capitalized words (Autocad)"
+                            IsChecked="{Binding IgnoreCapitalized, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Ignore words with mixed cases (MicroStation)"
+                            IsChecked="{Binding IgnoreMixedCase, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Ignore words in uppercase (AUTODESK)"
+                            IsChecked="{Binding IgnoreUppercase, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Ignore words with numbers (Gr8)"
+                            IsChecked="{Binding IgnoreWithNumbers, Mode=TwoWay}"
+                        />
+                        <CheckBox
+                            Style="{StaticResource Box}"
+                            Content="Ignore words containing punctuation (don't)"
+                            IsChecked="{Binding IgnorePunctuation, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                </Border>
+                <TextBlock
+                    TextWrapping="Wrap"
+                    Foreground="{StaticResource GhTextMuted}"
+                    FontSize="11"
+                    Text="Dimension Text and External References are greyed: the presenter checks text, multiline text and attributes of the drawing's own objects. The settings count from the next Start."
+                />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

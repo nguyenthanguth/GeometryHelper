@@ -282,7 +282,9 @@ Rename (the name edited in the list), Delete, Load (Load Multiline Styles: a fil
 styles) and Save, the Description and a preview of the style picked, drawn as MLINE draws it. New asks Create New Multiline
 Style (the name and the style to start with), then New Multiline Style: Description; Caps (Line, Outer arc and Inner arcs at
 the start and end, the angles from 10 to 170); Fill color; Display joints; Elements with Offset, Color and Linetype, Add (at
-most 16) and Delete (one kept). Modify shows the same page, all but the description greyed for STANDARD and a style a
+most 16) and Delete (one kept). Select Color..., last in the Fill color and Color lists, shows Select Color with ByLayer and
+ByBlock; an index colour outside the list is added to it by its number, and a true colour is kept as its nearest index, all
+an MLINESTYLE record holds. Linetype... shows Select Linetype, BYLAYER and BYBLOCK first, with its Load.... Modify shows the same page, all but the description greyed for STANDARD and a style a
 multiline is drawn by. Each button acts at once, as AutoCAD's do, each an edit of MLSTYLE's one undo step; Set Current is
 taken on OK, so Cancel keeps the styles made but not the style set current. The refusals are those of the typed questions
 below. With no window both ask on the command line.
@@ -332,15 +334,17 @@ size at 100 percent, Lock aspect, Type (Static, Embedded or Linked, read only), 
 graphics) and Source application (read only); Width and Height size the frame from its upper left corner and the other side follows
 while Lock aspect is on, Scale width and Scale height take the percent with or without its sign.
 
-INSERTOBJ (`IO`) is AutoCAD's Insert Object dialog reduced to its Create from File, for a bitmap or a PNG: the window's Open dialog
-titled Insert Object, of the one type `Picture (*.bmp;*.png)`, or with FILEDIA 0 `Enter name of picture file to insert:`. The picture
+INSERTOBJ (`IO`) shows AutoCAD's Insert Object dialog: Create New, whose Object Type list says that no object type can be made
+here (OK off), and Create from File, picked at first, with the File box, Browse... (the window's Open dialog titled Insert
+Object, of the one type `Picture (*.bmp;*.png)`) and Link and Display As Icon greyed; with FILEDIA 0 it asks `Enter name of
+picture file to insert:`. The picture
 becomes a static OLE object (`new DxfOle2Frame(bytes)`: 96 dots an inch where it gives none, so that 40 by 30 pixels are 10.5820 by
 7.9365 millimetres) with its upper left corner at the upper left of the view, as AutoCAD places an object inserted, in the space
 worked in and on the current layer, its plot quality that of OLEQUALITY where that is 0, 1 or 2, and one undo step. A name that is
 not a file is answered `Can't find file.`; one that is no .bmp or .png is refused, `.JPG files cannot be inserted by the presenter,
 which takes a bitmap or a PNG picture: nothing was inserted.`, and one that is no picture, `The file is no picture an OLE object
-can be made of:` and why. Create New, Link, Display as Icon and the documents of other applications need the application's own
-server and are not built, and AutoCAD makes an object of Paint of a bitmap where this makes a static one. PASTECLIP of a picture
+can be made of:` and why. Objects of Create New, Link, Display as Icon and the documents of other applications need the
+application's own server and are not made, and AutoCAD makes an object of Paint of a bitmap where this makes a static one. PASTECLIP of a picture
 on the Windows clipboard (a bitmap another application copied, read as a PNG) makes the same frame where the clipboard holds no
 objects and no text, as AutoCAD pastes words as an MTEXT before a picture; PASTESPEC offers it as Image (PNG), and PASTEBLOCK and
 PASTEORIG refuse it. OLESCALE and OLEOPEN, OLERESET, OLELINKS, OLECONVERT and COPYLINK are not built.
@@ -423,7 +427,9 @@ The Hatch dialog of HATCH's seTtings and of HATCHEDIT has the same settings in a
 with a Shade to Tint slider, the second swatch hidden, or Two color), Hatch color, Background, Layer and Transparency (Use
 Current, ByLayer, ByBlock or a value from 0 to 90, 95 refused `Requires an integer between 0 and 90.`), Hatch origin (Use
 current origin, the Origin X, Y greyed; Specified origin with Origin X, Y, or Default to boundary extents and its corner;
-Store as default origin) and Gap tolerance (0 to 5000, `Value must be between 0 and 5000.`). A specified origin not stored
+Store as default origin; Click to set new origin, by HATCH, closes the dialog, asks `Specify origin point:` and shows the
+dialog again with the point as Origin X, Y and Specified origin on, Esc showing it as it was) and Gap tolerance (0 to 5000,
+`Value must be between 0 and 5000.`). A specified origin not stored
 as default lays the hatches of this HATCH alone, the current origin given back when it ends; a corner of the extents is kept
 either way, as -HATCH keeps it.
 
@@ -598,7 +604,14 @@ their own view or size), not when the current viewport is panned or zoomed. MOde
 [Display/Current viewport] <Display>:` and then the options again, as AutoCAD 2021's -VPORTS does; the answer is what the
 Viewports dialog starts with in Apply to. 2, 3 and 4 split the current viewport whichever it is (probed in accoreconsole
 from one viewport to seven: the same corners and the same viewport current in both modes), so the mode changes nothing
-there. Change view to and Visual Style of the dialog are not built (a 2D presenter has one view and one style).
+there. In the dialog a click in a tile of the preview picks it (framed in the accent) and Change view to gives it *Current*
+or a named model view of the drawing, its name then written in the tile: OK shows each new viewport with the view given, its
+centre kept and its size fitted to the tile's shape, and with *Active Model Configuration* picked the tiles as they are take
+theirs, all in the one undo step. Visual Style lists the drawing's visual styles as AutoCAD's list names them (2dWireframe as
+2D Wireframe; AutoCAD's own Basic, Brighten, Flat, Gouraud and the like left out; 2D Wireframe alone where the drawing has
+none); the presenter draws each as 2D Wireframe. Named Viewports has Rename beside Delete: the configuration picked takes the
+name typed, one undo step, refused with `Viewport configuration "Plan" already exists.` or `Invalid viewport configuration
+name.`.
 
 FILTER (`FI`) shows the Object Selection Filters dialog. Its Select Filter list is AutoCAD 2021's (read from its resources):
 the kinds of object (Arc, Attribute, Block, Circle, Dimension, Hatch, Line, Polyline, Text, Viewport, Xline and the rest),
@@ -1503,7 +1516,11 @@ RENAME (`REN`) shows the window's Rename dialog, laid out as AutoCAD 2021's: the
 Layers, Linetypes, Multileader styles, Table styles, Text styles, UCSs, Viewports, Views), the Items of the kind picked
 (those that can be renamed, sorted by their letters: no layer 0, no Standard style, no ByLayer, ByBlock or Continuous), Old
 Name, and Rename To with the name typed. Rename To renames the item in the list at once and refuses an empty name, one with
-any of `< > / \ " : ; ? * | , = `` ` in it, or another item's name (`"DOORS" already exists.`); OK hands the renames to
+any of `< > / \ " : ; ? * | , = `` ` in it, or another item's name (`"DOORS" already exists.`). Old Name may be typed with
+the wildcards * and ?, as AutoCAD's Rename takes them: every item it matches is renamed, the letters each wildcard matched
+put in the place of the new name's wildcards in turn, so that Old Name `S-*` and Rename To `A-*` rename S-BEAM and S-COLUMN to
+A-BEAM and A-COLUMN, and `*A*` to `*B*` renames WALLS to WBLLS; none is renamed where one new name would be refused, and a
+pattern that matches nothing says `No item matches X-*.`. OK hands the renames to
 RENAME, which makes them in order as -RENAME would, all in one undo step, and writes any refusal on the command line; Cancel
 renames nothing. With no window RENAME asks -RENAME's questions. The request is a public
 [`CadRenameRequest`](xref:GeometryHelper.Dxf.Viewer.CadRenameRequest) of [`CadRename`](xref:GeometryHelper.Dxf.Viewer.CadRename)s.
@@ -1566,7 +1583,12 @@ here. SPELL (SP) shows the window's Check Spelling dialog, as AutoCAD 2021's: Wh
 Current space/layout; Selected objects, whose button closes the dialog for `Select objects:` and shows it again), Start, Not in
 dictionary, Suggestions with the replacement typed above them, Ignore, Ignore All, Change, Change All (the word changed
 wherever it comes again), Add to Dictionary, the main dictionary (the built-in English list) and a custom dictionary file.
-Change with nothing typed takes the first suggestion and with none says `No suggestions.`. Nothing is written while the
+Change with nothing typed takes the first suggestion and with none says `No suggestions.`. Undo takes back the last answer
+since Start, its word asked again and its change, Ignore All or Add to Dictionary forgotten. Settings... shows Check
+Spelling Settings ([`CadSpellSettings`](xref:GeometryHelper.Dxf.Viewer.CadSpellSettings), counted from the next Start):
+Include Block Attributes (Dimension Text and External References greyed, the presenter checking neither), and Ignore
+capitalized words, words with mixed cases, words in uppercase and words with numbers (these two on, as before) and words
+containing punctuation. Nothing is written while the
 dialog is open: Close writes the words changed, each text one edit of SPELL's one undo step, and appends the words added to
 the custom dictionary file. The check is a public [`CadSpellCheck`](xref:GeometryHelper.Dxf.Viewer.CadSpellCheck). With no
 window SPELL is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or

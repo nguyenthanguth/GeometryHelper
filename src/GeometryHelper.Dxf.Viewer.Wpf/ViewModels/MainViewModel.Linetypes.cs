@@ -19,6 +19,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows the Hatch dialog: true when OK was pressed.</summary>
         public Func<HatchSettingsViewModel, bool> ShowHatchSettings { get; set; }
 
+        // The Hatch dialog closed by Click to set new origin, and its drawing, shown again once HATCH has the point.
+        private HatchSettingsViewModel _hatchPickingOrigin;
+        private CadDocument _hatchPickingOriginOf;
+
         /// <summary>
         /// Gets or sets the linetype of new objects, the drawing's $CELTYPE, as the linetype box of the ribbon's Properties panel
         /// shows it: ByLayer, ByBlock or a linetype loaded. Setting one sets it as one undo step; <see cref="OtherLinetypeOption"/>
@@ -143,9 +147,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "HATCHSETTINGS":
                     if (ShowHatchSettings != null)
                     {
-                        HatchSettingsViewModel settings = HatchDialog(document, document.HatchSettings, false);
+                        // Shown again after Click to set new origin: the same dialog, with the point picked where one was.
+                        HatchSettingsViewModel settings =
+                            e.Payload != null && _hatchPickingOrigin != null && _hatchPickingOriginOf == document
+                                ? _hatchPickingOrigin
+                                : HatchDialog(document, document.HatchSettings, false);
+                        _hatchPickingOrigin = null;
+                        _hatchPickingOriginOf = null;
 
-                        if (ShowHatchSettings(settings))
+                        if (e.Payload is GeometryHelper.Geometry.GeoPoint2 origin)
+                        {
+                            settings.TakeOrigin(origin.X, origin.Y);
+                        }
+                        else
+                        {
+                            settings.KeepOrigin();
+                        }
+
+                        bool ok = ShowHatchSettings(settings);
+
+                        if (!ok && settings.IsPickingOrigin)
+                        {
+                            _hatchPickingOrigin = settings;
+                            _hatchPickingOriginOf = document;
+                            e.Answer = "Click to set new origin";
+                        }
+                        else if (ok)
                         {
                             document.HatchSettings = settings.Settings;
                             HatchPatternFile = settings.PatternFile;

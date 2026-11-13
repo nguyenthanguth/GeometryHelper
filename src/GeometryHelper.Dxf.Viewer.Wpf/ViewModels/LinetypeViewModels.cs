@@ -708,7 +708,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="current">The linetype chosen at first.</param>
         /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
         public SelectLinetypeViewModel(CadDocument document, string current)
+            : this(document, current, false) { }
+
+        /// <summary>
+        /// Makes the dialog for a document, on a linetype, with BYLAYER and BYBLOCK listed first where they may be chosen, as
+        /// for an element of a multiline style.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="current">The linetype chosen at first.</param>
+        /// <param name="offersByLayerAndByBlock">Whether BYLAYER and BYBLOCK are listed.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public SelectLinetypeViewModel(CadDocument document, string current, bool offersByLayerAndByBlock)
         {
+            OffersByLayerAndByBlock = offersByLayerAndByBlock;
             Document = document ?? throw new ArgumentNullException(nameof(document));
             Rows = new ObservableCollection<LinetypeRowViewModel>();
             Refill(current);
@@ -717,6 +729,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
+
+        /// <summary>Gets whether BYLAYER and BYBLOCK are listed first.</summary>
+        public bool OffersByLayerAndByBlock { get; }
 
         /// <summary>Gets the linetypes loaded, in the order of their names.</summary>
         public ObservableCollection<LinetypeRowViewModel> Rows { get; }
@@ -765,6 +780,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void Refill(string chosen)
         {
             Rows.Clear();
+
+            if (OffersByLayerAndByBlock)
+            {
+                Rows.Add(new LinetypeRowViewModel("BYLAYER", string.Empty, Array.Empty<double>(), null, null));
+                Rows.Add(new LinetypeRowViewModel("BYBLOCK", string.Empty, Array.Empty<double>(), null, null));
+            }
 
             foreach (string name in CadLinetypes.Names(Document.Database))
             {

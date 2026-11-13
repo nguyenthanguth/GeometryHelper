@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The dialog items left from rounds 2 to 4 in the presenter, designed first (design canvas v142). The Viewports dialog's
+Change view to: a click in a tile of the preview picks it and gives it *Current* or a named model view, written in the tile, and
+OK shows the view in that new viewport, its centre kept and its size fitted, or in the tile as it is with *Active Model
+Configuration*, all in VPORTS's one undo step; Visual Style lists the drawing's visual styles (2dWireframe as 2D Wireframe,
+AutoCAD's internal ones left out), each still drawn as 2D Wireframe; Named Viewports gains Rename (`Viewport configuration
+"Plan" already exists.`, `Invalid viewport configuration name.`). New Multiline Style's Fill color and Color lists end in
+Select Color..., which shows Select Color (an index colour added to the list, a true colour kept as its nearest index, all an
+MLINESTYLE holds), and Linetype... shows Select Linetype with BYLAYER and BYBLOCK first. The Hatch dialog of HATCH gains Click
+to set new origin: it closes, `Specify origin point:` is asked, and the same dialog comes back with the point as Origin X, Y.
+INSERTOBJ shows the Insert Object dialog (Create New with no object type to make, Create from File with Browse..., Link and
+Display As Icon greyed). DRAWINGRECOVERY shows the Drawing Recovery Manager palette: the copies autosave keeps with their
+drawing, time and size, and Open. Rename takes a wildcard Old Name: `S-*` to `A-*` renames S-BEAM and S-COLUMN to A-BEAM and
+A-COLUMN, each wildcard's letters carried to the new name's, none renamed where one would be refused. Check Spelling gains Undo
+(the last answer taken back) and Settings... (Check Spelling Settings: Block Attributes, and Ignore capitalized, mixed case,
+uppercase, with numbers and with punctuation; Dimension Text and External References greyed). With no window each command keeps
+its command-line form. New public members: `CadTiledViewports.SplitAs(name, whole, views)`, `ShowViews` and `Rename`;
+`CadSpellSettings` and `CadSpellCheck.Settings`, `CanUndo` and `Undo`; the window's `InsertObjectViewModel`,
+`DrawingRecoveryViewModel`, `BackupFileRow`, `CheckSpellingSettingsViewModel` and their windows,
+`MainViewModel.ShowInsertObject` and `ShowDrawingRecovery`, and `SelectLinetypeViewModel(document, current,
+offersByLayerAndByBlock)`. Tests: 17 new in the window's suite.
+
 **NEW.** CTAB in the presenter, as AutoCAD 2021's console took it (probed): `CTAB` and `SETVAR CTAB` ask `Enter new value for CTAB
 <"Model">:` and show the layout named, in letters of either case, as one undo step named CTAB; Enter keeps the layout, and a name
 no layout has, a pattern, `.` and `?` too, says `Cannot set CTAB to that value.` The undo step of a layout switch is named as the

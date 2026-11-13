@@ -42,6 +42,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnDeleteNamed(object sender, RoutedEventArgs e) => Model.DeleteNamed();
 
+        private void OnRenameNamed(object sender, RoutedEventArgs e) => Model.RenameNamed();
+
         private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;

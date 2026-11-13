@@ -4,7 +4,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The dialogs left by earlier rounds in the workspace: Multiline Style, Multiline Edit Tools, Plot Stamp, Image Adjust,
-    /// Attribute Extraction and Xbind.
+    /// Attribute Extraction, Xbind, Insert Object and the Drawing Recovery Manager.
     /// </summary>
     public partial class CadWorkspace
     {
@@ -18,6 +18,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowImageAdjust = dialog => ImageAdjustWindow.Show(Window.GetWindow(this), dialog);
             model.ShowAttributeExtraction = dialog => AttributeExtractionWindow.Show(Window.GetWindow(this), dialog);
             model.ShowXbind = dialog => XbindWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowInsertObject = dialog => InsertObjectWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowDrawingRecovery = palette => DrawingRecoveryWindow.Show(Window.GetWindow(this), palette);
         }
     }
 }
