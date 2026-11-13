@@ -1821,9 +1821,10 @@ namespace GeometryHelper.Dxf.Viewer
                     arcLength.XLine2Point = end;
                     arcLength.CenterPoint = center;
 
-                    // Where the words no longer fit between the extension lines the arc point goes two thirds of the way along
-                    // (a third where they fit), as AutoCAD 2021 puts it again with the arc scaled.
-                    if (CadCommands.ArcLengthWordsOutside(arcLength))
+                    // Where the words stand nearer the first end than the middle (outside past it, or by the first ray) the arc
+                    // point goes two thirds of the way along (a third where they stand in the middle or toward the second end),
+                    // as AutoCAD 2021 puts it again with the arc scaled.
+                    if (CadCommands.ArcLengthWordsFirst(arcLength))
                     {
                         arcLength.ArcPoint = CadCommands.ArcLengthPointAt(arcLength, center, start, end, true);
                     }

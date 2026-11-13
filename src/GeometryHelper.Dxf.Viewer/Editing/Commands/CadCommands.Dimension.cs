@@ -819,7 +819,8 @@ namespace GeometryHelper.Dxf.Viewer
                     null,
                     0.0,
                     null,
-                    out bool wordsOutside
+                    out bool wordsOutside,
+                    out _
                 );
 
                 // Where its words do not fit between the extension lines AutoCAD 2021 writes the arc point two thirds of the way

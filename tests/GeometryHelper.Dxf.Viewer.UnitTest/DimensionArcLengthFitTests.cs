@@ -184,6 +184,135 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(HasLine(dimension, Offset(1.027, 0.272), Offset(1.142, 0.298)));
         }
 
+        private static CadDocument Styled(Action<DxfDimStyleTableRecord> set)
+        {
+            CadDocument document = Arial();
+            set(document.Database.DimStyleTable["Standard"]);
+            StandardCurrent(document.Database);
+            return document;
+        }
+
+        [Theory]
+        [InlineData(true, 0, 3.5929, 0.2268, 2.5463, 0.7503)]
+        [InlineData(false, 1, -0.2268, 3.5929, -1.2416, 3.6023)]
+        public void LevelOrTurnedWordsOutsideAnArcUnderDimjust1_StandPastItsSecondEnd_AndItsArcPointIsAThirdRound_AsAutoCad(
+            bool level,
+            int above,
+            double arcX,
+            double arcY,
+            double wordsX,
+            double wordsY
+        )
+        {
+            // AutoCAD 2021: an arc of 3 through 10 degrees put 3.6 out, from 0 degrees (level words, on the arc) and from 90 (turned
+            // words, above it), DIMJUST 1. The words go past the second end, so the arc point stays a third of the way round
+            // (6.39 degrees from the second end's side, 3.61 from the first); DIMJUST 0 and 2 put it two thirds round.
+            CadDocument document = Styled(s =>
+            {
+                s.Dimjust = 1;
+                s.Dimtad = above;
+                s.Dimtih = level;
+                s.Dimtoh = level;
+            });
+            DxfArcDimension dimension = Dimension(document, 3.0, level ? 0.0 : 90.0, 10.0, 3.6);
+
+            Near(Offset(arcX, arcY), dimension.ArcPoint, 1E-3);
+            Near(Offset(wordsX, wordsY), Words(dimension), 1E-3);
+        }
+
+        [Theory]
+        [InlineData(2, 3.1421, 1.757, 2.9301, 2.0916)]
+        [InlineData(1, 3.0927, 1.8426, 3.2764, 1.4918)]
+        public void TurnedWordsBetweenTheRaysUnderDimjust1And2_StandABlockFromTheirRay_AsAutoCad(
+            int justify,
+            double wordsX,
+            double wordsY,
+            double arcX,
+            double arcY
+        )
+        {
+            // AutoCAD 2021, an arc of 3 through 40 degrees from 10 put 3.6 out, the words turned along the arc: they stand an
+            // arrowhead and three gaps from the ray, then the arc symbol and half their width (1.0 along the arc), by the first
+            // ray for DIMJUST 2 and the second for 1; the arc point is two thirds round beside the first ray's words, a third
+            // beside the second's.
+            CadDocument document = Styled(s =>
+            {
+                s.Dimjust = justify;
+                s.Dimtad = 0;
+                s.Dimtih = false;
+                s.Dimtoh = false;
+            });
+            DxfArcDimension dimension = Dimension(document, 3.0, 10.0, 40.0, 3.6);
+
+            Near(Offset(wordsX, wordsY), Words(dimension), 1E-3);
+            Near(Offset(arcX, arcY), dimension.ArcPoint, 1E-3);
+        }
+
+        [Theory]
+        [InlineData(2, 3.4385, 1.0661)]
+        [InlineData(1, 3.3194, 1.3935)]
+        public void LevelWordsBesideTheirRayCarriedPastTheMiddle_PutTheArcPointOnTheOtherSideOfThem_AsAutoCad(
+            int justify,
+            double arcX,
+            double arcY
+        )
+        {
+            // AutoCAD 2021, an arc of 3 through 20 degrees from 10 put 3.6 out: the level words stand 0.74 from their ray along the
+            // arc, past the middle of its 16.6 degrees, so the arc point goes to the other side of them: two thirds round for
+            // the words beside the second ray, a third for those beside the first.
+            CadDocument document = Styled(s =>
+            {
+                s.Dimjust = justify;
+                s.Dimtad = 0;
+            });
+            DxfArcDimension dimension = Dimension(document, 3.0, 10.0, 20.0, 3.6);
+
+            Near(Offset(arcX, arcY), dimension.ArcPoint, 1E-3);
+        }
+
+        [Fact]
+        public void TheSymbolOverTheWords_TakesAboutFourTenthsOfTheirHeightMoreOfTheChord_AsAutoCad()
+        {
+            // AutoCAD 2021, an arc of 3 put 3.6 out, DIMARCSYM 1: the chord of 0.82 (6.28 degrees) keeps the words outside, the
+            // chord of 0.88 takes them between the extension lines; with no symbol they fit from 0.82.
+            CadDocument document = Styled(s =>
+            {
+                s.Dimarcsym = 1;
+                s.Dimtad = 0;
+            });
+            DxfArcDimension dimension = Dimension(
+                document,
+                3.0,
+                10.0,
+                2.0 * Math.Asin(0.82 / 6.0) * 180.0 / Math.PI,
+                3.6
+            );
+
+            Near(Offset(4.2045, 0.529), Words(dimension), 1E-3);
+            Near(Offset(3.3821, 1.2333), dimension.ArcPoint, 1E-3);
+        }
+
+        [Fact]
+        public void AnArcOfOneThroughAHundredAndTwentyDegreesDimensionedOnItself_KeepsItsArrowheadsBetweenTheRays_AsAutoCad()
+        {
+            // AutoCAD 2021, a chord of 1.732 on the arc itself: the words (1.42 with the symbol and the gaps) and the arrowheads
+            // both stand between the extension lines, the room counted as a chord and a third of what the arc has beyond it.
+            CadDocument document = Arial();
+            DxfArcDimension dimension = Dimension(document, 1.0, 10.0, 120.0, 1.0);
+            var arcs = dimension
+                .DimBlock.OfType<DxfArc>()
+                .Where(a => !a.IsErased && Math.Abs(a.Radius - 1.0) < 1E-6)
+                .OrderBy(a => a.StartAngle)
+                .ToList();
+
+            Assert.Equal(2, dimension.DimBlock.OfType<DxfSolid>().Count(s => !s.IsErased));
+            Assert.Equal(2, arcs.Count);
+            Assert.Equal(0.3548, arcs[0].StartAngle, 3);
+            Assert.Equal(0.8599, arcs[0].EndAngle, 3);
+            Assert.Equal(2.0416, arcs[1].StartAngle, 3);
+            Assert.Equal(2.0887, arcs[1].EndAngle, 3);
+        }
+
         [Theory]
         [InlineData(200.0, -4.399, -1.1107)]
         [InlineData(100.0, 0.4755, 3.5652)]
