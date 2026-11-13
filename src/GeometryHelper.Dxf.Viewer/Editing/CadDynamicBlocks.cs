@@ -451,7 +451,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// grip of an XY, a linear or a polar parameter moves the base point, the end point staying
         /// (<see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/>), the distances taken to the value set; the end grip of
         /// a linear, an XY or a polar parameter drags the end point (<see cref="DxfDynamicBlockReferenceProperty.MoveEndPoint"/>),
-        /// which keeps the GRIPLOC AutoCAD wrote in the INSERT's history.
+        /// which keeps the GRIPLOC AutoCAD wrote in the INSERT's history; so do the grip of a point parameter, the end grip of a
+        /// rotation parameter and the corners of an XY parameter other than its end corner
+        /// (<see cref="DxfDynamicBlockReferenceProperty.MoveCornerPoint"/>).
         /// </summary>
         internal static Action<DxfBlockReference> Plan(
             DxfBlockReference insert,
@@ -500,11 +502,12 @@ namespace GeometryHelper.Dxf.Viewer
             switch (custom.GripType)
             {
                 case DxfDynamicBlockGripType.Point:
-                    return i =>
-                    {
-                        Set(i, custom.PropertyNames[0], local.X * scale);
-                        Set(i, custom.PropertyNames[1], local.Y * scale);
-                    };
+                {
+                    // The position goes to the point; the history keeps one GRIPLOC of the grip where the block keeps one.
+                    var spot = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                    return i => MoveEnd(i, custom.PropertyNames[0], spot);
+                }
+
                 case DxfDynamicBlockGripType.XY:
                 {
                     // The end grip takes both distances from the point; a corner takes one from the end point and moves the base
@@ -528,7 +531,6 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoVector3 moves = insert.BlockTransform.Transform(
                         new GeoVector3(setsX ? 0.0 : local.X - at.X, setsY ? 0.0 : local.Y - at.Y, 0.0)
                     );
-                    bool movesBase = !setsX || !setsY;
 
                     // The end grip takes both distances from the end point dragged, as AutoCAD's does: one GRIPLOC of the grip in
                     // the INSERT's history where the block keeps one (plugin GhDb4a).
@@ -538,25 +540,15 @@ namespace GeometryHelper.Dxf.Viewer
                         return i => MoveEnd(i, custom.PropertyNames[0], end);
                     }
 
-                    // The distances first, the base point last: a stretch or a move that follows the base point follows this move
-                    // alone, and a value set after it would take it back.
-                    return i =>
+                    // A corner takes one distance and moves the base point along the other axis in one drag, which keeps one GRIPLOC
+                    // of the corner's grip where the block keeps a history; the base grip moves the base point alone.
+                    if (setsX || setsY)
                     {
-                        if (setsX)
-                        {
-                            Set(i, custom.PropertyNames[0], x);
-                        }
+                        var corner = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                        return i => MoveCorner(i, custom.PropertyNames[0], corner, setsX);
+                    }
 
-                        if (setsY)
-                        {
-                            Set(i, custom.PropertyNames[1], y);
-                        }
-
-                        if (movesBase)
-                        {
-                            MoveBase(i, custom.PropertyNames[0], moves);
-                        }
-                    };
+                    return i => MoveBase(i, custom.PropertyNames[0], moves);
                 }
 
                 case DxfDynamicBlockGripType.Polar:
@@ -585,23 +577,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 case DxfDynamicBlockGripType.Rotation:
                 {
-                    // A rotation: the angle it has, turned by the turn from the grip to the point about the base point.
-                    GeoPoint3 from = inverse.Transform(custom.Position);
-
-                    if (
-                        !(local.DistanceTo(origin) > Tolerance.Default.EqualPoint)
-                        || !(Find(insert, custom.PropertyNames[0])?.Value is double now)
-                    )
+                    // A rotation: the angle of the point about the base point, from the base angle; the history keeps one GRIPLOC of
+                    // the end grip where the block keeps one.
+                    if (!(local.DistanceTo(origin) > Tolerance.Default.EqualPoint))
                     {
                         refused = "The point must be off the base point of the rotation.";
                         return null;
                     }
 
-                    double turned =
-                        Math.Atan2(local.Y - origin.Y, local.X - origin.X)
-                        - Math.Atan2(from.Y - origin.Y, from.X - origin.X);
-                    double angle = Turn(now + turned);
-                    return i => Set(i, custom.PropertyNames[0], angle);
+                    var turn = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                    return i => MoveEnd(i, custom.PropertyNames[0], turn);
                 }
 
                 default:
@@ -792,6 +777,16 @@ namespace GeometryHelper.Dxf.Viewer
             property.MoveEndPoint(to);
         }
 
+        /// <summary>Drags a corner grip of the XY parameter a property of a name of an INSERT is of to a point, read anew, as the library works the block out.</summary>
+        private static void MoveCorner(DxfBlockReference insert, string name, GeoPoint3 to, bool takesXFromEnd)
+        {
+            DxfDynamicBlockReferenceProperty property = Find(insert, name)
+                ?? throw new InvalidOperationException(
+                    "The block reference " + insert.Handle + " has no property " + name + "."
+                );
+            property.MoveCornerPoint(to, takesXFromEnd);
+        }
+
         /// <summary>The value of a property as the palette writes it.</summary>
         private static string TextOf(DxfDynamicBlockReferenceProperty property, Func<double, string> angle)
         {
@@ -894,12 +889,5 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>An angle in radians written in degrees to 4 places, for a record's old value.</summary>
         private static string Degrees(double radians) =>
             (radians * 180.0 / Math.PI).ToString("0.####", CultureInfo.InvariantCulture);
-
-        /// <summary>An angle taken into a turn, from nought up to 2 pi.</summary>
-        private static double Turn(double angle)
-        {
-            double turned = angle % (2.0 * Math.PI);
-            return turned < 0.0 ? turned + 2.0 * Math.PI : turned;
-        }
     }
 }

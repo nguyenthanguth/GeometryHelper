@@ -879,22 +879,23 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 Property(db, "Width").MoveEndPoint(new GeoPoint3(990, 500, 0))
             );
-            Assert.Throws<ArgumentException>(() => Property(Others(), "Anchor X").MoveEndPoint(new GeoPoint3(0, 0, 0)));
+            Assert.Throws<ArgumentException>(() => Property(Others(), "Hinge").MoveEndPoint(new GeoPoint3(0, 0, 0)));
 
             Assert.Equal(before, db.ToText());
         }
 
-        /// <summary>A bar turned by a rotation parameter and a spot moved by a point parameter: the parameters that list no end grip to drag.</summary>
+        /// <summary>A bar flipped by a flip parameter: a parameter that lists no end grip to drag.</summary>
         private static DxfDatabase Others()
         {
             DxfDatabase db = Drawing("GH_OTHERS", out DxfBlockTableRecord block);
             DxfLine bar = Line(block, 0, 0, 100, 0);
-            DxfBlockRotationParameter turn = block.AddRotationParameter("Angle", null, new GeoPoint3(0, 0, 0), 60, 0);
-            block.AddRotateAction(turn, new DxfEntity[] { bar });
-            var dot = new DxfCircle(new GeoPoint3(0, 0, 0), GeoVector3.ZAxis, 5);
-            block.AppendEntity(dot);
-            DxfBlockPointParameter spot = block.AddPointParameter("Anchor", null, new GeoPoint3(0, 0, 0));
-            block.AddMoveAction(spot, new DxfEntity[] { dot });
+            DxfBlockFlipParameter flip = block.AddFlipParameter(
+                "Hinge",
+                null,
+                new GeoPoint3(0, 20, 0),
+                new GeoPoint3(100, 20, 0)
+            );
+            block.AddFlipAction(flip, new DxfEntity[] { bar });
             Put(db, block);
             return Reopened(db);
         }

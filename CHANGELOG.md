@@ -97,9 +97,21 @@ starts one too (a panel with an array, a grid, a bar a scale action scales; a bl
 a distance is kept in the block's own units (Width 150 of Width 300 on an INSERT scaled by 2, not 300); a `GRIPLOC` of a drag of no more
 than 1E-12, or of two drags of one grip that bring it back, is left out, and so is the history a first drag of nowhere would start.
 Not done: ATTSYNC of a moved INSERT could not be probed (AutoCAD 2021's console knows neither `ATTSYNC` nor `-ATTSYNC`, and the managed
-API has no `AttSync`); the end grip of a point or a rotation parameter and the corners of an XY parameter other than its end write
-a record of the property where AutoCAD writes a `GRIPLOC`; a value set tie that AutoCAD broke by floating-point noise once the base
+API has no `AttSync`); a value set tie that AutoCAD broke by floating-point noise once the base
 point was moved (Length 185 of 50 to 300 by 10 taken to 190, not 180).
+**NEW.** `DxfDynamicBlockReferenceProperty.MoveEndPoint` drags the grip of a point parameter (the position goes to the point) and the
+end grip of a rotation parameter (the angle of the point about the base point, from the base angle, taken to its value set), and the
+new `MoveCornerPoint(GeoPoint3 to, bool takesXFromEnd)` drags the two corners of an XY parameter other than its end corner (the corner
+takes one distance from the point and moves the base point along the other axis, the end point staying). In a block that keeps a
+history of grip edits each leaves the one `GRIPLOC` of its grip, how far the grip went in the block's coordinates, where it left
+records of the properties and of the base grip: a point grip dragged by (20, 10) keeps (20, 10, 0), a rotation grip taken a quarter
+turn about its base point from (60, 0) to (0, 60) keeps (-60, 60, 0), a plate's corner of base x and end y dragged by (10, 5) keeps
+(10, 5, 0) and reads Width 90 and Height 55, as AutoCAD 2021 wrote them (AUDIT 0 on five files written so). The presenter's point
+grip, rotation grip and XY corners use them. The values after a drag are those the typed values and the base move gave.
+**CHANGED.** `MoveEndPoint` on a point or a rotation parameter was refused with `ArgumentException`; it drags the grip now.
+**FIXED.** A value set, base move or grip drag on a pointer reads its history of grip edits once, not twice (the walk before the set
+and after it are the same): a polar Length set on a pointer with 15 edits behind it takes 0.88 ms, not 0.94 (6 %); the results are
+bit for bit those of before (18 scenarios of hashed DXF text and 300 random edit sequences equal).
 **NEW.** A drawing saved as R12 (`DxfDatabase.Save(path, "AC1009")`) holds the hatches and multileaders it breaks into as AutoCAD 2021
 writes them. The INSERT of a hatch carries the hatch as R14 held it, in the extended data of the application `ACAD`: a pattern hatch
 as `HATCH` with its name, scale and angle, what it follows (`ASC_BOUNDS`) and its seed points (`ASC_SEEDPOINT`) where it is
