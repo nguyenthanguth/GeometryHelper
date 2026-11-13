@@ -60,7 +60,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             'r'
                         )
                     );
-                    items.Add(NotBuilt("Remove Style Overrides", 'O'));
+                    items.Add(OnSelection("Remove Style Overrides", "DIMOVERRIDE Clear", 'O'));
                     items.Add(NotBuilt("Edit Constraint"));
                     items.Add(
                         Submenu(
@@ -146,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             "Image",
                             new[]
                             {
-                                NotBuilt("Adjust"),
+                                OnSelection("Adjust", "IMAGEADJUST"),
                                 one ? OnSelection("Clip", "IMAGECLIP") : NotBuilt("Clip"),
                                 OnSelection("Transparency", "TRANSPARENCY"),
                                 MenuCommand("External References", "EXTERNALREFERENCES"),
@@ -284,27 +284,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Submenu("Polyline", items);
         }
 
-        /// <summary>Spline of the spline menu: grey, the presenter having no SPLINEDIT.</summary>
-        private static CadMenuItemViewModel SplineMenu() =>
+        /// <summary>
+        /// Spline of the spline menu: SPLINEDIT run on the spline selected with the options AutoCAD's macros give it, in the
+        /// words of the presenter's SPLINEDIT (its Fit data, Refine, rEverse and convert to Polyline), a semicolon ending the
+        /// command where the macro does: Display Fit Points is Fit data and eXit, Display Control Vertices Fit data and Purge, Add
+        /// Fit Point and Add Fit Kink Fit data's Add and Kink, Add Control Vertex, Delete Control Vertex and Elevate Order Refine's
+        /// Add, Delete and Elevate order. 3D Edit Bar is grey, the presenter having no 3DEDITBAR.
+        /// </summary>
+        private CadMenuItemViewModel SplineMenu() =>
             Submenu(
                 "Spline",
                 new[]
                 {
-                    NotBuilt("Display Fit Points", 'F'),
-                    NotBuilt("Display Control Vertices", 'C'),
+                    OnSelection("Display Fit Points", "SPLINEDIT F X ;", 'F'),
+                    OnSelection("Display Control Vertices", "SPLINEDIT F P ;", 'C'),
                     CadMenuItemViewModel.Separator(),
-                    NotBuilt("Add Fit Point", 'P'),
-                    NotBuilt("Add Fit Kink", 'K'),
+                    OnSelection("Add Fit Point", "SPLINEDIT F A", 'P'),
+                    OnSelection("Add Fit Kink", "SPLINEDIT F K", 'K'),
                     CadMenuItemViewModel.Separator(),
-                    NotBuilt("Add Control Vertex", 'V'),
-                    NotBuilt("Delete Control Vertex", 'D'),
-                    NotBuilt("Elevate Order", 'E'),
+                    OnSelection("Add Control Vertex", "SPLINEDIT R A", 'V'),
+                    OnSelection("Delete Control Vertex", "SPLINEDIT R D", 'D'),
+                    OnSelection("Elevate Order", "SPLINEDIT R E", 'E'),
                     CadMenuItemViewModel.Separator(),
                     NotBuilt("3D Edit Bar", 'B'),
-                    NotBuilt("Convert to Polyline", 'P'),
-                    NotBuilt("Join", 'J'),
-                    NotBuilt("Reverse Direction", 'R'),
-                    NotBuilt("Close", 'o'),
+                    OnSelection("Convert to Polyline", "SPLINEDIT P ;", 'P'),
+                    OnSelection("Join", "SPLINEDIT J", 'J'),
+                    OnSelection("Reverse Direction", "SPLINEDIT E ;", 'R'),
+                    OnSelection("Close", "SPLINEDIT C ;", 'o'),
                 },
                 'S'
             );
@@ -312,13 +318,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The viewport menus: Display Viewport Objects and Display Locked set On and Display locked of the viewports selected,
         /// as Properties does; Remove Viewport Overrides for All Layers takes every layer's overrides out of them, as the Layer
-        /// manager does; Maximize Viewport, Viewport Clip and Shade plot grey.
+        /// manager does; Viewport Clip runs VPCLIP on the viewport selected; Maximize Viewport and Shade plot grey.
         /// </summary>
         private List<CadMenuItemViewModel> ViewportMenu(IReadOnlyList<string> handles) =>
             new List<CadMenuItemViewModel>
             {
                 NotBuilt("Maximize Viewport", 'M'),
-                NotBuilt("Viewport Clip", 'V'),
+                OnSelection("Viewport Clip", "VPCLIP", 'V'),
                 Submenu(
                     "Display Viewport Objects",
                     new[]
@@ -495,19 +501,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             handles.Sort(StringComparer.OrdinalIgnoreCase);
             StartCommand(words[0]);
 
-            if (session.Prompt != null && session.Prompt.Kind == CadPromptKind.Entity && handles.Count > 0)
+            // The objects selected go to the first prompt for objects, as AutoCAD's command takes its pickfirst set, which may
+            // come after an option: "DIMOVERRIDE Clear" asks "Select objects:" once Clear is answered.
+            bool taken = false;
+
+            void Supply()
             {
-                session.FeedSelection(new[] { handles[0] });
+                if (taken || handles.Count == 0 || session.Prompt == null)
+                {
+                    return;
+                }
+
+                if (session.Prompt.Kind == CadPromptKind.Entity)
+                {
+                    session.FeedSelection(new[] { handles[0] });
+                    taken = true;
+                }
+                else if (session.Prompt.Kind == CadPromptKind.Selection)
+                {
+                    session.FeedSelection(handles);
+                    session.Enter();
+                    taken = true;
+                }
             }
-            else if (session.Prompt != null && session.Prompt.Kind == CadPromptKind.Selection && handles.Count > 0)
-            {
-                session.FeedSelection(handles);
-                session.Enter();
-            }
+
+            Supply();
 
             for (int i = 1; i < words.Count && session.IsRunning; i++)
             {
                 session.Feed(words[i] == ";" ? string.Empty : words[i]);
+                Supply();
             }
 
             SyncHistory();

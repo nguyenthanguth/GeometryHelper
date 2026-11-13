@@ -854,6 +854,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            RememberSet(gathered);
             return Gather(gathered, false);
         }
 

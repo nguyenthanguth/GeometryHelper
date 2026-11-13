@@ -182,7 +182,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     new CadMenuItemViewModel(
                         "Recent Input",
                         true,
-                        recent.Select(t => new CadMenuItemViewModel(t, () => ChooseOption(t))).ToList()
+                        recent.Select((t, i) => new CadMenuItemViewModel(t, () => ChooseRecentInput(i))).ToList()
                     )
                 );
             }
@@ -307,6 +307,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Whether the drawing shown has a command of the name.</summary>
         private bool HasCommand(string name) => _current?.Session.Registry.Find(name) != null;
+
+        /// <summary>An entry of Recent Input chosen from the Command menu, answered as it was the first time: a point or number typed again, a set of objects selected again.</summary>
+        private void ChooseRecentInput(int index)
+        {
+            if (_current == null || !_current.Session.IsRunning)
+            {
+                return;
+            }
+
+            _current.Session.FeedRecentInput(index);
+            SyncHistory();
+            RunAfterCommand();
+        }
 
         /// <summary>An option of the prompt chosen from a menu, as if typed: "Undo", or a grip mode "MOve".</summary>
         private void ChooseOption(string keyword)

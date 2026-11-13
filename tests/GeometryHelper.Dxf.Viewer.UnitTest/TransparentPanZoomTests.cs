@@ -177,12 +177,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "LINE", "0,300", "100,300", "@0,50");
 
-            Assert.Equal(new[] { "@0,50", "100,300", "0,300" }, session.RecentInput);
+            Assert.Equal(new[] { "@0.0000,50.0000", "100.0000,300.0000", "0.0000,300.0000" }, session.RecentInput);
 
             // A picked point and an option are not kept; a point typed again moves to the top.
             Run(session, P(500, 500), "U", "100,300");
 
-            Assert.Equal(new[] { "100,300", "@0,50", "0,300" }, session.RecentInput);
+            Assert.Equal(new[] { "100.0000,300.0000", "@0.0000,50.0000", "0.0000,300.0000" }, session.RecentInput);
 
             Run(session, Enter, "CIRCLE", "0,0");
 
@@ -190,7 +190,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "25", "CIRCLE", "50,50");
 
-            Assert.Equal(new[] { "25" }, session.RecentInput);
+            Assert.Equal(new[] { "25.0000" }, session.RecentInput);
             Run(session, Esc);
             Assert.Empty(session.RecentInput);
         }

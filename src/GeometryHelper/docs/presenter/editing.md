@@ -836,7 +836,14 @@ of isocp.shx, are nought wide; words of a font not found take 0.7 of their heigh
 length of an arc: below 90 degrees of sweep its extension lines run along the middle of the arc, from 90 up from the
 centre; the arc symbol stands before the words (DIMARCSYM 0), over them (1) or nowhere (2); Partial measures between two
 points of the arc, and Leader, offered past 90 degrees, draws a leader from the words' arc to the arc measured. A point
-in the sector the arc does not sweep dimensions the rest of its circle. DIMORDINATE
+in the sector the arc does not sweep dimensions the rest of its circle. The arc segment of a polyline is dimensioned as an
+arc, picked on the segment (a straight one, or one with no pick on an arc, is "Object selected is not an arc or polyline
+arc segment."). The dimension's arc point (group 10) is a third of the way along where the arc measured is from the centre
+out, and two thirds where the words do not fit between the extension lines (the same for an angle of three points or of two
+lines): the arc of 50 from 10 to 40 degrees put 70 out, below 90 degrees, has it a third of the way between where its
+extension lines meet its arc, at 21.45 degrees, not at 20; an angle of 20 degrees at radius 1 in text 0.18 high, its arc put
+1.2 out, has its words outside and its arc point at 13.33 degrees, where one of 40 degrees has it at 13.33 too, a third of 40.
+DIMORDINATE
 (DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
 Under DIMFXLON its first leg runs DIMFXL up to the jog, no nearer the point than DIMEXO: a jog at 30 and DIMFXL 10 start
@@ -914,8 +921,14 @@ is moved 20 to the right; a first origin drawn from (37, 123) square to that lin
 when it moves by (20, 7). DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
 of an arc its two ends and center, of two lines the four ends (the line selected second written first, groups 13 and 14,
 as AutoCAD writes it), of three points those snapped, DIMARC the ends of the length (the arc's start and end, its first
-and second points even where it measures the rest of the circle, or the points of a Partial length in the order given, as
-nearest points at their angles) and the arc's center, DIMORDINATE its feature. Three points of an angle along one ray
+and second points even where it measures the rest of the circle, or the points of a Partial length as nearest points at
+their angles) and the arc's center, DIMORDINATE its feature. DIMARC writes the point of a Partial length that lies
+further along the arc as its first (groups 13 and 14), and its parameters (40 and 41) in the order the points were given,
+counted on from the arc's start past a turn where the arc crosses 0 degrees: the part from 20 to 60 degrees of the arc from
+300 to 100 degrees writes 6.632251 and 7.330383. The ties of an arc from 300 to 100 degrees are a StartPoint at 5.235988,
+an Endpoint at 8.028514 (the end counted on past the turn) and the center at 5.235988, the arc's start; those of the arc
+segment of a polyline carry its marker, the segment's path start vertex the StartPoint and its end vertex the Endpoint
+whichever way the arc turns. Three points of an angle along one ray
 measure nothing, the arc's point on the ray as far out as the point given wherever that was put, as AutoCAD measures
 them; an angle whose legs come to lie along one ray with its arc on them measures nothing too, and the whole turn where
 its arc lies off them.
@@ -1895,7 +1908,7 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
 | angular DIMENSION | the vertex and the two line points (an angle between two lines: the ends of both lines), the arc, the words | a point measures anew; the arc runs through the point |
 | ordinate DIMENSION | the feature, the leader's end | moves that point |
-| dynamic INSERT | the insertion point, then its custom grips | a linear arrow sets the distance along its parameter, a rotation circle the angle about its base, a point, polar or XY square its values (an XY corner the one of its axes the end gives); a flip arrow clicked flips; a visibility, lookup or block table triangle clicked lists its values |
+| dynamic INSERT | its custom grips, then the insertion point | a linear arrow sets the distance along its parameter, a rotation circle the angle about its base, a point, polar or XY square its values (an XY corner the one of its axes the end gives); a flip arrow clicked flips; a visibility, lookup or block table triangle clicked lists its values |
 | anything else | none | |
 
 The plate's line has `End 0 (0, 0)`, `End 1 (100, 0)` and `Middle 2 (50, 0)`; dragging grip 1 to (120, 0) leaves its end at
@@ -1948,6 +1961,8 @@ takes to the parameter's value set and works the block out with, into an anonymo
 the panel of a Width of 100, 150 or 200 at (1 000, 500) dragged by its arrow to (1 180, 530) is 200 wide, one undo step
 `GRIP`. While one custom grip is dragged, the STRETCH prompt previews the block worked out at the cursor, as AutoCAD
 2021 redraws it: a copy of the INSERT in a drawing of its own, the drawing itself left as it is until the point is picked.
+The insertion point's grip comes after the custom grips, as AutoCAD 2021's GetGripPoints gives them (a rectangle of an XY
+parameter at (1 000, 500): (1 100, 550), (1 000, 550), (1 100, 500) and the insertion point (1 000, 500)).
 An XY parameter shows three grips, as AutoCAD does: its end sets Width and Height; the corner of base x and end y sets the
 Height alone, and the corner of end x and base y the Width alone. AutoCAD moves the parameter's base point along the other
 axis, reading a Width of 80 where the presenter keeps 100 for the first corner of a rectangle 100 by 50 dragged by (20,

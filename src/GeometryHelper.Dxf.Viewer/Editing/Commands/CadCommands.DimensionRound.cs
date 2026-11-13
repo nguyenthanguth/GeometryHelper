@@ -852,6 +852,43 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2? placed = null,
             double before = 0.0,
             double? turned = null
+        ) =>
+            AngularLaidOut(
+                style,
+                dimscale,
+                textHeight,
+                vertex,
+                radius,
+                from,
+                sweep,
+                near,
+                far,
+                words,
+                placed,
+                before,
+                turned,
+                out _
+            );
+
+        /// <summary>
+        /// <see cref="Angular"/>, and whether its words stand outside the arc, where they did not fit between the extension lines
+        /// (and were not put by hand): AutoCAD 2021 writes the arc point of such an angle two thirds of the way round, not a third.
+        /// </summary>
+        internal static List<DxfEntity> AngularLaidOut(
+            DxfDimStyleTableRecord style,
+            double dimscale,
+            double textHeight,
+            GeoPoint2 vertex,
+            double radius,
+            double from,
+            double sweep,
+            double[] near,
+            double[] far,
+            string words,
+            GeoPoint2? placed,
+            double before,
+            double? turned,
+            out bool wordsOutside
         )
         {
             Sizes(
@@ -987,6 +1024,8 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                 }
             }
+
+            wordsOutside = !placed.HasValue && !textInside;
 
             // Where the words stand, and the arc and the lines that go with them.
             var arcs = new List<KeyValuePair<double, double>>();

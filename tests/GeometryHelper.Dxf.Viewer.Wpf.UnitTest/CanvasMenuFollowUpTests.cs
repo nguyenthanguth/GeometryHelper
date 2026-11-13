@@ -258,13 +258,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             CadMenuItemViewModel recent = Item(model.CanvasMenu(), "Recent Input");
 
-            Assert.Equal(new[] { "1000,1000", "1000,0", "0,0" }, Headers(recent.Items));
+            Assert.Equal(new[] { "1000.0000,1000.0000", "1000.0000,0.0000", "0.0000,0.0000" }, Headers(recent.Items));
 
-            Item(recent.Items, "0,0").Command.Execute(null);
+            Item(recent.Items, "0.0000,0.0000").Command.Execute(null);
 
             Assert.True(model.IsCommandRunning);
             Assert.Equal(lines + 3, model.Document.ModelSpace.Block.OfType<DxfLine>().Count());
-            Assert.Contains("Specify next point or [Close/Undo]: 0,0", model.History);
+            Assert.Contains("Specify next point or [Close/Undo]: 0.0000,0.0000", model.History);
         }
 
         [Fact]

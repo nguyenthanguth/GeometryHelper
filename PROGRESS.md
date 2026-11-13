@@ -138,7 +138,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         counter; annotative dimension and multileader styles making new ones annotative (the DIMSTYLE Fit tab box);
         ANNOAUTOSCALE; INSERT attributes drawn at the scale; HATCHEDIT Annotative; MOVE/COPY carrying every picture;
         AutoCAD AUDIT 0 with every context kept
-  - [ ] Annotative objects 3: arc-length and jogged dimensions annotative (context classes not probed); moved or turned
+  - [ ] (dialogs7, running: the dialog parts) Annotative objects 3: arc-length and jogged dimensions annotative (context classes not probed); moved or turned
         words at a second scale (flags 293/294/140); multileaders of several leaders or block content at a second scale;
         DSTYLE 40 on angular dimensions; dimension breaks on second pictures; attribute contexts; the hatch view collection;
         the OBJECTSCALE dialog and the two Annotative boxes (Hatch dialog, DIMSTYLE Fit tab, added without a design) put
@@ -154,7 +154,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
-  - [ ] R2.4 follow-ups (Rename wildcards and Check Spelling Settings/Undo done by dialogs6): Boundary set New; Collect in the
+  - [ ] (dialogs7, running) R2.4 follow-ups (Rename wildcards and Check Spelling Settings/Undo done by dialogs6): Boundary set New; Collect in the
         Leaders slide-out (after MLEADERCOLLECT); an Output tab with Export to PDF; LWUNITS and LWDEFAULT as variables; the
         buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
@@ -301,7 +301,12 @@ the ones wanted.
       and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
 - [x] Associative dimensions follow-ups: extended perpendicular, DIMANGULAR on a circle, groups 11/42, the angular arc point (1247 of 1335 replayed values match AutoCAD)
 - [x] Associative dimensions follow-ups 2: newest object at a shared end, two-line order, DIMLINEAR line after a move, words from the leader end, polyline arc second point, DIMARC association, zero angles (238 of 262 states match)
-- [ ] (fu-misc, running) Associative dimensions follow-ups 3: flag 128 on radii and diameters; DIMARC arc point for a Partial length or under 90 degrees (0.43 off); arc point of an angle too small for its words (two thirds round); DIMARC of a polyline arc segment (S)
+- [x] Associative dimensions follow-ups 3 (fu-misc): DIMARC's arc point under 90 degrees and two thirds round when the
+      words do not fit, kept after a scale; angular arc points two thirds round likewise (88 of 88 AutoCAD cases equal);
+      DIMARC of a polyline arc segment; Partial length order and parameters (16 cases); flag 128 checked
+- [ ] Associative dimensions follow-ups 4: DIMARC's fit rule for small arcs (r 3 sweep 20: 4 of 48 rows now 0.35 off that
+      matched before; words 0.33 further in on 33 of 48 small-arc rows); the out-to-in scale transition (0.001-0.04 off in
+      7 cases) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -314,7 +319,10 @@ the ones wanted.
 - [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
 - [x] Dynamic blocks: visibility states list every parameter, XY corner and block-table grips, live preview of custom grip drags, GRIPDYNCOLOR
-- [ ] (fu-misc, running) Dynamic block follow-ups: XY/linear base point moved by a corner drag (AutoCAD reads Width 80, ours 100; core evaluator); insertion grip last as AutoCAD; block-table grip menu and glyph against AutoCAD's screen; a linear parameter's base grip; the Design artifact's custom grip colour (#19B5F0) to AutoCAD's 140 (#00BFFF) (S)
+- [x] Dynamic block follow-ups 1 (fu-misc): the insertion grip last, as AutoCAD orders grips; grip colour already ACI 140
+- [ ] Dynamic block follow-ups 2: XY/linear base point moved by a corner drag (AutoCAD Width 80, ours 100; a core evaluator
+      change, three refusals in DxfDynamicBlockRepresentation); a linear parameter's base grip; the block-table grip menu
+      and glyph (GUI); the Design artifact's grip colour #19B5F0 to AutoCAD's #00BFFF (S)
 
 ### To do
 
@@ -366,7 +374,12 @@ the ones wanted.
 - [x] Pictures follow-ups: implied window prompt with absolute DYN fields and F/WP/CP, no base-point square, cursor badges, AutoCAD's osnap menu letters, AutoComplete list of 5 rows, SCALE of 100 000 timed (25 ms a move)
 - [x] Pictures follow-ups 2: canvas right-click menus Default/Edit/Grips/Command from AutoCAD's menu file, SHORTCUTMENU 11, implied window inside Select objects, osnap labels and separators
 - [x] Canvas menu follow-ups: AutoCAD's object menus (POP504-536, e.g. the table menu's Size Columns/Rows Equally, Export, Table Style) merged into Edit; Recent Input submenu; Point Filters separator after .Z; a typed point that hits nothing at Select objects; transparent PAN/ZOOM; a SHORTCUTMENU variable and right-click customization; design boards for the four menus; fading of MOVE/ROTATE/ALIGN/grips (needs AutoCAD pictures) (S)
-- [ ] (fu-misc, running) Canvas menu follow-ups 2: grey object items (DIMOVERRIDE Clear, SPLINEDIT, Table Style apply, TABLEEXPORT, VPMAX/VPCLIP, XCLIP, REFEDIT, IMAGEADJUST, HATCHSETORIGIN); transparent SETVAR/OSNAP and the rest; Recent Input in current units and Selection set (N items); right-click customization dialog; design boards for Command/Edit menus (v127 out of date); fading of MOVE/ROTATE/ALIGN/grips (S)
+- [x] Canvas menu follow-ups 2a (fu-misc): Remove Style Overrides (DIMOVERRIDE Clear), the spline items, Viewport Clip and
+      Image Adjust wired; Recent Input in the drawing's units and "Selection set (N items)"; transparent 'SETVAR, 'OSNAP,
+      'ORTHO, 'POLAR, 'GRID, 'SNAP
+- [ ] Canvas menu follow-ups 2b: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, REFEDIT, VPMAX items (commands not built);
+      the right-click customization dialog and the Command/Edit menu boards (design first); Recent Input format checked in
+      the GUI (S)
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once

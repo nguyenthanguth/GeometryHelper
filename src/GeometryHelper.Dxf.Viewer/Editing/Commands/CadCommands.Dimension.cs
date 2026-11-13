@@ -805,11 +805,44 @@ namespace GeometryHelper.Dxf.Viewer
                             null
                         );
                 words = Words(style, made, sweep, typed, string.Empty);
-                return WithTextAngle(
-                    made,
-                    Angular(style, Dimscale(c), TextHeight(c, style), vertex, radius, from, sweep, near, far, words),
-                    textAngle
+                List<DxfEntity> laid = AngularLaidOut(
+                    style,
+                    Dimscale(c),
+                    TextHeight(c, style),
+                    vertex,
+                    radius,
+                    from,
+                    sweep,
+                    near,
+                    far,
+                    words,
+                    null,
+                    0.0,
+                    null,
+                    out bool wordsOutside
                 );
+
+                // Where its words do not fit between the extension lines AutoCAD 2021 writes the arc point two thirds of the way
+                // round, not a third: an angle of 20 degrees at 1 with its arc put 1.2 out, in text 0.18 high, has it at
+                // 13.33 degrees from its first ray.
+                if (wordsOutside)
+                {
+                    GeoPoint2 outer =
+                        vertex
+                        + new GeoVector2(Math.Cos(from + sweep * 2.0 / 3.0), Math.Sin(from + sweep * 2.0 / 3.0))
+                            * radius;
+
+                    if (made is DxfLineAngularDimension2 twoLines)
+                    {
+                        twoLines.ArcPoint = P3(outer);
+                    }
+                    else
+                    {
+                        ((DxfPoint3AngularDimension)made).ArcPoint = P3(outer);
+                    }
+                }
+
+                return WithTextAngle(made, laid, textAngle);
             }
 
             while (true)
