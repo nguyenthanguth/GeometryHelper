@@ -146,18 +146,27 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// A VISUALSTYLE of the form of R2013 and later, its 58 properties given after their count (70 58), each a value and
-        /// how it is applied (176); left out by <see cref="TypeOf"/> where the record is of an older form.
+        /// A VISUALSTYLE, its 58 properties given after their count (70 58), each a value and how it is applied (176); of the
+        /// form of R2010 the 28 it has and the 30 of its round trip record are put into that form first, as AutoCAD does when
+        /// it saves the style as R2013 or later (<see cref="ListedProperties"/>); left out by <see cref="TypeOf"/> where the
+        /// record is of another form.
         /// </summary>
         private void WriteVisualStyle()
         {
             DwgGroups style = _record.Of("AcDbVisualStyle");
             var groups = new List<KeyValuePair<int, string>>(style.All);
+            DwgRecord roundTrip = RoundTripOfVisualStyle(_record);
             T(style.Text(2));
             _data.BitLong(style.Int(70));
-            _data.BitShort(style.Int(177, 3) - 1);
+            _data.BitShort(roundTrip != null ? 2 : style.Int(177, 3) - 1);
             _data.Bit(style.Int(291) != 0);
             int at = groups.FindIndex(g => g.Key == 70 && g.Value.Trim() == "58") + 1;
+
+            if (roundTrip != null)
+            {
+                groups = ListedProperties(groups, roundTrip);
+                at = 1;
+            }
 
             for (; at < groups.Count; at++)
             {
@@ -203,6 +212,189 @@ namespace GeometryHelper.Dwg
             new List<KeyValuePair<int, string>>(record.Of("AcDbVisualStyle").All).Exists(g =>
                 g.Key == 70 && g.Value.Trim() == "58"
             );
+
+        /// <summary>
+        /// The record of a VISUALSTYLE of the form of R2010 that carries the 30 properties R2013 added, the XRECORD
+        /// <c>ACAD_XREC_ROUNDTRIP</c> of its extension dictionary, with their values and how each is applied
+        /// (<c>RTVSPost2010Prop28</c> to <c>57</c> and their <c>Op</c>); null for a style of another form or with none.
+        /// </summary>
+        private DwgRecord RoundTripOfVisualStyle(DwgRecord style)
+        {
+            if (style.Type != "VISUALSTYLE" || IsListedVisualStyle(style) || style.XDictionary == 0)
+            {
+                return null;
+            }
+
+            DwgRecord dictionary = _drawing.Find(style.XDictionary);
+
+            if (dictionary == null || dictionary.Type != "DICTIONARY")
+            {
+                return null;
+            }
+
+            DwgGroups entries = dictionary.Of("AcDbDictionary");
+            int at = entries.Each(3).FindIndex(name => name.Trim() == "ACAD_XREC_ROUNDTRIP");
+            DwgRecord record = at < 0 ? null : _drawing.Find(DwgRecord.Hex(entries.Each(360)[at]));
+            return
+                record != null
+                && record.Type == "XRECORD"
+                && record.Body.Exists(g => g.Value.Trim() == "RTVSPost2010Prop28")
+                ? record
+                : null;
+        }
+
+        /// <summary>
+        /// Whether a record is what AutoCAD takes into the visual style when it saves it as R2013 or later: the extension
+        /// dictionary of a style of R2010 and its round trip record, which hold the properties R2013 added.
+        /// </summary>
+        public bool IsRoundTripOfVisualStyle(DwgRecord record)
+        {
+            DwgRecord owner = _drawing.Find(record.Owner);
+
+            if (record.Type == "XRECORD")
+            {
+                return owner != null && IsRoundTripOfVisualStyle(owner);
+            }
+
+            return record.Type == "DICTIONARY"
+                && owner != null
+                && owner.XDictionary == record.Handle
+                && RoundTripOfVisualStyle(owner) != null;
+        }
+
+        /// <summary>
+        /// The properties of a VISUALSTYLE of R2010 as the style of R2013 lists them: after their count (70 58) the 28 it has,
+        /// each in the group of its kind and followed by how it is applied (176), then the 30 of its round trip record.
+        /// </summary>
+        private static List<KeyValuePair<int, string>> ListedProperties(
+            List<KeyValuePair<int, string>> older,
+            DwgRecord roundTrip
+        )
+        {
+            var listed = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(70, "58") };
+            int[] codes = DwgObjectReader.VisualStyleCodes2010;
+            bool applied = older.Exists(g => g.Key == 176);
+
+            // The round trip record: each property after the name RTVSPost2010Prop<number>, in the group of its kind (a colour
+            // as its index and its true colour, which is given where it is nought or more), and its Op after RTVSPost2010PropOp.
+            var saved = new Dictionary<string, List<KeyValuePair<int, string>>>(StringComparer.Ordinal);
+            List<KeyValuePair<int, string>> current = null;
+
+            foreach (KeyValuePair<int, string> group in roundTrip.Of("AcDbXrecord").All)
+            {
+                if (group.Key == 102)
+                {
+                    current = new List<KeyValuePair<int, string>>();
+                    saved[group.Value.Trim()] = current;
+                }
+                else if (current != null)
+                {
+                    current.Add(group);
+                }
+            }
+
+            for (int i = 0; i < codes.Length; i++)
+            {
+                int at = older.FindIndex(g => g.Key == codes[i]);
+                int next = at + 1;
+                char kind = DwgObjectReader.VisualStyleKinds[i];
+                string value = at < 0 ? "0" : older[at].Value;
+
+                // A style of R2007 and before gives the opacity and the specular gloss it does not apply (40 and 41) as negative.
+                if (
+                    (codes[i] == 40 || codes[i] == 41)
+                    && !applied
+                    && value.TrimStart().StartsWith("-", StringComparison.Ordinal)
+                )
+                {
+                    value = value.Trim().Substring(1);
+                }
+
+                if (kind == '6')
+                {
+                    listed.Add(new KeyValuePair<int, string>(62, value));
+
+                    if (at >= 0 && next < older.Count && older[next].Key == codes[i] + 358)
+                    {
+                        listed.Add(new KeyValuePair<int, string>(420, older[next].Value));
+                        next++;
+                    }
+                }
+                else
+                {
+                    listed.Add(
+                        new KeyValuePair<int, string>(
+                            kind == '9' ? 90
+                                : kind == '4' ? 40
+                                : kind == '2' ? 290
+                                : 1,
+                            value
+                        )
+                    );
+                }
+
+                // How it is applied: after the property in a style of R2010, else in the round trip record as RTVSPropertyOp<i>.
+                listed.Add(
+                    new KeyValuePair<int, string>(
+                        176,
+                        applied
+                            ? next < older.Count && older[next].Key == 176
+                                ? older[next].Value
+                                : "1"
+                            : Saved(
+                                saved,
+                                "RTVSPropertyOp" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                                70,
+                                "1"
+                            )
+                    )
+                );
+            }
+
+            for (int i = codes.Length; i < DwgObjectReader.VisualStyleKinds.Length; i++)
+            {
+                string number = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string name = "RTVSPost2010Prop" + number;
+                char kind = DwgObjectReader.VisualStyleKinds[i];
+
+                if (kind == '6')
+                {
+                    listed.Add(new KeyValuePair<int, string>(62, Saved(saved, name + "ColorIndex", 90, "256")));
+                    string rgb = Saved(saved, name + "ColorRGB", 90, "-1");
+
+                    if (DwgRecord.Int(rgb) >= 0)
+                    {
+                        listed.Add(new KeyValuePair<int, string>(420, rgb));
+                    }
+                }
+                else
+                {
+                    listed.Add(
+                        kind == '9' ? new KeyValuePair<int, string>(90, Saved(saved, name, 90, "0"))
+                        : kind == '4' ? new KeyValuePair<int, string>(40, Saved(saved, name, 140, "0"))
+                        : kind == '2' ? new KeyValuePair<int, string>(290, Saved(saved, name, 280, "0"))
+                        : new KeyValuePair<int, string>(1, Saved(saved, name, 1, string.Empty))
+                    );
+                }
+
+                listed.Add(new KeyValuePair<int, string>(176, Saved(saved, "RTVSPost2010PropOp" + number, 70, "1")));
+            }
+
+            return listed;
+        }
+
+        /// <summary>The first value of <paramref name="code"/> among the groups saved under <paramref name="name"/>; <paramref name="otherwise"/> where there is none.</summary>
+        private static string Saved(
+            Dictionary<string, List<KeyValuePair<int, string>>> saved,
+            string name,
+            int code,
+            string otherwise
+        )
+        {
+            return saved.TryGetValue(name, out List<KeyValuePair<int, string>> groups)
+                ? groups.Find(g => g.Key == code).Value ?? otherwise
+                : otherwise;
+        }
 
         private void WriteGroup()
         {

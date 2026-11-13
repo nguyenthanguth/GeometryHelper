@@ -142,7 +142,9 @@ namespace GeometryHelper.Dwg
 
             if (_classes.TryGetValue(type, out int number) && Encoder(type) != null)
             {
-                return type == "VISUALSTYLE" && !IsListedVisualStyle(record) ? -1 : number;
+                return type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null
+                    ? -1
+                    : number;
             }
 
             switch (type)
@@ -387,6 +389,14 @@ namespace GeometryHelper.Dwg
                     return R2018Plus ? WriteDetailViewStyle : (Action)null;
                 case "ACDBSECTIONVIEWSTYLE":
                     return R2018Plus ? WriteSectionViewStyle : (Action)null;
+                case "SORTENTSTABLE":
+                    return WriteSortEntitiesTable;
+                case "FIELDLIST":
+                    return WriteFieldList;
+                case "FIELD":
+                    return WriteField;
+                case "DATALINK":
+                    return WriteDataLink;
                 case "ACDBASSOCPERSSUBENTMANAGER":
                     return WriteAssocPersSubentManager;
                 default:
@@ -541,8 +551,9 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// The owner, as AutoCAD writes it: by its step from the object's own handle where that is the smaller number to
-        /// write (codes 6 and 8 for one after and one before, 0xA and 0xC for more), else as itself (code 4).
+        /// The owner, as AutoCAD writes it: by its step from the object's own handle where that is one or the smaller number
+        /// to write (codes 6 and 8 for one after and one before, 0xA and 0xC for more), else as itself (code 4): the owner of
+        /// the block record that follows its table is written 8, one before, though its own handle 1 is as short.
         /// </summary>
         private void Owner(ulong owner)
         {
@@ -556,7 +567,7 @@ namespace GeometryHelper.Dwg
 
             ulong step = owner > own ? owner - own : own - owner;
 
-            if (step < owner)
+            if (step == 1 || step < owner)
             {
                 _handles.RelativeHandle(own, owner);
             }
@@ -600,6 +611,17 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// Whether the application at <paramref name="start"/> is the stamp <c>AcDbSavedByObjectVersion</c> of ACAD on a visual
+        /// style of R2010 or before that is written as R2013 or later: AutoCAD brings the style up to its own version and keeps
+        /// no stamp.
+        /// </summary>
+        private bool IsVersionStampOfConvertedStyle(List<KeyValuePair<int, string>> groups, int start) =>
+            start + 1 < groups.Count
+            && groups[start].Value.Trim() == "ACAD"
+            && groups[start + 1].Value.Trim() == "AcDbSavedByObjectVersion"
+            && RoundTripOfVisualStyle(_record) != null;
+
+        /// <summary>
         /// The extended data: for each application its size in bytes, the handle of its APPID and its values, each a byte of
         /// its DXF group less 1000 and the value; then a size of 0.
         /// </summary>
@@ -617,6 +639,7 @@ namespace GeometryHelper.Dwg
                 }
 
                 ulong application = _drawing.HandleOf("APPID", groups[i].Value);
+                int start = i;
                 var values = new System.IO.MemoryStream();
 
                 for (i++; i < groups.Count && groups[i].Key != 1001; i++)
@@ -624,7 +647,11 @@ namespace GeometryHelper.Dwg
                     WriteExtendedValue(values, groups, ref i);
                 }
 
-                if (application == 0 || !_written.Contains(application))
+                if (
+                    application == 0
+                    || !_written.Contains(application)
+                    || IsVersionStampOfConvertedStyle(groups, start)
+                )
                 {
                     continue;
                 }

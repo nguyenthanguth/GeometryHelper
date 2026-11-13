@@ -329,7 +329,7 @@ namespace GeometryHelper.Dwg
         /// The kinds of the 58 properties of a visual style of R2013 and later, in their order: 9 a whole number (DXF 90),
         /// 4 a real (40), 6 a colour (62 and 420), 2 a yes or no (290), 1 a text (1).
         /// </summary>
-        private const string VisualStyleKinds = "9999446996699496499969992949222222222944969962999296491244";
+        internal const string VisualStyleKinds = "9999446996699496499969992949222222222944969962999296491244";
 
         /// <summary>
         /// A VISUALSTYLE of R2013 and later: its name, type and version, whether it is for AutoCAD's own use, then each of
@@ -393,7 +393,7 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>The DXF groups of the 28 properties of a visual style of R2010, the first 28 of the later 58.</summary>
-        private static readonly int[] VisualStyleCodes2010 =
+        internal static readonly int[] VisualStyleCodes2010 =
         {
             71,
             72,

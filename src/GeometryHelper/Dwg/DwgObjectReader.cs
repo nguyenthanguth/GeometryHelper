@@ -1106,6 +1106,18 @@ namespace GeometryHelper.Dwg
                 case "ACDBSECTIONVIEWSTYLE":
                     ReadSectionViewStyle();
                     return true;
+                case "SORTENTSTABLE":
+                    ReadSortEntitiesTable();
+                    return true;
+                case "FIELDLIST":
+                    ReadFieldList();
+                    return true;
+                case "FIELD":
+                    ReadField();
+                    return true;
+                case "DATALINK":
+                    ReadDataLink();
+                    return true;
                 case "ACDBASSOCPERSSUBENTMANAGER":
                     ReadAssocPersSubentManager();
                     return true;

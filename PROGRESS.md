@@ -208,7 +208,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] New drawing gets the default layers of Global settings > Layers, colour and lines; Ctrl+3 toggles the ribbon area like Ctrl+1/Ctrl+2 (RIBBON/RIBBONCLOSE)
 - [x] Save Drawing As listing each DXF version plainly (2018 down to 2000): DxfDatabase.Save(path, version), groups trimmed as AutoCAD's own files show, AUDIT 0 in AutoCAD 2021; DWG stays 2018 only (DECIDED by recommendation 2026-11-12)
 - [x] DXF versions follow-ups 1: R12 written as AutoCAD's own (exploding what R12 lacks), FILEDIA 0 SAVEAS "Enter file format", DXFOUT and its version list, CadDocument.SaveCopy (saveas2)
-- [ ] R12 follow-ups: 3DSOLID/REGION wireframe (needs an ACIS reader); gradient bands (AutoCAD writes 312); MTEXT wrapped by font metrics (2 TEXTs vs 123); dynamic blocks flattened to *U; repeat the AutoCAD check on a real model (M)
+- [ ] (r12b, running) R12 follow-ups: 3DSOLID/REGION wireframe (needs an ACIS reader); gradient bands (AutoCAD writes 312); MTEXT wrapped by font metrics (2 TEXTs vs 123); dynamic blocks flattened to *U; repeat the AutoCAD check on a real model (M)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
@@ -355,11 +355,15 @@ the ones wanted.
         (THUMBNAILIMAGE); VIEWPORT, HATCH, LEADER, MULTILEADER, MLINE, IMAGE, WIPEOUT, meshes and MINSERT checked object by
         object against AutoCAD's own DWG (bytes equal but the last bit of a double); records without a handle counted and
         warned; DxfColor.ColorValue of BYLAYER white as AutoCAD (CHANGED)
-  - [ ] (dwg8, running) DWG follow-ups 2: OLE2FRAME and proxies (need a GUI-made sample); R2000/R2004 TABLECONTENT; surfaces in DWG;
-        ACIS 4.00 of R2000; pre-R2013 VISUALSTYLE from a DXF; relative handle codes, SPLINE knot tolerance (1E-10) and the
-        other byte differences listed in the dwg7 merge; SORTENTSTABLE, FIELD/FIELDLIST and DATALINK read; a rendered
-        thumbnail for new drawings; Red/Green/Blue of ByAci (AutoCAD 0); R2000 round-trip colours; tcustom reader parity
-        (9 of 15 cells, parked); TABLEGEOMETRY head bit (M)
+  - [x] DWG follow-ups 2 (dwg8): FIELD, FIELDLIST, SORTENTSTABLE and DATALINK read (2 646 fields in 96 sample drawings as
+        AutoCAD's DXF gives them) and written; VISUALSTYLE of R2004-R2010 written into R2018 (390 of 390 equal AutoCAD's);
+        fixed: a block record owner's handle code and a multileader attribute code; draw order made in code no longer
+        dropped; 19 drawings AUDIT 0; DxfColor Red/Green/Blue of ByAci kept as the palette (documented, AutoCAD gives 0)
+  - [ ] DWG follow-ups 3: tables holding a field or a data link (Cover Sheet, Mechanical - Data Links: unknown cell kinds;
+        60 fields lost with the table); Existing Conditions Plan rewritten refused by AutoCAD (ErrorStatus 53, also before
+        this change); R2000/R2004 table content (DATATABLE); ACFD_FIELDTEXT_CHECKSUM of old files; OLE2FRAME and proxies
+        (GUI sample); surfaces in DWG; ACIS 4.00 of R2000; tcustom reader parity; TABLEGEOMETRY head bit; a rendered
+        thumbnail for new drawings; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
