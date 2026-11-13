@@ -676,6 +676,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["-PURGE"] = "Remove unused named objects, typed",
             ["-RENAME"] = "Rename named objects, typed",
             ["-OBJECTSCALE"] = "Add or delete the scales of annotative objects",
+            ["OBJECTSCALE"] = "Annotation Object Scale: the scales of annotative objects",
             ["-SCALELISTEDIT"] = "Edit the list of scales, typed",
             ["AIOBJECTSCALEADD"] = "Add the current scale to annotative objects",
             ["AIOBJECTSCALEREMOVE"] = "Remove the current scale from annotative objects",

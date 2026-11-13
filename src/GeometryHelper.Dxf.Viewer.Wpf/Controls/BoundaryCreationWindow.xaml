@@ -141,14 +141,14 @@
                             Content="New"
                             Padding="10,3"
                             Margin="6,0,0,0"
-                            IsEnabled="False"
-                            ToolTip="Every object of the space is the boundary set"
+                            Click="OnNewSet"
+                            ToolTip="Select the objects the areas are found among"
                         />
                         <ComboBox
                             Style="{StaticResource GhComboBox}"
                             AutomationProperties.Name="Boundary set"
                             ItemsSource="{Binding BoundarySets}"
-                            SelectedIndex="0"
+                            SelectedItem="{Binding BoundarySet, Mode=TwoWay}"
                         />
                     </DockPanel>
                 </HeaderedContentControl>
@@ -156,7 +156,7 @@
                     Margin="0,10,0,0"
                     TextWrapping="Wrap"
                     Foreground="{StaticResource GhTextMuted}"
-                    Text="Pick Points closes the dialog and asks &quot;Pick internal point:&quot; until Enter. Region says why no region is made: region data is not written yet."
+                    Text="Pick Points closes the dialog and asks &quot;Pick internal point:&quot; until Enter. New asks &quot;Select objects:&quot; and comes back with Existing set: the areas are then found among those objects alone."
                 />
             </StackPanel>
         </DockPanel>

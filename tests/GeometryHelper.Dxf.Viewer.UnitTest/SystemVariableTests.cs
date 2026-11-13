@@ -258,7 +258,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "LIMMAX",
                     "LIMMIN",
                     "LTSCALE",
+                    "LWDEFAULT",
                     "LWDISPLAY",
+                    "LWUNITS",
                     "MIRRTEXT",
                     "MLEADERSCALE",
                     "MSLTSCALE",
@@ -294,8 +296,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
             // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
-            // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE.
-            Assert.Equal(250, registry.Commands.Count);
+            // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, and OBJECTSCALE.
+            Assert.Equal(251, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);
@@ -345,6 +347,32 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(P(841, 594), document.Database.Limmax);
             Assert.True(document.Undo());
             Near(P(420, 297), document.Database.Limmax);
+        }
+
+        [Fact]
+        public void LwunitsAndLwdefault_AreTypedBesideLineweightSettings_AndLwdefaultTakesOnlyALineweight()
+        {
+            CadDocument document = Blank();
+
+            // Millimetres and 0.25 mm to start, as AutoCAD 2021's metric profile; the default is drawn at once.
+            CadCommandSession session = Start(document, "LWUNITS");
+            Assert.Equal("Enter new value for LWUNITS <1>:", session.PromptText);
+            Run(session, "0");
+            Assert.Equal(0.0, session.Remembered["lwunits"]);
+            Run(session, "LWUNITS", "2");
+            Assert.Equal(0.0, session.Remembered["lwunits"]);
+            Run(session, Esc);
+
+            Run(session, "LWDEFAULT");
+            Assert.Equal("Enter new value for LWDEFAULT <25>:", session.PromptText);
+            Run(session, "35");
+            Assert.Equal(0.35, document.DefaultLineWeight, 9);
+
+            // 33 hundredths is no lineweight of AutoCAD's list: refused, the default kept.
+            Run(session, "LWDEFAULT", "33");
+            Assert.Contains(session.History, l => l.StartsWith("Invalid lineweight", StringComparison.Ordinal));
+            Assert.Equal(0.35, document.DefaultLineWeight, 9);
+            Assert.Null(document.NextUndo);
         }
 
         private static string Header(CadDocument document, string name) =>

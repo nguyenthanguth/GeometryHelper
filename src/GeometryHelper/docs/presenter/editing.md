@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 250 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 251 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -362,8 +362,10 @@ next (after a triangle, the third corner twice), until Enter; the whole command 
 polylines, `BOUNDARY created 2 polylines`. Advanced options asks `Enter an option [Island detection/Object type]:` until
 Enter: island detection off makes the outer loop alone, and BOUNDARY takes the same settings for the rest of the session.
 BOUNDARY (`BO`) shows the window's Boundary Creation dialog first, as AutoCAD 2021's: Pick Points, Island detection, Boundary
-retention (Retain boundaries, always on, and the object type, Polyline or Region) and the boundary set (the current viewport:
-every object of the space; New is not built). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
+retention (Retain boundaries, always on, and the object type, Polyline or Region) and the boundary set: Current viewport,
+every object shown, or Existing set. New closes the dialog, asks `Select objects:` and shows it again with Existing set
+chosen, the areas then found among those objects alone (a point inside a square of 60 within one of 100, the outer square
+alone picked, makes the 100 by 100 polyline). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
 point:` until Enter; Cancel ends the command with nothing kept. The request is a public
 [`CadBoundaryRequest`](xref:GeometryHelper.Dxf.Viewer.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
 An area with an ellipse or a spline in it, as a side of the area or as an island, makes no polyline either: `Spline or
@@ -563,8 +565,9 @@ the block BLK of the drawing grid references, with a copy of what it draws, from
 linetypes and text styles its entities use are bound with it, as AutoCAD 2021 binds them (a line on WALL and a text on DOOR in
 MYSTYLE come as `grid$0$WALL`, `grid$0$DOOR` and `grid$0$MYSTYLE`, the reference's `grid|WALL` gone with them), layer 0 and what
 the block does not use left as they were. The command asks the symbol type again
-until Enter and is one undo step. In the window XBIND shows the Xbind dialog: the Xrefs on the left, each reference with
-its Block, Dimstyle, Layer, Linetype and Textstyle definitions (the blocks read from the file it names), Definitions to Bind
+until Enter and is one undo step. In the window XBIND shows the Xbind dialog: the Xrefs on the left, a tree of each reference
+with its Block, Dimstyle, Layer, Linetype and Textstyle definitions (the blocks read from the file it names), closed to start,
+a reference or a kind opened and closed by its ▸ or ▾ or a double-click (a definition's double-click adds it), Definitions to Bind
 on the right, Add (a definition, or every one under a kind or a reference, each listed once) and Remove between them. OK
 binds those listed as -XBIND binds them, `1 Layer(s) bound.` written for each kind, the whole one undo step; with no window
 XBIND asks -XBIND's questions.
@@ -1513,7 +1516,10 @@ for Listing in millimetres (`0.25 mm`) or inches (`0.010"`), Display Lineweight 
 of Default is drawn with, AutoCAD's LWDEFAULT, 0.25 mm until set) and Adjust Display Scale (lines drawn from half to twice
 their width on screen, a 0.50 mm line about 2 pixels at the middle); the last three are kept in the global settings
 (`GlobalSettings.LineweightsInInches`, `DefaultLineweight`, `LineweightDisplayScale`) and every drawing open is drawn again
-with them. With no window LWEIGHT asks -LWEIGHT's question. REDRAW and REDRAWALL have nothing left to draw, and
+with them. LWUNITS (0 inches, 1 millimetres) and LWDEFAULT (a width in hundredths of a millimetre, one of AutoCAD's 24;
+`33` says `Invalid lineweight value.`) are the dialog's two boxes as system variables: typed, they last for the drawing's
+session (LWDEFAULT 35 draws a Default line 0.35 mm at once) and the dialog starts from them. With no window LWEIGHT asks
+-LWEIGHT's question. REDRAW and REDRAWALL have nothing left to draw, and
 REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of the space, HIDEOBJECTS those selected,
 as AutoCAD 2021 hides them (their Visible off) for the session only: a save writes them shown, and UNISOLATEOBJECTS shows
 them again, saying `1 object(s) unisolated.` or `No objects to unisolate.`. Each is one undo step.
@@ -1695,7 +1701,16 @@ length, jogged) or one whose words were moved or turned show the row read only.
 `Scale 1:7 not found.`; Delete of a scale the object is not shown at, or of its last, says `0 objects scale removed.`,
 `1 object doesn't support annotation scale <1:50>.` and `1 objects cannot remove scale.`, as AutoCAD 2021 does; the whole
 command is one undo step. AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE take the objects and add the current scale to them or take
-it from them, answering as -OBJECTSCALE does. ANNOALLVISIBLE (0 or 1) is the drawing's variable of that name. TEXT and
+it from them, answering as -OBJECTSCALE does. OBJECTSCALE takes the annotative objects (`No annotative objects found.`
+where none is) and shows the window's Annotation Object Scale dialog, as AutoCAD 2021's: the Object Scale List in the order of
+the drawing's list, with the paper and drawing units of the scale picked, and List all scales for selected objects or List
+scales common to all selected objects only. Three texts at 1:1 and 1:50, at 1:50, and at 1:50 and 1:100 list 1:1 (on 1 of 3),
+1:50 and 1:100 (on 1 of 3), or 1:50 alone. Delete takes the scale picked from the objects shown at it, greyed where an object
+would be left with none (1:50 here, the second text's only scale); Add… shows Add Scales to Object, the drawing's scales the
+list does not show, several picked at once. OK gives every object each scale added and takes each scale deleted, one undo
+step named OBJECTSCALE; Cancel changes nothing. The request is a public
+[`CadObjectScaleRequest`](xref:GeometryHelper.Dxf.Viewer.CadObjectScaleRequest); with no window OBJECTSCALE asks -OBJECTSCALE's
+option once the objects are taken. ANNOALLVISIBLE (0 or 1) is the drawing's variable of that name. TEXT and
 MTEXT drawn in an annotative text style are annotative: the height asked is the sheet's, and the text is that over the
 annotation scale high (2.5 at 1:50 is 125). The Edit Drawing Scales list is given the scale an object is first made
 annotative at where it has none.

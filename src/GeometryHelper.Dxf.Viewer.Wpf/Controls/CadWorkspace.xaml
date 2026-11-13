@@ -2239,38 +2239,6 @@
                         MinCollapsedWidth="56"
                         Icon="{StaticResource GhIconMText}"
                     >
-                        <!-- Text's slide-out: Check Spelling and Text Align. -->
-                        <local:RibbonPanel.Header>
-                            <ToggleButton
-                                Style="{StaticResource SlideOutTitle}"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Content="Text ▾"
-                                ToolTip="More of Text: Check Spelling, Text Align"
-                            />
-                        </local:RibbonPanel.Header>
-                        <local:RibbonPanel.SlideOut>
-                            <StackPanel Width="260">
-                                <Button
-                                    Style="{StaticResource SlideOutItem}"
-                                    Tag="{StaticResource GhIconCheckSpelling}"
-                                    Content="Check Spelling"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="SPELL"
-                                    ToolTip="Check Spelling (SPELL)"
-                                />
-                                <Button
-                                    Style="{StaticResource SlideOutItem}"
-                                    Tag="{StaticResource GhIconTextAlign}"
-                                    Content="Text Align"
-                                    Margin="0"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="TEXTALIGN"
-                                    ToolTip="Text Align (TEXTALIGN)"
-                                />
-                            </StackPanel>
-                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <!-- The big buttons 56 wide, their labels on two lines, as the design draws them. -->
                             <Button
@@ -2317,6 +2285,27 @@
                                             ToolTip="Text height of the next Single Line text (TEXT, MTEXT)"
                                         />
                                     </Border>
+                                </StackPanel>
+                                <!-- Check Spelling and Text Align in the body, as AutoCAD 2021's Text panel (design RibbonBodies). -->
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <Button
+                                        Style="{StaticResource IconButton}"
+                                        Tag="{StaticResource GhIconCheckSpelling}"
+                                        Content="Check Spelling"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="SPELL"
+                                        ToolTip="Check Spelling (SPELL)"
+                                    />
+                                    <Button
+                                        Style="{StaticResource IconButton}"
+                                        Tag="{StaticResource GhIconTextAlign}"
+                                        Content="Text Align"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="TEXTALIGN"
+                                        ToolTip="Text Align (TEXTALIGN)"
+                                    />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -2593,29 +2582,6 @@
                         MinCollapsedWidth="64"
                         Icon="{StaticResource GhIconLeader}"
                     >
-                        <!-- Leaders' slide-out: Align (MLEADERALIGN); Collect joins it once MLEADERCOLLECT is built. -->
-                        <local:RibbonPanel.Header>
-                            <ToggleButton
-                                Style="{StaticResource SlideOutTitle}"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Content="Leaders ▾"
-                                ToolTip="More of Leaders: Align"
-                            />
-                        </local:RibbonPanel.Header>
-                        <local:RibbonPanel.SlideOut>
-                            <StackPanel Width="260">
-                                <Button
-                                    Style="{StaticResource SlideOutItem}"
-                                    Tag="{StaticResource GhIconLeaderAlign}"
-                                    Content="Align"
-                                    Margin="0"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="MLEADERALIGN"
-                                    ToolTip="Align (MLEADERALIGN)"
-                                />
-                            </StackPanel>
-                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -2629,19 +2595,32 @@
                                 ToolTip="MLEADER"
                                 Margin="0"
                             />
-                            <!-- The current multileader style (CMLEADERSTYLE), its last item the Multileader Style Manager. -->
+                            <!--
+                            The current multileader style (CMLEADERSTYLE), its last item the Multileader Style Manager; under it Align, as
+                            AutoCAD 2021's small Align beside Multileader (design RibbonBodies). Collect joins it once MLEADERCOLLECT is built.
+                            -->
                             <StackPanel
-                                Orientation="Horizontal"
                                 Margin="2,2,0,0"
                                 VerticalAlignment="Top"
                                 IsEnabled="{Binding Model.HasDocument}"
                             >
-                                <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
-                                <ComboBox
-                                    Style="{StaticResource StyleBoxCombo}"
-                                    ItemsSource="{Binding Model.MLeaderStyleItems}"
-                                    SelectedValue="{Binding Model.CurrentMLeaderStyle, Mode=TwoWay}"
-                                    ToolTip="Multileader style (MLEADERSTYLE)"
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
+                                    <ComboBox
+                                        Style="{StaticResource StyleBoxCombo}"
+                                        ItemsSource="{Binding Model.MLeaderStyleItems}"
+                                        SelectedValue="{Binding Model.CurrentMLeaderStyle, Mode=TwoWay}"
+                                        ToolTip="Multileader style (MLEADERSTYLE)"
+                                    />
+                                </StackPanel>
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconLeaderAlign}"
+                                    Content="Align"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="MLEADERALIGN"
+                                    ToolTip="Align (MLEADERALIGN)"
                                 />
                             </StackPanel>
                         </StackPanel>
@@ -2650,12 +2629,12 @@
             </DataTemplate>
 
             <!--
-            The panels of the View tab: Navigate, Views, Interface and the drafting toggles of the status bar. All full down to a
-            window 694 wide; narrower, Drafting and Navigate draw their small buttons by their icons, then Interface and Views
-            collapse. Navigate and Drafting never collapse.
+            The panels of the View tab: Navigate, Views, Model Viewports, Interface and the drafting toggles of the status bar. As
+            the window narrows, Drafting and Navigate draw their small buttons by their icons, then Interface, Model Viewports and
+            Views collapse. Navigate and Drafting never collapse.
             -->
             <DataTemplate DataType="{x:Type local:ViewRibbonViewModel}">
-                <local:RibbonStrip Steps="Drafting:Medium; Navigate:Medium; Interface:Collapsed; Views:Collapsed">
+                <local:RibbonStrip Steps="Drafting:Medium; Navigate:Medium; Interface:Collapsed; Model Viewports:Collapsed; Views:Collapsed">
                     <local:RibbonPanel
                         Title="Navigate"
                         MinFullWidth="250"
@@ -2736,29 +2715,6 @@
                         MinCollapsedWidth="56"
                         Icon="{StaticResource GhIconModel}"
                     >
-                        <!-- Views' slide-out: Viewport Configuration, the Viewports dialog of VPORTS (design RibbonPgpButtons). -->
-                        <local:RibbonPanel.Header>
-                            <ToggleButton
-                                Style="{StaticResource SlideOutTitle}"
-                                IsEnabled="{Binding Model.HasDocument}"
-                                Content="Views ▾"
-                                ToolTip="More of Views: Viewport Configuration"
-                            />
-                        </local:RibbonPanel.Header>
-                        <local:RibbonPanel.SlideOut>
-                            <StackPanel Width="260">
-                                <Button
-                                    Style="{StaticResource SlideOutItem}"
-                                    Tag="{StaticResource GhIconViewports}"
-                                    Content="Viewport Configuration"
-                                    Margin="0"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding RunCommand}"
-                                    CommandParameter="VPORTS"
-                                    ToolTip="Viewport Configuration (VPORTS)"
-                                />
-                            </StackPanel>
-                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -2778,6 +2734,26 @@
                                 Margin="0"
                             />
                         </StackPanel>
+                    </local:RibbonPanel>
+                    <!-- Model Viewports, as AutoCAD 2021's: Viewport Configuration, the Viewports dialog of VPORTS (design RibbonBodies). -->
+                    <local:RibbonPanel
+                        Title="Model Viewports"
+                        MinFullWidth="96"
+                        MinCollapsedWidth="64"
+                        Icon="{StaticResource GhIconViewports}"
+                    >
+                        <Button
+                            Style="{StaticResource BigButton}"
+                            Width="80"
+                            Padding="1,4"
+                            Margin="0"
+                            Tag="{StaticResource GhIconViewports}"
+                            Content="Viewport Configuration"
+                            IsEnabled="{Binding Model.HasDocument}"
+                            Command="{Binding RunCommand}"
+                            CommandParameter="VPORTS"
+                            ToolTip="Viewport Configuration (VPORTS)"
+                        />
                     </local:RibbonPanel>
                     <local:RibbonPanel
                         Title="Interface"
@@ -2848,6 +2824,97 @@
                                 ToolTip="OSNAP (F3)"
                             />
                         </WrapPanel>
+                    </local:RibbonPanel>
+                </local:RibbonStrip>
+            </DataTemplate>
+
+            <!--
+            The panels of the Output tab (design OutputTab), AutoCAD 2021's basics: Plot (Plot, Page Setup Manager, Preview, Plot
+            Stamp), Export to DWF/PDF (Export PDF, Export) and Import. Some 510 wide, so no panel shrinks: the strip has no steps.
+            -->
+            <DataTemplate DataType="{x:Type local:OutputRibbonViewModel}">
+                <local:RibbonStrip>
+                    <local:RibbonPanel Title="Plot" MinFullWidth="236" Icon="{StaticResource GhIconPlot}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconPlot}"
+                                Content="Plot"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="PLOT"
+                                ToolTip="Plot (PLOT)"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconPageSetup}"
+                                    Content="Page Setup Manager"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PAGESETUP"
+                                    ToolTip="Page Setup Manager (PAGESETUP)"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconPlotPreview}"
+                                    Content="Preview"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PREVIEW"
+                                    ToolTip="Preview (PREVIEW)"
+                                />
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconPlotStamp}"
+                                    Content="Plot Stamp"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="PLOTSTAMP"
+                                    ToolTip="Plot Stamp (PLOTSTAMP)"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel
+                        Title="Export to DWF/PDF"
+                        MinFullWidth="196"
+                        Icon="{StaticResource GhIconExportPdf}"
+                    >
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                Style="{StaticResource BigButton}"
+                                Tag="{StaticResource GhIconExportPdf}"
+                                Content="Export PDF"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Command="{Binding Model.StartCommandCommand}"
+                                CommandParameter="EXPORTPDF"
+                                ToolTip="Export PDF (EXPORTPDF)"
+                            />
+                            <WrapPanel Style="{StaticResource SmallColumn}">
+                                <Button
+                                    Style="{StaticResource SmallButton}"
+                                    Tag="{StaticResource GhIconExport}"
+                                    Content="Export"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="EXPORT"
+                                    ToolTip="Export (EXPORT)"
+                                />
+                            </WrapPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Import" MinFullWidth="76" Icon="{StaticResource GhIconImport}">
+                        <Button
+                            Style="{StaticResource BigButton}"
+                            Tag="{StaticResource GhIconImport}"
+                            Content="Import"
+                            Margin="0"
+                            IsEnabled="{Binding Model.HasDocument}"
+                            Command="{Binding Model.StartCommandCommand}"
+                            CommandParameter="IMPORT"
+                            ToolTip="Import (IMPORT): a DWG or DXF brought in as a block"
+                        />
                     </local:RibbonPanel>
                 </local:RibbonStrip>
             </DataTemplate>
@@ -3274,6 +3341,14 @@
                     />
                     <ToggleButton
                         Style="{StaticResource GhRibbonTab}"
+                        Content="Output"
+                        IsChecked="{Binding OutputTab.IsTabSelected, Mode=OneWay}"
+                        Command="{Binding SelectTabCommand}"
+                        CommandParameter="{Binding OutputTab}"
+                        Margin="0,0,4,0"
+                    />
+                    <ToggleButton
+                        Style="{StaticResource GhRibbonTab}"
                         Content="Plugins"
                         IsChecked="{Binding PluginsTab.IsTabSelected, Mode=OneWay}"
                         Command="{Binding SelectTabCommand}"
@@ -3427,43 +3502,28 @@
                                 MinMediumWidth="278"
                                 Icon="{StaticResource GhIconLine}"
                             >
-                                <!-- Draw's slide-out: Hatch, Gradient and Boundary, Divide, Measure and 2D Solid. -->
+                                <!--
+                                Draw's slide-out: Point, Divide, Measure and 2D Solid, as AutoCAD 2021 keeps them there; Hatch, Gradient and
+                                Boundary are the split in the body (design RibbonBodies).
+                                -->
                                 <local:RibbonPanel.Header>
                                     <ToggleButton
                                         Style="{StaticResource SlideOutTitle}"
                                         IsEnabled="{Binding HasDocument}"
                                         Content="Draw ▾"
-                                        ToolTip="More of Draw: Hatch, Gradient, Boundary, Divide, Measure, 2D Solid"
+                                        ToolTip="More of Draw: Point, Divide, Measure, 2D Solid"
                                     />
                                 </local:RibbonPanel.Header>
                                 <local:RibbonPanel.SlideOut>
                                     <StackPanel Width="260">
                                         <Button
                                             Style="{StaticResource SlideOutItem}"
-                                            Tag="{StaticResource GhIconHatch}"
-                                            Content="Hatch"
+                                            Tag="{StaticResource GhIconPoint}"
+                                            Content="Point"
                                             IsEnabled="{Binding HasDocument}"
                                             Command="{Binding StartCommandCommand}"
-                                            CommandParameter="HATCH"
-                                            ToolTip="Hatch (HATCH)"
-                                        />
-                                        <Button
-                                            Style="{StaticResource SlideOutItem}"
-                                            Tag="{StaticResource GhIconGradient}"
-                                            Content="Gradient"
-                                            IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding StartCommandCommand}"
-                                            CommandParameter="GRADIENT"
-                                            ToolTip="Gradient (GRADIENT)"
-                                        />
-                                        <Button
-                                            Style="{StaticResource SlideOutItem}"
-                                            Tag="{StaticResource GhIconBoundary}"
-                                            Content="Boundary"
-                                            IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding StartCommandCommand}"
-                                            CommandParameter="BOUNDARY"
-                                            ToolTip="Boundary (BOUNDARY)"
+                                            CommandParameter="POINT"
+                                            ToolTip="Point (POINT)"
                                         />
                                         <Button
                                             Style="{StaticResource SlideOutItem}"
@@ -3551,15 +3611,71 @@
                                             CommandParameter="ELLIPSE"
                                             ToolTip="ELLIPSE"
                                         />
-                                        <Button
-                                            Style="{StaticResource SmallButton}"
-                                            Tag="{StaticResource GhIconPoint}"
-                                            Content="Point"
-                                            IsEnabled="{Binding HasDocument}"
-                                            Command="{Binding StartCommandCommand}"
-                                            CommandParameter="POINT"
-                                            ToolTip="POINT"
-                                        />
+                                        <!--
+                                        Hatch, Gradient and Boundary: the button runs the choice picked last, Hatch at first, as AutoCAD
+                                        2021's split; Point went to the slide-out to make room, where AutoCAD keeps Multiple Points.
+                                        -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button
+                                                Style="{StaticResource SmallButton}"
+                                                Margin="0,0,0,2"
+                                                Tag="{StaticResource GhIconHatch}"
+                                                Content="Hatch"
+                                                IsEnabled="{Binding HasDocument}"
+                                                Command="{Binding StartCommandCommand}"
+                                                CommandParameter="HATCH"
+                                                ToolTip="Hatch (HATCH)"
+                                            />
+                                            <Button
+                                                Style="{StaticResource SplitArrow}"
+                                                Margin="0,0,2,2"
+                                                IsEnabled="{Binding HasDocument}"
+                                                Click="OnRibbonMenu"
+                                                ToolTip="Hatch, Gradient, Boundary"
+                                            >
+                                                <Path
+                                                    Data="M1 1 4 4 7 1"
+                                                    Stroke="{StaticResource GhTextMuted}"
+                                                    StrokeThickness="1.4"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Center"
+                                                />
+                                                <Button.ContextMenu>
+                                                    <ContextMenu
+                                                        Style="{StaticResource GhContextMenu}"
+                                                        DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                    >
+                                                        <MenuItem
+                                                            Style="{StaticResource GhMenuItem}"
+                                                            Header="Hatch"
+                                                            Tag="{StaticResource GhIconHatch}"
+                                                            Click="OnSplitChoice"
+                                                            Command="{Binding StartCommandCommand}"
+                                                            CommandParameter="HATCH"
+                                                            ToolTip="Hatch (HATCH)"
+                                                        />
+                                                        <MenuItem
+                                                            Style="{StaticResource GhMenuItem}"
+                                                            Header="Gradient"
+                                                            Tag="{StaticResource GhIconGradient}"
+                                                            Click="OnSplitChoice"
+                                                            Command="{Binding StartCommandCommand}"
+                                                            CommandParameter="GRADIENT"
+                                                            ToolTip="Gradient (GRADIENT)"
+                                                        />
+                                                        <MenuItem
+                                                            Style="{StaticResource GhMenuItem}"
+                                                            Header="Boundary"
+                                                            Tag="{StaticResource GhIconBoundary}"
+                                                            Click="OnSplitChoice"
+                                                            Command="{Binding StartCommandCommand}"
+                                                            CommandParameter="BOUNDARY"
+                                                            ToolTip="Boundary (BOUNDARY)"
+                                                        />
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </StackPanel>
                                     </WrapPanel>
                                 </StackPanel>
                             </local:RibbonPanel>

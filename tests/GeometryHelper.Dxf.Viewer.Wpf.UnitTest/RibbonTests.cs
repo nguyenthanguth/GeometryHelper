@@ -251,6 +251,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(model.Open(room));
             var workspace = new CadWorkspace { DataContext = model };
 
+            // The dialogs of Check Spelling and Viewport Configuration answered at once, so that pressing shows none.
+            model.ShowCheckSpelling = dialog => { };
+            model.ShowViewports = dialog => false;
+
             try
             {
                 // Home: the buttons this round added start their commands.
@@ -259,7 +263,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     .OfType<Button>()
                     .Where(b => b.Command == model.StartCommandCommand)
                     .ToList();
-                string[] added = { "RECTANG", "ELLIPSE", "POINT", "DIST", "AREA", "ID", "LIST" };
+                // POINT went to the Draw slide-out (dialogs7), where AutoCAD 2021 keeps Multiple Points.
+                string[] added = { "RECTANG", "ELLIPSE", "DIST", "AREA", "ID", "LIST" };
                 Assert.Equal(added, home.Select(b => b.CommandParameter as string).Where(added.Contains));
 
                 foreach (Button button in home.Where(b => added.Contains(b.CommandParameter as string)))
@@ -274,7 +279,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     .Where(b => b.CommandParameter is string)
                     .ToList();
                 Assert.Equal(
-                    new[] { "MTEXT", "TEXT", "DIMLINEAR", "QDIM", "DIMCONTINUE", "DIMSPACE", "DIMBREAK", "MLEADER" },
+                    new[]
+                    {
+                        "MTEXT",
+                        "TEXT",
+                        "SPELL",
+                        "TEXTALIGN",
+                        "DIMLINEAR",
+                        "QDIM",
+                        "DIMCONTINUE",
+                        "DIMSPACE",
+                        "DIMBREAK",
+                        "MLEADER",
+                        "MLEADERALIGN",
+                    },
                     annotate.Select(b => b.CommandParameter as string)
                 );
 
@@ -286,8 +304,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // View: Navigate runs its line, Views switches the space, Interface and Drafting toggle the state they show.
                 model.SelectedTab = model.ViewTab;
                 Layout(workspace);
-                // The panels' own toggles, which a collapsed panel draws, and the titles that open a slide-out (Views ▾) are
-                // not the tab's buttons.
+                // The panels' own toggles, which a collapsed panel draws, and the titles that open a slide-out are not the tab's
+                // buttons; Model Viewports adds Viewport Configuration (VPORTS).
                 List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent)
                     .Where(b =>
                         !(b.TemplatedParent is RibbonPanel)
@@ -297,7 +315,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         )
                     )
                     .ToList();
-                Assert.Equal(16, view.Count);
+                Assert.Equal(17, view.Count);
 
                 foreach (Button button in view.OfType<Button>().Where(b => b.CommandParameter is string))
                 {

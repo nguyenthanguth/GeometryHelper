@@ -92,13 +92,27 @@
                     <ListBox
                         Style="{StaticResource List}"
                         AutomationProperties.Name="Xrefs"
-                        ItemsSource="{Binding Xrefs}"
+                        ItemsSource="{Binding ShownXrefs}"
                         SelectedItem="{Binding Picked, Mode=TwoWay}"
-                        MouseDoubleClick="OnAdd"
+                        MouseDoubleClick="OnTreeDoubleClick"
                     >
+                        <!-- A reference or a kind opens and closes by its mark or a double-click; a definition's double-click adds it. -->
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Text}" Margin="{Binding Indent}" />
+                                <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
+                                    <Button
+                                        Style="{StaticResource GhFlatButton}"
+                                        Width="14"
+                                        Padding="0"
+                                        Margin="0,0,4,0"
+                                        Content="{Binding Glyph}"
+                                        Foreground="{StaticResource GhTextMuted}"
+                                        Focusable="False"
+                                        ToolTip="Open or close"
+                                        Click="OnToggle"
+                                    />
+                                    <TextBlock Text="{Binding Text}" VerticalAlignment="Center" />
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

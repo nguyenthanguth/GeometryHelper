@@ -138,7 +138,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         counter; annotative dimension and multileader styles making new ones annotative (the DIMSTYLE Fit tab box);
         ANNOAUTOSCALE; INSERT attributes drawn at the scale; HATCHEDIT Annotative; MOVE/COPY carrying every picture;
         AutoCAD AUDIT 0 with every context kept
-  - [ ] (dialogs7, running: the dialog parts) Annotative objects 3: arc-length and jogged dimensions annotative (context classes not probed); moved or turned
+  - [ ] Annotative objects 3 (the OBJECTSCALE dialog and the two boxes in the design done by dialogs7): arc-length and jogged dimensions annotative (context classes not probed); moved or turned
         words at a second scale (flags 293/294/140); multileaders of several leaders or block content at a second scale;
         DSTYLE 40 on angular dimensions; dimension breaks on second pictures; attribute contexts; the hatch view collection;
         the OBJECTSCALE dialog and the two Annotative boxes (Hatch dialog, DIMSTYLE Fit tab, added without a design) put
@@ -154,9 +154,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
-  - [ ] (dialogs7, running) R2.4 follow-ups (Rename wildcards and Check Spelling Settings/Undo done by dialogs6): Boundary set New; Collect in the
-        Leaders slide-out (after MLEADERCOLLECT); an Output tab with Export to PDF; LWUNITS and LWDEFAULT as variables; the
-        buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
+  - [x] Dialogs 7 (dialogs7, design v143-v144): Annotation Object Scale (OBJECTSCALE) with Add Scales to Object; the Output
+        ribbon tab; the batch buttons moved into the panel bodies (Hatch split in Draw, Check Spelling and Text Align, Align,
+        Model Viewports); Plot Stamp user fields and .pss files; Boundary Creation New; an expandable Xbind tree; LWUNITS and
+        LWDEFAULT
+  - [ ] Dialogs 7 follow-ups: Insert Layout dialog (LAYOUT Template) and Template description (SAveas); .pss location,
+        orientation and several user fields checked against a file AutoCAD writes; LWDEFAULT's refusal wording; the app
+        menu's Export > PDF running EXPORTPDF and an Import entry; Collect in the Leaders panel once MLEADERCOLLECT exists;
+        look at the windows in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the

@@ -1881,6 +1881,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "XBIND":
                     OnDialogsFiveRequested(e);
                     break;
+                case "OBJECTSCALE":
+                    OnObjectScaleRequested(e);
+                    break;
                 case "XREF":
                 case "XOPEN":
                 case "XATTACH":

@@ -46,7 +46,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// 14:05:09 is stamped with three lines at the lower left of the printable area, 0.1 inch (2.54 mm) in from both its edges,
     /// in letters 0.2 inch (5.08 mm) high: the path of the drawing, 2026-06-09 14:05:09, and GeometryHelper PDF.
     /// </remarks>
-    public sealed class CadPlotStamp
+    public sealed partial class CadPlotStamp
     {
         /// <summary>The text height AutoCAD starts with, in <see cref="Units"/>: 0.2.</summary>
         public const double StartHeight = 0.2;

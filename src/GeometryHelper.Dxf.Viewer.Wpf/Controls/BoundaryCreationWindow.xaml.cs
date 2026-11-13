@@ -42,6 +42,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnPickPoints(object sender, RoutedEventArgs e) => DialogResult = true;
 
+        // New closes the dialog with true too; BOUNDARY asks the objects and shows it again.
+        private void OnNewSet(object sender, RoutedEventArgs e)
+        {
+            Model.NewSet();
+            DialogResult = true;
+        }
+
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
     }
 }

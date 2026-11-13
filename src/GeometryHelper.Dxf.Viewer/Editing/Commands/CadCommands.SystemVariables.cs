@@ -263,6 +263,31 @@ namespace GeometryHelper.Dxf.Viewer
                 CadSystemVariable.Whole("BINDTYPE", false, 0, 1, s => BindType(s), (c, v) => c.Remember("bindtype", v))
             );
 
+            // The units Lineweight Settings lists the widths in, 0 inches and 1 millimetres, kept by the session; and the
+            // Default lineweight in hundredths of a millimetre, one of AutoCAD's widths, drawn at once (the dialog's two boxes).
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "LWUNITS",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, LineweightUnitsKey, 1.0),
+                    (c, v) => c.Remember(LineweightUnitsKey, v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "LWDEFAULT",
+                    false,
+                    0,
+                    211,
+                    s => (int)Math.Round(s.Document.DefaultLineWeight * 100.0),
+                    (c, v) => c.Document.DefaultLineWeight = v / 100.0,
+                    null,
+                    (c, v) => Array.IndexOf(Lineweights, v) < 0 ? "Invalid lineweight value." : null
+                )
+            );
+
             // Whether a command asks the window for a file (FILEDIA) or shows its dialog (CMDDIA, PLOT), 1, or asks on the command line, 0.
             registry.AddVariable(
                 CadSystemVariable.Whole(
@@ -617,6 +642,9 @@ namespace GeometryHelper.Dxf.Viewer
             Action<CadCommandContext, bool> set,
             string record
         ) => CadSystemVariable.Whole(name, true, 0, 1, s => get(s) ? 1 : 0, (c, v) => set(c, v != 0), record);
+
+        /// <summary>The key of LWUNITS in <see cref="CadCommandSession.Remembered"/>: 0 inches, 1 millimetres.</summary>
+        private const string LineweightUnitsKey = "lwunits";
 
         private static double Kept(CadCommandSession session, string key, double fallback) =>
             session.Remembered.TryGetValue(key, out double value) ? value : fallback;

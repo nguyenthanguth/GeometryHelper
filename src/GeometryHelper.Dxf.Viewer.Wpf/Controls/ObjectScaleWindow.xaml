@@ -1,0 +1,170 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.ObjectScaleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Annotation Object Scale"
+    Width="480"
+    Height="440"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Radio" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design ObjectScale: the Object Scale List with Add… and Delete, the units of the scale picked, the two list choices. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock
+                        Text="Annotation Object Scale"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            IsDefault="True"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            IsCancel="True"
+                            Click="OnCancel"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Caption}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <DockPanel Margin="16,12">
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Paper units:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,10,0" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{Binding PaperUnits}"
+                            FontFamily="{StaticResource GhMonoFont}"
+                        />
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="Drawing units:"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Margin="0,0,10,0"
+                        />
+                        <TextBlock
+                            Grid.Column="3"
+                            Text="{Binding DrawingUnits}"
+                            FontFamily="{StaticResource GhMonoFont}"
+                        />
+                    </Grid>
+                    <RadioButton
+                        Style="{StaticResource Radio}"
+                        Content="List all scales for selected objects"
+                        IsChecked="{Binding IsAllListed, Mode=TwoWay}"
+                    />
+                    <RadioButton
+                        Style="{StaticResource Radio}"
+                        Content="List scales common to all selected objects only"
+                        IsChecked="{Binding IsCommonOnly, Mode=TwoWay}"
+                    />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Width="96" Margin="12,22,0,0">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Add…"
+                        Padding="8,5"
+                        Margin="0,0,0,6"
+                        Click="OnAdd"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Delete"
+                        Padding="8,5"
+                        IsEnabled="{Binding CanDelete}"
+                        Click="OnDelete"
+                    />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Object Scale List" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <ListBox
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    Foreground="{StaticResource GhText}"
+                    ItemContainerStyle="{StaticResource StyleListItem}"
+                    AutomationProperties.Name="Object Scale List"
+                    ItemsSource="{Binding Scales}"
+                    SelectedItem="{Binding Picked, Mode=TwoWay}"
+                >
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel>
+                                <TextBlock
+                                    DockPanel.Dock="Right"
+                                    Text="{Binding Shared}"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                />
+                                <TextBlock Text="{Binding Name}" FontFamily="{StaticResource GhMonoFont}" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>

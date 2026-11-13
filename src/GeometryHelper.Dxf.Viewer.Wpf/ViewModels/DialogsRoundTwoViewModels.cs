@@ -705,13 +705,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// AutoCAD 2021's Boundary Creation dialog over BOUNDARY's request: Pick Points, Island detection, Boundary retention with
-    /// its object type, and the boundary set, which is every object of the space.
+    /// its object type, and the boundary set: Current viewport, every object shown, or Existing set, the objects New picked.
     /// </summary>
     public sealed class BoundaryCreationViewModel : ObservableObject
     {
+        /// <summary>The boundary set of every object shown.</summary>
+        public const string CurrentViewport = "Current viewport";
+
+        /// <summary>The boundary set of the objects New picked.</summary>
+        public const string ExistingSet = "Existing set";
+
         private readonly CadBoundaryRequest _request;
         private bool _islands;
         private string _objectType;
+        private string _boundarySet;
+        private bool _selecting;
 
         /// <summary>Makes the dialog over the request.</summary>
         /// <param name="request">The request.</param>
@@ -720,6 +728,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _request = request ?? throw new ArgumentNullException(nameof(request));
             _islands = request.IslandDetection;
             _objectType = request.IsRegion ? "Region" : "Polyline";
+            BoundarySets =
+                request.ExistingSet != null ? new[] { ExistingSet, CurrentViewport } : new[] { CurrentViewport };
+            _boundarySet = request.UsesExistingSet && request.ExistingSet != null ? ExistingSet : CurrentViewport;
+        }
+
+        /// <summary>Gets or sets the boundary set picked in the list.</summary>
+        public string BoundarySet
+        {
+            get => _boundarySet;
+            set => Set(ref _boundarySet, BoundarySets.Contains(value) ? value : CurrentViewport);
+        }
+
+        /// <summary>Gets whether the dialog closed with New, the objects of the set to be selected.</summary>
+        public bool IsSelectingSet => _selecting;
+
+        /// <summary>New: the settings kept, the dialog to close and the objects of the set asked, the dialog then shown again.</summary>
+        public void NewSet()
+        {
+            _selecting = true;
+            Keep();
+            _request.IsSelectingSet = true;
+        }
+
+        private void Keep()
+        {
+            _request.IslandDetection = _islands;
+            _request.IsRegion = _objectType == "Region";
+            _request.UsesExistingSet = _boundarySet == ExistingSet;
         }
 
         /// <summary>Gets the object types: Polyline and Region.</summary>
@@ -739,14 +775,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _islands, value);
         }
 
-        /// <summary>Gets the boundary sets offered: the current viewport, every object of the space.</summary>
-        public IReadOnlyList<string> BoundarySets { get; } = new[] { "Current viewport" };
+        /// <summary>Gets the boundary sets offered: Existing set once New has picked objects, and Current viewport.</summary>
+        public IReadOnlyList<string> BoundarySets { get; }
 
         /// <summary>Pick Points: the settings kept and the points asked once the dialog closes.</summary>
         public void PickPoints()
         {
-            _request.IslandDetection = _islands;
-            _request.IsRegion = _objectType == "Region";
+            Keep();
             _request.IsPicking = true;
         }
     }

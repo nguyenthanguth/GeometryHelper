@@ -43,7 +43,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case CadBoundaryRequest boundary when ShowBoundaryCreation != null:
                     var creation = new BoundaryCreationViewModel(boundary);
 
-                    if (ShowBoundaryCreation(creation))
+                    // True for Pick Points, and for New, which the dialog has already told the request.
+                    if (ShowBoundaryCreation(creation) && !creation.IsSelectingSet)
                     {
                         creation.PickPoints();
                     }
@@ -64,11 +65,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void ShowLineweights()
         {
             CadDocument document = _current.Document;
+
+            // LWUNITS and LWDEFAULT as typed in this drawing's session, the settings' where none was typed.
+            bool inches = _current.Session.Remembered.TryGetValue("lwunits", out double units)
+                ? units == 0.0
+                : _settings.LineweightsInInches;
             var dialog = new LineweightSettingsViewModel(
                 document.Database.Celweight,
                 ShowLineWeights,
-                _settings.LineweightsInInches,
-                _settings.DefaultLineweight,
+                inches,
+                (int)Math.Round(document.DefaultLineWeight * 100.0),
                 _settings.LineweightDisplayScale
             );
 
@@ -102,6 +108,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 SetLineWeightDisplay(dialog.DisplayLineweight);
             }
+
+            _current.Session.Remembered["lwunits"] = dialog.IsInches ? 0.0 : 1.0;
+            document.DefaultLineWeight = dialog.DefaultWeight / 100.0;
 
             if (
                 dialog.IsInches != _settings.LineweightsInInches

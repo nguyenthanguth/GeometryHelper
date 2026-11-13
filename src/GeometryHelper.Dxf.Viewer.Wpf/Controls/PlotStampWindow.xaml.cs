@@ -51,6 +51,44 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnAdvanced(object sender, RoutedEventArgs e) => Model.Advanced();
 
+        // Add / Edit…: User Defined Fields over the stamp's list, which its OK replaces.
+        private void OnUserFields(object sender, RoutedEventArgs e)
+        {
+            var fields = new UserDefinedFieldsViewModel(Model.Stamp.UserFields);
+
+            if (UserDefinedFieldsWindow.Show(this, fields))
+            {
+                Model.SetUserFields(fields.Fields);
+            }
+        }
+
+        private const string ParameterFilter = "Plot stamp parameter files (*.pss)|*.pss|All files (*.*)|*.*";
+
+        private void OnLoadParameters(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog { Filter = ParameterFilter, FileName = Model.ParameterFile };
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                Model.LoadParameterFile(dialog.FileName);
+            }
+        }
+
+        private void OnSaveParameters(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SaveFileDialog
+            {
+                Filter = ParameterFilter,
+                FileName = Model.ParameterFile,
+                DefaultExt = ".pss",
+            };
+
+            if (dialog.ShowDialog(this) == true)
+            {
+                Model.SaveParameterFile(dialog.FileName);
+            }
+        }
+
         private void OnOk(object sender, RoutedEventArgs e)
         {
             if (Model.TryAccept())
