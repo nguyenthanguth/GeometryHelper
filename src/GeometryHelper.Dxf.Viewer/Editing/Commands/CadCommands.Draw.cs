@@ -639,6 +639,18 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Document.ActiveViewport
             );
 
+            // A style that is annotative draws at the annotation scale of the space and makes the multileader annotative, as AutoCAD
+            // 2021 does: scale 50 at 1:50 (probe GHAN4: 40 of 50 in the context).
+            DxfAnnotationScale annotation =
+                CadMLeaderStyleEditor.Find(c.Database, style)?.Annotative == DxfAnnotativeStates.True
+                    ? CurrentScale(c.Database, c.Space.IsModel)
+                    : null;
+
+            if (annotation != null && 1.0 / annotation.Scale > 0.0 && !double.IsInfinity(1.0 / annotation.Scale))
+            {
+                scale = 1.0 / annotation.Scale;
+            }
+
             // The leader and its landing to the cursor, made as the multileader is but of no words yet, as AutoCAD drags them.
             yield return CadPrompt
                 .ForPoint("Specify leader landing location", arrow)
@@ -741,6 +753,11 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!scale.Equals(found.Scale))
                 {
                     mleader.Scale = scale;
+                }
+
+                if (annotation != null)
+                {
+                    mleader.Annotative = DxfAnnotativeStates.True;
                 }
             });
         }

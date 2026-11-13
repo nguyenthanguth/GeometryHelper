@@ -30,6 +30,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            if (dimension.Annotative == DxfAnnotativeStates.True && dimension.DimensionPictures().Count > 0)
+            {
+                return RedrawAnnotative(dimension);
+            }
+
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
             List<DxfEntity> picture = Picture(dimension, data, data.Dimtxt);
 

@@ -86,6 +86,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _values = CadDimStyleEditor.Read(document.Database.DimStyleTable[read]);
+
+            if (mode != DimStyleEditMode.Override)
+            {
+                _values[CadDimStyleEditor.AnnotativeKey] =
+                    document.Database.DimStyleTable[read].Annotative == DxfAnnotativeStates.True;
+            }
+
             Original = new SortedDictionary<string, object>(_values, StringComparer.Ordinal);
             _selection = selection ?? Array.Empty<string>();
             _startWith = startWith;
@@ -737,7 +744,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     )
                 ),
                 Header("Scale for dimension features"),
-                Plain(DimFieldKind.Number, "Overall scale", "Dimscale"),
+                Plain(DimFieldKind.Flag, "Annotative", CadDimStyleEditor.AnnotativeKey),
+                Plain(DimFieldKind.Number, "Overall scale", "Dimscale", null, () =>
+                    !Flag(CadDimStyleEditor.AnnotativeKey)
+                ),
                 Header("Fine tuning"),
                 Plain(DimFieldKind.Flag, "Place text manually", "Dimupt"),
                 Plain(DimFieldKind.Flag, "Draw dim line between ext lines", "Dimtofl"),

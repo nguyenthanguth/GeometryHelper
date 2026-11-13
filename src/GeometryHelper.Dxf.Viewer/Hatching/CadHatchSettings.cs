@@ -174,7 +174,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Reads the settings of a hatch, as HATCHEDIT shows them: its type, pattern, angle in degrees, scale, spacing, double,
-        /// island style and association, and its gradient's name, colours, one colour or two, tint and shift. The origin, layer,
+        /// island style and association, whether it is annotative, and its gradient's name, colours, one colour or two, tint and shift. The origin, layer,
         /// colour, background colour and transparency are not read back (they stay as a new hatch leaves them, null): a hatch
         /// keeps its origin in its lines' base points, and HATCHEDIT lays them again from the origin it is given.
         /// </summary>
@@ -188,7 +188,12 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(hatch));
             }
 
-            var settings = new CadHatchSettings { IslandStyle = hatch.HatchStyle, Associative = hatch.Associative };
+            var settings = new CadHatchSettings
+            {
+                IslandStyle = hatch.HatchStyle,
+                Associative = hatch.Associative,
+                Annotative = hatch.Annotative == DxfAnnotativeStates.True,
+            };
 
             if (hatch.IsGradient)
             {

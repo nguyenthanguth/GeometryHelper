@@ -532,6 +532,15 @@
                             ToolTip="The hatch keeps the handles of its boundary objects; it is not made anew when they move"
                         />
                     </StackPanel>
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Annotative" />
+                        <CheckBox
+                            Style="{StaticResource GhCheckBox}"
+                            IsChecked="{Binding Annotative, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            ToolTip="The hatch's pattern is drawn at the annotation scale of the view"
+                        />
+                    </StackPanel>
                 </StackPanel>
             </DockPanel>
         </DockPanel>

@@ -40,6 +40,15 @@ namespace GeometryHelper.Dxf.Viewer
         public int PickAdd { get; set; } = 1;
 
         /// <summary>
+        /// Gets or sets ANNOAUTOSCALE, as AutoCAD's: whether the annotative objects of model space are shown at the scale CANNOSCALE is
+        /// changed to, which they are given as OBJECTSCALE gives it. Positive switches it on, negative off, and the size says which
+        /// objects (probed on AutoCAD 2021, texts on layers that are on, locked and off): 1 those on layers that are on, thawed and
+        /// not locked, 2 those on locked layers too, 4 those on layers that are off or frozen too. -4, the default, adds nothing.
+        /// Kept by the presenter, not in the drawing, as AutoCAD keeps it in the registry; the variable ANNOAUTOSCALE sets it.
+        /// </summary>
+        public int AnnoAutoScale { get; set; } = -4;
+
+        /// <summary>
         /// Gets the objects a pick takes with PICKSTYLE on: those given, then the other members of each selectable group any of
         /// them is in, in ordinal order of their handles. A line and a circle of the group G1 and a text of none: picking the
         /// line gives the line and the circle. With PICKSTYLE off, those given. Either way a viewport clipped by an entity is taken

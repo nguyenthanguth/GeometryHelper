@@ -399,7 +399,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 CadEditResult result = _current.Document.ApplyEdit(
                     "CANNOSCALE",
                     new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, name) },
-                    s => s.Database.Cannoscale = name
+                    s => CadAnnotationScale.Set(s.Database, name, _current.Document.AnnoAutoScale)
                 );
 
                 if (!result.Succeeded)

@@ -79,15 +79,20 @@ namespace GeometryHelper.Dxf
         /// given one as well, its point moved out from the INSERT's by the same factor: the attribute at (300, 1003) of an
         /// INSERT at (300, 1000) is at (300, 1150) at 1:50. An INSERT that holds no context gets the scale as its one context,
         /// the default, its record's factors and those of the context multiplied by 1 over the scale, as AutoCAD 2021 gave
-        /// it. The record of the other kinds is kept: their size at the other scale is worked out from it.
+        /// it. A MULTILEADER of one leader holding text is laid out again: its scale (40) is 1 over the new scale's, its sizes (the
+        /// text height, the arrowhead, the landing gap, the dogleg) multiplied by the default's scale over the new one's, the landing
+        /// and its lines kept, and the content moved out from the landing by the new dogleg: text 0.2 high at 1:50 is 0.4 at 1:100,
+        /// a dogleg of 0.36 is 0.72, and the words stand 9.72 right of the landing (check GHAN4). The record of the other kinds is
+        /// kept: their size at the other scale is worked out from it.
         /// </summary>
         /// <param name="context">The scale, of the object's drawing's list.</param>
         /// <exception cref="ArgumentNullException">Thrown when the scale is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the scale is not one of this drawing's list.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the object is not annotative (<see cref="Annotative"/>), as AutoCAD
         /// answers eNotApplicable; is in no file, is erased, or is a copy in no file that carries its original's contexts.</exception>
-        /// <exception cref="NotSupportedException">Thrown for a multileader, a dimension and the other annotative kinds whose
-        /// contexts the library does not make for a second scale yet.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a dimension, whose picture the library does not lay out (the
+        /// presenter does: a context per scale each with its own block), for a multileader of more than one leader or of a block, and
+        /// for the other annotative kinds whose contexts the library does not make for a second scale yet.</exception>
         public void AddContext(DxfObjectContext context)
         {
             if (context == null)
@@ -124,7 +129,14 @@ namespace GeometryHelper.Dxf
 
             string kind = _item.Type;
 
-            if (kind != "TEXT" && kind != "MTEXT" && kind != "ATTDEF" && kind != "HATCH" && kind != "INSERT")
+            if (
+                kind != "TEXT"
+                && kind != "MTEXT"
+                && kind != "ATTDEF"
+                && kind != "HATCH"
+                && kind != "INSERT"
+                && kind != "MULTILEADER"
+            )
             {
                 throw new NotSupportedException(
                     "A "
@@ -135,10 +147,17 @@ namespace GeometryHelper.Dxf
 
             List<ScaleContext> held = ScaleContexts();
 
-            if (held.Count == 0)
+            if (held.Count == 0 && kind == "INSERT")
             {
                 ((DxfBlockReference)this).AddFirstContext(scale);
                 return;
+            }
+
+            if (held.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "The " + KindName() + " holds no context to be shown at another scale from."
+                );
             }
 
             ScaleContext first = held.Find(c => c.IsDefault);
@@ -150,6 +169,18 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException(
                     "The scale of the default context of the " + KindName() + " is not one the library can work from."
                 );
+            }
+
+            if (kind == "MULTILEADER")
+            {
+                WriteContext(
+                    EnsureContextDictionary(_item),
+                    MLeaderContextType,
+                    scale,
+                    false,
+                    MLeaderLaidOut(ContextData(source), scale, factor)
+                );
+                return;
             }
 
             AddDerived(_item, source, scale, factor, null);
@@ -554,6 +585,52 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// How an INSERT of an annotative block that holds contexts is drawn at a scale, the presenter's reading of AutoCAD's:
+        /// false where it is not shown at the scale and <paramref name="allVisible"/> is false; otherwise true, with
+        /// <paramref name="factor"/> the number its record's factors, those of its default context's scale, are multiplied by to
+        /// be those at the scale (the default's scale over the scale's: 2 for an INSERT at 1:50 drawn at 1:100). 1 for one that
+        /// is not annotative or holds no context.
+        /// </summary>
+        internal bool TryInsertFactorAt(DxfAnnotationScale at, bool allVisible, out double factor)
+        {
+            factor = 1.0;
+
+            if (
+                !(this is DxfBlockReference)
+                || at == null
+                || (_item.CopiedContexts == null && _item.File.ExtensionDictionaryOf(_item) == null)
+                || Annotative != DxfAnnotativeStates.True
+            )
+            {
+                return true;
+            }
+
+            List<ScaleContext> held = ScaleContexts();
+
+            if (held.Count == 0)
+            {
+                return true;
+            }
+
+            if (!HasContext(at))
+            {
+                return allVisible;
+            }
+
+            ScaleContext first = held.Find(c => c.IsDefault);
+            string scale = string.IsNullOrEmpty(first.Scale) ? held[0].Scale : first.Scale;
+            DxfFile own = _item.CopiedContexts != null ? _item.File.Origin : _item.File;
+            factor = ScaleRatioOf(own, scale) / at.Scale;
+
+            if (!Guard.IsFinite(factor) || factor <= 0.0)
+            {
+                factor = 1.0;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Multiplies the lines of a hatch's pattern, its record's 43, 44, 45, 46 and 49, by a factor, as the presenter draws
         /// an annotative hatch at another scale on a copy.
         /// </summary>
@@ -626,7 +703,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return "*A" + (top + 1).ToString(CultureInfo.InvariantCulture);
+            return "*A" + NextContextNumber(scales, top).ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>

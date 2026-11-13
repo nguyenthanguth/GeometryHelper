@@ -282,7 +282,9 @@ record is kept, which holds the size at the default's scale, so that a text made
 hatch has the lines of its pattern multiplied by 1 over the scale, as AutoCAD 2021 does when it makes one annotative at 1:50
 (the offset 0.0884 of a line becomes 4.42), and its context holds them with 40 of 50, the direction of the pattern (10, 20, 30
 the cosine and sine of its angle) and its loops (90 of their number, then each loop's type and a 290 of 1). A dimension, a
-leader, a tolerance and an attribute of an INSERT are refused, since AutoCAD lays out a picture of a dimension at each scale.
+leader, a tolerance and an attribute of an INSERT are refused by `Annotative = True`, since AutoCAD lays out a picture of a
+dimension at each scale and the library draws none; the presenter lays it out with its own builders (see "Annotative objects" in
+the presenter guide).
 `AddContext(scale)` shows the object at another scale, as AutoCAD's `ObjectContexts.AddContext` (OBJECTSCALE, Add): a context
 named one more than the highest number the object holds, not the default (290 of 0), made from the default's. A TEXT or
 attribute definition keeps its point and angle; an MTEXT has its width, its box and its words' size (40, 41, 42, 43)
@@ -290,12 +292,21 @@ multiplied by the default's scale over the new one's, a width of 40 at 1:1 becom
 multiplied so and 40 of 1 over the scale; an INSERT its three factors, 1 at 1:1 becoming 50 at 1:50 and 100 at 1:100, and each
 attribute of it that holds contexts one of its own, its point moved out from the INSERT's by the same factor (300, 1003 of an
 INSERT at (300, 1000) becomes (300, 1150) at 1:50). An INSERT that holds no context, shown at 1:1 by its block, is given the scale as
-its one context, the default, with its factors divided by the scale, as AutoCAD 2021 did. A multileader, a dimension and
-the other kinds are refused a second scale (`NotSupportedException`), AutoCAD laying them out again at each scale. `GetContexts()`
+its one context, the default, with its factors divided by the scale, as AutoCAD 2021 did. A multileader of one leader holding
+text is laid out again, as AutoCAD 2021 lays it out (probed on the style Annotative): the scale (40) is 1 over the new one, the
+sizes (the text height 41, the arrowhead 140, the landing gap 145, the dogleg length) are multiplied by the default's scale
+over the new one's, the landing and the leader's lines stay, the base of the content is the landing moved out by the new dogleg
+and the words stand the old offset, multiplied, from it: text 0.2 high at 1:50 with a dogleg of 0.36 and a gap of 4.5 is 0.4 high
+at 1:100 with a dogleg of 0.72 and a gap of 9, the words 9.72 right of a landing at (100, 100). A dimension and the other kinds
+are refused a second scale (`NotSupportedException`), AutoCAD laying them out again at each scale. `GetContexts()`
 lists the scales an object is shown at, as AutoCAD's `ObjectContexts.GetContexts`, the default first. `HasContext`
 reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by
 the scale each points at (its 340), and none of an object never annotative, as a LINE or a CIRCLE handed a TEXT's contexts by
-`HandOverTo`, which keeps them, as AutoCAD 2021 reads it; `RemoveContext` erases one, the default and the last refused, and `Annotative =
+`HandOverTo`, which keeps them, as AutoCAD 2021 reads it; `RemoveContext` erases one, the last refused, and where it is the default the next in the order of the dictionary becomes it and
+the record is rewritten from that context, as AutoCAD 2021 rewrites it: a TEXT 125 high at 1:50 with 1:100 beside it is 250 high
+once 1:50 is deleted, an MTEXT is as high and as wide as the context of 1:100 says, a hatch has its lines, an INSERT its factors,
+a dimension its block and the middle of its words and a multileader its context data. The next entry is named as AutoCAD names it
+within a session, one more than the highest number the dictionary has held (after `*A2` was deleted, `*A3`), not saved. `Annotative =
 DxfAnnotativeStates.False` erases them all with the data. `PaperOrientation` reads whether an annotative object keeps the way
 up of the sheet from the extended data AcadAnnoPO, a reading of AutoCAD's that is not yet checked either.
 
