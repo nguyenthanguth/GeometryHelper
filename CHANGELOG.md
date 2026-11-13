@@ -26,6 +26,22 @@ its command-line form. New public members: `CadTiledViewports.SplitAs(name, whol
 `DrawingRecoveryViewModel`, `BackupFileRow`, `CheckSpellingSettingsViewModel` and their windows,
 `MainViewModel.ShowInsertObject` and `ShowDrawingRecovery`, and `SelectLinetypeViewModel(document, current,
 offersByLayerAndByBlock)`. Tests: 17 new in the window's suite.
+**NEW.** Annotative objects written as AutoCAD 2021 writes them (probed with accoreconsole; the library's drawings are audited by
+AutoCAD with no error and read back to the same scales). `DxfDBObject.Annotative = True` now makes a TEXT, an MTEXT, an attribute
+definition, a HATCH and a MULTILEADER annotative (it was refused): the extended data AcadAnnotative (a multileader its group 293),
+an extension dictionary holding AcDbContextDataManager and ACDB_ANNOTATIONSCALES, and in it the default context `*A1` of the scale
+CANNOSCALE names (1:1 in paper space); a hatch's pattern lines are multiplied by 1 over the scale, as AutoCAD does at 1:50 (the
+offset 0.0884 becomes 4.42). A block can be made annotative by its own flag. New `AddContext(scale)` (AutoCAD's
+`ObjectContexts.AddContext`, the command OBJECTSCALE Add) shows an object at another scale: a TEXT, MTEXT, ATTDEF, HATCH or INSERT of
+an annotative block gets a context made from its default as AutoCAD makes it (an MTEXT 40 wide at 1:1 is 2000 wide at 1:50; a hatch's
+lines multiplied and its group 40 of 50; an INSERT's factors 1, 50, 100, its attributes moved out from its point). New
+`GetContexts()` lists the scales an object is shown at. A multileader, a dimension and the other kinds are refused a second scale.
+In the presenter: the Annotative and Annotation scale rows of Properties, `-HATCH` ANnotative making annotative hatches,
+`-OBJECTSCALE` (Add, Delete and `?`), `AIOBJECTSCALEADD`, `AIOBJECTSCALEREMOVE` and `ANNOALLVISIBLE`, in AutoCAD's words; TEXT and
+MTEXT under an annotative text style are made annotative at the height of the sheet over the scale; and the display draws annotative
+TEXT, MTEXT and hatches of a space at CANNOSCALE (1:1 in a layout, a viewport's own scale in it). **CHANGED.** `Annotative = True` on
+a TEXT, MTEXT, attribute definition, hatch or multileader, and on a block, no longer throws `NotSupportedException`; on a dimension,
+leader, tolerance or attribute it still does, with a new message. Tests: 12 new in the core suite and 11 in the viewer's.
 
 **NEW.** CTAB in the presenter, as AutoCAD 2021's console took it (probed): `CTAB` and `SETVAR CTAB` ask `Enter new value for CTAB
 <"Model">:` and show the layout named, in letters of either case, as one undo step named CTAB; Enter keeps the layout, and a name

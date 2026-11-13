@@ -441,6 +441,13 @@ namespace GeometryHelper.Dxf.Viewer
                 hatch.SetAssociatedObjects(objects);
             }
 
+            // An annotative hatch is made once its loops are in, as its context holds them.
+            if (settings.Annotative)
+            {
+                string why = MakeAnnotative(s.Database, hatch);
+                fault = fault ?? why;
+            }
+
             return hatch;
         }
 

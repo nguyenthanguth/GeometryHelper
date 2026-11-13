@@ -159,6 +159,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets how much a new hatch lets show through; null for the current setting, as HPTRANSPARENCY's "." says.</summary>
         public DxfTransparency? Transparency { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether a new hatch is annotative, as -HATCH's ANnotative asks: made annotative at the annotation scale of its
+        /// space, so that its pattern is drawn at the scale of the view; false as AutoCAD starts.
+        /// </summary>
+        public bool Annotative { get; set; }
+
         /// <summary>Gets or sets the widest gap between two loose ends that a boundary is taken as closed over (HPGAPTOL), in drawing units; 0 for none, as AutoCAD starts.</summary>
         public double GapTolerance { get; set; }
 

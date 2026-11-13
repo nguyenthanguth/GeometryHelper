@@ -68,15 +68,20 @@ namespace GeometryHelper.Dxf
         /// it makes annotative (0 when set false). Set <see cref="DxfAnnotativeStates.False"/>, the extended data is taken out, with <c>AcadAnnoPO</c>, a
         /// multileader's 293 is made 0, and an entity's contexts go with the dictionary AcDbContextDataManager of its extension
         /// dictionary, of any kind of entity: its own groups, those of the scale it was last shown at, stay. A value the object
-        /// has changes nothing.
+        /// has changes nothing. A block set true is given the same data. A TEXT, an MTEXT, an attribute definition, a HATCH or a
+        /// multileader set true is made annotative as AutoCAD 2021 makes it: its extended data (a multileader its 293 of 1), an
+        /// extension dictionary with AcDbContextDataManager and ACDB_ANNOTATIONSCALES and in it the default context, <c>*A1</c>,
+        /// of the scale CANNOSCALE names (1:1 in paper space), its record kept except for a hatch's pattern lines, which are
+        /// multiplied by 1 over the scale; <see cref="AddContext"/> shows it at others.
         /// </para>
         /// </value>
         /// <exception cref="ArgumentException">Thrown when the value set is <see cref="DxfAnnotativeStates.NotApplicable"/>, or not one of the enumeration.</exception>
         /// <exception cref="InvalidOperationException">Thrown when set on an object that is never annotative, as AutoCAD answers
-        /// eNotApplicable; on an object in no file or erased; or true on a style in a file older than R2007 (AC1021).</exception>
-        /// <exception cref="NotSupportedException">Thrown when set true on an entity, which AutoCAD shows at the current scale by
-        /// a context the library does not write until AutoCAD's record of it is checked on a drawing AutoCAD saved; or set on an
-        /// INSERT (annotative as its block is) or a block.</exception>
+        /// eNotApplicable; on an object in no file or erased; true on a style or an entity in a file older than R2007 (AC1021); or
+        /// true on an entity when the drawing's list has no scale named as CANNOSCALE says.</exception>
+        /// <exception cref="NotSupportedException">Thrown when set true on a dimension, a leader, a tolerance or an attribute,
+        /// which AutoCAD lays out again at each scale; set on an INSERT (annotative as its block is); or set false on a
+        /// block.</exception>
         public DxfAnnotativeStates Annotative
         {
             get
@@ -139,12 +144,17 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                if (kind == AnnotationKind.Reference || kind == AnnotationKind.Block)
+                if (kind == AnnotationKind.Reference)
                 {
                     throw new NotSupportedException(
-                        "A "
-                            + KindName()
-                            + " is not made annotative here: an INSERT is annotative as its block is, and a block's flag is not set yet."
+                        "An INSERT is not made annotative itself: it is annotative as its block is (set the block's Annotative)."
+                    );
+                }
+
+                if (kind == AnnotationKind.Block && value == DxfAnnotativeStates.False)
+                {
+                    throw new NotSupportedException(
+                        "A block is not made not annotative here: the INSERTs that hold contexts of its scales would be left holding them."
                     );
                 }
 
@@ -156,18 +166,15 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                if (value == DxfAnnotativeStates.True && kind == AnnotationKind.Entity)
-                {
-                    throw new NotSupportedException(
-                        "A "
-                            + KindName()
-                            + " is not made annotative yet: AutoCAD shows it at the current scale by a context the library writes only once AutoCAD's record of it is checked on a drawing AutoCAD saved."
-                    );
-                }
-
                 DxfFile file = InFile(
                     value == DxfAnnotativeStates.True ? "be made annotative" : "be made not annotative"
                 );
+
+                if (value == DxfAnnotativeStates.True && kind == AnnotationKind.Entity)
+                {
+                    MakeEntityAnnotative(file);
+                    return;
+                }
 
                 if (value == DxfAnnotativeStates.True)
                 {

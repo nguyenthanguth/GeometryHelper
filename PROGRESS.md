@@ -85,11 +85,11 @@ User request 2026-11-13 (acad.pgp):
 
 Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap list comes from pgp-cmds1 and may move items between batches; each command with AutoCAD's prompts, one undo step, DXF/DWG as AutoCAD writes it, new dialogs designed first; 3D modelling, mesh, surfaces, render, materials, lights, cameras, point clouds, sheet sets, data links, constraints, animation and cloud commands left out):
 - [x] Batch 1, drafting basics (pgp-cmds1): the gap list (scratch GAP.md: 317 pgp commands vs our 202), 69 missing stock aliases, DIVIDE, MEASURE, DIMCENTER, COLOR/-COLOR, LWEIGHT/-LWEIGHT, REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS/HIDEOBJECTS/UNISOLATEOBJECTS; fixed DIMCEN<0 centre lines (radius > 2 x mark)
-- [ ] Batch 1b (left from pgp-cmds1): CHANGE (-CH); RENAME dialog (design first) and -RENAME (blocks, linetypes, multileader and table styles lack rename helpers); Lineweight Settings dialog (design first); CENTERMARK and CENTERLINE (associative, probe their DXF form); DIMCENTER line colour and linetype unconfirmed; ACAD_OBJECTISOLATION record and OBJECTISOLATIONMODE 1; then FILTER, INSERTOBJ, IMAGEADJUST, XBIND, ATTEXT, CTABLESTYLE, -LAYOUT, -MTEXT, -PAN, -OSNAP (M)
+- [x] (superseded: done by pgp-cmds1b, dialogs4, dialogs6; CENTERMARK/CENTERLINE in "Batch 1b leftovers") Batch 1b (left from pgp-cmds1): CHANGE (-CH); RENAME dialog (design first) and -RENAME (blocks, linetypes, multileader and table styles lack rename helpers); Lineweight Settings dialog (design first); CENTERMARK and CENTERLINE (associative, probe their DXF form); DIMCENTER line colour and linetype unconfirmed; ACAD_OBJECTISOLATION record and OBJECTISOLATIONMODE 1; then FILTER, INSERTOBJ, IMAGEADJUST, XBIND, ATTEXT, CTABLESTYLE, -LAYOUT, -MTEXT, -PAN, -OSNAP (M)
 - [x] Batch 2, annotation (pgp-cmds2): DIMOVERRIDE (DOV), TEXTALIGN (TA), MLEADERALIGN (MLA), MLEADEREDIT (MLE), ATTIPEDIT (ATI), SPELL (SP, built-in word list and a custom dictionary)
-- [ ] Batch 2b (left from pgp-cmds2): MLINE with MLSTYLE and MLEDIT (needs a core DxfMline builder; group layout noted in the merge commit); MLEADERCOLLECT (a composite block); MLEADERALIGN Parallel; TEXTALIGN on an oblique line as AutoCAD places it; confirm the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute in the AutoCAD GUI; a Check Spelling dialog and ribbon buttons (design first) (M)
+- [x] (superseded: done by mline, fu-mline, dialogs4, dialogs5; MLEADERCOLLECT, Parallel and TEXTALIGN in R3.1) Batch 2b (left from pgp-cmds2): MLINE with MLSTYLE and MLEDIT (needs a core DxfMline builder; group layout noted in the merge commit); MLEADERCOLLECT (a composite block); MLEADERALIGN Parallel; TEXTALIGN on an oblique line as AutoCAD places it; confirm the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute in the AutoCAD GUI; a Check Spelling dialog and ribbon buttons (design first) (M)
 - [x] Batch 3, shapes and hatching (pgp-cmds3): SOLID, -BOUNDARY (Advanced options), -HATCH (Properties, Select objects, Advanced, DRaw order), GRADIENT, HATCHTOBACK, SPLINEDIT (Close/Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT (= INSERT); REGION counts loops but makes none (no ACIS writer)
-- [ ] Batch 3b (left from pgp-cmds3): an ACIS SAT/SAB writer so REGION and -BOUNDARY Region work (L); the rest of -HATCH (draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, ANnotative, Boundary set, Gap tolerance) and Single color gradients; SPLINEDIT Fit data, Join, Refine, Close/Open of control-point splines; plain HATCH drawn behind its boundary as -HATCH is (AutoCAD default); -BOUNDARY on ellipses/splines (AutoCAD refuses them); Boundary Creation and classic Insert dialogs (design first) (M)
+- [x] (superseded: done by acis, hatch2, splinedit2, dialogs4; what is left is in R2.2, R2.3 and R3.3 follow-ups) Batch 3b (left from pgp-cmds3): an ACIS SAT/SAB writer so REGION and -BOUNDARY Region work (L); the rest of -HATCH (draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, ANnotative, Boundary set, Gap tolerance) and Single color gradients; SPLINEDIT Fit data, Join, Refine, Close/Open of control-point splines; plain HATCH drawn behind its boundary as -HATCH is (AutoCAD default); -BOUNDARY on ellipses/splines (AutoCAD refuses them); Boundary Creation and classic Insert dialogs (design first) (M)
 - [x] Batch 4a (pgp-cmds4a, design v135-v136): VPORTS/-VPORTS (model tiles, *Active VPORT records read and written as AutoCAD), FILTER (Object Selection Filters), QUICKCALC and CAL, QUICKPROPERTIES with QPMODE (Ctrl+Shift+P)
 - [x] Batch 4b (pgp-cmds4b): -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND/XBIND (typed), SAVE (the drawing takes the new name, as AutoCAD), QUIT/EXIT, COMMANDLINE/COMMANDLINEHIDE, HIDEPALETTES/SHOWPALETTES (Ctrl+Shift+H); fixed a layout tab left in the wrong case after undoing a rename
 - [x] Batch 5, output (pgp-cmds5): EXPORTPDF (typed as -EXPORT Pdf), EXPORTDWF/DWFX (refused: no DWF writer), PLOTSTAMP and -PLOTSTAMP in AutoCAD's words, the stamp on PDF plots with its log, PDFSHX (searchable SHX text), IMPORT of DWG/DXF as a block
@@ -129,7 +129,16 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
-  - [ ] (annot, running: annotative) R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; probe AutoCAD's annotative hatch DXF again: extension dictionary, AcDbContextDataManager, xdata AcadAnnotative); draW boundary
+  - [x] Annotative objects 1 (annot): TEXT, MTEXT, ATTDEF, HATCH, MULTILEADER and blocks made annotative as AutoCAD 2021
+        writes them (xdata, extension dictionary, contexts *A1, *A2...), second scales added to TEXT, MTEXT, ATTDEF, HATCH and
+        INSERT; -OBJECTSCALE, AIOBJECTSCALEADD/REMOVE, ANNOALLVISIBLE; -HATCH ANnotative; text under an annotative style;
+        drawn at CANNOSCALE and at a viewport's scale; AutoCAD reads our 12 objects annotative with their scales, AUDIT 0
+  - [ ] Annotative objects 2: DIMENSION and MULTILEADER at a second scale (a *D picture per scale, re-laid words; probe
+        numbers in .claude/gk/annot-probe-notes.md); ANNOAUTOSCALE; the OBJECTSCALE dialog (design first); a dimension style's annotative
+        flag for new dimensions; ATTRIBs of an annotative INSERT drawn at the scale; deleting the default context (AutoCAD
+        promotes the next); HATCHEDIT reading and writing Annotative; context names from AutoCAD's counter; the hatch's view
+        collection; -OBJECTSCALE ? and the guessed messages checked in the GUI (M)
+  - [ ] R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
         console showed it (S)
@@ -140,7 +149,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
-  - [ ] R2.4 follow-ups: Rename wildcard old names; Check Spelling Settings and Undo; Boundary set New; Collect in the
+  - [ ] R2.4 follow-ups (Rename wildcards and Check Spelling Settings/Undo done by dialogs6): Boundary set New; Collect in the
         Leaders slide-out (after MLEADERCOLLECT); an Output tab with Export to PDF; LWUNITS and LWDEFAULT as variables; the
         buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
@@ -175,8 +184,8 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
-  - [ ] Dialogs 5 follow-ups: Select Color and Linetype for multiline elements and fill; the Hatch dialog's "Click to set new
-        origin" pick; Plot Stamp's user-field list and .pss files; an expandable Xbind tree; look at the windows in the
+  - [ ] Dialogs 5 follow-ups (colours, linetypes and the Hatch origin pick done by dialogs6): Plot Stamp's user-field list
+        and .pss files; an expandable Xbind tree; look at the windows in the
         running app (S)
 - Checks only the AutoCAD GUI can give (accoreconsole cannot), gathered for the maintainer: LAYERP with U and a Layer
   manager session; the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute; DIMBREAK Auto breaks.
@@ -380,7 +389,7 @@ the ones wanted.
 - [x] Snap follow-ups 5: snap/grid SETVAR, GRID/SNAP and F7/F8/F9 as cheap undo steps (F7 joins the previous command as AutoCAD 2021 does, DECIDED by recommendation 2026-11-12)
 - [x] Snap follow-ups 6: non-rectangular viewport clips (VPCLIP Polygonal/object/Delete, content, grid, picking and highlight clipped; DXF/DWG AUDIT 0)
 - [x] VPCLIP follow-ups 1: ROTATE/MIRROR/MOVE of a clipped pair as AutoCAD (twisted view, about 30 cases to 4 decimals), pasting a clipped viewport into another drawing, image and plot clipped (pixel tests), a drag-vertex canvas test (vpclip2)
-- [ ] VPCLIP follow-ups 2: REGION as a clip object; viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot; MIRROR of a non-symmetric boundary about a diagonal line off the origin (AutoCAD moves the view centre by k·(50,-50), rule not found); ROTATE of an unclipped viewport (AutoCAD makes it clipped); canvas click on an L-shaped clip boundary picks nothing in the Wpf harness; AUDIT of a pasted pair; PASTEBLOCK refusal wording is ours (S)
+- [ ] (vpclip3, running) VPCLIP follow-ups 2: REGION as a clip object; viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot; MIRROR of a non-symmetric boundary about a diagonal line off the origin (AutoCAD moves the view centre by k·(50,-50), rule not found); ROTATE of an unclipped viewport (AutoCAD makes it clipped); canvas click on an L-shaped clip boundary picks nothing in the Wpf harness; AUDIT of a pasted pair; PASTEBLOCK refusal wording is ours (S)
 - [x] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
