@@ -1111,6 +1111,17 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     return;
+                case DxfUnknownEntity region when region.DxfName == "REGION":
+                    // A region is drawn by the curves of its loops, as AutoCAD's 2D wireframe draws it.
+                    if (TryExplode(region, out IReadOnlyList<DxfEntity> loops))
+                    {
+                        foreach (DxfEntity part in loops)
+                        {
+                            Draw(part, frame, list, handle);
+                        }
+                    }
+
+                    return;
                 case DxfTolerance tolerance:
                 {
                     // A feature control frame is drawn by its lines, symbols and words, laid out in the drawing's fonts; the snaps

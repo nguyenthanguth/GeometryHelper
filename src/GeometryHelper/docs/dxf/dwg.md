@@ -280,6 +280,10 @@ that each gives its number, is written back with those numbers; AutoCAD opens it
 DXF names the four shapes TRACK1, TRACK1, TRACK1 and BOX again. A fifth shape, number 7 of a file that is nowhere, goes
 to `ltypeshp.shx` too, the first style of shapes, where it had its own style in the file read.
 
+A REGION the library made with `DxfUnknownEntity.CreateRegion` for a drawing of R2013 or R2018 is written the same way: twelve
+regions of lines, arcs, circles, ellipses and holes, written as a DWG of R2018, open in AutoCAD 2021 with `AUDIT` finding
+0 errors and the areas and perimeters of the shapes.
+
 A REGION, 3DSOLID or BODY is written where the section ACDSDATA of its DXF holds its SAB data, as a DXF of AutoCAD 2013
 and later gives it: the entity with the GUID of its data, and the data in the data store of the file, the section
 AcDb:AcDsPrototype_1b, laid out as AutoCAD lays it out. The records go in the order of the section ACDSDATA, one data

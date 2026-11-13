@@ -16,7 +16,7 @@ namespace GeometryHelper.Dxf
     /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a type it
     /// does not read. An MLINE is exploded into its lines and caps, and a MESH into the 3DFACEs of its faces (<see cref="Explode"/>).
     /// </remarks>
-    public sealed class DxfUnknownEntity : DxfEntity
+    public sealed partial class DxfUnknownEntity : DxfEntity
     {
         internal DxfUnknownEntity(DxfItem item)
             : base(item) { }
@@ -60,7 +60,9 @@ namespace GeometryHelper.Dxf
         /// (0, 3, 4) facing in (4, 3, 0); every other is given as the file holds it. A face given a colour of its own (an
         /// override of the MESH, its subentity 1 the first face) keeps it on its 3DFACEs, as AutoCAD keeps it. A MESH smoothed,
         /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
-        /// refused. Any other type refuses: a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
+        /// refused. A REGION breaks into the curves of its loops, a hole before the loop it is cut from, as AutoCAD's Explode
+        /// gives them: a box 40 by 30 with a circular hole gives a circle and four lines, a stadium two lines and two arcs, each
+        /// with the REGION's look. Any other type refuses: a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
         /// modeler, and every type AutoCAD does not break.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
@@ -69,7 +71,8 @@ namespace GeometryHelper.Dxf
         /// faces, edges or creases, or holding fewer than it counts, as ezdxf refuses one, or with a face of fewer than three
         /// corners, past the end of its list of faces or naming a vertex it has not.</exception>
         /// <exception cref="NotSupportedException">Thrown for a MESH smoothed, or with overrides other than the colours of its
-        /// faces, and for any other type.</exception>
+        /// faces, for a REGION whose ACIS data is not readable flat faces (<see cref="GetRegionShape"/> gives null), and for any
+        /// other type.</exception>
         public override IReadOnlyList<DxfEntity> Explode()
         {
             switch (DxfName)
@@ -77,6 +80,7 @@ namespace GeometryHelper.Dxf
                 case "MLINE":
                     return MlineParts().AsReadOnly();
                 case "REGION":
+                    return RegionParts();
                 case "3DSOLID":
                 case "BODY":
                 case "SURFACE":

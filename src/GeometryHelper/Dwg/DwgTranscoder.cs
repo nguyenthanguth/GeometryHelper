@@ -1232,7 +1232,7 @@ namespace GeometryHelper.Dwg
         /// The schemas AutoCAD writes in the section ACDSDATA for the ACIS data of the solids, as pairs of a group and its
         /// value: the schema of the records of ACIS data, an ID and the data, and the four schemas of their attributes.
         /// </summary>
-        private static readonly string[] AcisSchemas =
+        internal static readonly string[] AcisSchemas =
         {
             "0|ACDSSCHEMA|90|0|1|AcDb3DSolid_ASM_Data|2|AcDbDs::ID|280|10|91|8|2|ASM_Data|280|15|91|0|101|ACDSRECORD|95|0|90|1"
                 + "|2|AcDbDs::TreatedAsObjectData|280|1|291|1|101|ACDSRECORD|95|0|90|2|2|AcDbDs::Legacy|280|1|291|1"

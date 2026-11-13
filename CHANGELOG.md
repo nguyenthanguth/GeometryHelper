@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DxfUnknownEntity.CreateRegion(shape, database)` writes a REGION as AutoCAD 2021 writes it, and `GetRegionShape()`
+reads one back. `DxfRegionShape.Create(outer, holes, tolerance)` takes the closed loops of lines, arcs, circles, ellipses and
+polylines with bulges (the curves of a loop in any order, joined end to end), runs the outer loop counter-clockwise and each
+hole clockwise, and gives `Area`, `Perimeter`, `Normal` and `Loops` (`DxfRegionLoop`: `IsHole`, `Curves`, `Area`,
+`Perimeter`). The ACIS data is written for the version of the drawing: SAT text in the groups of the entity for R2000 (ACIS
+4.00) and R2004, R2007 and R2010 (ASM 208, 212 and 215), each character but a space written 0x9F less it, and for R2013 and
+R2018 SAB in a record of the section ACDSDATA (made, with the schemas, where the drawing has none), the entity naming it by a
+GUID. A box 40 by 30 with a circular hole of radius 5, a stadium, circles, ellipses, a half ellipse, a loop of lines and an
+arc, a triangle out of the XY plane and a rectangle drawn clockwise, twelve regions in a drawing of each of the six versions,
+open in AutoCAD 2021 with `AUDIT` finding 0 errors, `LIST` giving the area and perimeter of the shape (1 121.46 and 171.42 for
+the box) and `Explode` the curves `DxfUnknownEntity.Explode()` gives, every point and axis the same; written as a DWG of R2018 by
+`DwgWriter` they open the same. The records follow AutoCAD's own for the same regions, line for line in the SAT and record for
+record in the SAB, numbers compared to nine places as AutoCAD's circles carry errors of 1E-16: the numbering by ASM's order, the hole first and run
+clockwise, a closed edge for a circle, the vertex numbers of R2007 and later. The regions AutoCAD wrote (R2000 to R2018, SAT and
+SAB) read back to its areas and perimeters. `Explode()` of a REGION gives its curves, a hole before its outer loop, as AutoCAD
+gives them (it refused before); a region whose body is not flat faces of lines and arcs of ellipses has no shape. A region is
+not moved, copied or written into a DWG of R2000 to R2010, and the data of an erased region stays in the section ACDSDATA until
+AutoCAD saves the drawing again (it opens with `AUDIT` at 0 errors).
+**NEW.** REGION in the presenter makes the regions: every circle, whole ellipse and closed polyline, and every set of lines, arcs
+and open polylines whose ends meet two and two, a region of its own (`5 loops extracted.` `5 Regions created.` as AutoCAD 2021
+says it of eight objects; a circle inside a rectangle is a second region, not a hole), as one undo step. The Region object type
+of BOUNDARY and -BOUNDARY makes a region of each loop (`BOUNDARY created 2 regions`). A region is drawn by the curves of its
+loops, LIST gives its `Area:`, `Perimeter:` and bounding box in AutoCAD's words (checked against AutoCAD 2021's LIST), AREA and
+MEASUREGEOM Object give `Area = 1121.4602, Perimeter = 171.4159`, Properties names it Region and gives both numbers, and EXPLODE
+breaks it into its curves.
 **NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
 (`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had
 one, and a test keeps every new command described.
@@ -136,9 +161,7 @@ has already been specified.`, and makes one hatch, or one of each pick, as one u
 HATCHTOBACK sends every hatch of the space to the back. SPLINEDIT has Close and Open for a spline of fit points (the 8 control
 points AutoCAD wrote for the spline through (0, 0), (10, 10), (20, 0), (30, 10), (40, 0)), Move vertex, rEverse, convert to
 Polyline (53 vertices at precision 10, as AutoCAD made them) and Undo. Not built: AutoCAD's Boundary set, Gap tolerance, Origin,
-hatch COlor, LAyer, Transparency and Single color of -HATCH; SPLINEDIT's Fit data, Join and Refine; and the regions
-themselves: a region is ACIS data the presenter cannot write yet, so REGION and the Region object type of -BOUNDARY count the
-loops and make nothing, and say so.
+hatch COlor, LAyer, Transparency and Single color of -HATCH; SPLINEDIT's Fit data, Join and Refine.
 **CHANGED.** The typed form of a gradient (-HATCH Properties, HATCHEDIT with no window) asks what AutoCAD asks: `Enter a gradient
 name or [?/Two color] <GR_LINEAR>:`, `Specify an angle for the gradient <0>:` and `Center the gradient [Yes/No] <Yes>:`, where
 it asked `Enter gradient name` alone and left the angle and the centring as they were.

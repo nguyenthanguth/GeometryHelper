@@ -23,9 +23,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The points of BOUNDARY and -BOUNDARY: each area found round a point made closed polylines on the current layer, "BOUNDARY
-        /// created 2 polylines", the islands left out where island detection is off. An object type of Region makes nothing: a
-        /// region is ACIS data, which the presenter cannot write yet, and the command says so. An area with an ellipse or a spline
-        /// in it, as one of the loops it is made of or an island, makes no polyline either: "Spline or ellipse detected. Cannot
+        /// created 2 polylines", the islands left out where island detection is off. An object type of Region makes a region of each
+        /// loop instead, "BOUNDARY created 2 regions", the island of a loop a region of its own and not a hole (as AutoCAD's
+        /// BOUNDARY gives them); a whole ellipse is a region, and the sentence below refuses a spline. An area with an ellipse or a
+        /// spline in it, as one of the loops it is made of or an island, makes no polyline: "Spline or ellipse detected. Cannot
         /// create boundary.", as AutoCAD refuses it; HATCH takes such an area.
         /// </summary>
         private static IEnumerable<CadPrompt> BoundaryPoints(CadCommandContext c, bool typed)
@@ -72,27 +73,46 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (c.Remembered(BoundaryRegionKey, 0.0) != 0.0)
-                {
-                    c.Write(RegionNotWritten + " No region was made: choose Polyline as the object type.");
-                    continue;
-                }
+                bool region = c.Remembered(BoundaryRegionKey, 0.0) != 0.0;
 
                 List<CadBoundaryLoop> loops =
                     c.Remembered(BoundaryIslandsKey, 1.0) != 0.0
                         ? found.ToList()
                         : found.Where(l => l.Depth == 0).ToList();
 
+                // A region holds a whole ellipse, but no spline and no piece of an ellipse that the loop's corners only follow.
                 if (
                     loops.Any(l =>
-                        l.Curve != null
-                        || l.Sources.Any(h =>
-                            c.Document.FindEntity(h) is DxfEllipse || c.Document.FindEntity(h) is DxfSpline
-                        )
+                        region
+                            ? (l.Curve != null && !(l.Curve is GeoEllipse3))
+                                || l.Sources.Any(h => c.Document.FindEntity(h) is DxfSpline)
+                                || (l.Curve == null && l.Sources.Any(h => c.Document.FindEntity(h) is DxfEllipse))
+                            : l.Curve != null
+                                || l.Sources.Any(h =>
+                                    c.Document.FindEntity(h) is DxfEllipse || c.Document.FindEntity(h) is DxfSpline
+                                )
                     )
                 )
                 {
                     c.Write("Spline or ellipse detected. Cannot create boundary.");
+                    continue;
+                }
+
+                if (region)
+                {
+                    int made = MakeRegions(
+                        c,
+                        loops.Select(l => new KeyValuePair<List<DxfCurve>, List<List<DxfCurve>>>(
+                            new List<DxfCurve>
+                            {
+                                l.Curve is GeoEllipse3
+                                    ? (DxfCurve)c.Document.FindEntity(l.Sources[0])
+                                    : LoopPolyline(l),
+                            },
+                            null
+                        ))
+                    );
+                    c.Write(made > 0 ? "BOUNDARY created " + Count(made, "region", "regions") : "No region was made.");
                     continue;
                 }
 
