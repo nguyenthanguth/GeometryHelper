@@ -79,6 +79,14 @@ namespace GeometryHelper.UnitTest.Dwg
             // with a merged range in each row; the second keeps its content for a round trip, read back with it.
             DwgAnswerKey.Result result = RoundTrip("table_AC1032");
 
+            // The style 7B was made in code with no text style in its rows; it is written with Standard, which AutoCAD's
+            // AUDIT needs (DwgTableStyleTextTests), where AutoCAD's own DXF of it has none.
+            Assert.Single(result.Differences, d =>
+                d.StartsWith("OBJECTS TABLESTYLE X:7B:", System.StringComparison.Ordinal)
+            );
+            result.Differences.RemoveAll(d =>
+                d.StartsWith("OBJECTS TABLESTYLE X:7B:", System.StringComparison.Ordinal)
+            );
             OnlyWhatTheTypesLeftOutLeadTo(result);
             Assert.True(result.Paired > 380, result.Paired + " records paired");
         }

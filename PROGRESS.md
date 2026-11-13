@@ -142,7 +142,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         turned words at a second scale; multileaders of one or two leaders, text or block content, at a second scale (equal
         to AutoCAD's contexts); DIMBREAK on every scale's picture; angular DSTYLE 40; -INSERT of an annotative block at
         CANNOSCALE with attribute contexts; AUDIT 0 on five checked sets (OBJECTSCALE dialog and design boxes by dialogs7)
-  - [ ] Annotative objects 4: turned words that do not fit at 1:100 (AutoCAD outside at x 154.381; our LayOut's Chord test);
+  - [ ] (annot4, running) Annotative objects 4: turned words that do not fit at 1:100 (AutoCAD outside at x 154.381; our LayOut's Chord test);
         moved and turned words' arrows; an angular context's arc point at a second scale with the words outside; MLEADEREDIT
         keeping contexts, the presenter's MLEADER landing at 1:50 and block-content MLEADER; multileaders of three leaders;
         the text width gap (177.4 vs 177.47); DIMARC words with DIMDEC ("314.159" vs "314.1593") (M)
@@ -223,7 +223,7 @@ User note 2026-11-12 evening (note.md 1-14):
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
       to R2013+ written so that AutoCAD discarded the drawing, R2000<->R2004 tables (data table class name)
-- [ ] DXF versions follow-ups 3: ACIS 4.00 of R2000 both ways (field differences listed in the dxfver2 merge); procedural
+- [ ] (dxfver3, running) DXF versions follow-ups 3: ACIS 4.00 of R2000 both ways (field differences listed in the dxfver2 merge); procedural
       sweep_sur and the R2004 cylsur/surfintcur forms; the round-trip dictionaries AutoCAD makes going down (old tables,
       RTVSPost2010Prop); the 176 flag of three styles from R2004/R2007; R2000 MTEXTBEGIN xdata; BODY and other surfaces
       probed; SAT-text bodies written into DWG now that ToSab exists (M)
@@ -387,11 +387,14 @@ the ones wanted.
         113 sample drawings read and rewritten: 98 AUDIT 0 and 8 refused before, now 106 AUDIT 0 and none refused (the 7
         others have their originals' own errors); tables holding fields and data links read and written; R2000/R2004
         DATATABLE and TABLECONTENT read
-  - [ ] (dwg10, running: the first three) DWG follow-ups 4: splines_AC1024 rewritten refused (the SAT-to-SAB conversion of its two 3DSOLIDs); table test
-        drawings AUDIT 6 (AcDbTableStyle not repaired, before too); a Unicode layer name AUDIT 2 (before too); the dynamic
-        block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8 sheets); CELLSTYLEMAP of R2000/R2004;
-        ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00; tcustom parity; TABLEGEOMETRY head bit; a
-        rendered thumbnail; R2000 round-trip colours (M)
+  - [x] DWG follow-ups 4a (dwg10): fixed splines_AC1024 refused (SAT-to-SAB: a pcurve's two reals and a loft's extra
+        number in R2013+), table styles without a row text style (Standard written), Unicode escapes of old DXF names and
+        texts written as letters; 71 of 71 committed test DWGs and 113 of 120 AutoCAD drawings rewritten at AUDIT 0 (the 7
+        others carry their originals' errors), none refused
+  - [ ] DWG follow-ups 5: the dynamic block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8
+        sheets); CELLSTYLEMAP of R2000/R2004; a custom cell style without a text style; \M+ escapes; sweep, revolve and
+        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00 (dxfver3);
+        tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)

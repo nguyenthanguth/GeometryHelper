@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace GeometryHelper.Dwg
 {
@@ -124,10 +125,54 @@ namespace GeometryHelper.Dwg
             }
 
             progress?.Stage(0.45, 0.55);
+            Letters(groups);
             drawing.Read(groups);
             progress?.Report(1.0);
             return drawing;
         }
+
+        /// <summary>
+        /// Puts the letters of a DXF of R2004 and before in place of their escapes. A DXF of those versions holds a letter beyond
+        /// its code page as <c>\U+1EDB</c>, where the DWG this is written as keeps the letter, and AutoCAD finds a symbol name
+        /// that still holds the escape "Un-normalized" (AUDIT). A DXF of R2007 and later holds the letters themselves, so an
+        /// escape typed in a text of that is the text and is left.
+        /// </summary>
+        private static void Letters(List<KeyValuePair<int, string>> groups)
+        {
+            int at = groups.FindIndex(g => g.Key == 9 && g.Value.Trim() == "$ACADVER");
+
+            if (
+                at < 0
+                || at + 1 >= groups.Count
+                || groups[at + 1].Key != 1
+                || string.CompareOrdinal(groups[at + 1].Value.Trim(), "AC1021") >= 0
+            )
+            {
+                return;
+            }
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                if (groups[i].Value.IndexOf(@"\U+", StringComparison.Ordinal) >= 0)
+                {
+                    groups[i] = new KeyValuePair<int, string>(
+                        groups[i].Key,
+                        Escape.Replace(groups[i].Value, m =>
+                            (
+                                (char)
+                                    int.Parse(
+                                        m.Groups[1].Value,
+                                        NumberStyles.AllowHexSpecifier,
+                                        CultureInfo.InvariantCulture
+                                    )
+                            ).ToString()
+                        )
+                    );
+                }
+            }
+        }
+
+        private static readonly Regex Escape = new Regex(@"\\U\+([0-9A-Fa-f]{4})", RegexOptions.CultureInvariant);
 
         private static string Line(string text, ref int at)
         {

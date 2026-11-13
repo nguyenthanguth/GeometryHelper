@@ -28,6 +28,7 @@ namespace GeometryHelper.Dwg
             ["tedge-edge"] = "r i r r d r d r r b(forward,!) s d",
             ["tcoedge-coedge"] = "r i r r r r r b(forward,reversed) r oi r d d or",
             ["tvertex-vertex"] = "r i r r oi r d",
+            ["pcurve"] = "r i r i or o(forward,reversed) o{} d d",
             ["int64_attrib-name_attrib-gen-attrib"] = "r i r r r e(2=copy) e(4=keep_all) e(1=ignore) e(2=copy) s L",
         };
 
@@ -935,6 +936,11 @@ namespace GeometryHelper.Dwg
                     return false;
                 }
 
+                if (hadCoedge != to.Binary && !LoftNumber(record, to.Binary))
+                {
+                    return false;
+                }
+
                 // The tolerance of a tolerant vertex of R2004 is -1 from R2007 on, where AutoCAD leaves it to be worked out again.
                 if (name == "tvertex-vertex" && (fromForm == 0) != (toForm == 0))
                 {
@@ -1050,6 +1056,56 @@ namespace GeometryHelper.Dwg
                 if (from == 2 ? !Numbers(record, false) : !Step(record, false))
                 {
                     return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Between the SAT of R2010 and before and the SAB of R2013 and later: the surface of a loft (<c>loft_spl_sur</c>) holds
+        /// one whole number more in the SAB, a nought after the whole number that follows its four flags and before the word
+        /// that says its spline is full (<c>F F F F 1 full nubs</c> is <c>F F F F 1 0 full nubs</c>). False where the surface is
+        /// not laid out that way.
+        /// </summary>
+        private static bool LoftNumber(List<Token> record, bool put)
+        {
+            for (int i = 0; i + 1 < record.Count; i++)
+            {
+                if (record[i].Kind != '{' || record[i + 1].Kind != 'N' || record[i + 1].Text != "loft_spl_sur")
+                {
+                    continue;
+                }
+
+                int close = Close(record, i);
+                int at = close - 1;
+
+                // The last spline surface before the end of the loft: its word, the word before it that says it is full, then
+                // the whole number, and before that either the number that is not new or the last of the four flags.
+                while (at > i + 4 && !(record[at].Kind == 'N' && record[at - 1].Kind == 'e'))
+                {
+                    at--;
+                }
+
+                if (
+                    close < 0
+                    || at <= i + 4
+                    || record[at - 2].Kind != 'i'
+                    || (record[at - 3].Kind != 'i' && record[at - 3].Kind != 'b')
+                )
+                {
+                    return false;
+                }
+
+                bool has = record[at - 3].Kind == 'i';
+
+                if (put && !has)
+                {
+                    record.Insert(at - 1, new Token { Kind = 'i', Whole = 0 });
+                }
+                else if (!put && has)
+                {
+                    record.RemoveAt(at - 2);
                 }
             }
 
