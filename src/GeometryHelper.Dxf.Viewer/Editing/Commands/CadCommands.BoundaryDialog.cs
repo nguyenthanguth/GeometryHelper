@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -7,8 +8,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// BOUNDARY (BO): the window's Boundary Creation dialog with the settings -BOUNDARY keeps; Pick Points keeps those
-        /// chosen and asks "Pick internal point:" until Enter, Cancel ends with nothing kept. With no window, the points are
-        /// asked at once.
+        /// chosen and asks "Pick internal point:" until Enter, Cancel ends with nothing kept. New of Boundary set asks "Select
+        /// objects:" and shows the dialog again, Existing set then chosen: the areas are found among those objects alone, as
+        /// -HATCH's Boundary set New finds them. With no window, the points are asked at once.
         /// </summary>
         private static IEnumerable<CadPrompt> BoundaryDialog(CadCommandContext c)
         {
@@ -18,18 +20,41 @@ namespace GeometryHelper.Dxf.Viewer
                 IsRegion = c.Remembered(BoundaryRegionKey, 0.0) != 0.0,
             };
 
-            if (c.Session.Request("BOUNDARY", c.Document, request))
+            while (true)
             {
-                if (!request.IsPicking)
+                request.IsSelectingSet = false;
+                request.IsPicking = false;
+
+                if (!c.Session.Request("BOUNDARY", c.Document, request))
                 {
-                    yield break;
+                    break;
                 }
 
-                c.Remember(BoundaryIslandsKey, request.IslandDetection ? 1.0 : 0.0);
-                c.Remember(BoundaryRegionKey, request.IsRegion ? 1.0 : 0.0);
+                if (!request.IsSelectingSet)
+                {
+                    if (!request.IsPicking)
+                    {
+                        yield break;
+                    }
+
+                    c.Remember(BoundaryIslandsKey, request.IslandDetection ? 1.0 : 0.0);
+                    c.Remember(BoundaryRegionKey, request.IsRegion ? 1.0 : 0.0);
+                    break;
+                }
+
+                yield return CadPrompt.ForSelection("Select objects");
+
+                if (c.Input.Kind == CadInputKind.Selection && c.Input.Handles != null && c.Input.Handles.Count > 0)
+                {
+                    request.ExistingSet = c.Input.Handles.ToList();
+                    request.UsesExistingSet = true;
+                }
             }
 
-            foreach (CadPrompt prompt in BoundaryPoints(c, false))
+            IReadOnlyCollection<string> candidates =
+                request.UsesExistingSet && request.ExistingSet != null ? request.ExistingSet.ToList() : null;
+
+            foreach (CadPrompt prompt in BoundaryPoints(c, false, candidates))
             {
                 yield return prompt;
             }

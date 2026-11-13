@@ -29,7 +29,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// spline in it, as one of the loops it is made of or an island, makes no polyline: "Spline or ellipse detected. Cannot
         /// create boundary.", as AutoCAD refuses it; HATCH takes such an area.
         /// </summary>
-        private static IEnumerable<CadPrompt> BoundaryPoints(CadCommandContext c, bool typed)
+        private static IEnumerable<CadPrompt> BoundaryPoints(
+            CadCommandContext c,
+            bool typed,
+            IReadOnlyCollection<string> candidates = null
+        )
         {
             while (true)
             {
@@ -64,7 +68,8 @@ namespace GeometryHelper.Dxf.Viewer
                     c.Space,
                     c.Input.Point,
                     c.Session.Tolerance,
-                    c.Session.WorkView?.VisibleBox
+                    c.Session.WorkView?.VisibleBox,
+                    candidates
                 );
 
                 if (found == null)

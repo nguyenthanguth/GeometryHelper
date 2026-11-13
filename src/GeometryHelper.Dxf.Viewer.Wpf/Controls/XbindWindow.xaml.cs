@@ -39,6 +39,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnAdd(object sender, RoutedEventArgs e) => Model.Add();
 
+        private void OnToggle(object sender, RoutedEventArgs e) =>
+            Model.Toggle((sender as FrameworkElement)?.DataContext as XbindNode);
+
+        // A reference or a kind opens or closes; a definition is added to bind.
+        private void OnTreeDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (Model.Picked != null && Model.Picked.CanExpand)
+            {
+                Model.Toggle(Model.Picked);
+            }
+            else
+            {
+                Model.Add();
+            }
+        }
+
         private void OnRemove(object sender, RoutedEventArgs e) => Model.Remove();
 
         private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;

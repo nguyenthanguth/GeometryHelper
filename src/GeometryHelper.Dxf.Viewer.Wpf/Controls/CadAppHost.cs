@@ -950,6 +950,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
                     : string.Equals(tab, "View", StringComparison.OrdinalIgnoreCase) ? model.ViewTab
+                    : string.Equals(tab, "Output", StringComparison.OrdinalIgnoreCase) ? model.OutputTab
                     : model.Extensions.FirstOrDefault(e =>
                         string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase)
                     );

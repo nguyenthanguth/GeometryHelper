@@ -29,7 +29,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             "Reference:Medium; Block Definition:Medium; Reference:Collapsed; Block Definition:Collapsed";
         private const string AnnotateSteps =
             "Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed";
-        private const string ViewSteps = "Drafting:Medium; Navigate:Medium; Interface:Collapsed; Views:Collapsed";
+        private const string ViewSteps =
+            "Drafting:Medium; Navigate:Medium; Interface:Collapsed; Model Viewports:Collapsed; Views:Collapsed";
 
         [Fact]
         public void InsertComesAfterTheExtensionTabsAndBeforeAnnotate_AndItsButtonsStartTheirCommands()
@@ -46,6 +47,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "Insert",
                         "Annotate",
                         "View",
+                        "Output",
                         "Plugins",
                         "Settings",
                         "Text Editor",
@@ -432,19 +434,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Steps(
                 model => model.ViewTab,
                 ViewSteps,
-                new[] { "Navigate", "Views", "Interface", "Drafting" },
+                new[] { "Navigate", "Views", "Model Viewports", "Interface", "Drafting" },
                 new[]
                 {
                     (2300, 0),
                     (1280, 0),
-                    (694, 0),
-                    (693, 1),
-                    (598, 1),
-                    (597, 2),
-                    (476, 2),
-                    (475, 3),
-                    (410, 3),
-                    (409, 4),
+                    // Model Viewports (dialogs7) makes the tab 100 wider: all full down to 794, no longer 694.
+                    (794, 0),
+                    (793, 1),
+                    (698, 1),
+                    (697, 2),
+                    (576, 2),
+                    (575, 3),
+                    (510, 3),
+                    (509, 4),
+                    (474, 4),
+                    (473, 5),
                 }
             );
         }

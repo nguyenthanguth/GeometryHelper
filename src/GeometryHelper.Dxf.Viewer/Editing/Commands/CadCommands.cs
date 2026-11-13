@@ -107,6 +107,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-SCALELISTEDIT", ScaleListEdit));
             registry.Add(new CadCommand("SCALELISTEDIT", ScaleListDialog));
             registry.Add(new CadCommand("-OBJECTSCALE", ObjectScale));
+            registry.Add(new CadCommand("OBJECTSCALE", ObjectScaleDialog));
             registry.Add(new CadCommand("AIOBJECTSCALEADD", AnnotationScaleAdd));
             registry.Add(new CadCommand("AIOBJECTSCALEREMOVE", AnnotationScaleRemove));
             registry.Add(new CadCommand("MEASUREGEOM", MeasureGeom));

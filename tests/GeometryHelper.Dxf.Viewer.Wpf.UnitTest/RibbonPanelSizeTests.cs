@@ -318,7 +318,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheSlideOutsOfDrawTextLeadersAndViews_StartTheCommandsOfTheAcadPgpBatches()
+        public void TheBodiesOfDrawTextLeadersAndModelViewports_StartTheCommandsOfTheAcadPgpBatches_AsAutoCadShowsThem()
         {
             OnWorkspace(1600, (model, workspace) =>
             {
@@ -326,14 +326,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.ShowBoundaryCreation = dialog => false;
                 model.ShowCheckSpelling = dialog => { };
                 model.ShowViewports = dialog => false;
-                var expected = new Dictionary<string, string[]>
+
+                // The bodies (design RibbonBodies): Hatch's split in Draw, Check Spelling and Text Align in Text, Align in
+                // Leaders, Viewport Configuration in a Model Viewports panel of its own.
+                var bodies = new Dictionary<string, string[]>
                 {
-                    ["Draw"] = new[] { "HATCH", "GRADIENT", "BOUNDARY", "DIVIDE", "MEASURE", "SOLID" },
+                    ["Draw"] = new[] { "HATCH" },
                     ["Text"] = new[] { "SPELL", "TEXTALIGN" },
                     ["Leaders"] = new[] { "MLEADERALIGN" },
-                    ["Views"] = new[] { "VPORTS" },
+                    ["Model Viewports"] = new[] { "VPORTS" },
                 };
-                var pressed = new[] { "BOUNDARY", "DIVIDE", "MEASURE", "SOLID", "SPELL", "TEXTALIGN", "MLEADERALIGN" };
+
+                foreach (KeyValuePair<string, string[]> panelItems in bodies)
+                {
+                    CadWorkspaceExtension tab =
+                        panelItems.Key == "Draw" ? null
+                        : panelItems.Key == "Model Viewports" ? model.ViewTab
+                        : model.AnnotateTab;
+                    model.SelectedTab = tab;
+                    Layout(workspace, 1600);
+                    object content = tab == null ? model : tab.TabContent;
+                    RibbonStrip strip = Descendants(workspace)
+                        .OfType<RibbonStrip>()
+                        .Single(s => ReferenceEquals(s.DataContext, content));
+                    RibbonPanel panel = strip.Children.OfType<RibbonPanel>().Single(p => p.Title == panelItems.Key);
+                    // At 1 600 Draw is medium (its labels gone, the split kept); the others are full.
+                    Assert.Equal(panelItems.Key == "Draw" ? RibbonPanelSize.Medium : RibbonPanelSize.Full, panel.Size);
+                    Assert.Null(panelItems.Key == "Draw" ? null : panel.SlideOut);
+
+                    foreach (string command in panelItems.Value)
+                    {
+                        Button button = Descendants(panel)
+                            .OfType<Button>()
+                            .Single(b => command.Equals(b.CommandParameter) && b.Command != null);
+                        Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), command);
+                    }
+                }
+
+                // Hatch's split runs the choice picked last: Boundary picked, the icon runs BOUNDARY.
+                model.SelectedTab = null;
+                Layout(workspace, 1600);
+                RibbonPanel draw = HomePanels(model, workspace).Single(p => p.Title == "Draw");
+                Button hatch = Descendants(draw).OfType<Button>().Single(b => "HATCH".Equals(b.CommandParameter));
+                List<MenuItem> choices = MenuOf(SplitArrowOf(hatch));
+                Assert.Equal(
+                    new[] { "HATCH", "GRADIENT", "BOUNDARY" },
+                    choices.Select(i => (string)i.CommandParameter)
+                );
+                Pick(choices[2]);
+                model.Escape();
+                Assert.Equal("BOUNDARY", hatch.CommandParameter);
+                Assert.Equal("Boundary", hatch.Content);
+
+                var expected = new Dictionary<string, string[]>
+                {
+                    ["Draw"] = new[] { "POINT", "DIVIDE", "MEASURE", "SOLID" },
+                };
+                var pressed = new[] { "POINT", "DIVIDE", "MEASURE", "SOLID" };
 
                 foreach (KeyValuePair<string, string[]> panelItems in expected)
                 {
@@ -375,6 +424,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                     title.IsChecked = false;
                 }
+            });
+        }
+
+        [Fact]
+        public void TheOutputTab_ShowsPlotExportAndImport_AndEachButtonStartsItsCommand()
+        {
+            OnWorkspace(1600, (model, workspace) =>
+            {
+                // The dialogs a press would show left to the command line, which Esc ends.
+                model.ShowPlot = null;
+                model.ShowPlotStamp = dialog => false;
+                model.SelectedTab = model.OutputTab;
+                Layout(workspace, 1600);
+                RibbonStrip strip = Descendants(workspace)
+                    .OfType<RibbonStrip>()
+                    .Single(s => ReferenceEquals(s.DataContext, model.OutputTab.TabContent));
+                List<RibbonPanel> panels = strip.Children.OfType<RibbonPanel>().ToList();
+
+                Assert.Equal(new[] { "Plot", "Export to DWF/PDF", "Import" }, panels.Select(p => p.Title));
+                Assert.All(panels, p => Assert.Equal(RibbonPanelSize.Full, p.Size));
+                Assert.Contains(Descendants(workspace).OfType<ToggleButton>(), t =>
+                    Equals(t.Content, "Output") && t.IsChecked == true
+                );
+                List<Button> buttons = panels
+                    .SelectMany(p => Descendants(p).OfType<Button>())
+                    .Where(b => b.CommandParameter is string)
+                    .ToList();
+                Assert.Equal(
+                    new[] { "PLOT", "PAGESETUP", "PREVIEW", "PLOTSTAMP", "EXPORTPDF", "EXPORT", "IMPORT" },
+                    buttons.Select(b => (string)b.CommandParameter)
+                );
+
+                foreach (Button button in buttons.Where(b => (string)b.CommandParameter == "PLOTSTAMP"))
+                {
+                    Press(model, button.IsEnabled, () => button.Command.Execute(button.CommandParameter), "PLOTSTAMP");
+                }
+
+                Assert.All(buttons, b => Assert.True(b.IsEnabled));
+                Assert.All(buttons, b => Assert.Same(model.StartCommandCommand, b.Command));
             });
         }
 

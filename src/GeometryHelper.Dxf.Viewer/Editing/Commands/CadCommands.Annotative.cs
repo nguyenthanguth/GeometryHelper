@@ -142,6 +142,28 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> ObjectScale(CadCommandContext c)
         {
+            var handles = new List<string>();
+
+            foreach (CadPrompt prompt in AnnotativeSelection(c, handles))
+            {
+                yield return prompt;
+            }
+
+            if (handles.Count == 0)
+            {
+                c.Write("No annotative objects found.");
+                yield break;
+            }
+
+            foreach (CadPrompt prompt in ObjectScaleOptions(c, handles))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>"Select annotative objects:" unless objects were selected first; the annotative among them added to the list.</summary>
+        private static IEnumerable<CadPrompt> AnnotativeSelection(CadCommandContext c, List<string> handles)
+        {
             IReadOnlyList<string> picked;
 
             if (c.PreSelected.Count > 0)
@@ -151,10 +173,25 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 yield return CadPrompt.ForSelection("Select annotative objects");
-                picked = c.Input.Handles;
+                picked = c.Input.Handles ?? Array.Empty<string>();
             }
 
-            List<string> handles = AnnotativeAmong(c, picked);
+            handles.AddRange(AnnotativeAmong(c, picked));
+        }
+
+        /// <summary>
+        /// OBJECTSCALE: the window's Annotation Object Scale dialog over the annotative objects selected; OK gives each the
+        /// scales added and takes from each the scales deleted but for its last, as one undo step. With no window, -OBJECTSCALE's
+        /// option and named scales.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ObjectScaleDialog(CadCommandContext c)
+        {
+            var handles = new List<string>();
+
+            foreach (CadPrompt prompt in AnnotativeSelection(c, handles))
+            {
+                yield return prompt;
+            }
 
             if (handles.Count == 0)
             {
@@ -162,6 +199,81 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            var request = new CadObjectScaleRequest(
+                Scales(c.Database).Select(s => new CadScaleListRow(s.Name, s.PaperUnits, s.DrawingUnits)).ToList(),
+                handles
+                    .Select(h =>
+                        (IReadOnlyList<string>)c.Document.FindEntity(h).GetContexts().Select(s => s.Name).ToList()
+                    )
+                    .ToList()
+            );
+
+            if (!c.Session.Request("OBJECTSCALE", c.Document, request))
+            {
+                foreach (CadPrompt prompt in ObjectScaleOptions(c, handles))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (!request.IsAccepted || request.ToAdd.Count + request.ToDelete.Count == 0)
+            {
+                yield break;
+            }
+
+            var adding = request.ToAdd.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var deleting = request.ToDelete.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var planned = handles
+                .Select(h => new CadEditRecord(CadEditRecordKind.PropertyChanged, h, "Annotation scale", null, null))
+                .ToList();
+            string reason = null;
+
+            CadEditResult result = c.Apply(planned, s =>
+            {
+                foreach (string handle in handles)
+                {
+                    DxfEntity entity = s.Document.FindEntity(handle);
+
+                    try
+                    {
+                        foreach (DxfAnnotationScale scale in adding.Select(n => ScaleNamed(s.Database, n)))
+                        {
+                            if (scale != null && !entity.HasContext(scale))
+                            {
+                                AddScaleTo(s.Database, entity, scale);
+                            }
+                        }
+
+                        foreach (DxfAnnotationScale scale in deleting.Select(n => ScaleNamed(s.Database, n)))
+                        {
+                            if (scale != null && entity.HasContext(scale) && entity.GetContexts().Count > 1)
+                            {
+                                entity.RemoveContext(scale);
+                            }
+                        }
+                    }
+                    catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
+                    {
+                        reason = e.Message;
+                    }
+                }
+            });
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+            }
+            else if (reason != null)
+            {
+                c.Write(reason);
+            }
+        }
+
+        /// <summary>-OBJECTSCALE once the objects are picked: "Enter an option [Add/Delete/?] &lt;Add&gt;:" and the named scales.</summary>
+        private static IEnumerable<CadPrompt> ObjectScaleOptions(CadCommandContext c, List<string> handles)
+        {
             yield return CadPrompt.ForKeyword("Enter an option", new[] { "Add", "Delete", "?" }, "Add");
             bool add = !c.Input.Is("Delete");
 

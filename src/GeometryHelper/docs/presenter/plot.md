@@ -387,13 +387,21 @@ edges of the printable area. A vertical stamp reads up the sheet; upside down tu
 appended with a line a plot, beside the plot where its path has no folder; a log that cannot be written is logged and the
 plot is not failed.
 
-In the window PLOTSTAMP shows the Plot Stamp dialog over a copy of the stamp: the seven fields, two user fields (one typed
-"." is cleared), a preview of the corner the stamp goes in, and Advanced Options (Location, Orientation, Upside-down, X and Y
+In the window PLOTSTAMP shows the Plot Stamp dialog over a copy of the stamp: the seven fields, two user fields each picked
+from the list of the user's fields (`CadPlotStamp.UserFields`) or `< none >`, Add / Edit… showing User Defined Fields (Add
+puts "New field" at the end, Edit and the Field text box change the one picked, Delete takes it out and a Field 1 or 2 that
+showed it goes back to `< none >`), the plot stamp parameter file with Load… and Save As…, a preview of the corner the stamp
+goes in, and Advanced Options (Location, Orientation, Upside-down, X and Y
 offset from the printable area or the paper border, Font, Height above nought, Single line, Units, Create a log file and its
 file). OK gives the session's stamp what was set; Cancel leaves it. The PLOT dialog's Plot stamp on box switches the stamp
 for this plot and, on OK, for the session, and its … button opens the Plot Stamp dialog. With no window PLOTSTAMP asks
 -PLOTSTAMP's questions. Not built: the stamp on a PNG or JPG plot, the stamp of a plot turned upside down following the
-turn, and AutoCAD's .pss files of saved stamp settings. With no confirmation from AutoCAD's own output, a stamp of several
+turn. A .pss is AutoCAD's PIA file: the head `PIAFILEVERSION_2.0,plotstampcompress` and `pmzlibcodec`, the Adler-32 of a
+zlib stream, the lengths of the text and of the stream, and the stream of a text of blocks (`pstamp{ fields{ drawing_name=1 …`
+as AutoCAD 2021's mm.pss holds); `CadPlotStamp.SaveParameterFile` and `LoadParameterFile` write and read it, a file of another
+kind refused, `"other.pss" is not a plot stamp parameter file (.pss).`. The codes of location (0 lower left, then lower right,
+upper left, upper right), orientation (1 horizontal) and the user-field list (one `str` line a field) follow mm.pss for its
+defaults; a file AutoCAD wrote with several user fields or another corner has not been read. With no confirmation from AutoCAD's own output, a stamp of several
 fields is one line a field.
 
 ## PDFSHX

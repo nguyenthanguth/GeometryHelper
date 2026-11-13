@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Plot Stamp"
     Width="620"
-    Height="430"
+    Height="520"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -133,6 +133,7 @@
                         Header="User defined fields"
                         Margin="0,10,0,0"
                     >
+                        <!-- Design PlotStamp (dialogs7): two lists of the user's fields and Add / Edit… for User Defined Fields. -->
                         <StackPanel>
                             <DockPanel>
                                 <TextBlock
@@ -141,10 +142,11 @@
                                     Foreground="{StaticResource GhTextMuted}"
                                     VerticalAlignment="Center"
                                 />
-                                <TextBox
-                                    Style="{StaticResource StyleBox}"
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
                                     AutomationProperties.Name="User field 1"
-                                    Text="{Binding UserField1, Mode=TwoWay}"
+                                    ItemsSource="{Binding UserFieldChoices}"
+                                    SelectedItem="{Binding UserField1Choice, Mode=TwoWay}"
                                 />
                             </DockPanel>
                             <DockPanel Margin="0,6,0,0">
@@ -154,17 +156,59 @@
                                     Foreground="{StaticResource GhTextMuted}"
                                     VerticalAlignment="Center"
                                 />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    AutomationProperties.Name="User field 2"
+                                    ItemsSource="{Binding UserFieldChoices}"
+                                    SelectedItem="{Binding UserField2Choice, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <Button
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Add / Edit…"
+                                Padding="12,4"
+                                Margin="0,6,0,0"
+                                HorizontalAlignment="Left"
+                                Click="OnUserFields"
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Style="{StaticResource BlockGroup}"
+                        Header="Plot stamp parameter file"
+                        Margin="0,10,0,0"
+                    >
+                        <StackPanel>
+                            <DockPanel>
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Save As…"
+                                    Padding="10,4"
+                                    Margin="6,0,0,0"
+                                    Click="OnSaveParameters"
+                                />
+                                <Button
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Load…"
+                                    Padding="10,4"
+                                    Margin="6,0,0,0"
+                                    Click="OnLoadParameters"
+                                />
                                 <TextBox
                                     Style="{StaticResource StyleBox}"
-                                    AutomationProperties.Name="User field 2"
-                                    Text="{Binding UserField2, Mode=TwoWay}"
+                                    IsReadOnly="True"
+                                    AutomationProperties.Name="Plot stamp parameter file"
+                                    Text="{Binding ParameterFile, Mode=OneWay}"
                                 />
                             </DockPanel>
                             <TextBlock
                                 Margin="0,6,0,0"
                                 FontSize="11"
+                                TextWrapping="Wrap"
                                 Foreground="{StaticResource GhTextMuted}"
-                                Text="A field typed &quot;.&quot; is cleared, as -PLOTSTAMP clears it."
+                                Text="AutoCAD's .pss: Load takes the fields, the user fields, the place, the text and the log file of one; Save As writes them."
                             />
                         </StackPanel>
                     </HeaderedContentControl>

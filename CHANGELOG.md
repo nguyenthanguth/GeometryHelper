@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's OBJECTSCALE shows AutoCAD 2021's Annotation Object Scale dialog over the annotative objects selected
+(`CadObjectScaleRequest`): the Object Scale List with the paper and drawing units of the scale picked, all scales or those
+common to all, Delete (greyed where an object would be left with none) and Add… with Add Scales to Object; three texts at 1:1
+and 1:50, at 1:50, and at 1:50 and 1:100 list 1:1, 1:50 and 1:100, or 1:50 alone, and OK is one undo step. With no window it
+asks -OBJECTSCALE's option. An Output ribbon tab after View: Plot (Plot, Page Setup Manager, Preview, Plot Stamp), Export to
+DWF/PDF (Export PDF, Export) and Import. The Plot Stamp dialog picks its two user fields from a list kept by Add / Edit… (User
+Defined Fields; `CadPlotStamp.UserFields`) and loads and saves AutoCAD's .pss plot stamp parameter files
+(`CadPlotStamp.LoadParameterFile`, `SaveParameterFile`: the PIA file of a zlib stream, as AutoCAD 2021's mm.pss). The Boundary
+Creation dialog's New asks `Select objects:` and comes back with Existing set, the areas then found among those objects alone.
+The Xbind tree opens and closes its references and kinds. LWUNITS and LWDEFAULT are system variables (LWDEFAULT 33 says
+`Invalid lineweight value.`), and Lineweight Settings starts from them.
+
+**CHANGED.** The acad.pgp batch buttons sit in the ribbon's panel bodies where AutoCAD 2021 draws them, no longer in
+slide-outs: Home › Draw's Hatch split (Hatch, Gradient, Boundary) under Rectangle and Ellipse, Point moved to Draw's slide-out
+beside Divide, Measure and 2D Solid, so Home keeps its widths (no step at 2 300 pixels, 7 at 1 600); Annotate › Text's Check
+Spelling and Text Align, Leaders' Align; View's Viewport Configuration in a Model Viewports panel of its own, which makes the
+View tab full down to a window 794 wide (694 before).
+
 **NEW.** A REGION clips a viewport, and MVIEW has its Object option (AutoCAD 2021's VPCLIP and MVIEW probed in its console, and
 a ring plotted to a PNG). `DxfViewport.ClipTo` takes a REGION whose shape is read: the frame becomes the box of its loops and
 the region stays the boundary with the viewport among its reactors; a ring (a circle of radius 40 less one of 15) makes the

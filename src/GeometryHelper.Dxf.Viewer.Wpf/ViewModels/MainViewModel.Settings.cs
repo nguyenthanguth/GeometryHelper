@@ -243,6 +243,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 session.Remembered["text.height"] = _settings.TextHeight;
                 session.Remembered["text.widthFactor"] = _settings.WidthFactor;
                 session.Remembered["dim.text.height"] = _settings.TextHeight;
+                session.Remembered["lwunits"] = _settings.LineweightsInInches ? 0.0 : 1.0;
             }
         }
 

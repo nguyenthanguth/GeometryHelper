@@ -94,7 +94,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set
             {
                 _stamp.UserField1 = Field(value);
-                Raise(nameof(UserField1));
+                RaiseFields();
             }
         }
 
@@ -105,7 +105,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set
             {
                 _stamp.UserField2 = Field(value);
-                Raise(nameof(UserField2));
+                RaiseFields();
             }
         }
 
@@ -325,6 +325,130 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             RaisePreview();
             return true;
+        }
+
+        /// <summary>The item of the Field lists that shows no field.</summary>
+        public const string NoField = "< none >";
+
+        private string _parameterFile = string.Empty;
+
+        /// <summary>
+        /// Gets what the Field 1 and Field 2 lists offer: &lt; none &gt;, the user's fields (Add / Edit…), and a field typed
+        /// before (-PLOTSTAMP) that is not in the list.
+        /// </summary>
+        public IReadOnlyList<string> UserFieldChoices =>
+            new[] { NoField }
+                .Concat(_stamp.UserFields)
+                .Concat(new[] { _stamp.UserField1, _stamp.UserField2 }.Where(f => f.Length > 0))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+        /// <summary>Gets or sets the item of the Field 1 list: a user field, or &lt; none &gt;.</summary>
+        public string UserField1Choice
+        {
+            get => _stamp.UserField1.Length == 0 ? NoField : _stamp.UserField1;
+            set => UserField1 = value == NoField ? string.Empty : value;
+        }
+
+        /// <summary>Gets or sets the item of the Field 2 list: a user field, or &lt; none &gt;.</summary>
+        public string UserField2Choice
+        {
+            get => _stamp.UserField2.Length == 0 ? NoField : _stamp.UserField2;
+            set => UserField2 = value == NoField ? string.Empty : value;
+        }
+
+        /// <summary>
+        /// Gives the stamp the user's fields as User Defined Fields leaves them; a Field 1 or 2 that showed one no longer
+        /// listed goes back to &lt; none &gt;.
+        /// </summary>
+        /// <param name="fields">The fields, in their order.</param>
+        public void SetUserFields(IEnumerable<string> fields)
+        {
+            _stamp.UserFields = (fields ?? Array.Empty<string>()).ToList();
+
+            if (!_stamp.UserFields.Contains(_stamp.UserField1))
+            {
+                _stamp.UserField1 = string.Empty;
+            }
+
+            if (!_stamp.UserFields.Contains(_stamp.UserField2))
+            {
+                _stamp.UserField2 = string.Empty;
+            }
+
+            RaiseFields();
+        }
+
+        /// <summary>Gets the plot stamp parameter file loaded or saved last; empty for none.</summary>
+        public string ParameterFile
+        {
+            get => _parameterFile;
+            private set => Set(ref _parameterFile, value ?? string.Empty);
+        }
+
+        /// <summary>Load…: every setting of a plot stamp parameter file (.pss) taken; false with the reason said where it is refused.</summary>
+        /// <param name="path">The file.</param>
+        /// <returns>Whether it was read.</returns>
+        public bool LoadParameterFile(string path)
+        {
+            CadPlotStamp read = _stamp.Clone();
+
+            try
+            {
+                read.LoadParameterFile(path);
+            }
+            catch (Exception e)
+                when (e is IOException
+                    || e is InvalidDataException
+                    || e is UnauthorizedAccessException
+                    || e is ArgumentException
+                )
+            {
+                Message = e.Message;
+                return false;
+            }
+
+            _stamp.CopyFrom(read);
+            _offsetX = Text(_stamp.OffsetX);
+            _offsetY = Text(_stamp.OffsetY);
+            _height = Text(_stamp.TextHeight);
+            ParameterFile = path;
+            Message = string.Empty;
+            Raise(string.Empty);
+            return true;
+        }
+
+        /// <summary>Save As…: the stamp written to a plot stamp parameter file (.pss); false with the reason said where it is not.</summary>
+        /// <param name="path">The file.</param>
+        /// <returns>Whether it was written.</returns>
+        public bool SaveParameterFile(string path)
+        {
+            if (!TryAccept())
+            {
+                return false;
+            }
+
+            try
+            {
+                _stamp.SaveParameterFile(path);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException)
+            {
+                Message = e.Message;
+                return false;
+            }
+
+            ParameterFile = path;
+            return true;
+        }
+
+        private void RaiseFields()
+        {
+            Raise(nameof(UserFieldChoices));
+            Raise(nameof(UserField1));
+            Raise(nameof(UserField2));
+            Raise(nameof(UserField1Choice));
+            Raise(nameof(UserField2Choice));
         }
 
         /// <summary>Browse… of the log file.</summary>
@@ -716,16 +840,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
     }
 
-    /// <summary>A row of the Xbind dialog's tree: an external reference, a kind of definition or a definition.</summary>
-    public sealed class XbindNode
+    /// <summary>
+    /// A row of the Xbind dialog's tree: an external reference, a kind of definition or a definition. A reference or a kind
+    /// opens and closes (▸ closed, ▾ open), as the nodes of AutoCAD's tree; it starts closed.
+    /// </summary>
+    public sealed class XbindNode : ObservableObject
     {
-        internal XbindNode(string text, int depth, string kind, string name)
+        private bool _isExpanded;
+
+        internal XbindNode(string text, int depth, string kind, string name, XbindNode parent = null)
         {
             Text = text;
             Depth = depth;
             Kind = kind;
             Name = name;
+            Parent = parent;
         }
+
+        /// <summary>Gets the row it is under: a kind's reference, a definition's kind; null for a reference.</summary>
+        public XbindNode Parent { get; }
+
+        /// <summary>Gets whether the row opens and closes: a reference or a kind.</summary>
+        public bool CanExpand => Name == null;
+
+        /// <summary>Gets or sets whether the rows under it are shown.</summary>
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set
+            {
+                if (CanExpand && Set(ref _isExpanded, value))
+                {
+                    Raise(nameof(Glyph));
+                }
+            }
+        }
+
+        /// <summary>Gets the mark before the words: ▾ open, ▸ closed, nothing for a definition.</summary>
+        public string Glyph =>
+            !CanExpand ? string.Empty
+            : _isExpanded ? "▾"
+            : "▸";
+
+        /// <summary>Gets whether every row above it is open, so that the tree shows it.</summary>
+        public bool IsShown => Parent == null || Parent.IsExpanded && Parent.IsShown;
 
         /// <summary>Gets the words the row shows.</summary>
         public string Text { get; }
@@ -766,12 +924,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             foreach (CadXbindReference reference in request.References)
             {
-                rows.Add(new XbindNode(reference.Name, 0, null, null));
+                var top = new XbindNode(reference.Name, 0, null, null);
+                rows.Add(top);
 
                 foreach (KeyValuePair<string, IReadOnlyList<string>> kind in reference.Definitions)
                 {
-                    rows.Add(new XbindNode(kind.Key, 1, kind.Key, null));
-                    rows.AddRange(kind.Value.Select(n => new XbindNode(n, 2, kind.Key, n)));
+                    var group = new XbindNode(kind.Key, 1, kind.Key, null, top);
+                    rows.Add(group);
+                    rows.AddRange(kind.Value.Select(n => new XbindNode(n, 2, kind.Key, n, group)));
                 }
             }
 
@@ -780,6 +940,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the rows of the Xrefs tree, each reference followed by its kinds and their definitions.</summary>
         public IReadOnlyList<XbindNode> Xrefs { get; }
+
+        /// <summary>Gets the rows the tree shows: the references, and below each row open the rows under it.</summary>
+        public IReadOnlyList<XbindNode> ShownXrefs => Xrefs.Where(r => r.IsShown).ToList();
+
+        /// <summary>Opens a reference or a kind, or closes it; a definition is left as it is.</summary>
+        /// <param name="row">The row.</param>
+        public void Toggle(XbindNode row)
+        {
+            if (row == null || !row.CanExpand)
+            {
+                return;
+            }
+
+            row.IsExpanded = !row.IsExpanded;
+            Raise(nameof(ShownXrefs));
+        }
 
         /// <summary>Gets the definitions to bind.</summary>
         public ObservableCollection<XbindNode> ToBind { get; } = new ObservableCollection<XbindNode>();
