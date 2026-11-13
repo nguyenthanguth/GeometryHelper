@@ -18,10 +18,16 @@ namespace GeometryHelper.Dxf
     /// out with it, and the dictionary left empty by it.
     /// </para>
     /// <para>
-    /// What cannot be given its older form is left out or replaced, and said: a table, whose cells are written in two forms
-    /// on either side of R2007, becomes the block it is drawn with, an ACIS body of R2013 or later, binary, cannot be written
-    /// as the text of R2010 and earlier (but for a REGION, whose body is written again for the version, see <c>Regions</c>), and the visual styles, of a form of their own in each of the versions, are left to
-    /// AutoCAD, which makes its own on opening.
+    /// What the version holds in another form is given that form, as AutoCAD 2021 does: the ACIS body of a solid, binary in the
+    /// data store from R2013 and text in the entity before it, is turned into the other (<c>Solids</c>, and <c>Regions</c> for a
+    /// region of flat faces, which is written again); the cells of a table of plain text, written in two forms on either side of
+    /// R2007, from one to the other (<c>TableDown</c>, <c>TableUp</c>); the visual styles of R2007, R2010 and R2013, each in a
+    /// form of its own (<c>VisualStyle</c>); and the columns of an MTEXT, in its extended data to R2013 and in an embedded object
+    /// from R2018 (<c>Columns</c>, <c>ColumnsUp</c>). What cannot be given its form is left out or replaced, and said: a table
+    /// whose cells hold more than their text becomes the block it is drawn with, and a body whose records the converter does not
+    /// place (the ACIS 4.00 text of R2000, a solid made by a sweep) is kept as it is between the versions that hold text, and
+    /// left out going to R2013 or later (AutoCAD reads a file whose entity holds text there as no drawing) and, its data being
+    /// binary, going from R2013 to R2010 or before.
     /// </para>
     /// <para>
     /// R12 (AC1009) is written by rules of its own (DxfVersionConverter.R12.cs and <see cref="DxfR12Explosion"/>): what R12 lacks is
@@ -56,6 +62,9 @@ namespace GeometryHelper.Dxf
             internal bool Dropped { get; set; }
 
             internal bool Lost { get; set; }
+
+            /// <summary>Whether the ACIS data of the record was written anew for the target version (a region of flat faces).</summary>
+            internal bool Rebuilt { get; set; }
 
             internal string Type => Groups[0].Value;
         }
@@ -319,6 +328,7 @@ namespace GeometryHelper.Dxf
 
             ConvertHeader(header);
             Regions();
+            Solids();
             Plan();
             Own();
 
@@ -442,8 +452,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void Plan()
         {
-            bool visual = Style(_source) == Style(_target) && (Style(_source) != 0 || _source >= _target);
             bool tables = (_source >= 1021) != (_target >= 1021);
+
+            if (_target >= 1032 && _source < 1032)
+            {
+                JoinColumns();
+            }
 
             foreach (string name in new[] { "BLOCKS", "ENTITIES", "OBJECTS" })
             {
@@ -458,16 +472,22 @@ namespace GeometryHelper.Dxf
                 {
                     string type = record.Type;
 
-                    if (
-                        (type == "VISUALSTYLE" && !visual)
-                        || (_target < 1021 && type.StartsWith("ACSH_", StringComparison.Ordinal))
+                    if (type == "VISUALSTYLE" && Style(_source) != Style(_target))
+                    {
+                        if (!VisualStyle(record))
+                        {
+                            Drop(record, _left);
+                        }
+                    }
+                    else if (
+                        (_target < 1021 && type.StartsWith("ACSH_", StringComparison.Ordinal))
                         || (_target < 1024 && type == "ACDB_TEXTOBJECTCONTEXTDATA_CLASS")
                         || (_target < 1027 && Bodies.Contains(type) && IsBinaryBody(record))
                     )
                     {
                         Drop(record, _left);
                     }
-                    else if (tables && type == "ACAD_TABLE")
+                    else if (tables && type == "ACAD_TABLE" && !(_target < 1021 ? TableDown(record) : TableUp(record)))
                     {
                         Block(record);
                     }
@@ -870,6 +890,13 @@ namespace GeometryHelper.Dxf
                     if (group.Code == 1)
                     {
                         dxfName = group.Value;
+
+                        // The class of a table's round trip is named another way in R2000 than from R2004.
+                        if (dxfName == "ACDBDATATABLE" || dxfName == "DATATABLE")
+                        {
+                            dxfName = _target < 1018 ? "ACDBDATATABLE" : "DATATABLE";
+                            record.Groups[i] = new Group(1, dxfName);
+                        }
                     }
                     else if (group.Code == 90)
                     {

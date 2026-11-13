@@ -88,6 +88,7 @@ namespace GeometryHelper.Dxf
 
                     record.Groups.RemoveRange(at + 1, end - at - 1);
                     record.Groups.InsertRange(at + 1, groups);
+                    record.Rebuilt = true;
 
                     if (sab != null)
                     {
@@ -179,6 +180,13 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
+            byte[] bytes = StoredSab(data);
+            return bytes == null ? null : AcisReader.FromSab(bytes);
+        }
+
+        /// <summary>The bytes of the ACIS data a record of the data store holds: its size (94) and its hex lines (310); null where it has none or is cut short.</summary>
+        private static byte[] StoredSab(Record data)
+        {
             var hex = new StringBuilder();
             int size = -1;
 
@@ -206,7 +214,7 @@ namespace GeometryHelper.Dxf
                 bytes[i] = byte.Parse(hex.ToString(2 * i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             }
 
-            return AcisReader.FromSab(bytes);
+            return bytes;
         }
 
         /// <summary>

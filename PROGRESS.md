@@ -196,7 +196,14 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] Save Drawing As listing each DXF version plainly (2018 down to 2000): DxfDatabase.Save(path, version), groups trimmed as AutoCAD's own files show, AUDIT 0 in AutoCAD 2021; DWG stays 2018 only (DECIDED by recommendation 2026-11-12)
 - [x] DXF versions follow-ups 1: R12 written as AutoCAD's own (exploding what R12 lacks), FILEDIA 0 SAVEAS "Enter file format", DXFOUT and its version list, CadDocument.SaveCopy (saveas2)
 - [ ] R12 follow-ups: 3DSOLID/REGION wireframe (needs an ACIS reader); gradient bands (AutoCAD writes 312); MTEXT wrapped by font metrics (2 TEXTs vs 123); dynamic blocks flattened to *U; repeat the AutoCAD check on a real model (M)
-- [ ] (dxfver2, running) DXF versions follow-ups 2: binary solids below R2013 (SAB to SAT for ACDSDATA); tables across R2007 (not as an INSERT); visual styles across R2007/R2010/R2013; MTEXT column xdata back to the embedded object going up (M)
+- [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
+      220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
+      R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
+      to R2013+ written so that AutoCAD discarded the drawing, R2000<->R2004 tables (data table class name)
+- [ ] DXF versions follow-ups 3: ACIS 4.00 of R2000 both ways (field differences listed in the dxfver2 merge); procedural
+      sweep_sur and the R2004 cylsur/surfintcur forms; the round-trip dictionaries AutoCAD makes going down (old tables,
+      RTVSPost2010Prop); the 176 flag of three styles from R2004/R2007; R2000 MTEXTBEGIN xdata; BODY and other surfaces
+      probed; SAT-text bodies written into DWG now that ToSab exists (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
@@ -238,7 +245,7 @@ the ones wanted.
 - [x] Leader follow-ups 2: Select Custom Arrow Block dialog, TOLERANCE entity, frame, command and dialogs, LEADER/QLEADER Tolerance, Copy/Reuse of a TOLERANCE
 - [x] Tolerance follow-ups: snaps on row rectangles, overrides, editing (dialog, Properties), GeometricExtents, EXPLODE refused, exact gdt widths, leader set-back and 40/41, QLEADER constraints in a UCS, 211
 - [x] Tolerance follow-ups 2: hook vertex as AutoCAD (3 vertices in a UCS and to frames), QLEADER 213, Near/Perp on row rectangles, hand-written group 1
-- [ ] Tolerance follow-ups 3: LEADER and QLEADER Tolerance in a UCS from the dialog (inferred from Copy); Intersection/Extension snaps on frame walls; End snap giving only the picked side's ends; the dialog reading hand-written rows and rows over six cells; Properties rows and word/glyph placement against AutoCAD's GUI (S)
+- [ ] (fu-misc2, running) Tolerance follow-ups 3: LEADER and QLEADER Tolerance in a UCS from the dialog (inferred from Copy); Intersection/Extension snaps on frame walls; End snap giving only the picked side's ends; the dialog reading hand-written rows and rows over six cells; Properties rows and word/glyph placement against AutoCAD's GUI (S)
 - [x] Dimension overrides: every differing variable written in group order (where $DIMSTYLE names a style the drawing has), DIMSCALE 0 through a viewport, arrowhead pictures in the style dialogs
 - [x] Dimension overrides follow-ups: blank DxfDatabase holds ISO-25 as acadiso, header drives every dimension and leader, AutoCAD's 279/288/50 extras
 - [x] Dimension overrides follow-ups 2: words moved out under DIMTOH as AutoCAD, arrowhead and word fit thresholds, chains in the base's style, 279 only on DIMCONTINUE, 288/50 confirmed
@@ -261,7 +268,7 @@ the ones wanted.
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
-- [ ] PEDIT/REVCLOUD follow-ups: a spline turned into a polyline with a precision (parked after 3 models, counts in
+- [ ] (fu-misc2, running) PEDIT/REVCLOUD follow-ups: a spline turned into a polyline with a precision (parked after 3 models, counts in
       D:/claude/scratch/pedit-rev/b1-b5.out.txt); BOUNDARY and JOIN under PLINETYPE 0; Multiple with 3D polylines;
       REVCLOUD's first size from the view; REVCLOUDPROPERTIES and Modify (2021 REVCLOUD cannot be run headless) (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
@@ -361,7 +368,7 @@ the ones wanted.
 - [x] Angle follow-ups: ATTSYNC keeps XData and names the dynamic block, the angle override in the DYN field, LIST of ellipses and dimensions as AutoCAD
 - [x] ATTSYNC and LIST follow-ups: *U INSERTs synced, LIST names, jogged radius, UCS rotations, Y ordinate and associative pinned
 - [x] LIST/blocks follow-ups: BSAVE works out *U blocks again as UpdateAnonymousBlocks, LIST dimension style overrides, DIMJOGANG override in radians
-- [ ] LIST/blocks follow-ups 2: ATTSYNC placement for *U unprobed (ATTSYNC not in the console); LUNITS 2 at high LUPREC (1.000500E+03); linetype override naming no linetype; ATTRIBs under UpdateAnonymousBlocks; parameters added or removed in the Block Editor; setters skipping overrides equal to the style (AutoCAD writes them) (S)
+- [ ] (fu-misc2, running) LIST/blocks follow-ups 2: ATTSYNC placement for *U unprobed (ATTSYNC not in the console); LUNITS 2 at high LUPREC (1.000500E+03); linetype override naming no linetype; ATTRIBs under UpdateAnonymousBlocks; parameters added or removed in the Block Editor; setters skipping overrides equal to the style (AutoCAD writes them) (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [x] Command line follow-ups: collapsible content section, hatch thumbnail on hover (design v132)

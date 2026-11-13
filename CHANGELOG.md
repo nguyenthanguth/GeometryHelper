@@ -85,6 +85,32 @@ high; U+2205 2.4454, 2.6927) where the canvas gives no measure, which fixes the 
 words of an angle put past the end of its sector (the distance of the leader by their angle, 74 of 712), a jogged radius whose words are
 moved to the jog (18 of 288), level words with DIMTAD 1 or 4 in a tight circle and under DIMTMOVE 1 behind the centre (99 of 1 584,
 36 of 1 024). Tests: 23 new in the viewer suite.
+**NEW.** Save As between the versions of DXF, the follow-ups to the first rules (`DxfDatabase.Save(path, version)`, `Save(stream,
+version)`, `CadDocument.SaveAs`, `SaveCopy`), compared with AutoCAD 2021's own DXF of the same drawing in each version and opened
+in its console. The ACIS data of a 3DSOLID, a BODY or a surface is turned from the SAB of the data store (R2013 and R2018) into
+the SAT of the entity (R2004, R2007 and R2010; R2000 takes the SAT of R2010) and back, and from the SAT of one version of the
+modeler into another's, by its records and not by its geometry: a box 30 by 20 by 10, a sphere, a cylinder, a cone, a torus, a
+wedge, a pyramid, an extrusion with an arc and a taper, a revolution, a box with a hole and a loft come out of each of R2004,
+R2007, R2010, R2013 and R2018 as the SAT or SAB AutoCAD writes of them in the others, record for record (220 conversions of 11
+solids), and AutoCAD opens the 275 files of them in the six versions with the volume each had and `AUDIT` finding 0 errors, but
+for the 22 that go from R2000 to R2013 and R2018, left out and said (an ACIS 4.00 text, which no later version writes, is not read;
+nor is a solid made by a sweep, whose surface AutoCAD writes another way in each version). A 3DSOLID gets the history R2007 and
+later write (`AcDb3dSolid`, 350) and a GUID (2) that names its record in the data store, taken from its
+`ACAD_OBJECT_CHANGE_GUID`. A table of plain text cells is given the form of the version it goes to, the cells of R2004 and before
+(groups 171 to 178, 145 and the text) or those of R2007 and later (with their flags and `CELL_VALUE`): 30 conversions of a table of
+4 rows by 3 columns with merged cells between the six versions have the cells AutoCAD writes, and the round trip of the earlier form
+(`ACAD_XREC_ROUNDTRIP`) goes going up; a table with anything else in a cell is still the INSERT of its block. The visual styles of
+R2007, R2010 and R2013 are turned into one another's form (the 28 properties they share, the 30 R2013 added read back from the
+round trip record of a style of R2010 and before, or the defaults), 21 of the 24 styles of a drawing exact in every direction and
+the other 3 differing in the one flag R2007 does not hold. The columns of an MTEXT in the extended data of R2013 and before become
+the MTEXT of R2018 with its embedded object, the MTEXTs of the later columns joined into it as AutoCAD joins them (a box of two
+columns of 28 with a gutter of 4 is 60 wide). **FIXED.** A solid whose data is SAT going to R2013 or R2018 was written with its text
+in the entity, which AutoCAD 2021 reads as no drawing (`Invalid or incomplete DXF input -- drawing discarded`); a solid of R2000 or
+R2004 going to R2007 or later had no `AcDb3dSolid` (`Class separator for class AcDb3dSolid expected`, the same); a table with its
+round trip going between R2000 and R2004 kept the name of its data table (`ACDBDATATABLE` or `DATATABLE`, the same). A table going to
+R2010 or later has its data version (280). **CHANGED.** The visual styles of R2000, R2004 and R2007, one form, are kept going up
+among them, where they were left out. A plane's normal that is a unit but for the last bit (0.9999999999999999) is written as it is in
+the SAT of a DWG's solid, as AutoCAD writes it, and not divided by its length. Tests: 40 new in the core suite (`DxfSaveVersionFollowUpTests`).
 
 **NEW.** CTAB in the presenter, as AutoCAD 2021's console took it (probed): `CTAB` and `SETVAR CTAB` ask `Enter new value for CTAB
 <"Model">:` and show the layout named, in letters of either case, as one undo step named CTAB; Enter keeps the layout, and a name

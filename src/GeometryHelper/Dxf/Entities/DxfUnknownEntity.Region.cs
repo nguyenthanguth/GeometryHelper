@@ -94,7 +94,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The groups of the lines of a SAT: each ciphered, a line past 255 characters in pieces of 255, each but the last under group 3, never ending on a caret.</summary>
-        private static List<KeyValuePair<int, string>> SatGroups(IEnumerable<string> lines)
+        internal static List<KeyValuePair<int, string>> SatGroups(IEnumerable<string> lines)
         {
             var groups = new List<KeyValuePair<int, string>>();
 
@@ -390,7 +390,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>A date as C's <c>ctime</c> writes it: <c>Fri Nov 13 08:05:36 2026</c>, the day's number padded by a space.</summary>
-        private static string CDate(DateTime when) =>
+        internal static string CDate(DateTime when) =>
             when.ToString("ddd MMM ", CultureInfo.InvariantCulture)
             + when.Day.ToString(CultureInfo.InvariantCulture).PadLeft(2)
             + when.ToString(" HH:mm:ss yyyy", CultureInfo.InvariantCulture);

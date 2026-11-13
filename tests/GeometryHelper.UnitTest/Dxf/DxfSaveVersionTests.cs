@@ -1216,11 +1216,14 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.False(Has(Records(as2000, "OBJECTS").First(o => o[0].Value == "VISUALSTYLE"), 421));
             Assert.Equal(2, Records(As(text, "AC1018"), "OBJECTS").Count(o => o[0].Value == "VISUALSTYLE"));
 
-            // Between R2007 and R2010 the visual styles are written in another form each.
+            // Between R2007 and R2010 the visual styles are written in another form each: one that is not the 28 properties of
+            // either (these two have none) is left out, said.
             Assert.DoesNotContain(Records(As(text, "AC1024"), "OBJECTS"), o => o[0].Value == "VISUALSTYLE");
-            // From R2000 up they are not turned into the form of the newer one, so they go.
-            Assert.DoesNotContain(Records(As(File("AC1015", objects: RootAndStyles), "AC1021"), "OBJECTS"), o =>
-                o[0].Value == "VISUALSTYLE"
+            // From R2000 up they are of the same form as those of R2007, and stay.
+            Assert.Equal(
+                2,
+                Records(As(File("AC1015", objects: RootAndStyles), "AC1021"), "OBJECTS")
+                    .Count(o => o[0].Value == "VISUALSTYLE")
             );
         }
 
