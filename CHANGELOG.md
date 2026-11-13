@@ -4368,6 +4368,19 @@ constraint parameter, a user parameter, a properties table or a proxy node and a
 **FIXED.** DWG: the unset value of a grip location component of a dynamic block (AutoCAD's DXF gives `double.MaxValue` as
 `1.797693134862314E+99`) was written as the number that text names, which AutoCAD read back as `1.797693134862313E+99`; it is written
 as the largest real, as AutoCAD keeps it.
+**FIXED.** Presenter: the leader of an angle's words put by DIMTEDIT under DIMTMOVE 1 comes and goes at exactly the height of the
+arc's middle (probed every 0.1 across it: AutoCAD 2021 draws none for "60°" 19.5 left of the vertex at 15.0, one at 14.9), and between
+the height of the vertex and that height the band narrows as the point rises (out by 0.2 landings, in on the left of the vertex by 0.28,
+wider by 0.1 on the right): 159 of 5 832 probes differing from AutoCAD down to 101 (a6 29 to 21, a4 15 to 13).
+**FIXED.** Presenter: free words of a radius or a diameter (DIMTMOVE 2) stand on its slanting line wherever it runs through their level
+box grown by DIMGAP, and the line is broken about the middle of what it takes of the box ("%%c40" put 3 off a diameter of 40 breaks it
+from -2 to 5.88 along it, its middle at 1.94, not the foot of their middle); a radius's arrowhead goes out only where their box takes
+the line from a quarter of a unit behind the centre to an arrowhead and a half past it (words 3.5 behind the centre of "R8" left it
+inside and the line whole, which was pushed out): the 8 differing probes of r6 down to 0, and 176 of 760 in a grid of points along
+and across the line down to 7.
+**FIXED.** Presenter: the words of a jogged radius put exactly on the rim are inside it (they stay at their point and the box goes to
+the inside; 16 of 16 probes), and level words kept to a line of exactly two arrowheads within 15 degrees of level are left off it,
+as AutoCAD 2021 does 14 times of 16 (t9 38 to 34, ta9 28 to 18).
 
 ## 13.11.0 (2026-11-07)
 

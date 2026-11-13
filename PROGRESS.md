@@ -305,9 +305,13 @@ the ones wanted.
       of 5 832), level landings W or L inside a circle under DIMTAD 1/4 (t6 99 to 15, r6 36 to 8), jogged words straddling
       the rim (j1 18 to 0, j2 466 to 16 of 1 136); the arc-length threshold under DIMTMOVE 1 follows the new band; harness
       .claude/gk/dims-harness11
-- [ ] Dimension follow-ups 11: the angular band's jump at the height of the arc's middle; diameters of 6 put out at f 1.6
-      (t6 15); DIMTMOVE 2 arrowhead behind the centre (r6 8); near-level ties at exactly 2 arrowheads; jogged words exactly
-      on the rim; points exactly on an extension line of an aligned dimension (m2 14); lines exactly 15 degrees (S)
+- [x] Dimension follow-ups 11 (dims11): the angular leader band's jump at the arc middle's height (a7 159 to 101, a6 29 to
+      21), DIMTMOVE 2 free radial words breaking where the line crosses their box (r6 8 to 0, d3 176 to 7), jogged words on
+      the rim counted inside (j2 16 to 0), the near-level tie; harness .claude/gk/dims-harness14 (set a: 4 changed cases
+      without AutoCAD pictures)
+- [ ] Dimension follow-ups 12: the angle band's shape (a5 49, a7 101; the cos fit is empirical); diameters put out (d2 156
+      of 924; t6's D4-D12 windows); the remaining td3 cases (R20 box corner); exact ties at two arrowheads (float noise?);
+      AutoCAD pictures for set a's 6-degree cases; points exactly on an aligned extension line; lines at exactly 15 degrees (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
@@ -377,7 +381,7 @@ the ones wanted.
       value sets applied after a base move; the insertion grip left out where a custom grip stands on it; 26 INSERTs AUDIT
       0, 23 equal AutoCAD's values to 6 places. NOTE for a release: DynamicBlockReferencePropertyCollection has more items
       (the hidden Origin), written up as NEW with the advice to filter on Show
-- [ ] Dynamic block follow-ups 4: a polar base drag after an end drag (AutoCAD composes the edits; refused now); the edge a
+- [ ] (dynblock4, running) Dynamic block follow-ups 4: a polar base drag after an end drag (AutoCAD composes the edits; refused now); the edge a
       base-following stretch holds after a later value set (DWG probe: 3 of 26 differ); ATTSYNC on a moved INSERT
       (accoreconsole /i plus AutoLISP); GRIPLOC of linear/XY grips in blocks with a polar parameter; setting Origin; the
       block-table grip menu and glyph (GUI); the Design artifact's grip colour #19B5F0 to #00BFFF (S)
