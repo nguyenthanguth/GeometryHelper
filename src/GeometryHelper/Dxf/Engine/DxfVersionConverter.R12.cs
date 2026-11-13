@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 
 namespace GeometryHelper.Dxf
 {
@@ -27,6 +28,9 @@ namespace GeometryHelper.Dxf
 
         // The blocks made for what stood in a space, in the order they were made.
         private readonly List<List<Record>> _made = new List<List<Record>>();
+
+        // Whether an attribute was written with its flags as the extended data of AcDbAttr, which the table of applications then holds.
+        private bool _attributeApplication;
 
         #region The header
 
@@ -115,7 +119,7 @@ namespace GeometryHelper.Dxf
                     {
                         if (record.Groups[i].Code == code)
                         {
-                            record.Groups[i] = new Group(code, record.Groups[i].Value.ToUpperInvariant());
+                            record.Groups[i] = new Group(code, R12Name(record.Groups[i].Value));
                         }
                     }
                 }
@@ -234,6 +238,30 @@ namespace GeometryHelper.Dxf
             || (code == 2 && type != "SHAPE" && type != "ATTDEF" && type != "ATTRIB")
             || (code == 3 && type == "BLOCK");
 
+        /// <summary>The longest name of a symbol R12 holds, as AutoCAD 2021 cuts it.</summary>
+        private const int R12NameLength = 26;
+
+        /// <summary>
+        /// A symbol's name as AutoCAD 2021 writes it into R12: in capitals, a character that is no letter, digit, <c>$</c>, <c>-</c> or
+        /// <c>_</c> made an underscore (a <c>*</c> first, as an anonymous block has it, kept), the name cut to 26 characters:
+        /// <c>{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}</c> is <c>_18B73A54-FA43-428C-ADCB-C</c> and <c>With space</c> is
+        /// <c>WITH_SPACE</c>. A name R12 does not allow makes AutoCAD discard the drawing: "Improper table entry name".
+        /// </summary>
+        private static string R12Name(string name)
+        {
+            var made = new StringBuilder(Math.Min(name.Length, R12NameLength));
+
+            for (int i = 0; i < name.Length && made.Length < R12NameLength; i++)
+            {
+                char c = name[i];
+                bool keep =
+                    (c <= 0xFF && char.IsLetterOrDigit(c)) || c == '$' || c == '-' || c == '_' || (c == '*' && i == 0);
+                made.Append(keep ? char.ToUpperInvariant(c) : '_');
+            }
+
+            return made.ToString();
+        }
+
         /// <summary>A record as R12 holds it: the groups it has, names in capitals; null where R12 has no such record.</summary>
         private Record R12Record(Record record)
         {
@@ -247,6 +275,7 @@ namespace GeometryHelper.Dxf
             var made = new Record();
             made.Groups.Add(record.Groups[0]);
             bool embedded = false;
+            bool anonymousBlock = false;
             bool own = false;
             var flags = new List<string>(2);
 
@@ -350,12 +379,26 @@ namespace GeometryHelper.Dxf
 
                 if (IsName(type, group.Code))
                 {
-                    value = value.ToUpperInvariant();
+                    value = type == "APPID" ? value.ToUpperInvariant() : R12Name(value);
                 }
 
                 if (type == "BLOCK" && (group.Code == 2 || group.Code == 3))
                 {
                     value = SpaceName(record.Groups[i].Value) ?? value;
+                }
+
+                // A dynamic block is written as the anonymous block AutoCAD names it, and so are the INSERTs of it.
+                if (
+                    _plan != null
+                    && (
+                        (type == "BLOCK" && (group.Code == 2 || group.Code == 3))
+                        || (type == "INSERT" && group.Code == 2)
+                    )
+                    && _plan.Renamed.TryGetValue(group.Value.Trim(), out string anonymous)
+                )
+                {
+                    value = anonymous;
+                    anonymousBlock = type == "BLOCK";
                 }
 
                 if (type == "STYLE" && group.Code == 3 && IsTrueType(value))
@@ -368,6 +411,12 @@ namespace GeometryHelper.Dxf
                     value = Whole(70, Number(value, out int bits) ? bits & ~32 : 0).Value;
                 }
 
+                // A block named anonymous has the flag of one (1), or AutoCAD discards the drawing: "Invalid anonymous block".
+                if (anonymousBlock && type == "BLOCK" && group.Code == 70)
+                {
+                    value = Whole(70, Number(value, out int flagged) ? flagged | 1 : 1).Value;
+                }
+
                 made.Groups.Add(new Group(group.Code, value));
             }
 
@@ -375,6 +424,7 @@ namespace GeometryHelper.Dxf
             if ((type == "ATTRIB" || type == "ATTDEF") && flags.Count == 2)
             {
                 made.Groups.Add(new Group(1001, "AcDbAttr"));
+                _attributeApplication = true;
                 made.Groups.Add(
                     Whole(
                         1070,
@@ -550,6 +600,21 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The extended data of AcDbAttr has its application in the table, or AutoCAD discards the drawing: "Invalid application
+            // name in 1001 group". AutoCAD writes it last, as it is.
+            if (
+                _attributeApplication
+                && records.TryGetValue("APPID", out List<Record> applications)
+                && !applications.Any(a => string.Equals(Name(a), "AcDbAttr", StringComparison.OrdinalIgnoreCase))
+            )
+            {
+                var application = new Record();
+                application.Groups.Add(new Group(0, "APPID"));
+                application.Groups.Add(new Group(2, "AcDbAttr"));
+                application.Groups.Add(Whole(70, 0));
+                applications.Add(application);
+            }
+
             tables.Records.Clear();
 
             foreach (string name in R12Tables)
@@ -599,7 +664,7 @@ namespace GeometryHelper.Dxf
 
                     if (handle != null && name != null)
                     {
-                        names[handle] = name.ToUpperInvariant();
+                        names[handle] = R12Name(name);
                     }
                 }
             }
@@ -622,7 +687,7 @@ namespace GeometryHelper.Dxf
 
                     if (handle != null && name != null)
                     {
-                        names[handle] = name.ToUpperInvariant();
+                        names[handle] = R12Name(name);
                     }
                 }
             }
@@ -709,6 +774,7 @@ namespace GeometryHelper.Dxf
             var made = new List<Record>(section.Records.Count);
             bool skipping = false;
             bool paper = false;
+            Record owner = null;
 
             foreach (Record record in section.Records)
             {
@@ -803,6 +869,17 @@ namespace GeometryHelper.Dxf
                         paper = false;
                     }
 
+                    // The vertices of a polyline and its end carry its linetype and colour, as AutoCAD writes them: a polyline
+                    // made of a lightweight one lacks them, which AUDIT mends ("linetype != owner's").
+                    if (type == "POLYLINE")
+                    {
+                        owner = one;
+                    }
+                    else if (owner != null && (type == "VERTEX" || type == "SEQEND"))
+                    {
+                        Inherit(owner, one);
+                    }
+
                     made.Add(one);
                 }
             }
@@ -811,28 +888,100 @@ namespace GeometryHelper.Dxf
             section.Records.AddRange(made);
         }
 
-        /// <summary>The INSERT that stands where an entity stood in a space: its handle, layer, linetype, colour and space, at the origin.</summary>
+        /// <summary>Gives a vertex or an end of a polyline the linetype (6) and colour (62) the polyline has and it has not, after its layer.</summary>
+        private static void Inherit(Record owner, Record part)
+        {
+            foreach (int code in new[] { 62, 6 })
+            {
+                Group found = owner.Groups.FirstOrDefault(g => g.Code == code);
+
+                if (found.Value != null && !part.Groups.Exists(g => g.Code == code))
+                {
+                    int layer = part.Groups.FindIndex(g => g.Code == 8);
+                    part.Groups.Insert(layer + 1, found);
+                }
+            }
+        }
+
+        /// <summary>The value of a header variable of the drawing, by its group; null where the header has none.</summary>
+        private string HeaderValue(string name, int code)
+        {
+            Section header = Find("HEADER");
+            Record variable = header?.Records.FirstOrDefault(r => r.Groups[0].Value == name);
+
+            if (variable == null)
+            {
+                return null;
+            }
+
+            Group found = variable.Groups.FirstOrDefault(g => g.Code == code);
+            return found.Value?.Trim();
+        }
+
+        /// <summary>
+        /// The INSERT that stands where an entity stood in a space: its handle and space, at the origin, on the drawing's current
+        /// layer, in its current colour and linetype where it has them (<c>$CLAYER</c>, <c>$CECOLOR</c>, <c>$CELTYPE</c>), as
+        /// AutoCAD writes it; the look of the entity is on its pieces. A hatch's is of the linetype CONTINUOUS.
+        /// </summary>
         private Record Insert(Record old, string block)
         {
             var insert = new Record();
             insert.Groups.Add(new Group(0, "INSERT"));
+            Group handle = old.Groups.FirstOrDefault(g => g.Code == 5);
 
-            foreach (int code in new[] { 5, 8, 6, 62, 67 })
+            if (handle.Value != null)
             {
-                Group found = old.Groups.FirstOrDefault(g => g.Code == code);
+                insert.Groups.Add(handle);
+            }
 
-                if (found.Value != null)
-                {
-                    insert.Groups.Add(
-                        new Group(code, code == 8 || code == 6 ? found.Value.ToUpperInvariant() : found.Value)
-                    );
-                }
+            insert.Groups.Add(new Group(8, R12Name(HeaderValue("$CLAYER", 8) ?? "0")));
+            string line = HeaderValue("$CELTYPE", 6);
+
+            if (
+                old.Type == "HATCH"
+                || (line != null && !string.Equals(line, "BYLAYER", StringComparison.OrdinalIgnoreCase))
+            )
+            {
+                insert.Groups.Add(new Group(6, old.Type == "HATCH" ? "CONTINUOUS" : R12Name(line)));
+            }
+
+            string colour = HeaderValue("$CECOLOR", 62);
+
+            if (old.Type != "HATCH" && colour != null && Number(colour, out int index) && index != 256)
+            {
+                insert.Groups.Add(Whole(62, index));
+            }
+
+            Group space = old.Groups.FirstOrDefault(g => g.Code == 67);
+
+            if (space.Value != null)
+            {
+                insert.Groups.Add(space);
             }
 
             insert.Groups.Add(new Group(2, block));
             insert.Groups.Add(new Group(10, "0.0"));
             insert.Groups.Add(new Group(20, "0.0"));
             insert.Groups.Add(new Group(30, "0.0"));
+
+            // A hatch keeps the colours of its gradient (the indices of its first and second) in the extended data, in capitals.
+            for (int i = 0; old.Type == "HATCH" && i + 1 < old.Groups.Count; i++)
+            {
+                Group application = old.Groups[i];
+
+                if (
+                    application.Code == 1001
+                    && (
+                        string.Equals(application.Value, "GradientColor1ACI", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(application.Value, "GradientColor2ACI", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
+                {
+                    insert.Groups.Add(new Group(1001, application.Value.ToUpperInvariant()));
+                    insert.Groups.Add(old.Groups[i + 1]);
+                }
+            }
+
             return insert;
         }
 
@@ -882,7 +1031,7 @@ namespace GeometryHelper.Dxf
 
                 if (found.Value != null)
                 {
-                    made.Groups.Add(new Group(code, code == 8 ? found.Value.ToUpperInvariant() : found.Value));
+                    made.Groups.Add(new Group(code, code == 8 ? R12Name(found.Value) : found.Value));
                 }
             }
 
@@ -949,10 +1098,11 @@ namespace GeometryHelper.Dxf
 
         #region The run
 
-        /// <summary>Breaks what R12 cannot hold in the text of the drawing, before it is read.</summary>
-        private string R12Break(string text)
+        /// <summary>Breaks what R12 cannot hold in the text of the drawing, before it is read, its words measured in the fonts of the folders given.</summary>
+        private string R12Break(string text, string fontSearchPath)
         {
             DxfDatabase database = DxfDatabase.Parse(text);
+            database.FontSearchPath = fontSearchPath ?? string.Empty;
 
             if (DxfVersions.Number(database.Version) < 1015)
             {
