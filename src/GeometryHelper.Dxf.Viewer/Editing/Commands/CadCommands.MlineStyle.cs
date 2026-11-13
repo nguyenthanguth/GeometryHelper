@@ -9,8 +9,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// MLSTYLE typed. AutoCAD 2021 has only its Multiline Styles dialog (the console hangs on it and has no -MLSTYLE), so the
     /// questions here are the presenter's own, the dialog's fields in the order it shows them: the current style, a new one,
-    /// one modified, with its description, elements (offset, colour, linetype), caps, fill, joints and angles. The dialog
-    /// itself is left until it is designed.
+    /// one modified, with its description, elements (offset, colour, linetype), caps, fill, joints and angles. They are asked
+    /// where no window shows the dialog (CadCommands.MlineStyleDialog.cs).
     /// </summary>
     internal static partial class CadCommands
     {

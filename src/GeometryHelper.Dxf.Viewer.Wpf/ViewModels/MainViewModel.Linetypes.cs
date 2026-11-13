@@ -149,6 +149,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         {
                             document.HatchSettings = settings.Settings;
                             HatchPatternFile = settings.PatternFile;
+
+                            if (settings.IsOriginOnce)
+                            {
+                                // A specified origin not stored as default lays this HATCH's hatches alone.
+                                double x = settings.StoredOriginX;
+                                double y = settings.StoredOriginY;
+                                Action before = _afterCommand;
+                                Action restore = null;
+                                restore = () =>
+                                {
+                                    // Run after each input; the origin is given back once HATCH has ended.
+                                    if (IsCommandRunning)
+                                    {
+                                        _afterCommand = restore;
+                                        return;
+                                    }
+
+                                    CadHatchSettings kept = document.HatchSettings.Clone();
+                                    kept.OriginX = x;
+                                    kept.OriginY = y;
+                                    document.HatchSettings = kept;
+                                };
+                                _afterCommand = () =>
+                                {
+                                    before?.Invoke();
+                                    restore();
+                                };
+                            }
                         }
 
                         e.Handled = true;

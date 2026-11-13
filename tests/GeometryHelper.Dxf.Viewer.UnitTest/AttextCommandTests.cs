@@ -478,5 +478,74 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("0 objects in extract file.", session.History.Last());
             Assert.Equal("  0\r\nEOF\r\n", File.ReadAllText(At("none.dxx")));
         }
+
+        [Fact]
+        public void TheDialog_SelectsObjectsAndShowsAgain_ThenWritesTheExtractOfTheTemplate()
+        {
+            CadDocument document = Parts(out List<string> handles);
+            CadCommandSession session = Session(document);
+            string template = FullTemplate();
+            var shown = new List<int>();
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name != "ATTEXT")
+                {
+                    return;
+                }
+
+                var request = (CadAttextRequest)e.Payload;
+                shown.Add(request.Selected?.Count ?? -1);
+                e.Handled = true;
+
+                if (shown.Count == 1)
+                {
+                    Assert.Equal(CadAttextFormat.Cdf, request.Format);
+                    Assert.Equal(At("parts.txt"), request.OutputFile);
+                    request.IsSelecting = true;
+                    return;
+                }
+
+                request.TemplateFile = template;
+                request.OutputFile = At("chosen");
+                request.IsAccepted = true;
+            };
+
+            Run(session, "ATTEXT", new[] { handles[0], handles[3] }, Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { -1, 2 }, shown);
+            Assert.Equal("2 records in extract file.", session.History.Last());
+            Assert.Equal(
+                new[]
+                {
+                    " 1,'ITEM', 10.00, 20.00, 1,'0', 0.000, 1.00,'Bolt M8', 1.50",
+                    " 1,'PLATE', 100.00, 100.00, 2,'0', 0.000, 1.00,'Plate A', 0.00",
+                    string.Empty,
+                },
+                Lines("chosen.txt")
+            );
+        }
+
+        [Fact]
+        public void TheDialog_RefusesATemplateThatIsNotThere_AndWritesNothing()
+        {
+            CadDocument document = Parts(out _);
+            CadCommandSession session = Session(document);
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "ATTEXT")
+                {
+                    var request = (CadAttextRequest)e.Payload;
+                    request.TemplateFile = At("missing.txt");
+                    request.IsAccepted = true;
+                    e.Handled = true;
+                }
+            };
+
+            Run(session, "ATTEXT");
+
+            Assert.Equal("\"missing.txt\": Can't find file.", session.History.Last());
+            Assert.False(File.Exists(At("parts.txt")));
+        }
     }
 }

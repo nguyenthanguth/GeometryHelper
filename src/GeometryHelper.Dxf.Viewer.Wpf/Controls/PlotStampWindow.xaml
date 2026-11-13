@@ -1,0 +1,205 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PlotStampWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Plot Stamp"
+    Width="620"
+    Height="430"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Field" TargetType="CheckBox" BasedOn="{StaticResource BlockCheck}">
+                <Setter Property="Margin" Value="0,3,12,3" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design PlotStamp: the fields and user fields on the left, the preview and Advanced on the right. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Plot Stamp" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Plot stamp fields">
+                        <UniformGrid Columns="2">
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Drawing name"
+                                IsChecked="{Binding DrawingName, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Device name"
+                                IsChecked="{Binding DeviceName, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Layout name"
+                                IsChecked="{Binding LayoutName, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Paper size"
+                                IsChecked="{Binding PaperSize, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Date and Time"
+                                IsChecked="{Binding DateAndTime, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Plot scale"
+                                IsChecked="{Binding PlotScale, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource Field}"
+                                Content="Login name"
+                                IsChecked="{Binding LoginName, Mode=TwoWay}"
+                            />
+                        </UniformGrid>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl
+                        Style="{StaticResource BlockGroup}"
+                        Header="User defined fields"
+                        Margin="0,10,0,0"
+                    >
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock
+                                    Text="Field 1"
+                                    Width="50"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBox
+                                    Style="{StaticResource StyleBox}"
+                                    AutomationProperties.Name="User field 1"
+                                    Text="{Binding UserField1, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock
+                                    Text="Field 2"
+                                    Width="50"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBox
+                                    Style="{StaticResource StyleBox}"
+                                    AutomationProperties.Name="User field 2"
+                                    Text="{Binding UserField2, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <TextBlock
+                                Margin="0,6,0,0"
+                                FontSize="11"
+                                Foreground="{StaticResource GhTextMuted}"
+                                Text="A field typed &quot;.&quot; is cleared, as -PLOTSTAMP clears it."
+                            />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </StackPanel>
+                <HeaderedContentControl Grid.Column="2" Style="{StaticResource BlockGroup}" Header="Preview">
+                    <StackPanel>
+                        <Canvas Width="190" Height="140" Background="#14181D">
+                            <Rectangle Canvas.Left="10" Canvas.Top="10" Width="170" Height="120" Fill="White" />
+                            <Canvas Canvas.Left="10" Canvas.Top="10" Width="170" Height="120">
+                                <Rectangle
+                                    Canvas.Left="{Binding MarkLeft}"
+                                    Canvas.Top="{Binding MarkTop}"
+                                    Width="{Binding MarkWidth}"
+                                    Height="{Binding MarkHeight}"
+                                    Fill="#C2410C"
+                                />
+                            </Canvas>
+                        </Canvas>
+                        <TextBlock
+                            Margin="0,6,0,8"
+                            FontSize="11"
+                            TextWrapping="Wrap"
+                            Foreground="{StaticResource GhTextMuted}"
+                            Text="The stamp's corner, turned and offset as Advanced sets them."
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Advanced…"
+                            Padding="12,5"
+                            HorizontalAlignment="Left"
+                            Click="OnAdvanced"
+                        />
+                    </StackPanel>
+                </HeaderedContentControl>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

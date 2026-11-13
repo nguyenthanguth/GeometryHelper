@@ -1,0 +1,222 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.PlotStampAdvancedWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Advanced Options"
+    Width="540"
+    Height="480"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Muted" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Width" Value="90" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design PlotStampAdvanced: location and offset, text properties, units and the log file. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Advanced Options" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,14">
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Location and offset">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock Text="Location" Style="{StaticResource Muted}" />
+                            <ComboBox
+                                Width="140"
+                                Style="{StaticResource GhComboBox}"
+                                AutomationProperties.Name="Location"
+                                ItemsSource="{Binding Locations}"
+                                SelectedItem="{Binding Location, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Margin="16,0,0,0"
+                                Content="Offset relative to printable area"
+                                IsChecked="{Binding OffsetFromPrintableArea, Mode=TwoWay}"
+                            />
+                        </DockPanel>
+                        <DockPanel Margin="0,6,0,0">
+                            <TextBlock Text="Orientation" Style="{StaticResource Muted}" />
+                            <ComboBox
+                                Width="140"
+                                Style="{StaticResource GhComboBox}"
+                                AutomationProperties.Name="Orientation"
+                                ItemsSource="{Binding Orientations}"
+                                SelectedItem="{Binding Orientation, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Margin="16,0,0,0"
+                                Content="Offset relative to paper border"
+                                IsChecked="{Binding OffsetFromPaperBorder, Mode=TwoWay}"
+                            />
+                        </DockPanel>
+                        <CheckBox
+                            Style="{StaticResource BlockCheck}"
+                            Margin="90,6,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Upside-down"
+                            IsChecked="{Binding UpsideDown, Mode=TwoWay}"
+                        />
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="X offset" Style="{StaticResource Muted}" />
+                            <TextBox
+                                Width="70"
+                                Style="{StaticResource StyleBox}"
+                                AutomationProperties.Name="X offset"
+                                Text="{Binding OffsetX, Mode=TwoWay}"
+                            />
+                            <TextBlock Text="Y offset" Style="{StaticResource Muted}" Width="60" Margin="16,0,0,0" />
+                            <TextBox
+                                Width="70"
+                                Style="{StaticResource StyleBox}"
+                                AutomationProperties.Name="Y offset"
+                                Text="{Binding OffsetY, Mode=TwoWay}"
+                            />
+                        </StackPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Text properties" Margin="0,10,0,0">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock Text="Font" Style="{StaticResource Muted}" />
+                            <ComboBox
+                                Width="200"
+                                HorizontalAlignment="Left"
+                                Style="{StaticResource GhComboBox}"
+                                AutomationProperties.Name="Font"
+                                IsEditable="True"
+                                ItemsSource="{Binding Fonts}"
+                                Text="{Binding FontName, Mode=TwoWay}"
+                            />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Height" Style="{StaticResource Muted}" />
+                            <TextBox
+                                Width="70"
+                                Style="{StaticResource StyleBox}"
+                                AutomationProperties.Name="Height"
+                                Text="{Binding TextHeight, Mode=TwoWay}"
+                            />
+                            <CheckBox
+                                Style="{StaticResource BlockCheck}"
+                                Margin="16,0,0,0"
+                                Content="Single line plot stamp"
+                                IsChecked="{Binding SingleLine, Mode=TwoWay}"
+                            />
+                        </StackPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Plot stamp units" Margin="0,10,0,0">
+                    <DockPanel>
+                        <TextBlock Text="Units" Style="{StaticResource Muted}" />
+                        <ComboBox
+                            Width="140"
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource GhComboBox}"
+                            AutomationProperties.Name="Units"
+                            ItemsSource="{Binding UnitsOffered}"
+                            SelectedItem="{Binding Units, Mode=TwoWay}"
+                        />
+                    </DockPanel>
+                </HeaderedContentControl>
+                <HeaderedContentControl
+                    Style="{StaticResource BlockGroup}"
+                    Header="Log file location"
+                    Margin="0,10,0,0"
+                >
+                    <StackPanel>
+                        <CheckBox
+                            Style="{StaticResource BlockCheck}"
+                            HorizontalAlignment="Left"
+                            Content="Create a log file"
+                            IsChecked="{Binding WriteLog, Mode=TwoWay}"
+                        />
+                        <DockPanel Margin="0,6,0,0" IsEnabled="{Binding WriteLog}">
+                            <Button
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Browse…"
+                                Padding="12,4"
+                                Margin="8,0,0,0"
+                                Click="OnBrowse"
+                            />
+                            <TextBox
+                                Style="{StaticResource StyleBox}"
+                                AutomationProperties.Name="Log file"
+                                Text="{Binding LogFile, Mode=TwoWay}"
+                            />
+                        </DockPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

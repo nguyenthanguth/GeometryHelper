@@ -17,8 +17,8 @@ namespace GeometryHelper.Dxf.Viewer
         internal static void AddMlineTo(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("MLINE", Mline));
-            registry.Add(new CadCommand("MLEDIT", MlineEdit));
-            registry.Add(new CadCommand("MLSTYLE", MlineStyleTyped));
+            registry.Add(new CadCommand("MLEDIT", MlineEditDialog));
+            registry.Add(new CadCommand("MLSTYLE", MlineStyleDialog));
 
             // How new multilines stand on the points picked, their scale and their style.
             registry.AddVariable(

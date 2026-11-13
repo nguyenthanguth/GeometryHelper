@@ -850,15 +850,23 @@
                                 HorizontalAlignment="Left"
                                 Margin="0,0,0,5"
                             />
-                            <CheckBox
-                                Style="{StaticResource StyleCheck}"
-                                Content="Plot stamp on"
-                                IsChecked="False"
-                                IsEnabled="False"
-                                HorizontalAlignment="Left"
-                                Margin="0,0,0,5"
-                                ToolTip="A plot stamp is not built yet."
-                            />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                <CheckBox
+                                    Style="{StaticResource StyleCheck}"
+                                    Content="Plot stamp on"
+                                    IsChecked="{Binding PlotStampOn, Mode=TwoWay}"
+                                    VerticalAlignment="Center"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="…"
+                                    Padding="6,0"
+                                    Margin="8,0,0,0"
+                                    ToolTip="Plot Stamp Settings"
+                                    AutomationProperties.Name="Plot Stamp Settings"
+                                    Click="OnPlotStampSettings"
+                                />
+                            </StackPanel>
                             <CheckBox
                                 Style="{StaticResource StyleCheck}"
                                 Content="Save changes to layout"

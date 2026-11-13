@@ -44,7 +44,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string option = c.Input.Text;
+            foreach (CadPrompt prompt in MlineEditWith(c, c.Input.Text))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>The picks of an MLEDIT option, as <see cref="MlineEdit"/> asks them once the option is chosen.</summary>
+        private static IEnumerable<CadPrompt> MlineEditWith(CadCommandContext c, string option)
+        {
             bool joins = Array.IndexOf(MlineEditOptions, option) < 7;
             bool cuts = option == "CS" || option == "CA" || option == "WA";
             var steps = new List<List<KeyValuePair<string, DxfMlineBuilder>>>();

@@ -185,6 +185,22 @@ namespace GeometryHelper.Dxf.Viewer
                 extractPath = path;
             }
 
+            WriteAttributeExtract(c, dxf, kind == "Sdf", selected, template, extractPath);
+        }
+
+        /// <summary>
+        /// Writes the extract of the blocks that have attributes, the whole drawing or the objects selected, to its file and says
+        /// how many records it holds, "4 records in extract file." ("16 objects in extract file." for DXF).
+        /// </summary>
+        private static void WriteAttributeExtract(
+            CadCommandContext c,
+            bool dxf,
+            bool sdf,
+            IReadOnlyList<string> selected,
+            AttextTemplate template,
+            string extractPath
+        )
+        {
             List<DxfBlockReference> blocks = ExtractedBlocks(c, selected, out List<int> numbers);
             var lines = new StringBuilder();
             int written;
@@ -197,9 +213,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 for (int i = 0; i < blocks.Count; i++)
                 {
-                    lines
-                        .Append(ExtractRecord(c, template, blocks[i], numbers[i], i + 1, kind == "Sdf"))
-                        .Append("\r\n");
+                    lines.Append(ExtractRecord(c, template, blocks[i], numbers[i], i + 1, sdf)).Append("\r\n");
                 }
 
                 written = blocks.Count;
@@ -212,7 +226,7 @@ namespace GeometryHelper.Dxf.Viewer
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             {
                 c.Write("** Error writing extract file.");
-                yield break;
+                return;
             }
 
             c.Write(

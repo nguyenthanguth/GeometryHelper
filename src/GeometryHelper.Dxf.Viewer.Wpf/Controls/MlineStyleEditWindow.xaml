@@ -1,0 +1,314 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.MlineStyleEditWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="{Binding Title}"
+    Width="760"
+    Height="500"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Muted" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="Cap" TargetType="CheckBox" BasedOn="{StaticResource BlockCheck}">
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="Margin" Value="0,3" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design MlineStyleEdit: Description; Caps, Fill and Display joints on the left; Elements on the right. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap"
+                    />
+                </DockPanel>
+            </Border>
+
+            <DockPanel Margin="16,14">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Text="Description:" Width="80" Style="{StaticResource Muted}" />
+                    <TextBox
+                        Style="{StaticResource StyleBox}"
+                        AutomationProperties.Name="Description"
+                        Text="{Binding Description, Mode=TwoWay}"
+                    />
+                </DockPanel>
+                <TextBlock
+                    DockPanel.Dock="Bottom"
+                    Margin="0,8,0,0"
+                    FontSize="11"
+                    TextWrapping="Wrap"
+                    Foreground="{StaticResource GhTextMuted}"
+                    Text="STANDARD and a style a multiline is drawn by keep their elements, caps and fill: only the description is taken. At most 16 elements; angles from 10 to 170."
+                />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel IsEnabled="{Binding IsEditable}">
+                        <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Caps">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="70" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Column="1" Text="Start" Style="{StaticResource Muted}" />
+                                <TextBlock Grid.Column="2" Text="End" Style="{StaticResource Muted}" />
+                                <TextBlock Grid.Row="1" Text="Line" Style="{StaticResource Muted}" />
+                                <CheckBox
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Line at the start"
+                                    IsChecked="{Binding StartLine, Mode=TwoWay}"
+                                />
+                                <CheckBox
+                                    Grid.Row="1"
+                                    Grid.Column="2"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Line at the end"
+                                    IsChecked="{Binding EndLine, Mode=TwoWay}"
+                                />
+                                <TextBlock Grid.Row="2" Text="Outer arc" Style="{StaticResource Muted}" />
+                                <CheckBox
+                                    Grid.Row="2"
+                                    Grid.Column="1"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Outer arc at the start"
+                                    IsChecked="{Binding StartOuterArc, Mode=TwoWay}"
+                                />
+                                <CheckBox
+                                    Grid.Row="2"
+                                    Grid.Column="2"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Outer arc at the end"
+                                    IsChecked="{Binding EndOuterArc, Mode=TwoWay}"
+                                />
+                                <TextBlock Grid.Row="3" Text="Inner arcs" Style="{StaticResource Muted}" />
+                                <CheckBox
+                                    Grid.Row="3"
+                                    Grid.Column="1"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Inner arcs at the start"
+                                    IsChecked="{Binding StartInnerArcs, Mode=TwoWay}"
+                                />
+                                <CheckBox
+                                    Grid.Row="3"
+                                    Grid.Column="2"
+                                    Style="{StaticResource Cap}"
+                                    AutomationProperties.Name="Inner arcs at the end"
+                                    IsChecked="{Binding EndInnerArcs, Mode=TwoWay}"
+                                />
+                                <TextBlock Grid.Row="4" Text="Angle" Style="{StaticResource Muted}" />
+                                <TextBox
+                                    Grid.Row="4"
+                                    Grid.Column="1"
+                                    Width="60"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,3"
+                                    Style="{StaticResource StyleBox}"
+                                    AutomationProperties.Name="Angle of the start"
+                                    Text="{Binding StartAngle, Mode=TwoWay}"
+                                />
+                                <TextBox
+                                    Grid.Row="4"
+                                    Grid.Column="2"
+                                    Width="60"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,3"
+                                    Style="{StaticResource StyleBox}"
+                                    AutomationProperties.Name="Angle of the end"
+                                    Text="{Binding EndAngle, Mode=TwoWay}"
+                                />
+                            </Grid>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Fill" Margin="0,8,0,0">
+                            <DockPanel>
+                                <TextBlock Text="Fill color:" Width="70" Style="{StaticResource Muted}" />
+                                <ComboBox
+                                    Style="{StaticResource GhComboBox}"
+                                    AutomationProperties.Name="Fill color"
+                                    ItemsSource="{Binding FillColors}"
+                                    SelectedItem="{Binding FillColor, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                        </HeaderedContentControl>
+                        <CheckBox
+                            Style="{StaticResource BlockCheck}"
+                            Content="Display joints"
+                            Margin="0,10,0,0"
+                            IsChecked="{Binding DisplayJoints, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <HeaderedContentControl
+                        Grid.Column="2"
+                        Style="{StaticResource BlockGroup}"
+                        Header="Elements"
+                        IsEnabled="{Binding IsEditable}"
+                    >
+                        <StackPanel>
+                            <Grid Margin="8,0,8,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Offset" Style="{StaticResource Muted}" />
+                                <TextBlock Grid.Column="1" Text="Color" Style="{StaticResource Muted}" />
+                                <TextBlock Grid.Column="2" Text="Ltype" Style="{StaticResource Muted}" />
+                            </Grid>
+                            <ListBox
+                                Height="110"
+                                Background="{StaticResource GhInput}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                Foreground="{StaticResource GhText}"
+                                ItemContainerStyle="{StaticResource StyleListItem}"
+                                AutomationProperties.Name="Elements"
+                                ItemsSource="{Binding Elements}"
+                                SelectedItem="{Binding Element, Mode=TwoWay}"
+                            >
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                Text="{Binding OffsetText}"
+                                                FontFamily="{StaticResource GhMonoFont}"
+                                            />
+                                            <TextBlock Grid.Column="1" Text="{Binding Color}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Linetype}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Add"
+                                    Padding="14,4"
+                                    Margin="0,0,8,0"
+                                    Click="OnAdd"
+                                />
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Delete"
+                                    Padding="14,4"
+                                    Click="OnDelete"
+                                />
+                            </StackPanel>
+                            <DockPanel Margin="0,8,0,0">
+                                <TextBlock Text="Offset:" Width="70" Style="{StaticResource Muted}" />
+                                <TextBox
+                                    Width="90"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource StyleBox}"
+                                    AutomationProperties.Name="Offset"
+                                    Text="{Binding Offset, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock Text="Color:" Width="70" Style="{StaticResource Muted}" />
+                                <ComboBox
+                                    Width="140"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource GhComboBox}"
+                                    AutomationProperties.Name="Color"
+                                    ItemsSource="{Binding Colors}"
+                                    SelectedItem="{Binding ElementColor, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                            <DockPanel Margin="0,6,0,0">
+                                <TextBlock Text="Linetype:" Width="70" Style="{StaticResource Muted}" />
+                                <ComboBox
+                                    Width="140"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource GhComboBox}"
+                                    AutomationProperties.Name="Linetype"
+                                    ItemsSource="{Binding Linetypes}"
+                                    SelectedItem="{Binding ElementLinetype, Mode=TwoWay}"
+                                />
+                            </DockPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </Grid>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>

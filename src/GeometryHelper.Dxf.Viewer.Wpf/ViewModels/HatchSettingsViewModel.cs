@@ -46,7 +46,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// objects, the island detection style, and a gradient's name, two colours and centring. The preview is a square hatched by
     /// the presenter's own hatch display. <see cref="Settings"/> holds the result once OK is pressed.
     /// </summary>
-    public sealed class HatchSettingsViewModel : ObservableObject
+    public sealed partial class HatchSettingsViewModel : ObservableObject
     {
         private static readonly string[] TypeNames = { "Pattern", "User defined", "Solid", "Gradient" };
         private static readonly string[] StyleNames = { "Normal", "Outer", "Ignore" };
@@ -92,6 +92,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _spacing = Text(Settings.Spacing);
             _originX = Text(Settings.OriginX);
             _originY = Text(Settings.OriginY);
+            Stored();
             PickColor1Command = new DelegateCommand(_ => PickGradientColor(true));
             PickColor2Command = new DelegateCommand(_ => PickGradientColor(false));
             BrowseCommand = new DelegateCommand(_ => Browse());

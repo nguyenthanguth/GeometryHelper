@@ -635,6 +635,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Enter symbol type to bind [Block/Dimstyle/LAyer/LType/Style]:", session.PromptText);
         }
 
+        [Fact]
+        public void Xbind_TheDialogListsTheReferencesDefinitionsByKind_AndBindsThoseAdded_AsOneStep()
+        {
+            CadDocument document = Host(out CadCommandSession session);
+            string attached = document.Database.ToText();
+            CadXbindRequest asked = null;
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "XBIND")
+                {
+                    asked = (CadXbindRequest)e.Payload;
+                    asked.ToBind.Add(new KeyValuePair<string, string>("Layer", "grid|GRID"));
+                    asked.ToBind.Add(new KeyValuePair<string, string>("Block", "grid|TAG"));
+                    asked.IsAccepted = true;
+                    e.Handled = true;
+                }
+            };
+
+            Run(session, "XBIND");
+
+            CadXbindReference grid = Assert.Single(asked.References);
+            Assert.Equal("grid", grid.Name);
+            Assert.Equal(new[] { "Block", "Layer", "Linetype" }, grid.Definitions.Select(d => d.Key));
+            Assert.Equal(new[] { "grid|TAG" }, grid.Definitions[0].Value);
+            Assert.Equal(new[] { "grid|AXIS", "grid|GRID" }, grid.Definitions[1].Value);
+            Assert.True(document.Database.BlockTable.Has("grid$0$TAG"));
+            Assert.True(document.Database.LayerTable.Has("grid$0$GRID"));
+            Assert.Equal("1 Layer(s) bound.", session.History.Last());
+            Assert.Equal("XBIND", document.NextUndo.Name);
+
+            Assert.True(document.Undo());
+            Assert.Equal(attached, document.Database.ToText());
+        }
+
         #endregion
 
         #region SAVE

@@ -98,6 +98,49 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ImageAdjust_TheDialogStartsAtTheImagesOwnValues_AndOkGivesAllThree_AsOneUndoStep()
+        {
+            CadDocument document = WithImages(out List<string> images, out string locked);
+            CadCommandSession session = Session(document);
+            Run(session, "-IMAGEADJUST", new[] { images[0] }, Enter, "B", "70");
+            // What each dialog started at: count, brightness, contrast, fade.
+            var asked = new List<int[]>();
+            string file = "none";
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "IMAGEADJUST")
+                {
+                    var request = (CadImageAdjustRequest)e.Payload;
+                    asked.Add(new[] { request.Count, request.Brightness, request.Contrast, request.Fade });
+                    file = request.ImageFile;
+                    request.Contrast = 30;
+                    request.Fade = 25;
+                    request.IsAccepted = asked.Count == 1;
+                    e.Handled = true;
+                }
+            };
+
+            Run(session, "IAD", new[] { images[0] }, Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { 1, 70, 50, 0 }, asked[0]);
+            Assert.Null(file);
+            Assert.Equal((byte)70, Image(document, images[0]).Brightness);
+            Assert.Equal((byte)30, Image(document, images[0]).Contrast);
+            Assert.Equal((byte)25, Image(document, images[0]).Fade);
+            Assert.Equal("IMAGEADJUST", document.NextUndo.Name);
+
+            // Several images start at AutoCAD's 50, 50 and 0; Cancel changes nothing, and one locked is left.
+            Run(session, "IMAGEADJUST", new[] { images[1], locked }, Enter);
+            Assert.Equal(new[] { 2, 50, 50, 0 }, asked[1]);
+            Assert.Equal((byte)50, Image(document, images[1]).Contrast);
+
+            Assert.True(document.Undo());
+            Assert.Equal((byte)50, Image(document, images[0]).Contrast);
+            Assert.Equal((byte)70, Image(document, images[0]).Brightness);
+        }
+
+        [Fact]
         public void ContrastAndFade_AskTheirOwnWords_AndEnterOffersTheOneImagesOwnValue()
         {
             CadDocument document = WithImages(out List<string> images, out _);

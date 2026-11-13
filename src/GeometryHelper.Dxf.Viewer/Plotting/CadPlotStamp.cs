@@ -130,6 +130,28 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The copy.</returns>
         public CadPlotStamp Clone() => (CadPlotStamp)MemberwiseClone();
 
+        /// <summary>
+        /// Takes every setting of another stamp, as the Plot Stamp dialog's OK gives the session's stamp what it edited in a
+        /// copy, so that every drawing sharing the stamp sees it.
+        /// </summary>
+        /// <param name="other">The stamp whose settings are taken.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the other stamp is null.</exception>
+        public void CopyFrom(CadPlotStamp other)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            foreach (System.Reflection.PropertyInfo property in typeof(CadPlotStamp).GetProperties())
+            {
+                if (property.CanWrite && property.CanRead)
+                {
+                    property.SetValue(this, property.GetValue(other));
+                }
+            }
+        }
+
         /// <summary>A length in <see cref="Units"/> in millimetres: 5.08 for 0.2 inch, 2.6458 for 10 pixels.</summary>
         /// <param name="value">The length.</param>
         /// <returns>The length in millimetres.</returns>

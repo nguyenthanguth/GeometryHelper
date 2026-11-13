@@ -1,0 +1,168 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.MlineStyleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Multiline Style"
+    Width="640"
+    Height="520"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="Visible" />
+            <Style x:Key="Side" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Padding" Value="12,5" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design MlineStyleManager: Styles, Description and Preview on the left, the seven buttons on the right. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Multiline Style" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="OK"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            Click="OnCancel"
+                            IsCancel="True"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                        TextWrapping="Wrap"
+                        Margin="0,0,8,0"
+                    />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="120" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock>
+                        <Run Text="Current multiline style: " Foreground="{StaticResource GhTextMuted}" />
+                        <Run Text="{Binding CurrentName, Mode=OneWay}" FontWeight="SemiBold" />
+                    </TextBlock>
+                    <TextBlock Text="Styles:" Foreground="{StaticResource GhTextMuted}" Margin="0,8,0,4" />
+                    <Grid Height="120">
+                        <ListBox
+                            x:Name="StyleList"
+                            Background="{StaticResource GhInput}"
+                            BorderBrush="{StaticResource GhBorder}"
+                            Foreground="{StaticResource GhText}"
+                            ItemContainerStyle="{StaticResource StyleListItem}"
+                            AutomationProperties.Name="Styles"
+                            ItemsSource="{Binding Names}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            MouseDoubleClick="OnModify"
+                        />
+                        <TextBox
+                            x:Name="RenameBox"
+                            Style="{StaticResource StyleBox}"
+                            VerticalAlignment="Top"
+                            Margin="2"
+                            AutomationProperties.Name="New name"
+                            Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{Binding IsRenaming, Converter={StaticResource Visible}}"
+                            KeyDown="OnRenameKey"
+                        />
+                    </Grid>
+                    <TextBlock Text="Description:" Foreground="{StaticResource GhTextMuted}" Margin="0,8,0,4" />
+                    <Border
+                        BorderBrush="{StaticResource GhBorder}"
+                        BorderThickness="1"
+                        Background="{StaticResource GhInput}"
+                        Padding="8,4"
+                    >
+                        <TextBlock Text="{Binding Description}" TextTrimming="CharacterEllipsis" />
+                    </Border>
+                    <TextBlock
+                        Text="{Binding PreviewCaption}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Margin="0,8,0,4"
+                    />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Background="Black" Height="130">
+                        <Image Source="{Binding Preview}" Width="300" Height="120" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,38,0,0">
+                    <Button Style="{StaticResource Side}" Content="Set Current" Click="OnSetCurrent" />
+                    <Button Style="{StaticResource Side}" Content="New…" Click="OnNew" />
+                    <Button Style="{StaticResource Side}" Content="Modify…" Click="OnModify" />
+                    <Button
+                        Style="{StaticResource Side}"
+                        Content="Rename"
+                        Click="OnRename"
+                        IsEnabled="{Binding CanRename}"
+                    />
+                    <Button
+                        Style="{StaticResource Side}"
+                        Content="Delete"
+                        Click="OnDelete"
+                        IsEnabled="{Binding CanDelete}"
+                    />
+                    <Button Style="{StaticResource Side}" Content="Load…" Click="OnLoad" />
+                    <Button Style="{StaticResource Side}" Content="Save…" Click="OnSave" />
+                    <TextBlock
+                        TextWrapping="Wrap"
+                        FontSize="11"
+                        Foreground="{StaticResource GhTextMuted}"
+                        Text="STANDARD is not renamed or deleted; the current style and one a multiline is drawn by are not deleted."
+                    />
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

@@ -251,6 +251,68 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Draw(alone, null, width, height, fit);
         }
 
+        /// <summary>
+        /// Draws a multiline of a multiline style's settings, as the Multiline Style dialog previews one: a line with a bend,
+        /// justified at zero, at scale 1, its four segments as long as the style is wide and more, made as MLINE makes one in
+        /// a drawing of its own. An element drawn with a linetype the preview's drawing has not is drawn continuous.
+        /// </summary>
+        /// <param name="settings">The settings of the style.</param>
+        /// <param name="width">The width of the picture, in pixels.</param>
+        /// <param name="height">The height of the picture, in pixels.</param>
+        /// <returns>The picture.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the settings are null.</exception>
+        public static BitmapSource Mline(DxfMlineStyleSettings settings, int width, int height)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            var database = new DxfDatabase("AC1027");
+            var drawn = new DxfMlineStyleSettings
+            {
+                Description = string.Empty,
+                Filled = settings.Filled,
+                FillColor = settings.FillColor,
+                StartAngle = settings.StartAngle,
+                EndAngle = settings.EndAngle,
+                ShowMiters = settings.ShowMiters,
+                StartSquareCap = settings.StartSquareCap,
+                StartInnerArcs = settings.StartInnerArcs,
+                StartRoundCap = settings.StartRoundCap,
+                EndSquareCap = settings.EndSquareCap,
+                EndInnerArcs = settings.EndInnerArcs,
+                EndRoundCap = settings.EndRoundCap,
+            };
+            drawn.Elements.Clear();
+
+            foreach (DxfMlineStyleElement element in settings.Elements)
+            {
+                string linetype = database.LinetypeTable.Has(element.Linetype ?? string.Empty)
+                    ? element.Linetype
+                    : "BYLAYER";
+                drawn.Elements.Add(new DxfMlineStyleElement(element.Offset, element.Color, linetype));
+            }
+
+            double span =
+                settings.Elements.Count == 0
+                    ? 1.0
+                    : settings.Elements.Max(e => e.Offset) - settings.Elements.Min(e => e.Offset);
+            double unit = span > 1E-9 ? span : 1.0;
+            var builder = new DxfMlineBuilder(database.AddMlineStyle("PREVIEW", drawn))
+            {
+                Justification = DxfMlineJustification.Zero,
+            };
+
+            foreach (var point in new[] { (0.0, 0.0), (5.0, 0.0), (8.0, -2.5), (12.0, -2.5) })
+            {
+                builder.Points.Add(new Geometry.GeoPoint3(point.Item1 * unit, point.Item2 * unit, 0.0));
+            }
+
+            database.ModelSpace.AppendEntity(builder.Build());
+            return Draw(database, null, width, height, new DisplayBox(0.0, -3.5 * unit, 12.0 * unit, 1.0 * unit));
+        }
+
         /// <summary>The picture of model space of a drawing, as the attach dialog and the External References palette preview an external reference.</summary>
         internal static BitmapSource Drawing(DxfDatabase database, CadFonts fonts, int width, int height) =>
             Draw(database, fonts, width, height, DisplayBox.Empty);
