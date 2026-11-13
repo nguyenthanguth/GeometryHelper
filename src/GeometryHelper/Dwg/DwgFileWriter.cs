@@ -93,44 +93,6 @@ namespace GeometryHelper.Dwg
             0x49,
             0x75,
         };
-        private static readonly byte[] PreviewStart =
-        {
-            0x1F,
-            0x25,
-            0x6D,
-            0x07,
-            0xD4,
-            0x36,
-            0x28,
-            0x28,
-            0x9D,
-            0x57,
-            0xCA,
-            0x3F,
-            0x9D,
-            0x44,
-            0x10,
-            0x2B,
-        };
-        private static readonly byte[] PreviewEnd =
-        {
-            0xE0,
-            0xDA,
-            0x92,
-            0xF8,
-            0x2B,
-            0xC9,
-            0xD7,
-            0xD7,
-            0x62,
-            0xA8,
-            0x35,
-            0xC0,
-            0x62,
-            0xBB,
-            0xEF,
-            0xD4,
-        };
 
         /// <summary>
         /// The values the specification does not name, as AutoCAD 2021 writes them in every drawing of R2018: by the name
@@ -241,6 +203,12 @@ namespace GeometryHelper.Dwg
             _objects = new DwgObjectWriter(_drawing, _number, _classNames, _written);
             var records = new List<DwgRecord>();
 
+            // A record with no handle cannot be named by the DWG: it is counted with the types left out.
+            foreach (KeyValuePair<string, int> none in _drawing.WithoutHandle)
+            {
+                _left[none.Key] = none.Value;
+            }
+
             foreach (DwgRecord record in _drawing.All)
             {
                 if (
@@ -303,12 +271,26 @@ namespace GeometryHelper.Dwg
                 _drawing.AcisData.FindAll(data => _written.Contains(data.Key) && IsAcis(_drawing.Find(data.Key)))
             );
 
+            byte[] picture = _drawing.Thumbnail;
+
+            if (picture != null)
+            {
+                // The first page of the file, as AutoCAD places it: its data begins at 0x120, which the places of the images
+                // name; one page, as large as the picture needs.
+                byte[] preview = DwgPreview.Build(picture, 0x120);
+                container.Add("AcDb:Preview", preview, 9, (preview.Length + 0x3FF) & ~0x3FF, false);
+            }
+
             if (store != null)
             {
                 container.Add("AcDb:AcDsPrototype_1b", store, 11, 0x7400, true);
             }
 
-            container.Add("AcDb:Preview", Preview(), 9, 0x400, false);
+            if (picture == null)
+            {
+                container.Add("AcDb:Preview", DwgPreview.Build(null, 0), 9, 0x400, false);
+            }
+
             container.Add("AcDb:AppInfo", AppInfo(), 10, 0x180, false);
             container.Add(
                 "AcDb:RevHistory",
@@ -599,16 +581,6 @@ namespace GeometryHelper.Dwg
                     return section.ToArray();
                 }
             }
-        }
-
-        private byte[] Preview()
-        {
-            var preview = new MemoryStream();
-            preview.Write(PreviewStart, 0, 16);
-            Long(preview, 1);
-            preview.WriteByte(0);
-            preview.Write(PreviewEnd, 0, 16);
-            return preview.ToArray();
         }
 
         private static byte[] AppInfo()

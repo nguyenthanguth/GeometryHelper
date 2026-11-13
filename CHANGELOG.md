@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The DWG writer writes the solids of SAT text, which it left out: a REGION, 3DSOLID or BODY of a DXF of AutoCAD 2004,
+2007 or 2010 is turned into the SAB AutoCAD 2021 writes for R2018 (`DwgSat.ToSab`, the grammars of the reader turned round),
+named by the GUID its extended data kept (`ACAD_OBJECT_CHANGE_GUID`, taken out) or one made of its handle, and kept in the data
+store of the file. Eleven solids (box, sphere, cone, cylinder, torus, wedge, pyramid, a plate with a hole, a union, an extrusion
+and a revolve) and three regions of each of the three versions open in AutoCAD 2021 with `AUDIT` finding 0 errors, and each
+solid has the volume, surface area and centroid of AutoCAD's own DWG of the drawing (the box 6 000 and 2 200, the plate
+13 721.42 and 6 000), to the last digit. The ACIS 4.00 text of AutoCAD 2000 is still left out, with the surfaces. The preview
+image is kept both ways: a DWG's preview comes as the section `THUMBNAILIMAGE` of the DXF (`DxfDatabase.ThumbnailBitmap`), in
+all six versions, and a `THUMBNAILIMAGE` is written as the preview as AutoCAD 2021 lays it out (a header of 80 zero bytes, then
+a bitmap or a PNG, in a page of its own at 0x120); AutoCAD gives a 96 by 64 bitmap back through `Database.ThumbnailBitmap`
+pixel for pixel, and a broken preview no longer matters to the file. A record of a DXF that has no handle, which a DWG cannot
+name, is counted with the types the writer leaves out (the Warn line of `DwgWriter`) where it vanished without a word. VIEWPORT,
+HATCH, LEADER, MULTILEADER, MLINE, IMAGE and WIPEOUT written as DWG are AutoCAD's own bytes object for object but the last bit
+of a double the 16 digits of a DXF cannot hold, polygon and polyface meshes and MINSERT too, and AutoCAD's DXF of each of 12
+drawings we wrote is the DXF of its own DWG of them, with no difference.
+
+**CHANGED.** `DxfColor.ByLayer.ColorValue` is white, 0xFFFFFF, as AutoCAD 2021's `Color.ColorValue` gives it (it was 0, black);
+`Red`, `Green` and `Blue` of BYLAYER stay 0 and BYBLOCK stays black, as AutoCAD gives them. Colours compare as before, and the
+presenter's colour dialogs already took BYLAYER as white.
+
 **NEW.** A REGION clips a viewport, and MVIEW has its Object option (AutoCAD 2021's VPCLIP and MVIEW probed in its console, and
 a ring plotted to a PNG). `DxfViewport.ClipTo` takes a REGION whose shape is read: the frame becomes the box of its loops and
 the region stays the boundary with the viewport among its reactors; a ring (a circle of radius 40 less one of 15) makes the

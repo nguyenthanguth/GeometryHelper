@@ -134,6 +134,16 @@ namespace GeometryHelper.Dwg
                 container.DataStore = Join(file, pages, store, ref budget);
             }
 
+            if (sections.TryGetValue("AcDb:Preview", out Descriptor preview) && preview.Encrypted != 1)
+            {
+                try
+                {
+                    // A preview no program needs to read the drawing: a page of it that is broken is no reason to refuse the file.
+                    container.Preview = Join(file, pages, preview, ref budget);
+                }
+                catch (FormatException) { }
+            }
+
             if (sections.TryGetValue("AcDb:Template", out Descriptor template))
             {
                 byte[] data = Join(file, pages, template, ref budget);

@@ -17,11 +17,13 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </summary>
     public class DwgAnswerKeyTests : IDisposable
     {
-        /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
+        /// <summary>
+        /// The types the reader does not read yet, which a comparison may find missing: the class of CELLSTYLEMAP, which
+        /// AutoCAD's DXF lists and the reader's does not, and the content of an R2000 or R2004 table.
+        /// </summary>
         private static readonly string[] NotReadYet =
         {
             "CELLSTYLEMAP",
-            "TABLESTYLE",
             // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
             // R2007 its TABLECONTENT and TABLEGEOMETRY are read.
             "ACDBDATATABLE",

@@ -191,6 +191,9 @@ namespace GeometryHelper.Dwg
         /// <summary>From R2013 the data store (AcDb:AcDsPrototype_1b), which holds the ACIS data of the solids; null where the file has none.</summary>
         public byte[] DataStore { get; private set; }
 
+        /// <summary>The preview image of the file with its sentinels (<see cref="DwgPreview"/>); null where the file has none or it is broken, which the file does not hang on.</summary>
+        public byte[] Preview { get; private set; }
+
         /// <summary>
         /// The version string of a file, its first six bytes, where they are those of a DWG (<c>AC</c> and four digits or
         /// such); null where the bytes are not the start of a DWG.
@@ -379,6 +382,9 @@ namespace GeometryHelper.Dwg
             {
                 container.Measurement = file[seekers[4]] | (file[seekers[4] + 1] << 8);
             }
+
+            // The image seeker of the file header, at 0x0D.
+            container.Preview = DwgPreview.Block(file, (uint)BitConverter.ToInt32(file, 0x0D));
 
             return container;
         }

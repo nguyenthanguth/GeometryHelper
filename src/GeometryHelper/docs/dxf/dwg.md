@@ -56,9 +56,15 @@ each.
 | Classes | every class of the file |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
+| Preview | the picture of the file's preview, where it holds one, as the section `THUMBNAILIMAGE` of the DXF, last: a bitmap of Windows without its file header (`DxfDatabase.ThumbnailBitmap` gives its bytes), or a PNG file |
+
+The preview of a drawing AutoCAD has drawn no picture of (a drawing it saves in its console, or from a program) is a
+header of 80 zero bytes alone, and gives no section. The sample drawings of AutoCAD 2007 keep a bitmap of 256 by 117
+pixels, 8 bits, which comes out whole: the header `28000000 00010000 75000000 0100 0800` and its 31 016 bytes. A
+preview that is cut short or broken is left out and does not refuse the file.
 
 A layout's viewports come numbered (group 69) as AutoCAD numbers them, which the file does not say: from AutoCAD 2004
 the layout lists them, the one showing the paper first; in an AutoCAD 2000 file the viewport whose view is the paper
@@ -155,11 +161,17 @@ A type that is not read is left out, with what it owns, and counted: one Debug l
 call.
 
 - Entities: a REGION, 3DSOLID or BODY of AutoCAD 2004 to 2010 whose SAB holds a record or subtype the grammars do not
-  know (see above), the OLE frames, proxies, and every entity of a class the list above does not name.
+  know (see above), the OLE frames, proxies, the surfaces (EXTRUDEDSURFACE, REVOLVEDSURFACE and the others), and every
+  entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
+  or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
+  neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
 - Objects: the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
   AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the data of dynamic blocks,
   and the other objects of classes. AutoCAD makes most of these anew in a drawing
-  that lacks them. A TABLECONTENT that holds a cell linked to data, the attributes of a block, fields or a cell's
+  that lacks them. In AutoCAD 2021's own sample drawings the types left out are the FIELD and FIELDLIST of fields
+  (up to 396 in a drawing), the SORTENTSTABLE of the draw order, the DATALINK of a table linked to data, and the
+  objects of dynamic blocks and of associative dimensions (the evaluation graph, BLOCK* parameters, actions and grips,
+  ACDBASSOC*, OBJECT_PTR). A TABLECONTENT that holds a cell linked to data, the attributes of a block, fields or a cell's
   geometry is left out too: no test drawing has shown AutoCAD's DXF of those yet.
 - An ACAD_TABLE from AutoCAD 2010 holds its content itself, rows, columns, cells, merged ranges; it is given in the
   groups DXF keeps of AutoCAD 2007, as AutoCAD writes it: the table's own overrides (93 to 96 and their groups, in its
@@ -194,7 +206,6 @@ call.
   planes; for a plane facing (−1, −1, −2) AutoCAD keeps the normal facing down. The curve is the same either way.
 - From AutoCAD 2013 the file keeps a periodic spline clamped and marked closed alone; a closed spline of these versions
   is given as periodic too (group 70 bit 2), as AutoCAD writes it.
-- The preview image of the file is skipped.
 
 The order of the OBJECTS section is the root dictionary first and then by handle, not AutoCAD's; nothing reads that
 order.
@@ -268,9 +279,10 @@ drawing gives the same bytes every time.
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
 each (`DwgWriter: types that are not written yet were left out: SHAPE 1 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
-with it. Left out so far: a VISUALSTYLE of the form before AutoCAD 2013 and a REGION, 3DSOLID or BODY of SAT text, as a
-DXF of an older version gives them; and a SHAPE given by its name. A new drawing of AutoCAD 2018 is written whole:
-nothing of it is left out.
+with it. A record that has no handle (a DXF of AutoCAD 12 has none) cannot be named by the DWG and is left out the same
+way, counted under its type. Left out so far: a VISUALSTYLE of the form before AutoCAD 2013, a REGION, 3DSOLID or BODY
+of ACIS 4.00 text (the DXF of AutoCAD 2000) or of a SAT whose records the grammars do not place (see below), a SHAPE
+given by its name, and the surfaces. A new drawing of AutoCAD 2018 is written whole: nothing of it is left out.
 
 A SHAPE is written where its DXF gives its number: under group 70, as the reader gives a shape whose file of shapes it
 does not find, or as the name, `2 130`. A name is not looked up, and a SHAPE given by its name alone, as AutoCAD's DXF
@@ -293,6 +305,24 @@ cylinder and a region of a circle are written as AutoCAD's own bits, entity for 
 too, but the 12 bytes after the index of the segments that AutoCAD leaves as its memory held them; so is the store of
 a plate 400 by 400 with 400 holes, its 515 873 bytes of SAB in a page of its own. AutoCAD opens both, `AUDIT` finds 0
 errors, and its own DXF of each is the DXF it was written from, the SAB data byte for byte.
+
+A solid of SAT text, as a DXF of AutoCAD 2004, 2007 and 2010 gives it, is turned into the SAB AutoCAD 2021 writes for
+a DWG of R2018 (`DwgSat.ToSab`, the grammars of the reader turned round) and written the same way: its extended data
+`ACAD_OBJECT_CHANGE_GUID` is the GUID the entity names its data by, taken out of the extended data, and a body whose
+data has none gets a GUID made of its handle, so that the same drawing gives the same bytes. Eleven solids (a box, a
+sphere, a cone, a cylinder, a torus, a wedge, a pyramid, a plate with a hole, a union, an extrusion of a polyline with
+an arc and a revolve) and three regions (discs of radius 7, 9 and 4) of a DXF of each of the three versions are written
+so; AutoCAD 2021 opens all of them, `AUDIT` finds 0 errors, and each solid has the volume, surface area and centroid
+AutoCAD gives it from its own DWG of the drawing (the box 6 000 and 2 200, the sphere 2 144.66 and 804.25, the plate
+13 721.42 and 6 000, a revolve of 270 degrees 2 968.81 and 1 585.94), to the last digit. The ACIS 4.00 text of AutoCAD
+2000 is not turned: its records are laid out otherwise than those of the later versions, and its solids are left out.
+
+The preview of a DWG is its picture in Explorer and in the Open dialog: where the DXF holds a section `THUMBNAILIMAGE` (a
+bitmap of Windows without its file header, or a PNG file, as AutoCAD writes it) it is written as the preview, laid out
+as AutoCAD 2021 lays it out: a header of 80 zero bytes (kind 1), then the picture (kind 2, a PNG kind 6), each placed
+by its address in the file, in one page of its own at 0x120, the first of the file. AutoCAD gives a drawing so written
+its picture back through `Database.ThumbnailBitmap`, pixel for pixel (a bitmap of 96 by 64), and `AUDIT` finds 0 errors.
+Without a `THUMBNAILIMAGE` the preview is the empty one the writer always wrote, and the file is the same bytes.
 
 A MATERIAL and a VISUALSTYLE are written from the groups their DXF gives, a group not given taking a new material's
 value. Of AutoCAD's new drawing the 24 visual styles and the three materials are AutoCAD's own bits but the last bit of

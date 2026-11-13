@@ -333,8 +333,16 @@ the ones wanted.
       of what we write, ACadSharp as a side check in scratch only.
   - [x] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
         the common entities and objects, the handle map (L)
-  - [ ] (dwg7, running) W1 follow-ups (into W4): VIEWPORT, HATCH, LEADER, MLINE, IMAGE, WIPEOUT, OLE, proxies, styles objects; polygon
-        mesh, polyface and MINSERT checked on AutoCAD drawings; R2000 round-trip colours; the preview image
+  - [x] DWG follow-ups (dwg7): SAT-text 3DSOLID/BODY/REGION written into DWG R2018 as SAB (11 solids and 3 regions from
+        R2004-R2010: AUDIT 0, volumes, areas and centroids equal AutoCAD's); the preview image read and written
+        (THUMBNAILIMAGE); VIEWPORT, HATCH, LEADER, MULTILEADER, MLINE, IMAGE, WIPEOUT, meshes and MINSERT checked object by
+        object against AutoCAD's own DWG (bytes equal but the last bit of a double); records without a handle counted and
+        warned; DxfColor.ColorValue of BYLAYER white as AutoCAD (CHANGED)
+  - [ ] DWG follow-ups 2: OLE2FRAME and proxies (need a GUI-made sample); R2000/R2004 TABLECONTENT; surfaces in DWG;
+        ACIS 4.00 of R2000; pre-R2013 VISUALSTYLE from a DXF; relative handle codes, SPLINE knot tolerance (1E-10) and the
+        other byte differences listed in the dwg7 merge; SORTENTSTABLE, FIELD/FIELDLIST and DATALINK read; a rendered
+        thumbnail for new drawings; Red/Green/Blue of ByAci (AutoCAD 0); R2000 round-trip colours; tcustom reader parity
+        (9 of 15 cells, parked); TABLEGEOMETRY head bit (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
@@ -353,9 +361,7 @@ the ones wanted.
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [x] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE (R2010 form, TABLESTYLE, TABLECONTENT), multiline attributes, RASTERVARIABLES/WIPEOUTVARIABLES; reader reads R2010+ tables
   - [x] W5b follow-ups: cell and table overrides both ways, TABLECONTENT (R2007+) and TABLEGEOMETRY read, border edges fixed, clean table sample AUDIT 0, left-out test
-  - [ ] (dwg7, running) W5b follow-ups 2: custom cell styles written (ids 101+, AutoCAD AUDIT 0) and merged range edges done; reader parity on tcustom (9 of 15 cells differ, parked after 3 attempts); R2000/R2004 TABLECONTENT; TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
   - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
-  - [ ] (dwg7, running) W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)

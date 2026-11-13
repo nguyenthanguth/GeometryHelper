@@ -350,8 +350,11 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the blue of the colour, 0 to 255.</summary>
         public byte Blue => (byte)_rgb;
 
-        /// <summary>Gets the colour as red, green and blue, 0xRRGGBB, as AutoCAD's <c>ColorValue</c> gives them.</summary>
-        public int ColorValue => _rgb;
+        /// <summary>
+        /// Gets the colour as red, green and blue, 0xRRGGBB, as AutoCAD's <c>ColorValue</c> gives them: BYLAYER is white,
+        /// 0xFFFFFF, while its <see cref="Red"/>, <see cref="Green"/> and <see cref="Blue"/> stay nought; BYBLOCK is black.
+        /// </summary>
+        public int ColorValue => IsByLayer ? 0xFFFFFF : _rgb;
 
         /// <summary>Gets the name of the colour in its colour book (group 430), as AutoCAD's <c>ColorName</c>; null where it has none.</summary>
         public string ColorName { get; }
