@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** SPLINEDIT completed in the presenter, in the words of AutoCAD 2021 (probed in accoreconsole, the splines met to 1E-5):
+its menu is now `Enter an option [Fit data/Close/Join/Move vertex/Refine/rEverse/convert to Polyline/Undo/eXit] <eXit>:`. Fit data
+has Add, Close or Open, Delete, Kink, Move, Purge, Tangents and toLerance, each fitting the cubic through the points anew as
+AutoCAD does (adding (15, 8) after (10, 10) to the spline through (0, 0), (10, 10), (20, 0), (30, 10) and (40, 0) gives the 8
+control points and knots AutoCAD wrote; a kink at (20, 0) the knot 28.28 three times and a fourth 1E-8 past it). Join takes the
+curves that meet an end, as JOIN does, saying `1 object joined to source`. Refine has Add (a knot at the nearest point), Delete
+(a control point), Elevate order, Move and Weight (`Spline is not rational. Will make it so.`). Close and Open now work on a
+spline of control points too: Close takes them as the points of one period with uniform knots, in AutoCAD's periodic form (the
+cubic of 7 control points has 10 and the knots 0, 0, 0, 0, 1 to 6, 7, 7, 7, 7), and Open gives them back with uniform knots.
+Not built: AutoCAD's fit tolerance fitted to (the curve still passes through every point), Elevate order past order 11
+(AutoCAD's 26), and the picks of Delete and Select point in the console, which are by screen aperture and could not be probed.
+**FIXED.** `DxfSpline.JoinEntity` and `JoinEntities` ran a line on over its length in knots; AutoCAD 2021's JOIN and SPLINEDIT Join
+run it on over 1: a line of 22.36 joined to a spline of knots 0 to 56.57 ended at 57.57, not 78.93. The curve is the same, the
+knots of the joined spline differ.
+
 **NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
 EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
 variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog

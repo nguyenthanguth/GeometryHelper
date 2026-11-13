@@ -964,8 +964,9 @@ namespace GeometryHelper.Dxf
         /// joined to a curve, which a POLYLINE does not become in place. A <see cref="DxfSpline"/> takes lines, arcs, elliptical
         /// arcs, polylines and splines, each as the spline that is exactly it (<see cref="DxfCurve.Spline"/>, a polyline fitted
         /// with a spline as the one of the vertices it is drawn through), all raised to the
-        /// highest degree among them and joined with their knots run on one from the other, the spline's own kept; it is given
-        /// by its control points from then on.
+        /// highest degree among them and joined with their knots run on one from the other, the spline's own kept (an arc run on
+        /// by its angle, a polyline by 1 a segment and a line by 1, as AutoCAD 2021 ran them on a spline of knots 0 to 56.57); it is
+        /// given by its control points from then on.
         /// Where the joined ends come back together the polyline or spline is closed, its last vertex the first: the polyline of
         /// one side of a square 10 by 10 joined to lines of the other three is closed, of area 100.
         /// </para>

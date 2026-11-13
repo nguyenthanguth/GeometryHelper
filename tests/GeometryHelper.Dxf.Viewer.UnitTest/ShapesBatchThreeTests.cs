@@ -508,7 +508,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Select spline:", session.PromptText);
             Run(session, (object)new[] { spline.Handle });
             Assert.Equal(
-                "Enter an option [Close/Move vertex/rEverse/convert to Polyline/Undo/eXit] <eXit>:",
+                "Enter an option [Fit data/Close/Join/Move vertex/Refine/rEverse/convert to Polyline/Undo/eXit] <eXit>:",
                 session.PromptText
             );
             Run(session, Enter);
@@ -524,7 +524,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "SPLINEDIT", new[] { spline.Handle }, "C");
 
             Assert.Equal(
-                "Enter an option [Open/Move vertex/rEverse/convert to Polyline/Undo/eXit] <eXit>:",
+                "Enter an option [Fit data/Open/Move vertex/Refine/rEverse/convert to Polyline/Undo/eXit] <eXit>:",
                 session.PromptText
             );
             Assert.True(spline.Closed);

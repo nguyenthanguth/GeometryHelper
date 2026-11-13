@@ -1355,6 +1355,129 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Closes a spline of control points as AutoCAD 2021's SPLINEDIT Close does: its control points taken as the points of
+        /// one period, uniform knots a step apart, the curve closed round its seam smoothly and written in the periodic form
+        /// (the flags 2048 and 2, closed, the curve clamped at the seam, so that a cubic of 7 control points has 10 and the knots
+        /// 0, 0, 0, 0, 1 to 6, 7, 7, 7, 7). The knots it had are gone, as AutoCAD's are; weights are kept with their points.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the spline has no control points, or fewer than its degree and one.</exception>
+        internal void ClosePeriodic()
+        {
+            int p = Degree;
+            IReadOnlyList<GeoPoint3> polygon = ControlPoints;
+            bool rational = IsRational;
+            IReadOnlyList<double> weights = rational ? Weights : null;
+            int m = polygon.Count;
+
+            if (m < p + 1)
+            {
+                throw new InvalidOperationException(
+                    "A spline of degree "
+                        + p.ToString(CultureInfo.InvariantCulture)
+                        + " has "
+                        + (p + 1).ToString(CultureInfo.InvariantCulture)
+                        + " control points at least to be closed, and this one has "
+                        + m.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
+            }
+
+            // The knots of the curve as it runs on round, a period before and after: the floating point k is the control point
+            // (k + m - p) mod m of the period, as InterpolatePeriodic lays them.
+            var u = new List<double>(m + 2 * p + 1);
+
+            for (int i = m - p; i < m; i++)
+            {
+                u.Add(i - m);
+            }
+
+            for (int i = 0; i <= m; i++)
+            {
+                u.Add(i);
+            }
+
+            for (int i = 1; i <= p; i++)
+            {
+                u.Add(i + m);
+            }
+
+            var pw = new List<double[]>(m + p);
+
+            for (int k = 0; k < m + p; k++)
+            {
+                int j = (k + m - p) % m;
+                double w = rational ? weights[j] : 1.0;
+                pw.Add(new[] { polygon[j].X * w, polygon[j].Y * w, polygon[j].Z * w, w });
+            }
+
+            DxfNurbsEdit.Clamp(p, u, pw);
+            DxfNurbsEdit.Split(pw, out List<GeoPoint3> points, out List<double> split);
+            SetNurbsData(p, rational, true, true, points, u, rational ? split : null);
+            SetInt(70, GetInt(70, 0) | PeriodicFlag, 0);
+        }
+
+        /// <summary>
+        /// Opens a closed spline of control points as AutoCAD 2021's SPLINEDIT Open does: the control points of one period of a
+        /// periodic spline (those <see cref="ClosePeriodic"/> was given) back as the points of an open spline, a closed one that
+        /// is not periodic keeping its points, with uniform knots a step apart, clamped; the curve is the uniform one of those
+        /// points, whatever knots it had, as AutoCAD's. Its weights go with their points.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the spline has no control points, or fewer than its degree and one.</exception>
+        internal void OpenPeriodic()
+        {
+            int p = Degree;
+            bool rational = IsRational;
+            List<GeoPoint3> polygon = new List<GeoPoint3>(ControlPoints);
+            List<double> weights = rational ? new List<double>(Weights) : null;
+
+            if (IsPeriodic)
+            {
+                Clamped(out _, out List<double> u, out List<double[]> pw);
+                List<double[]> period = DxfNurbsEdit.PeriodicPolygon(p, u, pw);
+
+                if (period != null)
+                {
+                    DxfNurbsEdit.Split(period, out polygon, out List<double> split);
+                    weights = rational ? split : null;
+                }
+            }
+
+            int m = polygon.Count;
+
+            if (m < p + 1)
+            {
+                throw new InvalidOperationException(
+                    "A spline of degree "
+                        + p.ToString(CultureInfo.InvariantCulture)
+                        + " has "
+                        + (p + 1).ToString(CultureInfo.InvariantCulture)
+                        + " control points at least, and this one has "
+                        + m.ToString(CultureInfo.InvariantCulture)
+                        + "."
+                );
+            }
+
+            var knots = new List<double>(m + p + 1);
+
+            for (int i = 0; i <= p; i++)
+            {
+                knots.Add(0.0);
+            }
+
+            for (int i = 1; i < m - p; i++)
+            {
+                knots.Add(i);
+            }
+
+            for (int i = 0; i <= p; i++)
+            {
+                knots.Add(m - p);
+            }
+
+            SetNurbsData(p, rational, false, false, polygon, knots, weights);
+        }
+
+        /// <summary>
         /// Writes the periodic spline through fit points taken round, the last back to the first, as AutoCAD 2021 writes one
         /// (its 17-l): the cubic of <see cref="DxfNurbsEdit.InterpolatePeriodic"/> whatever degree the fit data ask, as AutoCAD
         /// wrote its cubic asked a degree 2 (17-v), the degree lowered to the points less one where they are fewer, closed, the

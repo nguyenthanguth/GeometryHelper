@@ -201,7 +201,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
-| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
+| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
@@ -246,15 +246,41 @@ remove Boundaries, Origin, hatch COlor, LAyer, Transparency and ANnotative are n
 with the type set to a gradient, as AutoCAD's ribbon takes it; HATCHTOBACK sends every hatch of the current space behind the
 other objects (`1 hatch object(s) sent to back.`, or `No hatch objects found.`).
 
-SPLINEDIT asks `Select spline:` and `Enter an option [Close/Move vertex/rEverse/convert to Polyline/Undo/eXit] <eXit>:`.
-For a spline of fit points Close makes the periodic cubic AutoCAD makes through them and its first point again (the
-spline through (0, 0), (10, 10), (20, 0), (30, 10) and (40, 0) gets the 8 control points AutoCAD wrote for it), and Open the
-open cubic through the points again. Move vertex marks the first control vertex and asks `Specify new location or
-[Next/Previous/Select point/eXit] <N>:`: a point moves the marked vertex, which stays marked, and a spline of fit points loses
-its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks `Specify a precision <10>:` and replaces
-the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command. Fit data, Join and Refine are
-not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT (the classic dialog
-is not in the presenter's design).
+SPLINEDIT asks `Select spline:` and `Enter an option [Fit data/Close/Join/Move vertex/Refine/rEverse/convert to
+Polyline/Undo/eXit] <eXit>:`: Fit data only for a spline of fit points, Open in place of Close once it is closed, and Join
+only while it is open (the prompts and the splines were read from AutoCAD 2021 and met to 1E-5). Close makes a spline of fit
+points the periodic cubic AutoCAD makes through them and its first point again (the spline through (0, 0), (10, 10), (20, 0),
+(30, 10) and (40, 0) gets the 8 control points AutoCAD wrote for it), and Open the open cubic through the points again; a
+spline of control points is closed as AutoCAD closes one, its control points taken as the points of one period with uniform
+knots a step apart (the cubic of 7 control points gets AutoCAD's periodic form of 10 control points and the knots 0, 0, 0, 0, 1
+to 6, 7, 7, 7, 7), and Open gives the 7 points back with the knots 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4, whatever knots it had
+(its curve is then the uniform one of those points). Move vertex marks the first control vertex and asks `Specify new location
+or [Next/Previous/Select point/eXit] <N>:`: a point moves the marked vertex, which stays marked, and a spline of fit points
+loses its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks `Specify a precision <10>:` and replaces
+the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command.
+
+Fit data asks `Enter a fit data option [Add/Close/Delete/Kink/Move/Purge/Tangents/toLerance/eXit] <eXit>:` (Open for Close
+once it is closed). Add asks `Specify existing fit point on spline <exit>:` and then `Specify new fit point to add <exit>:`
+for each point, put in after the one before it; at the first point it asks `Specify new point or [After/Before] <exit>:`, a
+point typed going before it. Delete takes out the fit point picked, Move is Move vertex on the fit points, and each change
+fits the cubic through the points anew, as AutoCAD does; a pick that is no fit point says `Not a fit point.`. Kink asks
+`Specify a point on the spline <exit>:` and puts a knot in at the nearest point of the curve until it stands three times (a
+knot the spline has already counts), the curve kept and a corner allowed there: at the fit point (20, 0) of the spline above
+the knots 28.28 stand three times and the fourth 1E-8 past, as AutoCAD wrote them. Purge takes the fit data out and goes
+back to the top menu. Tangents asks `Specify start tangent or [System default]:` and `Specify end tangent or [System
+default]:`, a point each: the start tangent runs from the point to the first fit point and the end from the last fit point to
+the point, and System default at the end takes both away. toLerance asks `Enter fit tolerance <1.0000E-10>:` and writes it;
+AutoCAD fits a curve that passes near the points within it, the presenter keeps the curve through them. Join asks `Select
+any open curves to join to source:` and takes what meets an end of the spline, as JOIN does (a line, an arc, a polyline, a
+spline), saying `1 object joined to source` and, for the curves it could not take, `, 1 object discarded from the operation`;
+the fit data go with it. Refine asks `Enter a vertex editing option [Add/Delete/Elevate order/Move/Weight/eXit] <eXit>:`: Add
+(`Specify a point on the spline <exit>:`) puts a knot in at the nearest point, the curve kept and a control point more,
+Delete (`Specify control vertex to delete:`, `Not a control vertex.` for a pick that is none) takes a control point out,
+Elevate order (`Enter new order <4>:`) raises the degree to one less than the order, Move is Move vertex, and Weight says
+`Spline is not rational. Will make it so.` for a spline that is not and asks `Enter new weight (current = 1.0000) or
+[Next/Previous/Select point/eXit] <N>:` of each control vertex in turn. The fit data go with the first change of Refine, not
+before. Elevate order stops at order 11 (AutoCAD's 26). CLASSICINSERT shows the same Insert palette as INSERT (the classic
+dialog is not in the presenter's design).
 
 **The command-line forms and SAVE (batch 4 of acad.pgp).**
 

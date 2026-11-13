@@ -837,6 +837,58 @@ namespace GeometryHelper.Dxf
             return true;
         }
 
+        /// <summary>
+        /// The control points of one period of the periodic spline that a spline clamped at both ends is, in AutoCAD's periodic
+        /// form (the form <see cref="InterpolatePeriodic"/> makes, and SPLINEDIT's Close of control points): the curve unclamped
+        /// at its start (A12.1), the point of the period AutoCAD calls the first at index degree of the unclamped points. A
+        /// cubic of 10 control points and the knots 0, 0, 0, 0, 1 to 6, 7, 7, 7, 7 gives the 7 points the closing was made of.
+        /// Null where the spline has fewer points than the degree and two (3 for a degree of 1), or knots the unclamping
+        /// cannot divide by.
+        /// </summary>
+        internal static List<double[]> PeriodicPolygon(int p, List<double> u, List<double[]> pw)
+        {
+            int count = pw.Count;
+            int m = count - p;
+
+            if (m < Math.Min(p + 1, 3))
+            {
+                return null;
+            }
+
+            int n = count - 1;
+            List<double[]> left = pw.ConvertAll(q => (double[])q.Clone());
+            var ul = new List<double>(u);
+
+            for (int i = 0; i <= p - 2; i++)
+            {
+                ul[p - i - 1] = ul[p - i] - (ul[n - i + 1] - ul[n - i]);
+
+                for (int j = i, k = p - 1; j >= 0; j--, k--)
+                {
+                    double span = ul[p + j + 1] - ul[k];
+                    double a = (ul[p] - ul[k]) / span;
+
+                    if (!(span > 0.0) || !(a < 1.0))
+                    {
+                        return null;
+                    }
+
+                    left[j] = Unmix(left[j], left[j + 1], a, 1.0 - a);
+                }
+            }
+
+            // The unclamped points from index p - 1 on are the clamped ones, the first of them the one the start leaves from.
+            var polygon = new List<double[]>(m);
+
+            for (int j = 0; j < m; j++)
+            {
+                int at = (j + p) % m;
+                polygon.Add(at < p - 1 ? left[at] : pw[at]);
+            }
+
+            return polygon;
+        }
+
         /// <summary>The point that, mixed as a of it and b of another, gives a third: (q - b other) / a, coordinate by coordinate.</summary>
         private static double[] Unmix(double[] q, double[] other, double b, double a)
         {
