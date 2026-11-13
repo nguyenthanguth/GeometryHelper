@@ -450,7 +450,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void Filter_AddSelectedObject_AddsItsKindLayerColorAndLinetype()
+        public void Filter_AddSelectedObject_AddsItsKindLayerColorLinetypeAndItsEnds()
         {
             CadDocument document = Plan();
             CadCommandSession session = Session(document);
@@ -475,6 +475,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "Layer                = Steel",
                     "Color                = 256 - By Layer",
                     "Linetype             = ByLayer",
+                    "Line Start           X = 0.0000  Y = 0.0000  Z = 0.0000",
+                    "Line End             X = 100.0000  Y = 0.0000  Z = 0.0000",
                 },
                 session.SelectionFilter.Lines.Select(l => l.Text)
             );
@@ -573,25 +575,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(">> Enter a point:", session.PromptText);
             Run(session, P(300, 400));
 
-            Assert.Equal("500.0", session.History.Last());
+            Assert.Equal("500", session.History.Last());
             Assert.Equal(500.0, ((CadCalcValue)given).Number, 9);
         }
 
         [Theory]
         [InlineData("1+2*3", "7")]
         [InlineData("7/2", "3.5")]
-        [InlineData("sqrt(16)+2", "6.0")]
-        [InlineData("2^10", "1024.0")]
+        [InlineData("sqrt(16)+2", "6")]
+        [InlineData("2^10", "1024")]
         [InlineData("-(3-5)", "2")]
         [InlineData("sin(30)", "0.5")]
-        [InlineData("r2d(pi)", "180.0")]
+        [InlineData("r2d(pi)", "180")]
         [InlineData("round(2.5)+trunc(-2.7)", "1")]
-        [InlineData("ang([0,0],[300,400])", "53.1301")]
-        [InlineData("dist([0,0],[300,400])/2", "250.0")]
-        [InlineData("[100,50]+[20,30]", "(120.0 80.0 0.0)")]
-        [InlineData("[1,2,3]*2", "(2.0 4.0 6.0)")]
-        [InlineData("ill([0,0],[10,10],[0,10],[10,0])", "(5.0 5.0 0.0)")]
-        [InlineData("1.5e3", "1500.0")]
+        [InlineData("ang([0,0],[300,400])", "53.1301024")]
+        [InlineData("dist([0,0],[300,400])/2", "250")]
+        [InlineData("[100,50]+[20,30]", "120,80,0")]
+        [InlineData("[1,2,3]*2", "2,4,6")]
+        [InlineData("ill([0,0],[10,10],[0,10],[10,0])", "5,5,0")]
+        [InlineData("1.5e3", "1500")]
         public void Calculator_Evaluates_AsCalWritesTheValue(string expression, string expected)
         {
             Assert.Equal(expected, CadCalculator.Evaluate(expression).ToString());

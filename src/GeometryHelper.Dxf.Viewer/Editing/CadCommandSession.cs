@@ -470,7 +470,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (!Prompt.QuietMiss)
                         {
-                            Write(Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found");
+                            Write(
+                                Prompt.MissText
+                                    ?? (Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found")
+                            );
                         }
                         Changed();
                         return false;

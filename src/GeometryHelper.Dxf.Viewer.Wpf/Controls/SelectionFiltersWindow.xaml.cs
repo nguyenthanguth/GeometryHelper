@@ -61,7 +61,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DialogResult = false;
         }
 
-        private void OnApply(object sender, RoutedEventArgs e) => DialogResult = true;
+        private void OnApply(object sender, RoutedEventArgs e)
+        {
+            if (Model.TryApply())
+            {
+                DialogResult = true;
+            }
+        }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
     }

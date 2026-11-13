@@ -98,11 +98,14 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       -LAYOUT Template and SAveas (DWT/DWG/DXF); the current layout and tab numbers after a delete as AutoCAD; fixed: deleting
       the layout holding *Paper_Space wrote a DXF AutoCAD refuses, a copied or imported sheet's own viewport numbered 2;
       XBIND Block binding its layers, linetypes and text styles as NAME$0$SYMBOL
-- [ ] (fu-views2, running) Batch 4a/4b follow-ups 2: -VPORTS MOde (prompt probed: "Apply viewport configuration to [Display/Current viewport]
-      <Display>:"); FILTER AND/OR/XOR/NOT groups and value tests; CAL snap functions and transparent 'CAL; the Viewports
-      dialog's Change view to, Visual Style and Rename; QuickCalc Units Conversion and Variables; QP CUI lists and
-      QPLOCATION; dimension styles of a block bound by XBIND; a Standard text style bound from a block; Insert Layout and
-      template dialogs (design first); -OSNAP rarer short names; whether HIDEPALETTES hides the command line (S)
+- [x] Batch 4a/4b follow-ups 2 (fu-views2): FILTER with AutoCAD 2021's property list, AND/OR/XOR/NOT groups, value tests
+      and filter.nfl; CAL snap functions, rad, the vector functions and transparent 'CAL, values written as AutoCAD's
+      console writes them (%.9g, 120,80,0); -VPORTS MOde
+- [ ] Batch 4a/4b follow-ups 3: the Viewports dialog's Change view to and Rename, and the FILTER dialog's new rows, in the
+      Design artifact; filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and surface
+      kinds; CAL rad of a polyline segment, getvar, transformations; QuickCalc Units Conversion and Variables; QP CUI lists
+      and QPLOCATION; dimension styles of a block bound by XBIND; Insert Layout and template dialogs (design first);
+      -OSNAP rarer short names (an invalid token hangs the console); whether HIDEPALETTES hides the command line (S)
 - [ ] Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
@@ -245,7 +248,7 @@ the ones wanted.
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
 - [x] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms
-- [ ] Layouts follow-ups 3: ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper; CTAB variable; Find's ZoomToObjects and VIEW restore switching space as steps; MSPACE/PSPACE as steps if AutoCAD makes them so (S)
+- [ ] (fu-layouts, running) Layouts follow-ups 3: ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper; CTAB variable; Find's ZoomToObjects and VIEW restore switching space as steps; MSPACE/PSPACE as steps if AutoCAD makes them so (S)
 - [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
@@ -414,7 +417,7 @@ the ones wanted.
 - [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,
       Plot and Description; VISRETAIN 1 and 0 as AutoCAD; "Needs Reloading" as the 2021 help (S)
 - [x] Xrefs follow-ups: Unload/Reload/Detach on every selected row (one step); names with wildcard characters escaped; AUDIT of a saved bound drawing and its DWG save (0 errors, 4 files)
-- [ ] Xrefs follow-ups 2: Bind... for Unreferenced rows?; Unload/Reload of nested names as AutoCAD's -XREF (orphaned wording); -IMAGE no-match messages; screenshot mode for the two windows; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
+- [ ] (fu-layouts, running) Xrefs follow-ups 2: Bind... for Unreferenced rows?; Unload/Reload of nested names as AutoCAD's -XREF (orphaned wording); -IMAGE no-match messages; screenshot mode for the two windows; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
       design) (S)
 - [x] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [x] Managers: PURGE previews of table and multileader styles (the managers had them; Groups kind was done); BATTMAN asks before dropping changes, constants do not move

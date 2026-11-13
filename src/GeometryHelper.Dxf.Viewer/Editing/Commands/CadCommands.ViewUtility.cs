@@ -74,6 +74,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// -VPORTS: "Enter an option [Save/Restore/Delete/Join/SIngle/?/2/3/4/Toggle/MOde] &lt;3&gt;:", as AutoCAD 2021 asks in
         /// model space; in a layout the prompts of MVIEW. 2, 3 and 4 split the current viewport, each change one undo step.
+        /// MOde asks "Apply viewport configuration to [Display/Current viewport] &lt;Display&gt;:", which the Viewports dialog
+        /// starts with, and asks the options again; 2, 3 and 4 split the current viewport in either mode, as AutoCAD 2021's do.
         /// </summary>
         private static IEnumerable<CadPrompt> VportsTyped(CadCommandContext c)
         {
@@ -89,11 +91,29 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadTiledViewports tiles = c.Document.TiledViewports;
             c.OpenUndoStep();
-            yield return CadPrompt.ForKeyword("Enter an option", VportsOptions, "3");
-            string option =
-                c.Input.IsNone ? "3"
-                : c.Input.Kind == CadInputKind.Keyword ? c.Input.Text
-                : null;
+            string option;
+
+            while (true)
+            {
+                yield return CadPrompt.ForKeyword("Enter an option", VportsOptions, "3");
+                option =
+                    c.Input.IsNone ? "3"
+                    : c.Input.Kind == CadInputKind.Keyword ? c.Input.Text
+                    : null;
+
+                if (option != "MOde")
+                {
+                    break;
+                }
+
+                // MOde asks where the configurations of the dialog apply, then the options again, as AutoCAD does.
+                yield return CadPrompt.ForKeyword(
+                    "Apply viewport configuration to",
+                    new[] { "Display", "Current viewport" },
+                    "Display"
+                );
+                tiles.AppliesToCurrentViewport = c.Input.Is("Current viewport");
+            }
 
             switch (option)
             {
@@ -219,9 +239,6 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
-                case "MOde":
-                    c.Write("MOde is not available in this presenter: model space is shown in tiles only.");
-                    break;
             }
         }
 
@@ -336,6 +353,12 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Filter(CadCommandContext c)
         {
             CadSelectionFilter filter = c.Session.SelectionFilter;
+            string unread = filter.Reload();
+
+            if (unread != null)
+            {
+                c.Write(unread);
+            }
 
             while (true)
             {
@@ -369,6 +392,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (asked.Answer != "Apply")
                 {
+                    yield break;
+                }
+
+                string wrong = filter.Validate();
+
+                if (wrong != null)
+                {
+                    c.Write(wrong);
                     yield break;
                 }
 
@@ -409,9 +440,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// CAL: "&gt;&gt; Expression:", evaluated by the geometry calculator; each <c>cur</c> asks "&gt;&gt; Enter a point:" first.
-        /// The value is written, and given to the window (QuickCalc takes it where it asked); a wrong expression writes
-        /// "Error:" and why, and asks again, as AutoCAD 2021's CAL does.
+        /// CAL: "&gt;&gt; Expression:", evaluated by the geometry calculator, which asks for what the expression picks in the
+        /// drawing, in the order it meets it: <c>cur</c> "&gt;&gt; Enter a point:", a snap function such as <c>end</c> "&gt;&gt;
+        /// Select entity for END snap:" (an object that has no such point is "Improper type of object picked.", a pick on
+        /// nothing "No object picked.", and the prompt comes again), <c>rad</c> "&gt;&gt; Select circle, arc or polyline segment
+        /// for RAD function:". The value is written as AutoCAD 2021's CAL writes it (<c>120,80,0</c>), and given to the window
+        /// (QuickCalc takes it where it asked); a wrong expression writes "Error:" and why, and asks again. Typed as 'CAL at a
+        /// prompt, the prompt is "&gt;&gt;&gt;&gt; Expression:", nothing is written for the value, and the value is typed at
+        /// the prompt the command was waiting at once it resumes.
         /// </summary>
         private static IEnumerable<CadPrompt> Calculate(CadCommandContext c)
         {
@@ -426,25 +462,70 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                var points = new List<GeoPoint3>();
+                var answers = new List<CadCalcValue>();
 
-                for (int i = CadCalculator.PointsPicked(expression); i > 0; i--)
+                foreach (CadCalcInput input in CadCalculator.Inputs(expression))
                 {
-                    yield return CadPrompt.ForPoint(">> Enter a point");
+                    bool answered = false;
 
-                    if (!c.Input.IsPoint)
+                    while (!answered)
                     {
-                        yield break;
-                    }
+                        if (input.Kind == CadCalcInputKind.Point)
+                        {
+                            yield return CadPrompt.ForPoint(input.Prompt);
 
-                    points.Add(P3(c.Input.Point));
+                            if (!c.Input.IsPoint)
+                            {
+                                yield break;
+                            }
+
+                            GeoPoint3 point = P3(c.Input.Point);
+                            answers.Add(CadCalcValue.Vector(point.X, point.Y, point.Z));
+                            answered = true;
+                            continue;
+                        }
+
+                        yield return CadPrompt.ForEntity(input.Prompt).MissingWith("No object picked.");
+
+                        if (c.Input.Kind != CadInputKind.Selection || c.Input.Handles.Count == 0)
+                        {
+                            yield break;
+                        }
+
+                        if (input.Kind == CadCalcInputKind.Radius)
+                        {
+                            double? radius = CadCalcSnap.Radius(c.Document, c.Input.Handles[0]);
+
+                            if (radius == null)
+                            {
+                                c.Write("Improper type of object picked.");
+                                continue;
+                            }
+
+                            answers.Add(CadCalcValue.Real(radius.Value));
+                            answered = true;
+                            continue;
+                        }
+
+                        GeoPoint2? snapped = CadCalcSnap.Snap(c.Session, input.Mode, c.Input.Handles[0], c.Input.Point);
+
+                        if (snapped == null)
+                        {
+                            c.Write("Improper type of object picked.");
+                            continue;
+                        }
+
+                        c.Session.LastPoint = snapped.Value;
+                        answers.Add(CadCalcValue.Vector(snapped.Value.X, snapped.Value.Y, 0.0));
+                        answered = true;
+                    }
                 }
 
                 CadCalcValue value;
 
                 try
                 {
-                    value = CadCalculator.Evaluate(expression, points);
+                    value = CadCalculator.Evaluate(expression, answers);
                 }
                 catch (CadCalcException e)
                 {
@@ -453,8 +534,16 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                c.Write(value.ToString());
-                c.Session.Request("CAL", c.Document, value);
+                if (c.Session.IsTransparent)
+                {
+                    c.TransparentResult = value.ToTyped();
+                }
+                else
+                {
+                    c.Write(value.ToString());
+                    c.Session.Request("CAL", c.Document, value);
+                }
+
                 yield break;
             }
         }

@@ -60,15 +60,15 @@ namespace GeometryHelper.Dxf.Viewer
         public static CadCalcValue Vector(double x, double y, double z) => new CadCalcValue(true, false, x, y, z);
 
         /// <summary>
-        /// Writes the value as CAL writes it: a whole number as 7, a real number to six significant digits as AutoLISP does
-        /// (4.0, 1.41421, 53.1301), a vector as (1.0 2.0 0.0).
+        /// Writes the value as AutoCAD 2021's CAL writes it on the command line, whatever the drawing's units: a whole number
+        /// as 7, a real number to nine significant digits (6, 0.333333333, 53.1301024, 1e+10), a vector as 120,80,0.
         /// </summary>
         /// <returns>The text.</returns>
         public override string ToString()
         {
             if (IsVector)
             {
-                return "(" + Write(X) + " " + Write(Y) + " " + Write(Z) + ")";
+                return Write(X) + "," + Write(Y) + "," + Write(Z);
             }
 
             return IsInteger ? ((long)X).ToString(CultureInfo.InvariantCulture) : Write(X);
@@ -89,24 +89,27 @@ namespace GeometryHelper.Dxf.Viewer
         private static string Plain(double value) =>
             (Math.Abs(value) < 1E-12 ? 0.0 : value).ToString("0.##########", CultureInfo.InvariantCulture);
 
-        private static string Write(double value)
+        /// <summary>
+        /// Writes the value as the text AutoCAD types into the prompt a transparent CAL answers: the number, or x,y,z, to every
+        /// digit it holds.
+        /// </summary>
+        /// <returns>The text.</returns>
+        public string ToTyped()
         {
-            if (Math.Abs(value) < 1E-12)
+            if (IsVector)
             {
-                return "0.0";
+                return Typed(X) + "," + Typed(Y) + "," + Typed(Z);
             }
 
-            double magnitude = Math.Abs(value);
-
-            if (magnitude >= 1E6 || magnitude < 1E-4)
-            {
-                return value.ToString("0.#####e+000", CultureInfo.InvariantCulture);
-            }
-
-            int whole = magnitude < 1.0 ? 0 : (int)Math.Floor(Math.Log10(magnitude)) + 1;
-            string text = Math.Round(value, Math.Max(0, 6 - whole)).ToString("0.######", CultureInfo.InvariantCulture);
-            return text.IndexOf('.') < 0 ? text + ".0" : text;
+            return IsInteger ? ((long)X).ToString(CultureInfo.InvariantCulture) : Typed(X);
         }
+
+        private static string Typed(double value) =>
+            (Math.Abs(value) < 1E-12 ? 0.0 : value).ToString("R", CultureInfo.InvariantCulture);
+
+        // The %.9g of C: nine significant digits, the plain form or the one with an exponent, whichever C picks, no trailing zeros.
+        private static string Write(double value) =>
+            (Math.Abs(value) < 1E-12 ? 0.0 : value).ToString("G9", CultureInfo.InvariantCulture).Replace('E', 'e');
     }
 
     /// <summary>A mistake in an expression of the geometry calculator, its message in AutoCAD 2021's words.</summary>
@@ -118,16 +121,55 @@ namespace GeometryHelper.Dxf.Viewer
             : base(message) { }
     }
 
+    /// <summary>What an expression asks for in the drawing, in the order it asks: a point, an object to snap to, a circle or an arc.</summary>
+    public enum CadCalcInputKind
+    {
+        /// <summary>A point, <c>cur</c>: "&gt;&gt; Enter a point:".</summary>
+        Point,
+
+        /// <summary>An object, and the object snap of it that gives a point: "&gt;&gt; Select entity for END snap:".</summary>
+        Snap,
+
+        /// <summary>A circle, an arc or a polyline segment, whose radius <c>rad</c> gives: "&gt;&gt; Select circle, arc or polyline segment for RAD function:".</summary>
+        Radius,
+    }
+
+    /// <summary>One thing an expression of the geometry calculator asks for in the drawing before it can be worked out.</summary>
+    public sealed class CadCalcInput
+    {
+        internal CadCalcInput(CadCalcInputKind kind, string mode)
+        {
+            Kind = kind;
+            Mode = mode;
+        }
+
+        /// <summary>Gets what is asked for.</summary>
+        public CadCalcInputKind Kind { get; }
+
+        /// <summary>Gets the object snap of a <see cref="CadCalcInputKind.Snap"/>: END, INS, INT, MID, CEN, NEA, NOD, QUA, PER or TAN; empty for the others.</summary>
+        public string Mode { get; }
+
+        /// <summary>Gets the prompt AutoCAD asks it with, without the colon.</summary>
+        public string Prompt =>
+            Kind == CadCalcInputKind.Point ? ">> Enter a point"
+            : Kind == CadCalcInputKind.Snap ? ">> Select entity for " + Mode + " snap"
+            : ">> Select circle, arc or polyline segment for RAD function";
+    }
+
     /// <summary>
     /// The geometry calculator of CAL and QuickCalc, as AutoCAD 2021's: numbers, vectors written <c>[x,y,z]</c> (a missing
     /// coordinate nought), <c>+ - * / ^</c> and brackets, the functions <c>sin cos tang asin acos atan</c> (in degrees),
-    /// <c>ln log exp exp10 sqr sqrt abs round trunc r2d d2r</c>, the constant <c>pi</c>, and of points <c>dist(p1,p2)</c>,
-    /// <c>ang(p1,p2)</c> or <c>ang(v)</c>, <c>ill(p1,p2,p3,p4)</c> and <c>cur</c>, a point picked in the drawing.
+    /// <c>ln log exp exp10 sqr sqrt abs round trunc r2d d2r</c> (<c>abs</c> of a vector is its length), the constant
+    /// <c>pi</c>, of points <c>dist(p1,p2)</c>, <c>ang(p1,p2)</c>, <c>ang(v)</c>, <c>ang(apex,p1,p2)</c>, <c>ill(p1,p2,p3,p4)</c>,
+    /// <c>ilp</c>, <c>vec</c>, <c>vec1</c>, <c>nor</c>, <c>dpl</c>, <c>dpp</c>, <c>plt</c>, <c>pld</c>, the conversion
+    /// <c>cvunit(value,from,to)</c>, and what is picked in the drawing: <c>cur</c> a point, <c>rad</c> the radius of a circle or an
+    /// arc, the snaps <c>end ins int mid cen nea nod qua per tan</c> the point of an object picked, and <c>mee</c>, <c>vee</c>,
+    /// <c>vee1</c>, <c>dee</c> and <c>ille</c>, which pick the ends of lines (<see cref="Inputs"/>).
     /// </summary>
     /// <remarks>
-    /// <c>1+2*3</c> is 7, <c>sqrt(16)+2</c> 6.0, <c>dist([0,0],[300,400])</c> 500.0, <c>ang([0,0],[300,400])</c> 53.1301 and
-    /// <c>[100,50]+[20,30]</c> (120.0 80.0 0.0). A number added to a vector is refused as AutoCAD refuses it: "Operators '+',
-    /// '-' require operands of the same type".
+    /// <c>1+2*3</c> is 7, <c>sqrt(16)+2</c> 6, <c>dist([0,0],[300,400])</c> 500, <c>ang([0,0],[300,400])</c> 53.1301024 and
+    /// <c>[100,50]+[20,30]</c> 120,80,0, as CAL writes them (<see cref="CadCalcValue.ToString"/>). A number added to a vector is
+    /// refused as AutoCAD refuses it: "Operators '+', '-' require operands of the same type".
     /// </remarks>
     public static class CadCalculator
     {
@@ -136,7 +178,6 @@ namespace GeometryHelper.Dxf.Viewer
             "SIN",
             "COS",
             "TANG",
-            "TAN",
             "ASIN",
             "ACOS",
             "ATAN",
@@ -153,6 +194,41 @@ namespace GeometryHelper.Dxf.Viewer
             "D2R",
         };
 
+        // The object snaps a name picks an object for: end snaps its ends, tan the point a line from the last point touches.
+        private static readonly HashSet<string> SnapNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "END",
+            "INS",
+            "INT",
+            "MID",
+            "CEN",
+            "NEA",
+            "NOD",
+            "QUA",
+            "PER",
+            "TAN",
+        };
+
+        // The functions of points, which take their arguments in brackets.
+        private static readonly HashSet<string> PointFunctions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "DIST",
+            "ANG",
+            "ILL",
+            "ILP",
+            "VEC",
+            "VEC1",
+            "NOR",
+            "DPL",
+            "DPP",
+            "PLT",
+            "PLD",
+            "CVUNIT",
+        };
+
+        // The units cvunit knows: length in metres, angles in degrees. A small part of AutoCAD's acad.unt.
+        private static readonly Dictionary<string, KeyValuePair<char, double>> Units = MakeUnits();
+
         /// <summary>Counts the points an expression picks in the drawing: each <c>cur</c> in it, as CAL asks one "&gt;&gt; Enter a point:" for each.</summary>
         /// <param name="expression">The expression.</param>
         /// <returns>How many.</returns>
@@ -160,9 +236,9 @@ namespace GeometryHelper.Dxf.Viewer
         {
             int count = 0;
 
-            foreach (string name in Names(expression ?? string.Empty))
+            foreach (CadCalcInput input in Inputs(expression))
             {
-                if (string.Equals(name, "CUR", StringComparison.OrdinalIgnoreCase))
+                if (input.Kind == CadCalcInputKind.Point)
                 {
                     count++;
                 }
@@ -171,65 +247,132 @@ namespace GeometryHelper.Dxf.Viewer
             return count;
         }
 
-        /// <summary>Evaluates an expression.</summary>
+        /// <summary>
+        /// Lists what an expression asks for in the drawing, in the order CAL asks it: <c>dist(end,end)</c> two object snaps,
+        /// <c>cur</c> a point, <c>rad</c> a radius, <c>vee</c> two END snaps. An expression that is wrong from some place on lists
+        /// what comes before it.
+        /// </summary>
+        /// <param name="expression">The expression.</param>
+        /// <returns>The inputs.</returns>
+        public static IReadOnlyList<CadCalcInput> Inputs(string expression)
+        {
+            var record = new List<CadCalcInput>();
+
+            try
+            {
+                var parser = new Parser(expression ?? string.Empty, null, record);
+                parser.Expression();
+            }
+            catch (CadCalcException)
+            {
+                // What was found before the mistake is what CAL asks first.
+            }
+
+            return record;
+        }
+
+        /// <summary>Evaluates an expression whose points <c>cur</c> are given.</summary>
         /// <param name="expression">The expression.</param>
         /// <param name="picked">The points <c>cur</c> takes, in the order the expression names them; null where it names none.</param>
         /// <returns>The value.</returns>
         /// <exception cref="CadCalcException">Thrown when the expression is wrong, in AutoCAD's words.</exception>
         public static CadCalcValue Evaluate(string expression, IReadOnlyList<GeoPoint3> picked = null)
         {
-            var parser = new Parser(expression ?? string.Empty, picked);
+            var answers = new List<CadCalcValue>();
+
+            if (picked != null)
+            {
+                foreach (GeoPoint3 point in picked)
+                {
+                    answers.Add(CadCalcValue.Vector(point.X, point.Y, point.Z));
+                }
+            }
+
+            return Evaluate(expression, answers);
+        }
+
+        /// <summary>Evaluates an expression whose inputs are given.</summary>
+        /// <param name="expression">The expression.</param>
+        /// <param name="answers">What <see cref="Inputs"/> lists, in that order: a vector for a point or an object snap, a number for a radius.</param>
+        /// <returns>The value.</returns>
+        /// <exception cref="CadCalcException">Thrown when the expression is wrong, in AutoCAD's words.</exception>
+        public static CadCalcValue Evaluate(string expression, IReadOnlyList<CadCalcValue> answers)
+        {
+            var parser = new Parser(expression ?? string.Empty, answers, null);
             CadCalcValue value = parser.Expression();
             parser.SkipSpaces();
 
             if (!parser.AtEnd)
             {
+                char c = parser.Current;
                 throw new CadCalcException(
-                    parser.Current == ')' ? "Wrong syntax of expression" : "Illegal character '" + parser.Current + "'"
+                    c == ')' || char.IsLetterOrDigit(c) ? "Wrong syntax of expression" : "Illegal character '" + c + "'"
                 );
             }
 
             return value;
         }
 
-        private static IEnumerable<string> Names(string text)
+        private static Dictionary<string, KeyValuePair<char, double>> MakeUnits()
         {
-            var name = new StringBuilder();
+            var units = new Dictionary<string, KeyValuePair<char, double>>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (char c in text + " ")
+            void Length(double metres, params string[] names)
             {
-                if (char.IsLetter(c) || (name.Length > 0 && (char.IsDigit(c) || c == '_')))
+                foreach (string name in names)
                 {
-                    name.Append(c);
-                }
-                else
-                {
-                    if (name.Length > 0)
-                    {
-                        yield return name.ToString();
-                    }
-
-                    name.Clear();
+                    units[name] = new KeyValuePair<char, double>('L', metres);
                 }
             }
+
+            void Angle(double degrees, params string[] names)
+            {
+                foreach (string name in names)
+                {
+                    units[name] = new KeyValuePair<char, double>('A', degrees);
+                }
+            }
+
+            Length(1E-6, "micron", "microns");
+            Length(1E-3, "mm", "millimeter", "millimeters", "millimetre", "millimetres");
+            Length(1E-2, "cm", "centimeter", "centimeters", "centimetre", "centimetres");
+            Length(0.1, "dm", "decimeter", "decimeters");
+            Length(1.0, "m", "meter", "meters", "metre", "metres");
+            Length(1000.0, "km", "kilometer", "kilometers", "kilometre", "kilometres");
+            Length(0.0000254, "mil", "mils", "thou");
+            Length(0.0254, "in", "inch", "inches", "\"");
+            Length(0.3048, "ft", "foot", "feet", "'");
+            Length(0.9144, "yd", "yard", "yards");
+            Length(1609.344, "mi", "mile", "miles");
+            Angle(1.0, "deg", "degree", "degrees");
+            Angle(180.0 / Math.PI, "rad", "radian", "radians");
+            Angle(0.9, "grad", "grads", "gradian", "gradians");
+            return units;
         }
 
         private sealed class Parser
         {
-            private readonly string _text;
-            private readonly IReadOnlyList<GeoPoint3> _picked;
-            private int _at;
-            private int _pick;
+            private const string Short = "Use ";
 
-            public Parser(string text, IReadOnlyList<GeoPoint3> picked)
+            private readonly string _text;
+            private readonly IReadOnlyList<CadCalcValue> _answers;
+            private readonly List<CadCalcInput> _record;
+            private int _at;
+            private int _next;
+
+            public Parser(string text, IReadOnlyList<CadCalcValue> answers, List<CadCalcInput> record)
             {
                 _text = text;
-                _picked = picked;
+                _answers = answers;
+                _record = record;
             }
 
             public bool AtEnd => _at >= _text.Length;
 
             public char Current => _text[_at];
+
+            // Listing the inputs works the expression through with a stand-in for each, no sum done.
+            private bool IsListing => _record != null;
 
             public void SkipSpaces()
             {
@@ -260,11 +403,13 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (Take('+'))
                     {
-                        value = Add(value, Term(), 1.0);
+                        CadCalcValue right = Term();
+                        value = IsListing ? value : Add(value, right, 1.0);
                     }
                     else if (Take('-'))
                     {
-                        value = Add(value, Term(), -1.0);
+                        CadCalcValue right = Term();
+                        value = IsListing ? value : Add(value, right, -1.0);
                     }
                     else
                     {
@@ -281,11 +426,13 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (Take('*'))
                     {
-                        value = Multiply(value, Power());
+                        CadCalcValue right = Power();
+                        value = IsListing ? value : Multiply(value, right);
                     }
                     else if (Take('/'))
                     {
-                        value = Divide(value, Power());
+                        CadCalcValue right = Power();
+                        value = IsListing ? value : Divide(value, right);
                     }
                     else
                     {
@@ -294,28 +441,34 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // ^ takes its operands from the left, as AutoCAD's does: 2^3^2 is 64.
             private CadCalcValue Power()
             {
                 CadCalcValue value = Unary();
 
-                if (!Take('^'))
+                while (Take('^'))
                 {
-                    return value;
+                    CadCalcValue exponent = Unary();
+
+                    if (IsListing)
+                    {
+                        continue;
+                    }
+
+                    if (value.IsVector || exponent.IsVector)
+                    {
+                        throw new CadCalcException("Power operator '^' requires real operands");
+                    }
+
+                    if (value.Number < 0.0 && !exponent.IsInteger)
+                    {
+                        throw new CadCalcException("Negative numbers cannot be raised to real exponent");
+                    }
+
+                    value = Checked(Math.Pow(value.Number, exponent.Number));
                 }
 
-                CadCalcValue exponent = Power();
-
-                if (value.IsVector || exponent.IsVector)
-                {
-                    throw new CadCalcException("Power operator '^' requires real operands");
-                }
-
-                if (value.Number < 0.0 && !exponent.IsInteger)
-                {
-                    throw new CadCalcException("Negative numbers cannot be raised to real exponent");
-                }
-
-                return Checked(Math.Pow(value.Number, exponent.Number));
+                return value;
             }
 
             private CadCalcValue Unary()
@@ -493,25 +646,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!Take('('))
                 {
-                    switch (upper)
-                    {
-                        case "PI":
-                            return CadCalcValue.Real(Math.PI);
-                        case "CUR":
-                            if (_picked == null || _pick >= _picked.Count)
-                            {
-                                throw new CadCalcException("No object picked.");
-                            }
+                    return Bare(name, upper);
+                }
 
-                            GeoPoint3 p = _picked[_pick++];
-                            return CadCalcValue.Vector(p.X, p.Y, p.Z);
-                        default:
-                            throw new CadCalcException(
-                                RealFunctions.Contains(upper) || IsPointFunction(upper)
-                                    ? "Function " + upper + " requires one argument"
-                                    : "AutoLISP variable " + name + " has no value"
-                            );
-                    }
+                if (SnapNames.Contains(upper))
+                {
+                    throw new CadCalcException("Function _" + upper + " takes no arguments");
+                }
+
+                if (upper == "CUR" || upper == "RAD" || IsPairFunction(upper))
+                {
+                    throw new CadCalcException("Function " + upper + " takes no arguments");
+                }
+
+                if (upper == "CVUNIT")
+                {
+                    return ConvertUnits();
                 }
 
                 var args = new List<CadCalcValue>();
@@ -529,10 +679,135 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                return Call(upper, args);
+                return IsListing ? CadCalcValue.Real(1.0) : Call(upper, args);
             }
 
-            private static bool IsPointFunction(string name) => name == "DIST" || name == "ANG" || name == "ILL";
+            private static bool IsPairFunction(string name) =>
+                name == "MEE" || name == "VEE" || name == "VEE1" || name == "DEE" || name == "ILLE";
+
+            // A name with no brackets: a constant, or what is picked in the drawing.
+            private CadCalcValue Bare(string name, string upper)
+            {
+                switch (upper)
+                {
+                    case "PI":
+                        return CadCalcValue.Real(Math.PI);
+                    case "CUR":
+                        return Pick(new CadCalcInput(CadCalcInputKind.Point, string.Empty));
+                    case "RAD":
+                        return Pick(new CadCalcInput(CadCalcInputKind.Radius, string.Empty));
+                    case "MEE":
+                    case "VEE":
+                    case "VEE1":
+                    case "DEE":
+                        CadCalcValue a = Pick(new CadCalcInput(CadCalcInputKind.Snap, "END"));
+                        CadCalcValue b = Pick(new CadCalcInput(CadCalcInputKind.Snap, "END"));
+
+                        if (IsListing)
+                        {
+                            return a;
+                        }
+
+                        return upper == "MEE"
+                                ? CadCalcValue.Vector((a.X + b.X) / 2.0, (a.Y + b.Y) / 2.0, (a.Z + b.Z) / 2.0)
+                            : upper == "DEE" ? Checked(a.Point.DistanceTo(b.Point))
+                            : Unit(upper == "VEE1", CadCalcValue.Vector(b.X - a.X, b.Y - a.Y, b.Z - a.Z));
+                    case "ILLE":
+                        var four = new List<CadCalcValue>();
+
+                        for (int i = 0; i < 4; i++)
+                        {
+                            four.Add(Pick(new CadCalcInput(CadCalcInputKind.Snap, "END")));
+                        }
+
+                        return IsListing ? four[0] : Intersection(four);
+                    default:
+                        if (SnapNames.Contains(upper))
+                        {
+                            return Pick(new CadCalcInput(CadCalcInputKind.Snap, upper));
+                        }
+
+                        throw new CadCalcException(
+                            RealFunctions.Contains(upper) || PointFunctions.Contains(upper)
+                                ? "Function " + upper + " requires one argument"
+                                : "AutoLISP variable " + name + " has no value"
+                        );
+                }
+            }
+
+            // The answer to the next input; while listing, the input is noted and a stand-in given.
+            private CadCalcValue Pick(CadCalcInput input)
+            {
+                if (IsListing)
+                {
+                    _record.Add(input);
+                    return input.Kind == CadCalcInputKind.Radius
+                        ? CadCalcValue.Real(1.0)
+                        : CadCalcValue.Vector(1.0, 2.0, 3.0);
+                }
+
+                if (_answers == null || _next >= _answers.Count)
+                {
+                    throw new CadCalcException("No object picked.");
+                }
+
+                return _answers[_next++];
+            }
+
+            // cvunit(value,from,to): the units are words, not expressions.
+            private CadCalcValue ConvertUnits()
+            {
+                CadCalcValue value = Expression();
+
+                if (!Take(','))
+                {
+                    throw new CadCalcException(Short + "CVUNIT(value,from,to)");
+                }
+
+                string from = Word();
+
+                if (!Take(','))
+                {
+                    throw new CadCalcException(Short + "CVUNIT(value,from,to)");
+                }
+
+                string to = Word();
+
+                if (!Take(')'))
+                {
+                    throw new CadCalcException("Right parenthesis ')' missing");
+                }
+
+                if (IsListing)
+                {
+                    return value;
+                }
+
+                if (
+                    value.IsVector
+                    || !Units.TryGetValue(from, out KeyValuePair<char, double> a)
+                    || !Units.TryGetValue(to, out KeyValuePair<char, double> b)
+                    || a.Key != b.Key
+                )
+                {
+                    throw new CadCalcException("CVUNIT failed to convert units");
+                }
+
+                return Checked(value.Number * a.Value / b.Value);
+            }
+
+            private string Word()
+            {
+                SkipSpaces();
+                int start = _at;
+
+                while (!AtEnd && Current != ',' && Current != ')')
+                {
+                    _at++;
+                }
+
+                return _text.Substring(start, _at - start).Trim().Trim('"');
+            }
 
             private static CadCalcValue Call(string name, List<CadCalcValue> args)
             {
@@ -549,6 +824,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (args[0].IsVector)
                     {
+                        if (name == "ABS")
+                        {
+                            return Checked(Length(args[0]));
+                        }
+
                         throw new CadCalcException("Function " + name + " requires real argument");
                     }
 
@@ -565,8 +845,50 @@ namespace GeometryHelper.Dxf.Viewer
                     case "ILL":
                         Points(name, args, 4);
                         return Intersection(args);
+                    case "ILP":
+                        Wrong(args.Count != 5 || args.Exists(a => !a.IsVector), "ILP(p1,p2,p3,p4,p5)");
+                        Points(name, args, 5);
+                        return LinePlane(args);
+                    case "VEC":
+                    case "VEC1":
+                        Wrong(args.Count != 2 || args.Exists(a => !a.IsVector), name + "(FromPt,ToPt)");
+                        Points(name, args, 2);
+                        return Unit(
+                            name == "VEC1",
+                            CadCalcValue.Vector(args[1].X - args[0].X, args[1].Y - args[0].Y, args[1].Z - args[0].Z)
+                        );
+                    case "NOR":
+                        return Normal(args);
+                    case "DPL":
+                        Wrong(args.Count != 3 || args.Exists(a => !a.IsVector), "DPL(p,p1,p2)");
+                        Points(name, args, 3);
+                        return DistanceToLine(args);
+                    case "DPP":
+                        Wrong(args.Count != 4 || args.Exists(a => !a.IsVector), "DPP(p,p1,p2,p3)");
+                        Points(name, args, 4);
+                        return DistanceToPlane(args);
+                    case "PLT":
+                        Wrong(
+                            args.Count != 3 || !args[0].IsVector || !args[1].IsVector || args[2].IsVector,
+                            "PLT(p1,p2,t)"
+                        );
+                        return Along(args[0], args[1], args[2].Number * Length(Between(args[0], args[1])));
+                    case "PLD":
+                        Wrong(
+                            args.Count != 3 || !args[0].IsVector || !args[1].IsVector || args[2].IsVector,
+                            "PLD(p1,p2,dist)"
+                        );
+                        return Along(args[0], args[1], args[2].Number);
                     default:
                         throw new CadCalcException("Function " + name + " doesn't exist");
+                }
+            }
+
+            private static void Wrong(bool wrong, string form)
+            {
+                if (wrong)
+                {
+                    throw new CadCalcException(Short + form);
                 }
             }
 
@@ -588,8 +910,149 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            private static CadCalcValue Between(CadCalcValue a, CadCalcValue b) =>
+                CadCalcValue.Vector(b.X - a.X, b.Y - a.Y, b.Z - a.Z);
+
+            private static double Length(CadCalcValue v) => Math.Sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z);
+
+            private static CadCalcValue Unit(bool unit, CadCalcValue v)
+            {
+                if (!unit)
+                {
+                    return v;
+                }
+
+                double length = Length(v);
+
+                if (length < 1E-12)
+                {
+                    throw new CadCalcException("Division by 0");
+                }
+
+                return CadCalcValue.Vector(v.X / length, v.Y / length, v.Z / length);
+            }
+
+            // The point a distance from the first point along the way to the second.
+            private static CadCalcValue Along(CadCalcValue a, CadCalcValue b, double distance)
+            {
+                CadCalcValue way = Unit(true, Between(a, b));
+                return CadCalcValue.Vector(a.X + way.X * distance, a.Y + way.Y * distance, a.Z + way.Z * distance);
+            }
+
+            private static CadCalcValue Cross(CadCalcValue a, CadCalcValue b) =>
+                CadCalcValue.Vector(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+
+            private static double Dot(CadCalcValue a, CadCalcValue b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+
+            // nor(v) and nor(p1,p2): the unit vector at a right angle to a 2D vector, to the left of it; nor(p1,p2,p3): the unit
+            // normal of the plane through three points.
+            private static CadCalcValue Normal(List<CadCalcValue> args)
+            {
+                if (args.Count == 1 || args.Count == 2)
+                {
+                    Points("NOR", args, args.Count);
+                    CadCalcValue v = args.Count == 1 ? args[0] : Between(args[0], args[1]);
+                    double length = Math.Sqrt(v.X * v.X + v.Y * v.Y);
+
+                    if (length < 1E-12)
+                    {
+                        throw new CadCalcException("The 2D vector in NOR function is zero length");
+                    }
+
+                    return CadCalcValue.Vector(-v.Y / length, v.X / length, 0.0);
+                }
+
+                Wrong(args.Count != 3, "NOR(v), NOR(p1,p2) or NOR(p1,p2,p3)");
+                Points("NOR", args, 3);
+                CadCalcValue normal = Cross(Between(args[0], args[1]), Between(args[0], args[2]));
+
+                if (Length(normal) < 1E-12)
+                {
+                    throw new CadCalcException("The three points defining the plane are coincident or collinear");
+                }
+
+                return Unit(true, normal);
+            }
+
+            private static CadCalcValue DistanceToLine(List<CadCalcValue> args)
+            {
+                CadCalcValue way = Between(args[1], args[2]);
+                double length = Length(way);
+
+                if (length < 1E-12)
+                {
+                    throw new CadCalcException("The two points defining the line coincide");
+                }
+
+                return Checked(Length(Cross(Between(args[1], args[0]), way)) / length);
+            }
+
+            private static CadCalcValue DistanceToPlane(List<CadCalcValue> args)
+            {
+                CadCalcValue normal = Cross(Between(args[1], args[2]), Between(args[1], args[3]));
+                double length = Length(normal);
+
+                if (length < 1E-12)
+                {
+                    throw new CadCalcException("The three points defining the plane are coincident or collinear");
+                }
+
+                return Checked(Math.Abs(Dot(Between(args[1], args[0]), normal)) / length);
+            }
+
+            private static CadCalcValue LinePlane(List<CadCalcValue> args)
+            {
+                CadCalcValue normal = Cross(Between(args[2], args[3]), Between(args[2], args[4]));
+
+                if (Length(normal) < 1E-12)
+                {
+                    throw new CadCalcException("The three points defining the plane are coincident or collinear");
+                }
+
+                CadCalcValue way = Between(args[0], args[1]);
+                double along = Dot(way, normal);
+
+                if (Math.Abs(along) < 1E-12 * Length(way) * Length(normal))
+                {
+                    throw new CadCalcException("The line and the plane are parallel");
+                }
+
+                double t = Dot(Between(args[0], args[2]), normal) / along;
+                return CadCalcValue.Vector(args[0].X + t * way.X, args[0].Y + t * way.Y, args[0].Z + t * way.Z);
+            }
+
+            // ang(v), ang(p1,p2): the angle of a 2D line from the X axis; ang(apex,p1,p2): the angle between two lines at an apex;
+            // ang(apex,p1,p2,normal): the same counted anticlockwise about a normal.
             private static CadCalcValue Angle(List<CadCalcValue> args)
             {
+                if (args.Count == 3 || args.Count == 4)
+                {
+                    Points("ANG", args, args.Count);
+                    CadCalcValue a = Between(args[0], args[1]);
+                    CadCalcValue b = Between(args[0], args[2]);
+
+                    if (Length(a) < 1E-12 || Length(b) < 1E-12)
+                    {
+                        throw new CadCalcException("The two points defining a line in function ANG coincide");
+                    }
+
+                    double cos = Dot(a, b);
+                    double degrees;
+
+                    if (args.Count == 3)
+                    {
+                        degrees = Math.Atan2(Length(Cross(a, b)), cos) * 180.0 / Math.PI;
+                    }
+                    else
+                    {
+                        CadCalcValue n = Unit(true, args[3]);
+                        degrees = Math.Atan2(Dot(Cross(a, b), n), cos) * 180.0 / Math.PI;
+                        degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
+                    }
+
+                    return CadCalcValue.Real(degrees);
+                }
+
                 double dx;
                 double dy;
 
@@ -616,8 +1079,8 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-                return CadCalcValue.Real(degrees < 0.0 ? degrees + 360.0 : degrees);
+                double angle = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+                return CadCalcValue.Real(angle < 0.0 ? angle + 360.0 : angle);
             }
 
             private static CadCalcValue Intersection(List<CadCalcValue> args)
@@ -659,7 +1122,6 @@ namespace GeometryHelper.Dxf.Viewer
                     case "COS":
                         return Checked(Math.Cos(x * ToRadians));
                     case "TANG":
-                    case "TAN":
                         if (Math.Abs(Math.IEEERemainder(x - 90.0, 180.0)) < 1E-12)
                         {
                             throw new CadCalcException("Function TANG does not accept arguments 90+k*180 degrees");

@@ -56,6 +56,12 @@ namespace GeometryHelper.Dxf.Viewer
         public bool ClearsSelection { get; set; }
 
         /// <summary>
+        /// The text a command run transparently gives the prompt it interrupted as its answer when it ends, as AutoCAD's 'CAL types
+        /// its value there; null for none.
+        /// </summary>
+        internal string TransparentResult { get; set; }
+
+        /// <summary>
         /// Asks "Select objects:" until Enter, unless objects were selected before the command started, which are taken
         /// instead; the result is <see cref="Selected"/>, those on a locked layer left out with "1 was on a locked layer." The
         /// body yields what this yields: <c>foreach (CadPrompt p in c.SelectObjects()) yield return p;</c>.

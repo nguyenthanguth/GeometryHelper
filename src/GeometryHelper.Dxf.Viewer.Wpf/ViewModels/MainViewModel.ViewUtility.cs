@@ -29,6 +29,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows Object Selection Filters: true when Apply was pressed.</summary>
         public Func<SelectionFiltersViewModel, bool> ShowSelectionFilters { get; set; }
 
+        /// <summary>
+        /// Gets or sets the file the named lists of FILTER are kept in, AutoCAD's <c>filter.nfl</c> form, shared by every drawing
+        /// opened afterwards; null keeps them for the session of each drawing.
+        /// </summary>
+        public string FilterListsPath { get; set; }
+
         /// <summary>Gets or sets how the workspace shows the QuickCalc palette, which stays open.</summary>
         public Action<QuickCalcViewModel> ShowQuickCalc { get; set; }
 

@@ -225,6 +225,16 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
+        /// <summary>The words written for a pick on nothing where they are not "Nothing selected.": CAL's "No object picked."; null for the usual.</summary>
+        internal string MissText { get; private set; }
+
+        /// <summary>Gives a pick on nothing its own words (<see cref="MissText"/>).</summary>
+        internal CadPrompt MissingWith(string words)
+        {
+            MissText = words;
+            return this;
+        }
+
         /// <summary>Gives the prompt its own words for a typed answer it cannot take (<see cref="Refusal"/>).</summary>
         internal CadPrompt Refusing(string words)
         {

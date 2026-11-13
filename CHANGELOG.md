@@ -20,6 +20,27 @@ stored as default lays one HATCH's hatches alone. Each command keeps its command
 New public members: `CadMlineStyleRequest`, `CadMlineEditRequest`, `CadPlotStampRequest`, `CadImageAdjustRequest`,
 `CadAttextRequest` and `CadAttextFormat`, `CadXbindRequest` and `CadXbindReference`, `CadPlotStamp.CopyFrom`,
 `CadStylePreview.Mline`. The registry is unchanged (no new command).
+**NEW.** FILTER, CAL and -VPORTS follow-ups in the presenter, in the words of AutoCAD 2021 (its resources and accoreconsole,
+probed). FILTER's Select Filter list is AutoCAD's: kinds of object, properties and the begin and end of AND, OR, XOR and NOT
+groups (`CadFilterProperty`, `CadSelectionFilter.Choices`); a number or a point is tested with `=`, `!=`, `<`, `<=`, `>` or
+`>=` (a point by X, Y and Z each, `*` leaving one out: `Arc Radius >= 15.0000`, `Line End X >= 100.0000  Y * 0.0000  Z *
+0.0000`), a group may hold groups, and Apply refuses lists that are not well formed with `Invalid Filter list - Begin/end clause
+mismatch.`, `Premature end.`, `Empty clause/bad nesting.`, `Wrong number of XOR/NOT operands.` or `Maximum nesting exceeded.`; Add
+Selected Object adds what belongs to the object's kind too (an arc's centre and radius). Named lists are kept in AutoCAD's
+`filter.nfl` form (`CadSelectionFilter.ToNfl`, `LoadNfl`, `FilePath`, `Reload`; in the app `%AppData%\GeometryHelper\Dxf\filter.nfl`,
+read each time FILTER starts), and a name AutoCAD's dialog refuses (`walls.v1`, `*unnamed`) is refused. CAL asks for what an
+expression picks, in order: the snap functions `end ins int mid cen nea nod qua per tan` (`>> Select entity for END snap:`,
+`Improper type of object picked.`, `No object picked.`), `rad`, `mee vee vee1 dee ille`, and has `vec vec1 nor dpl dpp plt pld ilp`,
+`ang(apex,p1,p2)`, `abs` of a point and `cvunit(value,from,to)`; typed as `'CAL` at a prompt for a point or a distance it runs inside
+the command (`>>>> Expression:`) and types its value at the prompt once `Resuming LINE command.` is written. -VPORTS MOde asks
+`Apply viewport configuration to [Display/Current viewport] <Display>:` and then the options again; the answer is what the
+Viewports dialog's Apply to starts with (`CadTiledViewports.AppliesToCurrentViewport`), and 2, 3 and 4 split the current viewport
+in either mode, as AutoCAD's do (probed from one viewport to seven). Not built: Transparency, MultiLine Style and the shapes in
+FILTER, the redefine prompt of a name in use, CAL's `rad` of a polyline segment, `getvar` and the transformations.
+**CHANGED.** CAL writes its value as AutoCAD 2021's command line writes it, whatever the units: `sqrt(16)+2` is 6 (it was 6.0),
+`1/3` 0.333333333 (it was 0.333333), `[100,50]+[20,30]` 120,80,0 (it was (120.0 80.0 0.0)), and `2^3^2` is 64 (it was 512: AutoCAD
+takes powers from the left); `tan` is the snap function, as AutoCAD's, and the tangent of an angle is `tang`; a word after a
+complete expression is `Wrong syntax of expression`.
 **NEW.** OLE objects in the presenter. A frame that holds a bitmap, a pasted picture or one INSERTOBJ made is drawn as its picture
 on the canvas, in a plot and in a PDF (one 40 by 20 holding a bitmap red on the left and blue on the right plots red and blue; at
 the plot quality Monochrome, black and white), with its frame over it as OLEFRAME says (0 none, 1 shown and plotted, 2, the

@@ -5,7 +5,7 @@
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Object Selection Filters"
     Width="640"
-    Height="600"
+    Height="680"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <local:BoolToVisibilityConverter x:Key="Hidden" Invert="True" />
             <Style x:Key="Side" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
                 <Setter Property="Padding" Value="8,5" />
                 <Setter Property="Margin" Value="0,0,0,6" />
@@ -123,7 +124,7 @@
                         <TextBlock
                             TextWrapping="Wrap"
                             Foreground="{StaticResource GhTextMuted}"
-                            Text="Apply closes the dialog and asks &quot;Select objects:&quot;; what passes every line of the list is kept as the Previous set, so the next command takes it with P. The lines all have to hold (AND)."
+                            Text="Apply closes the dialog and asks &quot;Select objects:&quot;; what passes every line of the list is kept as the Previous set, so the next command takes it with P. The lines all have to hold (AND) unless they are grouped with Begin and End AND, OR, XOR or NOT."
                         />
                     </DockPanel>
                 </Border>
@@ -142,21 +143,29 @@
                                 Style="{StaticResource GhComboBox}"
                                 Margin="0,0,0,8"
                                 AutomationProperties.Name="Filter"
-                                ItemsSource="{Binding Properties}"
-                                SelectedItem="{Binding Property, Mode=TwoWay}"
+                                DisplayMemberPath="Name"
+                                ItemsSource="{Binding Choices}"
+                                SelectedItem="{Binding Choice, Mode=TwoWay}"
                             />
-                            <DockPanel Margin="0,0,0,8">
+                            <DockPanel
+                                Margin="0,0,0,8"
+                                Visibility="{Binding IsGroup, Converter={StaticResource Hidden}}"
+                            >
                                 <TextBlock
                                     Text="X:"
                                     Width="20"
                                     Foreground="{StaticResource GhTextMuted}"
                                     VerticalAlignment="Center"
                                 />
-                                <TextBlock
-                                    Text="="
-                                    Width="20"
-                                    Foreground="{StaticResource GhTextMuted}"
-                                    VerticalAlignment="Center"
+                                <ComboBox
+                                    DockPanel.Dock="Left"
+                                    Style="{StaticResource GhComboBox}"
+                                    Width="52"
+                                    Margin="0,0,6,0"
+                                    AutomationProperties.Name="X operator"
+                                    ItemsSource="{Binding Operators}"
+                                    SelectedItem="{Binding OperatorX, Mode=TwoWay}"
+                                    Visibility="{Binding TakesOperators, Converter={StaticResource Shown}}"
                                 />
                                 <ComboBox
                                     Style="{StaticResource GhComboBox}"
@@ -164,6 +173,58 @@
                                     AutomationProperties.Name="Value"
                                     ItemsSource="{Binding Values}"
                                     Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                />
+                            </DockPanel>
+                            <DockPanel
+                                Margin="0,0,0,8"
+                                Visibility="{Binding IsPoint, Converter={StaticResource Shown}}"
+                            >
+                                <TextBlock
+                                    Text="Y:"
+                                    Width="20"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <ComboBox
+                                    DockPanel.Dock="Left"
+                                    Style="{StaticResource GhComboBox}"
+                                    Width="52"
+                                    Margin="0,0,6,0"
+                                    AutomationProperties.Name="Y operator"
+                                    ItemsSource="{Binding Operators}"
+                                    SelectedItem="{Binding OperatorY, Mode=TwoWay}"
+                                />
+                                <TextBox
+                                    Style="{StaticResource StyleBox}"
+                                    Padding="6,3"
+                                    AutomationProperties.Name="Y value"
+                                    Text="{Binding ValueY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                />
+                            </DockPanel>
+                            <DockPanel
+                                Margin="0,0,0,8"
+                                Visibility="{Binding IsPoint, Converter={StaticResource Shown}}"
+                            >
+                                <TextBlock
+                                    Text="Z:"
+                                    Width="20"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <ComboBox
+                                    DockPanel.Dock="Left"
+                                    Style="{StaticResource GhComboBox}"
+                                    Width="52"
+                                    Margin="0,0,6,0"
+                                    AutomationProperties.Name="Z operator"
+                                    ItemsSource="{Binding Operators}"
+                                    SelectedItem="{Binding OperatorZ, Mode=TwoWay}"
+                                />
+                                <TextBox
+                                    Style="{StaticResource StyleBox}"
+                                    Padding="6,3"
+                                    AutomationProperties.Name="Z value"
+                                    Text="{Binding ValueZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 />
                             </DockPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
