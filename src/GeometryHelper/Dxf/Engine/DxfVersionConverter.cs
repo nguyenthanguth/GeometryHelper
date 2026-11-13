@@ -301,7 +301,7 @@ namespace GeometryHelper.Dxf
             string number = value.ToString(CultureInfo.InvariantCulture);
             int width =
                 !_padded ? 0
-                : code >= 90 && code <= 99 ? 9
+                : (code >= 90 && code <= 99) || code == 1071 ? 9
                 : 6;
             return new Group(code, number.PadLeft(width));
         }

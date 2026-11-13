@@ -717,7 +717,8 @@ namespace GeometryHelper.Dxf
 
         private DxfMTextLayout Layout()
         {
-            DxfFonts fonts = IsResident ? Item.File.Database?.Fonts : null;
+            // A copy in no drawing is laid out in the fonts of the drawing it was copied from, as a table's words are when it is exploded.
+            DxfFonts fonts = (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
 
             if (fonts == null)
             {

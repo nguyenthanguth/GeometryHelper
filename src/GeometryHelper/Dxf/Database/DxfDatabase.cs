@@ -242,8 +242,10 @@ namespace GeometryHelper.Dxf
         /// AutoCAD wraps it), a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (its edges) and a HATCH filled
         /// solid or with a gradient (its SOLIDs, one colour for a gradient) are the entities they break into, and a 3DSOLID and a
         /// REGION the lines, circles, arcs, points and 3D polylines of the edges of their faces (a box 40 by 30 by 20 is 24 LINEs; an
-        /// edge that is a spline is left out), in a block <c>*U</c> or <c>*X</c> of the next number where they stood in a space, in
-        /// place where they stood in a block; the INSERT is on the current layer and in the current colour of the drawing. A dynamic
+        /// edge that is a spline is left out), in a block <c>*U</c> or <c>*X</c> numbered on in the order of the handles, where they
+        /// stood in a space and where they stood in a block alike (a ray and an infinite line in a block are a LINE of no length); the INSERT is on
+        /// the current layer and in the current colour of the drawing, and that of a hatch holds the hatch as R14 did in its extended
+        /// data (ACAD HATCH, R14_HATCH_DATA), that of a multileader its version (ACAD_MLEADERVER). A dynamic
         /// block is written as the anonymous block <c>*U</c> AutoCAD gives it, and a name R12 does not allow is an underscore for
         /// each character it does not and cut to 26 characters. A TOLERANCE, a WIPEOUT, an IMAGE, an underlay, an OLE frame and the
         /// layouts beyond the first are left out, and said.

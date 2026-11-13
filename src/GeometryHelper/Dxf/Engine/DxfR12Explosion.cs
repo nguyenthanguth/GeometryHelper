@@ -9,11 +9,11 @@ namespace GeometryHelper.Dxf
     /// <summary>
     /// Breaks what R12 cannot hold into what it can, in a drawing of a later version, before it is written as R12, as AutoCAD
     /// 2021 does when it saves one as R12: an LWPOLYLINE is a POLYLINE, an ellipse or a spline the 3D POLYLINE of 128 segments,
-    /// a ray or an infinite line a LINE to the extents of the drawing, an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an
-    /// MLINE and a table the lines, texts and polylines they break into, a 3DSOLID and a REGION the lines, circles, arcs, points
-    /// and 3D polylines of the edges of their faces; a space gets an INSERT of a block of those pieces where the entity stood, a
-    /// block holds them where it stood. A dynamic block is given the anonymous name AutoCAD writes for it. What breaks into
-    /// nothing is left out.
+    /// a ray or an infinite line a LINE to the extents of the drawing (of no length at its base point in a block), an MTEXT, a pattern HATCH, a LEADER,
+    /// a MULTILEADER, an MLINE, a MESH and a table the lines, texts and polylines they break into, a 3DSOLID and a REGION the
+    /// lines, circles, arcs, points and 3D polylines of the edges of their faces; a space or a block gets an INSERT of a block of
+    /// those pieces where the entity stood, but for the curves that are one polyline or line, which keep their place and handle. A
+    /// dynamic block is given the anonymous name AutoCAD writes for it. What breaks into nothing is left out.
     /// </summary>
     /// <remarks>
     /// The pieces are made in a block of the drawing of their own (<c>GHR12_</c> and the handle), so that the text of the
@@ -97,6 +97,10 @@ namespace GeometryHelper.Dxf
             internal Dictionary<string, string> Renamed { get; } =
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>The 3D polylines made of an ellipse (<c>E</c>) or a spline (<c>S</c>), by their handles, which AutoCAD writes in a form of its own.</summary>
+            internal Dictionary<string, char> Sampled { get; } =
+                new Dictionary<string, char>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>How many uses of an edge by a face were left out of the lines of a REGION or a 3DSOLID, by kind, as the edge is a spline.</summary>
             internal SortedDictionary<string, int> Skipped { get; } =
                 new SortedDictionary<string, int>(StringComparer.Ordinal);
@@ -162,6 +166,7 @@ namespace GeometryHelper.Dxf
                     }
 
                     var pieces = new List<DxfEntity>();
+                    var sampling = new Dictionary<DxfEntity, char>();
                     bool wireBody = false;
 
                     if (entity is DxfUnknownEntity solid && (type == "REGION" || type == "3DSOLID"))
@@ -176,7 +181,7 @@ namespace GeometryHelper.Dxf
 
                             foreach (DxfEntity wire in wires)
                             {
-                                Reduce(wire, extents, pieces);
+                                Reduce(wire, extents, pieces, sampling);
                             }
 
                             if (skipped > 0)
@@ -186,9 +191,17 @@ namespace GeometryHelper.Dxf
                             }
                         }
                     }
+                    else if (!space && (type == "XLINE" || type == "RAY"))
+                    {
+                        // AutoCAD cuts an infinite line or a ray in a block at no extents: it is a LINE of no length at its base point.
+                        GeoPoint3 base3 = entity is DxfXline xline ? xline.BasePoint : ((DxfRay)entity).BasePoint;
+                        var point = new DxfLine(base3, base3);
+                        point.SetPropertiesFrom(entity);
+                        pieces.Add(point);
+                    }
                     else if (!Dropped.Contains(type))
                     {
-                        Reduce(entity, extents, pieces);
+                        Reduce(entity, extents, pieces, sampling);
                     }
 
                     var made = new List<DxfEntity>();
@@ -212,6 +225,11 @@ namespace GeometryHelper.Dxf
                         {
                             scratch.AppendEntity(piece);
                             made.Add(piece);
+
+                            if (sampling.TryGetValue(piece, out char kind) && piece.Handle != null)
+                            {
+                                plan.Sampled[piece.Handle] = kind;
+                            }
                         }
                         catch (Exception exception)
                             when (exception is ArgumentException
@@ -306,7 +324,12 @@ namespace GeometryHelper.Dxf
         private static string TypeOf(DxfEntity entity) => entity.Item.Type;
 
         /// <summary>Takes an entity down to the kinds R12 holds, appending them to the list: what breaks further does so.</summary>
-        private static void Reduce(DxfEntity entity, Extents extents, List<DxfEntity> pieces)
+        private static void Reduce(
+            DxfEntity entity,
+            Extents extents,
+            List<DxfEntity> pieces,
+            Dictionary<DxfEntity, char> sampling
+        )
         {
             string type = TypeOf(entity);
 
@@ -328,7 +351,9 @@ namespace GeometryHelper.Dxf
                     return;
                 case "ELLIPSE":
                 case "SPLINE":
-                    pieces.Add(Sampled((DxfCurve)entity, type == "ELLIPSE" ? 128 : 127));
+                    DxfEntity sampled = Sampled((DxfCurve)entity, type == "ELLIPSE" ? 128 : 127);
+                    sampling[sampled] = type == "ELLIPSE" ? 'E' : 'S';
+                    pieces.Add(sampled);
                     return;
                 case "XLINE":
                 case "RAY":
@@ -356,6 +381,11 @@ namespace GeometryHelper.Dxf
                     // A mesh is the polylines of its edges, each a polyline of two vertices, as AutoCAD writes one.
                     parts = Edges(entity);
                 }
+                else if (entity is DxfUnknownEntity mline && type == "MLINE")
+                {
+                    // An MLINE is its lines element by element, as AutoCAD writes them.
+                    parts = mline.ExplodeMlineByElement();
+                }
                 else
                 {
                     parts = entity.Explode();
@@ -371,9 +401,46 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            int before = pieces.Count;
+
             foreach (DxfEntity part in parts)
             {
-                Reduce(part, extents, pieces);
+                Reduce(part, extents, pieces, sampling);
+            }
+
+            // What the pieces of a table or a hatch drew by block or by layer is as AutoCAD writes it: asked of the entity once, not of
+            // each piece.
+            bool table = type == "ACAD_TABLE";
+            DxfHatch hatched = entity as DxfHatch;
+            bool filled = hatched != null && (hatched.IsSolidFill || hatched.IsGradient);
+            bool continuous = filled && string.Equals(hatched.Linetype, "ByLayer", StringComparison.OrdinalIgnoreCase);
+            bool byBlock = hatched != null && !filled && hatched.ColorIndex == 256;
+
+            for (int i = before; (table || continuous || byBlock) && i < pieces.Count; i++)
+            {
+                if (table)
+                {
+                    // What a table's block draws by block is by layer in the pieces of the table: AutoCAD resolves it to its own.
+                    if (pieces[i].ColorIndex == 0)
+                    {
+                        pieces[i].ColorIndex = 256;
+                    }
+
+                    if (string.Equals(pieces[i].Linetype, "ByBlock", StringComparison.OrdinalIgnoreCase))
+                    {
+                        pieces[i].Linetype = "ByLayer";
+                    }
+                }
+                else if (continuous)
+                {
+                    // The SOLIDs of a fill by layer are of the linetype CONTINUOUS.
+                    pieces[i].Linetype = "CONTINUOUS";
+                }
+                else
+                {
+                    // The lines of a pattern by layer are by block.
+                    pieces[i].ColorIndex = 0;
+                }
             }
         }
 
@@ -382,8 +449,24 @@ namespace GeometryHelper.Dxf
         {
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var edges = new List<DxfEntity>();
+            IReadOnlyList<DxfEntity> faces = entity.Explode();
 
-            foreach (DxfEntity part in entity.Explode())
+            // The edges its record lists, in its order and direction (the lesser vertex first), as AutoCAD writes them.
+            List<GeoPoint3[]> listed = (entity as DxfUnknownEntity)?.MeshEdges();
+
+            if (listed != null)
+            {
+                foreach (GeoPoint3[] ends in listed)
+                {
+                    var edge = new DxfPolyline3d(DxfPoly3dType.SimplePoly, ends, false);
+                    edge.SetPropertiesFrom(entity);
+                    edges.Add(edge);
+                }
+
+                return edges.AsReadOnly();
+            }
+
+            foreach (DxfEntity part in faces)
             {
                 if (!(part is DxfFace face))
                 {

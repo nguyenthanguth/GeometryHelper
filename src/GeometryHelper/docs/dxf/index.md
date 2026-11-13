@@ -135,13 +135,27 @@ with the groups R12 has (no subclass markers, owners, reactors, lineweight, true
 bit 32 of its flags gone, an attribute's two flags as the extended data of AcDbAttr, a viewport's view as the extended data of
 ACAD MVIEW. What R12 does not hold is broken into what it does, and said: an LWPOLYLINE is a POLYLINE with its handle, an
 ellipse a 3D POLYLINE of 129 vertices and a spline one of 128, a ray and an infinite line a LINE to the extents of the
-drawing, all with their handles; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (a 3D
-polyline of two vertices for each edge) and a HATCH filled solid or with a gradient (SOLIDs, one colour for a gradient, a
-hatch with a normal other than (0, 0, 1) left out) are the lines, texts and polylines they break into, in an anonymous block
-`*U` (`*X` for a pattern hatch) numbered on from the highest of the drawing, with an INSERT that has the entity's handle,
-where they stood in a space, and in place where they stood in a block; the INSERT is on the drawing's current layer and in its
-current colour and linetype (`$CLAYER`, `$CECOLOR`, `$CELTYPE`), the look of the entity being on its pieces, and a hatch's keeps
-the colours of its gradient in its extended data. A 3DSOLID and a REGION are the edges of their faces, face by face and loop by
+drawing (in a block a LINE of no length at its base point, as AutoCAD cuts it), all with their handles; the polyline of an ellipse is written as
+AutoCAD writes it, its first vertex as its own place (`10`, `20`, `30`) and every vertex with six figures as C's `%#.6g` gives
+them (`40.0000`, `1.53457e+06`), the polyline of a spline with its place the zeros `0.00000`; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (a 3D
+polyline of two vertices for each edge, in the order and the direction the MESH lists them) and a HATCH filled solid or with a
+gradient (SOLIDs, one colour for a gradient, a hatch with a normal other than (0, 0, 1) left out) are the lines, texts and
+polylines they break into, in an anonymous block `*U` (`*X` for a pattern hatch) with an INSERT that has the entity's handle,
+where they stood in a space and where they stood in a block alike; the blocks are numbered on from the highest of the drawing in
+the order of the handles of the entities they were made of, those of the spaces and of the blocks together, and carry the
+current colour on their BLOCK and ENDBLK. The INSERT is on the drawing's current layer and in its current colour and linetype
+(`$CLAYER`, `$CECOLOR`, `$CELTYPE`), the look of the entity being on its pieces: the lines of a pattern hatch by block, the SOLIDs
+of a fill of the linetype CONTINUOUS, the lines and texts of a table by layer where its block drew them by block. A hatch's INSERT
+keeps the extended data the hatch had (the colours of its gradient, an annotative scale) with its application names in capitals,
+and holds the hatch itself as R14 did, in the application `ACAD`: a pattern hatch as `HATCH` with its name, scale and angle (in
+radians), what it follows (`ASC_BOUNDS`, its loops last first, each the kind of its edges and the handles it follows) and its seed
+points (`ASC_SEEDPOINT`) where it is associative, then `R14_HATCH_DATA`, a fill or a gradient `R14_HATCH_DATA` alone: its
+handle, the three axes of its system, its elevation and normal, its name, whether it is solid and associative, each loop with
+its edges (lines, arcs and ellipses as their numbers, splines as their knots and control points, a polyline as its vertices and
+bulges), the pattern's lines, and its seed points. The objects a pattern hatch follows carry `ACAD ASC_BOUNDS` with the handle of
+the hatch, and the INSERT of a multileader says `ACAD_MLEADERVER` 2, an application the table of applications holds. The lines
+of an MLINE are written element by element, and no entity of R12 names the linetype or the colour BYLAYER or has the flag, turn or
+extrusion that is the default (a flag 0 on a polyline or a vertex, a text turned 0, the normal (0, 0, 1)). A 3DSOLID and a REGION are the edges of their faces, face by face and loop by
 loop, as AutoCAD writes them: a box 40 by 30 by 20 is 24 LINEs, four to each face, each carrying the normal of its face
 ((0, 0, 1) left out); a cylinder is four CIRCLEs, those of the flat ends about their normal and those of the curved face about
 their own; the apex of a cone is a POINT, a sphere an empty block, an ellipse a 3D polyline of 129 vertices; an edge that is a
@@ -151,10 +165,15 @@ long MTEXT of AutoCAD's sample is the 123 TEXTs of AutoCAD's own R12. A dynamic 
 anonymous block AutoCAD gives it: `*U` and the first number above that of the anonymous block before it in the table
 (`my-dynamic-block` between `*T16` and `*U18` is `*U17`), its INSERTs naming that. The name of a symbol is as R12 holds it,
 a character that is no letter, digit, `$`, `-` or `_` an underscore and the name cut to 26 characters
-(`{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}` is `_18B73A54-FA43-428C-ADCB-C`), or AutoCAD discards the drawing. A TOLERANCE, a
+(`{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}` is `_18B73A54-FA43-428C-ADCB-C`), or AutoCAD discards the drawing; two names of one
+kind that come to one are told apart as AutoCAD tells them: the one that cleaning changed takes a number, `A{1}` beside `A_1_`
+is `A_1_0` beside `A_1_`. A TOLERANCE, a
 WIPEOUT, an IMAGE, an underlay, an OLE frame and the layouts beyond the first are left out and said. A gradient hatch is the
 SOLIDs of its triangles in one colour: AutoCAD writes the triangles of its own display mesh, 2 for a LINEAR gradient of any
-rectangle, as here, and 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here.
+rectangle, as here, and 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here;
+nor is the form of a fill, which AutoCAD writes as the SOLIDs of strips between the heights of the vertices of its boundary, each
+in the plane flipped (the extrusion (0, 0, -1)), and for a plain solid fill the LINEs of the boundary's sides that are not
+horizontal: a rectangle 100 by 60 is 2 SOLIDs and 2 LINEs there, 2 SOLIDs here.
 Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
 extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
 ten drawings of dynamic blocks open with a clean AUDIT.

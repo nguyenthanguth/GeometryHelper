@@ -218,10 +218,14 @@ User note 2026-11-12 evening (note.md 1-14):
       record, the sample's solids and region identical); MTEXT wrapped by font metrics (123 TEXTs, as AutoCAD); dynamic
       blocks as *U; fixed: symbol names, the AcDbAttr APPID, the anonymous flag and polyline vertex looks that made AutoCAD
       discard the R12 (the sample now audits as AutoCAD's own, 10 dynamic-block drawings AUDIT 0)
-- [ ] (r12c, running) R12 follow-ups 2: gradient hatches as AutoCAD's display mesh (LINEAR 2, CYLINDER 152, SPHERICAL 332 triangles on a
-      100 by 60 rectangle); R14_HATCH_DATA and ACAD_MLEADERVER xdata on the INSERTs; ellipse polylines' first-vertex
-      header and 6-figure vertices; table, multileader, pattern hatch and MESH piece counts; names colliding after cleaning;
-      AutoCAD's extra APPIDs; BODY, surfaces and spline-edge solids (S)
+- [x] R12 follow-ups 2 (r12c): hatch R14_HATCH_DATA and ACAD_MLEADERVER xdata and ASC_BOUNDS on boundaries (24 of 24 sample
+      INSERTs equal AutoCAD's), ellipse and spline polylines in AutoCAD's form, mesh and mline order, pieces in a block as
+      INSERTs numbered by handle (95 blocks as AutoCAD), default groups left out, colliding names told apart; 22 probe cases
+      open with AutoCAD's counts
+- [ ] R12 follow-ups 3: solid and gradient fills as AutoCAD's strips and band meshes (rect: 2 SOLID + 2 LINE; circle r25: 31
+      SOLID + 36 LINE; SPHERICAL 332); multileader frames and measured left-aligned TEXTs; dimension MTEXTs with a degree
+      sign or stack kept as TEXT; annotative decomposition layers; xdata normalisation (upper-case names, 5-group points);
+      polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
