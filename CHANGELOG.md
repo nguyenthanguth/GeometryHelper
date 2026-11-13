@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A REGION clips a viewport, and MVIEW has its Object option (AutoCAD 2021's VPCLIP and MVIEW probed in its console, and
+a ring plotted to a PNG). `DxfViewport.ClipTo` takes a REGION whose shape is read: the frame becomes the box of its loops and
+the region stays the boundary with the viewport among its reactors; a ring (a circle of radius 40 less one of 15) makes the
+frame 80 by 80 and AutoCAD plotted nothing of model space in its hole, a region of two squares apart two windows. The presenter
+draws, picks and clips the grid, the image and the plot through every ring of the region, even-odd (`DisplayClip2.Others`,
+`FlattenAll`), VPCLIP takes a region picked, and MVIEW Object (`Select object to clip viewport:`) makes a viewport of a closed
+polyline, circle, ellipse, spline or region, its frame the box of the object (an open polyline says `Clip object must be
+closed.`, any other entity `Invalid viewport clip object.`, the string of AutoCAD's resources). ROTATE and MIRROR of a
+viewport that is not clipped work as AutoCAD 2021's do (they were refused): a mirror moves the frame's centre and keeps its
+size and its view; a turn by a quarter turn (within a millionth of a radian) turns the frame, swapping its sides for 90 and 270
+degrees, and the view; any other turn makes the viewport clipped to a new 2D polyline of its four corners turned, the frame
+the box, the twist grown by the angle and the view's centre the turn by the new twist of the centre less the target (a
+viewport 200 by 100 about (110, 60) showing (1 000, 500) at 1:10, turned 45 degrees about the origin, is 212.132 square about
+(35.355, 120.208), twisted 45 degrees, its view centre (353.553, 1 060.660)).
+
+**FIXED.** MIRROR of a copy of a clipped viewport and its boundary about a line that is not horizontal or vertical, where the
+mirrored boundary has another box size (a triangle 80 by 60 becomes 60 by 80): AutoCAD 2021 moves the view's centre by the
+step of the frame's centre from where the copy stands over the view's scale (a triangle mirrored about y = x - 50 shows the
+view centre (86.667, -56.667) for (20, 10)); it was kept. A boundary that keeps its size keeps the view, as before. A click on
+the boundary of a clipped viewport picked nothing where SELECTIONCYCLING is 2 (the default), since the boundary and the viewport
+under it made a list of two to choose from: the pair is one object, as AutoCAD counts it. A viewport pasted (PASTECLIP) into a
+layout never shown had no viewport 1 for the sheet before it, which AutoCAD's AUDIT answered with `Invalid linetype
+eNullObjectId changed to ByLayer`; the layout gets it first, and AUDIT finds nothing.
+
 **NEW.** The dialog items left from rounds 2 to 4 in the presenter, designed first (design canvas v142). The Viewports dialog's
 Change view to: a click in a tile of the preview picks it and gives it *Current* or a named model view, written in the tile, and
 OK shows the view in that new viewport, its centre kept and its size fitted, or in the tile as it is with *Active Model

@@ -510,13 +510,16 @@ dictionaries, and a layout whose last active viewport (331) it was names its vie
 
 A viewport is clipped to an entity as AutoCAD 2021's VPCLIP clips it: its flag 0x10000 of group 90 is on, the entity is its
 group 340, and the viewport is among the reactors of the entity (102 `{ACAD_REACTORS`), all of which a DXF and a DWG carry.
-`viewport.NonRectClipEntity` gives the entity, a circle, a whole ellipse, a closed polyline or a closed spline of the
+`viewport.NonRectClipEntity` gives the entity, a circle, a whole ellipse, a closed polyline, a closed spline or a REGION of the
 same layout (null where the viewport is not clipped). `viewport.ClipTo(entity)` clips it, the frame becoming the box of the
 entity and the view staying where it was: a viewport 100 by 80 about (100, 100) at 1:2 showing about the origin, clipped to
 a rectangle from (70, 70) to (150, 140), is 80 by 70 about (110, 105) with its view centre at (20, 10) and its view height
 140 (AutoCAD 2021 gave the same numbers); the box of a polyline with bulges is that of its arcs, so one 80 wide whose bottom
 side bulges 0.5 reaches 20 below its corners. An entity that is open, not of those kinds, of another layout or without area
-is refused, as AutoCAD says "Clip object must be closed."; the entity a viewport had before stays in the layout, let go.
+is refused, as AutoCAD says "Clip object must be closed."; the entity a viewport had before stays in the layout, let go. A REGION is a
+boundary as it is (its shape read by `GetRegionShape`): one of a ring, a circle of radius 40 less one of 15, makes the frame 80 by
+80, the box of its outer loop, and AutoCAD 2021 plotted a viewport clipped to it with nothing of model space in the hole; one of
+two squares apart has a frame round both and shows two windows.
 `viewport.FitToClip()` fits the frame to the entity again after the entity was moved, scaled or stretched (it says whether
 the frame changed), and `viewport.RemoveClip()` takes the clip off as the Delete of VPCLIP does, erasing the entity and
 keeping the frame. AutoCAD 2021's DXF of a viewport clipped to an entity and ours of the same agree group by group, and its

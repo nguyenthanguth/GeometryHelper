@@ -289,7 +289,7 @@ the ones wanted.
       and ours; 16 ties followed through 7 states as AutoCAD to 1E-3; STRETCH of rotated dimensions and polyline arcs (S)
 - [x] Associative dimensions follow-ups: extended perpendicular, DIMANGULAR on a circle, groups 11/42, the angular arc point (1247 of 1335 replayed values match AutoCAD)
 - [x] Associative dimensions follow-ups 2: newest object at a shared end, two-line order, DIMLINEAR line after a move, words from the leader end, polyline arc second point, DIMARC association, zero angles (238 of 262 states match)
-- [ ] Associative dimensions follow-ups 3: flag 128 on radii and diameters; DIMARC arc point for a Partial length or under 90 degrees (0.43 off); arc point of an angle too small for its words (two thirds round); DIMARC of a polyline arc segment (S)
+- [ ] (fu-misc, running) Associative dimensions follow-ups 3: flag 128 on radii and diameters; DIMARC arc point for a Partial length or under 90 degrees (0.43 off); arc point of an angle too small for its words (two thirds round); DIMARC of a polyline arc segment (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -302,7 +302,7 @@ the ones wanted.
 - [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
 - [x] Dynamic blocks: visibility states list every parameter, XY corner and block-table grips, live preview of custom grip drags, GRIPDYNCOLOR
-- [ ] Dynamic block follow-ups: XY/linear base point moved by a corner drag (AutoCAD reads Width 80, ours 100; core evaluator); insertion grip last as AutoCAD; block-table grip menu and glyph against AutoCAD's screen; a linear parameter's base grip; the Design artifact's custom grip colour (#19B5F0) to AutoCAD's 140 (#00BFFF) (S)
+- [ ] (fu-misc, running) Dynamic block follow-ups: XY/linear base point moved by a corner drag (AutoCAD reads Width 80, ours 100; core evaluator); insertion grip last as AutoCAD; block-table grip menu and glyph against AutoCAD's screen; a linear parameter's base grip; the Design artifact's custom grip colour (#19B5F0) to AutoCAD's 140 (#00BFFF) (S)
 
 ### To do
 
@@ -354,7 +354,7 @@ the ones wanted.
 - [x] Pictures follow-ups: implied window prompt with absolute DYN fields and F/WP/CP, no base-point square, cursor badges, AutoCAD's osnap menu letters, AutoComplete list of 5 rows, SCALE of 100 000 timed (25 ms a move)
 - [x] Pictures follow-ups 2: canvas right-click menus Default/Edit/Grips/Command from AutoCAD's menu file, SHORTCUTMENU 11, implied window inside Select objects, osnap labels and separators
 - [x] Canvas menu follow-ups: AutoCAD's object menus (POP504-536, e.g. the table menu's Size Columns/Rows Equally, Export, Table Style) merged into Edit; Recent Input submenu; Point Filters separator after .Z; a typed point that hits nothing at Select objects; transparent PAN/ZOOM; a SHORTCUTMENU variable and right-click customization; design boards for the four menus; fading of MOVE/ROTATE/ALIGN/grips (needs AutoCAD pictures) (S)
-- [ ] Canvas menu follow-ups 2: grey object items (DIMOVERRIDE Clear, SPLINEDIT, Table Style apply, TABLEEXPORT, VPMAX/VPCLIP, XCLIP, REFEDIT, IMAGEADJUST, HATCHSETORIGIN); transparent SETVAR/OSNAP and the rest; Recent Input in current units and Selection set (N items); right-click customization dialog; design boards for Command/Edit menus (v127 out of date); fading of MOVE/ROTATE/ALIGN/grips (S)
+- [ ] (fu-misc, running) Canvas menu follow-ups 2: grey object items (DIMOVERRIDE Clear, SPLINEDIT, Table Style apply, TABLEEXPORT, VPMAX/VPCLIP, XCLIP, REFEDIT, IMAGEADJUST, HATCHSETORIGIN); transparent SETVAR/OSNAP and the rest; Recent Input in current units and Selection set (N items); right-click customization dialog; design boards for Command/Edit menus (v127 out of date); fading of MOVE/ROTATE/ALIGN/grips (S)
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
@@ -392,7 +392,14 @@ the ones wanted.
 - [x] Snap follow-ups 5: snap/grid SETVAR, GRID/SNAP and F7/F8/F9 as cheap undo steps (F7 joins the previous command as AutoCAD 2021 does, DECIDED by recommendation 2026-11-12)
 - [x] Snap follow-ups 6: non-rectangular viewport clips (VPCLIP Polygonal/object/Delete, content, grid, picking and highlight clipped; DXF/DWG AUDIT 0)
 - [x] VPCLIP follow-ups 1: ROTATE/MIRROR/MOVE of a clipped pair as AutoCAD (twisted view, about 30 cases to 4 decimals), pasting a clipped viewport into another drawing, image and plot clipped (pixel tests), a drag-vertex canvas test (vpclip2)
-- [ ] (vpclip3, running) VPCLIP follow-ups 2: REGION as a clip object; viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot; MIRROR of a non-symmetric boundary about a diagonal line off the origin (AutoCAD moves the view centre by k·(50,-50), rule not found); ROTATE of an unclipped viewport (AutoCAD makes it clipped); canvas click on an L-shaped clip boundary picks nothing in the Wpf harness; AUDIT of a pasted pair; PASTEBLOCK refusal wording is ours (S)
+- [x] VPCLIP follow-ups 2 (vpclip3): a REGION (with holes, two faces, ellipse) as a viewport's clip, drawn and plotted
+      even-odd; MVIEW Object; ROTATE of an unclipped viewport clipped as AutoCAD (view centre R(twist)(V - T), 8 probes) and
+      MIRROR of one; MIRROR copy of a clipped pair about a diagonal off the origin (V + (C' - C)/scale when the box changes
+      shape); fixed: a click on a clip boundary opened the selection-cycling list, a pair pasted into a layout never shown
+      audited with 1 error in AutoCAD (now 0)
+- [ ] VPCLIP follow-ups 3: viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot
+      (GUI); a region off the XY plane as a clip; MVIEW Polygonal and the other MVIEW options; a pixel test of a region clip
+      in plots; a cache of OutlineOf for region boundaries (123 us a call) (S)
 - [x] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)

@@ -362,5 +362,121 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(paper, PixelAt(pixels, canvas, 10, 7.5));
             });
         }
+
+        [Fact]
+        public void AClickOnTheEdgeOfTheBoundary_SelectsTheBoundaryAndItsViewport_AsOne()
+        {
+            OnClippedLayout(LShape, false, (model, canvas, viewport) =>
+            {
+                string border = viewport.NonRectClipEntity.Handle;
+
+                // The right side of the L, (9.5, 3), and its inner side, (7, 5.5): a click on the boundary picks it, and the pair
+                // with it, as AutoCAD's "2 found".
+                Click(canvas, At(canvas, 9.5, 3));
+                Assert.Equal(
+                    new[] { border, viewport.Handle }.OrderBy(h => h).ToArray(),
+                    model.Document.Selection.Handles.OrderBy(h => h).ToArray()
+                );
+
+                model.ClearSelection();
+                Click(canvas, At(canvas, 7, 5.5));
+                Assert.Equal(2, model.Document.Selection.Handles.Count);
+            });
+        }
+
+        [Fact]
+        public void AClickInsideTheOutlineOfTheClippedViewport_PicksTheModelThroughIt_OnlyWhileWorkedThrough()
+        {
+            OnClippedLayout(LShape, false, (model, canvas, viewport) =>
+            {
+                Assert.True(canvas.ViewportClick(At(canvas, 4, 3), true));
+
+                // The column of radius 0.2 at the middle of the room, (6, 4.5), is inside the L: a click on its rim picks it.
+                Click(canvas, At(canvas, 6.2, 4.5));
+                Assert.Single(model.Document.Selection.Handles);
+            });
+        }
+
+        /// <summary>A REGION of a disc of radius 2.4 about the middle of the viewport with a hole of radius 0.3, which holds the column of radius 0.2.</summary>
+        private static DxfEntity Ring(DxfViewport frame)
+        {
+            var outer = new DxfCircle(new GeoPoint3(6, 4.5, 0), new GeoVector3(0, 0, 1), 2.4);
+            var hole = new DxfCircle(new GeoPoint3(6, 4.5, 0), new GeoVector3(0, 0, 1), 0.3);
+            return DxfUnknownEntity.CreateRegion(
+                DxfRegionShape.Create(new DxfCurve[] { outer }, new[] { new DxfCurve[] { hole } }, Tolerance.Default),
+                new DxfDatabase("AC1027")
+            );
+        }
+
+        /// <summary>How many pixels within a radius of the middle of the viewport, (6, 4.5), are not the colour of the paper.</summary>
+        private static int NotPaperWithin(CadCanvas canvas, int[] pixels, double radius)
+        {
+            int paper = PixelAt(pixels, canvas, 1, 4.5);
+            int count = 0;
+
+            for (int iy = 0; iy < Height; iy++)
+            {
+                for (int ix = 0; ix < Width; ix++)
+                {
+                    canvas.View.ScreenToDrawing(ix, iy, out double x, out double y);
+
+                    if (
+                        (x - 6) * (x - 6) + (y - 4.5) * (y - 4.5) < radius * radius
+                        && (pixels[iy * Width + ix] & 0xFFFFFF) != paper
+                    )
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        [Fact]
+        public void ARegionWithAHole_ShowsNothingOfTheModelInTheHole_WhereADiscShowsTheColumn()
+        {
+            int shown = 0;
+
+            OnClippedLayout(Round, false, (model, canvas, viewport) =>
+            {
+                shown = NotPaperWithin(canvas, Pixels(canvas), 0.25);
+            });
+
+            // The column of radius 0.2 at the middle shows through a disc.
+            Assert.True(shown > 20, "Only " + shown + " pixels of the column show through the disc.");
+
+            OnClippedLayout(Ring, false, (model, canvas, viewport) =>
+            {
+                Assert.Equal(4.8, viewport.Width, 9);
+                int[] pixels = Pixels(canvas);
+                DisplayClip2 outline = CadViewportClips.OutlineOf(viewport);
+                Assert.NotNull(outline);
+                Assert.Single(outline.Others);
+
+                // AutoCAD 2021 plotted a ring with nothing in its hole: the column lies inside the hole, and is not drawn.
+                Assert.Equal(0, NotPaperWithin(canvas, pixels, 0.25));
+                Count(canvas, pixels, outline, out int outside, out _);
+                Assert.Equal(0, outside);
+            });
+        }
+
+        [Fact]
+        public void TheGridOfARegionWithAHole_LeavesTheHoleBare_AndAClickInTheHoleIsNotInTheViewport()
+        {
+            OnClippedLayout(Ring, true, (model, canvas, viewport) =>
+            {
+                Assert.True(
+                    NotPaperWithin(canvas, Pixels(canvas), 0.25) == 0,
+                    "The grid or the model shows in the hole."
+                );
+
+                // Inside the ring a double click works through the viewport; in the hole, it does not.
+                Assert.False(canvas.ViewportClick(At(canvas, 6.1, 4.5), true));
+                Assert.Null(canvas.ThroughHandle);
+                Assert.True(canvas.ViewportClick(At(canvas, 6.0, 6.0), true));
+                Assert.Equal(viewport.Handle, canvas.ThroughHandle);
+            });
+        }
     }
 }

@@ -2348,7 +2348,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         height,
                         stride,
                         sheetView,
-                        outline.Flatten(0.1 / sheetView.PixelsPerUnit)
+                        outline.FlattenAll(0.1 / sheetView.PixelsPerUnit)
                     );
                 }
                 else if (through != null)
@@ -2546,8 +2546,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The pixels of the grid outside the outline of a clipped viewport put back as they were before the grid, each pixel kept
-        /// that lies inside the ring (paper units) or within half a pixel of its edges, as <see cref="KeepWithinLimits"/> keeps
-        /// those of a rectangle.
+        /// that lies inside the rings (paper units, filled even-odd so that a hole of a region is left out) or within half a pixel
+        /// of their edges, as <see cref="KeepWithinLimits"/> keeps those of a rectangle.
         /// </summary>
         private static void KeepWithinOutline(
             int[] pixels,
@@ -2556,32 +2556,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int height,
             int stride,
             CadView view,
-            double[] ring
+            IReadOnlyList<double[]> rings
         )
         {
             using (var mask = new SKBitmap(new SKImageInfo(width, height, SKColorType.Alpha8, SKAlphaType.Premul)))
             using (var canvas = new SKCanvas(mask))
-            using (var builder = new SKPathBuilder())
+            using (var builder = new SKPathBuilder { FillType = SKPathFillType.EvenOdd })
             using (var paint = new SKPaint { IsAntialias = false, Color = SKColors.White })
             {
                 canvas.Clear(SKColors.Transparent);
                 canvas.Translate(0.5f, 0.5f);
 
-                for (int i = 0; i < ring.Length / 2; i++)
+                foreach (double[] ring in rings)
                 {
-                    view.DrawingToPixel(ring[2 * i], ring[2 * i + 1], out double px, out double py);
+                    for (int i = 0; i < ring.Length / 2; i++)
+                    {
+                        view.DrawingToPixel(ring[2 * i], ring[2 * i + 1], out double px, out double py);
 
-                    if (i == 0)
-                    {
-                        builder.MoveTo((float)px, (float)py);
+                        if (i == 0)
+                        {
+                            builder.MoveTo((float)px, (float)py);
+                        }
+                        else
+                        {
+                            builder.LineTo((float)px, (float)py);
+                        }
                     }
-                    else
-                    {
-                        builder.LineTo((float)px, (float)py);
-                    }
+
+                    builder.Close();
                 }
 
-                builder.Close();
                 SKPath path = builder.Detach();
                 canvas.DrawPath(path, paint);
                 paint.IsStroke = true;
@@ -3834,10 +3838,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The outline of a viewport clipped by an entity on the canvas, in device-independent pixels, arcs kept to a tenth of a
-        /// pixel; null for a viewport that is its frame, or with no view to put it in.
+        /// The rings of the outline of a viewport clipped by an entity on the canvas, in device-independent pixels, arcs kept to a
+        /// tenth of a pixel, the ring of the entity first and then the holes and other faces of a region; null for a viewport that
+        /// is its frame, or with no view to put it in.
         /// </summary>
-        private Point[] OutlineOnScreen(DxfViewport viewport)
+        private Point[][] OutlineOnScreen(DxfViewport viewport)
         {
             CadView view = View;
             DisplayClip2 clip = view == null ? null : CadViewportClips.OutlineOf(viewport);
@@ -3848,57 +3853,84 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             double scale = PixelScale;
-            double[] ring = clip.Flatten(0.1 * scale / view.PixelsPerUnit);
-            var points = new Point[ring.Length / 2];
+            IReadOnlyList<double[]> flat = clip.FlattenAll(0.1 * scale / view.PixelsPerUnit);
+            var rings = new Point[flat.Count][];
 
-            for (int i = 0; i < points.Length; i++)
+            for (int r = 0; r < rings.Length; r++)
             {
-                points[i] = ToScreen(view, new GeoPoint2(ring[2 * i], ring[2 * i + 1]), scale);
+                double[] ring = flat[r];
+                rings[r] = new Point[ring.Length / 2];
+
+                for (int i = 0; i < rings[r].Length; i++)
+                {
+                    rings[r][i] = ToScreen(view, new GeoPoint2(ring[2 * i], ring[2 * i + 1]), scale);
+                }
             }
 
-            return points;
+            return rings;
         }
 
-        /// <summary>The frame of a viewport as a shape to clip to: its rectangle, or the outline of the entity that clips it.</summary>
+        /// <summary>The frame of a viewport as a shape to clip to: its rectangle, or the outline of the entity that clips it, filled even-odd so that a hole of a region is left out.</summary>
         private System.Windows.Media.Geometry FrameGeometry(DxfViewport viewport)
         {
-            Point[] outline = OutlineOnScreen(viewport);
+            Point[][] outline = OutlineOnScreen(viewport);
 
-            if (outline == null || outline.Length < 3)
+            if (outline == null || outline[0].Length < 3)
             {
                 return new RectangleGeometry(FrameOnScreen(viewport));
             }
 
-            var figure = new PathFigure
+            var figures = new List<PathFigure>();
+
+            foreach (Point[] ring in outline)
             {
-                StartPoint = outline[0],
-                IsClosed = true,
-                IsFilled = true,
-            };
-            figure.Segments.Add(new PolyLineSegment(outline.Skip(1), true));
-            return new PathGeometry(new[] { figure });
+                if (ring.Length < 3)
+                {
+                    continue;
+                }
+
+                var figure = new PathFigure
+                {
+                    StartPoint = ring[0],
+                    IsClosed = true,
+                    IsFilled = true,
+                };
+                figure.Segments.Add(new PolyLineSegment(ring.Skip(1), true));
+                figures.Add(figure);
+            }
+
+            return new PathGeometry(figures, FillRule.EvenOdd, Transform.Identity);
         }
 
         /// <summary>The frame of a viewport as a path of the picture being drawn, in pixels of the picture; null for a rectangle.</summary>
         private SKPath FrameSkPath(DxfViewport viewport, double scale)
         {
-            Point[] outline = OutlineOnScreen(viewport);
+            Point[][] outline = OutlineOnScreen(viewport);
 
-            if (outline == null || outline.Length < 3)
+            if (outline == null || outline[0].Length < 3)
             {
                 return null;
             }
 
-            using (var builder = new SKPathBuilder())
+            using (var builder = new SKPathBuilder { FillType = SKPathFillType.EvenOdd })
             {
-                builder.MoveTo((float)(outline[0].X * scale), (float)(outline[0].Y * scale));
-
-                for (int i = 1; i < outline.Length; i++)
+                foreach (Point[] ring in outline)
                 {
-                    builder.LineTo((float)(outline[i].X * scale), (float)(outline[i].Y * scale));
+                    if (ring.Length < 3)
+                    {
+                        continue;
+                    }
+
+                    builder.MoveTo((float)(ring[0].X * scale), (float)(ring[0].Y * scale));
+
+                    for (int i = 1; i < ring.Length; i++)
+                    {
+                        builder.LineTo((float)(ring[i].X * scale), (float)(ring[i].Y * scale));
+                    }
+
+                    builder.Close();
                 }
 
-                builder.Close();
                 return builder.Detach();
             }
         }
@@ -3935,25 +3967,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            Point[] outline = OutlineOnScreen(viewport);
+            Point[][] outline = OutlineOnScreen(viewport);
 
-            if (outline == null || outline.Length < 3)
+            if (outline == null || outline[0].Length < 3)
             {
                 return FrameOnScreen(viewport).Contains(p);
             }
 
+            // Inside an odd number of the rings: a hole of a region is a ring inside the first.
             bool inside = false;
 
-            for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)
+            foreach (Point[] ring in outline)
             {
-                if (
-                    (outline[i].Y > p.Y) != (outline[j].Y > p.Y)
-                    && p.X
-                        < (outline[j].X - outline[i].X) * (p.Y - outline[i].Y) / (outline[j].Y - outline[i].Y)
-                            + outline[i].X
-                )
+                for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
                 {
-                    inside = !inside;
+                    if (
+                        (ring[i].Y > p.Y) != (ring[j].Y > p.Y)
+                        && p.X < (ring[j].X - ring[i].X) * (p.Y - ring[i].Y) / (ring[j].Y - ring[i].Y) + ring[i].X
+                    )
+                    {
+                        inside = !inside;
+                    }
                 }
             }
 
@@ -4178,9 +4212,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double luminance =
                 (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Pen pen = luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark;
-            Point[] outline = OutlineOnScreen(through);
+            Point[][] outline = OutlineOnScreen(through);
 
-            if (outline == null || outline.Length < 3)
+            if (outline == null || outline[0].Length < 3)
             {
                 dc.DrawRectangle(null, pen, FrameOnScreen(through));
                 return;

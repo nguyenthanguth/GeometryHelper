@@ -208,7 +208,9 @@ Because a viewport draws model space, an edit in model space drops the display l
 A viewport clipped by an entity (VPCLIP) has its `Clip`, a [`DisplayClip2`](xref:GeometryHelper.Dxf.Viewer.DisplayClip2): the
 boundary as a closed ring of paper units, a circle as two vertices with the bulge 1 and the arcs of a polyline kept as
 arcs, an ellipse or a spline sampled finely, `Flatten(tolerance)` cutting the arcs to a chord that lies no farther than the
-tolerance and `Contains` and `DistanceToEdge` answering for a point. The canvas draws model space through that outline in
+tolerance and `Contains` and `DistanceToEdge` answering for a point. A REGION boundary with a hole, or of several faces, adds its other
+rings (`Others`, `FlattenAll(tolerance)` giving every ring): a point is inside where it is inside an odd number of them, so that a
+ring inside the first is a hole, as AutoCAD 2021 plotted one with nothing of model space in it. The canvas draws model space through that outline in
 place of the frame (arcs kept to a tenth of a pixel), draws no frame of its own, since the boundary entity is the border and
 is drawn as itself, and a pick finds the viewport by the distance to the outline. [`CadViewportClips.OutlineOf(viewport)`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips)
 makes the outline from the viewport. A viewport that is not clipped is drawn as it was, its frame a rectangle.

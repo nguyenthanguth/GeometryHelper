@@ -768,8 +768,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify corner of viewport", null, new[] { "Fit" }, "Fit");
+            yield return CadPrompt.ForPoint("Specify corner of viewport", null, new[] { "Fit", "Object" }, "Fit");
             DisplayBox frame;
+            string clipHandle = null;
 
             if (c.Input.IsPoint)
             {
@@ -787,6 +788,40 @@ namespace GeometryHelper.Dxf.Viewer
             else if (c.Input.Is("Fit"))
             {
                 frame = c.Space.PaperBounds;
+            }
+            else if (c.Input.Is("Object"))
+            {
+                // A closed polyline, circle, ellipse, spline or region becomes the viewport: its frame the box of the object, the
+                // object its border, as AutoCAD 2021's MVIEW Object makes one.
+                DxfEntity picked = null;
+                GeoAabb3 box = default;
+
+                while (picked == null)
+                {
+                    yield return CadPrompt.ForEntity("Select object to clip viewport");
+
+                    if (c.Input.Kind != CadInputKind.Selection)
+                    {
+                        yield break;
+                    }
+
+                    DxfEntity candidate = c.Document.FindEntity(c.Input.Handles[0]);
+                    string why =
+                        candidate == null
+                            ? "Invalid viewport clip object."
+                            : CadViewportClips.WhyNotMakeViewport(candidate, c.Space, out box);
+
+                    if (why != null)
+                    {
+                        c.Write(why);
+                        continue;
+                    }
+
+                    picked = candidate;
+                }
+
+                clipHandle = picked.Handle;
+                frame = new DisplayBox(box.Min.X, box.Min.Y, box.Max.X, box.Max.Y);
             }
             else
             {
@@ -839,6 +874,11 @@ namespace GeometryHelper.Dxf.Viewer
                 viewport.ViewCenter = viewCenter;
                 viewport.ViewHeight = viewHeight;
                 viewport.On = true;
+
+                if (clipHandle != null)
+                {
+                    viewport.ClipTo(s.Document.FindEntity(clipHandle));
+                }
 
                 // The layers frozen in new viewports (New VP Freeze, VPLAYER Vpvisdflt) were frozen in this one as it was
                 // appended, as AutoCAD freezes them.
