@@ -160,6 +160,13 @@ namespace GeometryHelper.Dwg
                 return "0.0";
             }
 
+            if (Math.Abs(value) >= 1.797693134862315E+308)
+            {
+                // The largest real, which AutoCAD keeps for a value not set yet, is in its DXF 1.797693134862314E+99; the
+                // digits of G15 round past the largest number, which cannot be read back.
+                return value < 0 ? "-1.797693134862314E+99" : "1.797693134862314E+99";
+            }
+
             if (value == Math.Floor(value) && Math.Abs(value) < 1E15)
             {
                 return value.ToString("0.0", CultureInfo.InvariantCulture);

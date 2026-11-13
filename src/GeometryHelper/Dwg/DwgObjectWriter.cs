@@ -367,6 +367,20 @@ namespace GeometryHelper.Dwg
                     return WriteSpatialFilter;
                 case "WIPEOUTVARIABLES":
                     return () => _data.BitShort(_record.Of("AcDbWipeoutVariables").Int(70, 1));
+                case "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION":
+                    return R2007Plus ? WriteDynamicBlockPurgePreventer : (Action)null;
+                case "ACAD_EVALUATION_GRAPH":
+                    return R2007Plus ? WriteEvaluationGraph : (Action)null;
+                case "BLOCKGRIPLOCATIONCOMPONENT":
+                    return R2007Plus ? WriteBlockGripLocationComponent : (Action)null;
+                case "BLOCKLINEARGRIP":
+                    return R2007Plus ? WriteBlockLinearGrip : (Action)null;
+                case "BLOCKLINEARPARAMETER":
+                    return R2007Plus ? WriteBlockLinearParameter : (Action)null;
+                case "BLOCKSTRETCHACTION":
+                    return R2007Plus ? WriteBlockStretchAction : (Action)null;
+                case "ACDB_BLOCKREPRESENTATION_DATA":
+                    return R2007Plus ? WriteBlockRepresentationData : (Action)null;
                 case "ACAD_TABLE":
                     return R2010Plus ? WriteTable : (Action)null;
                 case "TABLESTYLE":

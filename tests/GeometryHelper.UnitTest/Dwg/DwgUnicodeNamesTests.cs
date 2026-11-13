@@ -99,5 +99,32 @@ namespace GeometryHelper.UnitTest.Dwg
             DwgAnswerKey.Record written = back.Single(r => r.Type == "TEXT");
             Assert.Equal(@"a\U+1EDBb", written.Groups.First(g => g.Key == 1).Value.Trim());
         }
+
+        [Theory]
+        [InlineData(@"a\M+182A0b", "aあb")]
+        [InlineData(@"\M+2A440x", "一x")]
+        [InlineData(@"\M+5B0A1", "啊")]
+        [InlineData(@"\m+182a0 \u+00e9", "あ é")]
+        public void ATextOfR2004_WithMultibyteCodesInIt_IsWrittenWithTheirLetters(string typed, string letters)
+        {
+            // The number after the plus is the code page (1 Shift-JIS, 2 Big5, 3 Wansung, 4 Johab, 5 GB 2312), then two bytes.
+            string text = WithText(TextOf("props_AC1018"), typed);
+
+            List<DwgAnswerKey.Record> back = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032")));
+
+            DwgAnswerKey.Record written = back.Single(r => r.Type == "TEXT");
+            Assert.Equal(letters, Letters(written.Groups.First(g => g.Key == 1).Value));
+        }
+
+        [Fact]
+        public void ATextOfR2018_WithAMultibyteCodeTypedInIt_KeepsTheCode()
+        {
+            string text = WithText(TextOf("props_AC1032"), @"a\M+182A0b");
+
+            List<DwgAnswerKey.Record> back = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032")));
+
+            DwgAnswerKey.Record written = back.Single(r => r.Type == "TEXT");
+            Assert.Equal(@"a\M+182A0b", written.Groups.First(g => g.Key == 1).Value.Trim());
+        }
     }
 }

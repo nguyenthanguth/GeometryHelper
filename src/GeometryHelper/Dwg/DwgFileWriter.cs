@@ -282,6 +282,24 @@ namespace GeometryHelper.Dwg
                 && !_written.Contains(record.Container)
                 && _written.Remove(record.Handle)
             );
+
+            // A graph of a dynamic block that names an expression not written is left out with the expressions it owns.
+            foreach (DwgRecord graph in records.FindAll(record => record.Type == "ACAD_EVALUATION_GRAPH"))
+            {
+                if (!graph.Body.Exists(group => group.Key == 360 && !_written.Contains(DwgRecord.Hex(group.Value))))
+                {
+                    continue;
+                }
+
+                foreach (DwgRecord left in records.FindAll(record => record == graph || record.Owner == graph.Handle))
+                {
+                    _written.Remove(left.Handle);
+                    _left.TryGetValue(left.Type, out int count);
+                    _left[left.Type] = count + 1;
+                }
+
+                records.RemoveAll(record => !_written.Contains(record.Handle));
+            }
             records.Sort((a, b) => a.Handle.CompareTo(b.Handle));
 
             var objects = new MemoryStream();

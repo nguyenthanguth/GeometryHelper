@@ -57,7 +57,7 @@ each.
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), the fields and the draw order (FIELD, FIELDLIST, SORTENTSTABLE), the link of a table to data (DATALINK), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), the fields and the draw order (FIELD, FIELDLIST, SORTENTSTABLE), the link of a table to data (DATALINK), the cell styles a table style of AutoCAD 2000 to 2007 keeps for a round trip (CELLSTYLEMAP), the data of a dynamic block of a linear parameter and a stretch action (ACAD_EVALUATION_GRAPH, BLOCKLINEARPARAMETER, BLOCKSTRETCHACTION, BLOCKLINEARGRIP, BLOCKGRIPLOCATIONCOMPONENT, ACDB_BLOCKREPRESENTATION_DATA, ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 | Preview | the picture of the file's preview, where it holds one, as the section `THUMBNAILIMAGE` of the DXF, last: a bitmap of Windows without its file header (`DxfDatabase.ThumbnailBitmap` gives its bytes), or a PNG file |
 
@@ -144,15 +144,45 @@ data link of a spreadsheet with options 0 in DXF (8 in the file) with its three.
 the order of its memory and the file in the order of the handles; each of the 4 types in the DWG of R2000, R2004, R2007,
 R2010, R2013 and R2018 that AutoCAD 2021 saves of a sample.
 
+A dynamic block of a linear parameter and its stretch action is read with its data: the evaluation graph
+(ACAD_EVALUATION_GRAPH: two numbers, each node by its index, flags, id, the expression it holds and four numbers, each
+edge by its index, flags, count, its two nodes and five numbers), the parameter (BLOCKLINEARPARAMETER, its element, its
+two points, its four displacements with the connections each makes and its value set), its two grips
+(BLOCKLINEARGRIP) and their four location components (BLOCKGRIPLOCATIONCOMPONENT), the action (BLOCKSTRETCHACTION: the
+entities it moves, its frame, the points of each entity and of each node it moves, its multiplier and angle), the
+representation data each anonymous block of the block keeps (ACDB_BLOCKREPRESENTATION_DATA) and the purge preventer
+(ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION). An expression that holds a value (a real of kind 40, a short of kind 70)
+gives it after an empty text as AutoCAD's DXF does (1, 70 and 140 or 70). The versions of an expression and of an element
+(98 and 99) are 33 and 174, as AutoCAD 2021 gives them in the DXF of a drawing of an older version. The entities a stretch
+binds stand by their handles; AutoCAD's DXF has them in the order of its memory, which is the order of the handles in all
+but a few of the 111 actions of the samples. The block `Drawing Title` of nine of AutoCAD 2021's sheet drawings (`A-01` to `S-04`), with its 12 to 37 objects
+each, reads as AutoCAD's DXF of the drawing, group for group; a drawing of the flips, rotations and visibility states of
+`Annotation`, `Architectural`, `Civil`, `Electrical`, `Mechanical` and `Structural` holds the graph with parameters the
+reader does not read, and its graph is left out with the objects it owns (see below), as it was before. The largest real
+number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is read: its digits
+as the runtime writes them rounded past the largest number and could not be read back, which stopped the whole DWG from
+being read.
+
+The CELLSTYLEMAP of a DWG of AutoCAD 2000 to 2007, which a table style keeps for a round trip (under its extension
+dictionary as `ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP`), is read as its cell styles in the layout a table style of
+R2010 and later holds them, each followed by its id, kind and name: a count (90), then each cell style as DXF gives it
+(its format, six grid formats, `CELLSTYLE_BEGIN`, id, kind and name). A drawing of AutoCAD 2000 to 2007 usually holds two,
+and was left out of the DXF as 2 of the types not read; the table drawings of R2000, R2004 and R2007 read them as
+AutoCAD's DXF gives them, group for group. AutoCAD gives each map a new handle in its DXF and makes them in another
+order; the reader keeps the handle of the file.
+
 Texts come back as they were typed, "Tiếng Việt café 日本語" letter for letter: before AutoCAD 2007 they are in the
 drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 they are UTF-16 in the file and UTF-8 in
 the DXF, as AutoCAD's DXF of those versions is.
 
 A DXF of R2004 or before written as a DWG gets its letters in place of the escapes: its text holds a letter beyond the code
-page as `\U+1EDB`, and the DWG keeps the letter, so that the layer `L\U+1EDBp \U+1EA9n` is written `Lớp ẩn`, as AutoCAD
-writes it (it found "Un-normalized symbol name" in the escape, 2 errors in AUDIT of the drawing of properties). The escape
-is put in place in every text of such a DXF, the names and the words of a TEXT or an MTEXT alike, as AutoCAD does when it
-reads such a DXF; in a DXF of R2007 and later an escape is the text typed and is left.
+page as `\U+1EDB`, and a letter of a multibyte code page as `\M+182A0` (the number after the plus is the code page, 1
+Shift-JIS, 2 Big5, 3 Wansung, 4 Johab, 5 GB 2312, then two bytes in four digits; that one is the Japanese letter a,
+U+3042), and the DWG keeps the letter, so that the layer `L\U+1EDBp \U+1EA9n` is written `Lớp ẩn`, as AutoCAD writes it (it
+found "Un-normalized symbol name" in the escape, 2 errors in AUDIT of the drawing of properties). The escape is put in
+place in every text of such a DXF, the names and the words of a TEXT or an MTEXT alike, as AutoCAD does when it reads such
+a DXF (`\u+` and `\m+` in small letters are escapes too); in a DXF of R2007 and later an escape is the text typed and is
+left. A multibyte code that is no letter of its page is left as written.
 
 A true colour of a table record (a layer, a viewport's ambient light) is given with the nearest colour index of the
 palette, as AutoCAD writes it; the file holds no index beside it. A layer of RGB 10, 200, 30 gets index 102. The
@@ -184,7 +214,7 @@ as AutoCAD's DXF of it in all six versions.
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
 [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) names the types with the count of each
-(`DwgReader: types that are not read yet were left out: ACDB_MLEADEROBJECTCONTEXTDATA_CLASS 10 CELLSTYLEMAP 2 …`), and one Info line sums the
+(`DwgReader: types that are not read yet were left out: ACDB_MLEADEROBJECTCONTEXTDATA_CLASS 10 VP_ENT_HDR 5 …`), and one Info line sums the
 call.
 
 - Entities: a REGION, 3DSOLID or BODY of AutoCAD 2004 to 2010 whose SAB holds a record or subtype the grammars do not
@@ -192,13 +222,14 @@ call.
   entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
   or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
   neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
-- Objects: the CELLSTYLEMAP a table style of AutoCAD 2000 or 2004 keeps for a round trip, the data of dynamic blocks,
-  and the other objects of classes. AutoCAD makes most of these anew in a drawing
-  that lacks them. In AutoCAD 2021's own sample drawings the types left out are the objects of dynamic blocks and
-  of associative dimensions (the evaluation graph, BLOCK* parameters, actions and grips, ACDBASSOC*, OBJECT_PTR); with
-  the data of the dynamic block `Drawing Title` of eight sheet drawings (`A-01` to `S-03`) go the six fields and the
-  draw order table of its attribute definition, which AutoCAD no longer finds in the drawing written again. A
-  TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
+- Objects: the other objects of classes, and the data of a dynamic block that is not a linear parameter with a stretch action
+  (the parameters, actions and grips of a flip, a rotation, a polar or XY point, a lookup, a visibility state or an
+  array). AutoCAD makes most of these anew in a drawing that lacks them. In AutoCAD 2021's own sample drawings the types
+  left out are these and the objects of associative dimensions (ACDBASSOC*, OBJECT_PTR). A dynamic block whose evaluation
+  graph names an expression that is left out is left out whole, the graph and every expression it owns, and is an
+  ordinary block in the DWG written: the graph of a block of a flip or a visibility state is not half of a graph (AutoCAD
+  drops the nodes whose expression it does not find).
+  A TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
   no sample drawing has one. A table of fields and links is read: the cell of a field gives it in group 344 and the
   TABLECONTENT lists the fields the table owns (92 and 360), a cell linked to a data link gives the link, its rows and
   its columns (92, 340, 93, 94, 96). The five tables of AutoCAD 2021's sample drawings that hold them (`Cover Sheet`,
@@ -310,7 +341,7 @@ drawing gives the same bytes every time.
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block of a linear parameter and a stretch action, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
@@ -390,6 +421,19 @@ as the DXF it was written from, and so has the DXF of each table of fields and l
 `T-01`, `Mechanical - Data Links` and `Data Extraction and Multileaders Sample` written again (the 60 fields a table of
 `Cover Sheet` owns, which the table, left out, took with it, are there).
 
+The data of a dynamic block is written, from AutoCAD 2007, from the groups of its DXF in the layouts of the reader: an
+expression that holds a real or a short keeps it, one of another kind is written with no value, which AutoCAD works out
+again; the purge preventer names the block that owns the dictionary it stands in. A graph that names an expression the
+writer does not write (a flip, a rotation, a visibility state) is left out with the expressions it owns, counted with the
+types left out, so that no graph is half of one. AutoCAD takes the anonymous block of a dynamic block that no INSERT
+places (`*U6` of the sheet `A-01`, true name `Drawing Title`, three attribute definitions) for an unused one where it
+finds no graph, and drops it from the drawing it opens, with the six fields and the draw order table of the attribute
+definitions: 6 of the 2 646 fields and 1 of the 256 draw order tables of the 120 sample drawings in each of the sheets
+`A-01`, `A-02`, `A-04`, `A-05`, `AS-01`, `S-01`, `S-02` and `S-03` (48 fields and 8 tables). Written with the graph, the
+drawing opens with `AUDIT` 0, and AutoCAD's DXF of it has all 2 646 fields and 256 draw order tables, the 12 to 37
+objects of the dynamic block of each of the nine sheets as the DXF of the original, group for group, and the ATTDEF,
+CIRCLE and INSERT of the block's anonymous copies and their object context data as many as in the original.
+
 A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
 50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of
 90 degrees) was refused by AutoCAD when written (ErrorStatus 53, `Existing Conditions Plan.dwg`) and the tangent of
@@ -449,7 +493,8 @@ from the style's groups, which an edit changes, not from the map. The CELLSTYLEM
 dictionary of the table style that holds it, is not written, as a DWG of AutoCAD has none. A style whose map cannot be
 read, or a cell that takes a style the map does not hold, is written as before: the row takes the data's style, the
 column or cell none, and the looks AutoCAD writes into each of its cells in DXF are kept as the cells' own. AutoCAD
-works out the places of the cells' words again as it opens the file.
+works out the places of the cells' words again as it opens the file. A cell style of the style's own that names no text style
+(one made in code without it) is written with Standard, as a row is, which AUDIT cannot repair without it.
 
 An attribute of several lines is written with its MTEXT, as AutoCAD writes it, the text's extents left for AutoCAD to
 work out; a multileader with its context, its leaders before its content; RASTERVARIABLES and WIPEOUTVARIABLES, which a

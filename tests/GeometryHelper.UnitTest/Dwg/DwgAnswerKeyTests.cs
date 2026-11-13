@@ -499,8 +499,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void TheTypesNotReadYet_AreCountedInOneDebugLine_AndTheCallInOneInfoLine()
         {
-            // The table style of R2000 keeps its cell styles for a round trip in two CELLSTYLEMAPs, not read.
-            DwgReader.ToDxf(DwgAnswerKey.Dwg("table_AC1015"));
+            // The viewport entity headers of R2000 are not read (5 in this drawing); the CELLSTYLEMAPs of its table style are.
+            DwgReader.ToDxf(DwgAnswerKey.Dwg("vports_AC1015"));
 
             string skipped = Assert
                 .Single(_written, line =>
@@ -510,7 +510,8 @@ namespace GeometryHelper.UnitTest.Dwg
                 .Message;
             Assert.DoesNotContain(" HATCH ", skipped);
             Assert.DoesNotContain(" LEADER ", skipped);
-            Assert.Contains("CELLSTYLEMAP 2", skipped);
+            Assert.Contains("VP_ENT_HDR 5", skipped);
+            Assert.DoesNotContain("CELLSTYLEMAP", skipped);
             Assert.DoesNotContain("TABLECONTENT", skipped);
             Assert.DoesNotContain("DATATABLE", skipped);
             Assert.DoesNotContain("VIEWSTYLE", skipped);

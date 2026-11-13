@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.RegularExpressions;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dwg
 {
@@ -133,9 +133,10 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// Puts the letters of a DXF of R2004 and before in place of their escapes. A DXF of those versions holds a letter beyond
-        /// its code page as <c>\U+1EDB</c>, where the DWG this is written as keeps the letter, and AutoCAD finds a symbol name
-        /// that still holds the escape "Un-normalized" (AUDIT). A DXF of R2007 and later holds the letters themselves, so an
-        /// escape typed in a text of that is the text and is left.
+        /// its code page as <c>\U+1EDB</c> and a letter of a multibyte code page as <c>\M+182A0</c> (the Shift-JIS a), where the
+        /// DWG this is written as keeps the letter, and AutoCAD finds a symbol name that still holds the escape
+        /// "Un-normalized" (AUDIT). A DXF of R2007 and later holds the letters themselves, so an escape typed in a text of that
+        /// is the text and is left.
         /// </summary>
         private static void Letters(List<KeyValuePair<int, string>> groups)
         {
@@ -153,26 +154,19 @@ namespace GeometryHelper.Dwg
 
             for (int i = 0; i < groups.Count; i++)
             {
-                if (groups[i].Value.IndexOf(@"\U+", StringComparison.Ordinal) >= 0)
+                string value = groups[i].Value;
+
+                if (value.IndexOf('\\') >= 0)
                 {
-                    groups[i] = new KeyValuePair<int, string>(
-                        groups[i].Key,
-                        Escape.Replace(groups[i].Value, m =>
-                            (
-                                (char)
-                                    int.Parse(
-                                        m.Groups[1].Value,
-                                        NumberStyles.AllowHexSpecifier,
-                                        CultureInfo.InvariantCulture
-                                    )
-                            ).ToString()
-                        )
-                    );
+                    string letters = DxfReader.Decode(value);
+
+                    if (!ReferenceEquals(letters, value))
+                    {
+                        groups[i] = new KeyValuePair<int, string>(groups[i].Key, letters);
+                    }
                 }
             }
         }
-
-        private static readonly Regex Escape = new Regex(@"\\U\+([0-9A-Fa-f]{4})", RegexOptions.CultureInvariant);
 
         private static string Line(string text, ref int at)
         {

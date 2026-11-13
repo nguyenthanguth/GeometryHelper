@@ -1082,6 +1082,27 @@ namespace GeometryHelper.Dwg
                 case "SPATIAL_FILTER":
                     ReadSpatialFilter();
                     return true;
+                case "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION":
+                    ReadDynamicBlockPurgePreventer();
+                    return true;
+                case "ACAD_EVALUATION_GRAPH":
+                    ReadEvaluationGraph();
+                    return true;
+                case "BLOCKGRIPLOCATIONCOMPONENT":
+                    ReadBlockGripLocationComponent();
+                    return true;
+                case "BLOCKLINEARGRIP":
+                    ReadBlockLinearGrip();
+                    return true;
+                case "BLOCKLINEARPARAMETER":
+                    ReadBlockLinearParameter();
+                    return true;
+                case "BLOCKSTRETCHACTION":
+                    ReadBlockStretchAction();
+                    return true;
+                case "ACDB_BLOCKREPRESENTATION_DATA":
+                    ReadBlockRepresentationData();
+                    return true;
                 case "WIPEOUTVARIABLES":
                     ReadWipeoutVariables();
                     return true;
@@ -1091,6 +1112,9 @@ namespace GeometryHelper.Dwg
                     return ReadTableStyle();
                 case "TABLECONTENT":
                     return ReadTableContentObject();
+                case "CELLSTYLEMAP":
+                    ReadCellStyleMapObject();
+                    return true;
                 case "TABLEGEOMETRY":
                     ReadTableGeometry();
                     return true;
