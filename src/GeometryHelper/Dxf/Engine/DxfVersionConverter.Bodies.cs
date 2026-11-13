@@ -16,9 +16,10 @@ namespace GeometryHelper.Dxf
         /// of the data store (R2013 and later) into the SAT of the entity (R2000 to R2010), the SAT into the SAB, and the SAT of
         /// one version of the modeler into that of another. A solid of 12 faces comes out as AutoCAD 2021 writes it in the
         /// version, record for record: the head's version and flags, a vertex's number from R2007, a coedge's in the binary
-        /// form. A body whose records the grammars do not place is left as it is going to R2010 and before, its binary left out
-        /// there (<c>Plan</c>), and left out going to R2013 and later, which reject a file whose entity holds text. R2000 holds
-        /// the SAT of R2010, where AutoCAD 2021 writes ACIS 4.00 text.
+        /// form; R2000 holds ACIS 4.00, which has no asmheader, no history and no edge parameters (going up they are worked out
+        /// from the vertices and the curve). A body whose records the grammars do not place (a tolerant edge, the splines of
+        /// R2000) is left as it is going to R2010 and before, its binary left out there (<c>Plan</c>), and left out going to
+        /// R2013 and later, which reject a file whose entity holds text.
         /// </summary>
         private void Solids()
         {
@@ -29,8 +30,7 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            // The SAT written for R2000 is the form of R2010, whose records AutoCAD 2021 reads in a file of R2000.
-            AcisFormat text = to.Binary ? null : AcisFormat.For(_target == 1015 ? "AC1024" : DxfVersions.Name(_target));
+            AcisFormat text = to.Binary ? null : to;
             Dictionary<string, Record> store = null;
             var written = new List<KeyValuePair<string, byte[]>>();
 
@@ -156,9 +156,11 @@ namespace GeometryHelper.Dxf
 
                 if (sab != null)
                 {
-                    sat = DwgSat.ToSat(sab, text);
+                    // A body ACIS 4.00 cannot hold (a swept spline surface) goes to R2000 as the text of R2010, which AutoCAD reads there.
+                    sat = DwgSat.ToSat(sab, text)
+                        ?? (_target == 1015 ? DwgSat.ToSat(sab, AcisFormat.For("AC1024")) : null);
                 }
-                else if (_target != 1015 && !IsVersionOf(lines, text.Version))
+                else if (!IsVersionOf(lines, text.Version))
                 {
                     sat = DwgSat.ToSat(lines, text);
                 }

@@ -87,7 +87,8 @@ namespace GeometryHelper.Dxf
                 Style(_source),
                 out string flag,
                 out string name,
-                out string type
+                out string type,
+                out List<Group> tailGroups
             );
 
             if (props == null)
@@ -118,6 +119,12 @@ namespace GeometryHelper.Dxf
             if (form == 0)
             {
                 Number(props[3].Value, out modifiers);
+            }
+            else if (Style(_source) == 0)
+            {
+                // R2004 and R2007 hold no word on how a property is set: AutoCAD keeps it in the round trip, the style's own
+                // xrecord (RTVSPropertyOp0 to 62), and gives what it reads there back (the edge styles leave all to their parent).
+                ReadFlags(RoundTripRecord(record), props);
             }
 
             for (int i = 0; i < props.Count; i++)
@@ -187,6 +194,14 @@ namespace GeometryHelper.Dxf
             {
                 ForgetDictionary(record);
             }
+            else if (form < Style(_source))
+            {
+                KeepRoundTrip(record, props, tailGroups, form);
+            }
+            else if (form == 1 && Style(_source) == 0)
+            {
+                DropFlags(record);
+            }
 
             return true;
         }
@@ -213,12 +228,14 @@ namespace GeometryHelper.Dxf
             int form,
             out string flag,
             out string name,
-            out string type
+            out string type,
+            out List<Group> tail
         )
         {
             flag = "0";
             name = null;
             type = null;
+            tail = new List<Group>();
             var props = new List<StyleProperty>();
             var data = new List<Group>();
             int i = 0;
@@ -314,6 +331,7 @@ namespace GeometryHelper.Dxf
                 props.Add(prop);
             }
 
+            tail.AddRange(data.GetRange(at, data.Count - at));
             return props;
         }
 
@@ -324,41 +342,9 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private List<Group> RoundTripTail(Record record)
         {
-            int at = record.Groups.FindIndex(g => g.Code == 102 && g.Value == "{ACAD_XDICTIONARY");
+            Record xrecord = RoundTripRecord(record);
 
-            if (at < 0 || at + 1 >= record.Groups.Count || record.Groups[at + 1].Code != 360)
-            {
-                return null;
-            }
-
-            if (_objects == null)
-            {
-                _objects = new Dictionary<string, Record>(StringComparer.OrdinalIgnoreCase);
-
-                foreach (Record one in Find("OBJECTS")?.Records ?? new List<Record>())
-                {
-                    string handle = HandleOf(one);
-
-                    if (handle != null)
-                    {
-                        _objects[handle] = one;
-                    }
-                }
-            }
-
-            if (!_objects.TryGetValue(record.Groups[at + 1].Value.Trim(), out Record dictionary))
-            {
-                return null;
-            }
-
-            int entry = dictionary.Groups.FindIndex(g => g.Code == 3 && g.Value == "ACAD_XREC_ROUNDTRIP");
-
-            if (
-                entry < 0
-                || entry + 1 >= dictionary.Groups.Count
-                || !_objects.TryGetValue(dictionary.Groups[entry + 1].Value.Trim(), out Record xrecord)
-                || xrecord.Type != "XRECORD"
-            )
+            if (xrecord == null)
             {
                 return null;
             }

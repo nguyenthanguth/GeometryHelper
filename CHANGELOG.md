@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The ACIS data of R2000 (ACIS 4.00) is turned into the ASM data of the other versions and back when a drawing is saved as
+another version of DXF (`DxfDatabase.Save(path, version)`), as AutoCAD 2021 writes it. Where a 3DSOLID, a BODY, a surface or a region
+used to keep the SAT of R2010 in an R2000 file and, going up, to be left out of R2013 and R2018, it now comes out as ACIS 4.00 going
+down (no `asmheader`, every pointer one lower, no history, no parameters or convexity on an edge, a text as `13 text`, no `full`
+before an exact spline) and as the records of the target going up (the parameters of each edge worked out from its vertices and
+curve, the convexity `unknown`, a vertex numbered 2 from R2007, an exact curve of ACIS 4.00 dated 20900 in R2010 and later). 35
+bodies (boxes, a box turned about two axes, spheres, cones, a torus, wedges, a pyramid, extrusions, revolutions, lofts, a sweep,
+booleans, regions with an arc and a hole, a BODY, and planar, extruded, revolved, lofted and swept surfaces) went from R2018, R2013,
+R2010, R2007 and R2004 to R2000 and from R2000 to each of them: of the 175 going down 170 are the SAT AutoCAD writes of the same
+solid in R2000 to the digit, of the 175 going up 130 are AutoCAD's record for record and 40 differ below 1E-12 in an edge's
+parameter or a plane's normal, and AutoCAD opens the 910 files with the volume of each solid and `AUDIT` finding 0 errors. A solid
+whose splines are another curve in ACIS 4.00 than in R2004 (a solid swept along a spline, a loft through circles of different
+shapes, an extrusion of a closed spline) is left as it was, as before. The DWG writer writes the solids and regions of an R2000 DXF
+into a DWG of R2018 now (they were left out).
+**NEW.** A visual style going down keeps its round trip, as AutoCAD 2021 does: from R2013 to R2010 the extension dictionary with
+the xrecord `ACAD_XREC_ROUNDTRIP` holding the 30 properties R2013 added (`RTVSPost2010Prop28` to `57`), and to R2007 and R2004 also
+the flags of how each of the 63 properties is set (`RTVSPropertyOp0` to `62`); a style of R2010 going to R2007 is given the flags and
+a style of R2007 going to R2010 loses them. A later upgrade finds the style as it was: 8 pairs of versions of two drawings (24 and 25
+styles) come out group for group as AutoCAD's own.
+**CHANGED.** A visual style going up from R2004 or R2007 takes how each property is set from its round trip (`RTVSPropertyOp0` to
+`27`), where it had set them all: the three styles that give the edges no colour, no jitter and no overhang come out with every
+property left to their parent (176 of 0) but their edge modifiers (2), as AutoCAD writes them, in R2010, R2013 and R2018.
+**FIXED.** A solid that is turned (a transform with `rotate`) was refused by the SAT and SAB converters, and so left out of a DXF
+saved as R2013 or later (from text), of one saved as R2010 or before (from the data store) and of a DWG of R2018; the flag is read and
+written now (a box turned 30 degrees about z and 20 about x).
 **NEW.** The `Origin` property of each parameter of a dynamic block, as AutoCAD 2021 reads it (probed in its console on side
 databases: 25 INSERTs, its values to the last digit, the library's read back with `AUDIT` finding 0 errors on all 25). A linear, XY,
 polar, rotation and constraint parameter gives, after its own properties, a hidden property `Origin` in

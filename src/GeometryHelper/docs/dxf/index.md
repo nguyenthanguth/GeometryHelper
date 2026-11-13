@@ -63,22 +63,39 @@ AutoCAD adds to remember what R2000 cannot hold. A true colour or a transparency
 hatch (left filled solid with its first colour before R2004), a viewport's lighting and the other groups a later version brought are left out of an older one; text beyond the code page of a
 version before R2007 is written as `\U+XXXX`. What cannot be given the form of the older version is left out or written
 another way, and the call gives it back as sentences: a table whose cells hold more than their text becomes the INSERT of the block
-it is drawn with; a solid whose ACIS records the library does not place (the ACIS 4.00 text of an R2000 file, a solid made by a
+it is drawn with; a solid whose ACIS records the library does not place (the splines of an R2000 file, a solid made by a
 sweep, whose surface AutoCAD writes another way in each version) is left out of a file of R2013 or later, whose entity may hold no
 text (AutoCAD reads such a file as no drawing), and out of one of R2010 or before where its data is the binary of R2013.
 
 The ACIS data of a 3DSOLID, a BODY or a surface is turned from one form into the other by its records, not by its geometry, as
 AutoCAD 2021 writes it in each version: the SAB of the data store (R2013 and R2018, the section ACDSDATA) into the SAT of the
-entity (R2004, R2007 and R2010; R2000 takes the SAT of R2010, where AutoCAD writes ACIS 4.00), the SAT into the SAB, and the SAT of
-one version of the modeler into another's (R2004 has no number on a vertex and R2007 and later have one, the binary form has
-a number on a coedge, R2007 names and holds the exact curve and surface of a spline another way than R2004, and R2010 puts 22600
-after the name of three of them). From R2007 a 3DSOLID has its history (`AcDb3dSolid`, 350 of nought) and in R2013 a GUID
+entity (R2004, R2007, R2010 and R2000, which holds ACIS 4.00), the SAT into the SAB, and the SAT of one version of the modeler
+into another's (R2004 has no number on a vertex and R2007 and later have one, the binary form has a number on a coedge, R2007
+names and holds the exact curve and surface of a spline another way than R2004, and R2010 puts 22600 after the name of three of
+them). ACIS 4.00, the SAT of R2000, is the form of R2004 less what the older modeler has not: no `asmheader`, so that every
+pointer stands one lower; no history on a record (the whole number of -1 and the pointer after the first value, the number alone
+on an attribute and on a transform); no parameters and no convexity on an edge; a text as its length and the word (`13 text`, not
+`@13 text`); no fourth enum on the name attribute of a loft; and no word `full` before the spline of an exact curve or surface.
+Going down they are taken out (a body of ASM that has a tolerant edge, a swept spline surface or a history that is not -1 is
+left as the SAT of R2010, which AutoCAD reads in an R2000 file); going up the parameters of each edge are worked out from its
+vertices and its curve (a line's from its root along its direction, an ellipse's as the angle of the vertex from the major axis in
+[-pi, pi), a full turn on for a closed edge, a spline's the first and last knot where its ends are the vertices, an edge with no
+curve 1 and 0), the convexity is `unknown`, and a vertex gets the number 2 from R2007 (the end of its edge is not known), as
+AutoCAD does when it reads R2000. A spline of an exact curve made from ACIS 4.00 is dated 20900 in R2010 and later, not 22600. From R2007 a 3DSOLID has its history (`AcDb3dSolid`, 350 of nought) and in R2013 a GUID
 (group 2) that names its record in the data store, the one AutoCAD's extended data `ACAD_OBJECT_CHANGE_GUID` holds before. A box
 30 by 20 by 10, a sphere, a cylinder, a cone, a torus, a wedge, a pyramid, an extrusion of a polyline with an arc tapered 0.1, a
 revolution, a box with a hole and a loft, 11 solids, come out of each of R2004, R2007, R2010, R2013 and R2018 as the SAT or SAB
 AutoCAD 2021 writes of them in each of the others, record for record (220 conversions); AutoCAD opens the 275 files they make in
-the six versions with the volume each solid had and `AUDIT` finding 0 errors, but for the 22 that go from R2000 to R2013 and
-R2018, left out and said.
+the six versions with the volume each solid had and `AUDIT` finding 0 errors. R2000 is turned too: 35 bodies (those, a frustum,
+an elliptical cylinder, a sliced sphere, a cross of two cylinders, a cone cut by a box, a union, a sweep of a circle along an arc,
+a revolution through 270 degrees, a loft of rectangles, a box turned about two axes, a region with a hole and with an arc, a
+planar surface and surfaces extruded, revolved, lofted and swept) go from R2018, R2013, R2010, R2007 and R2004 to R2000 and from
+R2000 to each of them: of the 175 going down 170 are the SAT AutoCAD 2021 writes of the same solid in R2000, record for record
+and digit for digit; of the 175 going up 130 are AutoCAD's record for record and 40 differ in the last digit of an edge's
+parameter or of a plane's normal (below 1E-12: AutoCAD's own work leaves 3.6E-16 where an angle is 0); the five of a solid
+swept along a spline, whose splines are another curve in ACIS 4.00 than in R2004, are left as they are. AutoCAD opens the 910
+files, 350 of them made by the library, with the volume of each solid and `AUDIT` finding 0 errors; a BODY goes the same way (a
+box and a cone, 20 files). A solid turned about two axes keeps its transform: the word `rotate` is read and written.
 
 A table whose cells are plain text, written in a form of its own before R2007, comes out in the form of the version: each cell's
 groups 171 to 178 and 145 and its text (1) in R2004 and before, and from R2007 its flags (91, 92) and its value (301 CELL_VALUE to
@@ -95,11 +112,17 @@ The visual styles of R2007, R2010 and R2013 are turned into one another's form: 
 each, in the groups of their version (R2004 and R2007 one form, R2000 without the true colours, R2010 each property followed by
 how it is set (176), R2013 the 28 properties as 90, 40, 62 with 420 and 290, and 30 more), the opacity and the specular level written
 negative in R2007 where the face modifiers do not use them. What R2013 added is read back from the round trip record AutoCAD keeps
-for it under a style of R2010 and before (`RTVSPost2010Prop`), or is what AutoCAD gives a style that has no others. The 24 visual
-styles of a drawing AutoCAD wrote come out of R2010, R2013 and R2018 in the others as AutoCAD writes them, group for group, and out
-of R2004 and R2007 into R2010 and later but for how three of them are set (176: AutoCAD leaves the properties of the styles with no
-edge colour, no jitter and no overhang to their parent, which R2007 does not say, so they are written set); the extension
-dictionary of a style going to R2013 is taken out, and not made going down.
+for it under a style of R2010 and before (`RTVSPost2010Prop`), or is what AutoCAD gives a style that has no others; and what a
+version has no place for is kept going down, as AutoCAD keeps it: a style going from R2013 to R2010 gets an extension dictionary
+holding an xrecord (`ACAD_XREC_ROUNDTRIP`) with the 30 properties (`RTVSPost2010Prop28` to `57`, each with how it is set), and going
+to R2007 and R2004, whose style says nothing of how a property is set, also the flags of all 63 properties (`RTVSPropertyOp0` to
+`62`: 1 set, 0 left to the parent style, 2 set by the style itself), which a later upgrade reads back, so that the three styles that
+give the edges no colour, no jitter and no overhang (every property the parent's but their edge modifiers) come back as they
+were; a style of R2010 going to R2007 is given the flags, a style of R2007 going to R2010 loses them. The 24 visual styles of a
+drawing AutoCAD wrote come out of every version in the others as AutoCAD writes them, group for group and with their round trip
+(8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. The round trip
+of a table going down (`ACAD_ROUNDTRIP_2008_TABLE_ENTITY`, with its TABLECONTENT, TABLEGEOMETRY and data tables) is not made:
+AutoCAD reads the table of the older form as the table it holds.
 
 R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
 version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no

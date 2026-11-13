@@ -23,10 +23,10 @@ namespace GeometryHelper.Dxf
     /// data store from R2013 and text in the entity before it, is turned into the other (<c>Solids</c>, and <c>Regions</c> for a
     /// region of flat faces, which is written again); the cells of a table of plain text, written in two forms on either side of
     /// R2007, from one to the other (<c>TableDown</c>, <c>TableUp</c>); the visual styles of R2007, R2010 and R2013, each in a
-    /// form of its own (<c>VisualStyle</c>); and the columns of an MTEXT, in its extended data to R2013 and in an embedded object
+    /// form of its own (<c>VisualStyle</c>, with the round trip AutoCAD keeps of what the older form has no place for); and the columns of an MTEXT, in its extended data to R2013 and in an embedded object
     /// from R2018 (<c>Columns</c>, <c>ColumnsUp</c>). What cannot be given its form is left out or replaced, and said: a table
     /// whose cells hold more than their text becomes the block it is drawn with, and a body whose records the converter does not
-    /// place (the ACIS 4.00 text of R2000, a solid made by a sweep) is kept as it is between the versions that hold text, and
+    /// place (the splines of the ACIS 4.00 text of R2000, a solid made by a sweep) is kept as it is between the versions that hold text, and
     /// left out going to R2013 or later (AutoCAD reads a file whose entity holds text there as no drawing) and, its data being
     /// binary, going from R2013 to R2010 or before.
     /// </para>
@@ -358,6 +358,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The objects made on the way (the round trip of a style going down) join the others.
+            Find("OBJECTS")?.Records.AddRange(_added);
             Clean();
             Classes();
         }
