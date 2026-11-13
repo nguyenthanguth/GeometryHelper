@@ -414,9 +414,13 @@ the ones wanted.
         block with its attribute definitions (120 drawings: FIELD 2 598 to 2 646 and SORTENTSTABLE 248 to 256, equal to the
         originals); graphs we cannot write left out whole; double.MaxValue written as AutoCAD's 1.797693134862314E+99;
         CELLSTYLEMAP of R2000-R2007 read; custom cell styles without a text style; \M+ escapes
-  - [ ] DWG follow-ups 6: the other dynamic block graphs (flip, rotation, polar, XY, lookup, visibility, array, move, scale,
-        alignment: 78 of 90 sample graphs still left out); expression values other than kinds 40 and 70; dynamic data below
-        R2007; sweep, revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies;
+  - [x] DWG follow-ups 6a (dwg12): the dynamic block graphs of visibility, flip, rotation, XY, polar, point, base point,
+        lookup and alignment parameters and polar stretch, move, scale, rotate, flip, array and lookup actions read and
+        written from R2007: 72 of the 90 graphs of AutoCAD's samples go through (12 before), 1 492 objects equal AutoCAD's
+        DXF; fixed: the unset value 1.797693134862314E+99 written as AutoCAD's double.MaxValue
+  - [ ] DWG follow-ups 7: the other 18 graphs (constraint parameters on ACDBASSOC*, user parameters, properties tables,
+        proxy nodes, BLOCKPARAMDEPENDENCYBODY); the order of a stretch action's entity list (15 of 111 differ); dynamic data
+        below R2007; sweep, revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies;
         surfaces; tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)

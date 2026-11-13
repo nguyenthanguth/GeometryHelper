@@ -68,9 +68,10 @@ taken as derived from it:
   AC1032 (the masked file header, the page map and the section map, the pages) and the decompression of its pages,
   whose handling of the codes 0x10 to 0x1F and of a first byte above 0x11 follows ACadSharp's.
 - `src/GeometryHelper/Dwg/DwgObjectReader.DynamicBlocks.cs` and `DwgObjectWriter.DynamicBlocks.cs`: the order of the fields of
-  the evaluation graph, the linear parameter, the stretch action, the linear grip, the grip location component, the
-  representation data and the purge preventer of a dynamic block (checked, and corrected where it differs, against the DXF
-  AutoCAD 2021 writes of the same drawings).
+  the evaluation graph, the parameters (linear, visibility, flip, rotation, XY, polar, point, base point, lookup,
+  alignment), the actions (stretch, polar stretch, move, scale, rotate, flip, array, lookup), the grips, the grip
+  location component, the representation data and the purge preventer of a dynamic block (checked, and corrected where
+  it differs, against the DXF AutoCAD 2021 writes of the same drawings).
 
 ```text
 MIT License

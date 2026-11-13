@@ -57,7 +57,7 @@ each.
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, SHAPE (see below), DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), the fields and the draw order (FIELD, FIELDLIST, SORTENTSTABLE), the link of a table to data (DATALINK), the cell styles a table style of AutoCAD 2000 to 2007 keeps for a round trip (CELLSTYLEMAP), the data of a dynamic block of a linear parameter and a stretch action (ACAD_EVALUATION_GRAPH, BLOCKLINEARPARAMETER, BLOCKSTRETCHACTION, BLOCKLINEARGRIP, BLOCKGRIPLOCATIONCOMPONENT, ACDB_BLOCKREPRESENTATION_DATA, ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and section view styles (ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE), the manager of the persistent names of subentities beside solids (ACDBASSOCPERSSUBENTMANAGER), the fields and the draw order (FIELD, FIELDLIST, SORTENTSTABLE), the link of a table to data (DATALINK), the cell styles a table style of AutoCAD 2000 to 2007 keeps for a round trip (CELLSTYLEMAP), the data of a dynamic block (the evaluation graph ACAD_EVALUATION_GRAPH with the linear, visibility, flip, rotation, XY, polar, point, base point, lookup and alignment parameters, their grips, the stretch, polar stretch, move, scale, rotate, flip, array and lookup actions and the components of the grip locations, written BLOCKLINEARPARAMETER, BLOCKSTRETCHACTION and so on; ACDB_BLOCKREPRESENTATION_DATA, ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION), and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
 | Preview | the picture of the file's preview, where it holds one, as the section `THUMBNAILIMAGE` of the DXF, last: a bitmap of Windows without its file header (`DxfDatabase.ThumbnailBitmap` gives its bytes), or a PNG file |
 
@@ -144,24 +144,32 @@ data link of a spreadsheet with options 0 in DXF (8 in the file) with its three.
 the order of its memory and the file in the order of the handles; each of the 4 types in the DWG of R2000, R2004, R2007,
 R2010, R2013 and R2018 that AutoCAD 2021 saves of a sample.
 
-A dynamic block of a linear parameter and its stretch action is read with its data: the evaluation graph
-(ACAD_EVALUATION_GRAPH: two numbers, each node by its index, flags, id, the expression it holds and four numbers, each
-edge by its index, flags, count, its two nodes and five numbers), the parameter (BLOCKLINEARPARAMETER, its element, its
-two points, its four displacements with the connections each makes and its value set), its two grips
-(BLOCKLINEARGRIP) and their four location components (BLOCKGRIPLOCATIONCOMPONENT), the action (BLOCKSTRETCHACTION: the
-entities it moves, its frame, the points of each entity and of each node it moves, its multiplier and angle), the
-representation data each anonymous block of the block keeps (ACDB_BLOCKREPRESENTATION_DATA) and the purge preventer
-(ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION). An expression that holds a value (a real of kind 40, a short of kind 70)
+A dynamic block is read with its data: the evaluation graph (ACAD_EVALUATION_GRAPH: two numbers, each node by its index,
+flags, id, the expression it holds and four numbers, each edge by its index, flags, count, its two nodes and five numbers)
+and the expressions its nodes name. These are the parameters (BLOCKLINEARPARAMETER, BLOCKVISIBILITYPARAMETER,
+BLOCKFLIPPARAMETER, BLOCKROTATIONPARAMETER, BLOCKXYPARAMETER, BLOCKPOLARPARAMETER, BLOCKPOINTPARAMETER,
+BLOCKBASEPOINTPARAMETER, BLOCKLOOKUPPARAMETER and BLOCKALIGNMENTPARAMETER, each with its element, its points, the
+connections of its displacements and, where it has them, its labels, value sets and the states a visibility parameter
+shows), their grips (BLOCKLINEARGRIP, BLOCKVISIBILITYGRIP, BLOCKFLIPGRIP, BLOCKROTATIONGRIP, BLOCKXYGRIP, BLOCKPOLARGRIP,
+BLOCKLOOKUPGRIP and BLOCKALIGNMENTGRIP) with the components of their locations (BLOCKGRIPLOCATIONCOMPONENT), and the
+actions (BLOCKSTRETCHACTION with the entities it moves, its frame, the points of each entity and of each node it moves,
+its multiplier and angle; BLOCKPOLARSTRETCHACTION, BLOCKMOVEACTION, BLOCKSCALEACTION, BLOCKROTATEACTION, BLOCKFLIPACTION,
+BLOCKARRAYACTION and BLOCKLOOKUPACTION with its table of values). The representation data each anonymous block of the
+block keeps (ACDB_BLOCKREPRESENTATION_DATA) and the purge preventer (ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION) are read too.
+An expression that holds a value (a real of kind 40, a short of kind 70, the only two kinds of AutoCAD 2021's samples)
 gives it after an empty text as AutoCAD's DXF does (1, 70 and 140 or 70). The versions of an expression and of an element
 (98 and 99) are 33 and 174, as AutoCAD 2021 gives them in the DXF of a drawing of an older version. The entities a stretch
 binds stand by their handles; AutoCAD's DXF has them in the order of its memory, which is the order of the handles in all
-but a few of the 111 actions of the samples. The block `Drawing Title` of nine of AutoCAD 2021's sheet drawings (`A-01` to `S-04`), with its 12 to 37 objects
-each, reads as AutoCAD's DXF of the drawing, group for group; a drawing of the flips, rotations and visibility states of
-`Annotation`, `Architectural`, `Civil`, `Electrical`, `Mechanical` and `Structural` holds the graph with parameters the
-reader does not read, and its graph is left out with the objects it owns (see below), as it was before. The largest real
-number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is read: its digits
-as the runtime writes them rounded past the largest number and could not be read back, which stopped the whole DWG from
-being read.
+but 14 of the 111 stretch actions of the samples. In AutoCAD 2021's 120 sample drawings 72 of the 90 evaluation graphs
+are read, as AutoCAD's DXF of each drawing has them, group for group (12 of a linear parameter with a stretch action
+alone, the nine sheets `A-01` to `S-04` among them; counting a graph under each kind it holds, 41 have a visibility
+parameter, 40 a linear one, 18 a point parameter, 16 a base point parameter, 14 a flip, 12 a rotation, 10 a lookup, 6 an
+alignment parameter, 2 an XY and 2 a polar parameter, and 33 a stretch action, 24 a move, 12 a scale, 4 an array). The
+other 18 hold a constraint parameter, a user parameter, a properties table or a proxy node, which are not read, and each
+is left out with the objects it owns (see below). The
+largest real number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is
+read: its digits as the runtime writes them rounded past the largest number and could not be read back, which stopped the
+whole DWG from being read.
 
 The CELLSTYLEMAP of a DWG of AutoCAD 2000 to 2007, which a table style keeps for a round trip (under its extension
 dictionary as `ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP`), is read as its cell styles in the layout a table style of
@@ -222,13 +230,15 @@ call.
   entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
   or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
   neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
-- Objects: the other objects of classes, and the data of a dynamic block that is not a linear parameter with a stretch action
-  (the parameters, actions and grips of a flip, a rotation, a polar or XY point, a lookup, a visibility state or an
-  array). AutoCAD makes most of these anew in a drawing that lacks them. In AutoCAD 2021's own sample drawings the types
-  left out are these and the objects of associative dimensions (ACDBASSOC*, OBJECT_PTR). A dynamic block whose evaluation
-  graph names an expression that is left out is left out whole, the graph and every expression it owns, and is an
-  ordinary block in the DWG written: the graph of a block of a flip or a visibility state is not half of a graph (AutoCAD
-  drops the nodes whose expression it does not find).
+- Objects: the other objects of classes, and the data of a dynamic block that holds a constraint parameter
+  (BLOCKHORIZONTALCONSTRAINTPARAMETER and its kin, which lean on the associative objects ACDBASSOC*), a user parameter
+  (BLOCKUSERPARAMETER), a properties table (BLOCKPROPERTIESTABLE and its grip) or a proxy node
+  (ACDB_DYNAMICBLOCKPROXYNODE). AutoCAD makes most of these anew in a drawing that lacks them. In AutoCAD 2021's own
+  sample drawings the types left out are these and the objects of associative dimensions (ACDBASSOC*, OBJECT_PTR). A
+  dynamic block whose evaluation graph names an expression that is left out is left out whole, the graph and every
+  expression it owns, and is an ordinary block in the DWG written: the graph of a block of a properties table is not
+  half of a graph (AutoCAD drops the nodes whose expression it does not find). 18 of the 90 graphs of the sample drawings
+  are such, in the `Architectural`, `Civil`, `Electrical`, `Mechanical` and `Structural` drawings.
   A TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
   no sample drawing has one. A table of fields and links is read: the cell of a field gives it in group 344 and the
   TABLECONTENT lists the fields the table owns (92 and 360), a cell linked to a data link gives the link, its rows and
@@ -341,7 +351,7 @@ drawing gives the same bytes every time.
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block of a linear parameter and a stretch action, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, see above), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
@@ -425,9 +435,12 @@ as the DXF it was written from, and so has the DXF of each table of fields and l
 
 The data of a dynamic block is written, from AutoCAD 2007, from the groups of its DXF in the layouts of the reader: an
 expression that holds a real or a short keeps it, one of another kind is written with no value, which AutoCAD works out
-again; the purge preventer names the block that owns the dictionary it stands in. A graph that names an expression the
-writer does not write (a flip, a rotation, a visibility state) is left out with the expressions it owns, counted with the
-types left out, so that no graph is half of one. AutoCAD takes the anonymous block of a dynamic block that no INSERT
+again; the purge preventer names the block that owns the dictionary it stands in; the unset value of a grip location, which
+DXF gives as `1.797693134862314E+99`, is written as the largest real, which is what AutoCAD keeps (the number the text
+names is another, and AutoCAD's DXF of the DWG gave it back as `1.797693134862313E+99`). A graph that names an expression
+the writer does not write (a constraint parameter, a properties table) is left out with the expressions it owns, counted
+with the types left out, so that no graph is half of one. Of the 90 graphs of the sample drawings 72 are written. AutoCAD
+takes the anonymous block of a dynamic block that no INSERT
 places (`*U6` of the sheet `A-01`, true name `Drawing Title`, three attribute definitions) for an unused one where it
 finds no graph, and drops it from the drawing it opens, with the six fields and the draw order table of the attribute
 definitions: 6 of the 2 646 fields and 1 of the 256 draw order tables of the 120 sample drawings in each of the sheets
@@ -435,6 +448,13 @@ definitions: 6 of the 2 646 fields and 1 of the 256 draw order tables of the 120
 drawing opens with `AUDIT` 0, and AutoCAD's DXF of it has all 2 646 fields and 256 draw order tables, the 12 to 37
 objects of the dynamic block of each of the nine sheets as the DXF of the original, group for group, and the ATTDEF,
 CIRCLE and INSERT of the block's anonymous copies and their object context data as many as in the original.
+
+The 72 graphs of the sample drawings that are written have 1 492 objects, and AutoCAD's DXF of the DWG holds each as the
+DXF of the original does, group for group; 15 stretch actions list their entities in another order, AutoCAD's own. The
+drawings open with `AUDIT` as the originals do (113 with 0 errors, 7 with the 24, 24, 2, 2, 32, 32 and 10 of their
+originals), and so do the 71 DWGs of the tests. A panel made in code for each kind of parameter and action (a visibility
+parameter, a flip, a rotation, an XY, a polar stretch, a move, a scale, an array, a lookup, an alignment and a base
+point with a point parameter) is written, opens with `AUDIT` 0 and comes back from AutoCAD's DXF as it was sent.
 
 A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
 50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of

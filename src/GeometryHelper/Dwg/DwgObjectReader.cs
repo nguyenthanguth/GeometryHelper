@@ -1100,6 +1100,75 @@ namespace GeometryHelper.Dwg
                 case "BLOCKSTRETCHACTION":
                     ReadBlockStretchAction();
                     return true;
+                case "BLOCKVISIBILITYPARAMETER":
+                    ReadBlockVisibilityParameter();
+                    return true;
+                case "BLOCKVISIBILITYGRIP":
+                    ReadPlainGrip("AcDbBlockVisibilityGrip");
+                    return true;
+                case "BLOCKFLIPPARAMETER":
+                    ReadBlockFlipParameter();
+                    return true;
+                case "BLOCKFLIPGRIP":
+                    ReadBlockFlipGrip();
+                    return true;
+                case "BLOCKFLIPACTION":
+                    ReadBlockFlipAction();
+                    return true;
+                case "BLOCKROTATIONPARAMETER":
+                    ReadBlockRotationParameter();
+                    return true;
+                case "BLOCKROTATIONGRIP":
+                    ReadPlainGrip("AcDbBlockRotationGrip");
+                    return true;
+                case "BLOCKROTATEACTION":
+                    ReadBlockRotateAction();
+                    return true;
+                case "BLOCKXYPARAMETER":
+                    ReadBlockXYParameter();
+                    return true;
+                case "BLOCKXYGRIP":
+                    ReadPlainGrip("AcDbBlockXYGrip");
+                    return true;
+                case "BLOCKPOLARPARAMETER":
+                    ReadBlockPolarParameter();
+                    return true;
+                case "BLOCKPOLARGRIP":
+                    ReadPlainGrip("AcDbBlockPolarGrip");
+                    return true;
+                case "BLOCKPOLARSTRETCHACTION":
+                    ReadBlockPolarStretchAction();
+                    return true;
+                case "BLOCKMOVEACTION":
+                    ReadBlockMoveAction();
+                    return true;
+                case "BLOCKSCALEACTION":
+                    ReadBlockScaleAction();
+                    return true;
+                case "BLOCKARRAYACTION":
+                    ReadBlockArrayAction();
+                    return true;
+                case "BLOCKLOOKUPPARAMETER":
+                    ReadBlockLookupParameter();
+                    return true;
+                case "BLOCKLOOKUPGRIP":
+                    ReadPlainGrip("AcDbBlockLookUpGrip");
+                    return true;
+                case "BLOCKLOOKUPACTION":
+                    ReadBlockLookupAction();
+                    return true;
+                case "BLOCKALIGNMENTPARAMETER":
+                    ReadBlockAlignmentParameter();
+                    return true;
+                case "BLOCKALIGNMENTGRIP":
+                    ReadBlockAlignmentGrip();
+                    return true;
+                case "BLOCKPOINTPARAMETER":
+                    ReadBlockPointParameter();
+                    return true;
+                case "BLOCKBASEPOINTPARAMETER":
+                    ReadBlockBasePointParameter();
+                    return true;
                 case "ACDB_BLOCKREPRESENTATION_DATA":
                     ReadBlockRepresentationData();
                     return true;
