@@ -7,7 +7,7 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// Batch 3 of acad.pgp's 2D commands: SOLID, REGION, HATCHTOBACK, GRADIENT and CLASSICINSERT here, -BOUNDARY in
+    /// Batch 3 of acad.pgp's 2D commands: SOLID, HATCHTOBACK, GRADIENT and CLASSICINSERT here, REGION in CadCommands.Regions.cs, -BOUNDARY in
     /// CadCommands.BoundaryTyped.cs, -HATCH in CadCommands.HatchTyped.cs and SPLINEDIT in CadCommands.SplineEdit.cs.
     /// </summary>
     internal static partial class CadCommands
@@ -130,39 +130,5 @@ namespace GeometryHelper.Dxf.Viewer
                 );
             }
         }
-
-        /// <summary>
-        /// REGION: "Select objects:", the closed objects among them (lines, arcs, polylines, circles, ellipses and splines that
-        /// close a loop) counted as AutoCAD counts them, "2 loops extracted.". A region is ACIS data, which the presenter
-        /// cannot write yet, so no region is made, and it says so: "0 Regions created." where nothing closes, the sentence
-        /// of the ACIS limit where something does.
-        /// </summary>
-        private static IEnumerable<CadPrompt> Region(CadCommandContext c)
-        {
-            foreach (CadPrompt prompt in c.SelectObjects())
-            {
-                yield return prompt;
-            }
-
-            IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.FromObjects(
-                c.Document,
-                c.Selected,
-                c.Session.Tolerance,
-                out int _
-            );
-            c.Write(Count(loops.Count, "loop", "loops") + " extracted.");
-
-            if (loops.Count == 0)
-            {
-                c.Write("0 Regions created.");
-            }
-            else
-            {
-                c.Write(RegionNotWritten + " 0 Regions created.");
-            }
-        }
-
-        /// <summary>Why a region is not made: it is ACIS data.</summary>
-        private const string RegionNotWritten = "A region is ACIS data, which the presenter cannot write yet.";
     }
 }

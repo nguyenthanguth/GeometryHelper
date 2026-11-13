@@ -278,9 +278,21 @@ point:` until Enter; Cancel ends the command with nothing kept. The request is a
 [`CadBoundaryRequest`](xref:GeometryHelper.Dxf.Viewer.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
 An area with an ellipse or a spline in it, as a side of the area or as an island, makes no polyline either: `Spline or
 ellipse detected. Cannot create boundary.`, as AutoCAD refuses it (HATCH takes such an area). An ellipse or spline elsewhere
-in the drawing does not stop it. REGION asks `Select objects:`, counts the loops the closed objects make (`2 loops
-extracted.`) and says the same of the regions: `0 Regions created.` where nothing closes, the ACIS limit where something
-does. AutoCAD's Boundary set is not built for -BOUNDARY.
+in the drawing does not stop it. With the object type Region, -BOUNDARY and BOUNDARY make a region of each loop instead
+(`BOUNDARY created 2 regions`), an island a region of its own and not a hole in the outer one; a whole ellipse is a region, a
+spline still refuses. AutoCAD's Boundary set is not built for -BOUNDARY.
+
+REGION asks `Select objects:` and makes a region of every closed loop the objects make: a circle, a whole ellipse and a closed
+polyline each alone, and lines, arcs, elliptical arcs and open polylines whose ends meet two and two (four LINEs round a
+rectangle are one loop). It says `5 loops extracted.` and `5 Regions created.` as AutoCAD 2021 does of eight objects (a
+rectangle, two circles, four lines and a polyline of bulges), the regions made as one undo step on the current layer; a
+circle inside a rectangle is a region of its own, not a hole (SUBTRACT, not built, makes one). Lines that meet three at
+a point, a loop out of one plane and a closed spline make none (the spline is said). The data is written for the
+drawing's version, SAT text up to R2010 and SAB in the data store of the file from R2013
+([regions](../dxf/entities.md#regions)); a region is drawn by the curves of its loops, listed by LIST (`Area:`, `Perimeter:`
+and the bounding box, as AutoCAD lists one), measured by AREA and MEASUREGEOM (`Area = 1121.4602, Perimeter = 171.4159`),
+named Region with its area and perimeter in Properties, and exploded by EXPLODE into its curves as AutoCAD explodes it.
+A region is not moved, rotated, scaled or copied yet, and a DWG of R2000 to R2010 leaves it out.
 
 -HATCH writes `Current hatch pattern:  ANSI31` and asks `Specify internal point or [Properties/Select objects/draW
 boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:` until Enter, then makes

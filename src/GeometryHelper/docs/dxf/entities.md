@@ -266,6 +266,34 @@ drawn twice is: the line from (10, 0) back to (0, 0) does not close the polyline
 closed curve, a fitted polyline and a polyline of no vertices are not joined, and a POLYLINE's vertices are written anew,
 each with a handle of its own.
 
+### Regions
+
+A REGION is flat ACIS data, and the library writes and reads it for the faces AutoCAD's REGION command makes: loops of lines,
+arcs, circles, ellipses and polylines with bulges, an outer loop and its holes.
+[`DxfRegionShape.Create(outer, holes, tolerance)`](xref:GeometryHelper.Dxf.DxfRegionShape) takes the curves of each loop in any
+order and any way round, joins them end to end within the point tolerance, runs the outer loop counter-clockwise about the
+normal of its plane (+Z for a loop lying on the XY plane, which it turns over if it was drawn clockwise) and each hole
+clockwise, and refuses a loop that does not close or does not lie in the plane of the others with `ArgumentException`. A box
+40 by 30 with a hole of radius 5 has area 1 121.46 and perimeter 171.42, the two numbers AutoCAD's `Region.Area` and
+`Region.Perimeter` give for it; `shape.Loops` lists the hole first, then the box, each with its `Curves` as new entities.
+
+`DxfUnknownEntity.CreateRegion(shape, database)` makes the REGION for a drawing, to be added with `AppendEntity`, its data
+written as AutoCAD 2021 writes it for the drawing's version: SAT text in groups 1 for R2000 (ACIS 4.00), R2004, R2007 and R2010
+(ASM 208, 212 and 215), each character but a space written 0x9F less and a caret followed by a space, and for R2013 and R2018
+binary SAB in a record of the section ACDSDATA under the entity's handle, the entity naming it by a GUID (group 2). AutoCAD 2021
+opens the regions written for each of the six versions, and the same drawing written as a DWG of R2018, with `AUDIT` finding
+0 errors, and `LIST` gives the area and perimeter the shape has. A region made for one version and added to a drawing of
+another throws `ArgumentException`, and a drawing before R2000 `NotSupportedException`.
+
+`GetRegionShape()` reads the shape of a REGION back, from the SAT of its groups or the SAB of the data store, whoever wrote
+it: the regions of AutoCAD 2021's own DXF of R2000 to R2018 read to AutoCAD's area and perimeter. It is null for a region
+whose body is not flat faces of lines and arcs of ellipses (a spline edge, a face on a cone). `Explode()` gives a region's curves as AutoCAD's does: a
+box with a hole a circle and four lines, the hole first, a stadium two lines and two arcs, a whole ellipse an ellipse
+whose major axis runs from its centre away from where the loop starts, and the parameter from -pi to pi, each with the
+region's look; AutoCAD 2021's `Explode` and the library's were compared for twelve regions, tilted and elliptical ones among
+them, and agree in every curve, point and axis. A region of more than one face is read but not written, and no region is
+moved, scaled or copied with its data: a copy of one in a drawing of R2013 or later has none of its own.
+
 ### What it costs
 
 What it costs: a vertex of a POLYLINE appended or set one at a time costs about the same however many the polyline has, 20 000

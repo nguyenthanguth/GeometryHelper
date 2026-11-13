@@ -102,7 +102,7 @@ breaks as AutoCAD breaks it:
 The library explodes exactly these classes. Every other entity refuses with `NotSupportedException`: those AutoCAD does not
 break, a LINE or a CIRCLE, as AutoCAD answers eNotApplicable for them, and some AutoCAD does break, listed under [What the
 model does not do](#what-the-model-does-not-do), among them a HATCH filled solid or with a gradient, a MESH smoothed, and a
-REGION, a 3DSOLID and a BODY, which AutoCAD breaks with its solid modeler, each refused with its reason. A dimension or a table whose
+3DSOLID and a BODY, which AutoCAD breaks with its solid modeler, each refused with its reason; a REGION is exploded into the curves of its loops. A dimension or a table whose
 drawing has no block of the name it is drawn by, and an MLINE whose drawing has no MLINESTYLE of its handle or name, throw
 `InvalidOperationException`.
 
@@ -333,7 +333,7 @@ drawing and keeps none of them, about 460 bytes a copy, so that the explode of a
 - It does not explode every entity AutoCAD explodes. `Explode()` refuses with `NotSupportedException` a HATCH filled solid
   or with a gradient, whose parts AutoCAD's EXPLODE makes and the library does not work out; a MESH smoothed, which AutoCAD
   breaks into the 3DFACEs of the faces its smoothing makes, and one whose faces have a material or a transparency of their
-  own; a REGION, a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid modeler (ACIS);
+  own; a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid modeler (ACIS), and a REGION whose body is not flat faces of lines and arcs of ellipses;
   and every other type the library keeps as a `DxfUnknownEntity` but the MLINE and the MESH. It gives a dimension's and a
   table's parts as their last picture, not as their data now, and AutoCAD 2021 draws a table anew before it explodes it;
   and it leaves out the vertex AutoCAD adds to an exploded leader where the words of its annotation end, and the lines

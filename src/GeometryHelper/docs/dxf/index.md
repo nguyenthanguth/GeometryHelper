@@ -107,8 +107,9 @@ The objects are AutoCAD's classes in AutoCAD's order. A [`DxfDBObject`](xref:Geo
 is drawn, and a [`DxfCurve`](xref:GeometryHelper.Dxf.DxfCurve) an entity walked along; the tables are a [`DxfSymbolTable`](xref:GeometryHelper.Dxf.DxfSymbolTable) of [`DxfSymbolTableRecord`](xref:GeometryHelper.Dxf.DxfSymbolTableRecord)s; the
 dictionaries, records of data and groups of the OBJECTS section are a [`DxfDBDictionary`](xref:GeometryHelper.Dxf.DxfDBDictionary), a [`DxfXrecord`](xref:GeometryHelper.Dxf.DxfXrecord) and a [`DxfGroup`](xref:GeometryHelper.Dxf.DxfGroup);
 a layout is a [`DxfLayout`](xref:GeometryHelper.Dxf.DxfLayout), whose plot settings are a [`DxfPlotSettings`](xref:GeometryHelper.Dxf.DxfPlotSettings). A type of entity the library has no class for yet,
-a REGION, a 3DSOLID or an ACAD_PROXY_ENTITY among them, is a [`DxfUnknownEntity`](xref:GeometryHelper.Dxf.DxfUnknownEntity): kept as the file has it, its look editable,
-itself erasable and copied, its geometry not moved.
+a 3DSOLID or an ACAD_PROXY_ENTITY among them, is a [`DxfUnknownEntity`](xref:GeometryHelper.Dxf.DxfUnknownEntity): kept as the file has it, its look editable,
+itself erasable and copied, its geometry not moved. A REGION is one too, with the shape of its flat
+faces read and written ([regions](entities.md#regions)).
 
 A drawing begins as a file, or new, of a version named: `new DxfDatabase("AC1024")` is a drawing of R2010 with nothing in
 it, the drawing `DxfWriter` writes with no shape, in millimetres, with model space and paper space, two layouts, the layer

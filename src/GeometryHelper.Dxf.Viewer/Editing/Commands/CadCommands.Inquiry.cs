@@ -130,6 +130,23 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
+                // A region gives its area and perimeter, holes taken away, as AutoCAD's AREA gives them.
+                if (
+                    c.Document.FindEntity(c.Input.Handles[0]) is DxfUnknownEntity region
+                    && region.GetRegionShape() is DxfRegionShape shape
+                )
+                {
+                    c.Write("Area = " + Length(shape.Area) + ", Perimeter = " + Length(shape.Perimeter));
+
+                    if (mode == null)
+                    {
+                        yield break;
+                    }
+
+                    measured(shape.Area);
+                    continue;
+                }
+
                 if (
                     !(c.Document.FindEntity(c.Input.Handles[0]) is DxfCurve curve)
                     || curve is DxfLine
@@ -315,6 +332,13 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     yield break;
+                case DxfUnknownEntity region when region.DxfName == "REGION":
+                    foreach (string line in ListedRegion(c, region))
+                    {
+                        yield return line;
+                    }
+
+                    yield break;
                 case DxfDBPoint point:
                     yield return "                at point, " + At(c, point.Position);
                     yield break;
@@ -346,6 +370,46 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return "                  " + row.Label + " = " + row.Value;
                 }
             }
+        }
+
+        /// <summary>
+        /// The lines LIST writes of a region, as AutoCAD 2021 writes them: its area and perimeter, holes taken away, and the box
+        /// round it, lower and upper bound with each number set to a width of 9 (a box 40 by 30 reads "Lower Bound X = 0.0000   , Y =
+        /// 0.0000   , Z = 0.0000"); none for a region whose ACIS data the library cannot read.
+        /// </summary>
+        private static IEnumerable<string> ListedRegion(CadCommandContext c, DxfUnknownEntity region)
+        {
+            DxfRegionShape shape = region.GetRegionShape();
+
+            if (shape == null)
+            {
+                yield break;
+            }
+
+            yield return new string(' ', 29) + "Area: " + Length(shape.Area);
+            yield return new string(' ', 24) + "Perimeter: " + Length(shape.Perimeter);
+            double[] low = { double.MaxValue, double.MaxValue, double.MaxValue };
+            double[] high = { double.MinValue, double.MinValue, double.MinValue };
+
+            foreach (DxfRegionLoop loop in shape.Loops)
+            {
+                foreach (DxfCurve curve in loop.Curves)
+                {
+                    GeoAabb3 box = curve.GeometricExtents;
+                    low[0] = Math.Min(low[0], box.Min.X);
+                    low[1] = Math.Min(low[1], box.Min.Y);
+                    low[2] = Math.Min(low[2], box.Min.Z);
+                    high[0] = Math.Max(high[0], box.Max.X);
+                    high[1] = Math.Max(high[1], box.Max.Y);
+                    high[2] = Math.Max(high[2], box.Max.Z);
+                }
+            }
+
+            string Bound(double[] v) =>
+                "X = " + Length(v[0]).PadRight(9) + ", Y = " + Length(v[1]).PadRight(9) + ", Z = " + Length(v[2]);
+
+            yield return "   Bounding Box: Lower Bound " + Bound(low);
+            yield return new string(' ', 17) + "Upper Bound " + Bound(high);
         }
 
         /// <summary>

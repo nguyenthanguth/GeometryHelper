@@ -131,10 +131,17 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         splinedit2 merge) (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
         ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
-  - [ ] R3.2 follow-ups: draw OLE frames, then INSERTOBJ on bmp/png; RECOVERALL over xrefs; IMAGEADJUST's bitonal refusal;
+  - [ ] (fu-ole, running) R3.2 follow-ups: draw OLE frames, then INSERTOBJ on bmp/png; RECOVERALL over xrefs; IMAGEADJUST's bitonal refusal;
         dialogs for IMAGEADJUST, ATTEXT, DRAWINGRECOVERY and the QV thumbnails (design first); ATTEXT of layouts and nested
         blocks and a quote in a CDF value checked in the AutoCAD GUI (S)
-  - [ ] R3.3 (acis, running) An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
+  - [x] R3.3 ACIS regions (acis): a core SAT/SAB writer and reader of flat regions (DxfRegionShape,
+        DxfUnknownEntity.CreateRegion/GetRegionShape), REGION and -BOUNDARY Region making regions, drawn, LIST/AREA/Properties
+        with area and perimeter, EXPLODE; 12 regions in each of R2000-R2018 DXF and R2018 DWG open in AutoCAD 2021 with AUDIT
+        0 and AutoCAD's own areas, perimeters and Explode curves
+  - [ ] R3.3 follow-ups: UNION/SUBTRACT/INTERSECT of regions (2D booleans); MOVE, ROTATE, SCALE, MIRROR and COPY of a region
+        (rebuild the body); regions kept across Save As between SAT and SAB versions; regions in DWG R2000-R2010; splines and
+        multi-face bodies; -BOUNDARY Region islands (holes or separate regions?) and its message checked in the GUI; cache the
+        parse for drawings of thousands of regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
 - Checks only the AutoCAD GUI can give (accoreconsole cannot), gathered for the maintainer: LAYERP with U and a Layer

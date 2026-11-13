@@ -180,7 +180,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void BoundaryTyped_ObjectTypeRegion_SaysItCannotWriteTheRegion_AndMakesNothing()
+        public void BoundaryTyped_ObjectTypeRegion_MakesARegionOfTheLoop_AndNoPolyline()
         {
             CadDocument document = Squares(0, 0, 100);
             CadCommandSession session = Start(document, "-BO", "A", "O");
@@ -188,7 +188,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "R", Enter, P(10, 10), Enter);
 
             Assert.Empty(All<DxfPolyline>(document.ModelSpace));
-            Assert.Contains(session.History, l => l.Contains("ACIS"));
+            Assert.Contains("BOUNDARY created 1 region", session.History);
+            Assert.Single(document.ModelSpace.Block.OfType<DxfUnknownEntity>(), e => e.DxfName == "REGION");
         }
 
         [Fact]
@@ -456,7 +457,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         #region REGION
 
         [Fact]
-        public void Region_AsksForObjects_CountsTheLoopsAndSaysItCannotWriteTheRegions()
+        public void Region_AsksForObjects_CountsTheLoopsAndMakesTheRegions()
         {
             CadDocument document = Squares(0, 0, 100);
             var circle = new DxfCircle(new GeoPoint3(500, 500, 0), new GeoVector3(0, 0, 1), 5);
@@ -467,7 +468,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.False(session.IsRunning);
             Assert.Contains("1 loop extracted.", session.History);
-            Assert.Contains(session.History, l => l.Contains("ACIS"));
+            Assert.Contains("1 Region created.", session.History);
+            Assert.Single(document.ModelSpace.Block.OfType<DxfUnknownEntity>(), e => e.DxfName == "REGION");
             Assert.Equal(4, All<DxfLine>(document.ModelSpace).Count);
         }
 

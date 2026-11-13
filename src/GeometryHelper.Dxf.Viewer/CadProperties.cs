@@ -467,6 +467,14 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Area", () => Length(ellipse.Area), true)
                     );
                     break;
+                case DxfUnknownEntity region
+                    when region.DxfName == "REGION" && region.GetRegionShape() is DxfRegionShape shape:
+                    Group(
+                        "Geometry",
+                        Row("Area", () => Length(shape.Area), true),
+                        Row("Perimeter", () => Length(shape.Perimeter), true)
+                    );
+                    break;
                 case DxfPolyline polyline:
                 {
                     int at = Math.Max(0, Math.Min(f.Vertex, Read(() => polyline.NumberOfVertices, 0)) - 1);
@@ -797,6 +805,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return "3D Face";
                 case DxfDBPoint _:
                     return "Point";
+                case DxfUnknownEntity region when region.DxfName == "REGION":
+                    return "Region";
                 case DxfOle2Frame _:
                     return "OLE Object";
                 default:
