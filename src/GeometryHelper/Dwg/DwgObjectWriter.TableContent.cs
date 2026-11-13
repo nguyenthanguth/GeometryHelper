@@ -18,7 +18,8 @@ namespace GeometryHelper.Dwg
         /// </summary>
         public static bool IsOfDxfAlone(DwgRecord record)
         {
-            if (record.Type == "CELLSTYLEMAP")
+            // The DATATABLE of a table of AutoCAD 2000 or 2004 is a TABLECONTENT from R2007.
+            if (record.Type == "CELLSTYLEMAP" || record.Type == "DATATABLE" || record.Type == "ACDBDATATABLE")
             {
                 return true;
             }
@@ -155,6 +156,20 @@ namespace GeometryHelper.Dwg
                 TableOverrides(content, flags, own);
             }
 
+            // The table owns the fields of its cells: those its round trip record lists, else those the cells name.
+            if (content.Fields.Count == 0)
+            {
+                foreach (DwgTableLine row in content.Rows)
+                {
+                    foreach (DwgTableCell cell in row.Cells)
+                    {
+                        content.Fields.AddRange(
+                            cell.Contents.FindAll(one => one.Type == 2).ConvertAll(one => one.Handle)
+                        );
+                    }
+                }
+            }
+
             return content;
         }
 
@@ -184,14 +199,35 @@ namespace GeometryHelper.Dwg
                 for (int c = 0; c < row.Cells.Count && c < kept.Rows[r].Cells.Count; c++)
                 {
                     DwgTableCell cell = row.Cells[c];
-                    cell.StyleId = Held(kept.Rows[r].Cells[c].StyleId, held) ? kept.Rows[r].Cells[c].StyleId : 0;
+                    DwgTableCell was = kept.Rows[r].Cells[c];
+                    cell.StyleId = Held(was.StyleId, held) ? was.StyleId : 0;
 
                     if (!cell.Style.HasData)
                     {
-                        cell.Style = kept.Rows[r].Cells[c].Style;
+                        cell.Style = was.Style;
+                    }
+
+                    // The link to data is not in the groups of R2007; a field's looks are the content format it kept.
+                    cell.Linked = was.Linked;
+                    cell.LinkHandle = was.LinkHandle;
+                    cell.LinkRows = was.LinkRows;
+                    cell.LinkColumns = was.LinkColumns;
+                    cell.LinkExtra = was.LinkExtra;
+
+                    if (
+                        cell.Contents.Count == was.Contents.Count
+                        && cell.Contents.Count > 0
+                        && cell.Contents[0].Type == 2
+                        && was.Contents[0].Type == 2
+                        && was.Contents[0].Format != null
+                    )
+                    {
+                        cell.Contents[0].Format = was.Contents[0].Format;
                     }
                 }
             }
+
+            content.Fields.AddRange(kept.Fields);
         }
 
         /// <summary>
@@ -425,6 +461,7 @@ namespace GeometryHelper.Dwg
             double rotation = table.Double(145);
             ulong block = table.Handle(340);
             double scale = table.Double(144, 1.0);
+            ulong field = table.Handle(344);
             var looks = new DwgContentFormat();
             int lookFlags = OwnOverrides(table, cell, looks);
 
@@ -501,6 +538,17 @@ namespace GeometryHelper.Dwg
                     {
                         Type = 4,
                         Handle = block,
+                        Format = format,
+                    }
+                );
+            }
+            else if (field != 0)
+            {
+                cell.Contents.Add(
+                    new DwgCellContent
+                    {
+                        Type = 2,
+                        Handle = field,
                         Format = format,
                     }
                 );
@@ -661,7 +709,13 @@ namespace GeometryHelper.Dwg
                 _data.BitDouble(row.Size);
             }
 
-            _data.BitLong(0);
+            _data.BitLong(content.Fields.Count);
+
+            foreach (ulong field in content.Fields)
+            {
+                H(3, field);
+            }
+
             WriteCellStyle(content.Style);
             _data.BitLong(content.Merged.Count);
 
@@ -682,7 +736,21 @@ namespace GeometryHelper.Dwg
             T(cell.Tooltip);
             _data.BitLong(cell.Custom);
             WriteCustomData(cell.Items);
-            _data.BitLong(0);
+
+            if (cell.Linked)
+            {
+                // AutoCAD 2021 writes 3 for linked data, where the specification says 1.
+                _data.BitLong(3);
+                H(5, cell.LinkHandle);
+                _data.BitLong(cell.LinkRows);
+                _data.BitLong(cell.LinkColumns);
+                _data.BitLong(cell.LinkExtra);
+            }
+            else
+            {
+                _data.BitLong(0);
+            }
+
             _data.BitLong(cell.Contents.Count);
 
             foreach (DwgCellContent content in cell.Contents)
@@ -1184,8 +1252,7 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// The content of a TABLECONTENT from its DXF, the mirror of the reader's: its columns, rows, cells with their values,
         /// formats and custom data, its own cell style, merged ranges and table style. Null where it holds what no test drawing
-        /// has shown (a cell linked to data, attributes of a block, fields, a cell's geometry) or its groups are not of
-        /// that order.
+        /// has shown (attributes of a block, a cell's geometry) or its groups are not of that order.
         /// </summary>
         private static DwgTableContent ContentOfDxf(DwgRecord record)
         {
@@ -1239,9 +1306,11 @@ namespace GeometryHelper.Dwg
                     content.Rows.Add(row);
                 }
 
-                if (g.Int(92) != 0)
+                int fields = g.Int(92);
+
+                for (int i = 0; i < fields; i++)
                 {
-                    return null;
+                    content.Fields.Add(g.Handle(360));
                 }
 
                 Need(g, 100);
@@ -1279,7 +1348,11 @@ namespace GeometryHelper.Dwg
 
             if (g.Int(92) != 0)
             {
-                throw new FormatException("A cell linked to data is not read.");
+                cell.Linked = true;
+                cell.LinkHandle = g.Handle(340);
+                cell.LinkRows = g.Int(93);
+                cell.LinkColumns = g.Int(94);
+                cell.LinkExtra = g.Int(96);
             }
 
             int contents = g.Int(95);

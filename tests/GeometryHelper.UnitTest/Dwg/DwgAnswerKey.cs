@@ -347,6 +347,19 @@ namespace GeometryHelper.UnitTest.Dwg
 
                 List<KeyValuePair<int, string>> groups = WithoutRoundTrip(a, b, got, roundTrip);
 
+                if (
+                    a.Type == "XRECORD"
+                    && a.Owner != null
+                    && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record dataTable)
+                    && (dataTable.Type == "DATATABLE" || dataTable.Type == "ACDBDATATABLE")
+                )
+                {
+                    // The cell values a DATATABLE owns AutoCAD makes anew from the table as it writes the DXF of R2000 or
+                    // R2004: a cell with no value is one the file holds as flags 7 and type 0, and its DXF as flags 6 and an
+                    // empty text. Not compared; the DATATABLE that lists them is.
+                    continue;
+                }
+
                 if (a.Type == "DBCOLOR")
                 {
                     // The extended data DBColXD, the index, true colour and name of a colour of a book for releases that do

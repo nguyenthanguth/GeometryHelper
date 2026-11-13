@@ -333,7 +333,7 @@ the ones wanted.
       turn, as AutoCAD (the 4 regressed rows and 33 of 48 small-arc rows now 0 off; tar sets 7 031 differing of 11 156 down
       to 1 962), the outside side from the arc's start direction, extension lines of a dimension on its arc, the sector
       test after a scale; harness .claude/gk/dims-harness10
-- [ ] Associative dimensions follow-ups 5: angular three-point dimensions with level words fitted the same way (tar16: 56 of
+- [ ] (assoc5, running) Associative dimensions follow-ups 5: angular three-point dimensions with level words fitted the same way (tar16: 56 of
       432 differ; DECIDED by recommendation: match AutoCAD even though angular pictures change); DIMJUST 1/2 of DIMARC
       (tar9 288, tar13 57); DIMARCSYM 1 (about 0.07 more height); the radial case (sweep >= 90, arrowheads in); AutoCAD's
       arc-point offset after a scale (-g d sweep^2, g 0.002-0.014, no closed form) (S)
@@ -377,11 +377,16 @@ the ones wanted.
         AutoCAD's DXF gives them) and written; VISUALSTYLE of R2004-R2010 written into R2018 (390 of 390 equal AutoCAD's);
         fixed: a block record owner's handle code and a multileader attribute code; draw order made in code no longer
         dropped; 19 drawings AUDIT 0; DxfColor Red/Green/Blue of ByAci kept as the palette (documented, AutoCAD gives 0)
-  - [ ] (dwg9, running) DWG follow-ups 3: tables holding a field or a data link (Cover Sheet, Mechanical - Data Links: unknown cell kinds;
-        60 fields lost with the table); Existing Conditions Plan rewritten refused by AutoCAD (ErrorStatus 53, also before
-        this change); R2000/R2004 table content (DATATABLE); ACFD_FIELDTEXT_CHECKSUM of old files; OLE2FRAME and proxies
-        (GUI sample); surfaces in DWG; ACIS 4.00 of R2000; tcustom reader parity; TABLEGEOMETRY head bit; a rendered
-        thumbnail for new drawings; R2000 round-trip colours (M)
+  - [x] DWG follow-ups 3 (dwg9): fixed two faults that made AutoCAD refuse our rewrites (ErrorStatus 53): the R2010+ 2D
+        polyline vertex id written after its tangent, and a locked attribute of an R2007 DXF given version 1; AutoCAD's
+        113 sample drawings read and rewritten: 98 AUDIT 0 and 8 refused before, now 106 AUDIT 0 and none refused (the 7
+        others have their originals' own errors); tables holding fields and data links read and written; R2000/R2004
+        DATATABLE and TABLECONTENT read
+  - [ ] DWG follow-ups 4: splines_AC1024 rewritten refused (the SAT-to-SAB conversion of its two 3DSOLIDs); table test
+        drawings AUDIT 6 (AcDbTableStyle not repaired, before too); a Unicode layer name AUDIT 2 (before too); the dynamic
+        block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8 sheets); CELLSTYLEMAP of R2000/R2004;
+        ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00; tcustom parity; TABLEGEOMETRY head bit; a
+        rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)

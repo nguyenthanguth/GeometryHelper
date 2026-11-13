@@ -497,16 +497,25 @@ namespace GeometryHelper.Dwg
             _object.Add(178, 0);
             _object.Add(145, content?.Format?.Rotation ?? 0.0);
 
+            // The field of a cell (344), which then holds no words of its own: an empty string, as AutoCAD writes it.
+            bool field = content != null && content.Type == 2 && merge[0] == 0;
+
             if (block)
             {
                 _object.Add(340, content.Handle);
                 _object.Add(144, content.Format?.Scale ?? 1.0);
             }
+            else if (field)
+            {
+                _object.Add(344, content.Handle);
+            }
 
             _object.Body.AddRange(groups);
             _object.Add(92, 0);
             DwgCellValue value =
-                content != null && content.Type == 1 && merge[0] == 0 ? content.Value : new DwgCellValue { Flags = 7 };
+                content != null && content.Type == 1 && merge[0] == 0 ? content.Value
+                : field ? new DwgCellValue { Type = 4 }
+                : new DwgCellValue { Flags = 7 };
             _object.Add(301, "CELL_VALUE");
             AddValue(value);
         }
@@ -590,6 +599,12 @@ namespace GeometryHelper.Dwg
         /// <summary>A value in DXF, after the group that names it: its flags, type, the value, unit, format and text.</summary>
         private void AddValue(DwgCellValue value)
         {
+            if (!R2007Plus)
+            {
+                AddFieldValue(value);
+                return;
+            }
+
             _object.Add(93, value.Flags);
             _object.Add(90, value.Type);
 
@@ -757,11 +772,10 @@ namespace GeometryHelper.Dwg
             }
 
             int fields = Count(_data.BitLong());
-            _unseen |= fields > 0;
 
             for (int i = 0; i < fields; i++)
             {
-                H();
+                content.Fields.Add(H());
             }
 
             content.Style = ReadCellStyle();
@@ -786,14 +800,15 @@ namespace GeometryHelper.Dwg
             };
             ReadCustomData(cell.Items);
 
-            if (_data.BitLong() == 1)
+            // The flags of linked data are 3 where the cell is linked in AutoCAD 2021's files, not the 1 the specification gives.
+            if ((_data.BitLong() & 1) != 0)
             {
                 // Linked data: the data link, its rows, its columns and a number.
-                _unseen = true;
-                H();
-                _data.BitLong();
-                _data.BitLong();
-                _data.BitLong();
+                cell.Linked = true;
+                cell.LinkHandle = H();
+                cell.LinkRows = _data.BitLong();
+                cell.LinkColumns = _data.BitLong();
+                cell.LinkExtra = _data.BitLong();
             }
 
             int contents = Count(_data.BitLong());
@@ -873,6 +888,12 @@ namespace GeometryHelper.Dwg
         /// <summary>A value (20.4.99): its flags, its type, the value unless it holds nothing, its unit, format and text.</summary>
         private DwgCellValue ReadValue()
         {
+            // Before R2007 a value is its type and the value alone, as a field's is.
+            if (!R2007Plus)
+            {
+                return ReadFieldValue();
+            }
+
             var value = new DwgCellValue { Flags = _data.BitLong(), Type = _data.BitLong() };
 
             if ((value.Flags & 1) == 0)
@@ -924,7 +945,7 @@ namespace GeometryHelper.Dwg
                 Rotation = _data.BitDouble(),
                 Scale = _data.BitDouble(),
                 Alignment = _data.BitLong(),
-                Colour = ReadColour().Raw,
+                Colour = ReadColour(true).Raw,
                 TextStyle = H(),
                 Height = _data.BitDouble(),
             };
@@ -943,7 +964,7 @@ namespace GeometryHelper.Dwg
 
             style.Overrides = _data.BitLong();
             style.Merge = _data.BitLong();
-            style.Background = ReadColour().Raw;
+            style.Background = ReadColour(true).Raw;
             style.Layout = _data.BitLong();
             style.Format = ReadContentFormat();
             style.MarginFlags = _data.BitShort();
@@ -966,7 +987,7 @@ namespace GeometryHelper.Dwg
                 {
                     border.Overrides = _data.BitLong();
                     border.Type = _data.BitLong();
-                    border.Colour = ReadColour().Raw;
+                    border.Colour = ReadColour(true).Raw;
                     border.LineWeight = _data.BitLong();
                     border.Linetype = H();
                     border.Invisible = _data.BitLong();
@@ -982,9 +1003,10 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// A TABLECONTENT, which AutoCAD keeps under a table's round-trip record (ACAD_ROUNDTRIP_2008_TABLE_ENTITY) as its
         /// content: the same content an ACAD_TABLE of R2010 holds, written as AutoCAD 2021 writes it in DXF, its columns,
-        /// rows and cells each in their linked, formatted and table parts, from R2007 (an R2000 or R2004 file lays it out
-        /// otherwise, not read yet). False where it holds what no test drawing has shown in DXF yet (a cell linked to data,
-        /// the attributes of a block, fields or a cell's cached geometry), which is left out.
+        /// rows and cells each in their linked, formatted and table parts. A file of R2000 or R2004 lays it out as one of
+        /// R2007 but for its values, which are their type and value alone, and its colours, which are the long form of
+        /// R2004 even in R2000. False where it holds what no test drawing has shown in DXF yet (the attributes of a block
+        /// or a cell's cached geometry), which is left out.
         /// </summary>
         private bool ReadTableContentObject()
         {
@@ -1040,7 +1062,13 @@ namespace GeometryHelper.Dwg
                 _object.Add(309, "TABLEROW_END");
             }
 
-            _object.Add(92, 0);
+            _object.Add(92, content.Fields.Count);
+
+            foreach (ulong field in content.Fields)
+            {
+                _object.Add(360, field);
+            }
+
             _object.Add(100, "AcDbFormattedTableData");
             _object.Add(300, "TABLEFORMAT");
             AddTableFormat(content.Style);
@@ -1068,7 +1096,16 @@ namespace GeometryHelper.Dwg
             _object.Add(300, Encoding.UTF8.GetBytes(cell.Tooltip));
             _object.Add(91, cell.Custom);
             AddCustomData(cell.Items);
-            _object.Add(92, 0);
+            _object.Add(92, cell.Linked ? 1 : 0);
+
+            if (cell.Linked)
+            {
+                _object.Add(340, cell.LinkHandle);
+                _object.Add(93, cell.LinkRows);
+                _object.Add(94, cell.LinkColumns);
+                _object.Add(96, cell.LinkExtra);
+            }
+
             _object.Add(95, cell.Contents.Count);
 
             foreach (DwgCellContent content in cell.Contents)
@@ -1211,6 +1248,57 @@ namespace GeometryHelper.Dwg
             _object.Add(340, format.TextStyle);
             _object.Add(144, format.Height);
             _object.Add(309, "CONTENTFORMAT_END");
+        }
+
+        /// <summary>
+        /// A DATATABLE (ACDBDATATABLE in a DXF of R2000), which AutoCAD 2000 and 2004 keep under a table's round-trip record
+        /// where later versions keep a TABLECONTENT: its version, columns and rows, its name, then each column its kind, its
+        /// name and one value per row, as the DXF of AutoCAD gives it (groups 70, 90, 91, 1, then 92, 2 and 93, 40 or 360 by
+        /// the kind). Read are the kinds a drawing of AutoCAD 2021 has shown: 1 a whole number, 2 a real and 6 a handle of
+        /// an XRECORD the table owns; a column of another kind leaves the object out.
+        /// </summary>
+        private bool ReadDataTable()
+        {
+            int version = _data.BitShort();
+            int columns = Count(_data.BitLong());
+            int rows = Count(_data.BitLong());
+            string name = Text();
+            var groups = new List<DwgGroup>
+            {
+                new DwgGroup(100, _object.Name == "ACDBDATATABLE" ? "ACDBDATATABLE" : "AcDbDataTable"),
+                new DwgGroup(70, version),
+                new DwgGroup(90, columns),
+                new DwgGroup(91, rows),
+                new DwgGroup(1, Encoding.UTF8.GetBytes(name)),
+            };
+
+            for (int c = 0; c < columns; c++)
+            {
+                int kind = _data.BitLong();
+                groups.Add(new DwgGroup(92, kind));
+                groups.Add(new DwgGroup(2, Encoding.UTF8.GetBytes(Text())));
+
+                for (int r = 0; r < rows; r++)
+                {
+                    switch (kind)
+                    {
+                        case 1:
+                            groups.Add(new DwgGroup(93, _data.BitLong()));
+                            break;
+                        case 2:
+                            groups.Add(new DwgGroup(40, _data.BitDouble()));
+                            break;
+                        case 6:
+                            groups.Add(new DwgGroup(360, H()));
+                            break;
+                        default:
+                            return false;
+                    }
+                }
+            }
+
+            _object.Body.AddRange(groups);
+            return true;
         }
 
         /// <summary>

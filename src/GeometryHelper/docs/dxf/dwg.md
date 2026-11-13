@@ -178,7 +178,7 @@ as AutoCAD's DXF of it in all six versions.
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
 [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) names the types with the count of each
-(`DwgReader: types that are not read yet were left out: ACDBDATATABLE 2 TABLECONTENT 1 …`), and one Info line sums the
+(`DwgReader: types that are not read yet were left out: ACDB_MLEADEROBJECTCONTEXTDATA_CLASS 10 CELLSTYLEMAP 2 …`), and one Info line sums the
 call.
 
 - Entities: a REGION, 3DSOLID or BODY of AutoCAD 2004 to 2010 whose SAB holds a record or subtype the grammars do not
@@ -186,15 +186,24 @@ call.
   entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
   or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
   neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
-- Objects: the TABLECONTENT a table of AutoCAD 2000 or 2004 keeps for a round trip (from
-  AutoCAD 2007 it is read, and the TABLEGEOMETRY beside it in every version), DATATABLE, the data of dynamic blocks,
+- Objects: the CELLSTYLEMAP a table style of AutoCAD 2000 or 2004 keeps for a round trip, the data of dynamic blocks,
   and the other objects of classes. AutoCAD makes most of these anew in a drawing
   that lacks them. In AutoCAD 2021's own sample drawings the types left out are the objects of dynamic blocks and
-  of associative dimensions (the evaluation graph, BLOCK* parameters, actions and grips, ACDBASSOC*, OBJECT_PTR). A
-  TABLECONTENT that holds a cell linked to data, the attributes of a block, fields or a cell's
-  geometry is left out too, with its ACAD_TABLE: the table of a sheet list (`Cover Sheet.dwg`) and the table linked to a
-  spreadsheet (`Mechanical - Data Links.dwg`) are, though the FIELD and DATALINK they name are read; no test drawing
-  has shown AutoCAD's DXF of those yet.
+  of associative dimensions (the evaluation graph, BLOCK* parameters, actions and grips, ACDBASSOC*, OBJECT_PTR); with
+  the data of the dynamic block `Drawing Title` of eight sheet drawings (`A-01` to `S-03`) go the six fields and the
+  draw order table of its attribute definition, which AutoCAD no longer finds in the drawing written again. A
+  TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
+  no sample drawing has one. A table of fields and links is read: the cell of a field gives it in group 344 and the
+  TABLECONTENT lists the fields the table owns (92 and 360), a cell linked to a data link gives the link, its rows and
+  its columns (92, 340, 93, 94, 96). The five tables of AutoCAD 2021's sample drawings that hold them (`Cover Sheet`,
+  `Title Sheet`, `T-01`, `Mechanical - Data Links`, `Data Extraction and Multileaders Sample`) were left out before,
+  and AutoCAD drops the fields no cell names from a drawing it opens: the 60 fields a table of `Cover Sheet` owns were
+  gone from AutoCAD's own DXF of the drawing written again, and are there now. AutoCAD's DXF of each table is read group for
+  group but for the numbers of the anonymous blocks.
+  The DATATABLE a table of AutoCAD 2000 or 2004 keeps beside its TABLECONTENT (ACDBDATATABLE in a DXF of R2000) is read
+  as AutoCAD's DXF gives it, its columns of whole numbers (93), reals (40) and the handles of the cell values it owns
+  (360); a column of another kind has not been seen, and leaves the object out. Written as R2018 it is left out, as
+  AutoCAD leaves it out, the table keeping its TABLECONTENT.
 - An ACAD_TABLE from AutoCAD 2010 holds its content itself, rows, columns, cells, merged ranges; it is given in the
   groups DXF keeps of AutoCAD 2007, as AutoCAD writes it: the table's own overrides (93 to 96 and their groups, in its
   head), its sizes, then each cell with how it is merged (173, 175, 176), its own overrides and its value. A cell's
@@ -361,9 +370,20 @@ SORTENTSTABLE). Against the DWG that AutoCAD 2021 saves, as R2010, R2013 and R20
 written as AutoCAD's own bits but the last bit of a real of 16 places (the 1/96 of a field of a sheet set,
 0.0104166666666667). AutoCAD opens the 13 drawings written from the DXF of eight of them and from a draw order made in
 code, `AUDIT` finds 0 errors, and its own DXF of each has as many fields, field lists, draw order tables and data links
-as the DXF it was written from, but for the 60 fields a table of `Cover Sheet` owns, which the table, left out, takes
-with it. The DXF of `Existing Conditions Plan` written as DWG is refused by AutoCAD (ErrorStatus 53), as it was before
-this change; the cause is not found yet.
+as the DXF it was written from, and so has the DXF of each table of fields and links of `Cover Sheet`, `Title Sheet`,
+`T-01`, `Mechanical - Data Links` and `Data Extraction and Multileaders Sample` written again (the 60 fields a table of
+`Cover Sheet` owns, which the table, left out, took with it, are there).
+
+A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
+50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of
+90 degrees) was refused by AutoCAD when written (ErrorStatus 53, `Existing Conditions Plan.dwg`) and the tangent of
+one AutoCAD wrote was read as 0. An attribute of a DXF of R2007 has one group 280, the lock of its position, where a
+DXF of R2010 and later has the version (0) before its tag as well; the lock was written as the version, and an
+attribute with its position locked was refused in the same way (`Mechanical - Multileaders.dwg` and two more of the
+sample drawings). Each of AutoCAD 2021's 113 sample drawings, read and written again, opens in AutoCAD: 106 with `AUDIT`
+finding 0 errors and 7 with as many as the original has (`Annotation`, `Civil` and `Electrical` in Imperial and Metric
+and `Mechanical - Metric`, where attributes name an object the file does not hold: 24, 24, 2, 2, 32, 32 and 10); none
+is refused, where 8 were (5 by the vertices, 3 by the attributes).
 
 A MATERIAL and a VISUALSTYLE are written from the groups their DXF gives, a group not given taking a new material's
 value. Of AutoCAD's new drawing the 24 visual styles and the three materials are AutoCAD's own bits but the last bit of
