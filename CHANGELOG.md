@@ -92,6 +92,20 @@ lock of its position, where R2010 and later have the version (0) as well before 
 version, and an attribute with its position locked was refused (`Mechanical - Multileaders.dwg` and two more). Of the 113
 drawings read and written again 106 now open with `AUDIT` finding 0 errors and 7 with as many as the original (24, 24, 2,
 2, 32, 32, 10); 8 were refused before.
+**FIXED.** Three DWG rewrites that AutoCAD 2021 refused or found errors in, each reproduced by a test that was red first. (1)
+`splines_AC1024` written as R2018 was refused (a modeling error, code 75005, `ErrorStatus 53`): the SAB made of the SAT of its
+two solids, a closed spline extruded and a loft, held two wrong things, found by setting the records against the SAB AutoCAD
+saves of the same drawing: the parameter curve of a face (`pcurve`) ended in two whole numbers where the SAB has two reals,
+and the surface of a loft (`loft_spl_sur`) lacked the whole number of 0 that the binary form of R2013 and later holds after
+its flags. Each solid is now AutoCAD's own SAB byte for byte (the date apart), the loft is read back from AutoCAD's SAB
+into the SAT of R2010, and the drawing opens with `AUDIT` finding 0 errors. (2) The drawing of tables written as R2018
+gave `AUDIT` 6 errors (`AcDbTableStyle(7B) was not repaired`, as AutoCAD's own file of it and its own save of it do): the
+style was made in code with no text style in its data, title and header rows; such a row is written with Standard. (3) A
+DXF of R2004 or before written as a DWG kept `\U+1EDB` in the name of a layer, which AutoCAD found "Un-normalized" (the
+drawing of properties, 2 errors); the escapes of such a DXF are the letters in every text now, as AutoCAD reads it, and an
+escape typed in a DXF of R2007 and later is left. Of the 71 drawings of the tests rewritten 71 now open with `AUDIT`
+finding 0 errors (64 before); of AutoCAD's 120 sample and template drawings 113 do and 7 have the errors of their
+originals, as before.
 
 **FIXED.** DWG tables that hold a field or a data link: the reader refused them (AutoCAD gives the flag of linked data
 as 3, not the 1 of the specification) and `Cover Sheet`, `Title Sheet`, `T-01`, `Mechanical - Data Links` and

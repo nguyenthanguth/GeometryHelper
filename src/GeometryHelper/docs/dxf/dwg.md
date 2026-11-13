@@ -148,6 +148,12 @@ Texts come back as they were typed, "Tiếng Việt café 日本語" letter for 
 drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 they are UTF-16 in the file and UTF-8 in
 the DXF, as AutoCAD's DXF of those versions is.
 
+A DXF of R2004 or before written as a DWG gets its letters in place of the escapes: its text holds a letter beyond the code
+page as `\U+1EDB`, and the DWG keeps the letter, so that the layer `L\U+1EDBp \U+1EA9n` is written `Lớp ẩn`, as AutoCAD
+writes it (it found "Un-normalized symbol name" in the escape, 2 errors in AUDIT of the drawing of properties). The escape
+is put in place in every text of such a DXF, the names and the words of a TEXT or an MTEXT alike, as AutoCAD does when it
+reads such a DXF; in a DXF of R2007 and later an escape is the text typed and is left.
+
 A true colour of a table record (a layer, a viewport's ambient light) is given with the nearest colour index of the
 palette, as AutoCAD writes it; the file holds no index beside it. A layer of RGB 10, 200, 30 gets index 102. The
 palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
@@ -348,6 +354,16 @@ AutoCAD gives it from its own DWG of the drawing (the box 6 000 and 2 200, the s
 13 721.42 and 6 000, a revolve of 270 degrees 2 968.81 and 1 585.94), to the last digit. The ACIS 4.00 text of AutoCAD
 2000 is not turned: its records are laid out otherwise than those of the later versions, and its solids are left out.
 
+Two values of the SAB of a spline solid cannot be told from the SAT alone. The parameter curve of a face (`pcurve`) ends in
+two reals, which the SAT writes `0 0` or `1 0` and which were taken for two whole numbers; and the surface of a loft
+(`loft_spl_sur`) holds, in the binary form of R2013 and later, one whole number of 0 more than in the SAT, after the one that
+follows its four flags (`F F F F 1 full nubs` in the SAT is `F F F F 1 0 full nubs` in the SAB, put in and taken out as the
+form changes). A solid of a closed spline extruded 7 up and a solid lofted through a circle, an ellipse and a circle, of a
+DXF of R2010, written as a DWG of R2018 with those two values wrong, were refused by AutoCAD 2021 (a modeling error, code
+75005, ErrorStatus 53); written right, each SAB is the SAB AutoCAD 2021 saves of the same drawing, byte for byte but the date, and
+opens with `AUDIT` finding 0 errors. The other way, AutoCAD's SAB of each is read back into the SAT of the DXF, line for
+line. Lofts of circles, of closed splines and a closed loft, saved by AutoCAD in the same way, agree record by record.
+
 The preview of a DWG is its picture in Explorer and in the Open dialog: where the DXF holds a section `THUMBNAILIMAGE` (a
 bitmap of Windows without its file header, or a PNG file, as AutoCAD writes it) it is written as the preview, laid out
 as AutoCAD 2021 lays it out: a header of 80 zero bytes (kind 1), then the picture (kind 2, a PNG kind 6), each placed
@@ -456,8 +472,11 @@ an attribute of two lines each, two tables of 3 by 3 and 2 by 4 with merged cell
 with an image and a wipeout made in code. Each reads back to the records it was written from; the table styles, the
 multileader styles and the TABLECONTENT are AutoCAD's own bits, and of the multileaders and attributes all but the last
 bit of a double of 16 places and the extents of the words. AutoCAD opens each, and its own DXF of each is the DXF it was
-written from. `AUDIT` finds 0 errors in each but the drawing of tables, where it finds the same 6 in the table style of
-the second table as in AutoCAD's own file of that drawing.
+written from. `AUDIT` finds 0 errors in each. The drawing of tables is so since the text style of its rows: the table
+style of its second table was made in code with no text style in its data, title and header rows, AutoCAD's own file of
+the drawing holds it so, and `AUDIT` of that finds 6 errors (`AcDbTableStyle was not repaired`, three in each of two
+passes), as it does of AutoCAD's own save of it. Such a row is written with the text style Standard, as the styles
+AutoCAD makes itself have, and `AUDIT` finds 0; a row that names a style keeps it.
 
 And for the overrides of tables: five drawings, a table of cells each overriding one look, a table of the overrides
 of AutoCAD 2007 a table gives its kinds of row, two of a clean table style of its own with borders, margins and a

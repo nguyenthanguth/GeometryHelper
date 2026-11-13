@@ -1176,7 +1176,8 @@ namespace GeometryHelper.Dwg
         /// <summary>A row of a table style, its groups 7 to the last border, as a cell style.</summary>
         private DwgCellStyle RowStyleOf(Cursor style)
         {
-            ulong textStyle = style.At(7) ? _drawing.HandleOf("STYLE", style.Text(7)) : 0;
+            // A row that names no text style (a style made in code without one) is one AUDIT cannot repair: it has Standard.
+            ulong textStyle = _drawing.HandleOf("STYLE", style.At(7) ? style.Text(7) : "Standard");
             var format = new DwgContentFormat
             {
                 Height = style.Double(140),
