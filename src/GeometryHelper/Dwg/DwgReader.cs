@@ -20,15 +20,19 @@ namespace GeometryHelper.Dwg
     /// The file is turned, in memory, into the DXF that says the same, record for record with the handles of the file:
     /// the header variables, the classes, the nine tables, the blocks, the entities and the objects. Read are LINE, POINT,
     /// CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, the 2D and 3D POLYLINE with their vertices, the polygon and
-    /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE, SHAPE and
-    /// DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MATERIAL, VISUALSTYLE, the detail
-    /// and section view styles and the small ones a new drawing holds (see the guide for the full list); the ACIS data of
+    /// polyface mesh, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE, SHAPE,
+    /// DIMENSION, VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT and ACAD_TABLE, and of the objects
+    /// DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, MATERIAL, VISUALSTYLE, the detail and
+    /// section view styles and the small ones a new drawing holds (see the guide for the full list); the ACIS data of
     /// the solids comes as SAT text to AutoCAD 2010, turned from the SAB AutoCAD keeps from AutoCAD 2004 into the SAT
     /// AutoCAD writes of it, and from AutoCAD 2013 from the data store of the file as the section ACDSDATA; each with its
     /// layer, linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. A SHAPE is named
     /// from the file of shapes of its style where <see cref="DxfReadOptions.SupportFolders"/> holds it, and else gives
-    /// its number (group 70), as AutoCAD writes a shape whose file it does not find. The types not read yet, the objects
-    /// of dynamic blocks among them, are left out and counted by type in one Debug line of
+    /// its number (group 70), as AutoCAD writes a shape whose file it does not find. The preview image of the file, where
+    /// it holds a picture, comes as the section THUMBNAILIMAGE of the DXF, last. The types not read yet (those AutoCAD
+    /// 2021's own sample drawings hold are the FIELD and FIELDLIST of fields, the SORTENTSTABLE of the draw order, the
+    /// DATALINK of a table linked to data and the objects of dynamic blocks and of associative dimensions; and there are
+    /// the OLE frames and the proxies) are left out and counted by type in one Debug line of
     /// <see cref="GeometryHelperLog"/>.
     /// </para>
     /// <para>

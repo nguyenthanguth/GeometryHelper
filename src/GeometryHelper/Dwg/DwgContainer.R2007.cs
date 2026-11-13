@@ -100,6 +100,16 @@ namespace GeometryHelper.Dwg
             container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), seed, ref budget);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
 
+            if (sections.TryGetValue("AcDb:Preview", out Descriptor21 preview))
+            {
+                try
+                {
+                    // A preview no program needs to read the drawing: a page of it that is broken is no reason to refuse the file.
+                    container.Preview = Join21(file, pages, preview, seed, ref budget);
+                }
+                catch (FormatException) { }
+            }
+
             if (sections.TryGetValue("AcDb:Template", out Descriptor21 template))
             {
                 byte[] data = Join21(file, pages, template, seed, ref budget);

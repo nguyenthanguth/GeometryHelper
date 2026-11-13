@@ -37,8 +37,9 @@ namespace GeometryHelper.Dwg
 
         /// <summary>
         /// The SAB of the SAT in <paramref name="lines"/> (the lines of the data of a body, as the groups of a DXF hold them,
-        /// deciphered) in the form of <paramref name="form"/>, its date <paramref name="date"/>; null where the SAT holds a
-        /// record, a subtype or a value the grammars do not place, or is of a version whose records are not known.
+        /// deciphered) in the form of <paramref name="form"/>, its date <paramref name="date"/> (null: the date the head of the
+        /// SAT gives); null where the SAT holds a record, a subtype or a value the grammars do not place, or is of a version
+        /// whose records are not known.
         /// </summary>
         internal static byte[] ToSab(IReadOnlyList<string> lines, AcisFormat form, string date)
         {
@@ -49,7 +50,15 @@ namespace GeometryHelper.Dwg
                 return null;
             }
 
-            return Encode(sat.Records, form, sat.Roots, sat.Strings[0], sat.Strings[1], date, sat.Reals);
+            return Encode(
+                sat.Records,
+                form,
+                sat.Roots,
+                sat.Strings[0],
+                sat.Strings[1],
+                date ?? sat.Strings[2],
+                sat.Reals
+            );
         }
 
         /// <summary>

@@ -215,6 +215,7 @@ namespace GeometryHelper.Dwg
             transcoder.WriteBlocks();
             transcoder.WriteObjects();
             transcoder.WriteDataStore();
+            transcoder.WriteThumbnail();
             transcoder._dxf.Write(0, "EOF");
             transcoder.LogSummary();
             progress?.Report(1.0);
@@ -1302,6 +1303,26 @@ namespace GeometryHelper.Dwg
                 WriteBinary(94, record.Value);
             }
 
+            _dxf.Write(0, "ENDSEC");
+        }
+
+        /// <summary>
+        /// The section THUMBNAILIMAGE, last, as AutoCAD writes it: the size of the picture of the file's preview (90) and its
+        /// bytes in pieces of 127 under 310. None where the file has no picture: AutoCAD keeps a header of zeros alone in the
+        /// preview of a drawing it has drawn none of.
+        /// </summary>
+        private void WriteThumbnail()
+        {
+            byte[] image = DwgPreview.Image(_container.Preview);
+
+            if (image == null)
+            {
+                return;
+            }
+
+            _dxf.Write(0, "SECTION");
+            _dxf.Write(2, "THUMBNAILIMAGE");
+            WriteBinary(90, image);
             _dxf.Write(0, "ENDSEC");
         }
 

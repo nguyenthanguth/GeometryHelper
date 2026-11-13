@@ -10,7 +10,7 @@ namespace GeometryHelper.Dwg
     /// encoders look things up in: every record by handle, the records of each table by name, the entities each block
     /// owns. Nothing follows the order of a dictionary: lists keep the order of the file.
     /// </summary>
-    internal sealed class DwgDrawing
+    internal sealed partial class DwgDrawing
     {
         private readonly Dictionary<string, List<KeyValuePair<int, string>>> _header = new Dictionary<
             string,
@@ -47,6 +47,14 @@ namespace GeometryHelper.Dwg
         /// <summary>The records with handles in the order they were met.</summary>
         public readonly List<DwgRecord> All = new List<DwgRecord>();
 
+        /// <summary>
+        /// How many records of each type have no handle (a CLASS and an ENDTAB never have): the DWG cannot name them, so they
+        /// are not in <see cref="All"/> and the writer leaves them out.
+        /// </summary>
+        public readonly SortedDictionary<string, int> WithoutHandle = new SortedDictionary<string, int>(
+            StringComparer.Ordinal
+        );
+
         /// <summary>The entities each block record owns, in order, by the handle of the block record; the BLOCK and ENDBLK not among them.</summary>
         public readonly Dictionary<ulong, List<DwgRecord>> Owned = new Dictionary<ulong, List<DwgRecord>>();
 
@@ -58,6 +66,12 @@ namespace GeometryHelper.Dwg
         /// (320) and its SAB bytes (94 and 310), the first of a handle given twice.
         /// </summary>
         public readonly List<KeyValuePair<ulong, byte[]>> AcisData = new List<KeyValuePair<ulong, byte[]>>();
+
+        /// <summary>
+        /// The picture of the section THUMBNAILIMAGE, a bitmap of Windows without its file header or a PNG file, which the
+        /// writer keeps as the preview of the DWG; null where the file has none.
+        /// </summary>
+        public byte[] Thumbnail { get; private set; }
 
         /// <summary>The version the file names, <c>$ACADVER</c>.</summary>
         public string Version => HeaderText("ACADVER", "AC1032");
@@ -152,6 +166,10 @@ namespace GeometryHelper.Dwg
                 else if (section == "ACDSDATA")
                 {
                     ReadAcisData(groups, i, end);
+                }
+                else if (section == "THUMBNAILIMAGE")
+                {
+                    ReadThumbnail(groups, i, end);
                 }
                 else
                 {
@@ -288,6 +306,33 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// The picture of the section THUMBNAILIMAGE: its size (90) and its bytes (310 in hex), the first such section of a
+        /// file; a section whose bytes fall short of its size gives none.
+        /// </summary>
+        private void ReadThumbnail(List<KeyValuePair<int, string>> groups, int from, int to)
+        {
+            int size = -1;
+            var bytes = new List<byte>();
+
+            for (int i = from; i < to; i++)
+            {
+                if (groups[i].Key == 90 && size < 0)
+                {
+                    size = DwgRecord.Int(groups[i].Value);
+                }
+                else if (groups[i].Key == 310)
+                {
+                    bytes.AddRange(DwgObjectWriter.Unhex(groups[i].Value));
+                }
+            }
+
+            if (Thumbnail == null && size > 0 && bytes.Count >= size)
+            {
+                Thumbnail = bytes.GetRange(0, size).ToArray();
+            }
+        }
+
         private List<DwgRecord> Records(List<KeyValuePair<int, string>> groups, int from, int to)
         {
             var records = new List<DwgRecord>();
@@ -318,6 +363,11 @@ namespace GeometryHelper.Dwg
                     {
                         ByHandle[record.Handle] = record;
                     }
+                }
+                else if (record.Type != "CLASS" && record.Type != "ENDTAB")
+                {
+                    WithoutHandle.TryGetValue(record.Type, out int count);
+                    WithoutHandle[record.Type] = count + 1;
                 }
             }
 

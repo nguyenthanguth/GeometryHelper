@@ -29,11 +29,18 @@ namespace GeometryHelper.Dwg
     /// keeps for a round trip or else from its own overrides (93 to 96), and its table style's cell styles from the
     /// style's rows, then those of its own (101 on) from the CELLSTYLEMAP AutoCAD writes in DXF alone; that map, and the
     /// extension dictionary of the table style that holds it, are not written, as AutoCAD writes no such object in a DWG.
-    /// A REGION, 3DSOLID or BODY is written where the section ACDSDATA holds its SAB data, as a DXF of R2013 and later
-    /// gives it; one of SAT text, as a DXF of an older version gives it, is left out. A SHAPE is written where its DXF
+    /// A REGION, 3DSOLID or BODY is written with its ACIS data in the data store of the file: where the section ACDSDATA
+    /// holds its SAB, as a DXF of R2013 and later gives it, and where it holds SAT text, as a DXF of R2004 to R2010 gives
+    /// it, turned into the SAB AutoCAD 2021 writes for R2018 and named by a GUID, the one its extended data kept (else one
+    /// made of its handle, so that the same drawing gives the same bytes); the 11 solids and 3 regions of a drawing of
+    /// AutoCAD 2004, 2007 and 2010 written so open in AutoCAD 2021 with <c>AUDIT</c> finding 0 errors and the volumes and
+    /// areas of the DXF. The ACIS 4.00 text of R2000 and a SAT with a record the grammars do not place are left out. The
+    /// section <c>THUMBNAILIMAGE</c> of the DXF (a bitmap of Windows without its file header, or a PNG file) is written as
+    /// the preview of the DWG, the picture of the file in Explorer and in the Open dialog. A SHAPE is written where its DXF
     /// gives its number (group 70, or a number as its name), of the first text style of a file of shapes; one given by
-    /// its name alone is left out. A record of another type is left out, every handle to it written as 0 and every
-    /// dictionary entry naming it dropped, and one Warn line of <see cref="GeometryHelperLog"/> counts them by type.
+    /// its name alone is left out. A record of another type, and a record that has no handle, which a DWG cannot name, is
+    /// left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one Warn line of
+    /// <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>
     /// <para>
     /// The file is of AC1032 (AutoCAD 2018 and later), the form AutoCAD 2021 saves in. The same bytes come of the same
@@ -179,6 +186,7 @@ namespace GeometryHelper.Dwg
             string named = Check(version);
             ProgressSteps steps = ProgressSteps.Of(progress);
             DwgDrawing drawing = DwgDrawing.Parse(text, steps);
+            drawing.SatBodiesToSab(AcisFormat.For(named));
             byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer, steps);
             steps?.Done();
             leftOut = writer.LeftOut;
