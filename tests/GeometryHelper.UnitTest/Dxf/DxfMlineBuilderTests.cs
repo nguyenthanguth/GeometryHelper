@@ -359,6 +359,72 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void AVertexMovedAt_KeepsTheCutsOfASegmentThatKeepsItsWay_WhereTheyWere_AndMakesWholeOneThatTurns()
+        {
+            // AutoCAD 2021: (0, 0), (100, 0), (100, 100) at scale 20, cut all from 30 to 60 on both segments (MLEDIT CA), then
+            // MoveVertexAt (1, (100, -10)): the first segment turns and is whole again; the second keeps its way and its cut where
+            // it was, 40 to 70 from the vertex for the top element, 62.0998 to 92.0998 for the bottom one; the starts at nought stay.
+            DxfDatabase db = Blank();
+            DxfMlineBuilder builder = Builder(db, 20.0, DxfMlineJustification.Top, P(0, 0), P(100, 0), P(100, 100));
+            var cut = new[]
+            {
+                new DxfMlineBuilder.Run(0.0, 30.0),
+                new DxfMlineBuilder.Run(60.0, double.PositiveInfinity),
+            };
+            builder.SetRuns(0, 0, cut);
+            builder.SetRuns(0, 1, cut);
+            builder.SetRuns(1, 0, cut);
+            builder.SetRuns(
+                1,
+                1,
+                new[] { new DxfMlineBuilder.Run(0.0, 50.0), new DxfMlineBuilder.Run(80.0, double.PositiveInfinity) }
+            );
+
+            builder.MoveVertexAt(1, P(100, -10));
+
+            Written written = Read(builder.Build());
+            Assert.Equal(new[] { 0.0 }, written.Vertices[0].Tails[0]);
+            Assert.Equal(new[] { 0.0 }, written.Vertices[0].Tails[1]);
+            Same(new[] { 0.0, 40.0, 70.0 }, written.Vertices[1].Tails[0]);
+            Same(new[] { 0.0, 62.09975124224175, 92.09975124224175 }, written.Vertices[1].Tails[1]);
+
+            // AutoCAD 2021 then MoveVertexAt (2, (110, 100)): the second segment turns, its cut is gone.
+            builder.MoveVertexAt(2, P(110, 100));
+
+            written = Read(builder.Build());
+            Assert.Equal(new[] { 0.0 }, written.Vertices[1].Tails[0]);
+            Assert.Equal(new[] { 0.0 }, written.Vertices[1].Tails[1]);
+        }
+
+        [Fact]
+        public void AVertexMovedAlongItsSegment_KeepsTheCutOfTheSegment_AndOneThatTurnsTheFirstSegmentLosesIt()
+        {
+            // AutoCAD 2021's STRETCH of the vertex (100, 0) by (20, 0), then of (0, 0) by (0, 15), the first segment cut from 30 to 60.
+            DxfDatabase db = Blank();
+            DxfMlineBuilder builder = Builder(db, 20.0, DxfMlineJustification.Top, P(0, 0), P(100, 0), P(100, 100));
+            var cut = new[]
+            {
+                new DxfMlineBuilder.Run(0.0, 30.0),
+                new DxfMlineBuilder.Run(60.0, double.PositiveInfinity),
+            };
+            builder.SetRuns(0, 0, cut);
+            builder.SetRuns(0, 1, cut);
+
+            builder.MoveVertexAt(1, P(120, 0));
+
+            Written written = Read(builder.Build());
+            Same(new[] { 0.0, 30.0, 60.0 }, written.Vertices[0].Tails[0]);
+            Same(new[] { 0.0, 30.0, 60.0 }, written.Vertices[0].Tails[1]);
+
+            builder.MoveVertexAt(0, P(0, 15));
+
+            written = Read(builder.Build());
+            Assert.Equal(new[] { 0.0 }, written.Vertices[0].Tails[0]);
+            Assert.Equal(new[] { 0.0 }, written.Vertices[0].Tails[1]);
+            Assert.Throws<ArgumentOutOfRangeException>(() => builder.MoveVertexAt(3, P(0, 0)));
+        }
+
+        [Fact]
         public void AMlineReadBack_GivesItsPointsScaleJustificationAndFlagsAsItWasBuilt()
         {
             DxfDatabase db = Blank();

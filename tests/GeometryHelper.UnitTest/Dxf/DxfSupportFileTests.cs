@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -278,6 +279,80 @@ namespace GeometryHelper.UnitTest.Dxf
                     DxfDatabase.Parse(DxfFileEzdxfDrawings.R12).LoadMlineStyleFile("STANDARD", mln)
                 );
             });
+        }
+
+        [Fact]
+        public void AMultilineStyleSaved_IsWrittenAsAcadMlnWritesIt_KeepingTheFilesOtherStyles_AndLoadsBack()
+        {
+            InFolder(folder =>
+            {
+                DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+                var settings = new DxfMlineStyleSettings { Description = "Two walls", Filled = true };
+                settings.Elements.Clear();
+                settings.Elements.Add(
+                    new DxfMlineStyleElement(0.5, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1), "BYLAYER")
+                );
+                settings.Elements.Add(new DxfMlineStyleElement(-0.5, DxfColor.ByLayer, "BYLAYER"));
+                db.AddMlineStyle("GH_TWO", settings);
+                string mln = Path.Combine(folder, "new.mln");
+
+                db.SaveMlineStyleFile("gh_two", mln);
+
+                // AutoCAD's acad.mln: a code on its line, the value after a space, angles and offsets with fourteen decimals.
+                Assert.Equal(
+                    "MLSTYLE\r\n2\r\n GH_TWO\r\n70\r\n 1\r\n3\r\n Two walls\r\n62\r\n 256\r\n51\r\n 90.00000000000000\r\n"
+                        + "52\r\n 90.00000000000000\r\n71\r\n 2\r\n49\r\n 0.50000000000000\r\n62\r\n 1\r\n6\r\n BYLAYER\r\n"
+                        + "49\r\n -0.50000000000000\r\n62\r\n 256\r\n6\r\n BYLAYER\r\n0\r\n",
+                    File.ReadAllText(mln)
+                );
+
+                DxfDatabase other = NewDrawing();
+                other.LoadMlineStyleFile("GH_TWO", mln);
+                var loaded = (DxfMlineStyle)other.MLStyleDictionary.GetAt("GH_TWO");
+                Assert.Equal("Two walls", loaded.Description);
+                Assert.True(loaded.Filled);
+                Assert.Equal(new[] { 0.5, -0.5 }, loaded.Elements.Select(e => e.Offset));
+                Assert.Equal(1, loaded.Elements[0].Color.ColorIndex);
+
+                // Saved into a file of other styles, it is added after them; saved again, written over.
+                string shared = Path.Combine(folder, "gh.mln");
+                db.SaveMlineStyleFile("GH_TWO", shared);
+                db.SaveMlineStyleFile("GH_TWO", shared);
+                DxfDatabase third = NewDrawing();
+                third.LoadMlineStyleFile("STANDARD", shared);
+                third.LoadMlineStyleFile("GH_TWO", shared);
+                Assert.Single(Regex.Matches(File.ReadAllText(shared), "GH_TWO").Cast<Match>());
+                Assert.Contains("GH_WALL", File.ReadAllText(shared), StringComparison.Ordinal);
+                Assert.Throws<ArgumentException>(() => db.SaveMlineStyleFile("GH_NONE", mln));
+            });
+        }
+
+        [Fact]
+        public void AMultilineStyleRenamed_TakesTheNameInItsEntryRecordAndMultilines_AndStaysCurrent()
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
+            var settings = new DxfMlineStyleSettings();
+            DxfMlineStyle walls = db.AddMlineStyle("WALLS", settings);
+            db.CmlstyleID = walls;
+            var builder = new DxfMlineBuilder(walls);
+            builder.Points.Add(new GeoPoint3(0, 0, 0));
+            builder.Points.Add(new GeoPoint3(100, 0, 0));
+            db.ModelSpace.AppendEntity(builder.Build());
+
+            db.RenameMlineStyle("walls", "Partitions");
+
+            DxfDatabase read = DxfDatabase.Parse(db.ToText());
+            Assert.False(read.MLStyleDictionary.Contains("WALLS"));
+            var renamed = (DxfMlineStyle)read.MLStyleDictionary.GetAt("Partitions");
+            Assert.Equal("PARTITIONS", renamed.Name);
+            Assert.Equal(walls.Handle, renamed.Handle);
+            Assert.Equal(renamed.Handle, read.CmlstyleID.Handle);
+            var mline = (DxfUnknownEntity)read.ModelSpace.Single(e => e is DxfUnknownEntity u && u.DxfName == "MLINE");
+            Assert.Contains(mline.Groups, g => g.TypeCode == 2 && g.Value.Trim() == "PARTITIONS");
+            Assert.Equal(2, mline.Explode().Count);
+            Assert.Throws<ArgumentException>(() => db.RenameMlineStyle("Standard", "Other"));
+            Assert.Throws<ArgumentException>(() => db.RenameMlineStyle("Partitions", "standard"));
+            Assert.Throws<ArgumentException>(() => db.RenameMlineStyle("None", "Other"));
         }
 
         [Fact]

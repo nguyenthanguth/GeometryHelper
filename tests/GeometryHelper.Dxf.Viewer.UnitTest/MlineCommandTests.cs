@@ -493,7 +493,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Blank();
             CadCommandSession session = Start(document, "MLSTYLE");
-            Assert.Equal("Enter an option [?/Current/New/Modify] <exit>:", session.PromptText);
+            Assert.Equal("Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] <exit>:", session.PromptText);
             Assert.Contains("Current multiline style: STANDARD", session.History);
 
             Run(session, "N");
@@ -536,7 +536,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "MLSTYLE", "N", "a/b");
 
             Assert.Contains(session.History, h => h.StartsWith("A name cannot have"));
-            Assert.Equal("Enter an option [?/Current/New/Modify] <exit>:", session.PromptText);
+            Assert.Equal("Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] <exit>:", session.PromptText);
 
             Run(session, "N", "standard");
             Assert.Contains("Multiline style standard already exists.", session.History);

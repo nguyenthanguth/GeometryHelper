@@ -467,7 +467,11 @@ namespace GeometryHelper.Dxf.Viewer
                     if (picked.Count == 0)
                     {
                         Write(_typedPick ?? Prompt.Text);
-                        Write(Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found");
+
+                        if (!Prompt.QuietMiss)
+                        {
+                            Write(Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found");
+                        }
                         Changed();
                         return false;
                     }

@@ -202,7 +202,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
-| multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
+| multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
@@ -246,17 +246,46 @@ and mitres the elements across the corner, matched by rank from one side of the 
 (100, -50)-(100, 50) picked at (20, 0) and (100, -30), the first runs on to (100, 0) with its elements 1, 0.5 and 0 past it and
 the second stops at 49, 49.5 and the whole. AV puts a vertex on the line at the pick (`(50, 0.3)` gives `(50, 0)`), DV takes the
 nearest vertex out, CS cuts the element picked between two picks, CA every element, WA welds what is cut between two picks.
-Left: the dialogs of MLEDIT and MLSTYLE (design first), grips on
-a multiline, and OFFSET, TRIM, EXTEND, FILLET and BREAK on one.
+A pick on nothing asks again without a word, and Enter before the first edit is `2D point or option keyword required.`, as
+AutoCAD's console answers. CJ with a closed multiline, and a tee whose first (the stem) is closed, are `Invalid operation on a
+closed multiline.`; CT onto a closed multiline trims the stem to its near element and leaves the closed one whole. CS, CA and
+WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
+segment up to the second pick: CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
+drawn to 50 and the second from 50 (70 for the bottom element, which starts at the outer corner); round the first vertex of a
+closed one AutoCAD starts the cut on the first segment at the vertex, so that a stub of the outer element is left at the
+corner, and the presenter does the same. A merged cross or tee of four elements breaks the elements pair by pair from the
+outside: the outer pair of one across the outer pair of the other, the inner pair across the inner pair (AutoCAD 2021's
+numbers at offsets 1, 0.5, -0.5, -1, scale 10: 90 to 110 and 95 to 105).
+
+**Grips, STRETCH and the modify commands on a multiline.** A multiline has a grip at each vertex of its line, as AutoCAD
+2021's `GetGripPoints`; dragging one moves the vertex as `MoveVertexAt` does: a segment that keeps its way keeps its cuts where
+they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0)-(100, 100), the vertex moved to (100, -10),
+the cut is 40 to 70 from it). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element of a
+segment (one that misses an element leaves the multiline as it is); the new end stands on the multiline's line where the
+element that runs furthest still reaches the edge, each element stopping where it meets the edge (trimmed by the edge
+(40, -60)-(60, 60) and picked before it, (0, 0)-(100, 0) at scale 20 starts at 46.67, its top element at 50); a piece taken
+out between two edges leaves two multilines, and a closed one opens between the two cuts round the pick. EXTEND runs the
+nearer end on to the nearest edge every element meets. A multiline is a cutting or boundary edge for other objects by its
+elements. OFFSET says `Cannot offset that object.`, FILLET `Fillet requires 2 lines, arcs, or circles.`, CHAMFER `Chamfer
+requires 2 lines.`, LENGTHEN `Cannot LENGTHEN this object.` and BREAK `Object can't be broken` and asks again, AutoCAD's words.
+Esc in the middle of MLINE makes nothing: AutoCAD 2021 adds the multiline to the drawing only when the command ends (its
+drawing holds no entity while MLINE asks the next point), and the presenter does the same; the console cannot send Esc, so this
+is read from that and not seen. Left: the Multiline Styles and Multiline Edit Tools dialogs (design first).
 
 MLSTYLE has no typed form in AutoCAD 2021 (its console opens the Multiline Styles dialog and waits, and has no -MLSTYLE), so
-the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an option [?/Current/New/Modify] <exit>:`. New asks
+the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] <exit>:`. New asks
 `Enter name of new multiline style:` (kept in capitals in the record, the entry as typed) and then `Enter style option
 [Description/Elements/Caps/Fill/Joints/Angles/Done] <Done>:`; Elements lists the elements, the greatest offset first, and asks
 `[Add/Delete/Change/Done]` with the offset, colour and linetype of each; Caps toggles `StartLine`, `StartOuter`, `StartInner`,
 `EndLine`, `EndOuter` and `EndInner`; Fill is `[Off/Color]`, Joints shows a line across each joint, Angles asks the angles of
 the start and end (10 to 170). Modify asks the same of a style of the drawing; STANDARD and a style a multiline is drawn by can
-have only their description changed, as the dialog allows. Load and Save of .mln files, Rename and Delete are left.
+have only their description changed, as the dialog allows. Rename, Delete, Load and Save are the dialog's buttons as questions:
+Rename asks the style (the current one on Enter) and `Enter new name for WALLS:`, its multilines named anew (STANDARD is `The
+STANDARD multiline style cannot be renamed.`); Delete removes a style that is not STANDARD, current or drawn by a multiline;
+Load asks `Enter name of multiline style file <acad.mln>:` (looked for as a support file) and `Enter name of style to load or
+[?]:`, the question mark listing the file's styles; Save asks the style and the file and writes it as acad.mln is written,
+the file's other styles kept and one of the same name written over.
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 

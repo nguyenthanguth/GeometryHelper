@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Multilines in the presenter followed up (R2.1), as AutoCAD 2021 does it (probed in accoreconsole): a grip at each vertex
+of an MLINE, which moves the vertex as `MoveVertexAt` does (a segment that keeps its way keeps its cuts where they were, one
+that turns is whole again), and STRETCH of the vertices inside its window. TRIM and EXTEND of a multiline: an edge counts only
+where it crosses every element of a segment, the new end stands where the element that runs furthest still reaches the edge
+and each element stops where it meets it (the edge (40, -60)-(60, 60) starts a multiline of scale 20 at 46.67, its top element
+at 50); a piece trimmed out between two edges leaves two multilines and a closed one opens; a multiline is an edge for other
+objects by its elements. OFFSET, FILLET, CHAMFER, LENGTHEN and BREAK refuse one in AutoCAD's words (`Fillet requires 2 lines,
+arcs, or circles.`, `Object can't be broken`). MLEDIT: a pick on nothing asks again without a word, Enter before the first edit
+is `2D point or option keyword required.`, a corner joint of a closed multiline or a tee whose stem is closed `Invalid
+operation on a closed multiline.`, cuts and welds run from one segment to another, and the merged cross and tee of four
+elements break the inner pair across the inner pair (90 to 110 and 95 to 105, AutoCAD's numbers). MLSTYLE typed gains Rename,
+Delete, Load and Save (.mln). Library: `DxfMlineBuilder.MoveVertexAt`, `DxfDatabase.RenameMlineStyle` and
+`DxfDatabase.SaveMlineStyleFile`, which writes a style as acad.mln is written. 4 core tests and 27 presenter tests, every
+number AutoCAD wrote. Left: the Multiline Styles and Multiline Edit Tools dialogs (design first).
+**FIXED.** `LoadMlineStyleFile` gave a description the space acad.mln writes before every value (STANDARD's read as " ").
+
 **NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
 (`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had
 one, and a test keeps every new command described.

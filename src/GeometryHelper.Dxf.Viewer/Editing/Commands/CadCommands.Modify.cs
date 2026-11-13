@@ -445,6 +445,11 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            if (CadMlineEdit.IsMline(c.Document.FindEntity(handle)))
+            {
+                return CutMline(c, handle, at, extend, edges, preview);
+            }
+
             var curve = (DxfCurve)c.Document.FindEntity(handle);
             bool extendEdges = c.Remembered(EdgeKey, 0.0) != 0.0;
             bool quick = c.Remembered(ModeKey, 1.0) != 0.0 && edges == null;
@@ -797,6 +802,16 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Break(CadCommandContext c)
         {
             yield return CadPrompt.ForEntity("Select object");
+
+            // AutoCAD 2021 says so of a multiline and asks again.
+            while (
+                c.Input.Kind == CadInputKind.Selection
+                && CadMlineEdit.IsMline(c.Document.FindEntity(c.Input.Handles[0]))
+            )
+            {
+                c.Write("Object can't be broken");
+                yield return CadPrompt.ForEntity("Select object");
+            }
 
             if (c.Input.Kind != CadInputKind.Selection)
             {
@@ -1435,6 +1450,13 @@ namespace GeometryHelper.Dxf.Viewer
                     string handle = c.Input.Handles[0];
                     GeoPoint2 at = c.Input.Point;
 
+                    // AutoCAD 2021's own words for a multiline.
+                    if (CadMlineEdit.IsMline(c.Document.FindEntity(handle)))
+                    {
+                        c.Write("Cannot LENGTHEN this object.");
+                        continue;
+                    }
+
                     if (!CanChange(c, handle, "lengthened"))
                     {
                         continue;
@@ -1814,7 +1836,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            if (!(entity is DxfCurve) && done != "erased")
+            // A multiline is trimmed and extended, as AutoCAD 2021 does it (CadCommands.MlineTrim).
+            if (
+                !(entity is DxfCurve)
+                && done != "erased"
+                && !(CadMlineEdit.IsMline(entity) && (done == "trimmed" || done == "extended"))
+            )
             {
                 c.Write("This " + CadOwnerEditGate.Describe(entity) + " cannot be " + done + ".");
                 return false;
@@ -1876,6 +1903,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The points where a curve meets an object, the object run on past its ends where asked; none for an object the library meets nothing of.</summary>
         private static IReadOnlyList<GeoPoint3> Meet(DxfEntity curve, DxfEntity other, bool extendOther)
         {
+            // A multiline is an edge by its lines and arcs, as AutoCAD 2021 trims a line at each element it crosses.
+            if (CadMlineEdit.IsMline(other))
+            {
+                var points = new List<GeoPoint3>();
+
+                try
+                {
+                    foreach (DxfEntity part in ((DxfUnknownEntity)other).Explode())
+                    {
+                        points.AddRange(Meet(curve, part, false));
+                    }
+                }
+                catch (InvalidOperationException) { }
+
+                return points;
+            }
+
             try
             {
                 return curve.IntersectWith(

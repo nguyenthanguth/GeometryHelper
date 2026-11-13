@@ -212,7 +212,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// boundary's first side (<see cref="CadGripKind.ClipFlip"/>, its <see cref="CadGrip.Direction"/> across the side to
         /// what the clip hides) and a grip at each corner of a rectangle, from its lower left counter-clockwise, or each vertex
         /// of a polygon (<see cref="CadGripKind.ClipVertex"/>); a block 100 by 100 clipped to the rectangle (20, 20) to (60, 70)
-        /// has grips at (40, 20), the arrow, then (20, 20), (60, 20), (60, 70) and (20, 70).
+        /// has grips at (40, 20), the arrow, then (20, 20), (60, 20), (60, 70) and (20, 70). A multiline's, as AutoCAD 2021's:
+        /// one at each vertex of the line it is drawn on, (0, 0), (100, 0) and (100, 100) for one through those points.
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -354,6 +355,14 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfTable table when IsPlan(table.Normal):
                     TableGrips(table, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;
+                case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline) && IsPlan(mline.MlineNormal()):
+                    // A grip at each vertex of the line the multiline is drawn on, as AutoCAD 2021's GetGripPoints gives them.
+                    foreach (GeoPoint3 vertex in new DxfMlineBuilder(mline).Points)
+                    {
+                        Add(CadGripKind.Vertex, vertex.X, vertex.Y);
+                    }
+
+                    break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                 {
                     // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
@@ -399,7 +408,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// widths and heights stop at the text height, a gutter at nought. A corner of a clip boundary
         /// (<see cref="CadGripKind.ClipVertex"/>) takes the two sides of a rectangle it is on, the opposite corner kept, or a
         /// polygon's vertex alone, the clip kept inside out where it is: the corner (1020, 520) of the rectangle (1020, 520) to
-        /// (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); a boundary of no area is refused.
+        /// (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); a boundary of no area is refused. A vertex of
+        /// a multiline moves as AutoCAD 2021's MoveVertexAt moves it (<see cref="DxfMlineBuilder.MoveVertexAt"/>): a segment that
+        /// keeps its way keeps its cuts, one that turns is whole again.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -441,6 +452,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadGrip grip = grips[gripIndex];
+
+            if (CadMlineEdit.IsMline(entity))
+            {
+                return DragMline(document, (DxfUnknownEntity)entity, handle, gripIndex, grip.Point, to);
+            }
 
             if (entity is DxfDimension)
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -185,6 +186,13 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
+                    if (held != null && !Array.TrueForAll(held, h => h) && CadMlineEdit.IsMline(entity))
+                    {
+                        // A multiline stretched is previewed by the lines it would break into, its style read from the drawing.
+                        copies.AddRange(StretchedMline((DxfUnknownEntity)entity, held, by));
+                        continue;
+                    }
+
                     var copy = (DxfEntity)entity.Clone();
 
                     if (held == null || Array.TrueForAll(held, h => h))
@@ -247,6 +255,11 @@ namespace GeometryHelper.Dxf.Viewer
                             + CadOwnerEditGate.Describe(entity)
                             + " belongs to the model and cannot be stretched here."
                     );
+                    continue;
+                }
+
+                if (CadMlineEdit.IsMline(entity) && !StretchedMline((DxfUnknownEntity)entity, held, by).Any())
+                {
                     continue;
                 }
 
@@ -410,6 +423,19 @@ namespace GeometryHelper.Dxf.Viewer
                     };
                 case DxfDBPoint point:
                     return new[] { inside(point.Position) };
+                case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline):
+                {
+                    IList<GeoPoint3> points = new DxfMlineBuilder(mline).Points;
+                    var held = new bool[points.Count];
+
+                    for (int i = 0; i < held.Length; i++)
+                    {
+                        held[i] = inside(points[i]);
+                    }
+
+                    return held;
+                }
+
                 default:
                     GeoAabb3 box;
 
@@ -438,7 +464,34 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Moves the points STRETCH holds of an entity it stretches: a line's ends, a polyline's vertices, an arc's ends, a linear dimension's points.</summary>
+        /// <summary>The lines a multiline stretched by the vertices held would break into, for the preview; none where two vertices would meet.</summary>
+        private static IEnumerable<DxfEntity> StretchedMline(DxfUnknownEntity mline, bool[] held, GeoVector2 by)
+        {
+            var builder = new DxfMlineBuilder(mline);
+            var moves = new Dictionary<int, GeoPoint3>();
+
+            for (int i = 0; i < held.Length; i++)
+            {
+                if (held[i])
+                {
+                    GeoPoint3 at = builder.Points[i];
+                    moves[i] = new GeoPoint3(at.X + by.X, at.Y + by.Y, at.Z);
+                }
+            }
+
+            builder.MoveVertices(moves);
+
+            try
+            {
+                return builder.Explode(builder.Build());
+            }
+            catch (ArgumentException)
+            {
+                return Array.Empty<DxfEntity>();
+            }
+        }
+
+        /// <summary>Moves the points STRETCH holds of an entity it stretches: a line's ends, a polyline's vertices, an arc's ends, a linear dimension's points, a multiline's vertices.</summary>
         private static void StretchPoints(DxfEntity entity, bool[] held, GeoVector2 by)
         {
             switch (entity)
@@ -513,6 +566,25 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfArc arc:
                     StretchArc(arc, held[0] ? by : default, held[1] ? by : default);
                     break;
+                case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline):
+                {
+                    // The vertices inside move together, as AutoCAD 2021's MoveVertexAt moves each: cuts kept where a segment keeps its way.
+                    var builder = new DxfMlineBuilder(mline);
+                    var moves = new Dictionary<int, GeoPoint3>();
+
+                    for (int i = 0; i < held.Length; i++)
+                    {
+                        if (held[i])
+                        {
+                            GeoPoint3 at = builder.Points[i];
+                            moves[i] = new GeoPoint3(at.X + by.X, at.Y + by.Y, at.Z);
+                        }
+                    }
+
+                    builder.MoveVertices(moves);
+                    builder.Rebuild(mline);
+                    break;
+                }
             }
         }
 

@@ -566,6 +566,13 @@ namespace GeometryHelper.Dxf.Viewer
             bool kind =
                 entity is DxfLine || entity is DxfPolyline || (fillet && (entity is DxfArc || entity is DxfCircle));
 
+            if (!kind && CadMlineEdit.IsMline(entity))
+            {
+                // AutoCAD 2021's own words for a multiline.
+                c.Write(fillet ? "Fillet requires 2 lines, arcs, or circles." : "Chamfer requires 2 lines.");
+                return false;
+            }
+
             if (!kind)
             {
                 c.Write(fillet ? "Cannot fillet that object." : "Cannot chamfer that object.");

@@ -58,15 +58,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (first == null && !undone)
                 {
-                    yield return CadPrompt.ForEntity(
-                        joins ? "Select first mline" : "Select mline",
-                        tried ? new[] { "Undo" } : null
-                    );
+                    yield return CadPrompt
+                        .ForEntity(joins ? "Select first mline" : "Select mline", tried ? new[] { "Undo" } : null)
+                        .MissingQuietly();
 
                     if (c.Input.Is("Undo"))
                     {
                         MlineUndo(c, steps);
                         undone = true;
+                    }
+                    else if (c.Input.IsNone && !tried)
+                    {
+                        // AutoCAD 2021 takes no Enter before the first edit.
+                        c.Write("2D point or option keyword required.");
                     }
                     else if (c.Input.Kind != CadInputKind.Selection)
                     {
@@ -93,7 +97,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while ((joins || cuts) && second == null)
                 {
-                    yield return CadPrompt.ForEntity(joins ? "Select second mline" : "Select second point");
+                    yield return CadPrompt
+                        .ForEntity(joins ? "Select second mline" : "Select second point")
+                        .MissingQuietly();
 
                     if (c.Input.Kind != CadInputKind.Selection)
                     {
@@ -119,7 +125,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 tried = true;
 
-                if (joins)
+                bool tee = option == "CT" || option == "OT" || option == "MT";
+
+                if (
+                    (option == "CJ" && (IsClosedMline(first) || IsClosedMline(second))) || (tee && IsClosedMline(first))
+                )
+                {
+                    // AutoCAD 2021 refuses a corner joint of a closed multiline, and a tee whose stem is closed.
+                    c.Write("Invalid operation on a closed multiline.");
+                }
+                else if (joins)
                 {
                     if (
                         string.Equals(first.Handle, second.Handle, StringComparison.OrdinalIgnoreCase)
@@ -135,6 +150,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
         }
+
+        /// <summary>Whether a multiline is closed.</summary>
+        private static bool IsClosedMline(DxfUnknownEntity mline) => new DxfMlineBuilder(mline).IsClosed;
 
         /// <summary>The multiline the answer to an Entity prompt picked; null where it is another entity.</summary>
         private static DxfEntity MlinePicked(CadCommandContext c)
@@ -237,7 +255,17 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 CadMlineEdit.Nearest(builder, pick, out int segment, out int element);
-                CadMlineEdit.Cut(builder, segment, element, option != "CS", pick, P3(secondAt), option == "WA");
+                CadMlineEdit.Nearest(builder, P3(secondAt), out int secondSegment, out int _);
+                CadMlineEdit.Cut(
+                    builder,
+                    segment,
+                    element,
+                    option != "CS",
+                    pick,
+                    secondSegment,
+                    P3(secondAt),
+                    option == "WA"
+                );
             }
 
             MlineWrite(

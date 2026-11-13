@@ -199,7 +199,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            List<int> firstOuter = Outer(first, out int firstLeast, out int firstMost);
+            Outer(first, out int firstLeast, out int firstMost);
             List<int> secondOuter = Outer(second, out int secondLeast, out int secondMost);
             var all = new List<int>();
 
@@ -208,21 +208,52 @@ namespace GeometryHelper.Dxf.Viewer
                 all.Add(e);
             }
 
-            Break(
-                first,
-                firstSegment,
-                joint == Joint.Merged ? firstOuter : all,
-                second,
-                secondSegment,
-                secondLeast,
-                secondMost
-            );
+            if (joint == Joint.Merged)
+            {
+                // Each pair of elements broken across the pair of the other as deep in from its outside, as AutoCAD 2021's
+                // merged cross of four elements breaks the inner pair of each across the inner pair of the other; a middle
+                // element, or a pair the other has none as deep of, runs through.
+                BreakPairs(first, firstSegment, second, secondSegment);
+                BreakPairs(second, secondSegment, first, firstSegment);
+                return true;
+            }
+
+            Break(first, firstSegment, all, second, secondSegment, secondLeast, secondMost);
 
             if (joint != Joint.Closed)
             {
                 Break(second, secondSegment, secondOuter, first, firstSegment, firstLeast, firstMost);
             }
 
+            return true;
+        }
+
+        /// <summary>Breaks each element of a multiline across the pair of elements of another as deep in from its outside, where it has one.</summary>
+        private static void BreakPairs(DxfMlineBuilder target, int segment, DxfMlineBuilder by, int bySegment)
+        {
+            for (int e = 0; e < target.ElementCount; e++)
+            {
+                if (Pair(by, Depth(target, e), out int least, out int most))
+                {
+                    Break(target, segment, new[] { e }, by, bySegment, least, most);
+                }
+            }
+        }
+
+        /// <summary>The two elements of a multiline as deep in from its outside, the least offset first; false where there is no such pair.</summary>
+        private static bool Pair(DxfMlineBuilder mline, int depth, out int least, out int most)
+        {
+            List<int> order = Ranked(mline, 1.0);
+            least = -1;
+            most = -1;
+
+            if (depth >= order.Count - 1 - depth)
+            {
+                return false;
+            }
+
+            least = order[depth];
+            most = order[order.Count - 1 - depth];
             return true;
         }
 
@@ -302,7 +333,6 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The second's elements from the side the first comes from, nearest first.
             List<int> near = Ranked(second, secondsLeft ? -1.0 : 1.0);
-            int nearest = near[0];
             var stops = new GeoPoint3[first.ElementCount];
 
             for (int e = 0; e < first.ElementCount; e++)
@@ -326,14 +356,24 @@ namespace GeometryHelper.Dxf.Viewer
                 stops[e] = first.ElementPoint(firstSegment, e).Add(firstWay.Multiply(along));
             }
 
-            // The first's outer lines, which the open and merged tees break the second's near element between, before the first moves.
-            Outer(first, out int firstLeast, out int firstMost);
-            double[] opening = null;
+            // The first's pairs of lines, which the open and merged tees break the second's near elements between, before the
+            // first moves: the open tee the nearest across the outer pair; the merged tee, as AutoCAD 2021's of four elements,
+            // each of the near half across the pair of the first as deep in, where the first has one.
+            int depths =
+                joint == Joint.Merged ? near.Count / 2
+                : joint == Joint.Open ? 1
+                : 0;
+            var openings = new List<KeyValuePair<int, double[]>>();
 
-            if (joint != Joint.Closed)
+            for (int k = 0; k < depths; k++)
             {
+                if (!Pair(first, k, out int firstLeast, out int firstMost))
+                {
+                    break;
+                }
+
                 GeoVector3 across = secondWay;
-                GeoPoint3 start = second.ElementPoint(secondSegment, nearest);
+                GeoPoint3 start = second.ElementPoint(secondSegment, near[k]);
 
                 if (
                     Meet(
@@ -354,18 +394,18 @@ namespace GeometryHelper.Dxf.Viewer
                     )
                 )
                 {
-                    opening = new[] { Math.Min(a, b), Math.Max(a, b) };
+                    openings.Add(new KeyValuePair<int, double[]>(near[k], new[] { Math.Min(a, b), Math.Max(a, b) }));
                 }
             }
 
             Stop(first, firstSegment, firstWay, meeting, keepsStart, stops);
 
-            if (opening != null)
+            foreach (KeyValuePair<int, double[]> opening in openings)
             {
                 second.SetRuns(
                     secondSegment,
-                    nearest,
-                    Without(second.RunsOf(secondSegment, nearest), opening[0], opening[1])
+                    opening.Key,
+                    Without(second.RunsOf(secondSegment, opening.Key), opening.Value[0], opening.Value[1])
                 );
             }
 
@@ -590,8 +630,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Cuts one element, or every element, of the segment the first pick falls on between the two picks, measured along each
-        /// element; or welds what is cut between them back (the stretches there made whole).
+        /// Cuts one element, or every element, between the two picks, measured along each element; or welds what is cut between
+        /// them back (the stretches there made whole). Where the picks fall on two segments, as AutoCAD 2021 cuts it: from the
+        /// first pick to the end of its segment, the segments between whole, and the second pick's segment up to the pick,
+        /// going on from the first segment (round past the first vertex of a closed multiline, where AutoCAD starts the cut on
+        /// the first segment at the vertex rather than at the element's start); the picks of an open one taken in its order.
         /// </summary>
         internal static void Cut(
             DxfMlineBuilder mline,
@@ -599,30 +642,83 @@ namespace GeometryHelper.Dxf.Viewer
             int element,
             bool allElements,
             GeoPoint3 firstPick,
+            int secondSegment,
             GeoPoint3 secondPick,
             bool weld
         )
         {
-            GeoVector3 way = mline.SegmentDirection(segment);
+            if (!mline.IsClosed && secondSegment < segment)
+            {
+                int swap = segment;
+                segment = secondSegment;
+                secondSegment = swap;
+                GeoPoint3 other = firstPick;
+                firstPick = secondPick;
+                secondPick = other;
+            }
+
+            var sequence = new List<int> { segment };
+
+            for (int s = segment; s != secondSegment; )
+            {
+                s = Next(mline, s) % mline.SegmentCount;
+                sequence.Add(s);
+            }
 
             for (int e = allElements ? 0 : element; e < (allElements ? mline.ElementCount : element + 1); e++)
             {
-                GeoPoint3 start = mline.ElementPoint(segment, e);
-                double a = start.GetVectorTo(firstPick).DotProduct(way);
-                double b = start.GetVectorTo(secondPick).DotProduct(way);
-                double length = start.GetVectorTo(mline.ElementPoint(Next(mline, segment), e)).DotProduct(way);
-                double from = Math.Max(0.0, Math.Min(a, b));
-                double to = Math.Min(length, Math.Max(a, b));
-                List<DxfMlineBuilder.Run> runs = mline.RunsOf(segment, e);
+                for (int k = 0; k < sequence.Count; k++)
+                {
+                    int s = sequence[k];
+                    GeoVector3 way = mline.SegmentDirection(s);
+                    GeoPoint3 start = mline.ElementPoint(s, e);
+                    double length = start.GetVectorTo(mline.ElementPoint(Next(mline, s), e)).DotProduct(way);
+                    double from;
+                    double to;
 
-                if (weld)
-                {
-                    runs.Add(new DxfMlineBuilder.Run(from, to));
-                    mline.SetRuns(segment, e, runs);
-                }
-                else
-                {
-                    mline.SetRuns(segment, e, Without(runs, from, to));
+                    if (sequence.Count == 1)
+                    {
+                        double a = start.GetVectorTo(firstPick).DotProduct(way);
+                        double b = start.GetVectorTo(secondPick).DotProduct(way);
+                        from = Math.Max(0.0, Math.Min(a, b));
+                        to = Math.Min(length, Math.Max(a, b));
+                    }
+                    else if (k == 0)
+                    {
+                        from = Math.Max(0.0, start.GetVectorTo(firstPick).DotProduct(way));
+                        to = double.PositiveInfinity;
+                    }
+                    else if (k == sequence.Count - 1)
+                    {
+                        // Round past the first vertex AutoCAD 2021 starts the cut at the vertex, not at the element's start.
+                        from =
+                            s == 0 && mline.IsClosed
+                                ? start.GetVectorTo(mline.Points[0]).DotProduct(way)
+                                : double.NegativeInfinity;
+                        to = Math.Min(length, start.GetVectorTo(secondPick).DotProduct(way));
+                    }
+                    else
+                    {
+                        from = double.NegativeInfinity;
+                        to = double.PositiveInfinity;
+                    }
+
+                    List<DxfMlineBuilder.Run> runs = mline.RunsOf(s, e);
+
+                    if (weld)
+                    {
+                        runs.Add(
+                            new DxfMlineBuilder.Run(
+                                double.IsNegativeInfinity(from) ? 0.0 : from,
+                                double.IsPositiveInfinity(to) ? double.PositiveInfinity : to
+                            )
+                        );
+                        mline.SetRuns(s, e, runs);
+                    }
+                    else
+                    {
+                        mline.SetRuns(s, e, Without(runs, from, to));
+                    }
                 }
             }
         }

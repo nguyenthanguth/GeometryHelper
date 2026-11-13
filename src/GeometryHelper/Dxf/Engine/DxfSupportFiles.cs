@@ -387,8 +387,15 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                // A description keeps its spaces; every other value is read as the reader reads a group's.
-                current?.Add(DxfTypedValue.Read(code, code == 3 ? value : value.Trim()));
+                // A description keeps its spaces but the one every value is written after; every other value is read as the reader reads a group's.
+                current?.Add(
+                    DxfTypedValue.Read(
+                        code,
+                        code == 3
+                            ? (value.StartsWith(" ", StringComparison.Ordinal) ? value.Substring(1) : value)
+                            : value.Trim()
+                    )
+                );
             }
 
             return styles;
