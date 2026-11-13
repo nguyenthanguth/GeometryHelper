@@ -359,13 +359,14 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheOrigin_IsRead_NotSet()
+        public void TheOriginOfARotationParameter_IsReadOnly_AndRefusesASet()
         {
-            DxfDatabase db = Plate();
+            DxfDatabase db = Others();
             DxfDynamicBlockReferenceProperty origin = TheInsert(db)
                 .DynamicBlockReferencePropertyCollection.First(p => p.PropertyName == "Origin");
 
-            Assert.Throws<NotSupportedException>(() => origin.Value = new GeoPoint3(20, 10, 0));
+            Assert.True(origin.ReadOnly);
+            Assert.Throws<InvalidOperationException>(() => origin.Value = new GeoPoint3(20, 10, 0));
         }
 
         // ---- 2. the history of grip edits ---------------------------------------------------------------------------------
@@ -580,13 +581,16 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ThePolarBaseGripDraggedAfterTheEndGrip_IsRefused_AndNothingIsWritten()
+        public void ThePolarBaseGripDraggedAfterTheEndGrip_IsRefused_WhereTheInsertKeepsNoHistoryOfTheEdits()
         {
             // AutoCAD 2021 worked the end grip to (0, 50), the base grip by 30 and the end grip to (35, 0) out one grip edit
-            // after the other and left the first line at (45.43, 25.72); the library works from the values, so it keeps to the
-            // base point moved while the end point stands where the block has it.
+            // after the other and left the first line at (45.43, 25.72); the library works them out so from the INSERT's
+            // history (DxfDynamicBlockFollowUp4Tests), and where there is none that leads to where the INSERT stands it does
+            // not know the edits and refuses.
             DxfDatabase db = Pointer();
             Property(db, "Length").MoveEndPoint(new GeoPoint3(1000, 550, 0));
+            var representation = (DxfDBDictionary)TheInsert(db).ExtensionDictionary.GetAt("AcDbBlockRepresentation");
+            ((DxfDBDictionary)representation.GetAt("AppDataCache")).Remove("ACAD_ENHANCEDBLOCKHISTORY");
             string before = db.ToText();
 
             Assert.Throws<NotSupportedException>(() => Property(db, "Length").MoveBasePoint(new GeoVector3(30, 0, 0)));

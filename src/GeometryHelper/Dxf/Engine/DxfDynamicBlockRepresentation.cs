@@ -69,6 +69,37 @@ namespace GeometryHelper.Dxf
         internal static object MoveEnd(DxfBlockReference insert, string node, int part, GeoPoint3 to) =>
             Apply(insert, node, part, 0.0, null, to);
 
+        /// <summary>
+        /// Sets the Origin of the linear, XY or polar parameter a node of the INSERT's dynamic block is, as AutoCAD's property
+        /// does: the point given is a point of the file's coordinates, worked into the block's, and the base point and the end
+        /// point move together by what takes the base point there, the distances kept; gives back the Origin the property reads
+        /// afterwards.
+        /// </summary>
+        internal static object MoveOrigin(DxfBlockReference insert, string node, int part, object value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (!(value is GeoPoint3 point))
+            {
+                throw new ArgumentException(
+                    "The Origin of a parameter is set to a point, a GeoPoint3; a "
+                        + value.GetType().Name
+                        + " is not one.",
+                    nameof(value)
+                );
+            }
+
+            Guard.Argument(
+                Guard.IsFinite(point.X) && Guard.IsFinite(point.Y) && Guard.IsFinite(point.Z),
+                nameof(value),
+                "A coordinate of the point is not a finite number."
+            );
+            return Apply(insert, node, part, point, null, null);
+        }
+
         private static object Apply(
             DxfBlockReference insert,
             string node,
@@ -111,7 +142,8 @@ namespace GeometryHelper.Dxf
             var users = new Dictionary<string, object>(StringComparer.Ordinal);
             string state = ReadNow(insert, dynamic, block, scale, values, labels, users);
 
-            ReadShifts(insert, dynamic, block, values, false);
+            ReadShifts(insert, dynamic, block, values);
+            Trails(insert, dynamic, block, scale, values, values);
 
             var before = new Dictionary<string, double[]>(StringComparer.Ordinal);
 
@@ -148,6 +180,10 @@ namespace GeometryHelper.Dxf
             else if (to.HasValue)
             {
                 DragEnd(insert, asked, values, to.Value);
+            }
+            else if (value is GeoPoint3 origin)
+            {
+                Slide(insert, block, asked, values, origin);
             }
             else if (row)
             {
@@ -334,6 +370,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            Trails(insert, dynamic, block, scale, before, values);
+
             List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(
                 insert,
                 dynamic,
@@ -362,43 +400,63 @@ namespace GeometryHelper.Dxf
             {
                 if (property.Node == node && property.Part == part)
                 {
-                    if (asked is Polar grabbed && (by.HasValue || to.HasValue))
+                    if (by.HasValue || to.HasValue || value is GeoPoint3)
                     {
-                        // A polar grip dragged leaves how far it went this time: the move of the base point or of the end point
-                        // from where it stood before, in the block's coordinates, under the node of the grip (plugin GhDy3a).
-                        GeoVector3 gone;
-
-                        if (by.HasValue)
+                        // A grip dragged leaves how far it went this time: the move of the base point or of the end point from
+                        // where it stood before, in the block's coordinates, under the node of the grip (plugin GhDy3a, and GhDb4a
+                        // for the base grip of a linear and an XY parameter). The Origin set leaves its point instead.
+                        if (value is GeoPoint3)
                         {
-                            double[] after = grabbed.ShiftOf(values[node]);
-                            double[] was = grabbed.ShiftOf(before[node]);
-                            gone = new GeoVector3(
-                                (after == null ? 0.0 : after[0]) - (was == null ? 0.0 : was[0]),
-                                (after == null ? 0.0 : after[1]) - (was == null ? 0.0 : was[1]),
-                                (after == null ? 0.0 : after[2]) - (was == null ? 0.0 : was[2])
-                            );
+                            Remember(insert, block, property.Node, property.PropertyName, KeptValue(property.Value));
                         }
                         else
                         {
-                            gone = grabbed.EndNow(before[node]).GetVectorTo(grabbed.EndNow(values[node]));
-                        }
+                            GeoVector3 gone;
 
-                        Remember(
-                            insert,
-                            block,
-                            by.HasValue ? grabbed.BaseGrip : grabbed.EndGrip,
-                            "GRIPLOC",
-                            new[]
+                            if (by.HasValue)
                             {
-                                new DxfTypedValue(11, Real(gone.X)),
-                                new DxfTypedValue(21, Real(gone.Y)),
-                                new DxfTypedValue(31, Real(gone.Z)),
+                                double[] after = asked.ShiftOf(values[node]);
+                                double[] was = asked.ShiftOf(before[node]);
+                                gone = new GeoVector3(
+                                    (after == null ? 0.0 : after[0]) - (was == null ? 0.0 : was[0]),
+                                    (after == null ? 0.0 : after[1]) - (was == null ? 0.0 : was[1]),
+                                    (after == null ? 0.0 : after[2]) - (was == null ? 0.0 : was[2])
+                                );
                             }
-                        );
+                            else
+                            {
+                                gone = asked.EndOf(before[node]).GetVectorTo(asked.EndOf(values[node]));
+                            }
+
+                            string grip = by.HasValue ? asked.BaseGrip : asked.EndGrip;
+
+                            if (grip != null)
+                            {
+                                Remember(
+                                    insert,
+                                    block,
+                                    grip,
+                                    "GRIPLOC",
+                                    new[]
+                                    {
+                                        new DxfTypedValue(11, Real(gone.X)),
+                                        new DxfTypedValue(21, Real(gone.Y)),
+                                        new DxfTypedValue(31, Real(gone.Z)),
+                                    }
+                                );
+                            }
+                        }
                     }
-                    else if (!by.HasValue && !to.HasValue)
+                    else
                     {
-                        Remember(insert, block, property.Node, property.PropertyName, KeptValue(property.Value));
+                        // A distance is kept in the block's own units, as AutoCAD 2021 kept Width 150 of Width 300 on an INSERT scaled by 2
+                        // (plugin GhDb4a).
+                        object kept =
+                            property.Value is double length
+                            && property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Distance
+                                ? length / scale
+                                : property.Value;
+                        Remember(insert, block, property.Node, property.PropertyName, KeptValue(kept));
                     }
 
                     return property.Value;
@@ -411,7 +469,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Drags the end grip of a polar parameter to a point in the coordinates of the file, as a grip of AutoCAD's does: the
         /// point worked into the block's coordinates, the distance and the angle from the base point (where the INSERT keeps
-        /// it) taken to their value sets, as AutoCAD 2021 took them (plugin GhDy3a).
+        /// it) taken to their value sets, as AutoCAD 2021 took them (plugin GhDy3a); of a linear parameter the distance along
+        /// its line, of an XY parameter each distance along its axis, each taken to its value set.
         /// </summary>
         private static void DragEnd(
             DxfBlockReference insert,
@@ -420,10 +479,10 @@ namespace GeometryHelper.Dxf
             GeoPoint3 to
         )
         {
-            if (!(parameter is Polar polar))
+            if (!(parameter is Polar) && !(parameter is Linear) && !(parameter is Planar))
             {
                 throw new ArgumentException(
-                    "The property is not a distance or an angle of a polar parameter, whose end grip is dragged.",
+                    "The property is not a distance or an angle of a linear, an XY or a polar parameter, whose end grip is dragged.",
                     nameof(to)
                 );
             }
@@ -439,13 +498,76 @@ namespace GeometryHelper.Dxf
             double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
             GeoPoint3 local = inverse.Transform(to);
             double[] now = values[parameter.Id];
-            GeoPoint3 from = polar.BaseAt(now);
+            double slack = Tolerance.Default.EqualPoint;
+            GeoPoint3 from = parameter.BaseOf(now);
+
+            if (parameter is Linear linear)
+            {
+                // The distance from the base point along the line, as the end grip of AutoCAD's linear parameter takes it.
+                double along = (local.X - from.X) * linear.UnitX + (local.Y - from.Y) * linear.UnitY;
+
+                if (!(along > slack))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(to),
+                        to,
+                        "The distance of a linear parameter is above the point tolerance once its end point is moved."
+                    );
+                }
+
+                along = linear.Take(along * scale, scale) / scale;
+
+                if (!(along > slack))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(to),
+                        to,
+                        "The distance of a linear parameter is above the point tolerance once taken to its value set."
+                    );
+                }
+
+                now[0] = along;
+                return;
+            }
+
+            if (parameter is Planar planar)
+            {
+                for (int axis = 0; axis < 2; axis++)
+                {
+                    double distance = Math.Abs(axis == 0 ? local.X - from.X : local.Y - from.Y);
+
+                    if (!(distance > slack))
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(to),
+                            to,
+                            "A distance of an XY parameter is above the point tolerance once its end point is moved."
+                        );
+                    }
+
+                    distance = planar.Take(axis, distance * scale, scale) / scale;
+
+                    if (!(distance > slack))
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(to),
+                            to,
+                            "A distance of an XY parameter is above the point tolerance once taken to its value set."
+                        );
+                    }
+
+                    now[axis] = distance;
+                }
+
+                return;
+            }
+
+            var polar = (Polar)parameter;
             double dx = local.X - from.X,
                 dy = local.Y - from.Y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
-            double slack = Tolerance.Default.EqualPoint;
+            double length = Math.Sqrt(dx * dx + dy * dy);
 
-            if (!(distance > slack))
+            if (!(length > slack))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(to),
@@ -454,9 +576,9 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            distance = polar.Take(0, distance * scale, scale) / scale;
+            length = polar.Take(0, length * scale, scale) / scale;
 
-            if (!(distance > slack))
+            if (!(length > slack))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(to),
@@ -465,9 +587,175 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            now[0] = distance;
+            now[0] = length;
             now[1] = polar.Take(1, Normal(Math.Atan2(dy, dx)), scale);
         }
+
+        /// <summary>
+        /// Works the grip edits of a polar parameter the INSERT's history keeps (ACAD_ENHANCEDBLOCKHISTORY) out one after the
+        /// other, from the block's own base point and end point: the states the base point and the end point stood at, the
+        /// block's own first and one after each record of the parameter's grips (GRIPLOC: the end point or the base point moved
+        /// by the record's vector, in the block's coordinates) and of its distance and its angle (the distance or the angle set,
+        /// the other and the base point kept, the Origin set: both points moved together), as AutoCAD 2021 did (plugin
+        /// GhDb4a). Null where the edits (none where the INSERT keeps no history) end elsewhere than where the INSERT has the
+        /// parameter now (<paramref name="prior"/>): the library does not know how the INSERT came to stand there.
+        /// </summary>
+        private static List<GeoPoint3[]> Replay(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Polar polar,
+            double scale,
+            double[] prior
+        )
+        {
+            DxfDBDictionary cache =
+                DxfDynamicProperties.Entry(
+                    DxfDynamicProperties.Entry(insert.ExtensionDictionary, "AcDbBlockRepresentation")
+                        as DxfDBDictionary,
+                    "AppDataCache"
+                ) as DxfDBDictionary;
+
+            // An INSERT of no history has had no edit the library does not know, if it stands where the block has it.
+            var history = DxfDynamicProperties.Entry(cache, "ACAD_ENHANCEDBLOCKHISTORY") as DxfXrecord;
+            var names = new Dictionary<string, int>(StringComparer.Ordinal);
+            names[polar.AngleName] = 1;
+            names[polar.DistanceName] = 0;
+
+            var states = new List<GeoPoint3[]>();
+            GeoPoint3 from = polar.Base,
+                to = polar.End;
+            states.Add(new[] { from, to });
+            IReadOnlyList<DxfTypedValue> data = history == null ? new DxfTypedValue[0] : history.Data;
+
+            for (int i = 0; i < data.Count; i++)
+            {
+                if (data[i].TypeCode != 1071 || i + 1 >= data.Count || data[i + 1].TypeCode != 300)
+                {
+                    continue;
+                }
+
+                string node = data[i].Value?.Trim();
+                string name = data[i + 1].Value?.Trim();
+                var numbers = new List<double>();
+
+                for (int j = i + 2; j < data.Count && data[j].TypeCode != 1071; j++)
+                {
+                    if (DxfDynamicProperties.Number(data[j].Value, out double number))
+                    {
+                        numbers.Add(number);
+                    }
+                }
+
+                if (name == "GRIPLOC" && numbers.Count >= 3 && node != null)
+                {
+                    if (node == polar.EndGrip)
+                    {
+                        to = new GeoPoint3(to.X + numbers[0], to.Y + numbers[1], to.Z + numbers[2]);
+                    }
+                    else if (node == polar.BaseGrip)
+                    {
+                        from = new GeoPoint3(from.X + numbers[0], from.Y + numbers[1], from.Z + numbers[2]);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else if (node == polar.Id && name == "Origin" && numbers.Count >= 3)
+                {
+                    // The Origin set takes the base point to the point and the end point with it.
+                    to = new GeoPoint3(
+                        to.X + numbers[0] - from.X,
+                        to.Y + numbers[1] - from.Y,
+                        to.Z + numbers[2] - from.Z
+                    );
+                    from = new GeoPoint3(numbers[0], numbers[1], numbers[2]);
+                }
+                else if (
+                    node == polar.Id
+                    && numbers.Count >= 1
+                    && names.TryGetValue(name ?? string.Empty, out int part)
+                )
+                {
+                    double dx = to.X - from.X,
+                        dy = to.Y - from.Y;
+                    double length = part == 0 ? numbers[0] : Math.Sqrt(dx * dx + dy * dy);
+                    double angle = part == 0 ? Math.Atan2(dy, dx) : numbers[0];
+                    to = new GeoPoint3(from.X + length * Math.Cos(angle), from.Y + length * Math.Sin(angle), to.Z);
+                }
+                else
+                {
+                    continue;
+                }
+
+                states.Add(new[] { from, to });
+            }
+
+            GeoPoint3 standing = polar.BaseAt(prior);
+            return standing.IsEqualTo(from, Tolerance.Default) && polar.EndNow(prior).IsEqualTo(to, Tolerance.Default)
+                ? states
+                : null;
+        }
+
+        /// <summary>
+        /// Gives each polar parameter of the block the trail of the grip edits the INSERT's history keeps, in the values of the
+        /// parameter (<see cref="Polar.WithTrail"/>), where those edits, worked out one after the other, put the entities of
+        /// its polar stretches elsewhere than the end point worked from the block's own does (a base grip dragged after an
+        /// end grip: AutoCAD 2021 turned the lines about the base point as it stood at each edit, plugin GhDb4a); a parameter
+        /// whose edits give what the block's own end point does keeps none, so that it works out as it always did. The
+        /// values may stand after an edit (<paramref name="values"/>) the INSERT does not keep yet, its state before it
+        /// <paramref name="prior"/>; the same dictionary for the state the INSERT keeps.
+        /// </summary>
+        private static void Trails(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            double scale,
+            Dictionary<string, double[]> prior,
+            Dictionary<string, double[]> values
+        )
+        {
+            foreach (Param parameter in block.Parameters)
+            {
+                if (!(parameter is Polar polar))
+                {
+                    continue;
+                }
+
+                double[] now = values[polar.Id];
+                List<GeoPoint3[]> states = Replay(insert, dynamic, polar, scale, prior[polar.Id]);
+
+                if (states != null)
+                {
+                    GeoPoint3 end = polar.EndNow(now);
+                    GeoPoint3 start = polar.BaseAt(now);
+                    GeoPoint3[] last = states[states.Count - 1];
+
+                    if (!last[0].IsEqualTo(start, Exactly) || !last[1].IsEqualTo(end, Exactly))
+                    {
+                        states.Add(new[] { start, end });
+                    }
+
+                    double[] without = polar.WithTrail(now, null);
+                    double[] with = polar.WithTrail(now, states);
+
+                    // The trail is kept where it gives something else than the end point worked from the block's own does.
+                    if (
+                        !Agree(OrIdentity(polar.TurnedFromOwn(without, false)), OrIdentity(polar.Turned(with, false)))
+                        || !Agree(OrIdentity(polar.TurnedFromOwn(without, true)), OrIdentity(polar.Turned(with, true)))
+                    )
+                    {
+                        values[polar.Id] = with;
+                        continue;
+                    }
+                }
+
+                values[polar.Id] = polar.WithTrail(now, null);
+            }
+        }
+
+        /// <summary>The transformation given, or the identity where it is null.</summary>
+        private static GeoTransform3 OrIdentity(GeoTransform3 transform) => transform ?? GeoTransform3.Identity;
 
         /// <summary>
         /// The ATTRIBs of a dynamic INSERT that follow their ATTDEF, with what each is given in the world to go from where the
@@ -523,7 +811,8 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            ReadShifts(insert, dynamic, block, values, true);
+            ReadShifts(insert, dynamic, block, values);
+            Trails(insert, dynamic, block, scale, values, values);
             return Followed(insert, dynamic, block, own, values);
         }
 
@@ -609,7 +898,8 @@ namespace GeometryHelper.Dxf
                         var labelled = new Dictionary<string, string>(StringComparer.Ordinal);
                         var held = new Dictionary<string, object>(StringComparer.Ordinal);
                         states.Add(ReadNow(insert, dynamic, block, scale, now, labelled, held));
-                        ReadShifts(insert, dynamic, block, now, true);
+                        ReadShifts(insert, dynamic, block, now);
+                        Trails(insert, dynamic, block, scale, now, now);
                         blocks.Add(block);
                         values.Add(now);
                         labels.Add(labelled);
@@ -796,21 +1086,20 @@ namespace GeometryHelper.Dxf
         /// there, drawing the array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y
         /// 99.30 down to 19.30, and read Width 80 where a corner of a plate 100 by 50 was dragged by (20, 10) and kept its right
         /// edge at x 100 (plugin GhDy2a). A constraint parameter's base point is where the block's constraints put it, which a
-        /// value set may move, and is not read. A stretch, a move or an array that follows the base point follows the move a grip
-        /// is giving it, which the INSERT does not keep: the value set of an INSERT read back leaves them where the block has
-        /// them (the left edge, the ATTDEF LOWER and the first circle of an array of a plate or a grid whose base point sat
-        /// moved), and the anonymous blocks worked out anew (<paramref name="following"/>) take them to where the base point
-        /// stands, as AutoCAD 2021's <c>UpdateAnonymousBlocks</c> did (plugin GhDy2a). Refused with
+        /// value set may move, and is not read. A stretch, a move or an array that follows the base point follows the base
+        /// point where the INSERT keeps it, a value set after the move too: AutoCAD 2021 kept the left edge of a panel whose base
+        /// point a grip took 10 along at x 10 when Width was set next, in memory and after the drawing was written to DXF or DWG and
+        /// read back (plugin GhDb4a). Refused with
         /// <see cref="NotSupportedException"/> where another kind of parameter
-        /// keeps its base point away from the block's, a move carries the parameter that does, a scale or a rotate follows it,
-        /// or a linear parameter's has left its line: the library works those out from the block's own base points.
+        /// keeps its base point away from the block's, a move carries the parameter that does, or a scale or a rotate follows it:
+        /// the library works those out from the block's own base points. A linear parameter's base point may stand off its
+        /// line, as AutoCAD 2021 left one whose Origin was set to a point beside it (plugin GhDb4a).
         /// </summary>
         private static void ReadShifts(
             DxfBlockReference insert,
             DxfBlockTableRecord dynamic,
             Block block,
-            Dictionary<string, double[]> values,
-            bool following
+            Dictionary<string, double[]> values
         )
         {
             Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
@@ -842,7 +1131,6 @@ namespace GeometryHelper.Dxf
                 if (
                     !parameter.Takes
                     || carried.ContainsKey(parameter.Id)
-                    || (parameter is Linear linear && !linear.Along(dx, dy, dz))
                     || block.Actions.Exists(a =>
                         a.Parameter == parameter.Id && (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate)
                     )
@@ -853,7 +1141,7 @@ namespace GeometryHelper.Dxf
                             + insert.Handle
                             + " keeps a base point of a parameter of the block "
                             + dynamic.Name
-                            + " away from the block's own, as a grip moved it, which the library does not work out: it works out a linear, an XY or a polar parameter's, a linear one moved along its line, that no move carries and no scale or rotate follows."
+                            + " away from the block's own, as a grip moved it, which the library does not work out: it works out a linear, an XY or a polar parameter's that no move carries and no scale or rotate follows."
                     );
                 }
 
@@ -862,13 +1150,9 @@ namespace GeometryHelper.Dxf
                 tail[at] = dx;
                 tail[at + 1] = dy;
                 tail[at + 2] = dz;
-
-                if (following)
-                {
-                    tail[at + 3] = dx;
-                    tail[at + 4] = dy;
-                    tail[at + 5] = dz;
-                }
+                tail[at + 3] = dx;
+                tail[at + 4] = dy;
+                tail[at + 5] = dz;
             }
         }
 
@@ -898,14 +1182,7 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            if (
-                block.Sheet != null
-                || Carried(block, values).ContainsKey(parameter.Id)
-                || block.Actions.Exists(a =>
-                    a.Parameter == parameter.Id
-                    && (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate || a.Carried.Count > 0)
-                )
-            )
+            if (Held(block, values, parameter))
             {
                 throw new NotSupportedException(
                     "The base point of the parameter is not one the library moves: the block has a block properties table, a move carries the parameter or other parameters along with it, or a scale or a rotate follows it."
@@ -969,18 +1246,22 @@ namespace GeometryHelper.Dxf
                 GeoPoint3 end = polar.EndNow(now);
 
                 // AutoCAD 2021 worked a base grip dragged after the end grip out from the grip edits one after the other (plugin
-                // GhDy3a: the end grip to (0, 50), the base grip by 30, the end grip to (35, 0) left the first line at (45.43, 25.72)
-                // where the block worked out at those values has (0, 0)), which the library, working from the values, does not:
-                // the base point is moved while the end point stands where the block has it from the base point.
+                // GhDb4a: the end grip to (0, 50), the base grip by 30, the end grip to (35, 0) left the first line at (45.43, 25.72)
+                // where the block worked out at those values has (0, 0)). The library works them out so from the INSERT's history
+                // (Replay); where the INSERT keeps none that leads to where it stands, the distance and the angle off what the
+                // block's own end point has from the base point, it does not know the edits and refuses.
                 double[] standing = polar.OwnFrom(now);
 
                 if (
-                    Math.Abs(now[0] - standing[0]) > Tolerance.Default.EqualPoint
-                    || Math.Abs(Normal(now[1] - standing[1] + Math.PI) - Math.PI) > Tolerance.Default.EqualVector
+                    (
+                        Math.Abs(now[0] - standing[0]) > Tolerance.Default.EqualPoint
+                        || Math.Abs(Normal(now[1] - standing[1] + Math.PI) - Math.PI) > Tolerance.Default.EqualVector
+                    )
+                    && Replay(insert, insert.DynamicBlockTableRecord, polar, scale, now) == null
                 )
                 {
                     throw new NotSupportedException(
-                        "The base point of a polar parameter is not one the library moves once its distance or its angle was set: AutoCAD 2021 worked the grip edits out one after the other."
+                        "The base point of a polar parameter is not one the library moves once its distance or its angle was set and the INSERT keeps no history of the grip edits that led there: AutoCAD 2021 worked the grip edits out one after the other."
                     );
                 }
 
@@ -1058,15 +1339,82 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Takes the base point of a linear, an XY or a polar parameter to a point of the file's coordinates, the end point going
+        /// with it, as AutoCAD 2021 set the Origin of each (plugin GhDb4a): the point worked into the block's coordinates, the
+        /// base point's move from where the INSERT keeps it added to the move the INSERT keeps and to the one the actions that
+        /// follow the base point follow, the distances kept, so that a stretch tied to the end point moves by the same: a panel
+        /// 100 wide from (0, 100) whose Origin is set to (30, 120) runs from (30, 120) to (130, 120) and its edges, a stretch
+        /// of the base point and a stretch of the end point, move by (30, 20). A linear parameter's moves off its line too.
+        /// </summary>
+        private static void Slide(
+            DxfBlockReference insert,
+            Block block,
+            Param parameter,
+            Dictionary<string, double[]> values,
+            GeoPoint3 to
+        )
+        {
+            if (parameter == null || !parameter.Takes)
+            {
+                throw new ArgumentException(
+                    "The property is not the Origin of a linear, an XY or a polar parameter, whose base point is set.",
+                    nameof(to)
+                );
+            }
+
+            if (Held(block, values, parameter))
+            {
+                throw new NotSupportedException(
+                    "The Origin of the parameter is not one the library sets: the block has a block properties table, a move carries the parameter or other parameters along with it, or a scale or a rotate follows it."
+                );
+            }
+
+            if (!insert.BlockTransform.TryGetInverse(out GeoTransform3 inverse, Tolerance.Default))
+            {
+                throw new InvalidOperationException(
+                    "The block reference cannot be worked back to its block's coordinates."
+                );
+            }
+
+            GeoPoint3 local = inverse.Transform(to);
+            double[] now = values[parameter.Id];
+            double[] shift = parameter.ShiftOf(now);
+            double dx = local.X - parameter.Base.X - (shift == null ? 0.0 : shift[0]),
+                dy = local.Y - parameter.Base.Y - (shift == null ? 0.0 : shift[1]),
+                dz = local.Z - parameter.Base.Z - (shift == null ? 0.0 : shift[2]);
+            int at = parameter.Own.Length;
+            now[at] += dx;
+            now[at + 1] += dy;
+            now[at + 2] += dz;
+            now[at + 3] += dx;
+            now[at + 4] += dy;
+            now[at + 5] += dz;
+        }
+
+        /// <summary>
+        /// Whether the base point of the parameter is held where it is: the block has a block properties table, a move carries
+        /// the parameter or other parameters along with it, or a scale or a rotate follows it.
+        /// </summary>
+        private static bool Held(Block block, Dictionary<string, double[]> values, Param parameter) =>
+            block.Sheet != null
+            || Carried(block, values).ContainsKey(parameter.Id)
+            || block.Actions.Exists(a =>
+                a.Parameter == parameter.Id
+                && (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate || a.Carried.Count > 0)
+            );
+
+        /// <summary>
         /// Adds a record to the history of grip edits the INSERT keeps (ACAD_ENHANCEDBLOCKHISTORY): the node's id (1071), a name
         /// (300, the property's, or GRIPLOC for a grip dragged) and the value, a real (40), a whole number (70), a text (1) or a
         /// point (11), as AutoCAD 2021 added Block Table1 2, Spaces 5 Spaces and Width 5400 to its Parking sample's (plugin D26).
         /// A record of the node and the name of the last one replaces it, as AutoCAD 2021 kept Width 120 alone of Width 140 and
         /// then 120, in one session or two, and one GRIPLOC of one grip dragged twice in a row, the two moves added. An INSERT
         /// of no history is
-        /// given none, as AutoCAD gave none to the library's INSERTs it set, unless its block has a polar parameter: AutoCAD
-        /// 2021 started the history (1070 3) at the first value set or grip dragged of a pointer, and of a pointer with a linear
-        /// parameter beside it, and of no other block (plugin GhDy3a).
+        /// given none, as AutoCAD gave none to the library's INSERTs it set, unless its block has a polar parameter or an
+        /// array or a scale action: AutoCAD 2021 started the history (1070 3) at the first value set or grip dragged of a
+        /// pointer, of a pointer with a linear parameter beside it, of a panel with an array and of a grid, and of a bar a scale
+        /// action scales, and of no block of stretches, moves, rotates or flips alone (plugins GhDy3a and GhDb4a). A record of
+        /// a grip dragged nowhere (a move of no more than 1E-12) is not kept, nor is one a grip's two drags bring back.
         /// </summary>
         private static void Remember(
             DxfBlockReference insert,
@@ -1090,7 +1438,12 @@ namespace GeometryHelper.Dxf
 
             if (!(DxfDynamicProperties.Entry(cache, "ACAD_ENHANCEDBLOCKHISTORY") is DxfXrecord history))
             {
-                if (!block.Parameters.Exists(p => p is Polar))
+                if (
+                    (
+                        !block.Parameters.Exists(p => p is Polar)
+                        && !block.Actions.Exists(a => a.Kind == ActionKind.Array || a.Kind == ActionKind.Scale)
+                    ) || (name == "GRIPLOC" && NoMove(value))
+                )
                 {
                     return;
                 }
@@ -1143,6 +1496,19 @@ namespace GeometryHelper.Dxf
                 }
 
                 kept.RemoveRange(last, kept.Count - last);
+
+                // Two drags of one grip that bring it back leave no record at all: AutoCAD 2021 kept none of the base grip moved by
+                // 30 and then by -30 (plugin GhDb4a).
+                if (name == "GRIPLOC" && NoMove(value))
+                {
+                    history.SetKept(kept);
+                    return;
+                }
+            }
+            else if (name == "GRIPLOC" && NoMove(value))
+            {
+                // A grip dragged nowhere leaves no record: a drag of 1E-11 left one, of 9E-13 none.
+                return;
             }
 
             kept.Add(new DxfTypedValue(1071, node));
@@ -1151,13 +1517,38 @@ namespace GeometryHelper.Dxf
             history.SetKept(kept);
         }
 
-        /// <summary>The value of a property the history keeps: a real (40), a whole number (70) or a text (1).</summary>
+        /// <summary>Whether the move a GRIPLOC record keeps (its three reals) is no move: no longer than 1E-12, as AutoCAD 2021 left none of one that long (plugin GhDb4a).</summary>
+        private static bool NoMove(DxfTypedValue[] value)
+        {
+            double sum = 0.0;
+
+            foreach (DxfTypedValue group in value)
+            {
+                if (!double.TryParse(group.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double part))
+                {
+                    return false;
+                }
+
+                sum += part * part;
+            }
+
+            return Math.Sqrt(sum) <= 1E-12;
+        }
+
+        /// <summary>The value of a property the history keeps: a real (40), a whole number (70), a text (1) or a point (11, 21, 31).</summary>
         private static DxfTypedValue[] KeptValue(object value)
         {
             switch (value)
             {
                 case double number:
                     return new[] { new DxfTypedValue(40, Real(number)) };
+                case GeoPoint3 point:
+                    return new[]
+                    {
+                        new DxfTypedValue(11, Real(point.X)),
+                        new DxfTypedValue(21, Real(point.Y)),
+                        new DxfTypedValue(31, Real(point.Z)),
+                    };
                 case short flag:
                     return new[] { new DxfTypedValue(70, flag.ToString(CultureInfo.InvariantCulture)) };
                 default:
@@ -2950,6 +3341,22 @@ namespace GeometryHelper.Dxf
             /// <summary>The node ids of the parameter's grips.</summary>
             internal HashSet<string> Grips { get; set; }
 
+            /// <summary>The node id of the parameter's base grip (the first 91 of its two points); null where it lists none.</summary>
+            internal string BaseGrip { get; private set; }
+
+            /// <summary>The node id of the parameter's end grip (the second 91); null where it lists none.</summary>
+            internal string EndGrip { get; private set; }
+
+            /// <summary>Reads the ids of the base grip and the end grip of a parameter of two points from its groups.</summary>
+            protected void ReadGrips(IReadOnlyList<DxfTypedValue> groups)
+            {
+                List<DxfTypedValue> grips = DxfDynamicProperties
+                    .Section(groups, "AcDbBlock2PtParameter")
+                    .FindAll(g => g.TypeCode == 91);
+                BaseGrip = grips.Count > 0 ? grips[0].Value?.Trim() : null;
+                EndGrip = grips.Count > 1 ? grips[1].Value?.Trim() : null;
+            }
+
             /// <summary>The handle of the parameter's node.</summary>
             internal string Handle { get; set; }
 
@@ -2968,10 +3375,10 @@ namespace GeometryHelper.Dxf
             /// <summary>
             /// The parameter's values as the evaluation keeps them, at the block's own: its distances or angle, and, where a grip
             /// may move the parameter's base point (<see cref="Takes"/>), six more, nought here: the base point's move from where
-            /// the block has it, which the INSERT keeps (x, y and z), and the move a grip is giving it now (x, y and z), which
-            /// the actions that follow the base point follow and which the INSERT does not keep, as AutoCAD 2021 moved a stretch
-            /// of the base point by the drag alone, the INSERT read back from its file working the same actions from nought
-            /// (plugin GhDy2a).
+            /// the block has it, which the INSERT keeps (x, y and z), and the move the actions that follow the base point follow
+            /// (x, y and z), which is that same move as the INSERT keeps it, and a grip that moves the base point adds its own:
+            /// AutoCAD 2021 moved a stretch of the base point by the drag from where the base point stood, and kept it there at
+            /// the next value set (plugins GhDy2a and GhDb4a).
             /// </summary>
             internal double[] Fresh()
             {
@@ -3016,6 +3423,16 @@ namespace GeometryHelper.Dxf
                 return grips;
             }
 
+            /// <summary>The base point now: the block's own, moved by the move the INSERT keeps of it (a grip moved it, or its Origin was set).</summary>
+            internal GeoPoint3 BaseOf(double[] now)
+            {
+                double[] shift = ShiftOf(now);
+                return shift == null ? Base : new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z + shift[2]);
+            }
+
+            /// <summary>The end point at the values given: the block's own for a parameter that has no end point to drag.</summary>
+            internal virtual GeoPoint3 EndOf(double[] now) => End;
+
             /// <summary>The move, in x and y, of the point a stretch or a move follows, at the value given; none for a parameter no stretch or move follows.</summary>
             internal virtual double[] Moved(double[] now) => new double[2];
 
@@ -3051,6 +3468,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 parameter.Id = id;
+                parameter.ReadGrips(groups);
                 parameter.Base = new GeoPoint3(from[0], from[1], from[2]);
                 parameter.End = new GeoPoint3(to[0], to[1], to[2]);
             }
@@ -3123,6 +3541,7 @@ namespace GeometryHelper.Dxf
                     UnitZ = dz / length,
                     Own = new[] { length },
                 };
+                linear.ReadGrips(groups);
                 linear._set = Allowed.Of(
                     DxfDynamicProperties.Section(groups, "AcDbBlockLinearParameter"),
                     96,
@@ -3134,15 +3553,11 @@ namespace GeometryHelper.Dxf
 
             internal override bool Takes => true;
 
-            /// <summary>
-            /// Whether a move of the base point, in x, y and z, is one a grip of the parameter makes: along the line from the base
-            /// point to the end point, to the point tolerance of <see cref="Tolerance.Default"/>.
-            /// </summary>
-            internal bool Along(double x, double y, double z)
+            /// <summary>The end point at the values given: the base point now, and along the line the distance.</summary>
+            internal override GeoPoint3 EndOf(double[] now)
             {
-                double along = x * UnitX + y * UnitY + z * UnitZ;
-                double off = Math.Sqrt(Math.Max(0.0, x * x + y * y + z * z - along * along));
-                return off <= Tolerance.Default.EqualPoint;
+                GeoPoint3 from = BaseOf(now);
+                return new GeoPoint3(from.X + UnitX * now[0], from.Y + UnitY * now[0], from.Z + UnitZ * now[0]);
             }
 
             /// <summary>The move of the end point: the base point's move, and along the line the distance now less the block's own.</summary>
@@ -3540,6 +3955,13 @@ namespace GeometryHelper.Dxf
 
             internal override bool Takes => true;
 
+            /// <summary>The end point at the values given: the base point now, and each distance along its axis, the way the end point lies.</summary>
+            internal override GeoPoint3 EndOf(double[] now)
+            {
+                GeoPoint3 from = BaseOf(now);
+                return new GeoPoint3(from.X + _signX * now[0], from.Y + _signY * now[1], from.Z);
+            }
+
             /// <summary>The move of the end point: the base point's move, and each distance now less the block's own, the way the end point lies.</summary>
             internal override double[] Moved(double[] now)
             {
@@ -3672,12 +4094,6 @@ namespace GeometryHelper.Dxf
             private Allowed _distance;
             private Allowed _angle;
 
-            /// <summary>The node id of the parameter's base grip (the first 91 of its two points); null where it lists none.</summary>
-            internal string BaseGrip { get; private set; }
-
-            /// <summary>The node id of the parameter's end grip (the second 91); null where it lists none.</summary>
-            internal string EndGrip { get; private set; }
-
             internal static Polar Of(IReadOnlyList<DxfTypedValue> groups, string id, string block)
             {
                 var polar = new Polar();
@@ -3693,14 +4109,11 @@ namespace GeometryHelper.Dxf
                     );
                 }
 
+                polar.DistanceName = DxfReader.NameOf(DxfDynamicProperties.Text(own, 305) ?? string.Empty);
+                polar.AngleName = DxfReader.NameOf(DxfDynamicProperties.Text(own, 307) ?? string.Empty);
                 polar._distance = Allowed.Of(own, 96, 141, 175);
                 polar._angle = Allowed.Of(own, 97, 145, 176);
                 polar.Own = new[] { polar.Base.GetVectorTo(polar.End).Length, Normal(Math.Atan2(dy, dx)) };
-                List<DxfTypedValue> grips = DxfDynamicProperties
-                    .Section(groups, "AcDbBlock2PtParameter")
-                    .FindAll(g => g.TypeCode == 91);
-                polar.BaseGrip = grips.Count > 0 ? grips[0].Value?.Trim() : null;
-                polar.EndGrip = grips.Count > 1 ? grips[1].Value?.Trim() : null;
                 return polar;
             }
 
@@ -3759,6 +4172,8 @@ namespace GeometryHelper.Dxf
                 return now[0] == own[0] && now[1] == own[1] ? End : EndAt(now);
             }
 
+            internal override GeoPoint3 EndOf(double[] now) => EndNow(now);
+
             /// <summary>The move of the end point, which a stretch or a move tied to it follows: where it is now less the block's own; none at the block's own values.</summary>
             internal override double[] Moved(double[] now)
             {
@@ -3773,6 +4188,131 @@ namespace GeometryHelper.Dxf
             /// entity it turns only, the turn alone. Null where it changes nothing.
             /// </summary>
             internal GeoTransform3 Turned(double[] now, bool turnOnly)
+            {
+                double[] trail = TrailOf(now);
+                return trail == null ? TurnedFromOwn(now, turnOnly) : Walked(trail, turnOnly);
+            }
+
+            // How far two moves, of the base point and of the end point, may differ and still be one move of both.
+            private const double SlideTolerance = 1E-9;
+
+            /// <summary>The names of the properties of the distance and of the angle, as the INSERT's history keeps them.</summary>
+            internal string DistanceName { get; private set; }
+
+            /// <summary>The name of the property of the angle: see <see cref="DistanceName"/>.</summary>
+            internal string AngleName { get; private set; }
+
+            /// <summary>
+            /// The number of values <see cref="Param.Fresh"/> makes for a polar parameter before a trail: its distance and angle,
+            /// and the six of the base point's move.
+            /// </summary>
+            private int TrailAt => Own.Length + 6;
+
+            /// <summary>
+            /// The trail kept after the values <see cref="Param.Fresh"/> made, if any: the base point and the end point (x, y, z
+            /// each) the parameter stood at after each grip edit the INSERT's history keeps, the block's own first; null where
+            /// there is none, which is where the edits give what the block's own end point, turned and moved from the base point
+            /// now, gives.
+            /// </summary>
+            internal double[] TrailOf(double[] now)
+            {
+                int at = TrailAt;
+
+                if (now.Length <= at || !(now[at] >= 2.0))
+                {
+                    return null;
+                }
+
+                var trail = new double[(int)now[at] * 6];
+                Array.Copy(now, at + 1, trail, 0, trail.Length);
+                return trail;
+            }
+
+            /// <summary>The values given with the trail given kept after them, the states as three-point pairs; none kept where it is null.</summary>
+            internal double[] WithTrail(double[] now, List<GeoPoint3[]> states)
+            {
+                int at = TrailAt;
+                int count = states == null ? 0 : states.Count;
+                var kept = new double[count == 0 ? Math.Min(now.Length, at) : at + 1 + count * 6];
+                Array.Copy(now, kept, Math.Min(now.Length, at));
+
+                if (count == 0)
+                {
+                    return kept;
+                }
+
+                kept[at] = count;
+
+                for (int i = 0; i < count; i++)
+                {
+                    GeoPoint3 from = states[i][0],
+                        to = states[i][1];
+                    int p = at + 1 + i * 6;
+                    kept[p] = from.X;
+                    kept[p + 1] = from.Y;
+                    kept[p + 2] = from.Z;
+                    kept[p + 3] = to.X;
+                    kept[p + 4] = to.Y;
+                    kept[p + 5] = to.Z;
+                }
+
+                return kept;
+            }
+
+            /// <summary>
+            /// What the grip edits of a trail give an entity, one after the other as AutoCAD 2021 worked them (plugin GhDb4a):
+            /// each edit turns the entities as they stand about the base point as it stands then, by the angle the end point
+            /// goes through from there, and moves the points the stretch holds along the new direction by the distance it
+            /// gains; an edit that leaves the end point where it was (a base grip dragged) does nothing. Null where nothing is
+            /// turned or moved.
+            /// </summary>
+            private static GeoTransform3 Walked(double[] trail, bool turnOnly)
+            {
+                GeoTransform3 total = null;
+
+                for (int i = 6; i + 5 < trail.Length; i += 6)
+                {
+                    // An edit that took the base point and the end point by the same move (an Origin set) changes nothing: the
+                    // stretch measures the distance and the angle of the end point from the base point, and AutoCAD 2021 left
+                    // the lines where they were (plugin GhDb4a).
+                    if (
+                        Math.Abs(trail[i] - trail[i - 6] - (trail[i + 3] - trail[i - 3])) <= SlideTolerance
+                        && Math.Abs(trail[i + 1] - trail[i - 5] - (trail[i + 4] - trail[i - 2])) <= SlideTolerance
+                    )
+                    {
+                        continue;
+                    }
+
+                    var from = new GeoPoint3(trail[i], trail[i + 1], trail[i + 2]);
+                    double ox = trail[i - 3] - from.X,
+                        oy = trail[i - 2] - from.Y,
+                        nx = trail[i + 3] - from.X,
+                        ny = trail[i + 4] - from.Y;
+                    double was = Math.Atan2(oy, ox),
+                        now = Math.Atan2(ny, nx);
+                    double angle = now - was;
+                    double change = turnOnly ? 0.0 : Math.Sqrt(nx * nx + ny * ny) - Math.Sqrt(ox * ox + oy * oy);
+
+                    if (angle == 0.0 && change == 0.0)
+                    {
+                        continue;
+                    }
+
+                    GeoTransform3 turn = GeoTransform3.RotationAxis(from, new GeoVector3(0, 0, 1), angle);
+                    GeoTransform3 step =
+                        change == 0.0
+                            ? turn
+                            : GeoTransform3
+                                .Translation(new GeoVector3(change * Math.Cos(now), change * Math.Sin(now), 0.0))
+                                .Multiply(turn);
+                    total = total == null ? step : step.Multiply(total);
+                }
+
+                return total;
+            }
+
+            /// <summary>What a polar stretch does at the values given, the end point worked from the block's own: see <see cref="Turned"/>.</summary>
+            internal GeoTransform3 TurnedFromOwn(double[] now, bool turnOnly)
             {
                 double[] own = OwnFrom(now);
                 double angle = now[1] - own[1];

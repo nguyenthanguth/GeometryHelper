@@ -147,7 +147,15 @@ namespace GeometryHelper.Dxf
 
                 if (properties.Count > before && properties[before] != null)
                 {
+                    int origin = properties.Count;
                     Origin(node.Type, groups, cache, properties, properties[before].VisibleInCurrentVisibilityState);
+
+                    // The Origin of a linear, an XY or a polar parameter is set (it moves the base point and the end point
+                    // together); a rotation's and a constraint parameter's is read only and stays unbound.
+                    if (id != null && properties.Count > origin && !properties[origin].ReadOnly)
+                    {
+                        properties[origin].Bind(insert, id, origin - before);
+                    }
                 }
             }
 
@@ -504,7 +512,7 @@ namespace GeometryHelper.Dxf
         /// INSERT saved of it, else the block's own, in the block's coordinates (a <see cref="GeoPoint3"/>, not scaled), of the
         /// kind 12, no units, not shown and visible where the parameter is, as AutoCAD 2021 read it of a linear, an XY, a polar,
         /// a rotation and a constraint parameter, and of no other (plugin GhDy3a). Read only for a rotation and a constraint
-        /// parameter, as AutoCAD read it; not bound to the INSERT, so that it is read and not set.
+        /// parameter, as AutoCAD read it; bound to the INSERT where it is set, and not otherwise.
         /// </summary>
         private static void Origin(
             string type,

@@ -371,11 +371,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AValueSetOfAnInsertWhoseBaseMoved_LeavesTheStretchOfTheBasePointWhereTheBlockHasIt()
+        public void AValueSetOfAnInsertWhoseBaseMoved_KeepsTheStretchOfTheBasePointWhereTheBasePointStands()
         {
-            // AutoCAD 2021 read the plate back from its file, the base point at (20, 0) and the end point at (120, 50), and set
-            // Width 150: the end point went to (170, 50) and the stretch of the base point moved nothing, the bottom and left
-            // edges keeping the block's own points: a grip's move is followed while it is made, and is not kept.
+            // AutoCAD 2021 (plugin GhDb4a) read the plate back from its file, the base point at (20, 0) and the end point at
+            // (120, 50), and set Width 150: the end point went to (170, 50) and the stretch of the base point kept the bottom and
+            // left edges at (20, 0), in memory, after DXF and after DWG alike, and from the library's own file as well.
             DxfDatabase db = Plate(true, false);
             MoveBase(db, "Width", 20, 0);
             db = Reopened(db);
@@ -389,8 +389,24 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(At(saved[1], 170, 50));
             Assert.True(Has(insert, 100, 0, 170, 50));
             Assert.True(Has(insert, 0, 50, 170, 50));
-            Assert.True(Has(insert, 0, 0, 100, 0));
-            Assert.True(Has(insert, 0, 0, 0, 50));
+            Assert.True(Has(insert, 20, 0, 100, 0));
+            Assert.True(Has(insert, 20, 0, 0, 50));
+        }
+
+        [Fact]
+        public void TheAttributesOfAPlateWhoseBaseMoved_StayWhereTheStretchesPutThemAtAValueSet()
+        {
+            // AutoCAD 2021 (plugin GhDb4a), the base grip by (20, 0), the drawing written to DXF and read back, Width set to 150:
+            // NOTE, held by the end point's stretch, went to (1 168, 548) and LOWER, held by the base point's, stayed at (1 022, 502).
+            DxfDatabase db = Plate(true, true);
+            MoveBase(db, "Width", 20, 0);
+            db = Reopened(db);
+
+            Set(db, "Width", 150);
+
+            DxfBlockReference insert = TheInsert(db);
+            Assert.True(At(insert.AttributeCollection.Single(a => a.Tag == "NOTE").Position, 1168, 548));
+            Assert.True(At(insert.AttributeCollection.Single(a => a.Tag == "LOWER").Position, 1022, 502));
         }
 
         [Fact]
@@ -554,9 +570,9 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void ALinearBaseGripMovedBy10_FollowsTheStretchOfTheBasePoint_AndTheArray()
         {
-            // AutoCAD 2021 on an INSERT whose base point sat at (20, 0): the grip by 10 took it to (30, 0), the end point staying
-            // at (150, 0), the left, top and bottom edges' starts to x 10 where the block has them at 0, and the first circle of
-            // an array of columns of 25 to x 60 from 50: six columns from the distance 120.
+            // AutoCAD 2021 (plugin GhDb4a) on an INSERT whose base point sat at (20, 0), the drawing written to DXF and read
+            // back: the grip by 10 took it to (30, 0), the end point staying at (150, 0), the left, top and bottom edges' starts
+            // to x 30 and the first circle of an array of columns of 25 to x 80 from 50: four columns from the distance 120.
             DxfDatabase db = Panel(true, true);
             Set(db, "Width", 150);
             MoveBase(db, "Width", 20, 0);
@@ -569,11 +585,11 @@ namespace GeometryHelper.UnitTest.Dxf
             GeoPoint3[] saved = Saved(insert, "BLOCKLINEARPARAMETER");
             Assert.True(At(saved[0], 30, 0));
             Assert.True(At(saved[1], 150, 0));
-            Assert.True(Has(insert, 10, 0, 10, 50));
-            Assert.True(Has(insert, 10, 50, 150, 50));
-            Assert.True(Has(insert, 10, 0, 150, 0));
+            Assert.True(Has(insert, 30, 0, 30, 50));
+            Assert.True(Has(insert, 30, 50, 150, 50));
+            Assert.True(Has(insert, 30, 0, 150, 0));
             Assert.Equal(4, Circles(insert).Count);
-            Assert.Contains(Circles(insert), c => At(c, 60, 25));
+            Assert.Contains(Circles(insert), c => At(c, 80, 25));
         }
 
         // ---- grips, refusals and arguments ---------------------------------------------------------------------------------

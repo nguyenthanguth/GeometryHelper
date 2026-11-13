@@ -67,7 +67,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (DxfDynamicBlockReferenceProperty property in properties)
                 {
-                    if (property.Node == id)
+                    if (property.Node == id && property.PropertyTypeCode != 12)
                     {
                         own.Add(property);
                     }
