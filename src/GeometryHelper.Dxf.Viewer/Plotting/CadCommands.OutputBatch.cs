@@ -51,7 +51,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// space, written as a PDF of the page setup in use. With FILEDIA 0, or with no window to show it, the questions of
         /// -EXPORT's Pdf on the command line: the plot area, "Detailed plot configuration? [Yes/No] &lt;No&gt;:" for the paper,
         /// the scale and the plot styles, and "Enter file name &lt;file&gt;:". AutoCAD 2021's console asks nothing of EXPORTPDF, so
-        /// the questions are -EXPORT's. All layouts are refused, as -EXPORT refuses them.
+        /// the questions are -EXPORT's, All layouts among them, which writes one PDF of a page for each layout.
         /// </summary>
         private static IEnumerable<CadPrompt> ExportPdfCommand(CadCommandContext c)
         {

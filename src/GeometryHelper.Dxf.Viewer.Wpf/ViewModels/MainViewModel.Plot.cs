@@ -164,20 +164,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>-PLOT's request: the plot written to the file it named, by the PDF writer or, for GeometryHelper PNG and JPG, the image writer.</summary>
+        /// <summary>
+        /// -PLOT's request: the plot written to the file it named, by the PDF writer or, for GeometryHelper PNG and JPG, the
+        /// image writer; plots of several layouts (<see cref="CadPlotBook"/>, EXPORTPDF's All layouts) as one PDF of a page each.
+        /// </summary>
         private void OnPlotFileRequested(object sender, CadUiRequestEventArgs e)
         {
             CadDocument document = e.Document ?? _current?.Document;
             CadPlotJob job = e.Plot;
+            var book = e.Payload as CadPlotBook;
+            string file = book?.FileName ?? job?.FileName;
 
-            if (document == null || job?.FileName == null)
+            if (document == null || file == null)
             {
                 return;
             }
 
             try
             {
-                PlotDialogViewModel.Write(job.FileName, document, job.Space, job.Settings, job.Display);
+                if (book != null)
+                {
+                    CadPdfWriter.WritePages(file, document, book.Pages);
+                }
+                else
+                {
+                    PlotDialogViewModel.Write(file, document, job.Space, job.Settings, job.Display);
+                }
+
                 e.Handled = true;
             }
             catch (Exception exception)
@@ -187,7 +200,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     || exception is ArgumentException
                 )
             {
-                GeometryHelperLog.Warn("MainViewModel: the plot to " + job.FileName + " was not written.", exception);
+                GeometryHelperLog.Warn("MainViewModel: the plot to " + file + " was not written.", exception);
                 ((CadCommandSession)sender).Write("The plot was not written: " + exception.Message);
             }
         }

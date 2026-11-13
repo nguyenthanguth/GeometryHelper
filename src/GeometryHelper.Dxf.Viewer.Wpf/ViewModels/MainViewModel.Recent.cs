@@ -189,8 +189,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// An item of the application menu: a command of its left column (New, Open, Save, Save As, Export, Print, Close), or an
-    /// entry of the list one of them shows (PNG, Plot, Page Setup), with its words, icon and what it runs.
+    /// An item of the application menu: a command of its left column (New, Open, Save, Save As, Import, Export, Print,
+    /// Close), or an entry of the list one of them shows (PNG, Plot, Page Setup), with its words, icon and what it runs.
     /// </summary>
     public sealed class AppMenuItemViewModel : ObservableObject
     {
@@ -261,13 +261,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// The application menu of the G button, as AutoCAD 2021's: a search box for the commands, the column of New, Open, Save,
-    /// Save As, Export, Print and Close, and at the right Recent Documents, or the list of the item the pointer rests on;
-    /// Options and Exit at the foot.
+    /// Save As, Import, Export, Print and Close, and at the right Recent Documents, or the list of the item the pointer rests
+    /// on; Options and Exit at the foot.
     /// </summary>
     /// <remarks>
-    /// Export's PDF runs PLOT, whose device is GeometryHelper PDF; PNG, JPG and BMP run PNGOUT, JPGOUT and BMPOUT; Block or
-    /// objects to a DXF runs WBLOCK. Entries the presenter has not built (Drawing Template, Other Formats, Batch Plot, Manage
-    /// Plot Styles) are listed greyed, so that the menu matches AutoCAD's.
+    /// Import's Other Formats runs IMPORT, AutoCAD 2021's PDF and DGN having no command here. Export lists AutoCAD 2021's
+    /// entries that have a command here in its order, DWF (EXPORTDWF), DWFx (EXPORTDWFX) and PDF (EXPORTPDF), then PNG, JPG and
+    /// BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK) and Other Formats (EXPORT); a click on Export itself
+    /// runs EXPORTPDF. Entries the presenter has not built (Drawing Template, Batch Plot, Manage Plot Styles) are listed
+    /// greyed, so that the menu matches AutoCAD's.
     /// </remarks>
     public sealed class AppMenuViewModel : ObservableObject
     {
@@ -278,6 +280,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const string IconSave = "M5 3h11l3 3v15H5zM8 3v5h7V3M8 21v-7h8v7";
         private const string IconSaveAs = "M5 3h11l3 3v7M8 3v5h7V3M5 3v18h7M15 21l6-6-2-2-6 6v2z";
         private const string IconExport = "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4M14 3v5h5v4M15 18h7M19 15l3 3-3 3";
+        private const string IconImport =
+            "M14 3H7a2 2 0 0 0-2 2v4M14 3l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2M14 3v5h5M2 13h9M8 10l3 3-3 3";
+        private const string IconDwf =
+            "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M8 17l2-5 2 3 2-3 2 5";
         private const string IconPrint =
             "M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z";
         private const string IconClose =
@@ -357,19 +363,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
                 Rule(),
                 new AppMenuItemViewModel(
-                    "export",
-                    "Export",
-                    IconExport,
+                    "import",
+                    "Import",
+                    IconImport,
                     null,
                     null,
                     true,
                     new[]
                     {
                         Entry(
+                            "Other Formats",
+                            IconImport,
+                            "A DWG or DXF drawing brought in as a block, placed as INSERT places one (IMPORT)",
+                            Start("IMPORT"),
+                            open
+                        ),
+                    }
+                ),
+                new AppMenuItemViewModel(
+                    "export",
+                    "Export",
+                    IconExport,
+                    null,
+                    open ? Start("EXPORTPDF") : null,
+                    open,
+                    new[]
+                    {
+                        Entry(
+                            "DWF",
+                            IconDwf,
+                            "No DWF writer in the presenter: says so and writes nothing (EXPORTDWF)",
+                            Start("EXPORTDWF"),
+                            open
+                        ),
+                        Entry(
+                            "DWFx",
+                            IconDwf,
+                            "No DWFx writer in the presenter: says so and writes nothing (EXPORTDWFX)",
+                            Start("EXPORTDWFX"),
+                            open
+                        ),
+                        Entry(
                             "PDF",
                             IconPdf,
-                            "A PDF of the model or a layout, through GeometryHelper PDF (PLOT)",
-                            Start("PLOT"),
+                            "The current layout, or the display of model space, as a PDF (EXPORTPDF)",
+                            Start("EXPORTPDF"),
                             open
                         ),
                         Entry(
@@ -528,6 +566,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return "Open a drawing";
                     case "saveas":
                         return "Save a copy of the drawing";
+                    case "import":
+                        return "Import files of other formats";
                     case "export":
                         return "Export a copy of the drawing to other file formats";
                     case "print":

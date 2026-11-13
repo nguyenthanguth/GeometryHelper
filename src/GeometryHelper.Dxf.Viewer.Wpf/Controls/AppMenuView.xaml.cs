@@ -7,8 +7,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The application menu of the G button, drawn from an <see cref="AppMenuViewModel"/>: the workspace shows it in a popup under
-    /// the button, and a screenshot draws it alone. The pointer resting on New, Open, Save As, Export, Print or Close shows its
-    /// list at the right; a click runs an entry; Enter in the search box runs the first command found.
+    /// the button, and a screenshot draws it alone. The pointer resting on New, Open, Save As, Import, Export, Print or Close
+    /// shows its list at the right; a click runs an entry; Enter in the search box runs the first command found.
     /// </summary>
     public partial class AppMenuView : UserControl
     {

@@ -23,6 +23,12 @@ namespace GeometryHelper.Dwg
 
         private DwgDrawing() { }
 
+        /// <summary>
+        /// The description of a drawing template, as AutoCAD's Template Options writes it into the file's AcDb:Template
+        /// section before MEASUREMENT; null or empty for none.
+        /// </summary>
+        public string TemplateDescription { get; set; }
+
         /// <summary>The header variables in the order of the file, each by its name without the dollar sign.</summary>
         public readonly List<string> HeaderNames = new List<string>();
 

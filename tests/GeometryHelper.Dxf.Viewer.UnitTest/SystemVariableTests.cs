@@ -370,7 +370,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // 33 hundredths is no lineweight of AutoCAD's list: refused, the default kept.
             Run(session, "LWDEFAULT", "33");
-            Assert.Contains(session.History, l => l.StartsWith("Invalid lineweight", StringComparison.Ordinal));
+            Assert.Contains("Cannot set LWDEFAULT to that value.", session.History);
             Assert.Equal(0.35, document.DefaultLineWeight, 9);
             Assert.Null(document.NextUndo);
         }

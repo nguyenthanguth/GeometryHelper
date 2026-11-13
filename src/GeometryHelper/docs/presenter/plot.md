@@ -332,15 +332,20 @@ On a layout the area is asked as `Enter plot area [Current layout/All layouts] <
 the orientation, the scale, the plot styles, the style table and the lineweights, in -PLOT's words. The file is then asked
 in the window's Save As PDF dialog, or with FILEDIA 0 as `Enter file name <C:\Plans\plan-level2-Model.pdf>:`. -PLOT's
 PDF writer writes it from the page setup of the space, with the area and the answers given. The format answered becomes
-the default of the next -EXPORT, as AutoCAD keeps EXPORTEPLOTFORMAT. Dwf and dwfX have no writer, and neither does All
-layouts, since the writer makes one sheet; -EXPORT refuses all three and writes nothing.
+the default of the next -EXPORT, as AutoCAD keeps EXPORTEPLOTFORMAT. Dwf and dwfX have no writer; -EXPORT refuses both and
+writes nothing. All layouts writes one PDF of a page for each layout, in the order of the tabs, each the size of its own
+sheet and plotted by its own page setup, or by the detailed configuration where it was answered Yes; the file offered is
+the drawing's name, `C:\Plans\plan-level2.pdf`. A drawing of Layout1 on ISO A3 and Layout2 on ISO A1 is a PDF of two pages,
+1 190.5512 by 841.8898 and 2 383.937 by 1 683.7795 points, by
+[`CadPdfWriter.WritePages`](xref:GeometryHelper.Dxf.Viewer.Wpf.CadPdfWriter) from the request -PLOT whose payload is a
+[`CadPlotBook`](xref:GeometryHelper.Dxf.Viewer.CadPlotBook).
 
 ## EXPORTPDF, EXPORTDWF and EXPORTDWFX
 
 EXPORTPDF (`EPDF`) asks for the file in the window's Save As PDF dialog, offered as `plan-level2-Model.pdf`, then writes
 the current layout, or the display of model space, as a PDF of the space's page setup, by the writer of -PLOT. The dialog
-is a plain Save dialog: AutoCAD's Page Setup box and Options are not in it, and All layouts is not written (the writer makes
-one sheet). With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command line, which are the way
+is a plain Save dialog: AutoCAD's Export list (Current layout, All layouts), Page Setup box and Options are not in it, so
+All layouts is reached by the typed questions. With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command line, which are the way
 to choose the area (`Enter plot area [Display/Extents/Window] <Display>:`, or `[Current layout/All layouts]` on a layout) and
 to override the page setup (`Detailed plot configuration? [Yes/No] <No>:`), then `Enter file name <file>:`. AutoCAD 2021's
 console asks nothing of EXPORTPDF, which is a dialog there, so the typed form is -EXPORT's with its first question
@@ -383,9 +388,12 @@ that a reader finds it. The fields come in AutoCAD's order: the drawing (with it
 (`2026-06-09 14:05:09`), the login name, the plotter, the sheet, the scale (`1:20`), then the two user fields that are not
 empty; each is a line, or all in one line set apart by two spaces with Single line. With AutoCAD's start-up values a plot of
 Plan.dxf on A3 is stamped with three lines of letters 0.2 inch (5.08 mm) high, their lower left corner 2.54 mm in from both
-edges of the printable area. A vertical stamp reads up the sheet; upside down turns it half round. The log file is
-appended with a line a plot, beside the plot where its path has no folder; a log that cannot be written is logged and the
-plot is not failed.
+edges of the printable area. A vertical stamp reads up the sheet; upside down turns it half round. The corner is that of
+the image as plotted, as AutoCAD's help says: a plot upside down turns the stamp half round with it, so that a stamp at the
+lower left stands at the upper right of the sheet, reading upside down. GeometryHelper PNG and JPG draw the stamp too,
+at 96 pixels to the inch: 0.2 inch letters are 19.2 pixels high, 0.1 inch in from the corner of a 1920 by 1080 image is
+9.6 pixels. The log file is appended with a line a plot (a line a page for a PDF of all layouts), beside the plot where its
+path has no folder; a log that cannot be written is logged and the plot is not failed.
 
 In the window PLOTSTAMP shows the Plot Stamp dialog over a copy of the stamp: the seven fields, two user fields each picked
 from the list of the user's fields (`CadPlotStamp.UserFields`) or `< none >`, Add / Edit… showing User Defined Fields (Add
@@ -395,13 +403,16 @@ goes in, and Advanced Options (Location, Orientation, Upside-down, X and Y
 offset from the printable area or the paper border, Font, Height above nought, Single line, Units, Create a log file and its
 file). OK gives the session's stamp what was set; Cancel leaves it. The PLOT dialog's Plot stamp on box switches the stamp
 for this plot and, on OK, for the session, and its … button opens the Plot Stamp dialog. With no window PLOTSTAMP asks
--PLOTSTAMP's questions. Not built: the stamp on a PNG or JPG plot, the stamp of a plot turned upside down following the
-turn. A .pss is AutoCAD's PIA file: the head `PIAFILEVERSION_2.0,plotstampcompress` and `pmzlibcodec`, the Adler-32 of a
+-PLOTSTAMP's questions. A .pss is AutoCAD's PIA file: the head `PIAFILEVERSION_2.0,plotstampcompress` and `pmzlibcodec`, the Adler-32 of a
 zlib stream, the lengths of the text and of the stream, and the stream of a text of blocks (`pstamp{ fields{ drawing_name=1 …`
 as AutoCAD 2021's mm.pss holds); `CadPlotStamp.SaveParameterFile` and `LoadParameterFile` write and read it, a file of another
 kind refused, `"other.pss" is not a plot stamp parameter file (.pss).`. The codes of location (0 lower left, then lower right,
-upper left, upper right), orientation (1 horizontal) and the user-field list (one `str` line a field) follow mm.pss for its
-defaults; a file AutoCAD wrote with several user fields or another corner has not been read. With no confirmation from AutoCAD's own output, a stamp of several
+upper left, upper right), orientation and the user-field list (one `str` line a field) follow mm.pss for its defaults.
+Orientation is the place in AutoCAD 2021's own list of the Advanced Options, Vertical then Horizontal, so 0 vertical and 1
+horizontal, as mm.pss and Inches.pss both hold 1 for their horizontal stamp. Location 0 is the lower left of both files;
+AutoCAD's strings list the corners Top left, Top right, Bottom left, Bottom right, which cannot be the order of the codes
+since 0 is the lower left, and no file of another corner has been read, so codes 1 to 3 are not confirmed. A file AutoCAD
+wrote with several user fields has not been read either. With no confirmation from AutoCAD's own output, a stamp of several
 fields is one line a field.
 
 ## PDFSHX

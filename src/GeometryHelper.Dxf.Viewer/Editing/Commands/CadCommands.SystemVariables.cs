@@ -284,7 +284,7 @@ namespace GeometryHelper.Dxf.Viewer
                     s => (int)Math.Round(s.Document.DefaultLineWeight * 100.0),
                     (c, v) => c.Document.DefaultLineWeight = v / 100.0,
                     null,
-                    (c, v) => Array.IndexOf(Lineweights, v) < 0 ? "Invalid lineweight value." : null
+                    (c, v) => Array.IndexOf(Lineweights, v) < 0 ? "Cannot set LWDEFAULT to that value." : null
                 )
             );
 

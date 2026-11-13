@@ -188,6 +188,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The value of <c>$MEASUREMENT</c> (0 English, 1 metric), or -1 where the file has not the section that carries it.</summary>
         public int Measurement { get; private set; }
 
+        /// <summary>The description of a drawing template, before <c>$MEASUREMENT</c> in its section; empty where there is none or the file has not the section.</summary>
+        public string TemplateDescription { get; private set; } = string.Empty;
+
         /// <summary>From R2013 the data store (AcDb:AcDsPrototype_1b), which holds the ACIS data of the solids; null where the file has none.</summary>
         public byte[] DataStore { get; private set; }
 

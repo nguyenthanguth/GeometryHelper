@@ -1010,22 +1010,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             AppMenuViewModel start = new MainViewModel().CreateAppMenu("GeometryHelper DXF");
 
             Assert.Equal(
-                new[] { "New", "Open", "Save", "Save As", "", "Export", "Print", "", "Close" },
+                new[] { "New", "Open", "Save", "Save As", "", "Import", "Export", "Print", "", "Close" },
                 start.Items.Select(i => i.Name)
             );
             Assert.Equal("Exit GeometryHelper DXF", start.ExitText);
             Assert.False(start.Items.Single(i => i.Key == "save").IsEnabled);
             Assert.False(start.Items.Single(i => i.Key == "export").IsEnabled);
+            Assert.False(start.Items.Single(i => i.Key == "import").IsEnabled);
             Assert.True(start.Items.Single(i => i.Key == "new").IsEnabled);
             Assert.True(start.IsRecentShown);
 
             AppMenuViewModel menu = Opened().CreateAppMenu();
             AppMenuItemViewModel export = menu.Items.Single(i => i.Key == "export");
+
+            // AutoCAD 2021's Export entries that have a command here, in its order, then the presenter's images and WBLOCK.
             Assert.Equal(
-                new[] { "PDF", "PNG", "JPG", "BMP", "Block or objects to a DXF", "Other Formats" },
+                new[] { "DWF", "DWFx", "PDF", "PNG", "JPG", "BMP", "Block or objects to a DXF", "Other Formats" },
                 export.Items.Select(i => i.Name)
             );
-            Assert.Equal(new[] { true, true, true, true, true, true }, export.Items.Select(i => i.IsEnabled));
+            Assert.All(export.Items, i => Assert.True(i.IsEnabled));
+            Assert.Equal(
+                new[] { "Other Formats" },
+                menu.Items.Single(i => i.Key == "import").Items.Select(i => i.Name)
+            );
             Assert.Equal(
                 new[] { "Plot", "Batch Plot", "Plot Preview", "Page Setup", "Manage Plot Styles" },
                 menu.Items.Single(i => i.Key == "print").Items.Select(i => i.Name)
@@ -1047,59 +1054,70 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(menu.IsRecentShown);
             Assert.True(export.IsShown);
             Assert.Equal("Export a copy of the drawing to other file formats", menu.ShownTitle);
+            menu.ShownItem = menu.Items.Single(i => i.Key == "import");
+            Assert.Equal("Import files of other formats", menu.ShownTitle);
             menu.ShownItem = menu.Items.Single(i => i.Key == "save");
             Assert.True(menu.IsRecentShown);
             Assert.False(export.IsShown);
         }
 
         [Fact]
-        public void ExportPdf_RunsPlot_PngRunsPngout_AndTheMenuClosesOnAChoice()
+        public void ExportPdf_RunsExportPdf_PngRunsPngout_ImportRunsImport_AndTheMenuClosesOnAChoice()
         {
             MainViewModel model = Opened();
-            PlotDialogViewModel shown = null;
-            model.ShowPlot = dialog =>
+            var asked = new List<CadExportJob>();
+            model.AskExportFile = job =>
             {
-                shown = dialog;
-                return false;
+                asked.Add(job);
+                job.FileName = null;
             };
             AppMenuViewModel menu = model.CreateAppMenu();
             int closed = 0;
             menu.Chosen += (s, e) => closed++;
             AppMenuItemViewModel export = menu.Items.Single(i => i.Key == "export");
 
-            menu.Choose(export.Items[0]);
+            menu.Choose(export.Items[2]);
 
-            Assert.NotNull(shown);
             Assert.Equal(1, closed);
-            Assert.Contains("Command: PLOT", model.History);
+            Assert.Contains("Command: EXPORTPDF", model.History);
+            Assert.Equal("Save As PDF", Assert.Single(asked).Title);
 
-            string asked = null;
+            string image = null;
             model.AskImageFile = (folder, name) =>
             {
-                asked = name;
+                image = name;
                 return null;
             };
-            menu.Choose(export.Items[1]);
+            menu.Choose(export.Items[3]);
             Assert.Contains("Command: PNGOUT", model.History);
-            Assert.EndsWith(".png", asked, StringComparison.Ordinal);
+            Assert.EndsWith(".png", image, StringComparison.Ordinal);
             Assert.Equal(2, closed);
 
-            // A click on Export itself runs its first entry, PDF.
-            shown = null;
+            // A click on Export itself runs EXPORTPDF, not its first entry DWF.
             menu.Choose(export);
-            Assert.NotNull(shown);
+            Assert.Equal(2, asked.Count);
+            Assert.Equal("Save As PDF", asked[1].Title);
+            Assert.DoesNotContain("Command: EXPORTDWF", model.History);
+
+            // DWF runs EXPORTDWF, which says there is no writer.
+            menu.Choose(export.Items[0]);
+            Assert.Contains("Command: EXPORTDWF", model.History);
 
             // Other Formats runs EXPORT, its Export Data dialog through the function the workspace sets.
-            CadExportJob asked2 = null;
-            model.AskExportFile = job =>
-            {
-                asked2 = job;
-                job.FileName = null;
-            };
-            menu.Choose(export.Items[5]);
-            Assert.Equal(4, closed);
+            menu.Choose(export.Items[7]);
+            Assert.Equal(5, closed);
             Assert.Contains("Command: EXPORT", model.History);
-            Assert.Equal("Export Data", asked2.Title);
+            Assert.Equal("Export Data", asked[2].Title);
+
+            // Import's Other Formats runs IMPORT, its Import File dialog an Open dialog; a click on Import runs it too.
+            AppMenuItemViewModel import = menu.Items.Single(i => i.Key == "import");
+            menu.Choose(import.Items[0]);
+            Assert.Contains("Command: IMPORT", model.History);
+            Assert.Equal("Import File", asked[3].Title);
+            Assert.True(asked[3].Opens);
+            menu.Choose(import);
+            Assert.Equal(5, asked.Count);
+            Assert.Equal(7, closed);
         }
 
         [Fact]

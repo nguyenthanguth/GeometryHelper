@@ -115,7 +115,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// [Display/Extents/Window] &lt;Display&gt;:" on the Model tab, "[Current layout/All layouts]" on a layout;
         /// "Detailed plot configuration? [Yes/No] &lt;No&gt;:", Yes asking the paper size, its units, the orientation, the
         /// scale, the plot styles and the lineweights in -PLOT's words; then the file, by the window's Save As PDF dialog or
-        /// "Enter file name &lt;file&gt;:", and the PDF written by -PLOT's writer. Dwf, dwfX and All layouts are refused.
+        /// "Enter file name &lt;file&gt;:", and the PDF written by -PLOT's writer. Dwf and dwfX are refused; All layouts
+        /// writes a page for each layout.
         /// </summary>
         private static IEnumerable<CadPrompt> ExportTyped(CadCommandContext c)
         {
@@ -160,7 +161,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The questions of a PDF export on the command line, -EXPORT's after its format and EXPORTPDF's with FILEDIA 0: the plot
         /// area, the detailed configuration, then the file and the writing. <paramref name="request"/> is the name the window is
-        /// asked the file's dialog by.
+        /// asked the file's dialog by. All layouts writes one PDF of a page for each layout, in the order of the tabs, each by
+        /// its own page setup, or by the detailed configuration answered where it is Yes; the file offered is the drawing's
+        /// name, plan-level2.pdf.
         /// </summary>
         private static IEnumerable<CadPrompt> ExportPdf(CadCommandContext c, string request)
         {
@@ -168,6 +171,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadPlotSettings settings = CadPlotSettings.Read(c.Document, space);
             settings.UseDevice(CadPlotSettings.PdfDevice);
             WithOutputOptions(c, settings);
+            bool all = false;
 
             if (space.IsModel)
             {
@@ -215,20 +219,14 @@ namespace GeometryHelper.Dxf.Viewer
                     "Current Layout"
                 );
 
-                if (c.Input.Is("All layouts"))
-                {
-                    c.Write(
-                        "A PDF of all layouts has no writer in the presenter, which writes one sheet: nothing was exported. Answer Current layout."
-                    );
-                    yield break;
-                }
-
+                all = c.Input.Is("All layouts");
                 settings.Area = CadPlotArea.Layout;
             }
 
             yield return CadPrompt.ForKeyword("Detailed plot configuration?", PlotYesNo, "No");
+            bool detailed = c.Input.Is("Yes");
 
-            if (c.Input.Is("Yes"))
+            if (detailed)
             {
                 foreach (CadPrompt prompt in PlotPaperSize(c, settings))
                 {
@@ -262,6 +260,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string offered = PlotFileName(c.Document, space);
+
+            if (all)
+            {
+                offered = Path.Combine(
+                    Path.GetDirectoryName(offered) ?? string.Empty,
+                    Path.GetFileNameWithoutExtension(c.Document.Title) + ".pdf"
+                );
+            }
+
             var job = new CadExportJob("Save As PDF", new[] { CadExportJob.Pdf }, CadExportJob.Pdf, offered);
             string file;
 
@@ -288,7 +295,56 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            ExportedPdf(c, space, settings, file);
+            if (all)
+            {
+                ExportedPdfOfLayouts(c, detailed ? settings : null, file);
+            }
+            else
+            {
+                ExportedPdf(c, space, settings, file);
+            }
+        }
+
+        /// <summary>
+        /// The PDF of every layout handed to the window's writer as one file (<see cref="CadPlotBook"/>), a page each in the
+        /// order of the tabs, each plotted by its page setup or by <paramref name="detailed"/> where it is given; a layout whose
+        /// sheet is empty is passed over.
+        /// </summary>
+        private static void ExportedPdfOfLayouts(CadCommandContext c, CadPlotSettings detailed, string file)
+        {
+            if (!file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                file += ".pdf";
+            }
+
+            var pages = new List<CadPlotJob>();
+
+            foreach (CadSpace layout in LayoutSpaces(c))
+            {
+                CadPlotSettings settings = detailed?.Clone() ?? CadPlotSettings.Read(c.Document, layout);
+                settings.UseDevice(CadPlotSettings.PdfDevice);
+                settings.Area = CadPlotArea.Layout;
+                WithOutputOptions(c, settings);
+
+                if (!CadPlotPage.Compute(c.Document, layout, settings, DisplayBox.Empty).IsEmpty)
+                {
+                    pages.Add(new CadPlotJob(layout, settings, DisplayBox.Empty, file));
+                }
+            }
+
+            if (pages.Count == 0)
+            {
+                c.Write("Nothing to export: the plot area is empty.");
+                return;
+            }
+
+            if (!c.Session.Request("-PLOT", c.Document, new CadPlotBook(pages, file)))
+            {
+                c.Write("Exporting a PDF needs the window's PDF writer: nothing was written.");
+                return;
+            }
+
+            c.Write("Plot written to " + file + ".");
         }
 
         /// <summary>The PDF of a plot handed to the window's writer, and what became of it said on the command line.</summary>

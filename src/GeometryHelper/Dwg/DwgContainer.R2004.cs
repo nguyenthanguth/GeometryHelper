@@ -150,10 +150,16 @@ namespace GeometryHelper.Dwg
 
                 if (data.Length >= 2)
                 {
-                    int length = data[0] | (data[1] << 8);
+                    // The description before the value: a count of bytes in R2004, of UTF-16 characters from R2010 on, as
+                    // the strings of R2007 and later are; read as bytes, a metric drawing of R2018 read 256.
+                    bool wide = version != "AC1018";
+                    int length = (wide ? 2 : 1) * (data[0] | (data[1] << 8));
 
-                    if (length >= 0 && 2 + length + 2 <= data.Length)
+                    if (2 + length + 2 <= data.Length)
                     {
+                        container.TemplateDescription = (wide ? Encoding.Unicode : Encoding.GetEncoding(28591))
+                            .GetString(data, 2, length)
+                            .TrimEnd('\0');
                         container.Measurement = data[2 + length] | (data[3 + length] << 8);
                     }
                 }

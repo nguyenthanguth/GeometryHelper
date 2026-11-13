@@ -273,25 +273,73 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="height">The height of the block of text, in millimetres.</param>
         /// <returns>The box the stamp takes.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the page is null.</exception>
-        public DisplayBox Footprint(CadPlotPage page, double width, double height)
+        public DisplayBox Footprint(CadPlotPage page, double width, double height) =>
+            Footprint(page, width, height, false, 1.0);
+
+        /// <summary>
+        /// Where a block of the stamp's size stands on a sheet, as <see cref="Footprint(CadPlotPage, double, double)"/>, the
+        /// corner taken of the image as plotted, as AutoCAD's help puts it: a plot upside down turns the sheet half round, so
+        /// that a stamp at the lower left stands at the upper right of the sheet; and the sheet's units given, a sheet of
+        /// pixels at 96 to the inch (GeometryHelper PNG and JPG) taking 96 / 25.4 to the millimetre.
+        /// </summary>
+        /// <param name="page">The plot laid on its sheet.</param>
+        /// <param name="width">The width of the block of text, in millimetres.</param>
+        /// <param name="height">The height of the block of text, in millimetres.</param>
+        /// <param name="plotUpsideDown">Whether the plot is upside down (<see cref="CadPlotSettings.UpsideDown"/>).</param>
+        /// <param name="unitsPerMillimetre">The sheet's units to a millimetre: 1 for a sheet in millimetres.</param>
+        /// <returns>The box the stamp takes, in the sheet's units, Y upward from its lower left corner.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the page is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the units to a millimetre are not above nought.</exception>
+        public DisplayBox Footprint(
+            CadPlotPage page,
+            double width,
+            double height,
+            bool plotUpsideDown,
+            double unitsPerMillimetre
+        )
         {
             if (page == null)
             {
                 throw new ArgumentNullException(nameof(page));
             }
 
+            if (!(unitsPerMillimetre > 0.0) || double.IsInfinity(unitsPerMillimetre))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(unitsPerMillimetre),
+                    "A sheet has a finite number of units to a millimetre above nought."
+                );
+            }
+
+            double sheetWidth = page.SheetWidth;
+            double sheetHeight = page.SheetHeight;
+            DisplayBox Turned(DisplayBox box) =>
+                new DisplayBox(
+                    sheetWidth - box.MaxX,
+                    sheetHeight - box.MaxY,
+                    sheetWidth - box.MinX,
+                    sheetHeight - box.MinY
+                );
+
             DisplayBox reference = OffsetFromPaperBorder
-                ? new DisplayBox(0.0, 0.0, page.SheetWidth, page.SheetHeight)
+                ? new DisplayBox(0.0, 0.0, sheetWidth, sheetHeight)
                 : page.Printable;
-            double w = Vertical ? height : width;
-            double h = Vertical ? width : height;
-            double dx = ToMillimetres(OffsetX);
-            double dy = ToMillimetres(OffsetY);
+
+            if (plotUpsideDown)
+            {
+                reference = Turned(reference);
+            }
+
+            double w = (Vertical ? height : width) * unitsPerMillimetre;
+            double h = (Vertical ? width : height) * unitsPerMillimetre;
+            double dx = ToMillimetres(OffsetX) * unitsPerMillimetre;
+            double dy = ToMillimetres(OffsetY) * unitsPerMillimetre;
             bool left = Location == CadPlotStampCorner.BottomLeft || Location == CadPlotStampCorner.TopLeft;
             bool bottom = Location == CadPlotStampCorner.BottomLeft || Location == CadPlotStampCorner.BottomRight;
             double x = left ? reference.MinX + dx : reference.MaxX - dx - w;
             double y = bottom ? reference.MinY + dy : reference.MaxY - dy - h;
-            return new DisplayBox(x, y, x + w, y + h);
+            var placed = new DisplayBox(x, y, x + w, y + h);
+            return plotUpsideDown ? Turned(placed) : placed;
         }
 
         /// <summary>The line the log file takes for a stamp: its fields set apart by two spaces, on a line of their own.</summary>
