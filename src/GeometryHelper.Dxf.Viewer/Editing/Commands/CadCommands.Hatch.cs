@@ -554,7 +554,17 @@ namespace GeometryHelper.Dxf.Viewer
             CadHatchSettings settings = CadHatchSettings.Of(hatch);
             c.Document.HatchBeingEdited = settings;
 
-            if (c.Session.Request("HATCHEDIT", c.Document))
+            CadUiRequestEventArgs asked = c.Session.Ask("HATCHEDIT", c.Document);
+
+            // Click to set new origin closes the dialog here as it does in HATCH: the point is asked and the dialog shown again.
+            while (asked.Handled && asked.Answer == HatchOriginAnswer)
+            {
+                yield return CadPrompt.ForPoint("Specify origin point");
+                object picked = c.Input.IsPoint ? (object)c.Input.Point : null;
+                asked = c.Session.Ask("HATCHEDIT", c.Document, picked ?? HatchOriginAnswer);
+            }
+
+            if (asked.Handled)
             {
                 settings = c.Document.HatchBeingEdited;
             }

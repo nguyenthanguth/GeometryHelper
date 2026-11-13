@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public sealed partial class MainViewModel
     {
-        // The object snaps -OSNAP names in "Current osnap modes", as AutoCAD 2021 writes them (probed: 167 is End,Mid,Cen,Int,Perp).
+        // The object snaps -OSNAP names in "Current osnap modes", as AutoCAD 2021 writes them (probed: 167 is End,Mid,Cen,Int,Perp; 16383 is End,Mid,Cen,Node,Quad,Int,Ins,Perp,Tan,Near,Gcen,App Int,Ext,Par).
         private static readonly KeyValuePair<CadSnapModes, string>[] SnapShortNames =
         {
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Endpoint, "End"),
@@ -22,9 +22,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Insertion, "Ins"),
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Perpendicular, "Perp"),
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Tangent, "Tan"),
-            new KeyValuePair<CadSnapModes, string>(CadSnapModes.Nearest, "Nea"),
-            new KeyValuePair<CadSnapModes, string>(CadSnapModes.GeometricCenter, "GCen"),
-            new KeyValuePair<CadSnapModes, string>(CadSnapModes.ApparentIntersection, "App"),
+            new KeyValuePair<CadSnapModes, string>(CadSnapModes.Nearest, "Near"),
+            new KeyValuePair<CadSnapModes, string>(CadSnapModes.GeometricCenter, "Gcen"),
+            new KeyValuePair<CadSnapModes, string>(CadSnapModes.ApparentIntersection, "App Int"),
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Extension, "Ext"),
             new KeyValuePair<CadSnapModes, string>(CadSnapModes.Parallel, "Par"),
         };

@@ -291,7 +291,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _storeAsDefault, value);
         }
 
-        /// <summary>Gets whether Click to set new origin is offered: by HATCH, not by HATCHEDIT, whose dialog asks no point.</summary>
+        /// <summary>Gets whether Click to set new origin is offered: by HATCH and by HATCHEDIT, each asking "Specify origin point:".</summary>
         public bool CanPickOrigin { get; }
 
         /// <summary>

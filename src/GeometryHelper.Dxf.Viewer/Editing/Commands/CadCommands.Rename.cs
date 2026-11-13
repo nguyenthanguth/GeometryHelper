@@ -134,10 +134,7 @@ namespace GeometryHelper.Dxf.Viewer
             names["Table styles"] = Sorted(CadTableStyleEditor.Styles(db).Where(NotStandard));
             names["Text styles"] = Sorted(CadTextStyleEditor.Styles(db).Select(s => s.Name).Where(NotStandard));
             names["UCSs"] = Sorted(c.Document.Ucs.Named.Select(u => u.Name));
-            names["Viewports"] = Sorted(
-                db.ViewportTable.Select(v => v.Name)
-                    .Where(n => n != null && !n.StartsWith("*", StringComparison.Ordinal))
-            );
+            names["Viewports"] = Sorted(c.Document.TiledViewports.Names);
             names["Views"] = Sorted(db.ViewTable.Select(v => v.Name));
 
             var ordered = new Dictionary<string, IReadOnlyList<string>>();
@@ -257,17 +254,12 @@ namespace GeometryHelper.Dxf.Viewer
                 case "VIew":
                     return FindView(c, name) != null;
                 default:
-                    return ConfigurationTiles(c, name).Count > 0;
+                    // A configuration the tiles hold; *Active and *Multiple are not renamed, as AutoCAD does not rename them.
+                    return c.Document.TiledViewports.Names.Any(n =>
+                        string.Equals(n, name, StringComparison.OrdinalIgnoreCase)
+                    );
             }
         }
-
-        /// <summary>The records of a named viewport configuration, one per tile; none for *Active, which AutoCAD does not rename.</summary>
-        private static List<DxfViewportTableRecord> ConfigurationTiles(CadCommandContext c, string name) =>
-            name.StartsWith("*", StringComparison.Ordinal)
-                ? new List<DxfViewportTableRecord>()
-                : c
-                    .Database.ViewportTable.Where(v => string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
 
         /// <summary>Renames what the kind names, joining the command's undo step; null where it was done, else the line saying why not.</summary>
         private static string Rename(CadCommandContext c, string kind, string old, string wanted)
@@ -329,50 +321,12 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                     break;
                 default:
-                    result = RenameConfiguration(c, old, wanted);
-                    break;
+                    // The configurations the tiles hold, which write the VPORT table at the next save: renamed there, so that the
+                    // Viewports dialog and -VPORTS see the new name too.
+                    return c.Document.TiledViewports.Rename(old, wanted);
             }
 
             return result.Succeeded ? null : result.Message;
-        }
-
-        private static CadEditResult RenameConfiguration(CadCommandContext c, string old, string wanted)
-        {
-            if (wanted.Length > 255 || wanted.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) >= 0)
-            {
-                return CadEditResult.Refuse("Invalid viewport configuration name.");
-            }
-
-            List<DxfViewportTableRecord> tiles = ConfigurationTiles(c, old);
-
-            if (
-                !string.Equals(wanted, old, StringComparison.OrdinalIgnoreCase)
-                && c.Database.ViewportTable.Any(v => string.Equals(v.Name, wanted, StringComparison.OrdinalIgnoreCase))
-            )
-            {
-                return CadEditResult.Refuse("Viewport configuration \"" + wanted + "\" already exists.");
-            }
-
-            string was = tiles[0].Name;
-            return c.Apply(
-                new[]
-                {
-                    new CadEditRecord(
-                        CadEditRecordKind.TableChanged,
-                        null,
-                        "Rename viewport configuration",
-                        was,
-                        wanted
-                    ),
-                },
-                s =>
-                {
-                    foreach (DxfViewportTableRecord tile in ConfigurationTiles(c, was))
-                    {
-                        tile.Name = wanted;
-                    }
-                }
-            );
         }
     }
 }
