@@ -4286,6 +4286,28 @@ anonymous (flag 1 of its BLOCK) and written as ezdxf writes the picture of a dim
 dimension made in code carries its own picture: a rotated dimension of 100 given a `*D1` that holds its line and the
 text 100 is saved and read back drawn by `*D1` with its two entities, where a block named so was refused before. A
 drawing whose dimensions ezdxf drew as `*D1` to `*D11` names the next `*D12`.
+**FIXED.** DWG: AutoCAD dropped the data of a dynamic block written again. The anonymous block of a dynamic block that no
+INSERT places (`*U6` of `A-01`, true name `Drawing Title`, three attribute definitions) is kept by AutoCAD only with its evaluation
+graph; the graph, its linear parameter, stretch action, two grips and four location components, the representation data of
+the block's anonymous copies and the purge preventer were left out of the DWG, and AutoCAD took the block for an unused one and
+dropped it from the drawing it opened, with its attribute definitions' 6 fields and draw order table: 48 of the 2 646 fields and
+8 of the 256 draw order tables of AutoCAD 2021's 120 sample and template drawings, in `A-01`, `A-02`, `A-04`, `A-05`, `AS-01`,
+`S-01`, `S-02` and `S-03`. These seven types are read (AutoCAD's DXF of the nine sheets with the block, `S-04` among them, group
+for group) and written, from R2007; a graph that names an expression the writer does not write (a flip, a rotation, a visibility
+state) is left out with the expressions it owns, as it was. Written again, the 120 drawings give AutoCAD all 2 646 fields and 256
+draw order tables, `AUDIT` finds the errors of the originals in 7 and none in 113 (the same numbers), and the 71 test drawings
+audit at 0.
+**FIXED.** DWG: a real as large as `double.MaxValue`, which AutoCAD keeps for a value not set yet (the grip location components of
+a dynamic block), stopped the whole DWG from being read ("The DWG file is broken: Value was either too large or too small for a
+Double"): its digits as the runtime writes them rounded past the largest number. It is given as AutoCAD's DXF gives it,
+`1.797693134862314E+99`.
+**NEW.** DWG: the CELLSTYLEMAP objects of a drawing of AutoCAD 2000 to 2007 (the cell styles a table style keeps for a round trip) are
+read, as AutoCAD's DXF gives them, group for group in the table drawings of R2000, R2004 and R2007, and no longer counted among
+the types not read.
+**FIXED.** DWG: a cell style of a table style's own (101 and up) that names no text style, made in code, is written with the text
+style Standard, as the rows of a table style are, which AUDIT could not repair without it.
+**FIXED.** DWG: the multibyte codes of a DXF of R2004 and before (`\M+182A0`, the Shift-JIS a) are written as the letters they stand
+for, as the `\U+` escapes are, in every name and text; `\u+` and `\m+` in small letters too.
 
 ## 13.11.0 (2026-11-07)
 

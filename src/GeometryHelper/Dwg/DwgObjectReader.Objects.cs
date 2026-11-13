@@ -120,6 +120,16 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
+        /// The ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION a dynamic block keeps in its extension dictionary: a version of one,
+        /// which AutoCAD takes as the sign that the block is not to be purged as unused.
+        /// </summary>
+        private void ReadDynamicBlockPurgePreventer()
+        {
+            _object.Add(100, "AcDbDynamicBlockPurgePreventer");
+            _object.Add(70, _data.BitShort());
+        }
+
+        /// <summary>
         /// A DBCOLOR, a colour of a book: from R2004 a CMC colour with its name and its book, which DXF writes as 62, 420
         /// and 430; before R2004 an index, which DXF does not write.
         /// </summary>

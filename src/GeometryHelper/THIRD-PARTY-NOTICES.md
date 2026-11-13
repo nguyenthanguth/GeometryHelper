@@ -67,6 +67,10 @@ taken as derived from it:
 - `src/GeometryHelper/Dwg/DwgContainer.R2004.cs` and `src/GeometryHelper/Dwg/DwgLz77.cs`: the container of AC1018 to
   AC1032 (the masked file header, the page map and the section map, the pages) and the decompression of its pages,
   whose handling of the codes 0x10 to 0x1F and of a first byte above 0x11 follows ACadSharp's.
+- `src/GeometryHelper/Dwg/DwgObjectReader.DynamicBlocks.cs` and `DwgObjectWriter.DynamicBlocks.cs`: the order of the fields of
+  the evaluation graph, the linear parameter, the stretch action, the linear grip, the grip location component, the
+  representation data and the purge preventer of a dynamic block (checked, and corrected where it differs, against the DXF
+  AutoCAD 2021 writes of the same drawings).
 
 ```text
 MIT License

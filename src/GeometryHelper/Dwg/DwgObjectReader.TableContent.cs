@@ -62,6 +62,13 @@ namespace GeometryHelper.Dwg
         {
             DwgObject style = _object;
             _object = new DwgObject { Name = "CELLSTYLEMAP", Decoded = true };
+            AddCellStyleGroups(styles);
+            style.CellStyleMap = _object;
+            _object = style;
+        }
+
+        private void AddCellStyleGroups(List<object[]> styles)
+        {
             _object.Add(100, "AcDbCellStyleMap");
             _object.Add(90, styles.Count);
 
@@ -75,9 +82,27 @@ namespace GeometryHelper.Dwg
                 _object.Add(300, Encoding.UTF8.GetBytes((string)one[3]));
                 _object.Add(309, "CELLSTYLE_END");
             }
+        }
 
-            style.CellStyleMap = _object;
-            _object = style;
+        /// <summary>
+        /// The CELLSTYLEMAP object of a DWG of R2007 and before, which keeps the cell styles of a table style that a DXF of
+        /// AutoCAD 2007 does not hold in its rows: a count, then each style as a table style of R2010 and later holds it (its id, kind
+        /// and name after it).
+        /// </summary>
+        private void ReadCellStyleMapObject()
+        {
+            int count = Count(_data.BitLong());
+            var styles = new List<object[]>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                DwgCellStyle style = ReadCellStyle();
+                int id = _data.BitLong();
+                int kind = _data.BitLong();
+                styles.Add(new object[] { style, id, kind, Text() });
+            }
+
+            AddCellStyleGroups(styles);
         }
 
         /// <summary>The properties of a cell's looks, in the order AutoCAD 2021 writes a cell's own: 170, 7, 63, 64, 283, 140.</summary>

@@ -1152,6 +1152,13 @@ namespace GeometryHelper.Dwg
                 {
                     Need(g, 300);
                     DwgCellStyle looks = TableFormatOf(g);
+
+                    // A cell style that names no text style (one made in code without it) is one AUDIT cannot repair, as a row is.
+                    if (looks.HasData && looks.Format.TextStyle == 0)
+                    {
+                        looks.Format.TextStyle = _drawing.HandleOf("STYLE", "Standard");
+                    }
+
                     Need(g, 1);
                     named.Add(
                         new NamedCellStyle

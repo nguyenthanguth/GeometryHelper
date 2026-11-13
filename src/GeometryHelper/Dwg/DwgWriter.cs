@@ -22,7 +22,9 @@ namespace GeometryHelper.Dwg
     /// with their ACIS data in the data store of the file, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP,
     /// MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, RASTERVARIABLES, WIPEOUTVARIABLES, MATERIAL, VISUALSTYLE
     /// (of the form of R2013 and later, its 58 properties), the detail and section view styles, the manager of the
-    /// persistent names of subentities beside solids, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip,
+    /// persistent names of subentities beside solids, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, the
+    /// data of a dynamic block of a linear parameter and a stretch action (from AutoCAD 2007; a block whose graph holds
+    /// another expression is written without it),
     /// and the small ones a new drawing holds, so that a new drawing is written whole. A table goes in the form of
     /// R2010: its cells, their overrides and borders, merged ranges, sizes and
     /// style from the groups DXF keeps of R2007, the cell styles of its rows, columns and whole from the TABLECONTENT it

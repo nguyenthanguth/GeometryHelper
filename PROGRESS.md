@@ -145,7 +145,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Annotative objects 4 (annot4): MLEADEREDIT keeping every scale's context; the presenter's MLEADER landed as AutoCAD
         (base and words, the block content's matrix); multileaders of any number of leaders at a second scale; an angular
         context's arc point at a second scale (36 probes equal); DIMARC with DIMDEC found to match AutoCAD already
-  - [ ] Annotative objects 5: turned words that do not fit in the plain layout (DIMLINEAR at DIMSCALE 100: AutoCAD outside
+  - [ ] (turnwords, running: the first item) Annotative objects 5: turned words that do not fit in the plain layout (DIMLINEAR at DIMSCALE 100: AutoCAD outside
         at (154.38, 30), ours inside; changes non-annotative pictures, needs its own round with the harness); MLEADEREDIT's
         far-side arrow making its own leader (needs measured fonts); words' y offset by the ink depth; small context group
         differences (90, 172, 91, 141, 295, record 45); the text width gap (177.4 vs 177.47) (S)
@@ -218,7 +218,7 @@ User note 2026-11-12 evening (note.md 1-14):
       record, the sample's solids and region identical); MTEXT wrapped by font metrics (123 TEXTs, as AutoCAD); dynamic
       blocks as *U; fixed: symbol names, the AcDbAttr APPID, the anonymous flag and polyline vertex looks that made AutoCAD
       discard the R12 (the sample now audits as AutoCAD's own, 10 dynamic-block drawings AUDIT 0)
-- [ ] R12 follow-ups 2: gradient hatches as AutoCAD's display mesh (LINEAR 2, CYLINDER 152, SPHERICAL 332 triangles on a
+- [ ] (r12c, running) R12 follow-ups 2: gradient hatches as AutoCAD's display mesh (LINEAR 2, CYLINDER 152, SPHERICAL 332 triangles on a
       100 by 60 rectangle); R14_HATCH_DATA and ACAD_MLEADERVER xdata on the INSERTs; ellipse polylines' first-vertex
       header and 6-figure vertices; table, multileader, pattern hatch and MESH piece counts; names colliding after cleaning;
       AutoCAD's extra APPIDs; BODY, surfaces and spline-edge solids (S)
@@ -400,10 +400,15 @@ the ones wanted.
         number in R2013+), table styles without a row text style (Standard written), Unicode escapes of old DXF names and
         texts written as letters; 71 of 71 committed test DWGs and 113 of 120 AutoCAD drawings rewritten at AUDIT 0 (the 7
         others carry their originals' errors), none refused
-  - [ ] (dwg11, running: the first four) DWG follow-ups 5: the dynamic block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8
-        sheets); CELLSTYLEMAP of R2000/R2004; a custom cell style without a text style; \M+ escapes; sweep, revolve and
-        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00 (dxfver3);
-        tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
+  - [x] DWG follow-ups 5a (dwg11): fixed a data loss: the linear-parameter dynamic blocks' evaluation graph and its six
+        object types read and written (ported from ACadSharp, corrected against AutoCAD), so AutoCAD keeps the anonymous
+        block with its attribute definitions (120 drawings: FIELD 2 598 to 2 646 and SORTENTSTABLE 248 to 256, equal to the
+        originals); graphs we cannot write left out whole; double.MaxValue written as AutoCAD's 1.797693134862314E+99;
+        CELLSTYLEMAP of R2000-R2007 read; custom cell styles without a text style; \M+ escapes
+  - [ ] DWG follow-ups 6: the other dynamic block graphs (flip, rotation, polar, XY, lookup, visibility, array, move, scale,
+        alignment: 78 of 90 sample graphs still left out); expression values other than kinds 40 and 70; dynamic data below
+        R2007; sweep, revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies;
+        surfaces; tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)

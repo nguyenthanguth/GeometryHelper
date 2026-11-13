@@ -166,6 +166,7 @@ namespace GeometryHelper.Dwg
             NumberViewports();
             FillLeaderBoxes();
             AddCellStyleMaps();
+            LeaveOutIncompleteGraphs();
 
             if (broken > 0)
             {
@@ -342,6 +343,45 @@ namespace GeometryHelper.Dwg
                     : i + 1,
                 };
             }
+        }
+
+        /// <summary>
+        /// Leaves out the evaluation graph of a dynamic block whose expressions are not all read (the parameters, actions and
+        /// grips of a flip, a rotation or a visibility state are not), with the expressions it owns: a graph that names an
+        /// expression the drawing lacks is no graph, and AutoCAD drops its nodes. The block stays an ordinary one.
+        /// </summary>
+        private void LeaveOutIncompleteGraphs()
+        {
+            foreach (DwgObject graph in _objects)
+            {
+                if (graph.Name != "ACAD_EVALUATION_GRAPH" || !graph.Decoded || GraphIsWhole(graph))
+                {
+                    continue;
+                }
+
+                graph.Decoded = false;
+
+                foreach (DwgObject one in _objects)
+                {
+                    if (one.Owner == graph.Handle)
+                    {
+                        one.Decoded = false;
+                    }
+                }
+            }
+        }
+
+        private bool GraphIsWhole(DwgObject graph)
+        {
+            foreach (DwgGroup group in graph.Body)
+            {
+                if (group.Code == 360 && group.Value is ulong handle && !(Find(handle)?.Decoded ?? false))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
