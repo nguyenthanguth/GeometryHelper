@@ -24,7 +24,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The points of BOUNDARY and -BOUNDARY: each area found round a point made closed polylines on the current layer, "BOUNDARY
         /// created 2 polylines", the islands left out where island detection is off. An object type of Region makes nothing: a
-        /// region is ACIS data, which the presenter cannot write yet, and the command says so.
+        /// region is ACIS data, which the presenter cannot write yet, and the command says so. An area with an ellipse or a spline
+        /// in it, as one of the loops it is made of or an island, makes no polyline either: "Spline or ellipse detected. Cannot
+        /// create boundary.", as AutoCAD refuses it; HATCH takes such an area.
         /// </summary>
         private static IEnumerable<CadPrompt> BoundaryPoints(CadCommandContext c, bool typed)
         {
@@ -80,6 +82,20 @@ namespace GeometryHelper.Dxf.Viewer
                     c.Remembered(BoundaryIslandsKey, 1.0) != 0.0
                         ? found.ToList()
                         : found.Where(l => l.Depth == 0).ToList();
+
+                if (
+                    loops.Any(l =>
+                        l.Curve != null
+                        || l.Sources.Any(h =>
+                            c.Document.FindEntity(h) is DxfEllipse || c.Document.FindEntity(h) is DxfSpline
+                        )
+                    )
+                )
+                {
+                    c.Write("Spline or ellipse detected. Cannot create boundary.");
+                    continue;
+                }
+
                 CadEditResult result = c.Apply(null, s =>
                 {
                     foreach (CadBoundaryLoop loop in loops)

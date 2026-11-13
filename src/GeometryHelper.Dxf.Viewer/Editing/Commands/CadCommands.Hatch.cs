@@ -15,9 +15,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// HATCH: "Pick internal point or [Select objects/Undo/seTtings]:" until Enter, each point finding the area round it
         /// with its islands (<see cref="CadBoundaryFinder"/>); Select objects takes closed objects instead; seTtings shows the
-        /// window's dialog, or asks the pattern typed. Enter makes one HATCH of every area, on the current layer, in the
-        /// document's <see cref="CadDocument.HatchSettings"/>, following its objects where the settings are associative (AutoCAD
-        /// makes the loops anew when such an object moves; the presenter keeps the association and does not), one undo step.
+        /// window's dialog, or asks the pattern typed. Enter makes one HATCH of every area, on the current layer unless the
+        /// settings give another, in the document's <see cref="CadDocument.HatchSettings"/>, following its objects where the
+        /// settings are associative (AutoCAD makes the loops anew when such an object moves; the presenter keeps the association
+        /// and does not), one undo step. The hatch is drawn behind its boundary, or where -HATCH's DRaw order says, as AutoCAD's
+        /// HPDRAWORDER of 3 does: it lies under the lowest object its loops are made of. A gap in the boundary is closed over
+        /// where the settings' <see cref="CadHatchSettings.GapTolerance"/> reaches it.
         /// </summary>
         private static IEnumerable<CadPrompt> Hatch(CadCommandContext c)
         {
@@ -40,7 +43,9 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Space,
                         input.Point,
                         c.Session.Tolerance,
-                        c.Session.WorkView?.VisibleBox
+                        c.Session.WorkView?.VisibleBox,
+                        null,
+                        c.Document.HatchSettings.GapTolerance
                     );
                 }
 
@@ -85,7 +90,9 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Space,
                         c.Input.Point,
                         c.Session.Tolerance,
-                        c.Session.WorkView?.VisibleBox
+                        c.Session.WorkView?.VisibleBox,
+                        null,
+                        c.Document.HatchSettings.GapTolerance
                     );
 
                     if (loops == null)
@@ -215,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield return CadPrompt.ForKeywordOrText(
                         "Enter a gradient name or",
-                        new[] { "?", "Two color" },
+                        new[] { "?", "Single color", "Two color" },
                         settings.GradientName
                     );
 
@@ -228,9 +235,13 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                if (c.Input.Is("Two color"))
+                if (c.Input.Is("Single color") || c.Input.Is("Two color"))
                 {
-                    foreach (CadPrompt prompt in GradientColorsTyped(c, settings))
+                    // Either goes back to the first prompt with the gradient as it was: its name and angle are not asked again.
+                    bool one = c.Input.Is("Single color");
+                    settings.GradientOneColor = one;
+
+                    foreach (CadPrompt prompt in GradientColorsTyped(c, settings, one))
                     {
                         yield return prompt;
                     }
@@ -363,7 +374,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             List<CadBoundaryLoop> loops = KeptLoops(picks, settings);
             string fault = null;
-            CadEditResult result = c.Apply(null, s => AppendHatch(c, s, loops, settings, out fault));
+            int order = (int)c.Remembered(HatchOrderKey, 3.0);
+            CadEditResult result = c.Apply(null, s =>
+            {
+                DxfHatch hatch = AppendHatch(c, s, loops, settings, null, out fault);
+                PlaceHatch(c, s, hatch, loops, order);
+            });
 
             if (fault != null)
             {
@@ -385,11 +401,12 @@ namespace GeometryHelper.Dxf.Viewer
             CadEditScope s,
             List<CadBoundaryLoop> loops,
             CadHatchSettings settings,
+            GeoPoint2? onceOrigin,
             out string fault
         )
         {
             DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
-            fault = settings.ApplyTo(hatch, s.Database, s.Document);
+            fault = WithOrigin(settings, loops, onceOrigin).ApplyTo(hatch, s.Database, s.Document);
             AppendLoops(hatch, loops);
 
             if (settings.Associative)
@@ -554,7 +571,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// BOUNDARY: "Pick internal point:" until Enter, each point's area and its islands made closed polylines on the current
-        /// layer, "BOUNDARY created 2 polylines"; areas closed by ellipses or splines drawn through their points. One undo step.
+        /// layer, "BOUNDARY created 2 polylines"; an area with an ellipse or a spline in it is refused, as AutoCAD refuses it (see
+        /// <see cref="BoundaryPoints"/>). One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> Boundary(CadCommandContext c) => BoundaryPoints(c, false);
     }

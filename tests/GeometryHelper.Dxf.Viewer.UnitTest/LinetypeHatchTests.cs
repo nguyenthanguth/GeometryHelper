@@ -635,7 +635,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(0.25f, gradient.GradientShift);
             Assert.Equal(255, gradient.GetGradientColors()[0].Color.Red);
             Assert.Equal(128, gradient.GetGradientColors()[1].Color.Green);
-            Assert.IsType<DisplayFill2>(document.GetDisplay(document.ModelSpace).Items.Last());
+
+            // The hatch lies behind its boundary, as AutoCAD's HPDRAWORDER of 3 puts it: its fill is drawn first.
+            Assert.IsType<DisplayFill2>(document.GetDisplay(document.ModelSpace).Items.First());
 
             CadHatchSettings read = CadHatchSettings.Of(gradient);
             Assert.Equal("GR_CYLIN", read.GradientName);

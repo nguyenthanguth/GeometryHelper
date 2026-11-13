@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** HATCH completed in the presenter (round 2, R2.2), in the words of AutoCAD 2021 (probed in accoreconsole): -HATCH now
+offers every keyword AutoCAD does, `[Properties/Select objects/draW boundary/remove Boundaries/Advanced/DRaw order/Origin/
+ANnotative/hatch COlor/LAyer/Transparency]`, and Advanced adds Boundary set and Gap tolerance. draW boundary draws shapes point
+by point (Close, Undo, Length; one inside another an island; the hatch not associative, as AutoCAD leaves it), remove
+Boundaries takes the loops of the objects selected out (Undo, Add boundaries), Origin sets the origin (this hatch's or the
+default) or lays the pattern from a corner or the middle of the box round the hatch, hatch COlor, LAyer and Transparency set what
+a new hatch takes in place of the current ones (kept in `CadHatchSettings` as AutoCAD keeps HPCOLOR, HPBACKGROUNDCOLOR, HPLAYER
+and HPTRANSPARENCY: new `Color`, `BackgroundColor`, `Layer` and `Transparency` properties), Boundary set looks for an area
+among the objects selected, and Gap tolerance (HPGAPTOL, 0 to 5000) joins two loose ends that near with a straight edge so that
+a square with a gap of 2 in a side is hatched at 3 and not at 1 (`CadBoundaryFinder.Find` takes the candidate set and the gap as
+two optional arguments). ANnotative asks its question and says an annotative hatch is not made yet, as the library does not
+write the annotation scale a hatch is shown at. The gradient of one colour: `Enter a gradient name or [?/Single color/Two
+color]`, then the colour and `Specify a shade or tint value (0-1) <1.0000>:`, written as AutoCAD writes it (two colours, the
+colour at 0 and its shade or tint at 1, group 452 of 1 and the value in 462); the end is the colour's hue and saturation at the
+lightness of the value, which matches all 45 pairs of colour and tint AutoCAD 2021 was probed with (new `GradientOneColor`,
+`GradientTint` and `OriginMode` properties of `CadHatchSettings`, and `CadHatchOriginMode`). The colour prompts of a gradient
+are AutoCAD's, `New gradient color [Truecolor/COlorbook] <0,0,255>:`, with Truecolor asking `Red,Green,Blue:`.
+
+**CHANGED.** HATCH draws the hatch behind its boundary, as AutoCAD 2021's HPDRAWORDER of 3 does (-HATCH did already, and
+HATCH and -HATCH now share the choice DRaw order makes): a square of four lines hatched by HATCH has the hatch first in the draw
+order, where it was last, over its lines. -BOUNDARY and BOUNDARY make no polyline of an area with an ellipse or a spline in it,
+as a side or as an island, and say `Spline or ellipse detected. Cannot create boundary.`, as AutoCAD refuses it; they made
+polylines through the 64 points of the curve before. HATCHEDIT keeps a hatch of one colour of one colour where it was, and its
+tint, instead of making it of two.
+
+**FIXED.** -HATCH with Retain boundary and a loop of an ellipse or a spline (from Select objects) kept an empty polyline for it;
+it keeps none, a curve having no corners to make a polyline of.
+
 **NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
 EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
 variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog
