@@ -148,6 +148,113 @@ namespace GeometryHelper.Dxf
             return new DxfRegionShape(body);
         }
 
+        /// <summary>Gets whether every edge of the shape lies in the plane of the first face of another, within the point tolerance.</summary>
+        /// <param name="other">The other shape.</param>
+        /// <param name="tolerance">The tolerance: a point within its point tolerance of the plane lies in it.</param>
+        /// <returns>True where they lie in one plane: two regions on the XY plane, or one on the plane z = 5 and one on z = 5.0004.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the other shape is null.</exception>
+        public bool IsCoplanarWith(DxfRegionShape other, Tolerance tolerance)
+        {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
+            return AcisBoolean.Coplanar(Body, other.Body, tolerance.EqualPoint);
+        }
+
+        /// <summary>
+        /// Gets what any of the shapes covers: a box 40 by 30 and a circle of radius 10 centred on its right edge give a shape of
+        /// area 1 357.08 whose one loop is five lines and a half circle, the circle still a circle.
+        /// </summary>
+        /// <param name="shapes">The shapes, in one plane.</param>
+        /// <param name="tolerance">The tolerance: its point tolerance is the distance within which two points are one.</param>
+        /// <returns>The shape; two that lie far apart are one shape of two faces (a region of two lumps, as AutoCAD keeps them), a box
+        /// and a circle inside it the box; null where nothing is covered.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the shapes or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no shape, or the shapes do not lie in one plane.</exception>
+        /// <remarks>
+        /// The library's booleans work on straight edges, so each curve is cut into chords, the booleans are run on them, and each
+        /// edge of the answer is traced back to the curve it lies on: a line, an arc or an ellipse of the answer is that curve
+        /// between exact ends (the meeting of two curves, or the end of one of the shapes' edges), as AutoCAD's solid modeler
+        /// gives them, not a run of chords.
+        /// </remarks>
+        public static DxfRegionShape Unite(IEnumerable<DxfRegionShape> shapes, Tolerance tolerance) =>
+            Combine(shapes, null, tolerance, (bodies, tools) => AcisBoolean.Unite(bodies, tolerance));
+
+        /// <summary>
+        /// Gets what the shapes cover less what the tools cover: a box 40 by 30 less a circle of radius 10 centred on its right
+        /// edge has area 1 042.92 and perimeter 151.42, the circle a notch of one arc in the right side; less a circle of radius
+        /// 5 inside it, a face of two loops, the circle a hole.
+        /// </summary>
+        /// <param name="shapes">The shapes to take from, in one plane; their union is what is taken from.</param>
+        /// <param name="tools">The shapes taken away, in the same plane.</param>
+        /// <param name="tolerance">The tolerance, as <see cref="Unite"/> says.</param>
+        /// <returns>The shape; null where nothing is left.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the shapes, the tools or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no shape to take from, or the shapes and tools do not lie in one plane.</exception>
+        public static DxfRegionShape Subtract(
+            IEnumerable<DxfRegionShape> shapes,
+            IEnumerable<DxfRegionShape> tools,
+            Tolerance tolerance
+        )
+        {
+            if (tools == null)
+            {
+                throw new ArgumentNullException(nameof(tools));
+            }
+
+            return Combine(shapes, tools, tolerance, (bodies, away) => AcisBoolean.Subtract(bodies, away, tolerance));
+        }
+
+        /// <summary>
+        /// Gets what every one of the shapes covers: a circle of radius 10 about (0, 0) and one about (10, 0) have a lens of area
+        /// 122.84 and perimeter 41.89, two arcs.
+        /// </summary>
+        /// <param name="shapes">The shapes, in one plane.</param>
+        /// <param name="tolerance">The tolerance, as <see cref="Unite"/> says.</param>
+        /// <returns>The shape; null where they have nothing in common.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the shapes or one of them is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no shape, or the shapes do not lie in one plane.</exception>
+        public static DxfRegionShape Intersect(IEnumerable<DxfRegionShape> shapes, Tolerance tolerance) =>
+            Combine(shapes, null, tolerance, (bodies, tools) => AcisBoolean.Intersect(bodies, tolerance));
+
+        private static DxfRegionShape Combine(
+            IEnumerable<DxfRegionShape> shapes,
+            IEnumerable<DxfRegionShape> tools,
+            Tolerance tolerance,
+            Func<IReadOnlyList<AcisBody>, IReadOnlyList<AcisBody>, AcisBody> run
+        )
+        {
+            if (shapes == null)
+            {
+                throw new ArgumentNullException(nameof(shapes));
+            }
+
+            List<AcisBody> bodies = Bodies(shapes, nameof(shapes));
+            List<AcisBody> away = tools == null ? new List<AcisBody>() : Bodies(tools, nameof(tools));
+
+            if (bodies.Count == 0)
+            {
+                throw new ArgumentException("There is no shape to work on.", nameof(shapes));
+            }
+
+            AcisBody body = run(bodies, away);
+            return body == null ? null : new DxfRegionShape(body);
+        }
+
+        private static List<AcisBody> Bodies(IEnumerable<DxfRegionShape> shapes, string name)
+        {
+            var bodies = new List<AcisBody>();
+
+            foreach (DxfRegionShape shape in shapes)
+            {
+                bodies.Add((shape ?? throw new ArgumentNullException(name, "A shape is null.")).Body);
+            }
+
+            return bodies;
+        }
+
         private static IReadOnlyList<AcisCurve> Curves(IEnumerable<DxfCurve> curves, string name)
         {
             if (curves == null)
@@ -175,7 +282,16 @@ namespace GeometryHelper.Dxf
         {
             if (curve.IsLine)
             {
-                return new DxfLine(Point(curve.Start), Point(curve.End));
+                return curve.AgainstEdge
+                    ? new DxfLine(Point(curve.End), Point(curve.Start))
+                    : new DxfLine(Point(curve.Start), Point(curve.End));
+            }
+
+            // An arc comes out counter-clockwise about the face's normal, as AutoCAD's Explode gives it, whichever way its loop
+            // runs: the notch a circle cuts in a box is an arc from its far end to its near one.
+            if (!curve.IsFull && curve.Normal.Dot(faceNormal) < 0.0)
+            {
+                curve = curve.Reversed();
             }
 
             bool circle = Math.Abs(curve.Ratio - 1.0) < 1E-12;

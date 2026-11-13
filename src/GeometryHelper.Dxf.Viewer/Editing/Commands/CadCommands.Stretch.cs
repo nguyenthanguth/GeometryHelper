@@ -436,6 +436,11 @@ namespace GeometryHelper.Dxf.Viewer
                     return held;
                 }
 
+                case DxfUnknownEntity region
+                    when region.DxfName == "REGION" && region.GetRegionShape() is DxfRegionShape shape:
+                    // The stretch points of a region are the start of each curve of its loops (the centre of a whole circle or
+                    // ellipse); AutoCAD moves the whole region where any one lies in a window, as it moves a circle by its centre.
+                    return new[] { shape.Loops.SelectMany(l => l.Curves).Any(curve => inside(StretchPoint(curve))) };
                 default:
                     GeoAabb3 box;
 
@@ -461,6 +466,20 @@ namespace GeometryHelper.Dxf.Viewer
                             && inside(new GeoPoint3(box.Min.X, box.Max.Y, 0.0))
                             && inside(new GeoPoint3(box.Max.X, box.Min.Y, 0.0)),
                     };
+            }
+        }
+
+        /// <summary>The point of a curve of a region's loop that STRETCH holds: the centre of a whole circle or ellipse, else where the curve starts.</summary>
+        private static GeoPoint3 StretchPoint(DxfCurve curve)
+        {
+            switch (curve)
+            {
+                case DxfCircle circle:
+                    return circle.Center;
+                case DxfEllipse ellipse when ellipse.Closed:
+                    return ellipse.Center;
+                default:
+                    return curve.StartPoint;
             }
         }
 

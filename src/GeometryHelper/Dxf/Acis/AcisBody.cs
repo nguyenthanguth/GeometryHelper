@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
 {
@@ -72,6 +73,51 @@ namespace GeometryHelper.Dxf
         internal double Area => Faces.Sum(f => f.Area);
 
         internal double Perimeter => Faces.Sum(f => f.Perimeter);
+
+        /// <summary>
+        /// The body moved by a transformation that scales alike in every direction (a move, a turn, a scale, a mirror), as
+        /// AutoCAD moves a region: every edge moved, each face's normal moved with them. A mirror turns the normal over, so that
+        /// the outer loop still runs counter-clockwise about it: a region lying flat on the XY plane and mirrored across a
+        /// vertical plane has the normal (0, 0, -1), as AutoCAD's does, and its loops keep their order.
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown when the transformation scales more one way than another, or shears.</exception>
+        internal AcisBody Transformed(GeoTransform3 transform)
+        {
+            GeoVector3 x = transform.Transform(new GeoVector3(1.0, 0.0, 0.0));
+            GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
+            GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
+
+            if (
+                !DxfOcsTransform.IsUniform(x, y)
+                || !DxfOcsTransform.IsUniform(y, z)
+                || !DxfOcsTransform.IsUniform(x, z)
+            )
+            {
+                throw new NotSupportedException(
+                    "A region is moved by a transformation that scales alike in every direction, as AutoCAD moves one: this one scales more one way than another or shears."
+                );
+            }
+
+            bool mirrors = x.TripleProduct(y, z) < 0.0;
+            var faces = new List<AcisFace>(Faces.Count);
+
+            foreach (AcisFace face in Faces)
+            {
+                var loops = new List<AcisLoop>(face.Loops.Count);
+
+                foreach (AcisLoop loop in face.Loops)
+                {
+                    loops.Add(
+                        new AcisLoop(loop.Curves.Select(c => c.Transformed(transform, mirrors)).ToList(), loop.IsHole)
+                    );
+                }
+
+                AcisVec normal = AcisCurve.Turned(transform, face.Normal).Unit;
+                faces.Add(new AcisFace(AcisCurve.Moved(transform, face.Origin), mirrors ? -normal : normal, loops));
+            }
+
+            return new AcisBody(faces);
+        }
 
         /// <summary>
         /// Makes the body of one face from the curves of an outer loop and of the holes in it, each a set of edges that join end
@@ -268,18 +314,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The records of the body as AutoCAD writes a region: a header (from R2004), the body, a lump, a shell, the face on its
-        /// plane, and for each loop its coedges, their edges and curves, and the vertices and points, numbered as ASM numbers
-        /// them. A body of more than one face is not written.
+        /// The records of the body as AutoCAD writes a region: a header (from R2004), the body, and for each face a lump and a
+        /// shell of its own (AutoCAD keeps two separate faces, as the two pieces of a union of regions far apart, each in a lump)
+        /// holding the face on its plane, and for each loop its coedges, their edges and curves, and the vertices and points,
+        /// numbered as ASM numbers them.
         /// </summary>
         internal List<AcisRecord> Records(AcisFormat format)
         {
-            if (Faces.Count != 1)
-            {
-                throw new NotSupportedException("A body of more than one face is not written.");
-            }
-
-            AcisFace face = Faces[0];
             var roots = new List<AcisRecord>();
 
             if (format.History)
@@ -288,176 +329,188 @@ namespace GeometryHelper.Dxf
             }
 
             AcisRecord body = Start("body", format);
-            AcisRecord lump = Start("lump", format);
-            AcisRecord shell = Start("shell", format);
-            AcisRecord faceRecord = Start("face", format);
-            AcisRecord surface = Start("plane-surface", format);
+            var lumps = Faces.Select(f => Start("lump", format)).ToList();
+            var shells = Faces.Select(f => Start("shell", format)).ToList();
             roots.Add(body);
-            body.Pointer(lump).Pointer(null).Pointer(null);
-            lump.Pointer(null).Pointer(shell).Pointer(body);
-            shell.Pointer(null).Pointer(null).Pointer(faceRecord).Pointer(null).Pointer(lump);
-
-            var loopRecords = face.Loops.Select(l => Start("loop", format)).ToList();
-            faceRecord
-                .Pointer(null)
-                .Pointer(loopRecords[0])
-                .Pointer(shell)
-                .Pointer(null)
-                .Pointer(surface)
-                .Flag(false, "forward", "reversed")
-                .Flag(true, "single", "double")
-                .Flag(false, "out", "in");
-            AcisVec x = ArbitraryX(face.Normal);
-            surface
-                .Position(face.Origin)
-                .Direction(face.Normal)
-                .Direction(x)
-                .Flag(false, "forward_v", "reverse_v")
-                .Bound(null)
-                .Bound(null)
-                .Bound(null)
-                .Bound(null);
+            body.Pointer(lumps[0]).Pointer(null).Pointer(null);
 
             var chained = new List<EdgeEnds>();
 
-            for (int l = 0; l < face.Loops.Count; l++)
+            for (int f = 0; f < Faces.Count; f++)
             {
-                IReadOnlyList<AcisCurve> curves = face.Loops[l].Curves;
-                int n = curves.Count;
-                var coedges = new List<AcisRecord>();
-                var edgeRecords = new List<AcisRecord>();
-                var vertexRecords = new List<AcisRecord>();
-                var loopEnds = new List<EdgeEnds>();
+                AcisFace face = Faces[f];
+                AcisRecord lump = lumps[f];
+                AcisRecord shell = shells[f];
+                AcisRecord faceRecord = Start("face", format);
+                AcisRecord surface = Start("plane-surface", format);
+                lump.Pointer(f + 1 < lumps.Count ? lumps[f + 1] : null).Pointer(shell).Pointer(body);
+                shell.Pointer(null).Pointer(null).Pointer(faceRecord).Pointer(null).Pointer(lump);
 
-                for (int i = 0; i < n; i++)
+                var loopRecords = face.Loops.Select(l => Start("loop", format)).ToList();
+                faceRecord
+                    .Pointer(null)
+                    .Pointer(loopRecords[0])
+                    .Pointer(shell)
+                    .Pointer(null)
+                    .Pointer(surface)
+                    .Flag(false, "forward", "reversed")
+                    .Flag(true, "single", "double")
+                    .Flag(false, "out", "in");
+                AcisVec x = ArbitraryX(face.Normal);
+                surface
+                    .Position(face.Origin)
+                    .Direction(face.Normal)
+                    .Direction(x)
+                    .Flag(false, "forward_v", "reverse_v")
+                    .Bound(null)
+                    .Bound(null)
+                    .Bound(null)
+                    .Bound(null);
+
+                for (int l = 0; l < face.Loops.Count; l++)
                 {
-                    coedges.Add(Start("coedge", format));
-                    edgeRecords.Add(Start("edge", format));
-                    vertexRecords.Add(Start("vertex", format));
-                }
+                    IReadOnlyList<AcisCurve> curves = face.Loops[l].Curves;
+                    int n = curves.Count;
+                    var coedges = new List<AcisRecord>();
+                    var edgeRecords = new List<AcisRecord>();
+                    var vertexRecords = new List<AcisRecord>();
+                    var loopEnds = new List<EdgeEnds>();
 
-                loopRecords[l]
-                    .Pointer(l + 1 < loopRecords.Count ? loopRecords[l + 1] : null)
-                    .Pointer(coedges[0])
-                    .Pointer(faceRecord);
-
-                for (int i = 0; i < n; i++)
-                {
-                    AcisCurve curve = curves[i];
-                    AcisRecord coedge = coedges[i];
-                    AcisRecord edge = edgeRecords[i];
-                    coedge
-                        .Pointer(coedges[(i + 1) % n])
-                        .Pointer(coedges[(i + n - 1) % n])
-                        .Pointer(null)
-                        .Pointer(edge)
-                        .Flag(false, "forward", "reversed")
-                        .Pointer(loopRecords[l]);
-
-                    if (format.CoedgeNumber)
+                    for (int i = 0; i < n; i++)
                     {
-                        coedge.Whole(0);
+                        coedges.Add(Start("coedge", format));
+                        edgeRecords.Add(Start("edge", format));
+                        vertexRecords.Add(Start("vertex", format));
                     }
 
-                    coedge.Pointer(null);
-                    edge.Pointer(vertexRecords[i]);
+                    loopRecords[l]
+                        .Pointer(l + 1 < loopRecords.Count ? loopRecords[l + 1] : null)
+                        .Pointer(coedges[0])
+                        .Pointer(faceRecord);
 
-                    // AutoCAD runs the line of a hole's edge from minus its length up to nought, its origin at the edge's end.
-                    bool backwards = curve.IsLine && face.Loops[l].IsHole;
-                    double length = curve.IsLine ? curve.Start.DistanceTo(curve.End) : 0.0;
-
-                    if (format.History)
+                    for (int i = 0; i < n; i++)
                     {
-                        edge.Real(
-                            curve.IsLine
-                                ? backwards
-                                    ? -length
-                                    : 0.0
-                                : curve.T0
-                        );
-                    }
+                        AcisCurve curve = curves[i];
+                        AcisRecord coedge = coedges[i];
+                        AcisRecord edge = edgeRecords[i];
+                        coedge
+                            .Pointer(coedges[(i + 1) % n])
+                            .Pointer(coedges[(i + n - 1) % n])
+                            .Pointer(null)
+                            .Pointer(edge)
+                            .Flag(false, "forward", "reversed")
+                            .Pointer(loopRecords[l]);
 
-                    edge.Pointer(vertexRecords[(i + 1) % n]);
-
-                    if (format.History)
-                    {
-                        edge.Real(
-                            curve.IsLine
-                                ? backwards
-                                    ? 0.0
-                                    : length
-                                : curve.T1
-                        );
-                    }
-
-                    AcisRecord geometry = Start(curve.IsLine ? "straight-curve" : "ellipse-curve", format);
-                    edge.Pointer(coedge).Pointer(geometry).Flag(false, "forward", "reversed");
-
-                    if (format.History)
-                    {
-                        edge.Text("unknown");
-                    }
-
-                    if (curve.IsLine)
-                    {
-                        geometry
-                            .Position(backwards ? curve.End : curve.Start)
-                            .Direction((curve.End - curve.Start).Unit)
-                            .Bound(backwards ? -length : 0.0)
-                            .Bound(backwards ? 0.0 : length);
-                    }
-                    else
-                    {
-                        geometry
-                            .Position(curve.Center)
-                            .Direction(curve.Normal)
-                            .Direction(curve.Major)
-                            .Real(curve.Ratio);
-
-                        if (curve.IsFull)
+                        if (format.CoedgeNumber)
                         {
-                            geometry.Bound(null).Bound(null);
+                            coedge.Whole(0);
+                        }
+
+                        coedge.Pointer(null);
+                        edge.Pointer(vertexRecords[i]);
+
+                        // AutoCAD runs the line of a hole's edge from minus its length up to nought, its origin at the edge's end.
+                        bool backwards = curve.IsLine && face.Loops[l].IsHole;
+                        double length = curve.IsLine ? curve.Start.DistanceTo(curve.End) : 0.0;
+
+                        if (format.History)
+                        {
+                            edge.Real(
+                                curve.IsLine
+                                    ? backwards
+                                        ? -length
+                                        : 0.0
+                                    : curve.T0
+                            );
+                        }
+
+                        edge.Pointer(vertexRecords[(i + 1) % n]);
+
+                        if (format.History)
+                        {
+                            edge.Real(
+                                curve.IsLine
+                                    ? backwards
+                                        ? 0.0
+                                        : length
+                                    : curve.T1
+                            );
+                        }
+
+                        AcisRecord geometry = Start(curve.IsLine ? "straight-curve" : "ellipse-curve", format);
+                        edge.Pointer(coedge).Pointer(geometry).Flag(false, "forward", "reversed");
+
+                        if (format.History)
+                        {
+                            edge.Text("unknown");
+                        }
+
+                        if (curve.IsLine)
+                        {
+                            geometry
+                                .Position(backwards ? curve.End : curve.Start)
+                                .Direction((curve.End - curve.Start).Unit)
+                                .Bound(backwards ? -length : 0.0)
+                                .Bound(backwards ? 0.0 : length);
                         }
                         else
                         {
-                            geometry.Bound(curve.T0).Bound(curve.T1);
+                            geometry
+                                .Position(curve.Center)
+                                .Direction(curve.Normal)
+                                .Direction(curve.Major)
+                                .Real(curve.Ratio);
+
+                            if (curve.IsFull)
+                            {
+                                geometry.Bound(null).Bound(null);
+                            }
+                            else
+                            {
+                                geometry.Bound(curve.T0).Bound(curve.T1);
+                            }
                         }
                     }
-                }
 
-                // The vertex that opens an edge points at that edge for now; the number it carries is set once they are numbered.
-                for (int i = 0; i < n; i++)
-                {
-                    AcisRecord vertex = vertexRecords[i];
-                    vertex.Pointer(edgeRecords[i]);
-
-                    if (format.VertexNumber)
+                    // The vertex that opens an edge points at that edge for now; the number it carries is set once they are numbered.
+                    for (int i = 0; i < n; i++)
                     {
-                        vertex.Whole(0);
+                        AcisRecord vertex = vertexRecords[i];
+                        vertex.Pointer(edgeRecords[i]);
+
+                        if (format.VertexNumber)
+                        {
+                            vertex.Whole(0);
+                        }
+
+                        AcisRecord point = Start("point", format);
+                        vertex.Pointer(point);
+                        point.Position(curves[i].Start);
+                        loopEnds.Add(
+                            new EdgeEnds(
+                                edgeRecords[i],
+                                vertexRecords[i],
+                                vertexRecords[(i + 1) % n],
+                                face.Loops[l].IsHole
+                            )
+                        );
                     }
 
-                    AcisRecord point = Start("point", format);
-                    vertex.Pointer(point);
-                    point.Position(curves[i].Start);
-                    loopEnds.Add(
-                        new EdgeEnds(edgeRecords[i], vertexRecords[i], vertexRecords[(i + 1) % n], face.Loops[l].IsHole)
-                    );
-                }
-
-                // A hole claims its vertices in the order of the loop it was turned from: the first edge, then the others from
-                // the last back, each from its end.
-                if (face.Loops[l].IsHole)
-                {
-                    chained.Add(loopEnds[0]);
-
-                    for (int i = n - 1; i >= 1; i--)
+                    // A hole claims its vertices in the order of the loop it was turned from: the first edge, then the others from
+                    // the last back, each from its end.
+                    if (face.Loops[l].IsHole)
                     {
-                        chained.Add(loopEnds[i]);
+                        chained.Add(loopEnds[0]);
+
+                        for (int i = n - 1; i >= 1; i--)
+                        {
+                            chained.Add(loopEnds[i]);
+                        }
                     }
-                }
-                else
-                {
-                    chained.AddRange(loopEnds);
+                    else
+                    {
+                        chained.AddRange(loopEnds);
+                    }
                 }
             }
 

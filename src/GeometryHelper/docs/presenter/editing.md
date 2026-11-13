@@ -344,7 +344,6 @@ next (after a triangle, the third corner twice), until Enter; the whole command 
 -BOUNDARY asks `Specify internal point or [Advanced options]:` and makes the area round each point and its islands as closed
 polylines, `BOUNDARY created 2 polylines`. Advanced options asks `Enter an option [Island detection/Object type]:` until
 Enter: island detection off makes the outer loop alone, and BOUNDARY takes the same settings for the rest of the session.
-An object type of Region makes nothing: a region is ACIS data, which the presenter cannot write yet, and the command says so.
 BOUNDARY (`BO`) shows the window's Boundary Creation dialog first, as AutoCAD 2021's: Pick Points, Island detection, Boundary
 retention (Retain boundaries, always on, and the object type, Polyline or Region) and the boundary set (the current viewport:
 every object of the space; New is not built). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
@@ -360,13 +359,37 @@ REGION asks `Select objects:` and makes a region of every closed loop the object
 polyline each alone, and lines, arcs, elliptical arcs and open polylines whose ends meet two and two (four LINEs round a
 rectangle are one loop). It says `5 loops extracted.` and `5 Regions created.` as AutoCAD 2021 does of eight objects (a
 rectangle, two circles, four lines and a polyline of bulges), the regions made as one undo step on the current layer; a
-circle inside a rectangle is a region of its own, not a hole (SUBTRACT, not built, makes one). Lines that meet three at
+circle inside a rectangle is a region of its own, not a hole (SUBTRACT makes one). Lines that meet three at
 a point, a loop out of one plane and a closed spline make none (the spline is said). The data is written for the
 drawing's version, SAT text up to R2010 and SAB in the data store of the file from R2013
 ([regions](../dxf/entities.md#regions)); a region is drawn by the curves of its loops, listed by LIST (`Area:`, `Perimeter:`
 and the bounding box, as AutoCAD lists one), measured by AREA and MEASUREGEOM (`Area = 1121.4602, Perimeter = 171.4159`),
 named Region with its area and perimeter in Properties, and exploded by EXPLODE into its curves as AutoCAD explodes it.
-A region is not moved, rotated, scaled or copied yet, and a DWG of R2000 to R2010 leaves it out.
+A region is moved, rotated, scaled and mirrored by MOVE, ROTATE, SCALE and MIRROR, copied by COPY (and by pasting) and stretched
+as AutoCAD does: its ACIS data is written anew for the body it becomes, the loops in their order, a mirror turning its normal
+over, a copy with a record and a GUID of its own (a box 40 by 30 moved by (100, 50) has its first side from (100, 50), and
+mirrored across x = 50 its normal is (0, 0, -1)). STRETCH holds the start of each curve of a loop (the centre of a whole
+circle) as its stretch points, and one inside the window moves the whole region, as AutoCAD's does; a region shows no grips
+(AutoCAD 2021's GetGripPoints gives it none). A DWG of R2000 to R2010 leaves it out (the
+DWG writer writes R2018 only), and saved as another version of DXF (`SAVEAS`, `DXFOUT`) a region is written for that
+version, SAT text up to R2010 and the data store from R2013.
+
+UNION (`UNI`) asks `Select objects:` and makes of the regions chosen what any of them covers: the first, in the order of the
+handles, is a REGION still and takes the shape, the others are erased, and the result keeps the first's handle, layer,
+linetype and lineweight but is ByLayer in colour, as AutoCAD 2021 leaves it (a box of colour 1 united with a circle of colour
+2 is ByLayer). A box 40 by 30 and a circle of radius 10 on its right edge give one region of area 1 357.08 whose circle is
+still an arc; two far apart give one region of two faces, which EXPLODE breaks into a region each. Objects that are not regions
+are passed over, and of regions in several planes those of the plane most of them share are combined and the others left as they are; fewer than two say `At least 2 solids, surfaces, or coplanar regions
+must be selected.`, and nothing chosen ends it with no word. SUBTRACT (`SU`) writes `Select solids, surfaces, and regions to
+subtract from ..`, asks `Select objects:`, writes `Select solids, surfaces, and regions to subtract ..` and asks again: the second
+choice is taken from the union of the first (the box less the circle of radius 10 on its edge has area 1 042.92, less a circle
+of radius 5 inside it, a face with a hole of 1 121.46); a choice that holds no region says `No solids, surfaces, or regions
+selected.`, and fewer than two coplanar in all `At least two solids, surfaces, or coplanar regions must be selected.` INTERSECT
+(`IN`) keeps what every region chosen covers (two circles of radius 10 ten apart, a lens of 122.84). Where nothing is left
+the three say `Null region created - deleted` and erase them all. Each is one undo step, and the answer keeps arcs and ellipses
+as such, its area, perimeter and the number of regions the same as AutoCAD's solid modeler gives for the shapes probed
+([regions](../dxf/entities.md#regions)). The first region is the lowest handle where AutoCAD takes the first picked, because
+the command line keeps a selection in the order of the handles.
 
 -HATCH writes `Current hatch pattern:  ANSI31` and asks `Specify internal point or [Properties/Select objects/draW
 boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:` until Enter, then makes

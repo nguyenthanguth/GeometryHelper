@@ -6,6 +6,46 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** UNION (`UNI`), SUBTRACT (`SU`) and INTERSECT (`IN`) of regions in the presenter, in AutoCAD 2021's words (probed in
+accoreconsole): `Select objects:`, for SUBTRACT `Select solids, surfaces, and regions to subtract from ..` and `Select solids,
+surfaces, and regions to subtract ..`, `At least 2 solids, surfaces, or coplanar regions must be selected.`, `No solids, surfaces,
+or regions selected.` and `Null region created - deleted`. The first region takes the answer in place, the others are erased,
+and the result keeps the first's handle, layer, linetype and lineweight but is ByLayer in colour, as AutoCAD leaves it; each is
+one undo step; of regions in several planes those of the plane most of them share are combined and the others stay as they are
+(an elevated circle chosen with a box and a circle on the XY plane is left alone). A box 40 by 30 united with a circle of radius 10 on its right edge is one region of area 1 357.08 and perimeter
+151.42 whose circle is still an arc, less it 1 042.92, two circles ten apart a lens of 122.84, a box and a circle far apart one
+region of two faces (EXPLODE breaks it into a region each), a box less a circle inside it a face with a hole (1 121.46): the
+areas, perimeters and number of regions of the 16 cases probed agree with AutoCAD's `BooleanOperation` to the sixth place.
+Core: `DxfRegionShape.Unite`, `Subtract`, `Intersect` and `IsCoplanarWith`, `DxfUnknownEntity.SetRegionShape`, and a region of
+several faces written as AutoCAD keeps it, one lump and shell for each face, in SAT and SAB for the six versions (AutoCAD
+2021 opens them with `AUDIT` at 0 errors and the same areas). The library's booleans know only straight edges: each curve is
+cut into chords (a circle on a grid of angles that depends on its radius, so that two regions sharing an arc leave no sliver),
+the booleans are run on them and each edge of the answer is traced back to its curve, its ends the exact meeting of two
+curves. The registry gains three commands and the defaults three aliases. The first region is the lowest handle where
+AutoCAD takes the first picked, as the command line keeps a selection in the order of the handles.
+**NEW.** A region is moved, rotated, scaled, mirrored and copied: `DxfEntity.TransformBy` and `GetTransformedCopy` of a REGION
+write its ACIS data anew for the body it becomes (every edge and plane moved, the loops in their order, the normal turned over
+by a mirror as AutoCAD's is: a region on the XY plane mirrored across x = 50 has the normal (0, 0, -1)), in the groups of the
+entity or in its record of the data store; a transformation that scales more one way than another throws
+`NotSupportedException`, as AutoCAD refuses it. A copy has a GUID and a record of its own, and one added to a drawing of
+another version is written for it. MOVE, ROTATE, SCALE, MIRROR and COPY work on regions, and STRETCH moves the whole region
+where a window holds one of its stretch points (the start of each curve of a loop, the centre of a whole circle), as AutoCAD's
+`GetStretchPoints` and `MoveStretchPointsAt` do. A region still shows no grips, as AutoCAD's gives none. Regions moved, turned,
+scaled, mirrored, tilted and copied, in each of the six versions, open in AutoCAD 2021 with `AUDIT` at 0 errors, and its
+`Region.Area`, `Perimeter`, `Normal` and the curves of its `Explode` are the library's, line for line.
+**NEW.** A drawing saved as another version (`DxfDatabase.Save`, SAVEAS, DXFOUT) has its regions' ACIS data read and written
+again for the version: the SAT of R2010 goes to the data store of R2013 and back, R2013 to R2018, and the texts of R2000, R2004,
+R2007 and R2010 into one another; the 90 regions AutoCAD 2021 wrote, each converted to the six versions, 540 files, keep their shapes
+and AutoCAD's `Explode` of the converted ones equals the library's in every curve. A region whose body the library does not
+read keeps going between texts and is left out going below R2013, as before. A DWG of R2000 to R2010 is still not written
+(the DWG writer writes R2018 only).
+**FIXED.** Regions AutoCAD 2021 wrote were read wrongly where it had moved, turned or mirrored them or made them by a boolean.
+AutoCAD keeps a `transform` record beside the geometry for a move, a turn or a mirror, which the reader ignored: a box moved by
+(100, 50) was drawn where it began. Its R2000 data of a boolean gives an arc the bounds of its whole ellipse and cuts it by the
+two vertices of the edge, so a lens of two circles of radius 10 read as area 628.32 (not 122.84), a notch 485.84 (not 1 042.92)
+and a box with a circle on its edge 1 114.16 (not 1 357.08). An arc of a loop that runs clockwise about the face was exploded
+clockwise (normal (0, 0, -1)); AutoCAD's Explode gives it counter-clockwise about the face's normal, and a line whose loop runs
+against its edge in the edge's direction. The regions of the probe, 744 of them in six versions, read and explode as AutoCAD's do.
 **NEW.** OLE objects in the presenter. A frame that holds a bitmap, a pasted picture or one INSERTOBJ made is drawn as its picture
 on the canvas, in a plot and in a PDF (one 40 by 20 holding a bitmap red on the left and blue on the right plots red and blue; at
 the plot quality Monochrome, black and white), with its frame over it as OLEFRAME says (0 none, 1 shown and plotted, 2, the
@@ -51,7 +91,7 @@ record in the SAB, numbers compared to nine places as AutoCAD's circles carry er
 clockwise, a closed edge for a circle, the vertex numbers of R2007 and later. The regions AutoCAD wrote (R2000 to R2018, SAT and
 SAB) read back to its areas and perimeters. `Explode()` of a REGION gives its curves, a hole before its outer loop, as AutoCAD
 gives them (it refused before); a region whose body is not flat faces of lines and arcs of ellipses has no shape. A region is
-not moved, copied or written into a DWG of R2000 to R2010, and the data of an erased region stays in the section ACDSDATA until
+not written into a DWG of R2000 to R2010 (the DWG writer writes R2018 only), and the data of an erased region stays in the section ACDSDATA until
 AutoCAD saves the drawing again (it opens with `AUDIT` at 0 errors).
 **NEW.** REGION in the presenter makes the regions: every circle, whole ellipse and closed polyline, and every set of lines, arcs
 and open polylines whose ends meet two and two, a region of its own (`5 loops extracted.` `5 Regions created.` as AutoCAD 2021

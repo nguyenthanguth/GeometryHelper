@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
 {
@@ -16,6 +17,12 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Whether the edge is a line.</summary>
         internal bool IsLine { get; private set; }
+
+        /// <summary>
+        /// For a line, whether its loop runs against the direction of its edge (the coedge is reversed): AutoCAD's Explode gives the
+        /// line in the direction of its edge, so a box whose loop runs up a side its edge runs down is exploded to a line down it.
+        /// </summary>
+        internal bool AgainstEdge { get; private set; }
 
         internal AcisVec Center { get; private set; }
 
@@ -37,6 +44,18 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Whether the edge is a whole ellipse, one closed edge of a single vertex.</summary>
         internal bool IsFull => !IsLine && Math.Abs(T1 - T0 - 2.0 * Math.PI) < 1E-9;
+
+        /// <summary>This line marked as run by its loop against its edge (see <see cref="AgainstEdge"/>); any other curve as it is.</summary>
+        internal AcisCurve MarkedAgainstEdge() =>
+            IsLine
+                ? new AcisCurve
+                {
+                    IsLine = true,
+                    Start = Start,
+                    End = End,
+                    AgainstEdge = true,
+                }
+                : this;
 
         /// <summary>A line from one point to another.</summary>
         internal static AcisCurve Line(AcisVec start, AcisVec end) =>
@@ -117,6 +136,68 @@ namespace GeometryHelper.Dxf
 
             return Ellipse(Center, -Normal, Major, Ratio, -T1, -T0);
         }
+
+        /// <summary>
+        /// The edge moved by a transformation that scales alike in every direction: its points moved, its axes turned and scaled,
+        /// the parameters kept. Where the transformation mirrors (<paramref name="mirrors"/>), the curve's normal is turned over,
+        /// so that the curve still runs as its parameter grows, counter-clockwise about its normal.
+        /// </summary>
+        internal AcisCurve Transformed(GeoTransform3 transform, bool mirrors)
+        {
+            if (IsLine)
+            {
+                AcisCurve line = Line(Moved(transform, Start), Moved(transform, End));
+                return AgainstEdge ? line.MarkedAgainstEdge() : line;
+            }
+
+            AcisVec normal = Turned(transform, Normal);
+            return Ellipse(
+                Moved(transform, Center),
+                mirrors ? -normal : normal,
+                Turned(transform, Major),
+                Ratio,
+                T0,
+                T1
+            );
+        }
+
+        /// <summary>A point moved by a transformation.</summary>
+        internal static AcisVec Moved(GeoTransform3 transform, AcisVec point)
+        {
+            GeoPoint3 moved = transform.Transform(new GeoPoint3(point.X, point.Y, point.Z));
+            return new AcisVec(moved.X, moved.Y, moved.Z);
+        }
+
+        /// <summary>A direction turned and scaled by a transformation.</summary>
+        internal static AcisVec Turned(GeoTransform3 transform, AcisVec direction)
+        {
+            GeoVector3 turned = transform.Transform(new GeoVector3(direction.X, direction.Y, direction.Z));
+            return new AcisVec(turned.X, turned.Y, turned.Z);
+        }
+
+        /// <summary>
+        /// The parameter of a point on the curve, or the nearest it comes: of a line, the distance along it from its start; of an
+        /// ellipse, the angle in the range -pi to pi of the point's place in the frame of its axes.
+        /// </summary>
+        internal double ParameterOf(AcisVec point)
+        {
+            if (IsLine)
+            {
+                AcisVec along = End - Start;
+                return (point - Start).Dot(along) / along.Dot(along);
+            }
+
+            AcisVec offset = point - Center;
+            AcisVec minor = Minor;
+            return Math.Atan2(offset.Dot(minor) / minor.Dot(minor), offset.Dot(Major) / Major.Dot(Major));
+        }
+
+        /// <summary>The point at a parameter, along the whole line or the whole ellipse (which <see cref="ParameterOf"/> reads back).</summary>
+        internal AcisVec PointAt(double parameter) => IsLine ? Start + (End - Start) * parameter : At(parameter);
+
+        /// <summary>The velocity at a parameter: the vector from the start to the end of a line, the derivative of the point of an ellipse.</summary>
+        internal AcisVec VelocityAt(double parameter) =>
+            IsLine ? End - Start : Minor * Math.Cos(parameter) - Major * Math.Sin(parameter);
 
         /// <summary>The length of the edge; of an ellipse by Gauss-Legendre over pieces of a thirty-second of a turn.</summary>
         internal double Length

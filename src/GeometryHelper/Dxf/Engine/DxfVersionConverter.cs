@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf
     /// <para>
     /// What cannot be given its older form is left out or replaced, and said: a table, whose cells are written in two forms
     /// on either side of R2007, becomes the block it is drawn with, an ACIS body of R2013 or later, binary, cannot be written
-    /// as the text of R2010 and earlier, and the visual styles, of a form of their own in each of the versions, are left to
+    /// as the text of R2010 and earlier (but for a REGION, whose body is written again for the version, see <c>Regions</c>), and the visual styles, of a form of their own in each of the versions, are left to
     /// AutoCAD, which makes its own on opening.
     /// </para>
     /// <para>
@@ -318,6 +318,7 @@ namespace GeometryHelper.Dxf
             }
 
             ConvertHeader(header);
+            Regions();
             Plan();
             Own();
 
