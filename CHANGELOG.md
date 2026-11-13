@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The dialogs left by earlier rounds in the presenter, designed first (design canvas v139): Multiline Style (MLSTYLE:
+Styles, Set Current, New with Create New Multiline Style, Modify, Rename in the list, Delete, Load with Load Multiline Styles,
+Save, Description and a preview drawn as MLINE draws, and the New/Modify Multiline Style page of caps, fill, joints and up to 16
+elements), Multiline Edit Tools (MLEDIT: the twelve tools as pictures in AutoCAD's rows of four, the tool picked asked as its
+typed option), Plot Stamp (PLOTSTAMP: fields, user fields, preview, Advanced Options) with the PLOT dialog's Plot stamp on box,
+Image Adjust (IMAGEADJUST: Brightness, Contrast, Fade, preview, Reset; one undo step), the classic Attribute Extraction (ATTEXT:
+CDF, SDF or DXX, Select Objects, template and output files) and Xbind (XBIND: the Xrefs tree, Definitions to Bind, Add and
+Remove). The Hatch dialog of HATCH and HATCHEDIT gains a gradient of one colour with its Shade to Tint slider, the hatch and
+background colours, layer, transparency, the hatch origin (Use current, Specified, Default to boundary extents, Store as default)
+and the gap tolerance. MLSTYLE's buttons act at once in its one undo step and Set Current is taken on OK; a specified origin not
+stored as default lays one HATCH's hatches alone. Each command keeps its command-line form where no window shows the dialog.
+New public members: `CadMlineStyleRequest`, `CadMlineEditRequest`, `CadPlotStampRequest`, `CadImageAdjustRequest`,
+`CadAttextRequest` and `CadAttextFormat`, `CadXbindRequest` and `CadXbindReference`, `CadPlotStamp.CopyFrom`,
+`CadStylePreview.Mline`. The registry is unchanged (no new command).
 **NEW.** OLE objects in the presenter. A frame that holds a bitmap, a pasted picture or one INSERTOBJ made is drawn as its picture
 on the canvas, in a plot and in a PDF (one 40 by 20 holding a bitmap red on the left and blue on the right plots red and blue; at
 the plot quality Monochrome, black and white), with its frame over it as OLEFRAME says (0 none, 1 shown and plotted, 2, the
@@ -27,7 +41,7 @@ as it is), ATTEXT (`DDATTEXT`) and -ATTEXT write the attributes of the blocks to
 file from a template of `BL:` block fields and attribute tags (`NAME C012000`, `PRICE N008002`), record for record as AutoCAD
 2021's console writes them with `** Field overflow in record 1`, `** Bad numeric value for field PRICE, record 3` and `5 records
 in extract file.`, and the variable CTABLESTYLE (`CT`) makes a table style current (`Cannot set CTABLESTYLE to that value.`).
-IMAGEADJUST and ATTEXT are in their command-line form only: no Image Adjust or Attribute Extraction dialog is built. The
+Their Image Adjust and Attribute Extraction dialogs are in the entry above. The
 registry gains ten commands (these four, OPEN, DRAWINGRECOVERY and the four quick views) and one variable, CTABLESTYLE, and the
 defaults ten aliases.
 **NEW.** OPEN (`OPENURL`, `DXFIN`) in the presenter: the Open dialog, or with FILEDIA 0 `Enter name of drawing to open:` on the

@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
     Title="Hatch"
-    Width="600"
-    Height="520"
+    Width="900"
+    Height="600"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -17,6 +17,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Icons.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <local:BoolToVisibilityConverter x:Key="Shown" />
             <local:RgbBrushConverter x:Key="RgbBrush" />
@@ -173,6 +174,154 @@
 
             <!-- The preview, drawn by the presenter's own hatch display, and the type and pattern beside it. -->
             <DockPanel Margin="16,10,16,14">
+                <!-- Design HatchMoreOptions: gradient colours, look, hatch origin and gap tolerance, right of the preview. -->
+                <StackPanel DockPanel.Dock="Right" Width="270" Margin="20,0,0,0">
+                    <StackPanel Visibility="{Binding IsGradient, Converter={StaticResource Shown}}">
+                        <TextBlock Text="Gradient colours" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <StackPanel Style="{StaticResource Row}">
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Content="One color"
+                                Margin="0,0,16,0"
+                                IsChecked="{Binding IsOneColor, Mode=TwoWay}"
+                            />
+                            <RadioButton
+                                Style="{StaticResource BlockRadio}"
+                                Content="Two color"
+                                IsChecked="{Binding IsTwoColor, Mode=TwoWay}"
+                            />
+                        </StackPanel>
+                        <StackPanel
+                            Style="{StaticResource Row}"
+                            Visibility="{Binding IsOneColor, Converter={StaticResource Shown}}"
+                        >
+                            <TextBlock Text="Shade" Foreground="{StaticResource GhTextMuted}" Margin="0,0,8,0" />
+                            <Slider
+                                Width="150"
+                                Minimum="0"
+                                Maximum="1"
+                                SmallChange="0.01"
+                                LargeChange="0.1"
+                                AutomationProperties.Name="Shade to tint"
+                                Value="{Binding Tint, Mode=TwoWay}"
+                            />
+                            <TextBlock Text="Tint" Foreground="{StaticResource GhTextMuted}" Margin="8,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock Text="Look" FontWeight="SemiBold" Margin="0,4,0,8" />
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Hatch color" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="140"
+                            ItemsSource="{Binding HatchColors}"
+                            SelectedItem="{Binding HatchColor, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Background" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="140"
+                            ItemsSource="{Binding BackgroundColors}"
+                            SelectedItem="{Binding BackgroundColor, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Layer" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="140"
+                            ItemsSource="{Binding Layers}"
+                            SelectedItem="{Binding Layer, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Transparency" />
+                        <ComboBox
+                            Style="{StaticResource GhComboBox}"
+                            Width="140"
+                            ItemsSource="{Binding Transparencies}"
+                            SelectedItem="{Binding Transparency, Mode=TwoWay}"
+                        />
+                    </StackPanel>
+                    <StackPanel
+                        Style="{StaticResource Row}"
+                        Visibility="{Binding HasTransparencyValue, Converter={StaticResource Shown}}"
+                    >
+                        <TextBlock Style="{StaticResource Label}" Text="" />
+                        <TextBox
+                            Style="{StaticResource NumberBox}"
+                            AutomationProperties.Name="Transparency value"
+                            Text="{Binding TransparencyValue, UpdateSourceTrigger=LostFocus}"
+                            KeyDown="OnBoxKeyDown"
+                            Margin="0,0,6,0"
+                        />
+                        <TextBlock
+                            Text="0 to 90"
+                            Foreground="{StaticResource GhTextMuted}"
+                            VerticalAlignment="Center"
+                        />
+                    </StackPanel>
+
+                    <TextBlock Text="Hatch origin" FontWeight="SemiBold" Margin="0,8,0,8" />
+                    <RadioButton
+                        Style="{StaticResource BlockRadio}"
+                        Content="Use current origin"
+                        Margin="0,0,0,6"
+                        IsChecked="{Binding IsCurrentOrigin, Mode=TwoWay}"
+                    />
+                    <RadioButton
+                        Style="{StaticResource BlockRadio}"
+                        Content="Specified origin (Origin X, Y)"
+                        Margin="0,0,0,6"
+                        IsChecked="{Binding IsSpecifiedOrigin, Mode=TwoWay}"
+                    />
+                    <StackPanel Style="{StaticResource Row}" Margin="18,0,0,6">
+                        <CheckBox
+                            Style="{StaticResource GhCheckBox}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,6,0"
+                            IsChecked="{Binding DefaultToExtents, Mode=TwoWay}"
+                        />
+                        <TextBlock Text="Default to boundary extents" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    </StackPanel>
+                    <ComboBox
+                        Style="{StaticResource GhComboBox}"
+                        Width="140"
+                        HorizontalAlignment="Left"
+                        Margin="42,0,0,6"
+                        AutomationProperties.Name="Corner"
+                        ItemsSource="{Binding Corners}"
+                        SelectedItem="{Binding Corner, Mode=TwoWay}"
+                        IsEnabled="{Binding DefaultToExtents}"
+                    />
+                    <StackPanel Style="{StaticResource Row}" Margin="18,0,0,6">
+                        <CheckBox
+                            Style="{StaticResource GhCheckBox}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,6,0"
+                            IsEnabled="{Binding IsSpecifiedOrigin}"
+                            IsChecked="{Binding StoreAsDefault, Mode=TwoWay}"
+                        />
+                        <TextBlock Text="Store as default origin" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <TextBlock Text="Gap tolerance" FontWeight="SemiBold" Margin="0,8,0,8" />
+                    <StackPanel Style="{StaticResource Row}">
+                        <TextBlock Style="{StaticResource Label}" Text="Tolerance" />
+                        <TextBox
+                            Style="{StaticResource NumberBox}"
+                            AutomationProperties.Name="Gap tolerance"
+                            Text="{Binding GapTolerance, UpdateSourceTrigger=LostFocus}"
+                            KeyDown="OnBoxKeyDown"
+                            Margin="0,0,6,0"
+                        />
+                        <TextBlock Text="units" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+
                 <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0">
                     <TextBlock Text="Preview" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6" />
                     <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Width="162" Height="162">
@@ -255,6 +404,7 @@
                             Padding="2"
                             Margin="0,0,12,0"
                             Command="{Binding PickColor2Command}"
+                            Visibility="{Binding IsTwoColor, Converter={StaticResource Shown}}"
                             ToolTip="Gradient colour 2"
                         >
                             <Border
@@ -341,12 +491,14 @@
                         <TextBox
                             Style="{StaticResource NumberBox}"
                             Text="{Binding OriginX, UpdateSourceTrigger=LostFocus}"
+                            IsEnabled="{Binding IsSpecifiedOrigin}"
                             KeyDown="OnBoxKeyDown"
                             Margin="0,0,6,0"
                         />
                         <TextBox
                             Style="{StaticResource NumberBox}"
                             Text="{Binding OriginY, UpdateSourceTrigger=LostFocus}"
+                            IsEnabled="{Binding IsSpecifiedOrigin}"
                             KeyDown="OnBoxKeyDown"
                         />
                     </StackPanel>

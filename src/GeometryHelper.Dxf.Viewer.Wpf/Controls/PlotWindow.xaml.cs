@@ -65,6 +65,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
+        private void OnPlotStampSettings(object sender, RoutedEventArgs e) => Model.PlotStampSettings();
+
         private void OnApply(object sender, RoutedEventArgs e) => Model.ApplyToLayout();
 
         private void OnAdd(object sender, RoutedEventArgs e) => Model.AskAndAddPageSetup();

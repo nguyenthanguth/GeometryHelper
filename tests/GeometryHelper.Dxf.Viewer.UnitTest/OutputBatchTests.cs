@@ -279,6 +279,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Plotstamp_TheDialogEditsACopy_WhichTheSessionsStampTakesOnOkOnly()
+        {
+            CadCommandSession session = Session(TwoLines());
+            CadPlotStamp shared = session.PlotStamp;
+            bool accept = false;
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "PLOTSTAMP")
+                {
+                    var request = (CadPlotStampRequest)e.Payload;
+                    Assert.NotSame(shared, request.Stamp);
+                    request.Stamp.LayoutName = true;
+                    request.Stamp.UserField1 = "Level 2";
+                    request.Stamp.Location = CadPlotStampCorner.TopRight;
+                    request.Stamp.Units = CadPlotStampUnits.Millimeters;
+                    request.IsAccepted = accept;
+                    e.Handled = true;
+                }
+            };
+
+            Run(session, "PLOTSTAMP");
+            Assert.False(session.IsRunning);
+            Assert.False(shared.LayoutName);
+
+            accept = true;
+            Run(session, "DDPLOTSTAMP");
+
+            Assert.Same(shared, session.PlotStamp);
+            Assert.True(shared.LayoutName);
+            Assert.Equal("Level 2", shared.UserField1);
+            Assert.Equal(CadPlotStampCorner.TopRight, shared.Location);
+            Assert.Equal(CadPlotStampUnits.Millimeters, shared.Units);
+        }
+
+        [Fact]
         public void APlotWhileTheStampIsOn_CarriesACopyOfIt_AndPdfshxRidesAlong()
         {
             CadDocument document = TwoLines();

@@ -21,7 +21,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             registry.Add(new CadCommand("IMAGEADJUST", ImageAdjust));
             registry.Add(new CadCommand("-IMAGEADJUST", ImageAdjust));
-            registry.Add(new CadCommand("ATTEXT", AttributeExtract));
+            registry.Add(new CadCommand("ATTEXT", AttributeExtractDialog));
             registry.Add(new CadCommand("-ATTEXT", AttributeExtract));
             registry.AddVariable(
                 CadSystemVariable.Text(
@@ -77,6 +77,18 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            IEnumerable<CadPrompt> asked =
+                c.Command.Name == "IMAGEADJUST" ? ImageAdjustDialog(c, handles) : ImageAdjustOptions(c, handles);
+
+            foreach (CadPrompt prompt in asked)
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>The option and its value, asked of the images selected as -IMAGEADJUST asks them, then given them.</summary>
+        private static IEnumerable<CadPrompt> ImageAdjustOptions(CadCommandContext c, List<string> handles)
+        {
             yield return CadPrompt.ForKeyword("Enter image option", ImageAdjustChoices, "Brightness");
 
             if (c.Input.Kind != CadInputKind.Keyword)

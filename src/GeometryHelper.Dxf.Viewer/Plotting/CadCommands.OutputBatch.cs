@@ -32,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("EXPORTDWF", c => ExportDwf(c, "DWF")));
             registry.Add(new CadCommand("EXPORTDWFX", c => ExportDwf(c, "DWFx")));
             registry.Add(new CadCommand("IMPORT", Import));
-            registry.Add(new CadCommand("PLOTSTAMP", PlotStamp));
+            registry.Add(new CadCommand("PLOTSTAMP", PlotStampDialog));
             registry.Add(new CadCommand("-PLOTSTAMP", PlotStamp));
         }
 
@@ -168,7 +168,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// fields; User Fields asks two texts, "." clearing one; Log file asks whether to write the log and its path; LOCation
         /// asks the corner, the orientation, upside down, the offset and what it is measured from; Text Properties the font, the
         /// height and a single line; UNits Inches, Millimeters or Pixels. The settings are kept for the session and stamp every
-        /// PDF written while the stamp is on. PLOTSTAMP's dialog is not built; it asks the same questions.
+        /// PDF written while the stamp is on. PLOTSTAMP shows the window's Plot Stamp dialog (CadCommands.DialogsFive.cs) and asks these where there is none.
         /// </summary>
         private static IEnumerable<CadPrompt> PlotStamp(CadCommandContext c)
         {

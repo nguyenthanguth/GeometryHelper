@@ -65,8 +65,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _settings.NoteCustomPixelSize(size);
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             };
+            dialog.SessionStamp = (sender as CadCommandSession)?.PlotStamp ?? _plotStamp;
+            dialog.EditPlotStamp = ShowPlotStamp;
             bool ok = ShowPlot(dialog);
             e.Handled = true;
+
+            if (ok && !isPageSetup)
+            {
+                // "Plot stamp on" is the session's, as AutoCAD keeps it from one plot to the next.
+                dialog.SessionStamp.On = dialog.PlotStampOn;
+            }
 
             if (dialog.PicksWindow)
             {

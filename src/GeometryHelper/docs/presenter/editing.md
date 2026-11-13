@@ -272,10 +272,23 @@ elements. OFFSET says `Cannot offset that object.`, FILLET `Fillet requires 2 li
 requires 2 lines.`, LENGTHEN `Cannot LENGTHEN this object.` and BREAK `Object can't be broken` and asks again, AutoCAD's words.
 Esc in the middle of MLINE makes nothing: AutoCAD 2021 adds the multiline to the drawing only when the command ends (its
 drawing holds no entity while MLINE asks the next point), and the presenter does the same; the console cannot send Esc, so this
-is read from that and not seen. Left: the Multiline Styles and Multiline Edit Tools dialogs (design first).
+is read from that and not seen.
+
+In the window MLEDIT shows the Multiline Edit Tools dialog: the twelve tools as pictures in AutoCAD's rows of four (Closed
+Cross, Closed Tee, Corner Joint, Cut Single; Open Cross, Open Tee, Add Vertex, Cut All; Merged Cross, Merged Tee, Delete
+Vertex, Weld All). A tool clicked closes it and MLEDIT asks that tool's multilines as the typed option of its letters; Close
+ends the command. MLSTYLE shows the Multiline Style dialog: Current multiline style, the Styles, Set Current, New, Modify,
+Rename (the name edited in the list), Delete, Load (Load Multiline Styles: a file, acad.mln to start with, and one of its
+styles) and Save, the Description and a preview of the style picked, drawn as MLINE draws it. New asks Create New Multiline
+Style (the name and the style to start with), then New Multiline Style: Description; Caps (Line, Outer arc and Inner arcs at
+the start and end, the angles from 10 to 170); Fill color; Display joints; Elements with Offset, Color and Linetype, Add (at
+most 16) and Delete (one kept). Modify shows the same page, all but the description greyed for STANDARD and a style a
+multiline is drawn by. Each button acts at once, as AutoCAD's do, each an edit of MLSTYLE's one undo step; Set Current is
+taken on OK, so Cancel keeps the styles made but not the style set current. The refusals are those of the typed questions
+below. With no window both ask on the command line.
 
 MLSTYLE has no typed form in AutoCAD 2021 (its console opens the Multiline Styles dialog and waits, and has no -MLSTYLE), so
-the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] <exit>:`. New asks
+with no window the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] <exit>:`. New asks
 `Enter name of new multiline style:` (kept in capitals in the record, the entry as typed) and then `Enter style option
 [Description/Elements/Caps/Fill/Joints/Angles/Done] <Done>:`; Elements lists the elements, the greatest offset first, and asks
 `[Add/Delete/Change/Done]` with the offset, colour and linetype of each; Caps toggles `StartLine`, `StartOuter`, `StartInner`,
@@ -382,6 +395,14 @@ written as AutoCAD writes one of one colour: the colour at 0, its shade or tint 
 462. The end is the colour's hue and saturation at the lightness the value says (red at 0.25 ends in 128, 0, 0; at 1 in white;
 (255, 200, 200) at 0.5 in a full red), the way AutoCAD 2021 worked out the ends of 45 pairs of colour and tint it was probed
 with; a value outside 0 to 1 is the nearer end.
+
+The Hatch dialog of HATCH's seTtings and of HATCHEDIT has the same settings in a third column: Gradient colours (One color
+with a Shade to Tint slider, the second swatch hidden, or Two color), Hatch color, Background, Layer and Transparency (Use
+Current, ByLayer, ByBlock or a value from 0 to 90, 95 refused `Requires an integer between 0 and 90.`), Hatch origin (Use
+current origin, the Origin X, Y greyed; Specified origin with Origin X, Y, or Default to boundary extents and its corner;
+Store as default origin) and Gap tolerance (0 to 5000, `Value must be between 0 and 5000.`). A specified origin not stored
+as default lays the hatches of this HATCH alone, the current origin given back when it ends; a corner of the extents is kept
+either way, as -HATCH keeps it.
 
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
 (`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
@@ -511,7 +532,11 @@ the block BLK of the drawing grid references, with a copy of what it draws, from
 linetypes and text styles its entities use are bound with it, as AutoCAD 2021 binds them (a line on WALL and a text on DOOR in
 MYSTYLE come as `grid$0$WALL`, `grid$0$DOOR` and `grid$0$MYSTYLE`, the reference's `grid|WALL` gone with them), layer 0 and what
 the block does not use left as they were. The command asks the symbol type again
-until Enter and is one undo step. Nothing opens a dialog: XBIND asks the same questions.
+until Enter and is one undo step. In the window XBIND shows the Xbind dialog: the Xrefs on the left, each reference with
+its Block, Dimstyle, Layer, Linetype and Textstyle definitions (the blocks read from the file it names), Definitions to Bind
+on the right, Add (a definition, or every one under a kind or a reference, each listed once) and Remove between them. OK
+binds those listed as -XBIND binds them, `1 Layer(s) bound.` written for each kind, the whole one undo step; with no window
+XBIND asks -XBIND's questions.
 
 SAVE asks, with FILEDIA 0 or no window, `Save drawing as <file>:` and, where the file is there, `A drawing with this name
 already exists.` and `Do you want to replace it? <N>:`; the drawing is known by the new name afterwards, as after SAVEAS (which
@@ -1455,10 +1480,10 @@ one letter are passed over, as AutoCAD's settings pass uppercase words and words
 nearest it, `Not in dictionary: "wrold". Suggestions: world`, and "Enter replacement or [Ignore/ignore aLl/Add/Change/Stop]
 <Ignore>:" takes a replacement typed, Change (the first suggestion), Add (to the custom dictionary and its file), Ignore, ignore
 all, or Stop. The words changed of a text are written together, the format codes of an MTEXT kept in it, and the whole
-check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and MLEDIT are not built.
+check is one undo step; `Spelling check complete.` ends it.
 
-IMAGEADJUST (IAD) and -IMAGEADJUST set the brightness, contrast and fade of images (groups 281, 282 and 283 of the IMAGE), both on the
-command line, as AutoCAD 2021's -IMAGEADJUST asks it: no Image Adjust dialog is built. "Select image(s):" takes the images (a
+IMAGEADJUST (IAD) and -IMAGEADJUST set the brightness, contrast and fade of images (groups 281, 282 and 283 of the IMAGE), -IMAGEADJUST on the
+command line as AutoCAD 2021's -IMAGEADJUST asks it, IMAGEADJUST too where no window shows its dialog. "Select image(s):" takes the images (a
 line picked with them is not counted, and with no image the command ends), "Enter image option [Contrast/Fade/Brightness]
 <Brightness>:" the option and "Enter brightness value (0-100) <50>:" its value, a whole number from 0 to 100; 150, -5, 30.5 and
 `abc` are each refused with `Value must be an integer between 0 and 100.` and asked again. Enter takes the value offered, which is
@@ -1467,7 +1492,7 @@ Enter then gives them all the factory's: two images of brightness 70 and 50 sele
 image on a locked layer is left as it is, `The image is on a locked layer.` The change is one undo step, and the canvas draws the
 picture lighter or darker as it was already drawn. AutoCAD refuses a bitonal picture, `Bitonal images cannot be adjusted.`; the
 presenter keeps no colour depth of an image definition and so refuses none, writing the values the picture then ignores. ATTEXT (DDATTEXT) and -ATTEXT write the attributes of the blocks to a file, on the command line as AutoCAD 2021's console
-asks it (no Attribute Extraction dialog is built): "Enter extraction type or enable object selection [Cdf/Sdf/Dxf/Objects] <C>:",
+asks it (-ATTEXT, and ATTEXT where no window shows its dialog): "Enter extraction type or enable object selection [Cdf/Sdf/Dxf/Objects] <C>:",
 for Objects "Select objects:" and "Enter attribute extraction type [Cdf/Sdf/Dxf] <C>:", then for a comma-delimited (CDF) or
 space-delimited (SDF) file "Enter template file name:" (the last one named is offered; `.txt` is added to a name with no
 extension; `"names.txt": Can't find file.` asks again) and for every kind "Enter extract file name <plan>:" (`.txt`, or `.dxx` for a
@@ -1494,6 +1519,16 @@ files are the same record for record, the handles apart; the file is UTF-8 witho
 page, the SEQEND carries no handle, a quote inside a CDF value is written as it is, and a block nested in another is not read, as
 AutoCAD does not. CTABLESTYLE (CT) is the table style new tables take: "Enter new value for CTABLESTYLE <"Standard">:" makes the style
 of that name current, one undo step, and a name of no style says `Cannot set CTABLESTYLE to that value.`, as CMLEADERSTYLE does.
+
+In the window, IMAGEADJUST shows the Image Adjust dialog once the images are selected: Brightness, Contrast and Fade, each a
+slider and a box from 0 to 100 (150 is kept as 100), a preview of the first image's picture adjusted as the canvas draws it
+(contrast about the middle, brightness, then fade towards black; "No picture found" where its file is not found), and Reset to
+50, 50 and 0. It starts at the image's own values where one is selected and at 50, 50 and 0 where several are; OK gives every
+image not on a locked layer the three values, one undo step named IMAGEADJUST. ATTEXT shows the classic Attribute Extraction
+dialog: File Format (CDF, SDF or DXX, the output file's extension following), Select Objects (the dialog closes, `Select
+objects:` is asked and it comes back with `Number found: 2`; none selected is the whole drawing), Template File (greyed for
+DXX) and Output File, the drawing's name with `.txt` to start with. OK refuses a CDF or SDF extract with no template, then
+writes the extract as -ATTEXT does, a template not there said `"missing.txt": Can't find file.` and nothing written.
 
 ### Aliases and keys
 

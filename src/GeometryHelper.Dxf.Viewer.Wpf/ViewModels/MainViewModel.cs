@@ -1870,6 +1870,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "BOUNDARY":
                     OnRoundTwoDialogRequested(e);
                     break;
+                case "MLSTYLE":
+                case "MLEDIT":
+                case "PLOTSTAMP":
+                case "IMAGEADJUST":
+                case "ATTEXT":
+                case "XBIND":
+                    OnDialogsFiveRequested(e);
+                    break;
                 case "XREF":
                 case "XOPEN":
                 case "XATTACH":

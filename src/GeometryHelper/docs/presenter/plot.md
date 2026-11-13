@@ -385,8 +385,14 @@ empty; each is a line, or all in one line set apart by two spaces with Single li
 Plan.dxf on A3 is stamped with three lines of letters 0.2 inch (5.08 mm) high, their lower left corner 2.54 mm in from both
 edges of the printable area. A vertical stamp reads up the sheet; upside down turns it half round. The log file is
 appended with a line a plot, beside the plot where its path has no folder; a log that cannot be written is logged and the
-plot is not failed. Not built: the Plot Stamp dialog (it needs a design first, so PLOTSTAMP asks the same questions on the
-command line), PLOT's Plot stamp on box, the stamp on a PNG or JPG plot, the stamp of a plot turned upside down following the
+plot is not failed.
+
+In the window PLOTSTAMP shows the Plot Stamp dialog over a copy of the stamp: the seven fields, two user fields (one typed
+"." is cleared), a preview of the corner the stamp goes in, and Advanced Options (Location, Orientation, Upside-down, X and Y
+offset from the printable area or the paper border, Font, Height above nought, Single line, Units, Create a log file and its
+file). OK gives the session's stamp what was set; Cancel leaves it. The PLOT dialog's Plot stamp on box switches the stamp
+for this plot and, on OK, for the session, and its … button opens the Plot Stamp dialog. With no window PLOTSTAMP asks
+-PLOTSTAMP's questions. Not built: the stamp on a PNG or JPG plot, the stamp of a plot turned upside down following the
 turn, and AutoCAD's .pss files of saved stamp settings. With no confirmation from AutoCAD's own output, a stamp of several
 fields is one line a field.
 

@@ -766,6 +766,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Gets or sets the session's plot stamp, which "Plot stamp on" switches and the Plot Stamp Settings button edits; the
+        /// window gives it, and with none a stamp of AutoCAD's start-up values is used.
+        /// </summary>
+        public CadPlotStamp SessionStamp { get; set; }
+
+        /// <summary>Gets or sets how the window shows the Plot Stamp dialog: true when OK was pressed.</summary>
+        public Func<PlotStampViewModel, bool> EditPlotStamp { get; set; }
+
+        /// <summary>Gets or sets whether the plot is stamped (Plot stamp on); the plot carries a copy of the session's stamp.</summary>
+        public bool PlotStampOn
+        {
+            get => _settings.PlotStamp != null;
+            set
+            {
+                CadPlotStamp stamp = null;
+
+                if (value)
+                {
+                    stamp = (SessionStamp ?? new CadPlotStamp()).Clone();
+                    stamp.On = true;
+                }
+
+                _settings.PlotStamp = stamp;
+                Raise(nameof(PlotStampOn));
+            }
+        }
+
+        /// <summary>Plot Stamp Settings…: the Plot Stamp dialog over the session's stamp; on OK the stamp and this plot take what it set.</summary>
+        /// <returns>True where OK was pressed.</returns>
+        public bool PlotStampSettings()
+        {
+            if (EditPlotStamp == null)
+            {
+                return false;
+            }
+
+            CadPlotStamp edited = (SessionStamp ?? new CadPlotStamp()).Clone();
+
+            if (!EditPlotStamp(new PlotStampViewModel(edited)))
+            {
+                return false;
+            }
+
+            SessionStamp?.CopyFrom(edited);
+            PlotStampOn = PlotStampOn;
+            return true;
+        }
+
         /// <summary>Gets or sets whether the plot style table is used (Plot with plot styles).</summary>
         public bool PlotWithPlotStyles
         {

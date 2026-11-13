@@ -45,7 +45,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-MTEXT", c => MTextBody(c, true)));
             registry.Add(new CadCommand("-LAYOUT", LayoutTyped));
             registry.Add(new CadCommand("-XBIND", XBind));
-            registry.Add(new CadCommand("XBIND", XBind));
+            registry.Add(new CadCommand("XBIND", XBindDialog));
             registry.Add(new CadCommand("SAVE", Save));
         }
 

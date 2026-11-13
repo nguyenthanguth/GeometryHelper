@@ -98,12 +98,12 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       -LAYOUT Template and SAveas (DWT/DWG/DXF); the current layout and tab numbers after a delete as AutoCAD; fixed: deleting
       the layout holding *Paper_Space wrote a DXF AutoCAD refuses, a copied or imported sheet's own viewport numbered 2;
       XBIND Block binding its layers, linetypes and text styles as NAME$0$SYMBOL
-- [ ] Batch 4a/4b follow-ups 2: -VPORTS MOde (prompt probed: "Apply viewport configuration to [Display/Current viewport]
+- [ ] (fu-views2, running) Batch 4a/4b follow-ups 2: -VPORTS MOde (prompt probed: "Apply viewport configuration to [Display/Current viewport]
       <Display>:"); FILTER AND/OR/XOR/NOT groups and value tests; CAL snap functions and transparent 'CAL; the Viewports
       dialog's Change view to, Visual Style and Rename; QuickCalc Units Conversion and Variables; QP CUI lists and
       QPLOCATION; dimension styles of a block bound by XBIND; a Standard text style bound from a block; Insert Layout and
       template dialogs (design first); -OSNAP rarer short names; whether HIDEPALETTES hides the command line (S)
-- [ ] (dialogs5, running: dialogs) Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
+- [ ] Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
@@ -116,7 +116,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 1 (fu-mline): MLINE grips and STRETCH (core DxfMlineBuilder.MoveVertexAt, cuts kept as AutoCAD),
         TRIM and EXTEND of and to an MLINE, AutoCAD's refusals of OFFSET, FILLET, CHAMFER, LENGTHEN, BREAK; MLEDIT's quiet miss,
         closed refusals, cuts across segments and 4-element merged tees and crosses; MLSTYLE Rename, Delete, Load, Save (.mln)
-  - [ ] (dialogs5, running: dialogs) R2.1 follow-ups 2: the Multiline Styles and Multiline Edit Tools dialogs (design first); WA across the first vertex of
+  - [ ] R2.1 follow-ups 2 (the Multiline Styles and Multiline Edit Tools dialogs done by dialogs5): WA across the first vertex of
         a closed MLINE (AutoCAD's result looks inverted, parked); OT and MT with a closed bar, EXTEND Edge=Extend on oblique
         edges, trims near a corner (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -160,6 +160,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         parse for drawings of thousands of regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
+  - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
+        Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
+        "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
+  - [ ] Dialogs 5 follow-ups: Select Color and Linetype for multiline elements and fill; the Hatch dialog's "Click to set new
+        origin" pick; Plot Stamp's user-field list and .pss files; an expandable Xbind tree; look at the windows in the
+        running app (S)
 - Checks only the AutoCAD GUI can give (accoreconsole cannot), gathered for the maintainer: LAYERP with U and a Layer
   manager session; the guessed prompts of SPELL, ATTIPEDIT and MLEADERALIGN Spacing/Distribute; DIMBREAK Auto breaks.
 
