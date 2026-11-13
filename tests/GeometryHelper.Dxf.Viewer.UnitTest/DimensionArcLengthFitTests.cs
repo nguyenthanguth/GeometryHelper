@@ -271,7 +271,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void TheSymbolOverTheWords_TakesAboutFourTenthsOfTheirHeightMoreOfTheChord_AsAutoCad()
+        public void TheSymbolOverTheWords_TakesAboutThreeTenthsOfTheirHeightMoreOfTheChord_AsAutoCad()
         {
             // AutoCAD 2021, an arc of 3 put 3.6 out, DIMARCSYM 1: the chord of 0.82 (6.28 degrees) keeps the words outside, the
             // chord of 0.88 takes them between the extension lines; with no symbol they fit from 0.82.

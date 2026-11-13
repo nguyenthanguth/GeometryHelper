@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The words and arrowheads of an arc length dimension (DIMARC) and of an angle of three points are laid out as AutoCAD 2021
+does where they only just fit, measured on its console (about 40 000 dimensions made by both): level words fit, and stand beside a
+ray under DIMJUST 1 and 2, by what their box takes of the arc where it runs through their middle (their width and the arc symbol
+as the sine of the direction of the arc's middle, their height as its cosine, each grown by a gap either side, and a gap at either
+end of the arc: the arc of 3 through 40 degrees from 10 put 3.6 out stands them 0.013 nearer their ray than AutoCAD, now within
+0.001; 262 of 408 such pictures differed, now none, and 108 of 144 of aligned words above the arc, which leave no gaps round
+them, now none); the room for the words between the arrowheads is what is left of the sweep once each arrowhead has taken its
+turn of the arc (arcs of 1 through 90 to 165 degrees: the distance that first takes both ran 0.08 too far out, now within 0.01);
+where the words and the arrowheads each fit but not both, the ones that take more stay between the rays, and the arc symbol before
+aligned words needs 0.15 more than the room both take (aligned words and DIMASZ 0.2 to 1: 282 of 1 900 differed, now 110); the
+arc symbol over the words (DIMARCSYM 1) takes 0.3 of their height, not 0.4, and takes the arc out above them (the arc of 10 put
+12 out, 3 024 pictures: 608 differed, now 410, of which 379 are the arc point of words in the middle, which AutoCAD sets either
+way). An angle of three points fits its level words so (rays 10 long, the arc 12 out: 4 of 432 differed, now none; wide sweeps
+of 90 to 165 degrees: 64 of 810, now 20). Every other picture (linear, angular of two lines, radius, diameter, jogged and
+ordinate dimensions, DIMARC away from these cases: 68 sets of probes) is as it was.
+
 **NEW.** Dynamic blocks, the grip edits of a polar parameter worked out one after the other, as AutoCAD 2021 works them (probed in its
 console on side databases, grips through `MoveGripPointsAt`; about 1 000 random sequences on five kinds of pointer gave its lines to
 1E-3). `DxfDynamicBlockReferenceProperty.MoveBasePoint` of a polar parameter no longer refuses a base grip dragged after the end
