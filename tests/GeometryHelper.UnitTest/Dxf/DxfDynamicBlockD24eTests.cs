@@ -706,7 +706,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfDynamicBlockReferenceProperty size = Property(insert, "Size");
             Assert.Equal(
                 new[] { "Width", "Height", "Size" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             Assert.Equal("Panel size", size.Description);
             Assert.False(size.ReadOnly);
@@ -1070,7 +1070,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => block.AddBasePointParameter(new GeoPoint3(0, 0, 0)));
 
             DxfBlockReference insert = TheInsert(db);
-            Assert.Equal(new[] { "Width" }, insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName));
+            Assert.Equal(
+                new[] { "Width" },
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
+            );
             Property(insert, "Width").Value = 200.0;
             Assert.True(Is(Shown<DxfLine>(TheInsert(Reopened(db)))[0], 200, 0, 200, 50));
         }

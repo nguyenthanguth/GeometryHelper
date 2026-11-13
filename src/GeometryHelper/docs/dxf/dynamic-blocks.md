@@ -94,7 +94,7 @@ block's own value is one of the list where the list was written without it, afte
 AutoCAD's Door sample, own 750, allows 600, 700, 750, 800, 900 and 1 000, a list written 300, 200, 50 of an own 100 allows
 300, 200, 50, 100, and a value set is taken to it, 760 and the tie 725 to 750, as AutoCAD 2021 took them (check D26b); a
 value an INSERT shows off the list is not added.
-AutoCAD's hidden `Origin` points (not shown in its properties) are left out. A block properties table gives the index of
+Each linear, XY, polar, rotation and constraint parameter also gives `Origin`, as AutoCAD 2021 does after the properties of the parameter: its base point in the block's own coordinates (a `GeoPoint3`, not scaled by the INSERT), `PropertyTypeCode` 12, no units, `Show` false, so that Properties does not list it, `ReadOnly` false for a linear, XY or polar parameter and true for the others, and read, not set. A plate whose base point a grip moved by (20, 10) reads `Origin` (20, 10, 0); a flip, a point, a visibility and a lookup parameter give none (probe GhDy3a). A block properties table gives the index of
 the row the INSERT matches (`Block Table1`, a `short`, -1 for none), a user parameter its text or real, and a horizontal, a
 vertical, an aligned or a radial constraint parameter its distance, set by solving the block's constraints but for an
 aligned one, as set out below. AutoCAD 2021 read the same names, values (to 1E-9, most to the bit),
@@ -181,7 +181,7 @@ naming the dynamic block and the record of each parameter and action AutoCAD rea
 (ACAD_ENHANCEDBLOCKDATA under AppDataCache), the end point of Width at (200, 0, 0). A history of grip edits the INSERT
 keeps (ACAD_ENHANCEDBLOCKHISTORY) is kept, the value set added after it (its node's id, the property's name and the value
 read back), as AutoCAD 2021 kept the history of its Parking sample's INSERT and added each value it set; an INSERT of none
-is given none, as AutoCAD gave none to the library's INSERTs it set (check D26). AutoCAD 2021 read
+is given none, as AutoCAD gave none to the library's INSERTs it set (check D26), unless its block has a polar parameter: AutoCAD 2021 started the history (a `1070` of 3) at the first value set or grip dragged of a pointer, and the same property set twice in a row keeps the last value alone (probe GhDy3a). AutoCAD 2021 read
 such an INSERT, written by a script, as Width 150 with its stretched lines, and set it again (plugin v17).
 `DynamicBlockReferencePropertyCollection` reads 200 back; the dynamic block itself keeps 100. Set again, the INSERT's
 anonymous block is filled anew where no other INSERT places it, else the INSERT is given one of its own. A length of an
@@ -261,10 +261,10 @@ its grip at (1 000, 480), of the type `BlockTable`, as AutoCAD 2021 gave them (p
 parameter's base grip is given where an action follows its base point (a stretch or a move of BaseXDelta and BaseYDelta, an
 array), as AutoCAD 2021 gave it (probe GhDy2a), after the end grip in the order of the block's graph: the plate above with a
 stretch of its bottom left corner that follows the base point gives (1 100, 550), (1 000, 500), (1 000, 550) and (1 100, 500),
-and an XY array its base grip too; a linear parameter's only once the INSERT has kept its values, as AutoCAD showed it. A
+and an XY array its base grip too, and a linear parameter's on a fresh INSERT as well (its grip stood where the insertion grip is, which AutoCAD left out, and dragged it moved the base point, probe GhDy3a). A polar parameter always gives its base grip, after the end grip, the pointer of one polar parameter at (1 000, 500) giving (1 100, 500) and (1 000, 500). A
 base grip's `Position` is its `BasePoint`, and dragged it moves the base point
 (`DxfDynamicBlockReferenceProperty.MoveBasePoint`, see [parameters and actions](dynamic-actions.md)); without such an action
-the base grip is not given, as a value set moves the end alone and AutoCAD 2021 showed none of an XY parameter's.
+the base grip of a linear or an XY parameter is not given, as a value set moves the end alone and AutoCAD 2021 showed none of an XY parameter's. A rotation, a flip and a point parameter have none: the grip at the insertion point of a bar and of a flip moved the INSERT.
 
 A block of a visibility parameter shows a parameter, its grip and its property in the states that list it, as AutoCAD's
 Block Editor lists them: `VisibleInCurrentVisibilityState` is false for the others, and their grips are not given, as

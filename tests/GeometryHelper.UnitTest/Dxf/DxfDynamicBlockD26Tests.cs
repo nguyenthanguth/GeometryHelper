@@ -222,7 +222,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(
                 new[] { "Width", "Height", "Block Table1" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             DxfDynamicBlockReferenceProperty table = Property(insert, "Block Table1");
             Assert.Equal((short)0, table.Value);

@@ -465,7 +465,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference insert = TheInsert(db);
             Assert.Equal(
                 new[] { "Tag X", "Tag Y" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             Assert.Equal(80.0, ValueOf(insert, "Tag X"), Close);
             Assert.Equal(20.0, ValueOf(insert, "Tag Y"), Close);
@@ -1476,7 +1476,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference insert = TheInsert(db);
             Assert.Equal(
                 new[] { "Width", "Depth" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             Assert.Equal(100.0, ValueOf(insert, "Width"), Close);
             Assert.Equal(50.0, ValueOf(insert, "Depth"), Close);

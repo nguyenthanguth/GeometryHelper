@@ -802,7 +802,10 @@ namespace GeometryHelper.Dxf
         /// scale factors, so that the door of Width 1 000 inserted at a scale of 2 gives 2 000, and a distance of 7.5 along x
         /// at the scale (2, 3, 2) 22.5, as AutoCAD 2021 read it. A value set's list is given where its flags hold 8, a list, as AutoCAD gave
         /// none of a list under the flags 1, 2 or 4, with the block's own value where the list was written without it, and
-        /// a value set is taken to that list (plugin D26b). Actions, grips, base point and alignment parameters
+        /// a value set is taken to that list (plugin D26b). A linear, XY, polar, rotation or constraint parameter also gives, after its
+        /// own properties, a hidden property Origin, its base point in the block's coordinates (a <see cref="GeoPoint3"/>, type 12,
+        /// <see cref="DxfDynamicBlockReferenceProperty.Show"/> false, read and not set), as AutoCAD 2021 reads it (plugin GhDy3a); a
+        /// loop that lists the properties as its palette does skips those that are not shown. Actions, grips, base point and alignment parameters
         /// give none.
         /// </para>
         /// <para>

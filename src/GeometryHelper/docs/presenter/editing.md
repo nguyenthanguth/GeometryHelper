@@ -2020,12 +2020,17 @@ Height and moves the parameter's base point along x, and the corner of end x and
 y, as AutoCAD does: the first corner of a rectangle 100 by 50 dragged by (20, 10) reads Width 80 and Height 60 with the
 base point at (20, 0) and the right edge staying at x 100, the second Width 120 and Height 40 with the base point at (0,
 10) (probes GhDb1 and GhDy2a). Where an action follows the base point (a stretch or a move of BaseXDelta and BaseYDelta, an
-array) the parameter has a base grip too, after the end grip, and a linear parameter does once the INSERT has kept its
-values: dragged, it moves the base point, the end point staying (`MoveBasePoint` of the core), and what follows the base
+array) the parameter has a base grip too, after the end grip, a linear one on a fresh INSERT as well, and a polar parameter
+always has one (the pointer of one polar parameter lists its end and its base grip, and the insertion grip is left out where a
+custom grip stands on it, as AutoCAD 2021 left it out for a point parameter at the block's origin): dragged, it moves the
+base point, the end point staying (`MoveBasePoint` of the core), the distances it leaves taken to the value set (Width 50
+to 300 by 10 dragged by 33 reads 70, the base point at 30), and what follows the base
 point follows the drag alone, the bottom and left edges of a plate whose bottom left corner a stretch of the base point
 holds starting at (20, 10) after a base grip drag by (20, 10); the INSERT keeps the base point, so that a value set
 later leaves them where the block has them, as AutoCAD 2021 did an INSERT read back from its file. A drag that would take
-a distance to nought or below is refused, the drawing as it was. A flip grip clicked
+a distance to nought or below is refused, the drawing as it was. The end grip of a polar parameter drags the end point
+(`MoveEndPoint`), the distance and the angle from the base point taken to their value sets, and the INSERT's history keeps
+the GRIPLOC AutoCAD wrote; the Origin of each parameter is a hidden property and is not listed in the Custom group. A flip grip clicked
 flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility, lookup or
 block table grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`): a block table
 lists its rows, each its cells parted by commas, "100.0000" and "200.0000" for a table of Width, and the row chosen sets

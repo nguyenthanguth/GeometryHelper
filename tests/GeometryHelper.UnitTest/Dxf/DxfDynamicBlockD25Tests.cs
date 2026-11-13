@@ -240,7 +240,7 @@ namespace GeometryHelper.UnitTest.Dxf
             List<DxfDynamicBlockReferenceProperty> properties = TheInsert(Reopened(db))
                 .DynamicBlockReferencePropertyCollection.ToList();
 
-            Assert.Equal(new[] { "Length", "Angle" }, properties.Select(p => p.PropertyName));
+            Assert.Equal(new[] { "Length", "Angle" }, properties.Where(p => p.Show).Select(p => p.PropertyName));
             Assert.Equal(100.0, (double)properties[0].Value, Close);
             Assert.Equal(0.0, (double)properties[1].Value, Close);
             Assert.Equal(DxfDynamicBlockReferencePropertyUnitsType.Distance, properties[0].UnitsType);

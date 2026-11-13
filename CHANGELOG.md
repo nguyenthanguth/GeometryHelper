@@ -6,6 +6,42 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The `Origin` property of each parameter of a dynamic block, as AutoCAD 2021 reads it (probed in its console on side
+databases: 25 INSERTs, its values to the last digit, the library's read back with `AUDIT` finding 0 errors on all 25). A linear, XY,
+polar, rotation and constraint parameter gives, after its own properties, a hidden property `Origin` in
+`DynamicBlockReferencePropertyCollection`: its base point in the block's own coordinates (a `GeoPoint3`, not scaled by the INSERT),
+`PropertyTypeCode` 12, no units, `Show` false, `ReadOnly` false for a linear, XY and polar parameter and true for the others; a flip,
+a point, a visibility and a lookup parameter give none. A plate whose base point a grip moved by (20, 10) reads Origin (20, 10, 0).
+Properties does not list it (it is hidden, as AutoCAD's palette does not). Setting it is refused with `NotSupportedException`.
+`DynamicBlockReferencePropertyCollection` therefore has more items than before; filter on `Show` for the properties AutoCAD lists.
+**NEW.** The base point of a polar parameter moved by its base grip, and the history of grip edits, as AutoCAD 2021 writes them.
+`DxfDynamicBlockReferenceProperty.MoveBasePoint` moves the base point of a polar parameter anywhere, the end point staying and
+the distance and the angle taken to their value sets: a pointer from (0, 0) to (100, 0) dragged by (30, 10) reads Length 81.39 and
+Angle 354.3 degrees, and with distances of 50 to 300 by 10 and angles every 15 degrees dragged by (20, 15) Length 80 and Angle 345
+degrees; the polar stretch then turns what it holds about the new base point (the line from (0, 0) to (100, 0) runs from (5.86, -14.14)
+to (55.36, 35.36) once the end grip is dragged to 50 at 45 degrees from a base point at (20, 0)). `MoveEndPoint(GeoPoint3)` drags the
+end grip of a polar parameter to a point, the distance and the angle from the base point taken to their value sets. A polar
+parameter now lists its base grip always, after the end grip (a pointer lists (1 100, 500) and (1 000, 500)), and the presenter
+drags it. The INSERT's history (`ACAD_ENHANCEDBLOCKHISTORY`) is started by the first value set or grip dragged of a block with a
+polar parameter and gets a `GRIPLOC` record for each polar grip dragged, the node's id and how far the grip went in that drag in the
+block's coordinates: the end grip taken to (0, 50) writes (-100, 50, 0), and on to (10, 0) one record of (-90, 0, 0). A record of
+the same node and name as the last one is merged into it (a property's value replaced, GRIPLOC vectors added), as AutoCAD kept
+Width 120 alone of 140 and then 120. A polar base point moved after the end grip was dragged, or the distance or angle was set, is
+refused with `NotSupportedException`: AutoCAD worked those grip edits out one after the other (the end grip to (0, 50), the base
+grip by 30, the end grip to (35, 0) left a line at (45.43, 25.72) where the library, working from the values, has (0, 0)).
+**CHANGED.** The distances a base grip leaves are taken to the parameter's value set, and the base point stands where they put it,
+the end point staying, as AutoCAD 2021 did: a panel of Width 50 to 300 by 10 whose base grip is dragged by 33 reads Width 70 with the
+base point at 30, by 60 Width 50 (the minimum) at 50; a plate of Width 50 to 300 by 10 and Height 20 to 100 by 5 dragged by (33, 13)
+reads 70 and 35 with the base point at (30, 15). `MoveBasePoint` left them as dragged before. An axis of an XY parameter the move
+leaves alone is not taken.
+**CHANGED.** The grip list of a dynamic INSERT, as AutoCAD 2021 gives it: the insertion grip is left out where a custom grip stands
+on it (a point parameter at the block's origin gave one grip, a plate with a stretch of its base point 4 and not 5), and a linear
+parameter's base grip is listed on a fresh INSERT too, where it was listed only once the INSERT had kept its values: the grip at the
+insertion point of a panel whose left edge a stretch of the base point holds, dragged by 30, read Width 70 on a fresh INSERT.
+**CHANGED.** The history of grip edits an INSERT keeps, when a value is set, keeps the last value alone where the same property is
+set twice in a row (AutoCAD 2021: Width 140 and then 120 left Width 120, in one session or two), where the library added a record
+for each.
+
 **NEW.** A 3DSOLID and a REGION saved as R12 are the edges of their faces, as AutoCAD 2021 writes them (probed in its console:
 30 solids and regions made in side databases and written with `DxfOut` at R12, beside their SAT at R2000): face by face, loop by
 loop, each edge once for each face that uses it, as a LINE from the start of the edge to its end carrying the normal of its face

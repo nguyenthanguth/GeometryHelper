@@ -528,12 +528,13 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ALinearBaseGrip_ShowsOnceTheInsertSavedItsValues_AndMovesTheBasePointAlongTheLine()
+        public void ALinearBaseGrip_ShowsWhereAStretchFollowsTheBasePoint_AndMovesTheBasePointAlongTheLine()
         {
-            // AutoCAD 2021 showed the base grip of a linear parameter a stretch of its base point follows only on an INSERT
-            // that kept its values, at (1 020, 500) once the base point moved by 20; a drag across the line moves nothing across it.
+            // AutoCAD 2021 listed the base grip of a linear parameter a stretch of its base point follows on a fresh INSERT too (it
+            // stood on the insertion grip, which AutoCAD then left out: the grip at (1 000, 500) dragged by 30 read Width 70, plugin
+            // GhDy3a), at (1 020, 500) once the base point moved by 20; a drag across the line moves nothing across it.
             DxfDatabase db = Panel(true, false);
-            Assert.Single(TheInsert(db).GetDynamicGrips());
+            Assert.Equal(2, TheInsert(db).GetDynamicGrips().Count);
 
             Set(db, "Width", 150);
             Assert.Equal(2, TheInsert(db).GetDynamicGrips().Count);

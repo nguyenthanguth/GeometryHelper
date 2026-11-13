@@ -255,10 +255,12 @@ of a plate whose base point is dragged by (20, 0) start 20 along x, and the arra
 (10, 20) starts at (10, 20). The INSERT keeps the base point and not that move, as AutoCAD 2021 read an INSERT back from its
 file: a value set afterwards leaves those points where the block has them, while the anonymous blocks worked out anew
 (`UpdateAnonymousBlocks`) take them to where the base point stands, the left edge at (20, 0) and the attribute definition
-at (22, 2). The distances a move leaves are not taken to the parameter's value set.
+at (22, 2). The distances a move leaves are taken to the parameter's value set, and the base point stands where they put it, the end point staying, as AutoCAD 2021 did (probe GhDy3a): a panel whose Width is 50 to 300 by 10 and whose base grip is dragged by 33 reads Width 70 with the base point at 30, by 60 Width 50 (the minimum) with it at 50; a plate of Width 50 to 300 by 10 and Height 20 to 100 by 5 dragged by (33, 13) reads 70 and 35, base point (30, 15), and by (60, 50) 50 and 20, (50, 30); an axis the move leaves alone is not taken.
 
-The library still sets no property of an INSERT that keeps the base point of a polar, a rotation or a flip parameter away
-from the block's own, or the base point of a linear or an XY parameter that a move carries (below) or a scale or a rotate
+The base point of a polar parameter is moved the same way, anywhere in the plane: a pointer from (0, 0) to (100, 0) of Length 50 to 300 by 10 and angles every 15 degrees whose base grip is dragged by (20, 15) reads Length 80 and Angle 345 degrees, the end point staying and the base point at (22.73, 20.71); with no value set a drag by (30, 10) reads Length 81.39 and Angle 354.3 degrees. The polar stretch that holds the pointer's end then measures from the new base point, as AutoCAD 2021 drew it: the base grip by (20, 0) and the end grip to 50 at 45 degrees from the new base point turn the line from (0, 0) to (100, 0) into one from (5.86, -14.14) to (55.36, 35.36). `MoveEndPoint` drags the end grip, the distance and the angle taken to their value sets. The library moves a polar base point only while the end point stands where the block has it from the base point (the base grip dragged first, or again): AutoCAD 2021 worked an end grip dragged first and a base grip after it out one grip edit after the other, which the library, working from the values, does not, and refuses. The base point of a rotation or a flip parameter has no grip: AutoCAD 2021 gave none, and the grip at the insertion point moved the INSERT.
+
+The library still sets no property of an INSERT that keeps the base point of a rotation or a flip parameter away
+from the block's own, or the base point of a linear, an XY or a polar parameter that a move carries (below) or a scale or a rotate
 follows, or a linear parameter's off its line, beyond the point tolerance of `Tolerance.Default`: it refuses with
 NotSupportedException, writing nothing.
 
@@ -293,7 +295,7 @@ anonymous block at the INSERT's own values the same, entity for entity to 1E-9, 
 own sets of such a block, each of its five properties alone, all five, two set back, an ATTRIB dragged first, and three
 sets continued (check v22), are the library's: its values, its 44 entities and its 15 ATTRIBs within 2E-12 (check D25b).
 AutoCAD kept the INSERT's history of grip edits when it set a value, and so does the library, adding the value set after
-it (check D26); AutoCAD's sets continued on the library's INSERTs drew the same.
+it (check D26); AutoCAD's sets continued on the library's INSERTs drew the same. The history of a block with a polar parameter is started by the first value set or grip dragged, as AutoCAD 2021 started it (probe GhDy3a): the node's id, the property's name and the value, and for a grip dragged the name GRIPLOC and how far the grip went in that drag, in the block's coordinates (`1071` the grip's node, `300` GRIPLOC, `11` the vector): the pointer's end grip dragged to (0, 50) writes (-100, 50, 0), and dragged on to (10, 0) one record of (-90, 0, 0). A record of the node and the name of the last one is merged into it (the value of a property replaced, the vectors added), as AutoCAD 2021 kept Width 120 alone of 140 and then 120.
 
 ## Alignment and base point parameters
 

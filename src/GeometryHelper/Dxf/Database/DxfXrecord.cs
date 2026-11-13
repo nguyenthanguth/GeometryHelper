@@ -104,18 +104,13 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Adds groups at the end of the data of an XRECORD in a file as AutoCAD writes those of its own records, the codes of
-        /// extended data it keeps there (1070, 1071) among them, as the history of grip edits of an INSERT holds them.
+        /// Gives an XRECORD in a file the groups as its whole data as AutoCAD writes those of its own records, the codes it keeps
+        /// there (1070, 1071, and the points of a grip's location, 11) among them, as the history of grip edits holds them.
         /// </summary>
-        internal void AppendKept(IEnumerable<DxfTypedValue> data)
+        internal void SetKept(IEnumerable<DxfTypedValue> data)
         {
             DxfFile file = InFile("be given data");
             var groups = new List<KeyValuePair<int, string>>();
-
-            foreach (DxfTypedValue group in Data)
-            {
-                groups.Add(new KeyValuePair<int, string>(group.TypeCode, group.Value));
-            }
 
             foreach (DxfTypedValue group in data)
             {
