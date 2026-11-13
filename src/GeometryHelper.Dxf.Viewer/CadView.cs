@@ -213,6 +213,21 @@ namespace GeometryHelper.Dxf.Viewer
             CenterY = (box.MinY + box.MaxY) / 2.0;
         }
 
+        /// <summary>
+        /// Shows a view given by its centre and its height, as AutoCAD keeps the view of a viewport in a drawing (the VPORT
+        /// record's groups 12, 22 and 40): the height of the canvas covers <paramref name="height"/> units, whatever the canvas's
+        /// width, so that a canvas twice as wide shows twice the width. The turn of the view is kept.
+        /// </summary>
+        /// <param name="centerX">The X of the centre of the view.</param>
+        /// <param name="centerY">The Y of the centre of the view.</param>
+        /// <param name="height">The height of the view in drawing units; one of nought or less shows 1 pixel to the unit.</param>
+        public void ZoomToHeight(double centerX, double centerY, double height)
+        {
+            CenterX = centerX;
+            CenterY = centerY;
+            PixelsPerUnit = height > 0.0 ? Math.Max(MinZoom, Math.Min(MaxZoom, Height / height)) : 1.0;
+        }
+
         /// <summary>A step along the canvas, X right and Y up, as a step of the drawing: turned back by the twist.</summary>
         private void Unturn(double sx, double sy, out double x, out double y)
         {

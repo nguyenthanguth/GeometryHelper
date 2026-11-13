@@ -192,13 +192,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { "Model", "Layout1" }, document.Spaces.Select(s => s.Name));
 
             CadCommandSession session = Measure(document, "LO");
-            Assert.Equal("Enter layout option [New/Rename/Set/?] <New>:", session.PromptText);
-            Run(session, Enter);
-            Assert.Equal("Enter name of new layout <Layout2>:", session.PromptText);
+            Assert.Equal(
+                "Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:",
+                session.PromptText
+            );
+            Run(session, "N");
+            Assert.Equal("Enter new Layout name <Layout2>:", session.PromptText);
             Run(session, Enter);
 
             Assert.Equal(new[] { "Model", "Layout1", "Layout2" }, document.Spaces.Select(s => s.Name));
-            Assert.Equal("Layout \"Layout2\" created.", session.History.Last());
+            Assert.DoesNotContain(session.History, l => l.StartsWith("Layout \"", StringComparison.Ordinal));
             Assert.Single(All<DxfViewport>(document.Spaces[2]));
             AssertReopens(document);
 
@@ -214,13 +217,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
 
             CadCommandSession session = Measure(document, "LAYOUT", "N", "layout1");
-            Assert.Equal("A layout named \"layout1\" already exists.", session.History.Last());
+            Assert.Equal("Layout \"layout1\" already exists, not created.", session.History.Last());
 
             Run(session, "LAYOUT", "N", "Plan 1-50");
             Assert.Equal("Plan 1-50", document.Spaces.Last().Name);
 
+            // As AutoCAD 2021 lists them: by name, each with its block.
             Run(session, "LAYOUT", "?");
-            Assert.Equal(new[] { "Model", "Layout1", "Plan 1-50" }, session.History.Skip(session.History.Count - 3));
+            Assert.Equal(
+                new[]
+                {
+                    "Active Layouts:",
+                    string.Empty,
+                    "Layout: Layout1       Block name: " + document.Spaces[1].Block.Name + ".",
+                    "Layout: Plan 1-50     Block name: " + document.Spaces[2].Block.Name + ".",
+                },
+                session.History.Skip(session.History.Count - 4)
+            );
         }
 
         [Fact]

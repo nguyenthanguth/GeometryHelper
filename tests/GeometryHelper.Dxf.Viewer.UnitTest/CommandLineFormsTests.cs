@@ -218,7 +218,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 session.PromptText
             );
             Run(session, Enter);
-            Assert.Equal("Enter layout to make current <Model>:", session.PromptText);
+            Assert.Equal("Enter layout to make current <Layout1>:", session.PromptText);
             Run(session, "layout1");
             Assert.Equal("Layout1", document.CurrentSpace.Name);
 
@@ -303,7 +303,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Sheets();
             Start(document, "-LAYOUT", "N", "Z");
             CadCommandSession session = Start(document, "-LAYOUT", "R");
-            Assert.Equal("Enter layout to rename <Model>:", session.PromptText);
+            Assert.Equal("Enter layout to rename <Layout1>:", session.PromptText);
             Run(session, "Layout1");
             Assert.Equal("Enter new layout name:", session.PromptText);
             Run(session, "Sheet1");
@@ -333,7 +333,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Sheets();
             CadCommandSession session = Start(document, "-LAYOUT", "C");
-            Assert.Equal("Enter name of layout to copy <Model>:", session.PromptText);
+            Assert.Equal("Enter name of layout to copy <Layout1>:", session.PromptText);
             Run(session, "Layout1");
             Assert.Equal("Enter layout name for copy <Layout1 (2)>:", session.PromptText);
             string before = document.Database.ToText();
@@ -348,6 +348,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(110, 60, 0), line.EndPoint);
             Assert.NotEqual(All<DxfLine>(original)[0].Handle, line.Handle);
             Assert.Equal(original.Layout.GetViewports().Count, copy.Layout.GetViewports().Count);
+            Assert.Equal(
+                original.Layout.GetViewports().Select(v => v.Number),
+                copy.Layout.GetViewports().Select(v => v.Number)
+            );
             Assert.Equal(original.Layout.PlotPaperSize, copy.Layout.PlotPaperSize);
             Assert.NotEqual(original.Block.Name, copy.Block.Name);
             AssertReopens(document);
@@ -389,7 +393,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             string before = document.Database.ToText();
             string block = document.Spaces.Single(s => s.Name == "Plan").Block.Name;
             CadCommandSession session = Start(document, "-LAYOUT", "D");
-            Assert.Equal("Enter name of layout to delete <Model>:", session.PromptText);
+            Assert.Equal("Enter name of layout to delete <Layout1>:", session.PromptText);
             Run(session, "plan");
 
             Assert.Equal("Layout \"plan\" deleted.", session.History.Last());
@@ -437,15 +441,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void MinusLayout_TemplateAndSaveas_SayTheyAreNotBuilt_AndTheAliasReachesTheCommand()
+        public void Layout_AsksWhatMinusLayoutAsks_SetTheDefault_AndTheAliasesReachTheCommands()
         {
-            CadDocument document = Sheets();
-            CadCommandSession session = Start(document, "-LAYOUT", "T");
-            Assert.False(session.IsRunning);
-            Assert.Equal("A layout is not brought in from a template file here.", session.History.Last());
-            Run(session, "-LAYOUT", "SA");
-            Assert.False(session.IsRunning);
-            Assert.Equal("A layout is not saved to a template file (*.dwt) here.", session.History.Last());
+            CadDocument document = Blank();
+            CadCommandSession session = Start(document, "LAYOUT");
+
+            Assert.Equal(
+                "Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:",
+                session.PromptText
+            );
+            Run(session, Enter);
+            Assert.Equal("Enter layout to make current <Layout1>:", session.PromptText);
+            Run(session, Enter);
+            Assert.Equal("Layout1", document.CurrentSpace.Name);
+
+            // With a layout shown it is the one offered, whatever the tab order says.
+            Run(session, "LAYOUT", "N", "Plan");
+            Run(session, "LAYOUT", "S", "Plan");
+            Run(session, "LAYOUT", "S");
+            Assert.Equal("Enter layout to make current <Plan>:", session.PromptText);
+            Run(session, Esc);
 
             Assert.Equal("-LAYOUT", CadShortcuts.Default.Aliases["-LO"]);
             Assert.Equal("-LAYOUT", CadCommandRegistry.CreateDefault().Find("-LO").Name);
@@ -453,12 +468,276 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void Layout_StillAsksItsOwnOptions_NewTheDefault()
+        public void Layout_SaysWhatAutoCadSays_OfASetOfALayoutNotThere_AndOfARenameACopyAndANameTaken()
         {
-            CadDocument document = Blank();
-            CadCommandSession session = Start(document, "LAYOUT");
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "LAYOUT", "S", "Nowhere");
+            Assert.Equal("Cannot find layout \"Nowhere\".", session.History.Last());
 
-            Assert.Equal("Enter layout option [New/Rename/Set/?] <New>:", session.PromptText);
+            Run(session, "LAYOUT", "R", "layout1", "Sheet A");
+            Assert.Equal("Layout \"layout1\" renamed to \"Sheet A\".", session.History.Last());
+            Run(session, "LAYOUT", "C", "Sheet A", Enter);
+            Assert.Equal("Layout \"Sheet A\" copied to \"Sheet A (2)\".", session.History.Last());
+            Run(session, "LAYOUT", "N", "sheet a");
+            Assert.Equal("Layout \"sheet a\" already exists, not created.", session.History.Last());
+            Run(session, "LAYOUT", "?");
+            Assert.Equal(
+                "Layout: Sheet A       Block name: " + document.Spaces[1].Block.Name + ".",
+                session.History[session.History.Count - 2]
+            );
+            Assert.Equal(new[] { "Model", "Sheet A", "Sheet A (2)" }, Names(document));
+        }
+
+        [Fact]
+        public void MinusLayout_DeleteOfTheLayoutShown_ShowsTheNextTab_ElseTheOneBefore_ElseTheNewLayout1()
+        {
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "-LAYOUT", "N", "B");
+            Run(session, "-LAYOUT", "N", "C");
+            Run(session, "-LAYOUT", "N", "D");
+
+            // As AutoCAD 2021 leaves CTAB: the tab after the one deleted.
+            Run(session, "-LAYOUT", "S", "B");
+            Run(session, "-LAYOUT", "D", "B");
+            Assert.Equal(new[] { "Model", "Layout1", "C", "D" }, Names(document));
+            Assert.Equal("C", document.CurrentSpace.Name);
+
+            // The last tab deleted: the one before it.
+            Run(session, "-LAYOUT", "S", "D");
+            Run(session, "-LAYOUT", "D", "D");
+            Assert.Equal("C", document.CurrentSpace.Name);
+
+            // The first tab deleted: the next.
+            Run(session, "-LAYOUT", "S", "Layout1");
+            Run(session, "-LAYOUT", "D", "Layout1");
+            Assert.Equal(new[] { "Model", "C" }, Names(document));
+            Assert.Equal("C", document.CurrentSpace.Name);
+
+            // The only sheet deleted while shown: the new Layout1 that replaces it.
+            Run(session, "-LAYOUT", "D", "C");
+            Assert.Equal(new[] { "Model", "Layout1" }, Names(document));
+            Assert.Equal("Layout1", document.CurrentSpace.Name);
+
+            // A layout other than the one shown deleted leaves the one shown.
+            Run(session, "-LAYOUT", "N", "E");
+            Run(session, "-LAYOUT", "D", "E");
+            Assert.Equal("Layout1", document.CurrentSpace.Name);
+        }
+
+        [Fact]
+        public void MinusLayout_Delete_LeavesTheTabOrderOfTheOthersAsItWas_AndTheDrawingReopens()
+        {
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "-LAYOUT", "N", "B");
+            Run(session, "-LAYOUT", "N", "C");
+            Run(session, "-LAYOUT", "N", "D");
+            Run(session, "-LAYOUT", "D", "B");
+
+            // AutoCAD 2021 does not number the tabs again: Layout1 1, C 3, D 4, and the next new one 5.
+            Assert.Equal(
+                new[] { "Layout1:1", "C:3", "D:4" },
+                document
+                    .Database.Layouts.Where(l => l.LayoutName != "Model")
+                    .Select(l => l.LayoutName + ":" + l.TabOrder)
+            );
+            Run(session, "-LAYOUT", "N", "E");
+            Assert.Equal(5, document.Database.Layouts.Single(l => l.LayoutName == "E").TabOrder);
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void MinusLayout_Delete_OfTheSheetThatHeldPaperSpace_LeavesABlockNamedPaperSpace_ElseAutoCadRefusesTheFile()
+        {
+            CadDocument document = Sheets();
+            Assert.Equal("*Paper_Space", document.Spaces[1].Block.Name);
+            CadCommandSession session = Start(document, "-LAYOUT", "N", "B");
+            document.Spaces[2].Block.AppendEntity(new DxfLine(new GeoPoint3(1, 2, 0), new GeoPoint3(3, 4, 0)));
+            Run(session, "-LAYOUT", "S", "Layout1");
+            Run(session, "-LAYOUT", "D", "Layout1");
+
+            // The sheet B is moved into the place of Layout1, with its line, and shown, as the next tab is.
+            Assert.Equal("B", document.CurrentSpace.Name);
+            DxfLine moved = Assert.Single(All<DxfLine>(document.Spaces[1]));
+            Near(new GeoPoint3(3, 4, 0), moved.EndPoint);
+            Assert.NotEmpty(document.GetDisplay(document.Spaces[1]).Items);
+
+            // AutoCAD 2021 read "Missing Default entry *Paper_Space in SymbolTable:BLOCK_RECORD" in a DXF without it, and
+            // named the block of the layout left *Paper_Space.
+            Assert.Equal(new[] { "Model", "B" }, Names(document));
+            Assert.Equal("*Paper_Space", document.Spaces[1].Block.Name);
+            Assert.Single(document.Database.BlockTable, b => b.Name == "*Paper_Space");
+            AssertReopens(document);
+            Assert.NotEmpty(document.Spaces[1].Layout.GetViewports());
+
+            // The only sheet deleted: the new Layout1 has the name.
+            Run(session, "-LAYOUT", "D", "B");
+            Assert.Equal(new[] { "Model", "Layout1" }, Names(document));
+            Assert.Equal("*Paper_Space", document.Spaces[1].Block.Name);
+            AssertReopens(document);
+
+            // Undo gives the names back.
+            Assert.True(document.Undo());
+            Assert.True(document.Undo());
+            Assert.Equal(new[] { "Model", "Layout1", "B" }, Names(document));
+            Assert.Equal("*Paper_Space", document.Spaces[1].Block.Name);
+        }
+
+        /// <summary>A template file of the sheets Plan and Sect, a line on the layer TPLONLY in each, written as DXF.</summary>
+        private string TemplateFile(string name)
+        {
+            DxfDatabase database = CadTemplate.CreateMetric();
+            database.LayerTable.Add(new DxfLayerTableRecord { Name = "TPLONLY", ColorIndex = 4 });
+
+            foreach (string sheet in new[] { "Plan", "Sect" })
+            {
+                var layout = new DxfLayout { LayoutName = sheet };
+                layout.AddToLayoutDictionary(database, null);
+                layout.Initialize();
+                layout.BlockTableRecord.AppendEntity(
+                    new DxfLine(new GeoPoint3(10, 10, 0), new GeoPoint3(100, 50, 0)) { Layer = "TPLONLY" }
+                );
+            }
+
+            string path = Path.Combine(_folder, name);
+            database.Save(path);
+            return path;
+        }
+
+        [Fact]
+        public void MinusLayout_Template_ReadsTheLayoutsOfAFileIn_WithTheirEntitiesAndLayers_AsOneUndoStep()
+        {
+            string file = TemplateFile("tpl1.dxf");
+            CadDocument document = Sheets();
+            string before = document.Database.ToText();
+            CadCommandSession session = Start(document, "-LAYOUT", "T");
+            Assert.Equal("Enter file name:", session.PromptText);
+            Run(session, file);
+            Assert.Equal("Enter layout name(s) or [?]:", session.PromptText);
+            Run(session, "?");
+            Assert.Equal(
+                new[] { "Layout(s) in drawing:", "Layout1", "Plan", "Sect" },
+                session.History.Skip(session.History.Count - 4)
+            );
+            Run(session, "Plan,Nope");
+
+            // Nothing is said of the making, the layout shown stays, and what the sheet draws and its layer come with it.
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { "Model", "Layout1", "Plan" }, Names(document));
+            Assert.Same(document.ModelSpace, document.CurrentSpace);
+            CadSpace plan = document.Spaces[2];
+            DxfLine line = Assert.Single(All<DxfLine>(plan));
+            Near(new GeoPoint3(100, 50, 0), line.EndPoint);
+            Assert.Equal("TPLONLY", line.Layer);
+            Assert.Equal(4, document.Database.LayerTable["TPLONLY"].ColorIndex);
+            Assert.NotNull(plan.Layout.GetViewports().FirstOrDefault(v => v.Number == 1));
+            AssertReopens(document);
+
+            Assert.True(document.Undo());
+            Assert.Equal(new[] { "Model", "Layout1" }, Names(document));
+            Assert.Equal(before, document.Database.ToText());
+            Assert.True(document.Redo());
+            Assert.Equal(new[] { "Model", "Layout1", "Plan" }, Names(document));
+        }
+
+        [Fact]
+        public void MinusLayout_Template_NamesALayoutTheDrawingHasLayoutNDashName_AndTakesWildCardsAndCommas()
+        {
+            string file = TemplateFile("tpl1.dxf");
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "-LAYOUT", "T", file, "Plan");
+            Run(session, "-LAYOUT", "T", file, "Plan");
+            Run(session, "-LAYOUT", "T", file, "layout1,Sect");
+
+            // The numbers AutoCAD 2021 gave: the first N no layout starts with LayoutN, here Layout2, then Layout3.
+            Assert.Equal(
+                new[] { "Model", "Layout1", "Plan", "Layout2-Plan", "Layout3-Layout1", "Sect" },
+                Names(document)
+            );
+
+            Run(session, "-LAYOUT", "T", file, "Se*");
+            Assert.Equal("Layout4-Sect", Names(document).Last());
+        }
+
+        [Fact]
+        public void MinusLayout_Template_SaysWhatAutoCadSays_OfAFileNotThereANameNotInItAndEnter()
+        {
+            string file = TemplateFile("tpl1.dxf");
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "-LAYOUT", "T", "nofile.dwt");
+            Assert.Equal("\"nofile.dwt\": Can't find file.", session.History.Last());
+            Assert.False(session.IsRunning);
+
+            // A name with no extension is looked for as .dwt.
+            Run(session, "-LAYOUT", "T", Path.Combine(_folder, "tpl1"));
+            Assert.Equal("\"tpl1.dwt\": Can't find file.", session.History.Last());
+
+            Run(session, "-LAYOUT", "T", file, "Nope");
+            Assert.Equal("The specified layout(s) were not found in " + file + ".", session.History.Last());
+            Assert.Equal("Enter layout name(s) or [?]:", session.PromptText);
+            Run(session, Enter);
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { "Model", "Layout1" }, Names(document));
+        }
+
+        [Fact]
+        public void MinusLayout_SaveAs_WritesATemplateOfTheLayoutAlone_ModelSpaceEmpty_AndRefusesModel()
+        {
+            CadDocument document = Sheets();
+            document.Database.LayerTable.Add(new DxfLayerTableRecord { Name = "MYL1", ColorIndex = 5 });
+            document.Database.ModelSpace.AppendEntity(
+                new DxfLine(new GeoPoint3(1, 1, 0), new GeoPoint3(50, 50, 0)) { Layer = "MYL1" }
+            );
+            CadCommandSession session = Start(document, "-LAYOUT", "N", "Plan");
+            Run(session, "-LAYOUT", "SA");
+            Assert.Equal("Enter layout to save to template <Layout1>:", session.PromptText);
+            Run(session, "Layout1");
+            Assert.Equal("Enter name of output file:", session.PromptText);
+            string file = Path.Combine(_folder, "sa1");
+            Run(session, file);
+            Assert.False(session.IsRunning);
+
+            // No extension takes .dwt; the file is a DWG and holds the one sheet with its line, the layers, and nothing in model space.
+            Assert.True(File.Exists(file + ".dwt"));
+            DxfDatabase template = CadDrawingFile.Open(file + ".dwt");
+            Assert.Equal(
+                new[] { "Layout1", "Model" },
+                template.Layouts.Select(l => l.LayoutName).OrderBy(n => n, StringComparer.Ordinal)
+            );
+            Assert.Empty(template.ModelSpace);
+            Assert.Single(template.Layouts.Single(l => l.LayoutName == "Layout1").BlockTableRecord.OfType<DxfLine>());
+            Assert.True(template.LayerTable.Has("MYL1"));
+
+            // The drawing is as it was.
+            Assert.Equal(new[] { "Model", "Layout1", "Plan" }, Names(document));
+            Assert.Single(document.Database.ModelSpace);
+
+            Run(session, "-LAYOUT", "SA", "Model");
+            Assert.Equal("May not save Model tab.", session.History.Last());
+            Assert.False(File.Exists(file + "2.dwt"));
+            Run(session, "-LAYOUT", "SA", "?");
+            Assert.Equal("Layout \"?\" does not exist.", session.History.Last());
+            Run(session, "-LAYOUT", "SA", "Plan", Path.Combine(_folder, "a.txt"));
+            Assert.Equal("A template is saved as .dwt, .dwg or .dxf, not .txt.", session.History.Last());
+        }
+
+        [Fact]
+        public void MinusLayout_SaveAs_AFileEndingInDxf_AsksTheDxfSettings_AndTheTemplateReadsBackIn()
+        {
+            CadDocument document = Sheets();
+            CadCommandSession session = Start(document, "-LAYOUT", "SA", "Layout1");
+            string file = Path.Combine(_folder, "sa3.dxf");
+            Run(session, file);
+            Assert.Equal("Enter decimal places of accuracy (0 to 16) or [Version] <16>:", session.PromptText);
+            Run(session, Enter);
+
+            DxfDatabase template = DxfDatabase.Open(file);
+            Assert.Single(template.Layouts, l => l.LayoutName == "Layout1");
+            Assert.Empty(template.ModelSpace);
+
+            // And it brings its sheet back in, named Layout2-Layout1.
+            Run(session, "-LAYOUT", "T", file, "Layout1");
+            Assert.Equal(new[] { "Model", "Layout1", "Layout2-Layout1" }, Names(document));
+            Assert.Single(All<DxfLine>(document.Spaces[2]));
         }
 
         #endregion
@@ -620,6 +899,89 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // The command is one step, whatever it bound.
             Assert.True(document.Undo());
             Assert.Equal(attached, document.Database.ToText());
+        }
+
+        /// <summary>
+        /// As <see cref="Grid"/>, its block TAG a line on the layer WALL drawn DASHED and a text on the layer DOOR in the style
+        /// MYSTYLE, and one on layer 0: what AutoCAD 2021's probe used (the layers WALL and DOOR, the style MYSTYLE).
+        /// </summary>
+        private string GridWithSymbols()
+        {
+            DxfDatabase database = CadTemplate.CreateMetric();
+            var dashed = new DxfLinetypeTableRecord
+            {
+                Name = "DASHED",
+                AsciiDescription = "Dashed __ __ __",
+                NumDashes = 2,
+            };
+            dashed.SetDashLengthAt(0, 12.7);
+            dashed.SetDashLengthAt(1, -6.35);
+            database.LinetypeTable.Add(dashed);
+            database.LayerTable.Add(new DxfLayerTableRecord { Name = "WALL", ColorIndex = 3 });
+            database.LayerTable.Add(new DxfLayerTableRecord { Name = "DOOR", ColorIndex = 5 });
+            database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "MYSTYLE", FileName = "arial.ttf" });
+            var tag = new DxfBlockTableRecord { Name = "TAG" };
+            database.BlockTable.Add(tag);
+            tag.AppendEntity(
+                new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 10, 0)) { Layer = "WALL", Linetype = "DASHED" }
+            );
+            tag.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(5, 0, 0)));
+            var text = new DxfDBText();
+            text.SetDatabaseDefaults(database);
+            text.Layer = "DOOR";
+            text.TextStyleName = "MYSTYLE";
+            text.TextString = "T";
+            text.Height = 2;
+            text.Position = new GeoPoint3(1, 1, 0);
+            tag.AppendEntity(text);
+            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(500, 0, 0), tag));
+            string path = Path.Combine(_folder, "xref", "grid.dxf");
+            database.Save(path);
+            return path;
+        }
+
+        [Fact]
+        public void MinusXbind_Block_BindsTheLayersLinetypesAndStylesItsEntitiesUse_AsGridDollarZeroDollarName()
+        {
+            string grid = GridWithSymbols();
+            DxfDatabase blank = CadTemplate.CreateMetric();
+            string path = Path.Combine(_folder, "plans", "host.dxf");
+            blank.Save(path);
+            CadDocument document = CadDocument.Open(path);
+            CadCommandSession session = Session(document);
+            Run(session, "-XREF", "A", grid, P(0, 0), Enter, Enter, Enter);
+            Assert.True(document.Database.LayerTable["grid|WALL"].IsDependent);
+
+            // AutoCAD 2021 (probe): the layers WALL and DOOR and the style MYSTYLE of the block's entities came as the drawing's
+            // own grid$0$WALL, grid$0$DOOR and grid$0$MYSTYLE, the block's entities drawn on them; layer 0 and what the block
+            // does not use stayed as they were.
+            Run(session, "-XBIND", "B", "grid|TAG");
+            Assert.Equal("1 Block(s) bound.", session.History.Last());
+
+            DxfBlockTableRecord bound = document.Database.BlockTable["grid$0$TAG"];
+            List<DxfEntity> entities = bound.Cast<DxfEntity>().ToList();
+            Assert.Equal("grid$0$WALL", entities.OfType<DxfLine>().First().Layer);
+            Assert.Equal("grid$0$DASHED", entities.OfType<DxfLine>().First().Linetype);
+            Assert.Equal("0", entities.OfType<DxfLine>().Last().Layer);
+            DxfDBText text = Assert.Single(entities.OfType<DxfDBText>());
+            Assert.Equal("grid$0$DOOR", text.Layer);
+            Assert.Equal("grid$0$MYSTYLE", text.TextStyleName);
+
+            DxfDatabase database = document.Database;
+            Assert.False(database.LayerTable["grid$0$WALL"].IsDependent);
+            Assert.Equal(3, database.LayerTable["grid$0$WALL"].ColorIndex);
+            Assert.False(database.LayerTable.Has("grid|WALL"));
+            Assert.False(database.TextStyleTable["grid$0$MYSTYLE"].IsDependent);
+
+            // The layers the clone would have brought under their plain names are not left in the drawing.
+            Assert.False(database.LayerTable.Has("WALL"));
+            Assert.False(database.LayerTable.Has("DOOR"));
+            Assert.False(database.TextStyleTable.Has("MYSTYLE"));
+            Assert.False(database.LinetypeTable.Has("DASHED"));
+            AssertReopens(document);
+            Run(session, Enter);
+            Assert.True(document.Undo());
+            Assert.True(document.Database.LayerTable.Has("grid|WALL"));
         }
 
         [Fact]

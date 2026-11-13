@@ -342,7 +342,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 IReadOnlyList<CadMenuItemViewModel> items = model.CanvasMenu();
 
-                Assert.Equal(new[] { "New", "Rename", "Set", "?" }, Headers(items).Skip(3).Take(4));
+                Assert.Equal(
+                    new[] { "Copy", "Delete", "New", "Template", "Rename", "SAveas", "Set", "?" },
+                    Headers(items).Skip(3).Take(8)
+                );
                 Assert.False(Item(items, "Osnap Overrides").IsEnabled);
             }
         }

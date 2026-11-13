@@ -78,7 +78,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             registry.Add(new CadCommand("ELLIPSE", Ellipse));
             registry.Add(new CadCommand("POINT", Point));
-            registry.Add(new CadCommand("LAYOUT", Layout));
+            registry.Add(new CadCommand("LAYOUT", LayoutTyped));
             registry.Add(new CadCommand("DIST", Dist));
             registry.Add(new CadCommand("AREA", Area));
             registry.Add(new CadCommand("ID", Id));
@@ -718,86 +718,6 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayBox was = view.VisibleBox;
             view.Pan(move.X * view.PixelsPerUnit, -move.Y * view.PixelsPerUnit);
             c.Document.RecordSpaceView(c.Document.CurrentSpace, view, was, "PAN", false);
-        }
-
-        /// <summary>
-        /// LAYOUT: New adds a layout after the last tab, a sheet of A3 with its viewport, named Layout2 where Layout1 is taken;
-        /// Rename renames one, Set shows one; ? lists the layouts. One undo step takes a new layout or a new name back.
-        /// </summary>
-        private static IEnumerable<CadPrompt> Layout(CadCommandContext c)
-        {
-            yield return CadPrompt.ForKeyword("Enter layout option", new[] { "New", "Rename", "Set", "?" }, "New");
-
-            if (c.Input.Is("Rename") || c.Input.Is("Set"))
-            {
-                foreach (CadPrompt prompt in c.Input.Is("Set") ? LayoutSet(c) : LayoutRename(c))
-                {
-                    yield return prompt;
-                }
-
-                yield break;
-            }
-
-            if (c.Input.Is("?"))
-            {
-                foreach (CadSpace space in c.Document.Spaces)
-                {
-                    c.Write(space.IsModel ? "Model" : space.Name);
-                }
-
-                yield break;
-            }
-
-            if (!c.Input.Is("New"))
-            {
-                yield break;
-            }
-
-            int next = c.Document.Spaces.Count;
-
-            while (
-                c.Document.Spaces.Any(s =>
-                    string.Equals(
-                        s.Name,
-                        "Layout" + next.ToString(CultureInfo.InvariantCulture),
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-            )
-            {
-                next++;
-            }
-
-            string offered = "Layout" + next.ToString(CultureInfo.InvariantCulture);
-            yield return CadPrompt.ForString("Enter name of new layout", offered);
-            string name = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : offered;
-
-            if (name.Length == 0 || name.Length > 255 || name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) >= 0)
-            {
-                c.Write("Invalid layout name.");
-                yield break;
-            }
-
-            if (c.Document.Spaces.Any(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase)))
-            {
-                c.Write("A layout named \"" + name + "\" already exists.");
-                yield break;
-            }
-
-            CadEditResult result = c.Apply(
-                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New layout", null, name) },
-                s =>
-                {
-                    var layout = new DxfLayout { LayoutName = name };
-                    layout.AddToLayoutDictionary(s.Database, null);
-                    layout.Initialize();
-                }
-            );
-
-            if (result.Succeeded)
-            {
-                c.Write("Layout \"" + name + "\" created.");
-            }
         }
 
         private static string Number(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);

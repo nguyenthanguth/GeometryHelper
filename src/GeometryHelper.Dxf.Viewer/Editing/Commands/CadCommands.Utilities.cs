@@ -570,66 +570,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>LAYOUT Rename: a layout given a new name, refused where the name is not one AutoCAD takes or another layout has it.</summary>
-        private static IEnumerable<CadPrompt> LayoutRename(CadCommandContext c)
-        {
-            string offered = c.Space.IsModel ? null : c.Space.Name;
-            yield return CadPrompt.ForString("Enter layout to rename", offered);
-            string old = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : offered;
-            CadSpace space = FindLayout(c, old);
-
-            if (space == null || space.IsModel)
-            {
-                c.Write(space == null ? "Layout \"" + old + "\" not found." : "The Model tab cannot be renamed.");
-                yield break;
-            }
-
-            yield return CadPrompt.ForString("Enter new layout name", space.Name);
-            string name = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : space.Name;
-
-            if (name.Length == 0 || name.Length > 255 || name.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) >= 0)
-            {
-                c.Write("Invalid layout name.");
-                yield break;
-            }
-
-            CadSpace taken = FindLayout(c, name);
-
-            if (taken != null && taken != space)
-            {
-                c.Write("A layout named \"" + name + "\" already exists.");
-                yield break;
-            }
-
-            string was = space.Name;
-            DxfLayout layout = space.Layout;
-            CadEditResult result = c.Apply(
-                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename layout", was, name) },
-                s => layout.LayoutName = name
-            );
-
-            if (result.Succeeded)
-            {
-                c.Write("Layout \"" + was + "\" renamed to \"" + name + "\".");
-            }
-        }
-
-        /// <summary>LAYOUT Set: the layout named, or Model, shown; the selection, which belongs to a space, cleared.</summary>
-        private static IEnumerable<CadPrompt> LayoutSet(CadCommandContext c)
-        {
-            yield return CadPrompt.ForString("Enter layout to make current", c.Space.Name);
-            string name = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : c.Space.Name;
-            CadSpace space = FindLayout(c, name);
-
-            if (space == null)
-            {
-                c.Write("Layout \"" + name + "\" not found.");
-                yield break;
-            }
-
-            c.Document.ShowSpace(space);
-        }
-
         private static CadSpace FindLayout(CadCommandContext c, string name)
         {
             foreach (CadSpace space in c.Document.Spaces)

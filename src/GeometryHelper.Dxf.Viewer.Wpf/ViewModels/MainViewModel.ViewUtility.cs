@@ -256,17 +256,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadTiledViewport current = file.Document.TiledViewports.Current;
             ViewState state = file.ViewOf(file.Document.ModelSpace, _canvasWidth, _canvasHeight);
 
-            if (current.Width > 0.0 && current.Height > 0.0)
+            if (current.Height > 0.0)
             {
-                state.View.ZoomTo(
-                    new DisplayBox(
-                        current.Center.X - current.Width / 2.0,
-                        current.Center.Y - current.Height / 2.0,
-                        current.Center.X + current.Width / 2.0,
-                        current.Center.Y + current.Height / 2.0
-                    ),
-                    0.0
-                );
+                // The height of the tile's view is kept, as AutoCAD keeps it: the width follows the shape of the canvas.
+                state.View.ZoomToHeight(current.Center.X, current.Center.Y, current.Height);
                 state.FitPending = false;
             }
 

@@ -390,6 +390,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             private set => Set(ref _revision, value);
         }
 
+        /// <summary>Gets a number that changes whenever the drawing itself does (an edit, an undo, a redo, a regeneration), not when only a view changes; the other tiles of model space are drawn again by it.</summary>
+        internal int DrawingRevision { get; private set; }
+
         /// <summary>Gets the text of the title bar: the file, "*" when it has unsaved changes, the layout shown after it.</summary>
         public string Title
         {
@@ -1400,6 +1403,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             ViewState state = _current.ViewOf(Space, _canvasWidth, _canvasHeight);
+            state.SavedTile = null;
             state.View.ZoomTo(CadPicking.Extents(_current.Document, Space));
             state.FitPending = true;
             Revision++;
@@ -1431,7 +1435,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     if (pair.Value.FitPending)
                     {
-                        pair.Value.View.ZoomTo(CadPicking.Extents(file.Document, pair.Key));
+                        file.Fit(pair.Key, pair.Value);
                         redraw |= file == _current;
                     }
                 }
@@ -1921,6 +1925,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (e.Kind != CadChangeKind.Saved)
             {
+                DrawingRevision++;
                 Revision++;
             }
         }
@@ -2395,6 +2400,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public CadView View { get; }
 
             public bool FitPending { get; set; } = true;
+
+            /// <summary>The tile of model space a drawing was saved with, whose view the view is fitted to while it is still fitted: set for a drawing that opens tiled, null once the view is zoomed to its extents.</summary>
+            public CadTiledViewport SavedTile { get; set; }
         }
 
         /// <summary>A file of the list: open, with a document, its command line and the view of each space shown, or only found in a folder.</summary>
@@ -2462,9 +2470,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     view.ZoomTo(CadPicking.Extents(Document, space));
                     state = new ViewState(view);
                     Views[space] = state;
+
+                    // A drawing saved with tiles of model space opens at the view of its current tile, as AutoCAD shows them.
+                    if (space == Document.ModelSpace && Document.BlockEditor == null)
+                    {
+                        CadTiledViewports tiles = Document.TiledViewports;
+
+                        if (tiles.IsTiled && tiles.Current.Height > 0.0)
+                        {
+                            state.SavedTile = tiles.Current;
+                            Fit(space, state);
+                        }
+                    }
                 }
 
                 return state;
+            }
+
+            /// <summary>Fits a view that is still fitted: to the view of the tile the drawing was saved with, else to the extents of its space.</summary>
+            public void Fit(CadSpace space, ViewState state)
+            {
+                CadTiledViewport tile = state.SavedTile;
+
+                if (tile != null && tile.Height > 0.0)
+                {
+                    state.View.ZoomToHeight(tile.Center.X, tile.Center.Y, tile.Height);
+                }
+                else
+                {
+                    state.View.ZoomTo(CadPicking.Extents(Document, space));
+                }
             }
 
             public string Detail()
