@@ -11,7 +11,8 @@ namespace GeometryHelper.Dxf
     /// </summary>
     /// <remarks>
     /// Its <see cref="DxfEntity.Layer"/>, colour, linetype, lineweight and visibility are set as any entity's are, every other
-    /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused.
+    /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused,
+    /// but for an MLINE, which a transformation that scales alike moves (<see cref="DxfMlineBuilder"/> builds one).
     /// It is copied as it is by <see cref="DxfEntity.Clone"/>, and by <see cref="DxfEntity.GetTransformedCopy"/> with the
     /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a type it
     /// does not read. An MLINE is exploded into its lines and caps, and a MESH into the 3DFACEs of its faces (<see cref="Explode"/>).
@@ -552,16 +553,110 @@ namespace GeometryHelper.Dxf
             return false;
         }
 
-        /// <summary>Refuses: the geometry of a type the library keeps as it is is not changed.</summary>
+        /// <summary>
+        /// Moves an MLINE by a transformation that scales alike (a move, a turn, a mirror, a scale): its points moved, its
+        /// normal moved (turned the other way by a mirror, so that its elements stay on the same side of its line), its scale
+        /// and the stretches of its cuts multiplied by the scale of the transformation. Refuses every other type, the geometry
+        /// of a type the library keeps as it is not being changed, and an MLINE moved by a transformation that scales more one
+        /// way than another or shears.
+        /// </summary>
         /// <param name="transform">The transformation.</param>
-        /// <exception cref="NotSupportedException">Thrown always.</exception>
-        private protected override void TransformEntity(GeoTransform3 transform) =>
-            throw new NotSupportedException(
-                "A " + DxfName + " is kept as the file has it, and is not moved: the library has no class for it yet."
-            );
+        /// <exception cref="NotSupportedException">Thrown for a type other than MLINE, and for an MLINE moved by a transformation that does not scale alike.</exception>
+        /// <exception cref="InvalidOperationException">Thrown for an MLINE whose drawing has no style of its handle or name.</exception>
+        private protected override void TransformEntity(GeoTransform3 transform)
+        {
+            if (DxfName != "MLINE")
+            {
+                throw new NotSupportedException(
+                    "A "
+                        + DxfName
+                        + " is kept as the file has it, and is not moved: the library has no class for it yet."
+                );
+            }
+
+            GeoVector3 x = transform.Transform(new GeoVector3(1.0, 0.0, 0.0));
+            GeoVector3 y = transform.Transform(new GeoVector3(0.0, 1.0, 0.0));
+            GeoVector3 z = transform.Transform(new GeoVector3(0.0, 0.0, 1.0));
+
+            if (
+                !DxfOcsTransform.IsUniform(x, y)
+                || !DxfOcsTransform.IsUniform(y, z)
+                || !DxfOcsTransform.IsUniform(x, z)
+            )
+            {
+                throw new NotSupportedException(
+                    "An MLINE is moved by a transformation that scales alike in every direction, as AutoCAD moves one: this one scales more one way than another or shears."
+                );
+            }
+
+            double scale = x.Length;
+            double turns = x.TripleProduct(y, z) < 0.0 ? -1.0 : 1.0;
+            var builder = new DxfMlineBuilder(this);
+
+            for (int i = 0; i < builder.Points.Count; i++)
+            {
+                builder.Points[i] = builder.Points[i].TransformBy(transform);
+            }
+
+            builder.Normal = transform.Transform(builder.Normal).Multiply(turns);
+            builder.Scale *= scale;
+            builder.ScaleStretches(scale);
+            builder.Rebuild(this);
+        }
+
+        /// <summary>The groups of an MLINE's own part, from its marker AcDbMline, for <see cref="DxfMlineBuilder"/>.</summary>
+        internal IReadOnlyList<DxfTypedValue> MlineGroups() => GetOwnGroups(0);
+
+        /// <summary>The normal of an MLINE (210, 220, 230), (0, 0, 1) where its record gives none, for <see cref="DxfMlineBuilder"/>.</summary>
+        internal GeoVector3 MlineNormal() => GetNormal();
+
+        /// <summary>The MLINESTYLE an MLINE is drawn by, as <see cref="Explode"/> finds it, for <see cref="DxfMlineBuilder"/>.</summary>
+        internal DxfMlineStyle FindMlineStyle(DxfMline mline) => MlineStyleObject(mline);
+
+        /// <summary>Writes the groups of an MLINE's own part anew (its head and each vertex), as <see cref="DxfMlineBuilder.Rebuild"/> says.</summary>
+        internal void ReplaceMline(IList<KeyValuePair<int, string>> groups) =>
+            ReplaceGroups(0, MlineCodes, new List<KeyValuePair<int, string>>(groups).ToArray());
+
+        // The codes of the groups an MLINE's own part is made of: its head, then at each vertex its point, direction, miter and the parameters of its elements.
+        private static readonly int[] MlineCodes =
+        {
+            2,
+            340,
+            40,
+            70,
+            71,
+            72,
+            73,
+            10,
+            20,
+            30,
+            210,
+            220,
+            230,
+            11,
+            21,
+            31,
+            12,
+            22,
+            32,
+            13,
+            23,
+            33,
+            74,
+            41,
+            75,
+            42,
+        };
+
+        /// <summary>
+        /// The entities an MLINE breaks into, as <see cref="Explode"/> gives them, drawn by the style given instead of the one
+        /// its drawing names: for the preview of an MLINE not yet in a drawing, whose style handle another drawing may mean
+        /// otherwise.
+        /// </summary>
+        internal IReadOnlyList<DxfEntity> ExplodeMline(DxfMline.Style style) => MlineParts(style).AsReadOnly();
 
         /// <summary>The parts of an MLINE, as <see cref="Explode"/> sets them out, its record and its style read once.</summary>
-        private List<DxfEntity> MlineParts()
+        private List<DxfEntity> MlineParts(DxfMline.Style given = null)
         {
             DxfMline mline = DxfMline.Read(GetOwnGroups(0));
             var parts = new List<DxfEntity>();
@@ -571,7 +666,7 @@ namespace GeometryHelper.Dxf
                 return parts;
             }
 
-            DxfMline.Style style = MlineStyle(mline);
+            DxfMline.Style style = given ?? MlineStyle(mline);
             int count = style.Elements.Count;
 
             foreach (DxfMline.Vertex vertex in mline.Vertices)
@@ -712,7 +807,32 @@ namespace GeometryHelper.Dxf
 
                 for (int k = 0; k < count; k++)
                 {
-                    Pieces(miters[i][k], miters[i + 1][k], vertex.Parameters[k], k, Line);
+                    Pieces(miters[i][k], miters[i + 1][k], vertex.Parameters[k], k, Line, i == 0 && !closed);
+                }
+            }
+
+            if (!closed)
+            {
+                // What MLEDIT's corner joint and tee leave past the last vertex: each element's pieces there, from a start to the stop
+                // after it, measured along the last segment from where the element stands at that vertex.
+                DxfMline.Vertex last = mline.Vertices[mline.Vertices.Count - 1];
+                GeoVector3 along = new GeoVector3(last.Along[0], last.Along[1], last.Along[2]);
+                double reach = along.Length;
+
+                if (reach > 0.0)
+                {
+                    along = along.Multiply(1.0 / reach);
+
+                    for (int k = 0; k < count; k++)
+                    {
+                        GeoPoint3 end = miters[miters.Count - 1][k];
+                        List<double> tail = last.Parameters[k];
+
+                        for (int i = 1; i + 1 < tail.Count; i += 2)
+                        {
+                            Line(end.Add(along.Multiply(tail[i])), end.Add(along.Multiply(tail[i + 1])), k);
+                        }
+                    }
                 }
             }
 
@@ -757,7 +877,8 @@ namespace GeometryHelper.Dxf
             GeoPoint3 end,
             List<double> parameters,
             int element,
-            Action<GeoPoint3, GeoPoint3, int> line
+            Action<GeoPoint3, GeoPoint3, int> line,
+            bool startsBefore
         )
         {
             if (parameters.Count <= 2 && (parameters.Count < 2 || parameters[1] == 0.0))
@@ -777,7 +898,10 @@ namespace GeometryHelper.Dxf
 
             for (int i = 1; i < parameters.Count; i += 2)
             {
-                double from = Math.Max(0.0, Math.Min(length, parameters[i]));
+                // The first piece of an open MLINE may start before its first vertex, as MLEDIT leaves an element that a corner joint
+                // or a tee runs back past the vertex it moved to.
+                double least = startsBefore && i == 1 ? double.NegativeInfinity : 0.0;
+                double from = Math.Max(least, Math.Min(length, parameters[i]));
                 double to = i + 1 < parameters.Count ? Math.Max(from, Math.Min(length, parameters[i + 1])) : length;
                 line(
                     from == 0.0 ? start : start.Add(along.Multiply(from)),
@@ -804,6 +928,14 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when there is none.</exception>
         private DxfMline.Style MlineStyle(DxfMline mline)
+        {
+            DxfDBObject found = FindMlineStyleObject(mline);
+            return DxfMline.Style.Read(found.Item.File.ObjectGroupsOf(found.Item));
+        }
+
+        private DxfMlineStyle MlineStyleObject(DxfMline mline) => (DxfMlineStyle)FindMlineStyleObject(mline);
+
+        private DxfDBObject FindMlineStyleObject(DxfMline mline)
         {
             DxfDatabase database = (IsResident ? Item.File : Item.File.Origin)?.Database;
             DxfDBObject found = null;
@@ -841,7 +973,7 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            return DxfMline.Style.Read(found.Item.File.ObjectGroupsOf(found.Item));
+            return found;
         }
     }
 }

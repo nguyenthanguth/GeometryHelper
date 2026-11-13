@@ -14,7 +14,8 @@ namespace GeometryHelper.Dxf
     /// AutoCAD's style STANDARD is two elements 0.5 either side of the line drawn, by layer in colour and linetype, its ends
     /// square to it (90 degrees), not filled and with no caps: <see cref="Elements"/> of offsets 0.5 and -0.5,
     /// <see cref="StartAngle"/> and <see cref="EndAngle"/> pi / 2. A style is added from a file of styles by
-    /// <see cref="DxfDatabase.LoadMlineStyleFile"/>; its values are read, not set, here.
+    /// <see cref="DxfDatabase.LoadMlineStyleFile"/> or made by <see cref="DxfDatabase.AddMlineStyle"/>; its values are read
+    /// here, and changed as a whole by <see cref="Apply"/>.
     /// </remarks>
     public sealed class DxfMlineStyle : DxfDBObject
     {
@@ -89,6 +90,72 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Gets what the style is made of as a <see cref="DxfMlineStyleSettings"/>, to change some of it and give it back to
+        /// <see cref="Apply"/>, or to make a style like it with <see cref="DxfDatabase.AddMlineStyle"/>; a new object on each call.
+        /// </summary>
+        /// <returns>The settings.</returns>
+        public DxfMlineStyleSettings GetSettings()
+        {
+            var settings = new DxfMlineStyleSettings
+            {
+                Description = Description,
+                Filled = Filled,
+                FillColor = FillColor,
+                StartAngle = StartAngle,
+                EndAngle = EndAngle,
+                ShowMiters = ShowMiters,
+                StartSquareCap = StartSquareCap,
+                StartInnerArcs = StartInnerArcs,
+                StartRoundCap = StartRoundCap,
+                EndSquareCap = EndSquareCap,
+                EndInnerArcs = EndInnerArcs,
+                EndRoundCap = EndRoundCap,
+            };
+            settings.Elements.Clear();
+
+            foreach (DxfMlineStyleElement element in Elements)
+            {
+                settings.Elements.Add(element);
+            }
+
+            return settings;
+        }
+
+        /// <summary>
+        /// Gives the style the settings, as AutoCAD sets the values of an <c>MlineStyle</c> before it is added: its record
+        /// written anew from them, its name and handle kept, the elements from the greatest offset to the least. A multiline
+        /// already drawn by the style takes the new elements when its record is built anew (<see cref="DxfMlineBuilder"/>);
+        /// AutoCAD's MLSTYLE refuses to change the elements of a style a multiline is drawn by.
+        /// </summary>
+        /// <param name="settings">What the style is to be made of.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the settings are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the settings are not ones AutoCAD takes (<see cref="DxfMlineStyleSettings"/>
+        /// has one to sixteen elements), or an element is drawn with a linetype the drawing has not.</exception>
+        public void Apply(DxfMlineStyleSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            settings.Check();
+            DxfDatabase database = Item.File.Database;
+
+            if (database != null)
+            {
+                database.CheckElementLinetypes(settings, Name);
+            }
+
+            Item.File.ReplaceOwn(Item, 0, StyleCodes, settings.Groups(), StyleOrder, false);
+        }
+
+        // The codes of the style's own part after its name, and the order AutoCAD writes them in.
+        private static readonly HashSet<int> StyleCodes = new HashSet<int> { 70, 3, 62, 51, 52, 71, 49, 6 };
+        private static readonly IReadOnlyList<int> StyleOrder = Array.AsReadOnly(
+            new[] { 70, 3, 62, 51, 52, 71, 49, 6 }
+        );
+
         /// <summary>Gives the style as a line for debugging: its type, its handle and its name.</summary>
         /// <returns>The line, such as <c>MLINESTYLE 18 STANDARD</c>.</returns>
         public override string ToString() => "MLINESTYLE " + (Handle ?? string.Empty) + " " + Name;
@@ -127,11 +194,26 @@ namespace GeometryHelper.Dxf
     /// </summary>
     public sealed class DxfMlineStyleElement
     {
-        internal DxfMlineStyleElement(double offset, DxfColor color, string linetype)
+        /// <summary>
+        /// Initializes an element, as AutoCAD's <c>new MlineStyleElement(offset, color, linetypeId)</c>: a line of a colour and
+        /// a linetype at an offset from the line drawn.
+        /// </summary>
+        /// <param name="offset">The offset from the line drawn, 0.5 to its left, -0.5 to its right.</param>
+        /// <param name="color">The colour: by layer, by block or an index.</param>
+        /// <param name="linetype">The name of the linetype, <c>BYLAYER</c> or <c>BYBLOCK</c> or one of the drawing's.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the colour or the linetype is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the offset is not a finite number or the linetype is empty.</exception>
+        public DxfMlineStyleElement(double offset, DxfColor color, string linetype)
         {
+            Guard.Argument(Guard.IsFinite(offset), nameof(offset), "The offset of an element is a finite number.");
             Offset = offset;
-            Color = color;
-            Linetype = linetype;
+            Color = color ?? throw new ArgumentNullException(nameof(color));
+            Guard.Argument(
+                linetype != null && linetype.Trim().Length > 0,
+                nameof(linetype),
+                "An element is drawn with a linetype of some name."
+            );
+            Linetype = linetype.Trim();
         }
 
         /// <summary>Gets the offset of the element from the line drawn (group 49), as AutoCAD's <c>Offset</c>: 0.5 to its left, -0.5 to its right.</summary>

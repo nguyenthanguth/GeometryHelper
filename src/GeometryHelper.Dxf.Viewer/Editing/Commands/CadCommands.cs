@@ -170,6 +170,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PURGE", Purge));
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
             AddXrefsTo(registry);
+            AddMlineTo(registry);
             AddShapesBatchTo(registry);
             AddBatchFourBTo(registry);
             AddViewUtilityTo(registry);

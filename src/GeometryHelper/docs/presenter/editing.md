@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 236 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 239 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -202,6 +202,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
+| multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
@@ -215,6 +216,47 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
+
+**Multilines (R2.1).**
+
+MLINE (`ML`) writes `Current settings: Justification = Top, Scale = 20.00, Style = STANDARD` and asks `Specify start point or
+[Justification/Scale/STyle]:`; each option asks its question (`Enter justification type [Top/Zero/Bottom] <top>:`, `Enter
+mline scale <20.00>:`, `Enter mline style name or [?]:`, the question mark listing `Loaded mline styles:`) and comes back to
+the settings and the start. Then `Specify next point:`, with `[Undo]` from the second point and `[Close/Undo]` from the third,
+until Enter. The multiline is drawn under the cursor as the points so far and the cursor make it, and is made as the command
+ends, one undo step; a scale of nought or below is taken, as AutoCAD takes it. The settings are the drawing's `$CMLJUST`,
+`$CMLSCALE` and `$CMLSTYLE`, which CMLJUST, CMLSCALE and CMLSTYLE set; a drawing with no style STANDARD is given the one
+AutoCAD starts with when MLINE or MLSTYLE first runs. The multiline is a `DxfUnknownEntity` written by
+[`DxfMlineBuilder`](xref:GeometryHelper.Dxf.DxfMlineBuilder) as AutoCAD writes it, so that MOVE, COPY, ROTATE, SCALE and
+MIRROR move it (its scale follows a scale, its elements stay on the same side of its line in a mirror).
+
+MLEDIT asks `Enter mline editing option [CC/OC/MC/CT/OT/MT/CJ/AV/DV/CS/CA/WA]:` (the words AutoCAD's console asks; its window
+shows a dialog of the same twelve tools, which the presenter has not designed). The crosses and tees and the corner joint ask
+`Select first mline:` and `Select second mline:`, and again `Select first mline or [Undo]:` once a pair was tried; the others
+ask `Select mline:` (the cuts and the weld then `Select second point:`). A pick that is no multiline is `Please pick mlines
+only.`, two that do not meet `These multilines do not intersect.`, the second point of a cut on another multiline `Please pick
+the same mline.`; Undo takes back the last edit of the command; Enter ends it. The records are those AutoCAD 2021 left, the
+numbers read back from accoreconsole: for a style of three elements at 0.5, 0 and -0.5 at scale 1 through (0, 0)-(100, 0)
+crossed by (50, -50)-(50, 50), CC breaks all three elements of the first from 50 to 51 (the width of the second), OC also
+breaks the outer two of the second from 49 to 50, and MC breaks the outer two of each. CT, OT and MT trim or extend the first
+(picked on the part to keep) to the line of the second, its elements stopping 1 short of it at the second's near edge, the
+merged tee running the middle element on to the second's middle element (49.5); OT and MT also open the second's near element
+across the first's width; the end caps of the end moved are left off (flag 4 or 8). CJ moves both ends to where the lines meet
+and mitres the elements across the corner, matched by rank from one side of the bend to the other: of (0, 0)-(80, 0) and
+(100, -50)-(100, 50) picked at (20, 0) and (100, -30), the first runs on to (100, 0) with its elements 1, 0.5 and 0 past it and
+the second stops at 49, 49.5 and the whole. AV puts a vertex on the line at the pick (`(50, 0.3)` gives `(50, 0)`), DV takes the
+nearest vertex out, CS cuts the element picked between two picks, CA every element, WA welds what is cut between two picks.
+Left: the dialogs of MLEDIT and MLSTYLE (design first), grips on
+a multiline, and OFFSET, TRIM, EXTEND, FILLET and BREAK on one.
+
+MLSTYLE has no typed form in AutoCAD 2021 (its console opens the Multiline Styles dialog and waits, and has no -MLSTYLE), so
+the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an option [?/Current/New/Modify] <exit>:`. New asks
+`Enter name of new multiline style:` (kept in capitals in the record, the entry as typed) and then `Enter style option
+[Description/Elements/Caps/Fill/Joints/Angles/Done] <Done>:`; Elements lists the elements, the greatest offset first, and asks
+`[Add/Delete/Change/Done]` with the offset, colour and linetype of each; Caps toggles `StartLine`, `StartOuter`, `StartInner`,
+`EndLine`, `EndOuter` and `EndInner`; Fill is `[Off/Color]`, Joints shows a line across each joint, Angles asks the angles of
+the start and end (10 to 170). Modify asks the same of a style of the drawing; STANDARD and a style a multiline is drawn by can
+have only their description changed, as the dialog allows. Load and Save of .mln files, Rename and Delete are left.
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 
@@ -1305,7 +1347,7 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 236 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 240 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 237 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 241 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 24 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING, Ctrl+Shift+P QPMODE (switches the Quick Properties panel)). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an

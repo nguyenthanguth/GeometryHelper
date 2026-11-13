@@ -102,7 +102,12 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics first, each round merged and verified before
 the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
 - Round 2, finishing the 2D commands drafters use every day:
-  - [ ] R2.1 MLINE, MLSTYLE (typed), MLEDIT joins, with a core `DxfMline` builder (from Batch 2b) (mline, running) (M)
+  - [x] R2.1 MLINE, MLEDIT (all 12 tools) and typed MLSTYLE (mline), with a public core DxfMlineBuilder and
+        DxfDatabase.AddMlineStyle; MLINE drawn on the canvas, moved, copied, scaled and mirrored; AutoCAD 2021 opens our DXF
+        and DWG with AUDIT 0, and its Explode of 29 multilines gives our 224 lines to 1E-6
+  - [ ] R2.1 follow-ups: MLSTYLE and MLEDIT dialogs (design first); grips, OFFSET, TRIM, EXTEND, FILLET, BREAK on an MLINE;
+        style Rename, Delete, Load, Save; Esc mid-MLINE, an empty MLEDIT pick, merged tees of 4+ elements, tees and corners
+        on a closed MLINE, cuts across segments checked against AutoCAD (M)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary

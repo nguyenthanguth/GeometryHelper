@@ -279,6 +279,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["DDUNITS"] = "UNITS",
                     ["DDVIEW"] = "VIEW",
                     ["DOUGHNUT"] = "DONUT",
+                    ["ML"] = "MLINE",
                     ["DTEXT"] = "TEXT",
                     ["PAINTER"] = "MATCHPROP",
                     ["PREFERENCES"] = "OPTIONS",
