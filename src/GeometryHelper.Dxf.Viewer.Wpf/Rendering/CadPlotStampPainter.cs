@@ -5,8 +5,9 @@ using SkiaSharp;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// Draws a plot stamp (<see cref="CadPlotStamp"/>) on a PDF page: its lines in the stamp's font, black, at the corner of
-    /// the sheet the stamp names, turned for a vertical or upside-down stamp. The text is a PDF's own, which a reader finds.
+    /// Draws a plot stamp (<see cref="CadPlotStamp"/>) on a PDF page or a PNG or JPG plot: its lines in the stamp's font,
+    /// black, at the corner of the sheet the stamp names, turned for a vertical or upside-down stamp, and half round more,
+    /// in the opposite corner, on a plot upside down. The text of a PDF is its own, which a reader finds.
     /// </summary>
     internal static class CadPlotStampPainter
     {
@@ -23,13 +24,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="stamp">The stamp.</param>
         /// <param name="lines">The lines of the stamp, from <see cref="CadPlotStamp.Lines"/>.</param>
         /// <param name="page">The plot laid on its sheet.</param>
-        /// <param name="sheetToCanvas">From the sheet's millimetres, Y upward, to the canvas.</param>
+        /// <param name="sheetToCanvas">From the sheet's units, Y upward, to the canvas.</param>
+        /// <param name="plotUpsideDown">Whether the plot is upside down, the stamp then turned with it.</param>
+        /// <param name="sheetUnitsPerMillimetre">The sheet's units to a millimetre: 1 for a sheet in millimetres, 96 / 25.4 for one in pixels.</param>
         public static void Draw(
             SKCanvas canvas,
             CadPlotStamp stamp,
             IReadOnlyList<string> lines,
             CadPlotPage page,
-            Affine2 sheetToCanvas
+            Affine2 sheetToCanvas,
+            bool plotUpsideDown = false,
+            double sheetUnitsPerMillimetre = 1.0
         )
         {
             if (lines.Count == 0)
@@ -37,8 +42,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            // Everything in the canvas's units, a millimetre of the sheet being sheetToCanvas.Scale of them.
-            double perMillimetre = sheetToCanvas.Scale;
+            // Everything in the canvas's units, a millimetre of the sheet being this many of them.
+            double perMillimetre = sheetToCanvas.Scale * sheetUnitsPerMillimetre;
             double height = stamp.ToMillimetres(stamp.TextHeight) * perMillimetre;
             double step = height * LineStep;
 
@@ -54,15 +59,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 double block = height + (lines.Count - 1) * step;
-                DisplayBox box = stamp.Footprint(page, width / perMillimetre, block / perMillimetre);
+                DisplayBox box = stamp.Footprint(
+                    page,
+                    width / perMillimetre,
+                    block / perMillimetre,
+                    plotUpsideDown,
+                    sheetUnitsPerMillimetre
+                );
                 double centreX = sheetToCanvas.X((box.MinX + box.MaxX) / 2.0, (box.MinY + box.MaxY) / 2.0);
                 double centreY = sheetToCanvas.Y((box.MinX + box.MaxX) / 2.0, (box.MinY + box.MaxY) / 2.0);
 
                 canvas.Save();
                 canvas.Translate((float)centreX, (float)centreY);
 
-                // A vertical stamp reads up the sheet, a quarter turned against the clock; upside down turns it half round more.
-                canvas.RotateDegrees((float)((stamp.Vertical ? -90.0 : 0.0) + (stamp.UpsideDown ? 180.0 : 0.0)));
+                // A vertical stamp reads up the sheet, a quarter turned against the clock; upside down turns it half round more,
+                // and a plot upside down half round again.
+                canvas.RotateDegrees(
+                    (float)(
+                        (stamp.Vertical ? -90.0 : 0.0)
+                        + (stamp.UpsideDown ? 180.0 : 0.0)
+                        + (plotUpsideDown ? 180.0 : 0.0)
+                    )
+                );
 
                 for (int i = 0; i < lines.Count; i++)
                 {

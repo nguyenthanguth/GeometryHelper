@@ -14,7 +14,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// finds and copies it; the text of an SHX font is its strokes, as the canvas draws it, and is not found unless the
     /// settings carry PDFSHX (<see cref="CadPlotSettings.PdfShx"/>), which writes the words again over the strokes in letters
     /// no eye sees. A plot stamp the settings carry (<see cref="CadPlotSettings.PlotStamp"/>) is drawn in a corner of the sheet
-    /// as text, and its line added to the stamp's log file.
+    /// as text, and its line added to the stamp's log file. Several plots, as EXPORTPDF's All layouts, are written as one
+    /// PDF of a page each (<see cref="WritePages"/>).
     /// </summary>
     /// <remarks>
     /// The page is the sheet as it lies, to a ten-thousandth of a point: ISO A3 on its side is 1 190.5512 by 841.8898 points
@@ -103,7 +104,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The words of the plot stamp added to its log file, a line each, where the stamp writes one; a log that cannot be
         /// written is logged and does not fail the plot.
         /// </summary>
-        private static void LogStamp(CadPlotStamp stamp, IReadOnlyList<string> stamped, string plotFile)
+        internal static void LogStamp(CadPlotStamp stamp, IReadOnlyList<string> stamped, string plotFile)
         {
             if (stamp == null || !stamp.WriteLog || stamped.Count == 0)
             {
@@ -122,6 +123,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Writes plots of several spaces to one PDF file of a page each, in their order, replacing a file of the name, as
+        /// EXPORTPDF writes All layouts: each page the size of its own sheet, stamped by its own settings, the stamp's lines
+        /// added to its log once for each page.
+        /// </summary>
+        /// <param name="path">The file.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="pages">The plot of each page: its space, its settings and the display it was asked with.</param>
+        /// <returns>The plots as they were laid on their sheets, in the order of the pages.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there is no page.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a page has nothing to plot.</exception>
+        public static IReadOnlyList<CadPlotPage> WritePages(
+            string path,
+            CadDocument document,
+            IReadOnlyList<CadPlotJob> pages
+        )
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (pages == null)
+            {
+                throw new ArgumentNullException(nameof(pages));
+            }
+
+            if (pages.Count == 0)
+            {
+                throw new ArgumentException("A PDF has a page at least.", nameof(pages));
+            }
+
+            byte[] pdf = Make(document, pages, out IReadOnlyList<CadPlotPage> laid, out var stamped);
+            File.WriteAllBytes(path, pdf);
+
+            for (int i = 0; i < pages.Count; i++)
+            {
+                LogStamp(pages[i].Settings.PlotStamp, stamped[i], path);
+            }
+
+            GeometryHelperLog.Info(
+                "CadPdfWriter: "
+                    + pages.Count.ToString(CultureInfo.InvariantCulture)
+                    + " pages plotted to "
+                    + path
+                    + "."
+            );
+            return laid;
+        }
+
         private static byte[] Make(
             CadDocument document,
             CadSpace space,
@@ -131,29 +183,68 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             out IReadOnlyList<string> stamped
         )
         {
-            page = CadPlotPage.Compute(
-                document ?? throw new ArgumentNullException(nameof(document)),
-                space ?? throw new ArgumentNullException(nameof(space)),
-                settings ?? throw new ArgumentNullException(nameof(settings)),
-                display
+            byte[] pdf = Make(
+                document,
+                new[]
+                {
+                    new CadPlotJob(
+                        space ?? throw new ArgumentNullException(nameof(space)),
+                        settings ?? throw new ArgumentNullException(nameof(settings)),
+                        display,
+                        null
+                    ),
+                },
+                out IReadOnlyList<CadPlotPage> pages,
+                out IReadOnlyList<IReadOnlyList<string>> lines
             );
+            page = pages[0];
+            stamped = lines[0];
+            return pdf;
+        }
 
-            if (page.IsEmpty)
+        private static byte[] Make(
+            CadDocument document,
+            IReadOnlyList<CadPlotJob> jobs,
+            out IReadOnlyList<CadPlotPage> pages,
+            out IReadOnlyList<IReadOnlyList<string>> stamped
+        )
+        {
+            if (document == null)
             {
-                throw new InvalidOperationException("Nothing to plot: the plot area of " + space.Name + " is empty.");
+                throw new ArgumentNullException(nameof(document));
             }
 
-            stamped =
-                settings.PlotStamp == null
-                    ? Array.Empty<string>()
-                    : settings.PlotStamp.Lines(document, space, settings, page, DateTime.Now, Environment.UserName);
-            double width = page.SheetWidthPoints;
-            double height = page.SheetHeightPoints;
+            var laid = new List<CadPlotPage>();
+            var lines = new List<IReadOnlyList<string>>();
 
-            // SkiaSharp rounds a page to whole points and turns its Y over about the rounded height: the plot is drawn that
-            // much lower, so that it stands where it should once the page is given its exact size.
-            float roundedWidth = (float)Math.Floor(width + 0.5);
-            float roundedHeight = (float)Math.Floor(height + 0.5);
+            foreach (CadPlotJob job in jobs)
+            {
+                CadPlotPage page = CadPlotPage.Compute(document, job.Space, job.Settings, job.Display);
+
+                if (page.IsEmpty)
+                {
+                    throw new InvalidOperationException(
+                        "Nothing to plot: the plot area of " + job.Space.Name + " is empty."
+                    );
+                }
+
+                laid.Add(page);
+                lines.Add(
+                    job.Settings.PlotStamp == null
+                        ? Array.Empty<string>()
+                        : job.Settings.PlotStamp.Lines(
+                            document,
+                            job.Space,
+                            job.Settings,
+                            page,
+                            DateTime.Now,
+                            Environment.UserName
+                        )
+                );
+            }
+
+            pages = laid;
+            stamped = lines;
             byte[] written;
 
             // One PDF at a time: SkiaSharp's PDF writer shares the typefaces its font manager caches, and two pages written at
@@ -163,7 +254,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     var metadata = new SKDocumentPdfMetadata(SKDocumentPdfMetadata.DefaultRasterDpi)
                     {
-                        Title = document.Title + " - " + space.Name,
+                        Title = document.Title + " - " + (jobs.Count == 1 ? jobs[0].Space.Name : "Layouts"),
                         Creator = CadPlotSettings.PdfDevice,
                         Producer = CadPlotSettings.PdfDevice,
                     };
@@ -171,32 +262,70 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     using (SKDocument pdf = SKDocument.CreatePdf(memory, metadata))
                     using (var renderer = new SkiaCanvasRenderer())
                     {
-                        SKCanvas canvas = pdf.BeginPage(roundedWidth, roundedHeight);
-                        canvas.Translate(0f, (float)(roundedHeight - height));
-                        renderer.RenderPlot(
-                            canvas,
-                            document,
-                            space,
-                            page,
-                            settings,
-                            SheetToPoints(page),
-                            shxText: settings.PdfShx
-                        );
-
-                        if (settings.PlotStamp != null)
+                        for (int i = 0; i < jobs.Count; i++)
                         {
-                            CadPlotStampPainter.Draw(canvas, settings.PlotStamp, stamped, page, SheetToPoints(page));
+                            CadPlotPage page = laid[i];
+                            CadPlotSettings settings = jobs[i].Settings;
+                            double height = page.SheetHeightPoints;
+
+                            // SkiaSharp rounds a page to whole points and turns its Y over about the rounded height: the plot
+                            // is drawn that much lower, so that it stands where it should once the page is given its exact size.
+                            float roundedHeight = Rounded(height);
+                            SKCanvas canvas = pdf.BeginPage(Rounded(page.SheetWidthPoints), roundedHeight);
+                            canvas.Translate(0f, (float)(roundedHeight - height));
+                            renderer.RenderPlot(
+                                canvas,
+                                document,
+                                jobs[i].Space,
+                                page,
+                                settings,
+                                SheetToPoints(page),
+                                shxText: settings.PdfShx
+                            );
+
+                            if (settings.PlotStamp != null)
+                            {
+                                CadPlotStampPainter.Draw(
+                                    canvas,
+                                    settings.PlotStamp,
+                                    lines[i],
+                                    page,
+                                    SheetToPoints(page),
+                                    settings.UpsideDown
+                                );
+                            }
+
+                            pdf.EndPage();
                         }
 
-                        pdf.EndPage();
                         pdf.Close();
                     }
 
                     written = memory.ToArray();
                 }
 
-            return ExactPage(written, roundedWidth, roundedHeight, width, height);
+            // Each size of sheet given its exact box once; two sheets rounded alike are the same sheet.
+            var done = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (CadPlotPage page in laid)
+            {
+                if (done.Add(Whole(Rounded(page.SheetWidthPoints)) + " " + Whole(Rounded(page.SheetHeightPoints))))
+                {
+                    written = ExactPage(
+                        written,
+                        Rounded(page.SheetWidthPoints),
+                        Rounded(page.SheetHeightPoints),
+                        page.SheetWidthPoints,
+                        page.SheetHeightPoints
+                    );
+                }
+            }
+
+            return written;
         }
+
+        /// <summary>A size in points rounded to whole points, as SkiaSharp gives a page.</summary>
+        private static float Rounded(double points) => (float)Math.Floor(points + 0.5);
 
         /// <summary>From the sheet's millimetres, Y upward, to a PDF page's points, Y downward from its top.</summary>
         internal static Affine2 SheetToPoints(CadPlotPage page) =>

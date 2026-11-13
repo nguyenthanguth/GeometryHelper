@@ -45,6 +45,28 @@ with no colour and keeps the colours of its gradient (`GRADIENTCOLOR1ACI`, `GRAD
 second) in its extended data. A gradient hatch is still its SOLIDs of one colour: AutoCAD writes the triangles of its own display
 mesh, uncoloured, 2 for a LINEAR gradient of any rectangle (as here) and 152 for a CYLINDER, 332 for a SPHERICAL, 56 for a
 HEMISPHERICAL and 57 for a CURVED one on a rectangle 100 by 60, which is not worked out here.
+**NEW.** LAYOUT and -LAYOUT Template and SAveas show AutoCAD 2021's dialogs in the window with FILEDIA 1 (designed first, Design
+v145: InsertLayout, TemplateOptions). Template shows Select Template From File, then Insert Layout(s) (`CadInsertLayoutRequest`):
+the file's layouts in the order of its tabs, the first picked, several picked with Ctrl or Shift; OK brings them in as the typed
+names do, one undo step, Cancel brings nothing in. SAveas shows Create Drawing File (a .dwt, the AutoCAD 2018 DWG or a DXF version,
+which the type gives with no question), and for a .dwt Template Options (`CadTemplateOptionsRequest`): the description, written
+into the DWG's AcDb:Template section, and the measurement, English or Metric, as MEASUREMENT; Cancel writes nothing.
+**NEW.** EXPORTPDF and -EXPORT write All layouts: one PDF of a page for each layout in the order of the tabs, each the size of its
+own sheet and plotted by its own page setup, or by the detailed configuration answered Yes (`CadPlotBook`,
+`CadPdfWriter.WritePages`); Layout1 on ISO A3 and a second on ISO A1 are pages of 1 190.5512 by 841.8898 and 2 383.937 by
+1 683.7795 points. -EXPORT refused it before.
+**NEW.** The plot stamp is drawn on PNG and JPG plots, at 96 pixels to the inch (0.2 inch letters 19.2 pixels high, 9.6 pixels in
+from the corner), its line added to the log; on a plot upside down it turns with the plot, a stamp at the lower left standing at
+the upper right of the sheet, as AutoCAD's help puts its corner relative to the image (`CadPlotStamp.Footprint` with the turn and
+the sheet's units).
+**CHANGED.** The application menu has Import (Other Formats, IMPORT) after Save As, and Export lists AutoCAD 2021's entries that
+have a command here in its order, DWF, DWFx and PDF, PDF now running EXPORTPDF instead of PLOT, then PNG, JPG, BMP, Block or
+objects to a DXF and Other Formats; a click on Export runs EXPORTPDF (design AppMenu, AppMenuImport).
+**CHANGED.** LWDEFAULT refuses a width that is none of AutoCAD's 24 with `Cannot set LWDEFAULT to that value.`, AutoCAD 2021's
+words in its console (`Invalid lineweight value.` before).
+**FIXED.** The DWG container of R2004 and later read the template section of an R2010 to R2018 file as bytes where its description
+is UTF-16, so that a metric drawing's MEASUREMENT read 256; it reads 1 now, and the description is read as AutoCAD writes it.
+
 **NEW.** Annotative objects, third round (probed in AutoCAD 2021's console, plugin GHA3): arc length and jogged radius dimensions
 are annotative as AutoCAD writes them (an arc length one the angular context class with the point of its arc, a jogged one
 `ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS` with the chord point, the centre it is measured from and the jog) and get a second scale

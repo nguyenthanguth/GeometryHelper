@@ -1,0 +1,116 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.InsertLayoutWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Insert Layout(s)"
+    Width="340"
+    Height="400"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design InsertLayout: the template's layouts in the order of its tabs, several picked with Ctrl or Shift. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Insert Layout(s)" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button
+                        Style="{StaticResource StylePrimaryButton}"
+                        Content="OK"
+                        Padding="18,5"
+                        Margin="0,0,8,0"
+                        IsDefault="True"
+                        Click="OnOk"
+                    />
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Cancel"
+                        Padding="14,5"
+                        IsCancel="True"
+                        Click="OnCancel"
+                    />
+                </StackPanel>
+            </Border>
+
+            <DockPanel Margin="16,12">
+                <TextBlock
+                    DockPanel.Dock="Top"
+                    Text="{Binding FileName}"
+                    ToolTip="{Binding FileName}"
+                    FontFamily="{StaticResource GhMonoFont}"
+                    FontSize="11"
+                    Foreground="{StaticResource GhTextMuted}"
+                    TextTrimming="CharacterEllipsis"
+                    Margin="0,0,0,6"
+                />
+                <TextBlock DockPanel.Dock="Top" Text="Layout name(s):" FontWeight="SemiBold" Margin="0,0,0,6" />
+                <TextBlock
+                    DockPanel.Dock="Bottom"
+                    Text="Ctrl or Shift picks several; OK brings each in after the drawing's last tab."
+                    Foreground="{StaticResource GhTextMuted}"
+                    TextWrapping="Wrap"
+                    Margin="0,6,0,0"
+                />
+                <ListBox
+                    Background="{StaticResource GhInput}"
+                    BorderBrush="{StaticResource GhBorder}"
+                    Foreground="{StaticResource GhText}"
+                    SelectionMode="Extended"
+                    AutomationProperties.Name="Layout name(s)"
+                    ItemsSource="{Binding Layouts}"
+                    MouseDoubleClick="OnOk"
+                >
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource StyleListItem}">
+                            <Setter Property="IsSelected" Value="{Binding IsPicked, Mode=TwoWay}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </DockPanel>
+    </Border>
+</Window>

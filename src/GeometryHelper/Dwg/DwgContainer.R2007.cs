@@ -121,6 +121,7 @@ namespace GeometryHelper.Dwg
 
                     if (2 + length + 2 <= data.Length)
                     {
+                        container.TemplateDescription = Encoding.Unicode.GetString(data, 2, length).TrimEnd('\0');
                         container.Measurement = data[2 + length] | (data[3 + length] << 8);
                     }
                 }

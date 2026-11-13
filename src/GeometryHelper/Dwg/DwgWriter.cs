@@ -183,11 +183,26 @@ namespace GeometryHelper.Dwg
             string version,
             out IDictionary<string, int> leftOut,
             IProgress<double> progress
+        ) => ToDwg(text, version, out leftOut, progress, null);
+
+        /// <summary>
+        /// The bytes of the DWG file of the DXF <paramref name="text"/>, as
+        /// <see cref="ToDwg(string, string, out IDictionary{string, int}, IProgress{double})"/>, written as a drawing template
+        /// whose description is <paramref name="templateDescription"/> (null or empty for none), as AutoCAD's Template Options
+        /// writes one into the file's AcDb:Template section.
+        /// </summary>
+        internal static byte[] ToDwg(
+            string text,
+            string version,
+            out IDictionary<string, int> leftOut,
+            IProgress<double> progress,
+            string templateDescription
         )
         {
             string named = Check(version);
             ProgressSteps steps = ProgressSteps.Of(progress);
             DwgDrawing drawing = DwgDrawing.Parse(text, steps);
+            drawing.TemplateDescription = templateDescription;
             drawing.SatBodiesToSab(AcisFormat.For(named));
             byte[] bytes = DwgFileWriter.Write(drawing, named, out DwgFileWriter writer, steps);
             steps?.Done();

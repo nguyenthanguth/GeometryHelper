@@ -53,7 +53,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Writes a plot of a space to an image, as PLOT and -PLOT do with GeometryHelper PNG or JPG: the image as large as
         /// the settings' size in pixels, on white, the plot laid on it as on a sheet whose units are pixels, colours through
         /// the plot style table (colour 7 black), each line at its lineweight as at 96 dots an inch. A PNG is lossless, a JPEG
-        /// of quality 90. Model space fitted to 1920 by 1080 pixels is a PNG of exactly that size.
+        /// of quality 90. Model space fitted to 1920 by 1080 pixels is a PNG of exactly that size. A plot stamp the settings
+        /// carry is drawn in its corner as on a PDF, 0.2 inch letters 19.2 pixels high, turned with a plot upside down, and its
+        /// line added to the stamp's log file.
         /// </summary>
         /// <param name="path">The file, replaced where there is one.</param>
         /// <param name="document">The document.</param>
@@ -109,6 +111,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             int width = (int)Math.Round(page.SheetWidth);
             int height = (int)Math.Round(page.SheetHeight);
+            IReadOnlyList<string> stamped = Array.Empty<string>();
             bool jpeg = string.Equals(
                 settings.DeviceName,
                 CadPlotSettings.JpgDevice,
@@ -123,20 +126,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     surface.Canvas.Clear(SKColors.White);
 
                     // The sheet's pixels, Y upward from its lower left corner, to the image's rows from the top.
-                    renderer.RenderPlot(
-                        surface.Canvas,
-                        document,
-                        space,
-                        page,
-                        settings,
-                        new Affine2(1.0, 0.0, 0.0, -1.0, 0.0, height),
-                        96.0 / 25.4
-                    );
+                    var sheetToImage = new Affine2(1.0, 0.0, 0.0, -1.0, 0.0, height);
+                    renderer.RenderPlot(surface.Canvas, document, space, page, settings, sheetToImage, 96.0 / 25.4);
+
+                    // The stamp in its corner, its sizes in millimetres taken at 96 pixels to the inch, as the lines are.
+                    if (settings.PlotStamp != null)
+                    {
+                        stamped = settings.PlotStamp.Lines(
+                            document,
+                            space,
+                            settings,
+                            page,
+                            DateTime.Now,
+                            Environment.UserName
+                        );
+                        CadPlotStampPainter.Draw(
+                            surface.Canvas,
+                            settings.PlotStamp,
+                            stamped,
+                            page,
+                            sheetToImage,
+                            settings.UpsideDown,
+                            96.0 / 25.4
+                        );
+                    }
+
                     surface.Canvas.Flush();
                 }
 
                 File.WriteAllBytes(path, Encode(picture, jpeg ? CadImageFormat.Jpeg : CadImageFormat.Png));
             }
+
+            CadPdfWriter.LogStamp(settings.PlotStamp, stamped, path);
 
             GeometryHelperLog.Info(
                 "CadRasterWriter: "

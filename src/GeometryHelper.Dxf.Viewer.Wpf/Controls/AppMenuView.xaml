@@ -12,7 +12,7 @@
     TextOptions.TextFormattingMode="Display"
 >
     <!--
-    The application menu of the G button (design AppMenu): the search box, the column of New, Open, Save, Save As, Export, Print
+    The application menu of the G button (design AppMenu): the search box, the column of New, Open, Save, Save As, Import, Export, Print
     and Close, and at the right Recent Documents or the list of the item the pointer rests on; Options and Exit at the foot.
     Its logic is AppMenuViewModel.
     -->

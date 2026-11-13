@@ -79,7 +79,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                         e.Handled = true;
                         break;
                     case "-PLOT":
-                        written.Add(e.Plot);
+                        written.Add(e.Payload);
                         e.Handled = true;
                         break;
                 }
@@ -275,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void DashExport_RefusesDwfAndDwfx_AndAllLayouts()
+        public void DashExport_RefusesDwfAndDwfx()
         {
             CadDocument document = TwoLines();
             var written = new List<object>();
@@ -293,19 +293,41 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "-EXPORT");
             Run(session, "D");
             Assert.StartsWith("DWF files have no writer", session.History.Last(), StringComparison.Ordinal);
+            Assert.Empty(written);
+        }
 
-            // On a layout of a drawing that has one.
-            document = CadDocument.From(CadTemplate.CreateMetric());
-            session = Stubbed(document, j => null, null, written, asked);
-            document.CurrentSpace = document.Spaces.First(s => !s.IsModel);
+        [Fact]
+        public void DashExport_AllLayouts_HandsTheWriterAPageForEachLayout_InTheOrderOfTheTabs_AsOneFile()
+        {
+            // A drawing of two layouts, Layout1 and Sheet 2, the second shown.
+            DxfDatabase database = CadTemplate.CreateMetric();
+            var sheet = new DxfLayout { LayoutName = "Sheet 2" };
+            sheet.AddToLayoutDictionary(database, null);
+            sheet.Initialize();
+            CadDocument document = CadDocument.From(database, Path.Combine(_folder, "site.dxf"));
+            var written = new List<object>();
+            var asked = new List<CadExportJob>();
+            string file = Path.Combine(_folder, "site-all.pdf");
+            CadCommandSession session = Stubbed(document, j => file, null, written, asked);
+            string[] layouts = document.Spaces.Where(s => !s.IsModel).Select(s => s.Name).ToArray();
+            Assert.Equal(new[] { "Layout1", "Sheet 2" }, layouts);
+            document.CurrentSpace = document.Spaces.Last(s => !s.IsModel);
+
             Run(session, "-EXPORT");
             Run(session, "P");
             Assert.Equal("Enter plot area [Current layout/All layouts] <Current Layout>:", session.PromptText);
             Run(session, "A");
+            Assert.Equal("Detailed plot configuration? [Yes/No] <No>:", session.PromptText);
+            Run(session, Enter);
+
             Assert.False(session.IsRunning);
-            Assert.StartsWith("A PDF of all layouts has no writer", session.History.Last(), StringComparison.Ordinal);
-            Assert.Empty(written);
-            Assert.Empty(asked);
+            Assert.Equal("site.pdf", Path.GetFileName(Assert.Single(asked).FileName));
+            CadPlotBook book = Assert.IsType<CadPlotBook>(Assert.Single(written));
+            Assert.Equal(file, book.FileName);
+            Assert.Equal(layouts, book.Pages.Select(p => p.Space.Name));
+            Assert.All(book.Pages, p => Assert.Equal(CadPlotArea.Layout, p.Settings.Area));
+            Assert.All(book.Pages, p => Assert.Equal(CadPlotSettings.PdfDevice, p.Settings.DeviceName));
+            Assert.Equal("Plot written to " + file + ".", session.History.Last());
         }
     }
 }

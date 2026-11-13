@@ -110,7 +110,7 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       -OSNAP rarer short names; whether HIDEPALETTES hides the command line; HATCHEDIT's Click to set new origin; visual
       styles drawn; spelling of dimension text and xrefs; the hidden internal visual style names and Check Spelling's
       punctuation default checked in AutoCAD; CadTiledViewports.Rename and -RENAME VPort agreeing (S)
-- [ ] (dialogs8, running) Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
+- [x] (done by dialogs5, dialogs7, dialogs8; the rest in "Dialogs 8 follow-ups") Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
@@ -161,10 +161,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         ribbon tab; the batch buttons moved into the panel bodies (Hatch split in Draw, Check Spelling and Text Align, Align,
         Model Viewports); Plot Stamp user fields and .pss files; Boundary Creation New; an expandable Xbind tree; LWUNITS and
         LWDEFAULT
-  - [ ] (dialogs8, running) Dialogs 7 follow-ups: Insert Layout dialog (LAYOUT Template) and Template description (SAveas); .pss location,
-        orientation and several user fields checked against a file AutoCAD writes; LWDEFAULT's refusal wording; the app
-        menu's Export > PDF running EXPORTPDF and an Import entry; Collect in the Leaders panel once MLEADERCOLLECT exists;
-        look at the windows in the running app (S)
+  - [x] Dialogs 8 (dialogs8, design v145): Insert Layout(s) and Template Options for LAYOUT Template and SAveas; the app
+        menu's Import and AutoCAD's Export list (PDF runs EXPORTPDF); plot stamps on PNG/JPG and turned with an upside-down
+        plot; one PDF of all layouts; LWDEFAULT's refusal in AutoCAD's words; fixed: the template description of R2010-R2018
+        DWGs read as bytes (MEASUREMENT 256)
+  - [ ] Dialogs 8 follow-ups: EXPORTPDF's own Save As PDF dialog with Current layout / All layouts (design first); .pss
+        location codes 1-3 (need a .pss AutoCAD wrote); Collect in the Leaders panel (after MLEADERCOLLECT); WMF import;
+        multi-line stamp and "." clearing in the GUI; look at the new windows in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
@@ -348,7 +351,7 @@ the ones wanted.
       (corner by (20, 10): Width 80, right edge kept), core DxfDynamicBlockReferenceProperty.MoveBasePoint, base grips where
       a base-following action needs them, base-following stretch/move/array and ATTRIBs following the drag only;
       UpdateAnonymousBlocks after a base move; AUDIT 0 on ten outputs with AutoCAD's values read back
-- [ ] Dynamic block follow-ups 3: GRIPLOC history records; the Origin property of each parameter; polar, rotation and flip
+- [ ] (dynblock3, running) Dynamic block follow-ups 3: GRIPLOC history records; the Origin property of each parameter; polar, rotation and flip
       bases moved; carried parameters and scale/rotate followers (still refused); value-set increments after a base move;
       ATTSYNC (FollowedFromOwn) on a moved INSERT; the block-table grip menu and glyph (GUI); the Design artifact's grip
       colour #19B5F0 to #00BFFF (S)

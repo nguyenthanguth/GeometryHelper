@@ -693,19 +693,18 @@ namespace GeometryHelper.Dwg
         {
             var template = new MemoryStream();
             int measurement = DwgRecord.Int(_drawing.HeaderText("MEASUREMENT", "1"));
+            string description = _drawing.TemplateDescription ?? string.Empty;
 
-            if (_number >= 1021)
-            {
-                template.WriteByte(1);
-                template.WriteByte(0);
-                template.WriteByte(0);
-                template.WriteByte(0);
-            }
-            else
-            {
-                template.WriteByte(0);
-                template.WriteByte(0);
-            }
+            // The description: from R2007 a count of UTF-16 characters, its closing nought among them, then the characters;
+            // before, a count of bytes (Latin-1 here), nought for none, then the bytes and their closing nought.
+            byte[] text =
+                _number >= 1021 ? Encoding.Unicode.GetBytes(description + "\0")
+                : description.Length == 0 ? new byte[0]
+                : Encoding.GetEncoding(28591).GetBytes(description + "\0");
+            int count = _number >= 1021 ? text.Length / 2 : text.Length;
+            template.WriteByte((byte)count);
+            template.WriteByte((byte)(count >> 8));
+            template.Write(text, 0, text.Length);
 
             template.WriteByte((byte)measurement);
             template.WriteByte(0);

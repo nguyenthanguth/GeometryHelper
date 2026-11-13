@@ -14,6 +14,23 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
+        /// <summary>The types of LAYOUT Template's Select Template From File dialog, as AutoCAD 2021 lists them.</summary>
+        private static readonly string[] TemplateOpenTypes =
+        {
+            "Drawing Template (*.dwt)",
+            "Drawing (*.dwg)",
+            "DXF (*.dxf)",
+        };
+
+        /// <summary>The types of LAYOUT SAveas's Create Drawing File dialog: a template first, then the DWG and the DXF versions written.</summary>
+        private static readonly string[] TemplateSaveTypes = new[]
+        {
+            "AutoCAD Drawing Template (*.dwt)",
+            CadExportJob.Dwg,
+        }
+            .Concat(CadExportJob.DxfSaveTypes)
+            .ToArray();
+
         /// <summary>
         /// The layout LAYOUT offers for Set, Rename, Copy, Delete and SAveas: the one shown, the first tab where Model is
         /// shown, as AutoCAD offers <c>&lt;Layout1&gt;</c> in a drawing that shows Model.
@@ -30,24 +47,51 @@ namespace GeometryHelper.Dxf.Viewer
         /// drawing, named as it is where the drawing has no layout of the name, else Layout3-Plan: the first number N the
         /// drawing has no layout starting with LayoutN. Its layers, linetypes, styles and blocks come with it where the drawing
         /// has none of the name. The layout shown does not change. Nothing is said of the making; the whole is one undo step.
+        /// With FILEDIA 1 and a window, the file is chosen in its Select Template From File dialog and the layouts in its
+        /// Insert Layout(s) dialog (<see cref="CadInsertLayoutRequest"/>), several at once, the first picked to start with;
+        /// Cancel in either brings nothing in.
         /// </summary>
         private static IEnumerable<CadPrompt> LayoutTemplate(CadCommandContext c)
         {
-            yield return CadPrompt.ForString("Enter file name");
-            string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
-
-            if (typed.Length == 0)
+            var job = new CadExportJob(
+                "Select Template From File",
+                TemplateOpenTypes,
+                TemplateOpenTypes[0],
+                c.Document.HasFile ? c.Document.DrawingFolder + Path.DirectorySeparatorChar : null
+            )
             {
-                yield break;
+                Opens = true,
+            };
+            bool dialogs = c.Session.FileDialogs && c.Session.Request("LAYOUT", c.Document, job);
+            string file;
+
+            if (dialogs)
+            {
+                if (job.FileName == null)
+                {
+                    yield break;
+                }
+
+                file = job.FileName;
             }
-
-            string file = ResolveTemplate(c, typed);
-
-            if (file == null)
+            else
             {
-                string leaf = Path.GetFileName(Path.HasExtension(typed) ? typed : typed + ".dwt");
-                c.Write("\"" + leaf + "\": Can't find file.");
-                yield break;
+                yield return CadPrompt.ForString("Enter file name");
+                string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (typed.Length == 0)
+                {
+                    yield break;
+                }
+
+                file = ResolveTemplate(c, typed);
+
+                if (file == null)
+                {
+                    string leaf = Path.GetFileName(Path.HasExtension(typed) ? typed : typed + ".dwt");
+                    c.Write("\"" + leaf + "\": Can't find file.");
+                    yield break;
+                }
             }
 
             DxfDatabase source;
@@ -73,9 +117,22 @@ namespace GeometryHelper.Dxf.Viewer
                     && l.BlockTableRecord != null
                 )
                 .ToList();
-            List<DxfLayout> chosen;
+            List<DxfLayout> chosen = null;
+            var request = new CadInsertLayoutRequest(file, sheets.Select(l => l.LayoutName).ToList());
 
-            while (true)
+            if (dialogs && c.Session.Request("LAYOUT", c.Document, request))
+            {
+                chosen = request.IsAccepted
+                    ? sheets.Where(l => request.Picked.Contains(l.LayoutName, StringComparer.Ordinal)).ToList()
+                    : new List<DxfLayout>();
+
+                if (chosen.Count == 0)
+                {
+                    yield break;
+                }
+            }
+
+            while (chosen == null)
             {
                 yield return CadPrompt.ForString("Enter layout name(s) or [?]");
                 string names = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
@@ -97,10 +154,11 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                chosen = sheets.Where(l => CadWildcard.IsMatch(l.LayoutName, names, true)).ToList();
+                List<DxfLayout> found = sheets.Where(l => CadWildcard.IsMatch(l.LayoutName, names, true)).ToList();
 
-                if (chosen.Count > 0)
+                if (found.Count > 0)
                 {
+                    chosen = found;
                     break;
                 }
 
@@ -233,6 +291,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// exist. The template is the drawing with the one layout kept and no entity in model space, as AutoCAD 2021 writes it,
         /// its layers, linetypes, styles and blocks as they are. A name with no extension takes .dwt; .dwt and .dwg are written as
         /// a DWG of AutoCAD 2018, .dxf as a DXF after the questions DXFOUT asks of its settings; a file of the name is replaced.
+        /// With FILEDIA 1 and a window, the file is chosen in its Create Drawing File dialog (a DXF type giving the version, no
+        /// questions asked), and a .dwt shows Template Options (<see cref="CadTemplateOptionsRequest"/>): the description is
+        /// written into the DWG's template section and MEASUREMENT set as chosen; Cancel writes nothing.
         /// </summary>
         private static IEnumerable<CadPrompt> LayoutSaveAs(CadCommandContext c)
         {
@@ -247,12 +308,35 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForString("Enter name of output file");
-            string file = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+            var choice = new SaveChoice { Version = DxfDefault(c.Document.SaveVersion ?? c.Document.Database.Version) };
+            var job = new CadExportJob(
+                "Create Drawing File",
+                TemplateSaveTypes,
+                TemplateSaveTypes[0],
+                Path.Combine(c.Document.HasFile ? c.Document.DrawingFolder : string.Empty, space.Name + ".dwt")
+            );
+            bool dialogs = c.Session.FileDialogs && c.Session.Request("LAYOUT", c.Document, job);
+            string file;
 
-            if (file.Length == 0)
+            if (dialogs)
             {
-                yield break;
+                if (job.FileName == null)
+                {
+                    yield break;
+                }
+
+                file = job.FileName;
+                choice.Version = CadExportJob.DxfVersionOfType(job.FileType) ?? choice.Version;
+            }
+            else
+            {
+                yield return CadPrompt.ForString("Enter name of output file");
+                file = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim().Trim('"') : string.Empty;
+
+                if (file.Length == 0)
+                {
+                    yield break;
+                }
             }
 
             string extension = Path.GetExtension(file);
@@ -275,9 +359,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            var choice = new SaveChoice { Version = DxfDefault(c.Document.SaveVersion ?? c.Document.Database.Version) };
-
-            if (dxf)
+            if (dxf && !dialogs)
             {
                 foreach (CadPrompt prompt in DxfSettings(c, choice))
                 {
@@ -295,9 +377,30 @@ namespace GeometryHelper.Dxf.Viewer
                 file = Path.Combine(c.Document.DrawingFolder, file);
             }
 
+            // A .dwt chosen in the dialog: Template Options, its description and measurement; Cancel writes nothing.
+            CadTemplateOptionsRequest options = null;
+
+            if (dialogs && string.Equals(extension, ".dwt", StringComparison.OrdinalIgnoreCase))
+            {
+                options = new CadTemplateOptionsRequest(
+                    file,
+                    c.Document.Database.Measurement == DxfMeasurementValue.Metric
+                );
+
+                if (c.Session.Request("LAYOUT", c.Document, options) && !options.IsAccepted)
+                {
+                    yield break;
+                }
+            }
+
             try
             {
                 DxfDatabase template = TemplateOf(c.Document.Database, space.Layout.LayoutName);
+
+                if (options != null && options.IsAccepted)
+                {
+                    template.Measurement = options.IsMetric ? DxfMeasurementValue.Metric : DxfMeasurementValue.English;
+                }
 
                 if (dxf)
                 {
@@ -312,7 +415,8 @@ namespace GeometryHelper.Dxf.Viewer
                         template.ToText(),
                         DwgWriter.DefaultVersion,
                         out IDictionary<string, int> left,
-                        null
+                        null,
+                        options != null && options.IsAccepted ? options.Description : null
                     );
                     File.WriteAllBytes(Path.GetFullPath(file), bytes);
 

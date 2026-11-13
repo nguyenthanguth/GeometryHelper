@@ -554,7 +554,17 @@ and `Enter name of output file:` and writes the drawing as a template of that on
 the layers, linetypes, styles and blocks as they are, as AutoCAD 2021 writes it. A name with no extension takes .dwt; .dwt and .dwg
 are written as a DWG of AutoCAD 2018, .dxf as a DXF after the questions DXFOUT asks of its settings; a file of the name is replaced
 without asking, as AutoCAD's console does. Model says `May not save Model tab.`, a name that is no layout `Layout "x" does not exist.`.
-The Template Description and Insert Layout dialogs of AutoCAD are not built: the command line asks as the console does.
+With FILEDIA 1 in the window both forms show AutoCAD 2021's dialogs instead of the file questions. Template shows Select
+Template From File (an Open dialog of Drawing Template (*.dwt), Drawing (*.dwg) and DXF (*.dxf)), then Insert Layout(s)
+([`CadInsertLayoutRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertLayoutRequest)): the file's layouts in the order of its
+tabs, the first picked, Ctrl or Shift picking several; OK brings in those picked as the typed names do, one undo step, and
+Cancel in either dialog brings nothing in. A template of Layout1, Plan, Sect and Cover with Plan and Cover picked adds Plan
+and Cover after the drawing's last tab. SAveas shows Create Drawing File (a Save dialog offering `Layout1.dwt`, of
+AutoCAD Drawing Template (*.dwt), the AutoCAD 2018 DWG and the DXF versions; a DXF type gives the version, no question asked),
+and for a .dwt Template Options ([`CadTemplateOptionsRequest`](xref:GeometryHelper.Dxf.Viewer.CadTemplateOptionsRequest)):
+the description, written into the DWG's template section where AutoCAD keeps it, the measurement, English or Metric
+(MEASUREMENT 0 or 1, the drawing's to start), and New Layer Notification greyed, since the presenter keeps no reconciled
+layers. Cancel in Template Options writes nothing. With FILEDIA 0, or no window, the command line asks as the console does.
 
 -XBIND (`-XB`, XBIND, `XB`) asks `Enter symbol type to bind [Block/Dimstyle/LAyer/LType/Style]:` and `Enter dependent Layer
 name(s):`, names with wildcards parted by commas, and binds what an external reference brought into the drawing, as
@@ -1526,7 +1536,7 @@ of Default is drawn with, AutoCAD's LWDEFAULT, 0.25 mm until set) and Adjust Dis
 their width on screen, a 0.50 mm line about 2 pixels at the middle); the last three are kept in the global settings
 (`GlobalSettings.LineweightsInInches`, `DefaultLineweight`, `LineweightDisplayScale`) and every drawing open is drawn again
 with them. LWUNITS (0 inches, 1 millimetres) and LWDEFAULT (a width in hundredths of a millimetre, one of AutoCAD's 24;
-`33` says `Invalid lineweight value.`) are the dialog's two boxes as system variables: typed, they last for the drawing's
+`33` says `Cannot set LWDEFAULT to that value.`, as AutoCAD 2021 says it) are the dialog's two boxes as system variables: typed, they last for the drawing's
 session (LWDEFAULT 35 draws a Default line 0.35 mm at once) and the dialog starts from them. With no window LWEIGHT asks
 -LWEIGHT's question. REDRAW and REDRAWALL have nothing left to draw, and
 REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of the space, HIDEOBJECTS those selected,
