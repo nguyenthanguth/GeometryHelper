@@ -736,7 +736,17 @@ DIMLINEAR asks `Specify dimension line location or [Mtext/Text/Angle/Horizontal/
 `[Mtext/Text/Angle]`, as AutoCAD 2021: Mtext and Text ask for the words, Angle turns them (`Specify angle of dimension
 text:`), and Rotated sets the line's angle (`Specify angle of dimension line <0>:`): 0,0 to 100,0 rotated 30 measures
 86.6025. Words turned by Angle stand centred on the line whatever DIMTAD says, the line broken where their turned box
-and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65 each side of the middle. Every dimension
+and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65 each side of the middle. Turned words
+fit between the extension lines by the reach of their box, grown by DIMGAP, along the line (its width over the cosine of
+the turn and its height over the sine: "100" turned 30 needs 7.55, turned 60 6.56, turned 90 3.8), more than the chord the
+line takes through them; with the arrowheads they need that reach or the chord and two arrowheads and gaps, whichever is
+more ("12345.6789" turned 10 needs 25.8). Where they do not fit they stand outside, on the line, an arrowhead (two where the
+arrowheads are out) and half the chord past the end, level with its end on a slanting line; under DIMTMOVE 1 the leader runs
+square off the line to a level landing and they are turned about the middle of their start (DIMTMOVE 2 puts their middle
+4.1154 up), and DIMJUST 3 and 4 put them on the extension line, which is not run on. A DIMTVP that is not nought lifts them.
+A DIMLINEAR of 100 at DIMSCALE 100 (0.18 sizes) with its words turned 30 has them at (154.38, 30) outside the second line, the
+arrowheads in, and turned 20 at (171.185, 30). Turned words put by DIMTEDIT turn the arrowheads out where they reach within an
+arrowhead and half their chord of an extension line, whatever their height, unless they are wider than the line. Every dimension
 made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block; words the
 fit puts past a leader under DIMTMOVE 1 are written by their start, level with their middle, as AutoCAD 2021 writes
 them: that "0.5000" of a continued dimension of 0.5, its middle at (100.8933, 20.4088), as (100.52, 20.4088).

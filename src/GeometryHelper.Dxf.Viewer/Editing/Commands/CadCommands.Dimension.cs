@@ -1427,7 +1427,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// below nought, the box round the words, keeps words above the line clear of it by the gap again. Words turned to an
         /// angle of their own (<paramref name="wordsAngle"/>, DIMLINEAR's Angle) stand centred on the line whatever DIMTAD says,
         /// the line broken where their turned box and the gap cross it: "100" 5.25 wide and 2.5 high turned 45 breaks it 2.65
-        /// each side of its middle.
+        /// each side of its middle. They fit between the extension lines by the reach of their box, grown by the gap, along the
+        /// line, not by that chord (turned 30 "100" needs 7.55, turned 60 6.56); with the arrowheads by the reach or the chord
+        /// and the arrowheads, whichever is more. Outside they stand on the line, half the chord past an arrowhead (two where the
+        /// arrowheads are out); under DIMTMOVE 1 on a level landing, turned about the middle of its start.
         /// </summary>
         /// <remarks>
         /// With arrowheads of 2.5 and DIMGAP 0.625, a dimension of 100 has its words "100", 5.3 wide, in the middle; of 5, its
@@ -1481,8 +1484,20 @@ namespace GeometryHelper.Dxf.Viewer
             bool centred = tad == 0 || wordsAngle.HasValue || (!level && (tad == 1 || tad == 4));
             double half = Chord(width, height, gap, inside - angle);
             double needText = centred ? 2.0 * half : width + 2.0 * gap;
+
+            // Turned words alone fit between the extension lines by the reach of their box (grown by the gap) along the line, not by
+            // the chord the line takes through it: "100" 5.28 wide and 2.55 high, DIMGAP 0.625, turned 30 needs 7.55, turned 60 6.56.
+            double needAlone = wordsAngle.HasValue ? Reach(width, height, gap, inside - angle) : needText;
             double needArrows = ticks ? 0.0 : 2.0 * (arrow + gap);
             double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * (arrow + gap)) : Math.Max(needText, needArrows);
+
+            // Turned words and the arrowheads both fit where the words fit alone and the line through them leaves room for the arrowheads:
+            // a long word turned 10 needs its reach and the arrowheads (25.8 for "12345.6789"), turned 60 only its reach (12.9).
+            if (wordsAngle.HasValue)
+            {
+                needBoth = Math.Max(needBoth, needAlone);
+            }
+
             bool textInside;
             bool arrowsInside;
 
@@ -1505,7 +1520,7 @@ namespace GeometryHelper.Dxf.Viewer
                         arrowsInside = false;
                         break;
                     case 1:
-                        textInside = needText <= length;
+                        textInside = needAlone <= length;
                         arrowsInside = false;
                         break;
                     case 2:
@@ -1513,8 +1528,8 @@ namespace GeometryHelper.Dxf.Viewer
                         arrowsInside = needArrows <= length;
                         break;
                     default:
-                        arrowsInside = needArrows <= length && !(needText > needArrows && needText <= length);
-                        textInside = !arrowsInside && needText <= length;
+                        arrowsInside = needArrows <= length && !(needAlone > needArrows && needAlone <= length);
+                        textInside = !arrowsInside && needAlone <= length;
                         break;
                 }
             }
@@ -1529,7 +1544,7 @@ namespace GeometryHelper.Dxf.Viewer
             // Words above the line stand clear of it by the gap, and a box round them (DIMGAP below nought) by the gap again.
             double lift = tad != style.Dimtad ? style.Dimtvp * height : gap + height / 2.0 + (box ? gap : 0.0);
             int outerSide = just == 1 ? 1 : 2;
-            double outward2 = style.Dimtoh ? 0.0 : angle;
+            double outward2 = style.Dimtoh || wordsAngle.HasValue ? 0.0 : angle;
 
             // Words moved out by the fit go over the line where DIMTMOVE is 1 or 2, not beside it past an extension line, level
             // where DIMTOH keeps them so.
@@ -1553,13 +1568,27 @@ namespace GeometryHelper.Dxf.Viewer
             // DIMTVP.
             double offLine = tad == 0 ? raised : Side(tad, above, p1, p2, middle) * lift;
 
+            // Turned words stand on the line, but where DIMTVP is not nought they are lifted off it: by DIMTVP times their height for
+            // DIMTAD 0, else (to the side DIMTAD says) by the reach of their turned box across the line where they stand between the
+            // extension lines (3.28 for "100" turned 30), and by the gap and half their height where they stand outside.
+            double Lifted(GeoVector2 up, bool within) =>
+                !wordsAngle.HasValue || Math.Abs(style.Dimtvp) <= NearZero ? 0.0
+                : style.Dimtad == 0 ? style.Dimtvp * height
+                : Side(style.Dimtad, up, p1, p2, middle)
+                    * (
+                        within
+                            ? (width / 2.0 + gap) * Math.Abs(Math.Sin(inside - angle))
+                                + (height / 2.0 + gap) * Math.Abs(Math.Cos(inside - angle))
+                            : gap + height / 2.0
+                    );
+
             if (placed.HasValue)
             {
                 // Words put between the extension lines under DIMTIH stand level on the line, which is broken a gap clear of
                 // them, as AutoCAD 2021 draws them after DIMTEDIT Left and Right on a slanted line.
                 double put = (placed.Value - q1).X * along.X + (placed.Value - q1).Y * along.Y;
 
-                if (style.Dimtmove == 0 && !level && put >= -1E-9 && put <= length + 1E-9)
+                if (style.Dimtmove == 0 && !level && !wordsAngle.HasValue && put >= -1E-9 && put <= length + 1E-9)
                 {
                     layout.Angle = inside;
                     layout.At = q1 + along * put;
@@ -1582,11 +1611,14 @@ namespace GeometryHelper.Dxf.Viewer
                     height,
                     gap,
                     arrow,
+                    tad == 0 || wordsAngle.HasValue,
                     tad == 0,
-                    offLine,
+                    wordsAngle.HasValue ? Lifted(above, true) : offLine,
                     style.Dimtxtdirection,
                     !ticks,
-                    beyond
+                    beyond,
+                    wordsAngle.HasValue ? half : (double?)null,
+                    inside
                 );
                 return layout;
             }
@@ -1602,10 +1634,17 @@ namespace GeometryHelper.Dxf.Viewer
                 // between the extension lines again for the leader where the arrowheads stand outside.
                 var points = new GeoPoint2((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
                 double side = (middle - points).X * above.X + (middle - points).Y * above.Y < 0.0 ? -1.0 : 1.0;
-                bool levelled = style.Dimtoh;
+                bool levelled = style.Dimtoh || wordsAngle.HasValue;
                 double clearance = levelled ? beyond + gap / 2.0 + height : beyond + 1.5 * gap + height / 2.0;
                 double off = Math.Max(arrow, side > 0.0 ? clearance : clearance + height);
-                layout.Angle = outward2;
+                layout.Angle = wordsAngle ?? outward2;
+
+                // Turned words stand centred on the line, whatever DIMTAD says, and as levelled ones out: the leader square to
+                // the line, the landing level, the words turned about the middle of their start.
+                if (wordsAngle.HasValue)
+                {
+                    offLine = Lifted(above, false);
+                }
 
                 if (style.Dimtmove == 2)
                 {
@@ -1621,7 +1660,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     landing = new GeoVector2(knee.X < middle.X - 1E-9 ? -1.0 : 1.0, 0.0);
                     upward = new GeoVector2(0.0, 1.0);
-                    offLine = tad == 0 ? raised : Side(tad, upward, p1, p2, middle) * lift;
+                    offLine =
+                        wordsAngle.HasValue ? Lifted(upward, false)
+                        : tad == 0 ? raised
+                        : Side(tad, upward, p1, p2, middle) * lift;
                 }
 
                 bool onLanding = tad == 0;
@@ -1641,7 +1683,15 @@ namespace GeometryHelper.Dxf.Viewer
                         knee + landing * (onLanding ? 2.0 * gap : width + 2.0 * gap)
                     )
                 );
-                layout.At = knee + landing * (start2 + width / 2.0) + upward * offLine;
+                // Turned words are held by the middle of their start: their middle is half their width on, the way they are turned
+                // (the other way for words read right to left, or for a landing that runs left).
+                var turn = new GeoVector2(Math.Cos(inside), Math.Sin(inside));
+                layout.At = wordsAngle.HasValue
+                    ? knee
+                        + landing * start2
+                        + (style.Dimtxtdirection != (landing.X < -1E-9) ? -turn : turn) * (width / 2.0)
+                        + upward * offLine
+                    : knee + landing * (start2 + width / 2.0) + upward * offLine;
                 layout.Start = knee + landing * start2 + upward * offLine;
 
                 if (arrowsOut)
@@ -1668,14 +1718,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                 var beside = new GeoVector2(-Math.Sin(turned), Math.Cos(turned));
                 layout.OverExtension = just - 2;
-                layout.Longer = tad == 0 ? 0.0 : width + 2.0 * gap;
-                layout.Angle = turned;
+
+                // Turned words stand on the extension line itself, its end run on by nothing, whatever DIMTAD says.
+                bool onIt = tad == 0 || wordsAngle.HasValue;
+                layout.Longer = onIt ? 0.0 : width + 2.0 * gap;
+                layout.Angle = wordsAngle ?? turned;
                 layout.At =
                     foot
                     + unit * (beyond + gap + width / 2.0)
                     + beside
                         * (
-                            tad == 0 ? 0.0
+                            onIt ? 0.0
                             : tad == 4 ? -lift
                             : lift
                         );
@@ -1695,7 +1748,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (centred)
                 {
-                    layout.At = level ? on + above * raised : on;
+                    layout.At =
+                        wordsAngle.HasValue ? on + above * Lifted(above, true)
+                        : level ? on + above * raised
+                        : on;
 
                     // Words forced inside that do not fit leave the line whole.
                     if (needText <= length)
@@ -1726,6 +1782,32 @@ namespace GeometryHelper.Dxf.Viewer
                 : ticks ? 0.0
                 : arrow;
             layout.Angle = outward2;
+
+            if (wordsAngle.HasValue)
+            {
+                // Turned words stand centred on the line past its end, half the chord the line takes through them from where the
+                // line stops: "100" turned 30 on a line of 7 with its arrowheads in stands 2.5 and 3.77 past the second line.
+                layout.Angle = inside;
+
+                // On a slanting line the words stand level with the end of what is drawn, half the chord on, the way the line runs
+                // out (left or right, and on an upright line the way the points run), as AutoCAD 2021 lays them.
+                var runs = new GeoVector2(
+                    away.X < -1E-9 ? -1.0
+                        : away.X > 1E-9 ? 1.0
+                        : away.Y < 0.0 ? -1.0
+                        : 1.0,
+                    0.0
+                );
+                var upright = new GeoVector2(0.0, 1.0);
+                layout.At = start + away * clear + runs * half + upright * Lifted(upright, false);
+                layout.Outside.Add(
+                    new KeyValuePair<GeoPoint2, GeoPoint2>(
+                        start + away * (arrowsOut ? arrow : 0.0),
+                        start + away * clear
+                    )
+                );
+                return layout;
+            }
 
             if (!Parallel(outward2, angle))
             {
@@ -1796,7 +1878,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// out beside it, the line run back to the words, and a point on the first line itself goes past the second; words on the
         /// line between the lines turn the arrowheads out, the line left whole where the break would take only one of its ends. "100"
         /// 6.53 wide with its gaps put 3 before the first extension line of a line 100 long stands 5.765 before it. Under 1 the line
-        /// is run on to words past an end only once they stand clear of an arrowhead's length from it.
+        /// is run on to words past an end only once they stand clear of an arrowhead's length from it. Turned words
+        /// (<paramref name="turnedHalf"/>, half the chord the line takes through them, in place of half their width and a gap)
+        /// turn the arrowheads out within an arrowhead and that half of an extension line, whatever their height, and under 1 stand on a level landing, turned about
+        /// the point they were put at.
         /// </summary>
         private static void PlaceMoved(
             LinearLayout layout,
@@ -1813,16 +1898,19 @@ namespace GeometryHelper.Dxf.Viewer
             double gap,
             double arrow,
             bool onLine,
+            bool onLanding,
             double offLine,
             bool backward,
             bool arrowheads,
-            double beyond
+            double beyond,
+            double? turnedHalf = null,
+            double turnedAngle = 0.0
         )
         {
             double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
             GeoPoint2 foot = q1 + along * t;
             double across = (at - foot).X * above.X + (at - foot).Y * above.Y;
-            double half = width / 2.0 + gap;
+            double half = turnedHalf ?? width / 2.0 + gap;
             bool crossing = Math.Abs(across) < height / 2.0 + gap;
             double length = (q2 - q1).Length;
 
@@ -1851,7 +1939,22 @@ namespace GeometryHelper.Dxf.Viewer
                 foot = q1 + along * t;
             }
 
-            if (zoned && t > NearZero && t < length - NearZero && (t < zone + slack || t > length - zone + NearZero))
+            // Turned words too wide for the line, that take both ends of it between the arrowheads, leave them and the line as they are, as
+            // AutoCAD 2021 draws them.
+            bool covers =
+                turnedHalf.HasValue
+                && zoned
+                && 2.0 * half > length
+                && Takes(t, half, arrow)
+                && Takes(t, half, length - arrow);
+
+            if (
+                zoned
+                && !covers
+                && t > NearZero
+                && t < length - NearZero
+                && (t < zone + slack || t > length - zone + NearZero)
+            )
             {
                 // Words on the line, between the extension lines and in the zone, turn the arrowheads out (and leave the line
                 // whole under 1 and 2); words above it, clear of the arrowheads, do not.
@@ -1878,7 +1981,7 @@ namespace GeometryHelper.Dxf.Viewer
                 layout.At = foot + above * offLine;
                 double reach = onLine ? -half : half;
 
-                if (onLine && !(zoned && Straddles(t, half, first, length - first)))
+                if (onLine && !covers && !(zoned && Straddles(t, half, first, length - first)))
                 {
                     layout.Middle = foot;
                     layout.Break = half;
@@ -1899,15 +2002,28 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (move == 1 && Math.Abs(across) >= gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero)
             {
+                // Turned words are held on a level landing, running the way the point lies from the middle of the line.
                 GeoVector2 away =
-                    (at - middle).X * readable.X + (at - middle).Y * readable.Y >= 0.0 ? readable : -readable;
-                GeoPoint2 knee = at - away * (onLine ? 3.0 * gap : gap);
+                    turnedHalf.HasValue ? new GeoVector2((at - middle).X >= 0.0 ? 1.0 : -1.0, 0.0)
+                    : (at - middle).X * readable.X + (at - middle).Y * readable.Y >= 0.0 ? readable
+                    : -readable;
+                GeoPoint2 knee = at - away * (onLanding ? 3.0 * gap : gap);
                 layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(middle, knee));
                 layout.Outside.Add(
-                    new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + away * (onLine ? 2.0 * gap : width + 2.0 * gap))
+                    new KeyValuePair<GeoPoint2, GeoPoint2>(
+                        knee,
+                        knee + away * (onLanding ? 2.0 * gap : width + 2.0 * gap)
+                    )
                 );
                 // Words read from right to left (DIMTXTDIRECTION) stand on the other side of the point, as AutoCAD 2021 puts them.
-                layout.At = at + (backward ? -away : away) * (width / 2.0) + above * offLine;
+                // Turned words are held by the middle of their start, the point itself, and run on the way they are turned (back
+                // where the landing runs left, or for words read right to left).
+                var turn = new GeoVector2(Math.Cos(turnedAngle), Math.Sin(turnedAngle));
+                layout.At = turnedHalf.HasValue
+                    ? at
+                        + (backward != (away.X < -NearZero) ? -turn : turn) * (width / 2.0)
+                        + new GeoVector2(0.0, offLine)
+                    : at + (backward ? -away : away) * (width / 2.0) + above * offLine;
                 return;
             }
 
@@ -1935,6 +2051,7 @@ namespace GeometryHelper.Dxf.Viewer
                 crossing
                 && (move == 2 || onLine)
                 && !turnedOut
+                && !covers
                 && !(zoned && Straddles(t, half, first, length - first))
             )
             {
@@ -1972,6 +2089,13 @@ namespace GeometryHelper.Dxf.Viewer
             double b = across > 1E-9 ? (height / 2.0 + gap) / across : double.MaxValue;
             return Math.Min(a, b);
         }
+
+        /// <summary>
+        /// How far the box of words, grown by the gap each side, reaches along a line at an angle to them: the width and the
+        /// height of the box, each over the cosine and the sine of the turn.
+        /// </summary>
+        private static double Reach(double width, double height, double gap, double turn) =>
+            (width + 2.0 * gap) * Math.Abs(Math.Cos(turn)) + (height + 2.0 * gap) * Math.Abs(Math.Sin(turn));
 
         /// <summary>
         /// The side of the dimension line words off it stand on, toward <paramref name="above"/> (1) or away from it (-1): above

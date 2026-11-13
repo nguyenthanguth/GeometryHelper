@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Words of a linear dimension turned by DIMTEDIT Angle (or DIMLINEAR's Angle, DIMEDIT Rotate) that do not fit between the
+extension lines are laid out as AutoCAD 2021 lays them (probed on 15 735 dimensions in its console, each drawn again from the library's
+file: 6 404 differed, 377 now, all of the corners listed at the end). They fit by the reach of their box, grown by DIMGAP, along the line
+(its width over the cosine of the turn and its height over the sine: "100", 5.28 wide and 2.5 high, turned 30 needs 7.55, turned 60 6.56,
+turned 90 3.8), not by the chord the line takes through them (7.54, 4.39 and 3.8, which still breaks the line and decides the
+arrowheads): with the arrowheads they need that reach, or the chord and two arrowheads and gaps, whichever is more ("12345.6789" turned
+10 needs 25.8, turned 60 12.9). A DIMLINEAR of 100 at DIMSCALE 100 (0.18 sizes, "100.0000" 100.94 wide) with its words turned 30 has
+them at (154.38, 30) outside the second line, centred on it, the arrowheads in (the chord of 72.8 had kept them between the lines);
+turned 20, at (171.185, 30). Outside they stand on the line an arrowhead past its end (two where the arrowheads are out) and half the
+chord on, level with the end on a slanting line (an aligned dimension of 4 at 30 degrees, "100" turned 60: (-3.436, 30.481)); under
+DIMTMOVE 1 the leader runs square off the line to a level landing 6.53 long and the words turn about the middle of their start (4.911,
+35.435 for "100" turned 30 on a line of 4), under 2 their middle stands 4.115 above the line; DIMJUST 3 and 4 put them on the extension
+line, which is not run on; any DIMTVP but nought lifts them off the line (by DIMTVP times their height under DIMTAD 0, else by the
+reach of their turned box across the line between the extension lines and by a gap and half their height outside); DIMTXTDIRECTION
+turns them about the other end. Words moved and turned (DIMTEDIT to a point, then Angle) turn the arrowheads out within an arrowhead and
+half their chord of an extension line, whatever their height (at 20 or 50 on a line of 100 at DIMSCALE 100, turned 30: both arrowheads
+out on lines 18 long past 0 and 100, as AutoCAD draws them; the words keep the line whole where they are wider than it), and stand on
+a level landing under DIMTMOVE 1. Counted against AutoCAD's redraw: plain turned words 0 differing of 2 400 (DIMTAD 0 1 2 4, DIMATFIT
+0 to 3, DIMTIX, DIMTMOVE 0 to 2) and of 480 at DIMSCALE 100, 0 of 336 on slanting and reversed lines, 2 of 324 moved and turned on
+level lines; every other path is unchanged (66 sets of earlier rounds, 144 044 pictures, byte for byte). Not done: turned words wider
+than about 3.8 times (DIMEXE and their height) under DIMTMOVE 1, where AutoCAD draws no leader and keeps their middle at their point
+(58 of 2 160); a DIMGAP below nought on words that fit exactly; words put beyond the end of a slanting line (their zone, and under
+DIMTMOVE 1 a line run on to the landing); the words of a dimension whose words stand exactly on an extension line or exactly over the
+middle (AutoCAD's choice of side there follows its rounding).
 **NEW.** The ACIS data of R2000 (ACIS 4.00) is turned into the ASM data of the other versions and back when a drawing is saved as
 another version of DXF (`DxfDatabase.Save(path, version)`), as AutoCAD 2021 writes it. Where a 3DSOLID, a BODY, a surface or a region
 used to keep the SAT of R2010 in an R2000 file and, going up, to be left out of R2013 and R2018, it now comes out as ACIS 4.00 going
@@ -51,11 +75,8 @@ their first line's middle level with the landing: an arrow at (100, 100) and a l
 out from them as it should (the base was 4.4 short of it at 1:50), and a block's matrix holds its place (25.36, 10 for a block placed at
 (25.36, 10)). The font is not measured, so the words' own height stands where AutoCAD adds the depth of their ink (0.0915 above the
 landing for "HELLO" of 0.18, not 0.09). DIMARC words use DIMDEC as AutoCAD does (checked for DIMDEC 0 to 6 against DIMADEC, DIMAUNIT and
-DIMLUNIT: only DIMDEC changes them, "314.159" at 3 and "314.1593" at 4). Not done: words turned 30 degrees that do not fit at 1:100 (the
-same as a DIMLINEAR of 100 at DIMSCALE 100 and no annotation: AutoCAD puts the words at (154.38, 30) turned 30 degrees, outside, the
-arrowheads in, the library keeps them between the lines with the arrowheads out; fixing it changes the pictures of every dimension with
-turned words that do not fit); where the words of an angular dimension stand when they go outside; the arrowhead on the other side of
-words in MLEADEREDIT where no font measures them (the line goes to the first leader).
+DIMLUNIT: only DIMDEC changes them, "314.159" at 3 and "314.1593" at 4). Not done: where the words of an angular dimension stand when
+they go outside; the arrowhead on the other side of words in MLEADEREDIT where no font measures them (the line goes to the first leader).
 
 **NEW.** The `Origin` property of each parameter of a dynamic block, as AutoCAD 2021 reads it (probed in its console on side
 databases: 25 INSERTs, its values to the last digit, the library's read back with `AUDIT` finding 0 errors on all 25). A linear, XY,
