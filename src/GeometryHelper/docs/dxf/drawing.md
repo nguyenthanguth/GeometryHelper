@@ -279,7 +279,7 @@ The `LinetypeTable` holds a [`DxfLinetypeTableRecord`](xref:GeometryHelper.Dxf.D
 AutoCAD's gas line is `SetTextAt(1, "GAS")`, `SetShapeStyleAt(1, db.TextStyleTable["Standard"])`, `SetShapeScaleAt(1, 0.1)`
 and `SetShapeOffsetAt(1, new GeoVector2(-0.1, -0.05))` on its gap of 0.2, written `49 -0.2, 74 2, 75 0, 340` the style's
 handle `, 46 0.1, 50 0, 44 -0.1, 45 -0.05, 9 GAS`; a dash of a file has its length set too, and a linetype nothing draws
-with is erased. A text style is added to the `TextStyleTable`,
+with is erased; setting the `Name` of one of a file renames it with every reference to it by name, the entities, layers and styles of multilines that draw with it and the header's `Celtype`, `Dimltype`, `Dimltex1` and `Dimltex2` (ByLayer, ByBlock and Continuous keep theirs, and a name another linetype has is refused); the same of a viewport of the VPORT table renames that record alone, its tiles being renamed one by one. A text style is added to the `TextStyleTable`,
 `new DxfTextStyleTableRecord { Name = "ROMANS", FileName = "romans.shx", TextSize = 2.5 }`, and its font, height, width,
 slant and TrueType `Font` (a [`DxfFontDescriptor`](xref:GeometryHelper.Dxf.DxfFontDescriptor), `1001 ACAD, 1000 Arial, 1071 34` as AutoCAD keeps it) are set.
 

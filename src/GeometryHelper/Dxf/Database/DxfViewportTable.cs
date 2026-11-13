@@ -364,6 +364,22 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Renames the one viewport: its VPORT record's 2. The tiles of one configuration share a name, so no other record is
+        /// asked for its name; a caller renaming a whole configuration renames each of its tiles.
+        /// </summary>
+        private protected override void Rename(string name)
+        {
+            DxfSymbolTable.CheckName(name, "value");
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The viewport " + Name + " is erased, and is not changed.");
+            }
+
+            Item.File.SetValues(Item, new[] { new KeyValuePair<int, string>(2, name) }, Order, false);
+        }
+
         private void SetValues(params KeyValuePair<int, string>[] values)
         {
             if (IsErased)

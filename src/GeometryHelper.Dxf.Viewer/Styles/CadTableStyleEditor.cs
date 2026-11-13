@@ -499,6 +499,72 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>
+        /// Renames a style with the tables drawn in it, as -RENAME Tablestyle does: the entry of the dictionary ACAD_TABLESTYLE
+        /// takes the new name, which the tables follow since they point at the style by its handle, and the current style
+        /// (CTABLESTYLE) names it where it was the one renamed. Standard keeps its name.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The style's name, letters of either case the same.</param>
+        /// <param name="newName">The new name.</param>
+        /// <returns>What came of it; the name it has already is done with nothing written.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            DxfTableStyle style = Find(document.Database, name);
+
+            if (style == null)
+            {
+                return CadEditResult.Refuse("The drawing has no table style \"" + (name ?? string.Empty) + "\".");
+            }
+
+            string set = style.Name;
+            string wanted = (newName ?? string.Empty).Trim();
+
+            if (string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase))
+            {
+                return CadEditResult.Refuse("The Standard style cannot be renamed.");
+            }
+
+            if (!CadLayerEditor.IsLayerName(wanted))
+            {
+                return CadEditResult.Refuse("Invalid table style name.");
+            }
+
+            if (string.Equals(wanted, set, StringComparison.Ordinal))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            if (
+                !string.Equals(wanted, set, StringComparison.OrdinalIgnoreCase)
+                && document.Database.TableStyleDictionary.Contains(wanted)
+            )
+            {
+                return CadEditResult.Refuse("Table style \"" + wanted + "\" already exists.");
+            }
+
+            bool current = string.Equals(Current(document.Database), set, StringComparison.Ordinal);
+            return document.ApplyEdit(
+                "RENAME",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename table style", set, wanted) },
+                s =>
+                {
+                    s.Database.TableStyleDictionary.SetName(set, wanted);
+
+                    if (current)
+                    {
+                        s.Database.Tablestyle = wanted;
+                    }
+                }
+            );
+        }
+
         /// <summary>Gets why a style may not be deleted, as Delete is greyed: Standard, the current style, a style a table uses; null where it may.</summary>
         /// <param name="database">The drawing.</param>
         /// <param name="name">The style's name.</param>

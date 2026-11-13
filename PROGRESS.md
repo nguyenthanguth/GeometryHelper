@@ -96,19 +96,20 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [ ] Batch 4b follow-ups: -LAYOUT Template and SAveas (template files); layers and styles of a block bound by XBIND renamed x$0$ as AutoCAD; XBIND dialog (design first); LAYOUT in AutoCAD's words (default Set, its messages); the current layout after deleting the current one, and tab order after a delete, checked by AUDIT in AutoCAD; -OSNAP short names of the rarer snaps; whether HIDEPALETTES hides the command line (S)
 - [x] Batch 5, output (pgp-cmds5): EXPORTPDF (typed as -EXPORT Pdf), EXPORTDWF/DWFX (refused: no DWF writer), PLOTSTAMP and -PLOTSTAMP in AutoCAD's words, the stamp on PDF plots with its log, PDFSHX (searchable SHX text), IMPORT of DWG/DXF as a block
 - [ ] Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
-- [ ] Batch 1b first part: CHANGE (-CH), -RENAME with the missing rename helpers, CENTERMARK and CENTERLINE, DIMCENTER line colour, ACAD_OBJECTISOLATION (pgp-cmds1b, running) (M)
+- [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
+- [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
 Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics first, each round merged and verified before
 the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
 - Round 2, finishing the 2D commands drafters use every day:
   - [ ] R2.1 MLINE, MLSTYLE (typed), MLEDIT joins, with a core `DxfMline` builder (from Batch 2b) (mline, running) (M)
-  - [ ] R2.2 HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
+  - [ ] R2.2 (hatch2, running) HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
         -BOUNDARY refusing ellipses and splines as AutoCAD (from Batch 3b) (M)
-  - [ ] R2.3 SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
+  - [ ] R2.3 (splinedit2, running, with R3.1) SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
   - [ ] R2.4 Dialogs, designed first then built: RENAME, Lineweight Settings, Boundary Creation, classic Insert, Check
         Spelling, and ribbon buttons for the commands of batches 1 to 5 (from Batches 1b, 2b, 3b) (M)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
-  - [ ] R3.1 MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
+  - [ ] R3.1 (splinedit2, running) MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
   - [ ] R3.2 INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
   - [ ] R3.3 An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,

@@ -583,6 +583,75 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>
+        /// Renames a style with the multileaders drawn in it, as -RENAME multileadeRstyle does: the entry of the dictionary
+        /// ACAD_MLEADERSTYLE takes the new name, which the multileaders follow since they point at the style by its handle, and
+        /// the current style (CMLEADERSTYLE) names it where it was the one renamed. Standard keeps its name.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The style's name, letters of either case the same.</param>
+        /// <param name="newName">The new name.</param>
+        /// <returns>What came of it; the name it has already is done with nothing written.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            DxfMLeaderStyle style = Find(document.Database, name);
+
+            if (style == null)
+            {
+                return CadEditResult.Refuse("The drawing has no multileader style \"" + (name ?? string.Empty) + "\".");
+            }
+
+            string set = style.Name;
+            string wanted = (newName ?? string.Empty).Trim();
+
+            if (string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase))
+            {
+                return CadEditResult.Refuse("The Standard style cannot be renamed.");
+            }
+
+            if (!CadLayerEditor.IsLayerName(wanted))
+            {
+                return CadEditResult.Refuse("Invalid multileader style name.");
+            }
+
+            if (string.Equals(wanted, set, StringComparison.Ordinal))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            if (
+                !string.Equals(wanted, set, StringComparison.OrdinalIgnoreCase)
+                && document.Database.MLeaderStyleDictionary.Contains(wanted)
+            )
+            {
+                return CadEditResult.Refuse("Multileader style \"" + wanted + "\" already exists.");
+            }
+
+            bool current = string.Equals(Current(document.Database), set, StringComparison.Ordinal);
+            return document.ApplyEdit(
+                "RENAME",
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename multileader style", set, wanted),
+                },
+                s =>
+                {
+                    s.Database.MLeaderStyleDictionary.SetName(set, wanted);
+
+                    if (current)
+                    {
+                        s.Database.MLeaderstyle = wanted;
+                    }
+                }
+            );
+        }
+
         /// <summary>Gets why a style may not be deleted, as Delete is greyed: Standard, the current style, a style a multileader uses; null where it may.</summary>
         /// <param name="database">The drawing.</param>
         /// <param name="name">The style's name.</param>

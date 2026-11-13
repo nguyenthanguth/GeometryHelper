@@ -613,6 +613,98 @@ namespace GeometryHelper.Dxf
             file.RemoveTableRecord(Item, "LTYPE");
         }
 
+        /// <summary>
+        /// Renames the linetype with every reference to it by name: its LTYPE record's 2; each group 6 of the entities of model
+        /// space, paper space and the blocks, of the layers and of the styles of multilines; and the header's <c>$CELTYPE</c>,
+        /// <c>$DIMLTYPE</c>, <c>$DIMLTEX1</c> and <c>$DIMLTEX2</c>. A dimension style points at it by its handle, which does not
+        /// change. ByLayer, ByBlock and Continuous keep their names, as AutoCAD keeps them.
+        /// </summary>
+        private protected override void Rename(string name)
+        {
+            DxfSymbolTable.CheckName(name, "value");
+            string old = Name;
+
+            if (
+                string.Equals(old, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(old, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(old, "Continuous", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                throw new InvalidOperationException(
+                    "The linetype " + old + " is one AutoCAD keeps, and is not renamed."
+                );
+            }
+
+            if (IsDependent)
+            {
+                throw new InvalidOperationException(
+                    "The linetype " + old + " comes from an external reference, and is renamed in its own drawing."
+                );
+            }
+
+            if (IsErased)
+            {
+                throw new InvalidOperationException("The linetype " + old + " is erased, and is not changed.");
+            }
+
+            DxfFile file = Item.File;
+
+            foreach (DxfItem other in file.TableItems("LTYPE"))
+            {
+                if (
+                    other != Item
+                    && !other.IsRemoved
+                    && string.Equals(
+                        DxfReader.NameOf(file.ValueOf(other, 2) ?? string.Empty),
+                        name,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    throw new ArgumentException(
+                        "The linetype table has a linetype named "
+                            + name
+                            + " already, letters of either case the same.",
+                        "value"
+                    );
+                }
+            }
+
+            var named = new List<string>();
+
+            foreach (string variable in new[] { "$CELTYPE", "$DIMLTYPE", "$DIMLTEX1", "$DIMLTEX2" })
+            {
+                IReadOnlyList<DxfTypedValue> groups = file.HeaderOf(variable);
+
+                if (
+                    groups != null
+                    && groups.Count > 0
+                    && string.Equals(DxfReader.NameOf(groups[0].Value), old, StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    named.Add(variable);
+                }
+            }
+
+            file.SetValues(Item, new[] { new KeyValuePair<int, string>(2, name) }, Order, false);
+            file.Rename(
+                Naming,
+                (type, code) => code == 6 && type != "XRECORD" && type != "LTYPE" && type != "DIMSTYLE",
+                -1,
+                old,
+                name
+            );
+
+            foreach (string variable in named)
+            {
+                file.SetHeader(variable, new[] { new DxfTypedValue(6, name) });
+            }
+
+            GeometryHelperLog.Info(
+                "DxfDatabase: the linetype " + old + " was renamed " + name + ", with everything drawn with it."
+            );
+        }
+
         /// <summary>The object of an LTYPE record, made once.</summary>
         internal static DxfLinetypeTableRecord Of(DxfItem item) =>
             item.Wrapper as DxfLinetypeTableRecord

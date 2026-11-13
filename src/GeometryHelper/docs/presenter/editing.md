@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 233 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 236 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -205,7 +205,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
@@ -213,8 +213,8 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
-| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 
@@ -1115,6 +1115,37 @@ nearest of AutoCAD's, `0.33` to 0.35 mm with a word saying so. REDRAW and REDRAW
 REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of the space, HIDEOBJECTS those selected,
 as AutoCAD 2021 hides them (their Visible off) for the session only: a save writes them shown, and UNISOLATEOBJECTS shows
 them again, saying `1 object(s) unisolated.` or `No objects to unisolate.`. Each is one undo step.
+CHANGE (`-CH`) asks `Select objects:` and then `Specify change point or [Properties]:`, as AutoCAD 2021 does. A point moves
+the end of each line nearest it, so a line from (0, 0) to (100, 0) given (110, 5) ends at (110, 5), and with ORTHOMODE on
+keeps the line horizontal or vertical (the other end fixed, along x where the point is further along x than y, else along
+y); a lone circle takes the distance from its centre as its radius, a circle from (200, 0) of 10 given (215, 0) becomes 15.
+Among several objects the point is for the lines only, and each circle, text and block says `Change point ignored` and asks
+its own questions. Enter asks them too: `Specify new circle radius <no change>:`, and for a text `Specify new text
+insertion point <no change>:`, `Enter new text style <Standard>:`, `Specify new height <5.0000>:`, `Specify new rotation
+angle <0>:` and `Enter new text <NOTE>:` (a lone text given a point takes it as the insertion point and skips the first),
+for a block `Specify new block insertion point <no change>:` and `Specify new block rotation angle <0>:`, and for an
+attribute definition the tag, the prompt and the default value after the rotation. A height of 0 says `Value must be
+positive and nonzero.` and asks again; a style the drawing lacks says `Style "NoSuch" not defined - use STYLE command.` and
+goes on. An arc, a polyline or a point has no change point: `No changeable object selected`. Properties asks `Enter property
+to change [Color/Elev/LAyer/LType/ltScale/LWeight/Thickness/TRansparency/Material/Annotative]:` until Enter: Color (`New
+color [Truecolor/COlorbook] <BYLAYER>:`, with `Invalid color number.` for 0 or 256 or past 255), Elev (every point of a
+line, circle, arc, text, block or point given the level, a polyline its elevation), LAyer and LType (a name the drawing lacks
+is refused, `Cannot find layer "X".` asking again, `Linetype "X" not found.  Use LINETYPE command to load it.` going back to
+the property), ltScale (nought is `Value must be nonzero.`, a negative one is taken as its size), LWeight (`0.33` rounds to
+0.35 mm with a word), Thickness and TRansparency (0 to 90 or ByLayer or ByBlock, `Requires an integer between 0 and 90.`).
+Each prompt offers the value the run gave last, else the drawing's current one, and Enter takes it. Material and Annotative
+are asked and change nothing: the presenter holds no materials and CHANGE leaves annotation to Properties. One undo step.
+-RENAME asks `Enter object type to rename [Block/dEtailviewstyle/Dimstyle/LAyer/LType/Material/multileadeRstyle/seCtionviewstyle/Style/Tablestyle/Ucs/VIew/VPort]:`,
+then `Enter old block name:` and `Enter new block name:` (`dimension style`, `layer`, `linetype`, `multileader style`, `text style`, `table style`, `ucs`, `view` or `viewport configuration` in the
+others' places). An old name with a wildcard says `Invalid block name.` and asks again, as does one nothing has
+(`Cannot find block "Nope".`); a new name that is refused is said and asked again. Every reference follows the new name: the
+INSERTs of a block, the entities, layers, multiline styles and the current linetype of a linetype, the texts, attributes and
+tables of a text style, the dimensions of a dimension style, and the current multileader or table style. Layer 0, Standard
+and the linetypes ByLayer, ByBlock and Continuous keep their names. Material, dEtailviewstyle and seCtionviewstyle say the
+drawing holds none. One undo step (a UCS rename is made on the UCS manager and is not a step, as the UCS command's are).
+RENAME (`REN`) has its dialog left, to be designed: with no window it says so and runs -RENAME.
+The helpers behind it are public: `CadBlocks.Rename`, `CadLinetypes.Rename`, `CadMLeaderStyleEditor.Rename` and
+`CadTableStyleEditor.Rename` join `CadLayerEditor.Rename`, `CadDimStyleEditor.Rename` and `CadTextStyleEditor.Rename`.
 PROPERTIES, OPTIONS and LAYER ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
 where none is listening; QSAVE (of a drawing with no file), SAVEAS and DXFOUT ask it for its file dialog, and with none listening or FILEDIA 0 ask the file on the command line as AutoCAD does (see the application guide). The window adds CLOSE, QUIT, NEW, PROPERTIESCLOSE, RIBBON, RIBBONCLOSE, COMMANDLINE, COMMANDLINEHIDE, HIDEPALETTES, SHOWPALETTES, -OSNAP, GRID, SNAP, ORTHO, POLAR, OSNAP, ISOPLANE, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
@@ -1180,7 +1211,7 @@ check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and M
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: the 233 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 237 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+AutoCAD's: the 236 aliases of AutoCAD 2021's acad.pgp for the commands the presenter has (DXFOUT is a command of its own) and the four digits of the maintainer's (`1` LAYISO, `2` LAYERP, `22` LAYON, `3` LAYOFF), 240 in all, old names as `DTEXT` TEXT and `DDMODIFY` PROPERTIES among them (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
 DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 24 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES (shows or hides Properties), Ctrl+2 DRAWINGS (shows or hides the Drawings list), Ctrl+3 RIBBON (shows or hides the ribbon), Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING, Ctrl+Shift+P QPMODE (switches the Quick Properties panel)). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an

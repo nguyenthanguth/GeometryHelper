@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -64,6 +65,63 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="tag">The tag.</param>
         /// <returns>True where it does: GRID, not GRID LETTER.</returns>
         public static bool IsTag(string tag) => CadCommands.IsTag(tag);
+
+        /// <summary>
+        /// Renames a block with every reference to it, as -RENAME Block does: each INSERT, dimension and table that draws it, its
+        /// dynamic and attribute definitions with it. Refused for a block of a layout, an external reference or one AutoCAD
+        /// names itself, <c>Cannot find block "X".</c>; for a name AutoCAD does not take, <c>Invalid block name.</c>; and for
+        /// the name of another block, letters of either case the same, <c>Block "X" already exists.</c>
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="name">The block's name, letters of either case the same.</param>
+        /// <param name="newName">The new name.</param>
+        /// <returns>What came of it; the name it has already is done with nothing written.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            string typed = (name ?? string.Empty).Trim();
+            DxfBlockTableRecord block = Named(document.Database)
+                .FirstOrDefault(b => string.Equals(b.Name, typed, StringComparison.OrdinalIgnoreCase));
+
+            if (block == null)
+            {
+                return CadEditResult.Refuse("Cannot find block \"" + typed + "\".");
+            }
+
+            string was = block.Name;
+            string wanted = (newName ?? string.Empty).Trim();
+
+            if (!IsName(wanted))
+            {
+                return CadEditResult.Refuse("Invalid block name.");
+            }
+
+            if (string.Equals(wanted, was, StringComparison.Ordinal))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            if (
+                !string.Equals(wanted, was, StringComparison.OrdinalIgnoreCase)
+                && document.Database.BlockTable.Has(wanted)
+            )
+            {
+                return CadEditResult.Refuse(
+                    "Block \"" + document.Database.BlockTable[wanted].Name + "\" already exists."
+                );
+            }
+
+            return document.ApplyEdit(
+                "RENAME",
+                new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Rename block", was, wanted) },
+                s => s.Database.BlockTable[was].Name = wanted
+            );
+        }
     }
 
     /// <summary>What BLOCK and WBLOCK do with the objects a block is made of: AutoCAD's Retain, Convert to block and Delete.</summary>
