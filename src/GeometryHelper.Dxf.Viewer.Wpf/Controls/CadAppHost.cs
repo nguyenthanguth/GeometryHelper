@@ -140,7 +140,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
-            var model = new MainViewModel { Clipboard = new CadWindowsClipboard() };
+            var model = new MainViewModel
+            {
+                Clipboard = new CadWindowsClipboard(),
+                FilterListsPath = Path.Combine(PluginFolder, "filter.nfl"),
+            };
             var window = new CadAppWindow(model, AppName);
 
             if (WindowIcon != null)

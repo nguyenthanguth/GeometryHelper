@@ -31,6 +31,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public ViewportsViewModel(CadTiledViewports tiles)
         {
             _tiles = tiles ?? throw new ArgumentNullException(nameof(tiles));
+            _applyTo = tiles.AppliesToCurrentViewport ? "Current Viewport" : "Display";
             Configurations = new[] { ActiveConfiguration }.Concat(CadTiledViewports.StandardNames).ToList();
             _named = _tiles.Names.FirstOrDefault();
         }
@@ -209,8 +210,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
     /// <summary>
     /// The Object Selection Filters dialog of FILTER (design SelectionFilters): the list of the filter's lines, Select
-    /// Filter's property and value with Add to List, Substitute and Add Selected Object, Edit Item, Delete and Clear List,
-    /// and Named Filters. The lines are edited on a copy, given to the filter by <see cref="Commit"/> (Apply and Add
+    /// Filter's item with its operator, X, Y and Z, Add to List, Substitute and Add Selected Object, Edit Item, Delete and
+    /// Clear List, and Named Filters. The lines are edited on a copy, given to the filter by <see cref="Commit"/> (Apply and Add
     /// Selected Object), so Cancel leaves the filter as it was.
     /// </summary>
     public sealed class SelectionFiltersViewModel : ObservableObject
@@ -218,8 +219,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly CadDocument _document;
         private readonly CadSelectionFilter _filter;
         private readonly List<CadFilterLine> _lines;
+        private CadFilterChoice _choice = CadSelectionFilter.Choices[0];
         private CadFilterProperty _property = CadFilterProperty.Object;
         private string _value = string.Empty;
+        private string _valueY = "0";
+        private string _valueZ = "0";
+        private string _operatorX = "=";
+        private string _operatorY = "=";
+        private string _operatorZ = "=";
         private int _selected = -1;
         private string _saveName = string.Empty;
         private string _message;
@@ -247,15 +254,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _selected, value);
         }
 
-        /// <summary>Gets the properties Select Filter offers.</summary>
-        public IReadOnlyList<CadFilterProperty> Properties { get; } =
-            new[]
+        /// <summary>Gets the items Select Filter offers, as AutoCAD 2021's list does: properties, kinds of object, and the begin and end of each group.</summary>
+        public IReadOnlyList<CadFilterChoice> Choices => CadSelectionFilter.Choices;
+
+        /// <summary>Gets or sets the item picked in Select Filter; a kind of object sets the value to it.</summary>
+        public CadFilterChoice Choice
+        {
+            get => _choice;
+            set
             {
-                CadFilterProperty.Object,
-                CadFilterProperty.Layer,
-                CadFilterProperty.Color,
-                CadFilterProperty.Linetype,
-            };
+                if (value == null)
+                {
+                    return;
+                }
+
+                _choice = value;
+                Raise(nameof(Choice));
+                SetProperty(value.Property);
+                Value = value.Value ?? Values.FirstOrDefault() ?? string.Empty;
+            }
+        }
 
         /// <summary>Gets or sets the property picked; the value's list follows.</summary>
         public CadFilterProperty Property
@@ -263,24 +281,80 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _property;
             set
             {
-                if (Set(ref _property, value))
+                if (value == _property)
                 {
-                    Raise(nameof(Values));
-                    Value = Values.FirstOrDefault() ?? string.Empty;
+                    return;
                 }
+
+                if (_choice.Property != value || _choice.Value != null)
+                {
+                    _choice = CadSelectionFilter.Choices.First(c => c.Property == value);
+                    Raise(nameof(Choice));
+                }
+
+                SetProperty(value);
+                Value = Values.FirstOrDefault() ?? string.Empty;
             }
         }
 
-        /// <summary>Gets or sets the value, typed or picked (X: of AutoCAD's dialog).</summary>
+        /// <summary>Gets or sets the value, typed or picked (X: of AutoCAD's dialog, the only one for a name, a colour or a number).</summary>
         public string Value
         {
             get => _value;
             set => Set(ref _value, value ?? string.Empty);
         }
 
+        /// <summary>Gets or sets the Y of a point.</summary>
+        public string ValueY
+        {
+            get => _valueY;
+            set => Set(ref _valueY, value ?? string.Empty);
+        }
+
+        /// <summary>Gets or sets the Z of a point.</summary>
+        public string ValueZ
+        {
+            get => _valueZ;
+            set => Set(ref _valueZ, value ?? string.Empty);
+        }
+
+        /// <summary>Gets or sets how X is tested: = != &lt; &lt;= &gt; &gt;= or *.</summary>
+        public string OperatorX
+        {
+            get => _operatorX;
+            set => Set(ref _operatorX, value ?? "=");
+        }
+
+        /// <summary>Gets or sets how Y of a point is tested.</summary>
+        public string OperatorY
+        {
+            get => _operatorY;
+            set => Set(ref _operatorY, value ?? "=");
+        }
+
+        /// <summary>Gets or sets how Z of a point is tested.</summary>
+        public string OperatorZ
+        {
+            get => _operatorZ;
+            set => Set(ref _operatorZ, value ?? "=");
+        }
+
+        /// <summary>Gets the operators the property picked is tested with: only = for a name or a kind.</summary>
+        public IReadOnlyList<string> Operators => CadFilterLine.OperatorsOf(_property);
+
+        /// <summary>Gets whether the property picked is tested with operators: a colour, a number, an angle or a point.</summary>
+        public bool TakesOperators => CadFilterLine.TakesOperators(_property);
+
+        /// <summary>Gets whether the property picked is a point, which has Y and Z as well.</summary>
+        public bool IsPoint => CadFilterLine.IsPoint(_property);
+
+        /// <summary>Gets whether the item picked begins or ends a group, which has no value.</summary>
+        public bool IsGroup => CadFilterLine.IsGroup(_property);
+
         /// <summary>
         /// Gets the values Select... lists for the property: the kinds of the objects of the drawing, its layers, the colours
-        /// ByLayer, ByBlock and 1 to 7 then those in use, its linetypes; in ordinal order.
+        /// ByLayer, ByBlock and 1 to 7 then those in use, its linetypes, blocks, dimension styles and text styles; in
+        /// ordinal order; none for a number or a point.
         /// </summary>
         public IReadOnlyList<string> Values
         {
@@ -305,8 +379,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                                     .OrderBy(n => n, StringComparer.Ordinal)
                             )
                             .ToList();
-                    default:
+                    case CadFilterProperty.Color:
                         return new[] { 256, 0, 1, 2, 3, 4, 5, 6, 7 }.Select(CadFilterLine.ColorWords).ToList();
+                    case CadFilterProperty.BlockName:
+                        return db
+                            .BlockTable.Select(b => b.Name)
+                            .Where(n => !n.StartsWith("*", StringComparison.Ordinal))
+                            .OrderBy(n => n, StringComparer.Ordinal)
+                            .ToList();
+                    case CadFilterProperty.DimensionStyle:
+                        return db.DimStyleTable.Select(s => s.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+                    case CadFilterProperty.TextStyleName:
+                        return db.TextStyleTable.Select(s => s.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+                    default:
+                        return Array.Empty<string>();
                 }
             }
         }
@@ -354,7 +440,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsAddingSelected { get; private set; }
 
         /// <summary>Add to List: the property and value as a line under the one picked, or at the end.</summary>
-        /// <returns>Whether it was added; a colour AutoCAD refuses is not.</returns>
+        /// <returns>Whether it was added; a value AutoCAD refuses is not.</returns>
         public bool AddToList()
         {
             CadFilterLine line = Make();
@@ -403,10 +489,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             CadFilterLine line = _lines[SelectedLine];
+            CadFilterChoice choice = CadSelectionFilter.Choices.FirstOrDefault(c =>
+                c.Property == line.Property
+                && (c.Value == null || string.Equals(c.Value, line.Value, StringComparison.OrdinalIgnoreCase))
+            ) ?? CadSelectionFilter.Choices.First(c => c.Property == line.Property);
+            _choice = choice;
             _property = line.Property;
+            Raise(nameof(Choice));
             Raise(nameof(Property));
+            RaiseKind();
             Raise(nameof(Values));
-            Value = line.Value;
+            OperatorX = line.Operators.Count > 0 ? line.Operators[0] : "=";
+
+            if (CadFilterLine.IsPoint(line.Property))
+            {
+                OperatorY = line.Operators[1];
+                OperatorZ = line.Operators[2];
+                ValueY = Plain(line.Numbers[1]);
+                ValueZ = Plain(line.Numbers[2]);
+                Value = Plain(line.Numbers[0]);
+            }
+            else if (CadFilterLine.TakesOperators(line.Property) && line.Property != CadFilterProperty.Color)
+            {
+                Value = Plain(line.Numbers[0]);
+            }
+            else
+            {
+                Value = line.Value;
+            }
         }
 
         /// <summary>Delete: the line picked taken out.</summary>
@@ -470,6 +580,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             IsAddingSelected = true;
         }
 
+        /// <summary>Apply: checks that the groups of the lines are well formed, as AutoCAD does, and gives them to the filter.</summary>
+        /// <returns>Whether the lines were given; where not, <see cref="Message"/> says why.</returns>
+        public bool TryApply()
+        {
+            Message = CadSelectionFilter.Validate(_lines);
+
+            if (Message != null)
+            {
+                return false;
+            }
+
+            Commit();
+            return true;
+        }
+
         /// <summary>Gives the lines edited to the filter, as Apply does.</summary>
         public void Commit()
         {
@@ -481,12 +606,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        private void SetProperty(CadFilterProperty value)
+        {
+            _property = value;
+            Raise(nameof(Property));
+            RaiseKind();
+            Raise(nameof(Values));
+
+            if (!CadFilterLine.OperatorsOf(value).Contains(OperatorX) || !CadFilterLine.TakesOperators(value))
+            {
+                OperatorX = "=";
+            }
+
+            if (!CadFilterLine.IsPoint(value))
+            {
+                OperatorY = "=";
+                OperatorZ = "=";
+            }
+        }
+
+        private void RaiseKind()
+        {
+            Raise(nameof(Operators));
+            Raise(nameof(TakesOperators));
+            Raise(nameof(IsPoint));
+            Raise(nameof(IsGroup));
+        }
+
+        private static string Plain(double number) => number.ToString("0.##########", CultureInfo.InvariantCulture);
+
         private CadFilterLine Make()
         {
             try
             {
                 Message = null;
-                return new CadFilterLine(Property, Value);
+                string value =
+                    CadFilterLine.IsGroup(Property) ? string.Empty
+                    : CadFilterLine.IsPoint(Property) ? Value + "," + ValueY + "," + ValueZ
+                    : Value;
+                string[] operators =
+                    CadFilterLine.IsPoint(Property) ? new[] { OperatorX, OperatorY, OperatorZ }
+                    : CadFilterLine.TakesOperators(Property) ? new[] { OperatorX }
+                    : Array.Empty<string>();
+                return new CadFilterLine(Property, value, operators);
             }
             catch (ArgumentException ex)
             {

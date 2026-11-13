@@ -9,11 +9,13 @@ namespace GeometryHelper.Dxf.Viewer
     /// but one for text, they ask their own prompts after "&gt;&gt;", and once they end the command they interrupted writes
     /// "Resuming LINE command." and asks its prompt again, the objects "Select objects:" gathered still gathered. One nests
     /// in the other, 'ZOOM in a transparent PAN, as AutoCAD's does; 'ZOOM at ZOOM's own prompt is refused with ZOOM's words.
+    /// A transparent CAL ends by typing its value at the prompt the command interrupted waits at, a point as 11,21,0 or a
+    /// distance as 7 (<see cref="CadCommandContext.TransparentResult"/>), as AutoCAD 2021 does.
     /// </summary>
     public sealed partial class CadCommandSession
     {
         // The commands that run inside another, as AutoCAD's transparent PAN and ZOOM.
-        private static readonly string[] Transparents = { "PAN", "ZOOM" };
+        private static readonly string[] Transparents = { "PAN", "ZOOM", "CAL" };
 
         // The commands a transparent one interrupted, the one it returns to last.
         private readonly Stack<Suspended> _suspended = new Stack<Suspended>();
@@ -97,6 +99,7 @@ namespace GeometryHelper.Dxf.Viewer
         private void EndTransparent(CadCommandOutcome outcome)
         {
             Suspended outer = _suspended.Pop();
+            string result = _context?.TransparentResult;
 
             if (_grouped && !outer.Grouped)
             {
@@ -125,6 +128,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             Write("Resuming " + Current.Name + " command.");
             Changed();
+
+            // 'CAL's value is typed at the prompt that was waiting.
+            if (result != null)
+            {
+                Feed(result);
+            }
         }
 
         /// <summary>Whether a failing transparent command shares the undo step of the command it interrupted, which it then leaves open.</summary>

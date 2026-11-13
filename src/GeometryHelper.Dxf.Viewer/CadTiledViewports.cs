@@ -134,6 +134,13 @@ namespace GeometryHelper.Dxf.Viewer
         public double AreaAspect { get; set; } = 1.6;
 
         /// <summary>
+        /// Gets or sets where the Viewports dialog applies a configuration at first, as -VPORTS MOde sets it: false the whole display
+        /// (the default), true the current viewport. -VPORTS 2, 3 and 4 split the current viewport whichever it is, as AutoCAD 2021's
+        /// do (probed with one to seven viewports).
+        /// </summary>
+        public bool AppliesToCurrentViewport { get; set; }
+
+        /// <summary>
         /// Gets or sets what reads the view the window shows in the current tile into it (its centre, width and height), called
         /// before the tiles change and before they are saved, so that a new tile starts from the view as it is; null where no
         /// window shows them.

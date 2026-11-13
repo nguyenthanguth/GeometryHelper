@@ -1607,6 +1607,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session = new CadCommandSession(document, Commands());
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
+            file.Session.SelectionFilter.FilePath = FilterListsPath;
             file.Session.Clipboard = _clipboard;
             file.Session.PlotStamp = _plotStamp;
             file.Session.Progress = Progress;

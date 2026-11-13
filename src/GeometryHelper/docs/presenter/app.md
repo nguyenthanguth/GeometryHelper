@@ -283,8 +283,10 @@ of the Command menu, as AutoCAD 2021 runs 'PAN and 'ZOOM: their prompts are writ
 (">>Specify first corner:"), and once they end "Resuming LINE command." is written and the command's prompt asked
 again, what "Select objects:" gathered still gathered and the last point as it was. 'ZOOM inside a transparent PAN
 nests in it, each resumed in turn; 'ZOOM at ZOOM's own prompt gets ZOOM's "Requires a distance, numberX, or option
-keyword."; another command typed with an apostrophe gets "** That command may not be invoked transparently **", the text
-then going to the prompt; Esc ends the command interrupted too. 'ZOOM at the Command prompt is ZOOM.
+keyword."; 'CAL is the third: its prompts read ">>>> Expression:", it writes no value, and once the command resumes the value is
+typed at the prompt that was waiting (a point as 11,21,0, a distance as 7); another command typed with an apostrophe gets
+"** That command may not be invoked transparently **", the text then going to the prompt; Esc ends the command interrupted
+too. 'ZOOM at the Command prompt is ZOOM.
 
 A point typed at "Select objects:" picks as a click does, written after the prompt: "Select objects: 50,0" then
 "1 found"; one on nothing gives "0 found" and asks again, starting no window, as AutoCAD 2021's console does.
