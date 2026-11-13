@@ -782,10 +782,14 @@ DIMTMOVE 1 or 2 onto the arc break it about them, as words in the middle of it d
 with the arc drawn whole where they cut into an arrowhead's room ("60°" put 6 degrees from the first ray of an angle of
 60 at 35 out); under 1 their leader is drawn only past a distance from the arc, 6.6 with arrowheads and words 2.5 high of Arial and a gap of
 0.625 (6.85 in an SHX font with "60°" 5.42 wide): the end of the landing, half the words, the gap and an arrowhead
-before the point, has to be 1.405 and 0.137 heights of the words off the arc as the landing leans from the radius (the
-arrowhead, the gap and half the words count for 0.866 of their length, the cosine of 30 degrees). Fitted to what AutoCAD
-2021 draws, to 0.05 of a unit over 26 styles of arrowheads, words and gap, and to 0.1 for wider words ("60.00°" draws its
-leader from 8.8 off the arc in Arial).
+before the point, has to be 1.405 and 0.137 heights of the words off the arc plus the landing's length times 0.866 plus
+0.6 for each unit the cosine of the point's direction from the vertex differs from that of 30 degrees (out), or times 0.065
+plus 0.8 of the cosine (in): the band is wider out than in, and widest level, at 6.8 out and 6.2 in at 30 degrees with
+those sizes, 3.8 out and 2.1 in straight above the vertex. Fitted
+to what AutoCAD 2021 draws over 11 000 probes of "60°" put at every 5 degrees round an angle of 60 degrees at the origin,
+its arc 30 out, and on a grid (98 of 100 right), and to 0.05 of a unit over 26 styles of arrowheads, words and gap at 30
+degrees ("60.00°" draws its leader from 8.8 off the arc in Arial). Not followed: the band jumps a third of a landing where
+the point crosses the height of the arc's middle, and words straight above or below the vertex get a landing under them.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,
@@ -799,6 +803,19 @@ the words on it, as they do under DIMTAD 0, unless the line runs within 15 degre
 the circle is too tight for them ("R8" put 10.4 out at 30 degrees under DIMATFIT 3 stands on a landing from 13 out,
 16.402 along); a radius picked at 30 degrees under DIMTMOVE 1 with level words, the point put 150 degrees round, has its line
 run on through the centre to the height of the point and the words stand level there, group 11 the end of the line.
+Level words under DIMTAD 1 and 4 put inside a radius or a diameter under DIMATFIT 3 keep to the line, level with a landing an
+arrowhead long, only where it has the room: two arrowheads (and the height of the words on a line that runs down) and, as
+the line leans from upright, the width of the words and a gap times the cosine of its angle from level; a diameter has its
+whole length. Else they stand above (DIMTAD 4: below) a landing an arrowhead, a gap and the words long, at the same place
+along it: "R8" put 4 out at 30 degrees has its landing from 2.598 to -4.563 (7.161) and the words 1.9 above it at -2.545,
+at 60 degrees the landing 2.5 long and the words on it. Within 15 degrees of level only the arrowheads and the height
+count, and the landing is the words and a gap long. Under DIMTMOVE 1 words put behind the centre of a radius (or outside
+the circle and behind it, for a diameter) stand above a landing of the words and a gap, as past the rim. Fitted over
+17 000 probes (98 of 100 right; wide words on steep lines are the ones it misses).
+Words of a jogged radius whose box (grown by the gap) straddles the rim leave the line a box all on their own side of their
+point, not about it: "R20" of a circle of 20 with its centre drawn 100 below, put 32 out at 30 degrees, stands 21.795 out
+and has the line gone from 21.795 to 29.295, not from 18.045 to 25.545; put inside, 18.2 out, the line is gone from 10.7
+to 18.2.
 Words put past the rim but within the room of the arrowhead stand where the fit would put them: of a radius or a diameter
 under DIMATFIT 3 (and 0 to 2 for a diameter, as for a radius) they stand no nearer the rim than two arrowheads, the gap and
 half their width, or two arrowheads where DIMTOH keeps them level on a landing: "R20.0000" of Arial put 20.2 out from a

@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Dimension pictures, tenth round (each checked against AutoCAD 2021 in its console, 17 000 probes of a radius, a
+diameter and an angle among them): level words (DIMTAD 1 and 4) put inside a radius or a diameter under DIMATFIT 3 keep to
+the line only where it has the room, two arrowheads and, as it leans from upright, the width of the words and a gap times
+the cosine of its angle (the words' height more on a line that runs down), a diameter its whole length; else they stand above
+(below) a landing an arrowhead, a gap and the words long, "R8" put 4 out at 30 degrees with the words 1.9 above a landing
+7.161 long (the pictures of a set of 1 584 differing 99 down to 15, the 15 being diameters of 6 put out past the rim, and of
+1 024 DIMTMOVE 1 and 2 ones 36 down to 8, which are DIMTMOVE 2 words behind the centre whose arrowhead we put outside); words
+behind the centre under DIMTMOVE 1 stand above a landing the width of the words and a gap long. The words of a jogged radius
+whose box straddles the rim leave the line a box all on their own side of their point, not about it ("R20" of a circle of 20
+put 21.795 out: gone from 21.795 to 29.295, not 18.045 to 25.545; 18 pictures of 288 differing down to 0). The leader of
+an angle's words put off its arc under DIMTMOVE 1 is drawn past a band that follows the direction the words are put in (6.8
+at 30 degrees as before, 7.3 out and 6.8 in level, 3.8 out and 2.1 in straight above the vertex, for "60°" 2.5 high; it was
+one band of 6.8 for all directions): 74 of 712 pictures differing down to 15, 584 of 2 938 to 49, 941 of 5 832 to 159 and
+160 of 2 346 to 29; words exactly above or below the vertex stand above their point without a leader and under a landing
+run under them with one, as AutoCAD draws them. Not done: the band's step of a third of a landing where the point crosses the
+height of the angle's arc middle, the wide diameters put out past the rim, the arrowheads of DIMTMOVE 2 words behind a
+circle's centre, and a jogged radius with its words exactly on the rim.
+
 **NEW.** Annotative objects, third round (probed in AutoCAD 2021's console, plugin GHA3): arc length and jogged radius dimensions
 are annotative as AutoCAD writes them (an arc length one the angular context class with the point of its arc, a jogged one
 `ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS` with the chord point, the centre it is measured from and the jog) and get a second scale
