@@ -136,13 +136,59 @@ namespace GeometryHelper.Dxf.Viewer
             return found.Point;
         }
 
-        /// <summary>The radius of a circle or an arc, for CAL's <c>rad</c>; null for any other object.</summary>
-        internal static double? Radius(CadDocument document, string handle)
+        /// <summary>
+        /// The radius of a circle or an arc, for CAL's <c>rad</c>, or of the segment of a polyline nearest the pick where that is
+        /// an arc (a half circle from (100, 0) to (100, 100) gives 50); null for any other object, and for a straight segment.
+        /// </summary>
+        internal static double? Radius(CadCommandSession session, string handle, GeoPoint2 pick)
         {
-            DxfEntity entity = document.FindEntity(handle);
-            return entity is DxfCircle circle ? circle.Radius
-                : entity is DxfArc arc ? arc.Radius
-                : (double?)null;
+            DxfEntity entity = session.Document.FindEntity(handle);
+
+            if (entity is DxfCircle circle)
+            {
+                return circle.Radius;
+            }
+
+            if (entity is DxfArc arc)
+            {
+                return arc.Radius;
+            }
+
+            GeoPolylineArc2 chain;
+
+            try
+            {
+                chain =
+                    entity is DxfPolyline light ? light.ToGeoPolylineArc2(session.Tolerance)
+                    : entity is DxfPolyline2d heavy ? heavy.ToGeoPolylineArc2(session.Tolerance)
+                    : null;
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+
+            if (chain == null)
+            {
+                return null;
+            }
+
+            // The segment nearest the pick, the first where two lie as near.
+            GeoEdge2? nearest = null;
+            double least = double.MaxValue;
+
+            foreach (GeoEdge2 edge in chain.GetEdges())
+            {
+                double gap = edge.DistanceTo(pick, session.Tolerance);
+
+                if (gap < least)
+                {
+                    least = gap;
+                    nearest = edge;
+                }
+            }
+
+            return nearest.HasValue && nearest.Value.IsArc ? nearest.Value.ToArc().Radius : (double?)null;
         }
     }
 }

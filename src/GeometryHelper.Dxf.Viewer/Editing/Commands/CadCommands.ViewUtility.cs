@@ -494,7 +494,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (input.Kind == CadCalcInputKind.Radius)
                         {
-                            double? radius = CadCalcSnap.Radius(c.Document, c.Input.Handles[0]);
+                            double? radius = CadCalcSnap.Radius(c.Session, c.Input.Handles[0], c.Input.Point);
 
                             if (radius == null)
                             {

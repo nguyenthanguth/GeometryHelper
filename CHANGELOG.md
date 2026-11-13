@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** HATCHEDIT's dialog has Click to set new origin, as HATCH's has: the dialog closes, `Specify origin point:` is asked, and the
+dialog comes back with the point as Origin X, Y and Specified origin on (Esc brings it back as it was); OK lays the pattern of the
+hatch from that origin. The button was greyed in the Hatch Editor.
+**FIXED.** `-RENAME VPort` and `CadTiledViewports.Rename` agree. Once a drawing's tiled viewports were loaded, -RENAME renamed the
+records of the VPORT table, which the next save wrote over from the configurations the tiles held, so the old name came back; and a
+rename made on the tiles was not found by -RENAME. Both now go through the tiles: a configuration `Pair` renamed `Twin` by either way
+is `Twin` in `-VPORTS ?`, in the Rename dialog's list and in the saved DXF (2 records), and `Pair` is gone from all three.
+**FIXED.** -OSNAP names three snaps as AutoCAD 2021 does (read from its console with each OSMODE bit set): Nearest is `Near` (it was
+`Nea`), Geometric center `Gcen` (it was `GCen`), Apparent intersection `App Int` (it was `App`); 16383 reads
+`End,Mid,Cen,Node,Quad,Int,Ins,Perp,Tan,Near,Gcen,App Int,Ext,Par`.
+**NEW.** CAL's `rad` takes a polyline segment: a polyline of a line, a half circle of radius 50 from (100, 0) to (100, 100) and a line
+gives 50 for a pick near the half circle and `Improper type of object picked.` for a pick on a straight segment.
+
 **NEW.** A hatch filled solid, saved as R12 (`DxfDatabase.Save(path, "AC1009")`), is the SOLIDs and LINEs AutoCAD 2021 writes (probed in
 its console, `Database.DxfOut` of side databases at R12 beside their R2018, 36 polygons, holes, notches, turned shapes and rounds): the
 area is cut at the height of each corner into trapezoids, each two triangles in the plane flipped (the extrusion (0, 0, -1), x and the

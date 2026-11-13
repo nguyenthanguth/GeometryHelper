@@ -429,7 +429,7 @@ The Hatch dialog of HATCH's seTtings and of HATCHEDIT has the same settings in a
 with a Shade to Tint slider, the second swatch hidden, or Two color), Hatch color, Background, Layer and Transparency (Use
 Current, ByLayer, ByBlock or a value from 0 to 90, 95 refused `Requires an integer between 0 and 90.`), Hatch origin (Use
 current origin, the Origin X, Y greyed; Specified origin with Origin X, Y, or Default to boundary extents and its corner;
-Store as default origin; Click to set new origin, by HATCH, closes the dialog, asks `Specify origin point:` and shows the
+Store as default origin; Click to set new origin, by HATCH and by HATCHEDIT, closes the dialog, asks `Specify origin point:` and shows the
 dialog again with the point as Origin X, Y and Specified origin on, Esc showing it as it was) and Gap tolerance (0 to 5000,
 `Value must be between 0 and 5000.`). A specified origin not stored
 as default lays the hatches of this HATCH alone, the current origin given back when it ends; a corner of the extents is kept
@@ -671,8 +671,8 @@ the snap functions `end`, `ins`, `int`, `mid`, `cen`, `nea`, `nod`, `qua`, `per`
 (the point of the object picked that the snap gives, wherever on it the pick lay: `end` the end nearest the pick, `qua`
 the nearest quadrant; `per` and `tan` from the last point, the foot or touching point nearest the pick; `int` needs the
 pick at a crossing; an object with no such point says `Improper type of object picked.`, a pick on nothing `No object
-picked.`, and the prompt comes again); `rad` `>> Select circle, arc or polyline segment for RAD function:` (a circle or an
-arc; a polyline segment is not built); and `mee`, `vee`, `vee1`, `dee` and `ille`, which pick two or four ends. `dist(end,end)`
+picked.`, and the prompt comes again); `rad` `>> Select circle, arc or polyline segment for RAD function:` (a circle, an
+arc, or the arc segment of a polyline nearest the pick, whose radius it gives; a straight segment is `Improper type of object picked.`); and `mee`, `vee`, `vee1`, `dee` and `ille`, which pick two or four ends. `dist(end,end)`
 picks two ends. The vector functions are `vec(p1,p2)`, `vec1`, `nor(v)`, `nor(p1,p2)`, `nor(p1,p2,p3)`, `dpl(p,p1,p2)`,
 `dpp(p,p1,p2,p3)`, `plt(p1,p2,t)`, `pld(p1,p2,dist)`, `ilp`, `ang(apex,p1,p2)` and `ang(apex,p1,p2,normal)`, `abs` of a
 point is its length, and `cvunit(value,from,to)` converts the common units of length (mm, cm, m, km, inch, ft, yd, mile,
@@ -1634,7 +1634,9 @@ others' places). An old name with a wildcard says `Invalid block name.` and asks
 INSERTs of a block, the entities, layers, multiline styles and the current linetype of a linetype, the texts, attributes and
 tables of a text style, the dimensions of a dimension style, and the current multileader or table style. Layer 0, Standard
 and the linetypes ByLayer, ByBlock and Continuous keep their names. Material, dEtailviewstyle and seCtionviewstyle say the
-drawing holds none. One undo step (a UCS rename is made on the UCS manager and is not a step, as the UCS command's are).
+drawing holds none. One undo step (a UCS rename is made on the UCS manager and is not a step, as the UCS command's are). A viewport
+configuration is renamed on the tiled viewports `CadDocument.TiledViewports` holds, so -VPORTS ? and the Viewports dialog show the new
+name at once and the saved DXF carries the configuration under it, however the rename was made.
 RENAME (`REN`) shows the window's Rename dialog, laid out as AutoCAD 2021's: the Named Objects list (Blocks, Dimension styles,
 Layers, Linetypes, Multileader styles, Table styles, Text styles, UCSs, Viewports, Views), the Items of the kind picked
 (those that can be renamed, sorted by their letters: no layer 0, no Standard style, no ByLayer, ByBlock or Continuous), Old

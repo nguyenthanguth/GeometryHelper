@@ -213,10 +213,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "HATCHEDIT":
                     if (ShowHatchSettings != null && document.HatchBeingEdited != null)
                     {
-                        HatchSettingsViewModel edited = HatchDialog(document, document.HatchBeingEdited, true);
+                        // Shown again after Click to set new origin: the same dialog, with the point picked where one was.
+                        HatchSettingsViewModel edited =
+                            e.Payload != null && _hatchPickingOrigin != null && _hatchPickingOriginOf == document
+                                ? _hatchPickingOrigin
+                                : HatchDialog(document, document.HatchBeingEdited, true);
+                        _hatchPickingOrigin = null;
+                        _hatchPickingOriginOf = null;
+
+                        if (e.Payload is GeometryHelper.Geometry.GeoPoint2 origin)
+                        {
+                            edited.TakeOrigin(origin.X, origin.Y);
+                        }
+                        else
+                        {
+                            edited.KeepOrigin();
+                        }
+
                         bool ok = ShowHatchSettings(edited);
-                        document.HatchBeingEdited = ok ? edited.Settings : null;
-                        HatchPatternFile = ok ? edited.PatternFile : HatchPatternFile;
+
+                        if (!ok && edited.IsPickingOrigin)
+                        {
+                            // The hatch stays as it was while the point is asked; the dialog comes back with what was typed.
+                            _hatchPickingOrigin = edited;
+                            _hatchPickingOriginOf = document;
+                            e.Answer = "Click to set new origin";
+                        }
+                        else
+                        {
+                            document.HatchBeingEdited = ok ? edited.Settings : null;
+                            HatchPatternFile = ok ? edited.PatternFile : HatchPatternFile;
+                        }
+
                         e.Handled = true;
                     }
 

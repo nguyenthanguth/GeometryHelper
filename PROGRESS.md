@@ -104,12 +104,14 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Dialogs 6 (dialogs6, design v141-v142): Viewports dialog's Change view to, Visual Style list and Named Rename; Select
       Color and Linetype for multiline elements and fill; the Hatch dialog's Click to set new origin; Insert Object dialog
       and Drawing Recovery Manager; Rename with wildcards; Check Spelling Undo and Settings; the FILTER rows in the design
-- [ ] Batch 4a/4b follow-ups 3: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
-      surface kinds; CAL rad of a polyline segment, getvar, transformations; QuickCalc Units Conversion and Variables; QP CUI
-      lists and QPLOCATION; dimension styles of a block bound by XBIND; Insert Layout and template dialogs (design first);
-      -OSNAP rarer short names; whether HIDEPALETTES hides the command line; HATCHEDIT's Click to set new origin; visual
-      styles drawn; spelling of dimension text and xrefs; the hidden internal visual style names and Check Spelling's
-      punctuation default checked in AutoCAD; CadTiledViewports.Rename and -RENAME VPort agreeing (S)
+- [x] Batch 4a/4b follow-ups 3a (fu-small): HATCHEDIT's Click to set new origin; -RENAME VPort through the tiled viewports
+      (both renames agree and are saved); -OSNAP's rarer names as AutoCAD prints them (Near, Gcen, App Int); CAL rad of a
+      polyline arc segment
+- [ ] Batch 4a/4b follow-ups 3b: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
+      surface kinds; CAL getvar and transformations; QuickCalc Units Conversion and Variables; QP CUI lists and QPLOCATION;
+      dimension styles of a block bound by XBIND; whether HIDEPALETTES hides the command line; visual styles drawn; spelling
+      of dimension text and xrefs; the hidden internal visual style names and Check Spelling's punctuation default checked
+      in AutoCAD; CAL rad's straight-segment message (S)
 - [x] (done by dialogs5, dialogs7, dialogs8; the rest in "Dialogs 8 follow-ups") Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
