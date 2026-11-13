@@ -106,20 +106,26 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
-  - [ ] R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; AutoCAD's DXF kept in scratch); draW boundary
+  - [ ] R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; probe AutoCAD's annotative hatch DXF again: extension dictionary, AcDbContextDataManager, xdata AcadAnnotative); draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
         console showed it (S)
-  - [ ] R2.3 (splinedit2, running, with R3.1) SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
+  - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
+        Refine (Add, Delete, Elevate order, Move, Weight), Close/Open of control-point splines, met to 1E-5 against AutoCAD;
+        a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
+  - [ ] R2.3 follow-ups: toLerance refitting near the points as AutoCAD (tolerance 0.5 numbers in the merge); Elevate order
+        past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
   - [ ] R2.4 follow-ups: Rename wildcard old names; Check Spelling Settings and Undo; Boundary set New; Collect in the
         Leaders slide-out (after MLEADERCOLLECT); an Output tab with Export to PDF; LWUNITS and LWDEFAULT as variables; the
         buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
-  - [ ] R3.1 (splinedit2, running) MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
+  - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
+        (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
+        splinedit2 merge) (S)
   - [ ] R3.2 (pgp-r32, running) INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
-  - [ ] R3.3 An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
+  - [ ] R3.3 (acis, running) An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
 - Checks only the AutoCAD GUI can give (accoreconsole cannot), gathered for the maintainer: LAYERP with U and a Layer

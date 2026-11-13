@@ -1325,7 +1325,7 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The spline of a piece a SPLINE takes, clamped, in homogeneous form; null with why where it takes none: a line, an
         /// arc, an elliptical arc, a polyline or a spline, open, as AutoCAD's JOIN names them; a line is the spline of degree 1
-        /// over its length.
+        /// over one step of knot.
         /// </summary>
         private static string Piece(DxfEntity entity, out Nurbs piece)
         {
@@ -1340,10 +1340,12 @@ namespace GeometryHelper.Dxf
                 {
                     GeoPoint3 a = line.StartPoint;
                     GeoPoint3 b = line.EndPoint;
-                    double length = a.DistanceTo(b);
+
+                    // One step of knot, whatever its length, as AutoCAD 2021's JOIN and SPLINEDIT Join ran a line of 22.36 on a
+                    // spline of knots 0 to 56.57: to 57.57 (an arc runs on by its angle and a polyline by 1 a segment).
                     piece = new Nurbs(
                         1,
-                        new List<double> { 0.0, 0.0, length, length },
+                        new List<double> { 0.0, 0.0, 1.0, 1.0 },
                         new List<double[]> { new[] { a.X, a.Y, a.Z, 1.0 }, new[] { b.X, b.Y, b.Z, 1.0 } }
                     );
                     return null;
