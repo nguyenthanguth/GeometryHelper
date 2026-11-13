@@ -535,7 +535,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Property(insert, "Width").Value = 150.0;
             var representation = (DxfDBDictionary)insert.ExtensionDictionary.GetAt("AcDbBlockRepresentation");
             var cache = (DxfDBDictionary)representation.GetAt("AppDataCache");
-            // The record AutoCAD keeps of a Width typed in its Properties palette (the extended codes of AutoCAD's own, which the
+            // The record AutoCAD keeps of a Height typed in its Properties palette (the extended codes of AutoCAD's own, which the
             // public XRECORD does not take).
             cache.Add("ACAD_ENHANCEDBLOCKHISTORY", "XRECORD", b =>
             {
@@ -543,7 +543,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 b.Group(280, "1");
                 b.Group(1070, "3");
                 b.Group(1071, "1");
-                b.Group(300, "Width");
+                b.Group(300, "Height");
                 b.Group(40, "150.0");
             });
             Assert.Equal(new[] { "ACAD_ENHANCEDBLOCKDATA", "ACAD_ENHANCEDBLOCKHISTORY" }, cache.Select(e => e.Key));
@@ -554,7 +554,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { "ACAD_ENHANCEDBLOCKDATA", "ACAD_ENHANCEDBLOCKHISTORY" }, cache.Select(e => e.Key));
             var history = (DxfXrecord)cache.GetAt("ACAD_ENHANCEDBLOCKHISTORY");
             Assert.Equal(
-                new[] { "3", "1", "Width", "150.0", "1", "Width" },
+                new[] { "3", "1", "Height", "150.0", "1", "Width" },
                 history.Data.Take(6).Select(g => g.Value.Trim())
             );
             Assert.Equal(200.0, double.Parse(history.Data[6].Value, System.Globalization.CultureInfo.InvariantCulture));

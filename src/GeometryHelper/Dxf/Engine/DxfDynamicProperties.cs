@@ -144,6 +144,11 @@ namespace GeometryHelper.Dxf
                 }
 
                 Shown(properties, before, node, shown);
+
+                if (properties.Count > before && properties[before] != null)
+                {
+                    Origin(node.Type, groups, cache, properties, properties[before].VisibleInCurrentVisibilityState);
+                }
             }
 
             // Each table reads the values the other properties show, so it is read last, in its place; one that cannot be read
@@ -492,6 +497,63 @@ namespace GeometryHelper.Dxf
                 : type == "BLOCKVERTICALCONSTRAINTPARAMETER" ? Math.Abs(to[1] - from[1])
                 : Distance(from, to);
             properties.Add(Length(own, 305, 306, distance * scale, List(own, 175, scale)));
+        }
+
+        /// <summary>
+        /// The property Origin of a parameter that has a base point, after the properties the parameter gave: the base point the
+        /// INSERT saved of it, else the block's own, in the block's coordinates (a <see cref="GeoPoint3"/>, not scaled), of the
+        /// kind 12, no units, not shown and visible where the parameter is, as AutoCAD 2021 read it of a linear, an XY, a polar,
+        /// a rotation and a constraint parameter, and of no other (plugin GhDy3a). Read only for a rotation and a constraint
+        /// parameter, as AutoCAD read it; not bound to the INSERT, so that it is read and not set.
+        /// </summary>
+        private static void Origin(
+            string type,
+            IReadOnlyList<DxfTypedValue> groups,
+            IReadOnlyList<DxfTypedValue> cache,
+            List<DxfDynamicBlockReferenceProperty> properties,
+            bool visible
+        )
+        {
+            bool fixedBase;
+
+            switch (type)
+            {
+                case "BLOCKLINEARPARAMETER":
+                case "BLOCKPOLARPARAMETER":
+                case "BLOCKXYPARAMETER":
+                    fixedBase = false;
+                    break;
+                case "BLOCKROTATIONPARAMETER":
+                case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                case "BLOCKALIGNEDCONSTRAINTPARAMETER":
+                    fixedBase = true;
+                    break;
+                default:
+                    return;
+            }
+
+            if (!TwoPoints(groups, cache, out double[] from, out double[] _))
+            {
+                return;
+            }
+
+            properties.Add(
+                new DxfDynamicBlockReferenceProperty(
+                    "Origin",
+                    string.Empty,
+                    new GeoPoint3(from[0], from[1], from[2]),
+                    12,
+                    DxfDynamicBlockReferencePropertyUnitsType.NoUnits,
+                    fixedBase,
+                    None
+                )
+                {
+                    Show = false,
+                    VisibleInCurrentVisibilityState = visible,
+                }
+            );
         }
 
         /// <summary>Ties each property a parameter gave, where it gave one, to the INSERT, the parameter's node and its place among them, for its value to be set.</summary>

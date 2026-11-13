@@ -135,11 +135,16 @@ namespace GeometryHelper.Dxf
                 // after the end's, and not the base grip (plugin GhDb1), unless an action follows the base point: a stretch or a
                 // move of its BaseXDelta and BaseYDelta, an array of its Base, as AutoCAD 2021 showed the base grip of an XY
                 // plate whose bottom left corner a stretch followed and of an XY array, and of a linear parameter whose base
-                // point a stretch, a move or an array followed and the INSERT saved (plugin GhDy2a).
+                // point a stretch, a move or an array followed (plugin GhDy2a; its grip stood where the insertion grip is, which AutoCAD
+                // 2021 then left out, so that a fresh INSERT's second grip, dragged, moved the base point, plugin GhDy3a); a polar
+                // parameter always lists its base grip, as AutoCAD 2021 listed the pointer's two (plugin GhDy3a).
                 List<DxfTypedValue> slots = Section(groups, "AcDbBlock2PtParameter").FindAll(g => g.TypeCode == 91);
                 int first =
-                    followed.Contains(id)
-                    && (node.Type == "BLOCKXYPARAMETER" || (node.Type == "BLOCKLINEARPARAMETER" && record != null))
+                    node.Type == "BLOCKPOLARPARAMETER"
+                    || (
+                        followed.Contains(id)
+                        && (node.Type == "BLOCKXYPARAMETER" || node.Type == "BLOCKLINEARPARAMETER")
+                    )
                         ? 0
                         : slot;
 

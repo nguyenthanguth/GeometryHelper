@@ -120,7 +120,9 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.True(insert.IsDynamicBlock);
             Assert.Equal("GH_PANEL", insert.DynamicBlockTableRecord.Name);
 
-            DxfDynamicBlockReferenceProperty width = Assert.Single(insert.DynamicBlockReferencePropertyCollection);
+            DxfDynamicBlockReferenceProperty width = Assert.Single(insert.DynamicBlockReferencePropertyCollection, p =>
+                p.Show
+            );
             Assert.Equal("Width", width.PropertyName);
             Assert.Equal(100.0, Assert.IsType<double>(width.Value), Close);
             Assert.Equal(DxfDynamicBlockReferencePropertyUnitsType.Distance, width.UnitsType);
@@ -146,7 +148,8 @@ namespace GeometryHelper.UnitTest.Dxf
             );
 
             DxfDynamicBlockReferenceProperty width = Assert.Single(
-                TheInsert(db).DynamicBlockReferencePropertyCollection
+                TheInsert(db).DynamicBlockReferencePropertyCollection,
+                p => p.Show
             );
             Assert.Equal(new object[] { 50.0, 100.0, 150.0, 200.0, 250.0, 300.0 }, width.GetAllowedValues());
             Assert.Equal(new[] { "8" }, Of(Nodes(db)[0], "AcDbBlockLinearParameter", 96));
@@ -158,7 +161,9 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfDatabase db = Reopened(Stretched(null));
 
-            Assert.Empty(Assert.Single(TheInsert(db).DynamicBlockReferencePropertyCollection).GetAllowedValues());
+            Assert.Empty(
+                Assert.Single(TheInsert(db).DynamicBlockReferencePropertyCollection, p => p.Show).GetAllowedValues()
+            );
             DxfItem parameter = Nodes(db)[0];
             Assert.Equal(new[] { "1" }, Of(parameter, "AcDbBlockLinearParameter", 96));
             Assert.Equal(new[] { "0" }, Of(parameter, "AcDbBlockLinearParameter", 175));
@@ -550,9 +555,9 @@ namespace GeometryHelper.UnitTest.Dxf
             );
 
             DxfDatabase back = Reopened(db);
-            IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = TheInsert(
-                back
-            ).DynamicBlockReferencePropertyCollection;
+            List<DxfDynamicBlockReferenceProperty> properties = TheInsert(back)
+                .DynamicBlockReferencePropertyCollection.Where(p => p.Show)
+                .ToList();
             Assert.Equal(new[] { "Width", "Height" }, properties.Select(p => p.PropertyName));
             Assert.Equal(100.0, (double)properties[0].Value, Close);
             Assert.Equal(50.0, (double)properties[1].Value, Close);
@@ -632,7 +637,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(once, again.ToText());
             Assert.Equal(
                 100.0,
-                (double)Assert.Single(TheInsert(again).DynamicBlockReferencePropertyCollection).Value,
+                (double)Assert.Single(TheInsert(again).DynamicBlockReferencePropertyCollection, p => p.Show).Value,
                 Close
             );
         }

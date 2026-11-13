@@ -354,10 +354,15 @@ the ones wanted.
       (corner by (20, 10): Width 80, right edge kept), core DxfDynamicBlockReferenceProperty.MoveBasePoint, base grips where
       a base-following action needs them, base-following stretch/move/array and ATTRIBs following the drag only;
       UpdateAnonymousBlocks after a base move; AUDIT 0 on ten outputs with AutoCAD's values read back
-- [ ] (dynblock3, running) Dynamic block follow-ups 3: GRIPLOC history records; the Origin property of each parameter; polar, rotation and flip
-      bases moved; carried parameters and scale/rotate followers (still refused); value-set increments after a base move;
-      ATTSYNC (FollowedFromOwn) on a moved INSERT; the block-table grip menu and glyph (GUI); the Design artifact's grip
-      colour #19B5F0 to #00BFFF (S)
+- [x] Dynamic block follow-ups 3 (dynblock3): the hidden Origin property of each parameter as AutoCAD reads it; GRIPLOC
+      history for polar grips and the replace-last rule; a polar base moved by its grip (MoveEndPoint, MoveBasePoint);
+      value sets applied after a base move; the insertion grip left out where a custom grip stands on it; 26 INSERTs AUDIT
+      0, 23 equal AutoCAD's values to 6 places. NOTE for a release: DynamicBlockReferencePropertyCollection has more items
+      (the hidden Origin), written up as NEW with the advice to filter on Show
+- [ ] Dynamic block follow-ups 4: a polar base drag after an end drag (AutoCAD composes the edits; refused now); the edge a
+      base-following stretch holds after a later value set (DWG probe: 3 of 26 differ); ATTSYNC on a moved INSERT
+      (accoreconsole /i plus AutoLISP); GRIPLOC of linear/XY grips in blocks with a polar parameter; setting Origin; the
+      block-table grip menu and glyph (GUI); the Design artifact's grip colour #19B5F0 to #00BFFF (S)
 
 ### To do
 
@@ -382,7 +387,7 @@ the ones wanted.
         113 sample drawings read and rewritten: 98 AUDIT 0 and 8 refused before, now 106 AUDIT 0 and none refused (the 7
         others have their originals' own errors); tables holding fields and data links read and written; R2000/R2004
         DATATABLE and TABLECONTENT read
-  - [ ] DWG follow-ups 4: splines_AC1024 rewritten refused (the SAT-to-SAB conversion of its two 3DSOLIDs); table test
+  - [ ] (dwg10, running: the first three) DWG follow-ups 4: splines_AC1024 rewritten refused (the SAT-to-SAB conversion of its two 3DSOLIDs); table test
         drawings AUDIT 6 (AcDbTableStyle not repaired, before too); a Unicode layer name AUDIT 2 (before too); the dynamic
         block "Drawing Title" attribute (48 fields and 8 draw orders AutoCAD drops in 8 sheets); CELLSTYLEMAP of R2000/R2004;
         ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; ACIS 4.00; tcustom parity; TABLEGEOMETRY head bit; a

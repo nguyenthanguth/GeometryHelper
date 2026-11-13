@@ -572,7 +572,8 @@ namespace GeometryHelper.UnitTest.Dxf
             );
 
             DxfDynamicBlockReferenceProperty saved = Assert.Single(
-                Insert(db, "1021").DynamicBlockReferencePropertyCollection
+                Insert(db, "1021").DynamicBlockReferencePropertyCollection,
+                p => p.Show
             );
             Assert.Equal("Width", saved.PropertyName);
             Assert.Equal(750.0, Real(saved), Close);
@@ -583,7 +584,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Empty(saved.GetAllowedValues());
 
             DxfDynamicBlockReferenceProperty own = Assert.Single(
-                Insert(db, "1020").DynamicBlockReferencePropertyCollection
+                Insert(db, "1020").DynamicBlockReferencePropertyCollection,
+                p => p.Show
             );
             Assert.Equal(500.0, Real(own), Close);
         }
@@ -706,7 +708,9 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(
                 new[] { "Anchor X", "Anchor Y" },
-                Insert(db, "1021").DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                Insert(db, "1021")
+                    .DynamicBlockReferencePropertyCollection.Where(p => p.Show)
+                    .Select(p => p.PropertyName)
             );
             Assert.Equal(15.0, Real(Named(Insert(db, "1021"), "Anchor X")), Close);
             Assert.Equal(-5.0, Real(Named(Insert(db, "1021"), "Anchor Y")), Close);
@@ -727,7 +731,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference insert = Insert(db, "1021");
             Assert.Equal(
                 new[] { "Run", "Rise" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             Assert.Equal(60.0, Real(Named(insert, "Run")), Close);
             Assert.Equal(25.0, Real(Named(insert, "Rise")), Close);
@@ -750,7 +754,7 @@ namespace GeometryHelper.UnitTest.Dxf
             DxfBlockReference insert = Insert(db, "1021");
             Assert.Equal(
                 new[] { "Reach", "Swing" },
-                insert.DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                insert.DynamicBlockReferencePropertyCollection.Where(p => p.Show).Select(p => p.PropertyName)
             );
             Assert.Equal(20.0, Real(Named(insert, "Reach")), Close);
             Assert.Equal(Math.PI / 2, Real(Named(insert, "Swing")), Close);
@@ -853,7 +857,9 @@ namespace GeometryHelper.UnitTest.Dxf
                     "Swing",
                     "Size",
                 },
-                Insert(db, "1020").DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                Insert(db, "1020")
+                    .DynamicBlockReferencePropertyCollection.Where(p => p.Show)
+                    .Select(p => p.PropertyName)
             );
             Assert.Equal(
                 new[]
@@ -870,7 +876,9 @@ namespace GeometryHelper.UnitTest.Dxf
                     "Swing",
                     "Size",
                 },
-                Insert(db, "1021").DynamicBlockReferencePropertyCollection.Select(p => p.PropertyName)
+                Insert(db, "1021")
+                    .DynamicBlockReferencePropertyCollection.Where(p => p.Show)
+                    .Select(p => p.PropertyName)
             );
         }
 

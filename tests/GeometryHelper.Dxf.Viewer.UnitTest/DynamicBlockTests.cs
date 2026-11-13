@@ -534,17 +534,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheBaseGripOfAnXYParameter_MovesTheBasePoint_AndTheStretchOfItFollows()
         {
             // AutoCAD 2021 showed the base grip of a plate whose bottom left corner a stretch of the base point holds, second
-            // after the end grip, and dragged by (20, 10) it read Width 80 and Height 40 with the bottom and left edges
+            // after the end grip, no insertion grip beside it (it stood on the base grip), and dragged by (20, 10) it read Width 80
+            // and Height 40 with the bottom and left edges
             // starting at (20, 10) and the end point staying (plugin GhDy2a); the corner of base x and end y by (20, 10)
             // moved the stretch by (20, 0) alone.
             CadDocument document = Plate(true, out string handle);
             IReadOnlyList<CadGrip> grips = CadGrips.Of(Insert(document, handle));
-            Assert.Equal(5, grips.Count);
+            Assert.Equal(4, grips.Count);
             Near(P(1100, 550), grips[0].Point);
             Near(P(1000, 500), grips[1].Point);
             Near(P(1000, 550), grips[2].Point);
             Near(P(1100, 500), grips[3].Point);
-            Assert.Equal(CadGripKind.Insertion, grips[4].Kind);
 
             Assert.True(document.GripDrag(handle, 1, P(1020, 510)).Succeeded);
 

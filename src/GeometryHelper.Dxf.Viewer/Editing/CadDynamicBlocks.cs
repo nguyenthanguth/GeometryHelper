@@ -408,7 +408,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Drags a custom grip of a dynamic INSERT to a point, as AutoCAD's: a linear grip sets the distance from the base point
         /// along its parameter, a rotation grip turns its angle by the turn about the base point from the grip to the point, a
-        /// point grip sets its position, a polar grip its distance and angle from the base point, an XY grip its distances along
+        /// point grip sets its position, the end grip of a polar parameter its distance and angle from the base point (its base
+        /// grip moves the base point), an XY grip its distances along
         /// x and y (<see cref="Plan"/>); worked in the block's own coordinates and taken to the value set by the library. A flip
         /// grip dragged flips the block, as a click does; a visibility, a lookup or a block table grip is refused. One undo step.
         /// </summary>
@@ -447,8 +448,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// sets the distance of the axis it takes from the end point and moves the base point along the other, as AutoCAD 2021
         /// did: the corner of base x and end y dragged by (20, 10) on a rectangle 100 by 50 sets a Height of 60 and moves the
         /// base point's x to 20, so that Width reads 80 and the right edge stays at x 100 (plugins GhDb1 and GhDy2a). The base
-        /// grip of an XY or a linear parameter moves the base point, the end point staying
-        /// (<see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/>).
+        /// grip of an XY, a linear or a polar parameter moves the base point, the end point staying
+        /// (<see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/>), the distances taken to the value set; the end grip of
+        /// a polar parameter drags the end point (<see cref="DxfDynamicBlockReferenceProperty.MoveEndPoint"/>), which keeps the
+        /// GRIPLOC AutoCAD wrote in the INSERT's history.
         /// </summary>
         internal static Action<DxfBlockReference> Plan(
             DxfBlockReference insert,
@@ -549,6 +552,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 case DxfDynamicBlockGripType.Polar:
                 {
+                    // The base grip moves the base point, the end point staying, as AutoCAD 2021 did with the pointer's second
+                    // grip (plugin GhDy3a); the end grip takes the distance and the angle from the base point.
+                    if (custom.Position.IsEqualTo(custom.BasePoint, Tolerance.Default))
+                    {
+                        var by = new GeoVector3(to.X - custom.Position.X, to.Y - custom.Position.Y, 0.0);
+                        return i => MoveBase(i, custom.PropertyNames[0], by);
+                    }
+
                     double dx = local.X - origin.X,
                         dy = local.Y - origin.Y;
                     double distance = Math.Sqrt(dx * dx + dy * dy) * scale;
@@ -559,12 +570,8 @@ namespace GeometryHelper.Dxf.Viewer
                         return null;
                     }
 
-                    double angle = Turn(Math.Atan2(dy, dx));
-                    return i =>
-                    {
-                        Set(i, custom.PropertyNames[0], distance);
-                        Set(i, custom.PropertyNames[1], angle);
-                    };
+                    var end = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                    return i => MoveEnd(i, custom.PropertyNames[0], end);
                 }
 
                 case DxfDynamicBlockGripType.Rotation:
@@ -764,6 +771,16 @@ namespace GeometryHelper.Dxf.Viewer
                     "The block reference " + insert.Handle + " has no property " + name + "."
                 );
             property.MoveBasePoint(by);
+        }
+
+        /// <summary>Drags the end grip of the polar parameter a property of a name of an INSERT is of to a point, read anew, as the library works the block out.</summary>
+        private static void MoveEnd(DxfBlockReference insert, string name, GeoPoint3 to)
+        {
+            DxfDynamicBlockReferenceProperty property = Find(insert, name)
+                ?? throw new InvalidOperationException(
+                    "The block reference " + insert.Handle + " has no property " + name + "."
+                );
+            property.MoveEndPoint(to);
         }
 
         /// <summary>The value of a property as the palette writes it.</summary>

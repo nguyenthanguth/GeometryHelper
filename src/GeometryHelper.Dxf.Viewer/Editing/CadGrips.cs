@@ -350,7 +350,17 @@ namespace GeometryHelper.Dxf.Viewer
                         );
                     }
 
-                    Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
+                    // AutoCAD 2021 leaves the insertion grip out where a custom grip stands on it: a point parameter at the
+                    // block's origin or the base grip of a polar parameter at it gave one grip there, not two (plugin GhDy3a).
+                    if (
+                        !grips.Exists(g =>
+                            g.Custom != null && g.Custom.Position.IsEqualTo(insert.Position, Tolerance.Default)
+                        )
+                    )
+                    {
+                        Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
+                    }
+
                     // A clipped reference's boundary: the arrow and a grip at each corner, as AutoCAD 2021 gives them.
                     ClipGrips(insert, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;
