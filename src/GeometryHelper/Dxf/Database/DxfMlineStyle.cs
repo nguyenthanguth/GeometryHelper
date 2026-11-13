@@ -160,6 +160,19 @@ namespace GeometryHelper.Dxf
         /// <returns>The line, such as <c>MLINESTYLE 18 STANDARD</c>.</returns>
         public override string ToString() => "MLINESTYLE " + (Handle ?? string.Empty) + " " + Name;
 
+        /// <summary>Writes the name of the style (2) anew, as <see cref="DxfDatabase.RenameMlineStyle"/> renames it.</summary>
+        internal void Rename(string name) =>
+            Item.File.ReplaceOwn(
+                Item,
+                0,
+                new HashSet<int> { 2 },
+                new[] { new KeyValuePair<int, string>(2, name) },
+                NameOrder,
+                false
+            );
+
+        private static readonly IReadOnlyList<int> NameOrder = Array.AsReadOnly(new[] { 2 });
+
         private int Flags =>
             int.TryParse(Text(70)?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int flags)
                 ? flags

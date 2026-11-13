@@ -105,9 +105,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 MLINE, MLEDIT (all 12 tools) and typed MLSTYLE (mline), with a public core DxfMlineBuilder and
         DxfDatabase.AddMlineStyle; MLINE drawn on the canvas, moved, copied, scaled and mirrored; AutoCAD 2021 opens our DXF
         and DWG with AUDIT 0, and its Explode of 29 multilines gives our 224 lines to 1E-6
-  - [ ] (fu-mline, running) R2.1 follow-ups: MLSTYLE and MLEDIT dialogs (design first); grips, OFFSET, TRIM, EXTEND, FILLET, BREAK on an MLINE;
-        style Rename, Delete, Load, Save; Esc mid-MLINE, an empty MLEDIT pick, merged tees of 4+ elements, tees and corners
-        on a closed MLINE, cuts across segments checked against AutoCAD (M)
+  - [x] R2.1 follow-ups 1 (fu-mline): MLINE grips and STRETCH (core DxfMlineBuilder.MoveVertexAt, cuts kept as AutoCAD),
+        TRIM and EXTEND of and to an MLINE, AutoCAD's refusals of OFFSET, FILLET, CHAMFER, LENGTHEN, BREAK; MLEDIT's quiet miss,
+        closed refusals, cuts across segments and 4-element merged tees and crosses; MLSTYLE Rename, Delete, Load, Save (.mln)
+  - [ ] R2.1 follow-ups 2: the Multiline Styles and Multiline Edit Tools dialogs (design first); WA across the first vertex of
+        a closed MLINE (AutoCAD's result looks inverted, parked); OT and MT with a closed bar, EXTEND Edge=Extend on oblique
+        edges, trims near a corner (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary

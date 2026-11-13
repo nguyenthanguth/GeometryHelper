@@ -215,6 +215,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal string Refusal { get; private set; }
 
+        /// <summary>Whether a pick on nothing asks again without "Nothing selected.", as AutoCAD 2021's MLEDIT asks.</summary>
+        internal bool QuietMiss { get; private set; }
+
+        /// <summary>Makes a pick on nothing ask again without a word (<see cref="QuietMiss"/>).</summary>
+        internal CadPrompt MissingQuietly()
+        {
+            QuietMiss = true;
+            return this;
+        }
+
         /// <summary>Gives the prompt its own words for a typed answer it cannot take (<see cref="Refusal"/>).</summary>
         internal CadPrompt Refusing(string words)
         {

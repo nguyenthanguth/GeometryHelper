@@ -617,6 +617,10 @@ namespace GeometryHelper.Dxf
         /// <summary>The MLINESTYLE an MLINE is drawn by, as <see cref="Explode"/> finds it, for <see cref="DxfMlineBuilder"/>.</summary>
         internal DxfMlineStyle FindMlineStyle(DxfMline mline) => MlineStyleObject(mline);
 
+        /// <summary>Names the style of an MLINE anew (2), its handle (340) kept, as a style renamed leaves its multilines.</summary>
+        internal void SetMlineStyleName(string name) =>
+            ReplaceGroups(0, new[] { 2 }, new KeyValuePair<int, string>(2, name));
+
         /// <summary>Writes the groups of an MLINE's own part anew (its head and each vertex), as <see cref="DxfMlineBuilder.Rebuild"/> says.</summary>
         internal void ReplaceMline(IList<KeyValuePair<int, string>> groups) =>
             ReplaceGroups(0, MlineCodes, new List<KeyValuePair<int, string>>(groups).ToArray());

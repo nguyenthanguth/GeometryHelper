@@ -15,10 +15,11 @@ namespace GeometryHelper.Dxf.Viewer
     internal static partial class CadCommands
     {
         /// <summary>
-        /// MLSTYLE: "Current multiline style: STANDARD", then "Enter an option [?/Current/New/Modify] &lt;exit&gt;:". Current
+        /// MLSTYLE: "Current multiline style: STANDARD", then "Enter an option [?/Current/New/Modify/Rename/Delete/Load/Save] &lt;exit&gt;:". Current
         /// makes a style current as CMLSTYLE does, New asks a name and then the style's options, Modify the same for a style of
         /// the drawing; a style a multiline is drawn by, and STANDARD, can only have its description changed, as AutoCAD's
-        /// dialog allows. The name of a style is kept in capitals, as AutoCAD keeps it.
+        /// dialog allows; Rename, Delete, Load and Save as its buttons (CadCommands.MlineStyleFiles). The name of a style is
+        /// kept in capitals, as AutoCAD keeps it.
         /// </summary>
         private static IEnumerable<CadPrompt> MlineStyleTyped(CadCommandContext c)
         {
@@ -27,11 +28,30 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 c.Write("Current multiline style: " + CurrentMlineStyleName(c.Database));
-                yield return CadPrompt.ForKeyword("Enter an option", new[] { "?", "Current", "New", "Modify" }, "exit");
+                yield return CadPrompt.ForKeyword(
+                    "Enter an option",
+                    new[] { "?", "Current", "New", "Modify", "Rename", "Delete", "Load", "Save" },
+                    "exit"
+                );
 
                 if (c.Input.Kind != CadInputKind.Keyword)
                 {
                     yield break;
+                }
+
+                if (c.Input.Is("Rename") || c.Input.Is("Delete") || c.Input.Is("Load") || c.Input.Is("Save"))
+                {
+                    foreach (
+                        CadPrompt prompt in c.Input.Is("Rename") ? RenameMlineStyle(c)
+                        : c.Input.Is("Delete") ? DeleteMlineStyle(c)
+                        : c.Input.Is("Load") ? LoadMlineStyle(c)
+                        : SaveMlineStyle(c)
+                    )
+                    {
+                        yield return prompt;
+                    }
+
+                    continue;
                 }
 
                 if (c.Input.Is("?"))

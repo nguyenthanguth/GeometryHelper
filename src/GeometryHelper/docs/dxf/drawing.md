@@ -452,6 +452,12 @@ is AutoCAD's own: for STANDARD at scale 1 through (0, 0), (100, 0), (100, 100) t
 second element at -1.4142 (the offset from the top, -1, over the cosine of the half angle); at scale 20 and justified at the
 middle the first parameters are 10 and -10. The cuts MLEDIT makes stay with the points when a record is read and written
 back, and a multiline is moved by `TransformBy` (a transformation that scales alike; the style and handle of a copy kept).
+`builder.MoveVertexAt(i, point)` moves a vertex as AutoCAD's `MoveVertexAt` does: a segment that keeps its way keeps its cuts
+where they were along it, one that turns is whole again (cut 30 to 60 on (100, 0)-(100, 100) at scale 20, the vertex moved to
+(100, -10), the cut is 40 to 70 from it). `db.RenameMlineStyle("WALLS", "Partitions")` renames a style, its record written
+PARTITIONS and every multiline drawn by it named so (STANDARD is not renamed), and `db.SaveMlineStyleFile("WALLS", "walls.mln")`
+writes a style as acad.mln is written (a code on a line, the value after a space, angles and offsets with fourteen decimals),
+keeping the file's other styles; `LoadMlineStyleFile` reads it back, a description without the space it is written after.
 
 ### Tidying up
 

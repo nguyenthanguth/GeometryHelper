@@ -216,6 +216,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// An OLE frame's, as AutoCAD 2021 gives them: a grip at each corner, from the lower left, the upper left and the
         /// upper right to the lower right (<see cref="CadGripKind.Corner"/>); a frame 40 by 20 with its lower left corner at
         /// (10, 20) has them at (10, 20), (10, 40), (50, 40) and (50, 20). A frame of no size has none.
+        /// A multiline's, as AutoCAD 2021's: one at each vertex of the line it is drawn on, (0, 0), (100, 0) and (100, 100) for one through those points.
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -360,6 +361,14 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfOle2Frame frame:
                     OleGrips(frame, (x, y) => Add(CadGripKind.Corner, x, y));
                     break;
+                case DxfUnknownEntity mline when CadMlineEdit.IsMline(mline) && IsPlan(mline.MlineNormal()):
+                    // A grip at each vertex of the line the multiline is drawn on, as AutoCAD 2021's GetGripPoints gives them.
+                    foreach (GeoPoint3 vertex in new DxfMlineBuilder(mline).Points)
+                    {
+                        Add(CadGripKind.Vertex, vertex.X, vertex.Y);
+                    }
+
+                    break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                 {
                     // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
@@ -411,6 +420,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// point goes past it, so that no frame turns over; with Lock aspect on, both sides by the larger of the two factors.
         /// The corner (50, 40) of a frame 40 by 20 from (10, 20) dragged to (60, 45) makes it 50 by 25, and dragged to (50, 50),
         /// 60 by 30; a frame of no width or height, or a point on the line of the corner across from it, is refused.
+        /// A vertex of a multiline moves as AutoCAD 2021's MoveVertexAt moves it (<see cref="DxfMlineBuilder.MoveVertexAt"/>): a segment that
+        /// keeps its way keeps its cuts, one that turns is whole again.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -452,6 +463,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadGrip grip = grips[gripIndex];
+
+            if (CadMlineEdit.IsMline(entity))
+            {
+                return DragMline(document, (DxfUnknownEntity)entity, handle, gripIndex, grip.Point, to);
+            }
 
             if (entity is DxfDimension)
             {

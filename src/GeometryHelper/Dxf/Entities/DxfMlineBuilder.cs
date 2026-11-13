@@ -216,6 +216,120 @@ namespace GeometryHelper.Dxf
         public IList<GeoPoint3> Points => _points;
 
         /// <summary>
+        /// Moves the point at an index, as AutoCAD's <c>MoveVertexAt</c> moves it (a grip dragged, a vertex stretched): a
+        /// segment that keeps its way keeps the cuts of its elements where they were along it, and one that turns is drawn
+        /// whole again. A multiline through (0, 0), (100, 0) and (100, 100) at scale 20, its second segment cut from 30 to 60,
+        /// whose vertex (100, 0) goes to (100, -10), keeps that cut at 40 to 70 from the moved vertex, where it was; its first
+        /// segment, which turns, is whole. A stretch that starts at the vertex stays there.
+        /// </summary>
+        /// <param name="index">The index of the point, from nought.</param>
+        /// <param name="point">Where it goes.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is not one of a point.</exception>
+        public void MoveVertexAt(int index, GeoPoint3 point)
+        {
+            if (index < 0 || index >= _points.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    "The multiline has "
+                        + _points.Count.ToString(CultureInfo.InvariantCulture)
+                        + " points: "
+                        + index.ToString(CultureInfo.InvariantCulture)
+                        + " is not the index of one."
+                );
+            }
+
+            MoveVertices(new Dictionary<int, GeoPoint3> { [index] = point });
+        }
+
+        /// <summary>
+        /// Moves some points at once, as STRETCH moves the vertices inside its window: each segment that keeps its way keeps its
+        /// cuts where they were along it, a stretch from the element's start staying at the start, and one that turns is whole.
+        /// </summary>
+        internal void MoveVertices(IReadOnlyDictionary<int, GeoPoint3> moves)
+        {
+            List<List<List<double>>> kept = Kept();
+            int n = _points.Count;
+            int segments = SegmentCount;
+            int count = ElementCount;
+
+            // The ends of an open multiline hold the stretches past its last point, along its last segment.
+            int places = IsClosed ? segments : segments + 1;
+            var ways = new GeoVector3[places];
+            var starts = new GeoPoint3[places][];
+
+            for (int i = 0; i < places; i++)
+            {
+                int segment = Math.Min(i, segments - 1);
+                ways[i] = SegmentDirection(segment);
+                starts[i] = new GeoPoint3[count];
+
+                for (int e = 0; e < count; e++)
+                {
+                    starts[i][e] = ElementPoint(i, e);
+                }
+            }
+
+            foreach (KeyValuePair<int, GeoPoint3> move in moves)
+            {
+                _points[move.Key] = move.Value;
+            }
+
+            for (int i = 0; i < places; i++)
+            {
+                int segment = Math.Min(i, segments - 1);
+                GeoPoint3 from = _points[segment];
+                GeoPoint3 to = _points[(segment + 1) % n];
+
+                // A segment of no length has no way: its tails are left for Check to refuse the points.
+                if (from.DistanceTo(to) <= 0.0)
+                {
+                    continue;
+                }
+
+                GeoVector3 way = SegmentDirection(segment);
+
+                double turned = Math.Sqrt(
+                    (way.X - ways[i].X) * (way.X - ways[i].X)
+                        + (way.Y - ways[i].Y) * (way.Y - ways[i].Y)
+                        + (way.Z - ways[i].Z) * (way.Z - ways[i].Z)
+                );
+
+                if (turned > Tolerance.Default.EqualVector)
+                {
+                    kept[i] = Whole(count);
+                    continue;
+                }
+
+                for (int e = 0; e < count; e++)
+                {
+                    GeoPoint3 now = ElementPoint(i, e);
+                    double shift =
+                        (now.X - starts[i][e].X) * way.X
+                        + (now.Y - starts[i][e].Y) * way.Y
+                        + (now.Z - starts[i][e].Z) * way.Z;
+                    List<double> tail = kept[i][e];
+
+                    for (int k = 0; k < tail.Count; k++)
+                    {
+                        // A stretch that starts at the element's start, or before it, stays where it starts.
+                        if (k == 0 && tail[0] <= 0.0)
+                        {
+                            continue;
+                        }
+
+                        tail[k] -= shift;
+                    }
+
+                    if (i < segments)
+                    {
+                        SetRuns(i, e, RunsOf(i, e));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Writes a new MLINE of the style, scale, justification, flags and points, as AutoCAD writes one, not yet in a
         /// drawing: <c>AppendEntity</c> it to a block. Its layer, colour and linetype are the entity's own, given as for any
         /// entity.
