@@ -46,6 +46,21 @@ namespace GeometryHelper.Dxf.Viewer
             Action change,
             Action<CadDocument, bool> replay,
             bool joinsPrevious
+        ) => RecordSetting(name, property, read, change, replay, joinsPrevious, false);
+
+        /// <summary>
+        /// Changes a setting as <see cref="ApplySetting"/>,
+        /// with the step recorded where <paramref name="always"/> is true even though the setting reads the same after the
+        /// change: AutoCAD 2021's console undoes MSPACE and PSPACE one U each where they only said "Already in paper space."
+        /// </summary>
+        internal CadEditResult RecordSetting(
+            string name,
+            string property,
+            Func<string> read,
+            Action change,
+            Action<CadDocument, bool> replay,
+            bool joinsPrevious,
+            bool always
         )
         {
             if (name == null)
@@ -84,7 +99,7 @@ namespace GeometryHelper.Dxf.Viewer
             change();
             string after = read();
 
-            if (string.Equals(before, after, StringComparison.Ordinal))
+            if (!always && string.Equals(before, after, StringComparison.Ordinal))
             {
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
             }

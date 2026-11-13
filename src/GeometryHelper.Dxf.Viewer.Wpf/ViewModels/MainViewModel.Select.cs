@@ -17,8 +17,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public Action<FindReplaceViewModel> ShowFindReplace { get; set; }
 
         /// <summary>
-        /// Zooms the view to objects, as Find and Replace's Zoom: the space they are in shown, and the view on the box of what
-        /// they draw, with a margin.
+        /// Zooms the view to objects, as Find and Replace's Zoom: the space they are in shown, as a click on its tab shows it
+        /// (one undo step, none where it is shown already), and the view on the box of what they draw, with a margin.
         /// </summary>
         /// <param name="handles">The handles; those the document has no entity of are passed over.</param>
         public void ZoomToObjects(IReadOnlyList<string> handles)
@@ -36,16 +36,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            // The switch is an undo step, as a click on the tab is.
+            SelectSpace(space);
+
             if (space != document.CurrentSpace)
             {
-                document.CurrentSpace = space;
-
-                foreach (SpaceTabViewModel tab in SpaceTabs)
-                {
-                    tab.IsActive = tab.Space == space;
-                }
-
-                RaiseSpace();
+                return;
             }
 
             PickIndex index = document.GetPickIndex(space);

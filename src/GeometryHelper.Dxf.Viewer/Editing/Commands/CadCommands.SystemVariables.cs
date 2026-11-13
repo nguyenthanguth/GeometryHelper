@@ -446,6 +446,9 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
             registry.AddVariable(
+                CadSystemVariable.Text("CTAB", false, s => s.Document.CurrentSpace.Name, CurrentLayoutTab)
+            );
+            registry.AddVariable(
                 CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale)
             );
 
@@ -752,8 +755,28 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (space != null)
             {
-                c.Document.ShowSpace(space);
+                c.Document.ShowSpace(space, "TILEMODE");
             }
+        }
+
+        /// <summary>
+        /// CTAB: the layout shown, as a tab clicked, one undo step named CTAB; the name read in letters of either case and
+        /// spelled as the layout spells it. A name that is no layout's, with wildcards and "?" and "." too, is refused as
+        /// AutoCAD 2021 refuses it: "Cannot set CTAB to that value."
+        /// </summary>
+        private static string CurrentLayoutTab(CadCommandContext c, string typed)
+        {
+            CadSpace space = c.Document.Spaces.FirstOrDefault(s =>
+                !s.IsBlockEditor && string.Equals(s.Name, typed, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (space == null)
+            {
+                return "Cannot set CTAB to that value.";
+            }
+
+            CadEditResult result = c.Document.ShowSpace(space, "CTAB");
+            return result.Succeeded ? null : result.Message;
         }
 
         private static DxfRasterVariables ImageVariables(DxfDatabase database) =>

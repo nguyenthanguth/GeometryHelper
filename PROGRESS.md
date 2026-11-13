@@ -248,7 +248,10 @@ the ones wanted.
       views in the ZOOM Previous list; typed ZOOM/PAN as undo steps in model space and paper, as AutoCAD; the screenshot
       mode drawing the white paper (S)
 - [x] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms
-- [ ] (fu-layouts, running) Layouts follow-ups 3: ZOOMFACTOR mapping (measure in the GUI); the screenshot mode's white paper; CTAB variable; Find's ZoomToObjects and VIEW restore switching space as steps; MSPACE/PSPACE as steps if AutoCAD makes them so (S)
+- [x] Layouts follow-ups 3a (fu-layouts): CTAB; MSPACE/PSPACE, LAYOUT Set, -VIEW Restore across spaces and Find's Zoom to
+      objects as undo steps named as AutoCAD names them ("Already in ..." an empty step, as AutoCAD)
+- [ ] Layouts follow-ups 3b: ZOOMFACTOR mapping (GUI); -VIEW Restore of a paper view in the layout it was saved in, and of a
+      model view from a layout ("Select Viewport for view:"); the screenshot mode's paper compared with AutoCAD's (S)
 - [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
@@ -417,8 +420,12 @@ the ones wanted.
 - [x] Xrefs round 3: XATTACH writes the `NAME|LAYER` and `NAME|LINETYPE` records as AutoCAD does; -LAYER Transparency,
       Plot and Description; VISRETAIN 1 and 0 as AutoCAD; "Needs Reloading" as the 2021 help (S)
 - [x] Xrefs follow-ups: Unload/Reload/Detach on every selected row (one step); names with wildcard characters escaped; AUDIT of a saved bound drawing and its DWG save (0 errors, 4 files)
-- [ ] (fu-layouts, running) Xrefs follow-ups 2: Bind... for Unreferenced rows?; Unload/Reload of nested names as AutoCAD's -XREF (orphaned wording); -IMAGE no-match messages; screenshot mode for the two windows; AutoCAD's built-in callout blocks for MLEADER block content; `N$0$NL` keeps AcXRefLayerPropertyOverride in AutoCAD; the change balloon in the status bar (needs
-      design) (S)
+- [x] Xrefs follow-ups 2a (fu-layouts): -XREF Unload/Reload of nested references in AutoCAD's words (orphaned, unreferenced,
+      has not changed, loaded: path, has been restored), parent before nested; a nested unload hides the nested drawing;
+      -IMAGE and -XREF no-match messages; Bind refusing an unreferenced xref as AutoCAD
+- [ ] Xrefs follow-ups 2b: palette Bind for Unreferenced rows (GUI); `N$0$NL` and AcXRefLayerPropertyOverride (console cannot
+      tell); screenshot mode for the two windows; AutoCAD's callout blocks for MLEADER block content; the status-bar change
+      balloon; grandchildren in the orphaned lines (S)
 - [x] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [x] Managers: PURGE previews of table and multileader styles (the managers had them; Groups kind was done); BATTMAN asks before dropping changes, constants do not move
 - [ ] Managers follow-ups 4: ATTDIA Cancel and Object Grouping Cancel unverifiable headless (ours: defaults placed, changes taken back); BATTMAN counts model space only where AutoCAD counts the current space; Quick Select's Append should look at the whole drawing (S)

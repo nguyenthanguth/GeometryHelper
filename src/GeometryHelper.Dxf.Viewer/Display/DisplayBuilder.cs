@@ -1431,7 +1431,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             CadXrefManager xrefs = _document.Xrefs;
-            CadXrefContent content = xrefs.ContentOf(block, Folder, _host == null, out string missing);
+            CadXrefContent content = xrefs.ContentOf(block, Folder, out string missing);
 
             if (content == null)
             {

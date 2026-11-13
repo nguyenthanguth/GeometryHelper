@@ -205,8 +205,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "TILEMODE", "1");
             Assert.True(document.CurrentSpace.IsModel);
 
-            // Unlike the variables above, showing another space is an undo step, as AutoCAD's U takes it.
-            Assert.Equal("LAYOUT", document.NextUndo.Name);
+            // Unlike the variables above, showing another space is an undo step, as AutoCAD's U takes it, named TILEMODE.
+            Assert.Equal("TILEMODE", document.NextUndo.Name);
             Run(session, "U");
             Run(session, "U");
             Assert.True(document.CurrentSpace.IsModel);
@@ -238,6 +238,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "CMLJUST",
                     "CMLSCALE",
                     "CMLSTYLE",
+                    "CTAB",
                     "CTABLESTYLE",
                     "DATE",
                     "DIMASSOC",

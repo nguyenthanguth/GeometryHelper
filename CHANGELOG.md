@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** CTAB in the presenter, as AutoCAD 2021's console took it (probed): `CTAB` and `SETVAR CTAB` ask `Enter new value for CTAB
+<"Model">:` and show the layout named, in letters of either case, as one undo step named CTAB; Enter keeps the layout, and a name
+no layout has, a pattern, `.` and `?` too, says `Cannot set CTAB to that value.` The undo step of a layout switch is named as the
+command that made it, as U says it: TILEMODE for TILEMODE, CTAB for CTAB, LAYOUT for LAYOUT Set and a tab clicked. **CHANGED.**
+MSPACE and PSPACE typed are undo steps (U takes each back to the viewport worked through before, or the paper), an empty one
+where they only say `Already in model space.` or `Already in paper space.`, which they now do; in a layout with no viewport MSPACE
+says `There are no active Model space viewports.` (capital M, as AutoCAD writes it) and is a step too. Find and Replace's Zoom to
+objects shows the objects' layout as a tab clicked does, one undo step, and -VIEW Restore of a view of another space shows that
+space as part of the command's one undo step. **NEW.** -XREF Unload and Reload of a reference another places, in the console's
+words: Unload of the parent says each reference it places `orphaned` (`unloaded` where it was already), Unload of the nested name
+alone unloads it and it is no longer drawn, Reload under an unloaded parent says `orphaned` and changes nothing, Reload says
+`<path> has not changed.` or, where the file changed, `"x" loaded: <path>`, and `"x" has been restored.` where it was unloaded; a
+reference no INSERT places is `unreferenced` to Reload and is refused by Bind as nested. **CHANGED.** The Attach and Reload lines
+read `"x" loaded: <full path>` where they read `"x" loaded.`. **NEW.** -IMAGE of a drawing with no image says `No images in
+current drawing.` at the option, a name no image has `No matching image names found.`, and -XREF Path and pathType say `No
+matching xref names found.` before asking a path. Tests: 20 new in the viewer suite, one in the window's.
+
 **NEW.** The dialogs left by earlier rounds in the presenter, designed first (design canvas v139): Multiline Style (MLSTYLE:
 Styles, Set Current, New with Create New Multiline Style, Modify, Rename in the list, Delete, Load with Load Multiline Styles,
 Save, Description and a preview drawn as MLINE draws, and the New/Modify Multiline Style page of caps, fill, joints and up to 16

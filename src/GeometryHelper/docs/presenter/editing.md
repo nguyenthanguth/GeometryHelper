@@ -1294,7 +1294,8 @@ Each reference the drawing places is followed by those its drawing attaches, nes
 leaves them: the External References palette lists a nested one once, of the type Nested, and its tree view shows it
 under its parent, 16 pixels further in, of its own type. One whose parent is unloaded, not found or unresolved is
 Orphaned. The record AutoCAD writes in the drawing for a nested reference is listed under its parent alone, not as
-Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path. The palette's
+Unreferenced. A nested one is opened from the palette but not unloaded, reloaded, detached or given a path there; typed, -XREF
+Unload and Reload name it as AutoCAD 2021's console does (below). The palette's
 Unload, Reload and Detach act on every row selected (Ctrl or Shift), the references in one -XREF and the images in one
 -IMAGE, so that grid and axes selected and unloaded are one undo step, and a selection of a reference and an image detached
 is one too; a nested row in the selection is left out of Unload and Reload, and Detach names it to -XREF, which refuses it
@@ -1305,7 +1306,19 @@ palette must: `a#1` unloads only a#1 (typed as `a#1` it matches nothing, "No mat
 takes `a-b`), and `~t` is the name and not "anything but t". The same back quote works typed (``-XREF Unload a`#1,`~t``).
 -XREF Unload, Reload and Detach answer "No matching xref names found." for a name that matches no reference, and Unload
 "No matching and loaded xref names found." where every reference it matches is unloaded already (one that is loaded among
-unloaded ones is the only one unloaded and written). A drawing with a reference bound is saved as a DXF or a DWG that
+unloaded ones is the only one unloaded and written); -XREF Path and pathType say it too, before asking a path. A reference
+placed by another (plan places column, the host keeping a record of column) is unloaded and reloaded by its own name: -XREF
+Unload plan writes `Xref "plan": path`, `"plan" is unloaded.` and, for column, `Xref "column": path`, `"column" is orphaned.`
+(`"column" is unloaded.` where column was unloaded already), and Unload * says each of the two once, plan first; a reference
+orphaned counts as loaded for Unload. Reload of column while plan is unloaded writes only `Xref "column": path` and `"column"
+is orphaned.` and changes nothing; Reload of plan writes `Reload Xref "plan": path`, `<full path> has not changed.` or, where the
+file changed, `"plan" loaded: <full path>`, and `"plan" has been restored.` where it was unloaded or orphaned, then each reference
+it places that is unloaded, `Xref "column": path` and `"column" is unloaded.`. A reference no INSERT places, here or in a drawing
+it is nested in, is unloaded as any other; Reload says `Xref "x": path`, `"x" is unreferenced.` and clears its unloaded state,
+and Bind refuses it as it refuses a nested one. A nested reference unloaded is no longer drawn. -IMAGE of a drawing with no image
+definition answers `No images in current drawing.` at the option and asks no names (Attach excepted), and a name no image has
+`No matching image names found.` (the list prints its table with 0 definitions and 0 instances). A drawing with a reference
+bound is saved as a DXF or a DWG that
 AutoCAD 2021's AUDIT finds no error in (BINDTYPE 0 and 1, a reference nested in another bound with it, another left
 attached): no record of the reference is dependent any more. The window
 watches the folders of the files read; one changed on disk is said once on its drawing's command line, where AutoCAD
@@ -1838,7 +1851,17 @@ goes back to the paper. [`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocume
 `LeaveViewport()` do the same in code, and `ActiveViewport` is the viewport worked through, null on the paper. While one
 is, `WorkingSpace` is model space: the commands draw there, picks and snaps work in model units as the viewport shows them,
 and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
-Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`).
+Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`). MSPACE and PSPACE typed are one undo step
+each, named for the command, that U takes back to the viewport worked through before or the paper, as AutoCAD 2021's console
+undoes them; so is one that only says "Already in model space.", "Already in paper space." or "There are no active Model space
+viewports.", an empty step (the console undid six commands, those three included, one U each). On the Model tab both say
+"** Command not allowed in Model Tab **" and make no step. CTAB, the layout shown, is read as `Enter new value for CTAB <"Model">:`
+and set by a name in letters of either case, spelled as the layout spells it: one undo step named CTAB, where TILEMODE's is named
+TILEMODE and LAYOUT Set's LAYOUT; a name that is no layout's, a pattern (`Lay*`), `.` and `?` too, is refused as AutoCAD refuses it,
+`Cannot set CTAB to that value.` Find and Replace's Zoom to objects shows the layout of the objects as a tab clicked does, one undo
+step. -VIEW Restore of a paper view from the Model tab shows the layout as part of the command's one undo step: one U takes back to the
+Model tab, as AutoCAD 2021's console does. (It restores a paper view in the layout the view was saved in; the presenter keeps no
+such layout in the VIEW record, so it shows the layout shown, else the first.)
 
 The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
 step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle

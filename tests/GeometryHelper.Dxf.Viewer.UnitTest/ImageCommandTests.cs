@@ -252,6 +252,51 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void ADrawingWithNoImage_SaysSoAtTheOption_AndAsksNoNames_AsAutoCad2021DoesForEveryOptionButAttach()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            foreach (string option in new[] { "?", "D", "P", "R", "U" })
+            {
+                Run(session, "-IMAGE", option);
+
+                Assert.Equal("No images in current drawing.", session.History.Last());
+                Assert.False(session.IsRunning);
+            }
+
+            Assert.False(document.CanUndo);
+        }
+
+        [Fact]
+        public void ANameNoImageHas_SaysNoMatchingImageNames_ButTheListPrintsItsTotalsAtNought()
+        {
+            CadDocument document = WithLogo(out CadCommandSession session);
+            CadUndoStep attached = document.NextUndo;
+
+            foreach (string option in new[] { "U", "R", "D", "P" })
+            {
+                Run(session, "-IMAGE", option, "nope");
+
+                Assert.Equal("No matching image names found.", session.History.Last());
+                Assert.False(session.IsRunning);
+            }
+
+            Run(session, "-IMAGE", "?", "nope");
+            Assert.Equal(
+                new[]
+                {
+                    "Image Name                       Instances  Path",
+                    "----------------                 ---------  ----------",
+                    "Total image definitions: 0",
+                    "Total image instances: 0",
+                },
+                session.History.Skip(session.History.Count - 4)
+            );
+            Assert.Same(attached, document.NextUndo);
+        }
+
+        [Fact]
         public void APictureNotFound_IsItsFrameWithItsFilesName_AsAutoCadShowsIt()
         {
             CadDocument document = WithLogo(out _);

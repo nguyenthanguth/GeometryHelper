@@ -73,7 +73,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             document.CurrentSpace = document.Spaces[1];
             Run(session, "ERASE", new[] { handle }, Enter);
             Run(session, "MS");
-            Assert.Equal("There are no active model space viewports.", session.History.Last());
+            Assert.Equal("There are no active Model space viewports.", session.History.Last());
             Assert.Null(document.ActiveViewport);
         }
 
