@@ -1655,8 +1655,9 @@ writes the extract as -ATTEXT does, a template not there said `"missing.txt": Ca
 
 A TEXT, an MTEXT, an attribute definition, a hatch and a multileader are made annotative as AutoCAD 2021 makes them
 ([`DxfDBObject.Annotative`](xref:GeometryHelper.Dxf.DxfDBObject.Annotative)); the palette's Annotative row (Misc, Yes or No) sets
-it for those kinds, with Annotation scale, read only, listing the scales the object is shown at (`1:1, 1:50`); a dimension, an
-INSERT, a leader and a tolerance show the row read only, since the library writes no picture of a dimension for each scale.
+it for those kinds and for a linear, aligned, radius, diameter, angular or ordinate dimension, with Annotation scale, read only,
+listing the scales the object is shown at (`1:1, 1:50`); an INSERT, a leader, a tolerance and a dimension of another kind (arc
+length, jogged) or one whose words were moved or turned show the row read only.
 -OBJECTSCALE asks `Select annotative objects:`, `Enter an option [Add/Delete/?] <Add>:` and `Enter named scale to add or [?]
 <1:50>:` (the annotation scale of the space is offered), answers `1 object updated to support annotation scale <1:100>.` or
 `1 object scale removed.`, and asks the next scale, with no default, until Enter; a scale the drawing's list has not says
@@ -1668,11 +1669,35 @@ MTEXT drawn in an annotative text style are annotative: the height asked is the 
 annotation scale high (2.5 at 1:50 is 125). The Edit Drawing Scales list is given the scale an object is first made
 annotative at where it has none.
 
+A dimension drawn by an annotative dimension style (the Annotative box of the Fit tab in the Dimension Style Manager, which is the
+style's extended data AcadAnnotative, written by Modify and New and copied by Start With) is annotative at the annotation scale of
+its space, as AutoCAD 2021 draws it: its DIMSCALE is that of the scale (50 at 1:50, 1 in a layout), whatever the header says, written
+as no override, and its arrowheads, text and gaps are the style's paper sizes times it (0.18 is 9 at 1:50). Its record holds the
+picture of its default scale and a context of its own for each scale it is shown at, which names a block (*D1, *D2) laid out at that
+scale again by the builders that draw a dimension afresh and the middle of its words there: a DIMLINEAR of 100 at 1:50 has its
+arrows 9 long inside its extension lines and the words between them, and at 1:100 arrows 18 long, the dimension line running on 18
+past the extension line and the words out beyond it. A dimension whose style is not annotative is made annotative by the palette's
+row as AutoCAD 2021 does: DIMSCALE written as an override of 0 and the gap, the centre mark, the extension offset and extension,
+the arrowhead and the text as overrides of what they were drawn at over the scale (0.18 at 1:50 becomes 0.0036), so that its picture
+stays. -OBJECTSCALE adds a picture to a dimension, drawing it again from its variables after a style change (every picture, each at
+its own scale), and deleting the default scale makes the next the default, the record taking its block and the middle of its words
+and the block of the deleted scale going. A multileader drawn in an annotative multileader style is annotative at the annotation
+scale too (its scale 50 at 1:50), and at a second scale its context data is laid out again (text 0.2 high at 1:50 is 0.4 at 1:100,
+the dogleg and the gap doubled). A HATCH made by the Hatch dialog or HATCHEDIT with its Annotative box ticked is annotative as
+-HATCH ANnotative makes it; HATCHEDIT laying the pattern again of an annotative hatch gives it back the scales it had. ANNOAUTOSCALE
+(-4 to 4, kept by the presenter, -4 by default) adds the scale CANNOSCALE is set to to the annotative objects of model space, as
+AutoCAD 2021 does when it is positive: 1 to those on layers that are on, thawed and not locked, 2 to those on locked layers too and
+4 to those on layers that are off or frozen too. Delete takes a scale from an object and the next context becomes its default; the
+next context added is named one more than the highest number the object has held (after `*A2` was deleted, `*A3`).
+
 The display draws an annotative TEXT, MTEXT or hatch of a space at the annotation scale of the space: CANNOSCALE in model
 space, 1:1 in a layout, and in a viewport the scale of the viewport where the list has it. A text 2.5 high on the sheet is 2.5
 high at 1:1 and 125 at 1:50; an MTEXT's height and width and a hatch's pattern lines are multiplied likewise. An object that is
 not shown at the scale is not drawn when ANNOALLVISIBLE is 0, and drawn as its default context says when it is 1. The objects of
-a block, an INSERT's attributes among them, are drawn as they are read, and ANNOAUTOSCALE is not kept.
+a block are drawn as they are read; an INSERT of an annotative block that stands in the space is drawn at the scale of the space, its
+block and its attributes multiplied by the default's scale over that one about its point (a block 10 long inserted at 1:50 with
+factor 50 is 1000 long at 1:100 with factor 100, an attribute 3 above its point is 6 above it). An annotative dimension is drawn by
+the picture of the scale of the space, and a multileader by the context data of it.
 
 ### Aliases and keys
 

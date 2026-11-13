@@ -133,11 +133,16 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         writes them (xdata, extension dictionary, contexts *A1, *A2...), second scales added to TEXT, MTEXT, ATTDEF, HATCH and
         INSERT; -OBJECTSCALE, AIOBJECTSCALEADD/REMOVE, ANNOALLVISIBLE; -HATCH ANnotative; text under an annotative style;
         drawn at CANNOSCALE and at a viewport's scale; AutoCAD reads our 12 objects annotative with their scales, AUDIT 0
-  - [ ] (annot2, running) Annotative objects 2: DIMENSION and MULTILEADER at a second scale (a *D picture per scale, re-laid words; probe
-        numbers in .claude/gk/annot-probe-notes.md); ANNOAUTOSCALE; the OBJECTSCALE dialog (design first); a dimension style's annotative
-        flag for new dimensions; ATTRIBs of an annotative INSERT drawn at the scale; deleting the default context (AutoCAD
-        promotes the next); HATCHEDIT reading and writing Annotative; context names from AutoCAD's counter; the hatch's view
-        collection; -OBJECTSCALE ? and the guessed messages checked in the GUI (M)
+  - [x] Annotative objects 2 (annot2): DIMENSION (aligned, linear, radius, diameter, angular, ordinate) and MULTILEADER at
+        a second scale with AutoCAD's contexts and pictures; the default context deleted and the next promoted; the *A
+        counter; annotative dimension and multileader styles making new ones annotative (the DIMSTYLE Fit tab box);
+        ANNOAUTOSCALE; INSERT attributes drawn at the scale; HATCHEDIT Annotative; MOVE/COPY carrying every picture;
+        AutoCAD AUDIT 0 with every context kept
+  - [ ] Annotative objects 3: arc-length and jogged dimensions annotative (context classes not probed); moved or turned
+        words at a second scale (flags 293/294/140); multileaders of several leaders or block content at a second scale;
+        DSTYLE 40 on angular dimensions; dimension breaks on second pictures; attribute contexts; the hatch view collection;
+        the OBJECTSCALE dialog and the two Annotative boxes (Hatch dialog, DIMSTYLE Fit tab, added without a design) put
+        into the Design artifact; small text width differences against AutoCAD (177.4 vs 177.47) (M)
   - [ ] R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
@@ -320,7 +325,7 @@ the ones wanted.
       of what we write, ACadSharp as a side check in scratch only.
   - [x] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
         the common entities and objects, the handle map (L)
-  - [ ] W1 follow-ups (into W4): VIEWPORT, HATCH, LEADER, MLINE, IMAGE, WIPEOUT, OLE, proxies, styles objects; polygon
+  - [ ] (dwg7, running) W1 follow-ups (into W4): VIEWPORT, HATCH, LEADER, MLINE, IMAGE, WIPEOUT, OLE, proxies, styles objects; polygon
         mesh, polyface and MINSERT checked on AutoCAD drawings; R2000 round-trip colours; the preview image
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
@@ -340,9 +345,9 @@ the ones wanted.
         round-trip; files 70-75 % of AutoCAD's size (L)
   - [x] W5b: write MULTILEADER, MLEADERSTYLE, ACAD_TABLE (R2010 form, TABLESTYLE, TABLECONTENT), multiline attributes, RASTERVARIABLES/WIPEOUTVARIABLES; reader reads R2010+ tables
   - [x] W5b follow-ups: cell and table overrides both ways, TABLECONTENT (R2007+) and TABLEGEOMETRY read, border edges fixed, clean table sample AUDIT 0, left-out test
-  - [ ] W5b follow-ups 2: custom cell styles written (ids 101+, AutoCAD AUDIT 0) and merged range edges done; reader parity on tcustom (9 of 15 cells differ, parked after 3 attempts); R2000/R2004 TABLECONTENT; TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
+  - [ ] (dwg7, running) W5b follow-ups 2: custom cell styles written (ids 101+, AutoCAD AUDIT 0) and merged range edges done; reader parity on tcustom (9 of 15 cells differ, parked after 3 attempts); R2000/R2004 TABLECONTENT; TABLEGEOMETRY head bit; records without a handle dropped silently; DwgReader summary and NotReadYet stale; ACIS (AcDs), AC1018/1024/1027 and R2000/R2007 containers (S-L)
   - [x] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
-  - [ ] W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
+  - [ ] (dwg7, running) W6 follow-ups (AUDIT of edited DWGs 0 errors, Drawing1.dwg and autosave names done): Save As listing every DXF version (needs a DXF version converter); BYLAYER's ColorValue white in AutoCAD (ours 0) (S)
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)

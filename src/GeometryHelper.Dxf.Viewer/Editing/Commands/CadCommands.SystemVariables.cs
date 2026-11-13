@@ -452,6 +452,16 @@ namespace GeometryHelper.Dxf.Viewer
                 CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale)
             );
             registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "ANNOAUTOSCALE",
+                    false,
+                    -4,
+                    4,
+                    s => s.Document.AnnoAutoScale,
+                    (c, v) => c.Document.AnnoAutoScale = v
+                )
+            );
+            registry.AddVariable(
                 Flag(
                     "ANNOALLVISIBLE",
                     s => s.Document.Database.AnnoAllVisible,
@@ -751,7 +761,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadEditResult result = c.Apply(
                 new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CANNOSCALE", old, typed) },
-                s => s.Database.Cannoscale = typed
+                s => CadAnnotationScale.Set(s.Database, typed, c.Document.AnnoAutoScale)
             );
             return result.Succeeded ? null : string.Empty;
         }

@@ -1152,8 +1152,23 @@ namespace GeometryHelper.Dxf.Viewer
                     DrawViewport(viewport, frame, list, style, handle, layerName);
                     return;
                 case DxfDimension dimension:
-                    DrawBlock(dimension.DimBlock, Affine2.Identity, dimension, frame, list, handle, layerName, style);
+                {
+                    // An annotative dimension of the space is drawn by the picture of the scale of the space, as AutoCAD draws it.
+                    DxfBlockTableRecord picture = dimension.DimBlock;
+
+                    if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+                    {
+                        _sawAnnotative |= dimension.Item.File.ExtensionDictionaryOf(dimension.Item) != null;
+
+                        if (!dimension.TryPictureAt(_annotationScale, _allVisible, out picture))
+                        {
+                            return;
+                        }
+                    }
+
+                    DrawBlock(picture, Affine2.Identity, dimension, frame, list, handle, layerName, style);
                     return;
+                }
                 case DxfBlockReference reference:
                     // The snap Insertion takes the point of an INSERT of the space itself, not of one nested in a block.
                     if (frame.RootHandle == null && forcedHandle == null)
@@ -1249,12 +1264,39 @@ namespace GeometryHelper.Dxf.Viewer
                     return;
                 }
                 case DxfMLeader mleader:
-                    foreach (DxfEntity part in mleader.Explode())
+                {
+                    // An annotative multileader of the space is drawn by the context data of the scale of the space, as AutoCAD draws it.
+                    DxfMLeader drawn = mleader;
+
+                    if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+                    {
+                        _sawAnnotative |= mleader.Item.File.ExtensionDictionaryOf(mleader.Item) != null;
+
+                        if (
+                            !mleader.TryContextDataAt(
+                                _annotationScale,
+                                _allVisible,
+                                out List<KeyValuePair<int, string>> data
+                            )
+                        )
+                        {
+                            return;
+                        }
+
+                        if (data != null)
+                        {
+                            drawn = (DxfMLeader)mleader.Clone();
+                            drawn.SetContextData(data);
+                        }
+                    }
+
+                    foreach (DxfEntity part in drawn.Explode())
                     {
                         Draw(part, frame, list, handle);
                     }
 
                     return;
+                }
                 case DxfUnknownEntity region when region.DxfName == "REGION":
                     // A region is drawn by the curves of its loops, as AutoCAD's 2D wireframe draws it.
                     if (TryExplode(region, out IReadOnlyList<DxfEntity> loops))
@@ -1419,6 +1461,25 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            // An INSERT of an annotative block that stands in the space is drawn at the scale of the space: its block, and its
+            // attributes out from its point, multiplied by the default's scale over that one.
+            double scaled = 1.0;
+
+            if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+            {
+                _sawAnnotative |= reference.Item.File.ExtensionDictionaryOf(reference.Item) != null;
+
+                if (!reference.TryInsertFactorAt(_annotationScale, _allVisible, out scaled))
+                {
+                    return;
+                }
+
+                if (scaled != 1.0)
+                {
+                    own = Affine2.ScaleRotate(scaled, scaled, 0.0).Then(own);
+                }
+            }
+
             int columns = 1;
             int rows = 1;
             double columnSpacing = 0.0;
@@ -1475,7 +1536,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    DrawAttributes(reference, frame, list, handle, layerName, style);
+                    DrawAttributes(reference, frame, list, handle, layerName, style, scaled);
                 }
                 finally
                 {
@@ -1485,7 +1546,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            DrawAttributes(reference, frame, list, handle, layerName, style);
+            DrawAttributes(reference, frame, list, handle, layerName, style, scaled);
         }
 
         /// <summary>
@@ -1867,7 +1928,8 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayList2 list,
             string handle,
             string layerName,
-            DisplayStyle style
+            DisplayStyle style,
+            double scaled = 1.0
         )
         {
             Frame inner = frame.Child(frame.Matrix);
@@ -1882,7 +1944,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (!attribute.IsErased && !attribute.Invisible)
                     {
-                        Draw(attribute, inner, list, null);
+                        Draw(
+                            scaled == 1.0 ? attribute : AttributeAt(attribute, reference.Position, scaled),
+                            inner,
+                            list,
+                            null
+                        );
                     }
                 }
                 catch (Exception)
@@ -1890,6 +1957,28 @@ namespace GeometryHelper.Dxf.Viewer
                     // One attribute that cannot be drawn never stops the others.
                 }
             }
+        }
+
+        /// <summary>
+        /// An attribute of an INSERT of an annotative block as it stands at another scale: a copy whose point is moved out from the
+        /// INSERT's by the factor and whose height is multiplied by it, as AutoCAD 2021 moves an attribute: (300, 1003) of an INSERT at
+        /// (300, 1000) is at (300, 1150) at 1:50 for one that stands at 1:1.
+        /// </summary>
+        private static DxfAttributeReference AttributeAt(
+            DxfAttributeReference attribute,
+            GeoPoint3 insert,
+            double factor
+        )
+        {
+            var copy = (DxfAttributeReference)attribute.Clone();
+            GeoPoint3 at = attribute.Position;
+            copy.Position = new GeoPoint3(
+                insert.X + (at.X - insert.X) * factor,
+                insert.Y + (at.Y - insert.Y) * factor,
+                at.Z
+            );
+            copy.Height = attribute.Height * factor;
+            return copy;
         }
 
         private void DrawBlock(

@@ -339,6 +339,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Settings.Associative = value;
         }
 
+        /// <summary>Gets or sets whether the hatch is annotative: its pattern drawn at the scale of the view, as the Annotative box of AutoCAD's Hatch dialog sets it.</summary>
+        public bool Annotative
+        {
+            get => Settings.Annotative;
+            set => Settings.Annotative = value;
+        }
+
         /// <summary>Gets the island detection styles offered: Normal, Outer, Ignore.</summary>
         public IReadOnlyList<string> IslandStyles => StyleNames;
 

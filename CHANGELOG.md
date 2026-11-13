@@ -29,6 +29,29 @@ the boundary of a clipped viewport picked nothing where SELECTIONCYCLING is 2 (t
 under it made a list of two to choose from: the pair is one object, as AutoCAD counts it. A viewport pasted (PASTECLIP) into a
 layout never shown had no viewport 1 for the sheet before it, which AutoCAD's AUDIT answered with `Invalid linetype
 eNullObjectId changed to ByLayer`; the layout gets it first, and AUDIT finds nothing.
+**NEW.** Annotative dimensions and multileaders at a second scale, as AutoCAD 2021 writes them (probed in accoreconsole, plugin
+GHAN4; our drawings audited with no error and read back to the same scales). A dimension drawn by an annotative dimension style
+is annotative at the annotation scale of its space: DIMSCALE is that of the scale (50 at 1:50) and written as no override,
+the arrowheads, text and gaps the style's paper sizes times it (0.18 is 9), its context `ACDB_ALDIMOBJECTCONTEXTDATA_CLASS` (radius,
+diameter, angular and ordinate dimensions each their own class) naming its picture block and the middle of its words. -OBJECTSCALE
+adds a context with a picture block of its own laid out again at that scale by the builders that draw a dimension afresh (a DIMLINEAR
+of 100 has arrows 9 long inside its extension lines at 1:50 and 18 long at 1:100, the words out beyond the right one), a style change
+draws every picture again, and the display draws the picture of CANNOSCALE or of a viewport's scale. The palette's Annotative row
+makes a dimension of any style annotative as AutoCAD does: DIMSCALE 0 and each size over the scale as an override (0.18 at 1:50 is
+0.0036), the picture kept. The Annotative box of the Dimension Style Manager's Fit tab writes the style's extended data (Modify, New and
+Start With keep it), and a multileader drawn in an annotative multileader style is annotative at the annotation scale; at a second scale its
+context data is laid out again (text 0.2 high at 1:50 is 0.4 at 1:100, the dogleg 0.36 is 0.72, the words 9.72 right of the landing).
+An INSERT of an annotative block is drawn at the scale of the space, its attributes moved out from its point by the same factor. HATCHEDIT
+and the Hatch dialog read and write Annotative (the Annotative box). ANNOAUTOSCALE (-4 to 4, kept by the presenter) adds the scale
+CANNOSCALE is set to to the annotative objects of model space: 1 those on layers that are on, thawed and not locked, 2 those on locked
+layers too, 4 those on layers that are off or frozen too.
+
+**CHANGED.** Deleting the default scale of an annotative object makes the next context the default and rewrites the record from it, as AutoCAD
+2021 does (`DxfDBObject.RemoveContext` refused the default before): a TEXT 125 high at 1:50 with 1:100 beside it is 250 high once 1:50
+is deleted, an MTEXT is as wide as the context of 1:100, and a hatch's lines, an INSERT's factors, a dimension's block and a
+multileader's context data are those of the new default. The entry added after a deletion is named one more than the highest number the
+object has held within the session (after `*A2` was deleted, `*A3`), as AutoCAD names it. `DxfDBObject.AddContext` lays a multileader of
+one leader holding text out at a second scale.
 
 **NEW.** The dialog items left from rounds 2 to 4 in the presenter, designed first (design canvas v142). The Viewports dialog's
 Change view to: a click in a tile of the preview picks it and gives it *Current* or a named model view, written in the tile, and

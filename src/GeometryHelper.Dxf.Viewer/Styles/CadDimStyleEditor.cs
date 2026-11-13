@@ -224,6 +224,10 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     s.Database.DimStyleTable.Add(new DxfDimStyleTableRecord { Name = trimmed });
                     Write(s.Database, s.Database.DimStyleTable[trimmed], start);
+                    SetAnnotative(
+                        s.Database.DimStyleTable[trimmed],
+                        AnnotativeIn(values, source.Annotative == DxfAnnotativeStates.True)
+                    );
                 }
             );
         }
@@ -251,10 +255,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             SortedDictionary<string, object> now = Read(style);
+            bool annotative = AnnotativeIn(values, style.Annotative == DxfAnnotativeStates.True);
 
             if (
-                Compare(now, values.Where(v => now.ContainsKey(v.Key)).ToDictionary(v => v.Key, v => v.Value)).Count
-                == 0
+                annotative == (style.Annotative == DxfAnnotativeStates.True)
+                && Compare(now, values.Where(v => now.ContainsKey(v.Key)).ToDictionary(v => v.Key, v => v.Value)).Count
+                    == 0
             )
             {
                 return CadEditResult.Done(Array.Empty<CadEditRecord>());
@@ -269,6 +275,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     DxfDimStyleTableRecord target = s.Database.DimStyleTable[set];
                     Write(s.Database, target, values);
+                    SetAnnotative(target, annotative);
 
                     if (current)
                     {
@@ -531,6 +538,27 @@ namespace GeometryHelper.Dxf.Viewer
             );
             CadCommands.DrawSamples(database, database.DimStyleTable["Preview"]);
             return database;
+        }
+
+        /// <summary>The key of the style's Annotative flag among the values a dialog hands to <see cref="Apply"/> and <see cref="Add"/>: a bool, not a variable.</summary>
+        public const string AnnotativeKey = "Annotative";
+
+        private static bool AnnotativeIn(IDictionary<string, object> values, bool fallback) =>
+            values != null && values.TryGetValue(AnnotativeKey, out object flag) && flag is bool on ? on : fallback;
+
+        /// <summary>Makes a style annotative or not, as the Fit tab's Annotative box does: the style's extended data AcadAnnotative, written where it is not there and taken out where it is.</summary>
+        private static void SetAnnotative(DxfDimStyleTableRecord style, bool annotative)
+        {
+            DxfAnnotativeStates now = style.Annotative;
+
+            if (annotative && now != DxfAnnotativeStates.True)
+            {
+                style.Annotative = DxfAnnotativeStates.True;
+            }
+            else if (!annotative && now == DxfAnnotativeStates.True)
+            {
+                style.Annotative = DxfAnnotativeStates.False;
+            }
         }
 
         /// <summary>Writes variables into a style of a drawing, each that differs, a name of an arrowhead, text style or linetype taken to its record there.</summary>

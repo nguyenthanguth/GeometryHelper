@@ -67,12 +67,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Whether the presenter makes an entity annotative: a TEXT, an MTEXT, an attribute definition, a hatch or a multileader.</summary>
+        /// <summary>Whether the presenter makes an entity annotative: a TEXT, an MTEXT, an attribute definition, a hatch, a multileader or a dimension.</summary>
         internal static bool CanMakeAnnotative(DxfEntity entity) =>
             entity is DxfDBText text && !(entity is DxfAttributeReference)
             || entity is DxfMText
             || entity is DxfHatch
-            || entity is DxfMLeader;
+            || entity is DxfMLeader
+            || entity is DxfDimension;
 
         /// <summary>
         /// Makes an entity annotative at the scale of its space, as the palette's Annotative row and -HATCH ANnotative do: the
@@ -95,6 +96,11 @@ namespace GeometryHelper.Dxf.Viewer
                 if (CurrentScale(database, isModel) == null)
                 {
                     return "The drawing has no annotation scale to make it annotative at.";
+                }
+
+                if (entity is DxfDimension dimension)
+                {
+                    return MakeDimensionAnnotative(database, dimension, isModel);
                 }
 
                 entity.Annotative = DxfAnnotativeStates.True;
@@ -252,6 +258,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// Adds a scale to the objects, or takes it from them, in one undo step, and says what came of it in AutoCAD's words:
         /// the number updated or removed and, for Delete, those that do not support the scale and so cannot remove it.
         /// </summary>
+        /// <summary>Shows an annotative object at a scale, as OBJECTSCALE Add does: a dimension by a picture laid out at the scale, any other by its context.</summary>
+        internal static void AddScaleTo(DxfDatabase database, DxfEntity entity, DxfAnnotationScale scale)
+        {
+            if (entity is DxfDimension dimension)
+            {
+                AddDimensionScale(database, dimension, scale);
+            }
+            else
+            {
+                entity.AddContext(scale);
+            }
+        }
+
         private static void ChangeScale(
             CadCommandContext c,
             IReadOnlyList<string> handles,
@@ -284,7 +303,8 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         if (add)
                         {
-                            entity.AddContext(own);
+                            AddScaleTo(s.Database, entity, own);
+
                             done++;
                         }
                         else if (entity.HasContext(own) && entity.GetContexts().Count > 1)

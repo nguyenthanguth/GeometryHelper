@@ -471,12 +471,6 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(new[] { false, true, true }, scales.Select(s => note.HasContext(s)));
             Assert.Equal(text, db.ToText());
 
-            // The default context is kept: the library makes no other the default in its place.
-            Assert.Contains(
-                "is the default",
-                Assert.Throws<InvalidOperationException>(() => note.RemoveContext(scales.GetContext("1:50"))).Message,
-                StringComparison.Ordinal
-            );
             note.RemoveContext(scales.GetContext("1:1"));
             Assert.Equal(text, db.ToText());
 

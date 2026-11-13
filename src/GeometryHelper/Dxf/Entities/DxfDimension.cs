@@ -1748,6 +1748,20 @@ namespace GeometryHelper.Dxf
             if (block != null)
             {
                 MovePicture(block, normal, turned, transform);
+
+                // An annotative dimension holds a picture for each scale: each moves with it, and the points of its contexts.
+                if (Annotative == DxfAnnotativeStates.True)
+                {
+                    foreach (DimensionPicture picture in DimensionPictures())
+                    {
+                        if (picture.Block != block)
+                        {
+                            MovePicture(picture.Block, normal, turned, transform);
+                        }
+                    }
+
+                    TransformDimensionContexts(transform);
+                }
             }
         }
 

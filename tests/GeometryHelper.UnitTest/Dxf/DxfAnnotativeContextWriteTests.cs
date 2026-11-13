@@ -184,7 +184,7 @@ namespace GeometryHelper.UnitTest.Dxf
             text.RemoveContext(Of(db, "1:50"));
             Assert.Equal(new[] { "1:1" }, Names(text));
             text.AddContext(Of(db, "1:100"));
-            Assert.Equal(new[] { "*A1", "*A2" }, Keys(text));
+            Assert.Equal(new[] { "*A1", "*A3" }, Keys(text));
             Assert.Equal(new[] { "1:1", "1:100" }, Names(text));
         }
 

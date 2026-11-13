@@ -584,6 +584,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             copy.DimBlock = own;
+            CopyContextPictures(s.Database, copy, own);
             copy.TransformBy(transform);
             return copy;
         }

@@ -577,7 +577,35 @@ namespace GeometryHelper.Dxf.Viewer
             CadEditResult result = c.Apply(planned, s =>
             {
                 var edited = (DxfHatch)s.Document.FindEntity(handle);
+                bool annotative = edited.Annotative == DxfAnnotativeStates.True;
+                bool patternChanged = !SamePattern(CadHatchSettings.Of(edited), settings);
+
+                // An annotative hatch whose pattern is laid again is made plain first and annotative again after, at the scale
+                // of its space, its other scales given back, as the lines of its contexts are those of the pattern it had.
+                List<DxfAnnotationScale> held =
+                    annotative && patternChanged && settings.Annotative
+                        ? edited.GetContexts().OfType<DxfAnnotationScale>().ToList()
+                        : new List<DxfAnnotationScale>();
+
+                if (annotative && (patternChanged || !settings.Annotative))
+                {
+                    edited.Annotative = DxfAnnotativeStates.False;
+                }
+
                 fault = settings.ApplyTo(edited, s.Database, s.Document);
+
+                if (settings.Annotative && edited.Annotative != DxfAnnotativeStates.True)
+                {
+                    fault = fault ?? MakeAnnotative(s.Database, edited);
+
+                    foreach (DxfAnnotationScale scale in held)
+                    {
+                        if (edited.Annotative == DxfAnnotativeStates.True && !edited.HasContext(scale))
+                        {
+                            edited.AddContext(scale);
+                        }
+                    }
+                }
 
                 if (!settings.Associative && edited.Associative)
                 {
@@ -595,6 +623,22 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write(result.Message);
             }
         }
+
+        /// <summary>Whether two sets of settings lay the same pattern: the type, the pattern and its angle, scale, spacing, double, and the gradient.</summary>
+        private static bool SamePattern(CadHatchSettings a, CadHatchSettings b) =>
+            a.Type == b.Type
+            && a.PatternName == b.PatternName
+            && a.Angle == b.Angle
+            && a.Scale == b.Scale
+            && a.Spacing == b.Spacing
+            && a.Double == b.Double
+            && a.IslandStyle == b.IslandStyle
+            && a.GradientName == b.GradientName
+            && a.GradientColor1.Equals(b.GradientColor1)
+            && a.GradientColor2.Equals(b.GradientColor2)
+            && a.GradientOneColor == b.GradientOneColor
+            && a.GradientTint == b.GradientTint
+            && a.GradientCentered == b.GradientCentered;
 
         /// <summary>
         /// BOUNDARY: the Boundary Creation dialog (CadCommands.BoundaryDialog.cs), then "Pick internal point:" until Enter,

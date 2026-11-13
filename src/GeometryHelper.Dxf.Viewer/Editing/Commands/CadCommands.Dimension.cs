@@ -2304,7 +2304,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// model space is worked through (2 through one of 1:2), else 1, as a leader takes it. <c>Place</c> writes it as an
         /// override where it is not the style's. DIMSCALE 100 typed with the style's 1 draws arrowheads of 2.5 as 250.
         /// </summary>
-        private static double Dimscale(CadCommandContext c) => LeaderScale(c);
+        private static double Dimscale(CadCommandContext c) => AnnotationDimscale(c) ?? LeaderScale(c);
 
         /// <summary>
         /// The DIMSCALE a dimension drawn by <paramref name="style"/> is drawn by: the style's, where it is above nought, as
@@ -2369,8 +2369,19 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // Each variable the picture is drawn by other than the style's is an override, as AutoCAD 2021 writes them, so
                 // that a CAD drawing the dimension again from its variables draws it as its picture has it.
-                Override(dimension, named, style, scale, textHeight, first, always);
+                Override(
+                    dimension,
+                    named,
+                    style,
+                    named.Annotative == DxfAnnotativeStates.True && dimension.CanHoldDimensionContexts()
+                        ? named.Dimscale
+                        : scale,
+                    textHeight,
+                    first,
+                    always
+                );
                 Recorded(dimension, picture);
+                MakeAnnotativeAsStyled(c, dimension, named);
                 s.Added(space, dimension);
             });
         }

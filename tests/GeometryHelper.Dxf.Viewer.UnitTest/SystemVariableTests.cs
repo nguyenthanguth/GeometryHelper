@@ -222,6 +222,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 new[]
                 {
                     "ANNOALLVISIBLE",
+                    "ANNOAUTOSCALE",
                     "ATTDIA",
                     "ATTREQ",
                     "BINDTYPE",

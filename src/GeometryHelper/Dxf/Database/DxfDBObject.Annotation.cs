@@ -80,7 +80,8 @@ namespace GeometryHelper.Dxf
         /// eNotApplicable; on an object in no file or erased; true on a style or an entity in a file older than R2007 (AC1021); or
         /// true on an entity when the drawing's list has no scale named as CANNOSCALE says.</exception>
         /// <exception cref="NotSupportedException">Thrown when set true on a dimension, a leader, a tolerance or an attribute,
-        /// which AutoCAD lays out again at each scale; set on an INSERT (annotative as its block is); or set false on a
+        /// which AutoCAD lays out again at each scale (the presenter makes a dimension annotative by laying its picture out
+        /// itself); set on an INSERT (annotative as its block is); or set false on a
         /// block.</exception>
         public DxfAnnotativeStates Annotative
         {
@@ -189,6 +190,11 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
+                if (this is DxfDimension)
+                {
+                    ErasePictures(false);
+                }
+
                 DxfDBDictionary extension = ExtensionDictionary;
 
                 if (extension != null && extension.Contains(ContextManagerName))
@@ -276,16 +282,21 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Stops showing an annotative object at a scale, as AutoCAD's <c>RemoveContext</c>: its context of the scale erased with
-        /// its entry of ACDB_ANNOTATIONSCALES, of any kind of object, every other context kept as it is. A scale the object is not
-        /// shown at changes nothing.
+        /// Stops showing an annotative object at a scale, as AutoCAD's <c>RemoveContext</c> and its OBJECTSCALE Delete do: its
+        /// context of the scale erased with its entry of ACDB_ANNOTATIONSCALES, of any kind of object, every other context kept as
+        /// it is; the picture block of a dimension's context goes with it, and an INSERT's attributes lose the scale too. Where the
+        /// context is the default, the next in the order of the dictionary becomes it (its 290 of 1) and the record takes that
+        /// context's data, as AutoCAD 2021 rewrites it: a TEXT of 125 at 1:50 with 1:100 beside it is 250 high once 1:50 is
+        /// deleted, an MTEXT's width the context's, a HATCH's pattern lines, an INSERT's factors and place, a dimension's block
+        /// and the middle of its words, and a multileader's context data those of the new default. The entry added after is
+        /// named as AutoCAD names it within a session, one more than the highest number the dictionary has held: after *A2 was
+        /// deleted, *A3. A scale the object is not shown at changes nothing.
         /// </summary>
         /// <param name="context">The scale.</param>
         /// <exception cref="ArgumentNullException">Thrown when the scale is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the scale is the last the object is shown at, as AutoCAD keeps
-        /// one (make it not annotative by <see cref="Annotative"/> instead); when its context is the default (the 290 of 1 of its
-        /// subclass AcDbObjectContextData), which no other is made in its place; when the object is erased; or when it is a copy
-        /// in no file that carries its original's contexts, until it is added to a drawing.</exception>
+        /// one (make it not annotative by <see cref="Annotative"/> instead); when the object is erased; or when it is a copy in no
+        /// file that carries its original's contexts, until it is added to a drawing.</exception>
         public void RemoveContext(DxfObjectContext context)
         {
             if (context == null)
@@ -316,18 +327,26 @@ namespace GeometryHelper.Dxf
 
             ScaleContext gone = held.Find(c => string.Equals(c.Scale, handle, StringComparison.OrdinalIgnoreCase));
 
-            if (gone.IsDefault)
+            // The attributes of an INSERT lose the scale with it, those that are shown at it and at another.
+            if (_item.Type == "INSERT")
             {
-                throw new InvalidOperationException(
-                    "The context of the scale "
-                        + context.Name
-                        + " is the default of the "
-                        + KindName()
-                        + ", and the library makes no other the default in its place."
-                );
+                int count = _item.File.RecordCount(_item);
+
+                for (int r = 1; r < count; r++)
+                {
+                    if (_item.File.RecordType(_item, r) == "ATTRIB")
+                    {
+                        DxfEntity attribute = DxfEntity.Of(_item.File.FollowerOf(_item, r));
+
+                        if (attribute.HasContext(context) && attribute.GetContexts().Count > 1)
+                        {
+                            attribute.RemoveContext(context);
+                        }
+                    }
+                }
             }
 
-            ContextDictionary().Remove(gone.Key);
+            RemoveHeldContext(held, gone);
         }
 
         /// <summary>
