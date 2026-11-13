@@ -24,14 +24,26 @@ namespace GeometryHelper.Dxf
         private sealed class DimensionContextKind
         {
             internal DimensionContextKind(string type, string marker, params int[] records)
+                : this(type, null, null, marker, records) { }
+
+            internal DimensionContextKind(string type, string before, int[] beforeRecords, string marker, int[] records)
             {
                 Type = type;
+                Before = before;
+                BeforeRecords = beforeRecords ?? new int[0];
                 Marker = marker;
                 Records = records;
             }
 
             internal string Type { get; }
 
+            /// <summary>The subclass that comes before <see cref="Marker"/> with its own points (a jogged radius's chord point); null where there is none.</summary>
+            internal string Before { get; }
+
+            /// <summary>The group of the record each point of the context's subclass <see cref="Before"/> is taken from.</summary>
+            internal int[] BeforeRecords { get; }
+
+            /// <summary>The subclass named by the CLASSES section (the last one of the record).</summary>
             internal string Marker { get; }
 
             /// <summary>The group of the record each point of the context (11, then 12) is taken from.</summary>
@@ -70,6 +82,24 @@ namespace GeometryHelper.Dxf
             14
         );
 
+        // An arc length dimension's context is an angular one whose point is the record's 10 (a point of the dimension arc), as
+        // AutoCAD 2021 writes it (probe GHA3: a DIMARC at 1:50 and 1:100).
+        private static readonly DimensionContextKind ArcLengthKind = new DimensionContextKind(
+            "ACDB_ANGDIMOBJECTCONTEXTDATA_CLASS",
+            "AcDbAngularDimensionObjectContextData",
+            10
+        );
+
+        // A jogged radius's context holds the chord point (the record's 15) in the radial subclass and the point the radius
+        // is measured from (13) and the jog's (14) in its own (probe GHA3: a DIMJOGGED at 1:50 and 1:100).
+        private static readonly DimensionContextKind JoggedKind = new DimensionContextKind(
+            "ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS",
+            "AcDbRadialDimensionObjectContextData",
+            new[] { 15 },
+            "AcDbRadialDimensionLargeObjectContextData",
+            new[] { 13, 14 }
+        );
+
         /// <summary>The context kind of a dimension; null for a kind of dimension the library does not write contexts of yet.</summary>
         private DimensionContextKind DimensionKindOf()
         {
@@ -87,21 +117,21 @@ namespace GeometryHelper.Dxf
                     return AngularKind;
                 case DxfOrdinateDimension _:
                     return OrdinateKind;
+                case DxfArcDimension _:
+                    return ArcLengthKind;
+                case DxfRadialDimensionLarge _:
+                    return JoggedKind;
                 default:
                     return null;
             }
         }
 
         /// <summary>
-        /// Whether the library writes contexts for the dimension: a linear, aligned, radius, diameter, angular (of two lines or
-        /// three points) or ordinate one whose words stand at their default place and are not turned, as AutoCAD 2021 was
-        /// probed; its picture is laid out at each scale by the caller, which holds the builders.
+        /// Whether the library writes contexts for the dimension: a linear, aligned, radius, jogged radius, diameter, angular (of
+        /// two lines or three points), arc length or ordinate one, its words where they are put or turned or not, as AutoCAD
+        /// 2021 was probed; its picture is laid out at each scale by the caller, which holds the builders.
         /// </summary>
-        internal bool CanHoldDimensionContexts() =>
-            DimensionKindOf() != null
-            && this is DxfDimension dimension
-            && dimension.UsingDefaultTextPosition
-            && dimension.TextRotation == 0.0;
+        internal bool CanHoldDimensionContexts() => DimensionKindOf() != null && this is DxfDimension;
 
         /// <summary>
         /// Makes a dimension annotative at a scale as AutoCAD 2021 writes it: its extended data <c>AcadAnnotative</c>, an
@@ -180,6 +210,9 @@ namespace GeometryHelper.Dxf
             double wordsY
         )
         {
+            // 294 is 1 where the words stand at their default place and 140 is their angle in radians, as the record's flag 128
+            // and its 53 (degrees) say (probe GHA3: a DIMLINEAR whose words DIMTEDIT moved holds 294 0, one turned 30 degrees 140 0.5236).
+            var dimension = (DxfDimension)this;
             var groups = new List<KeyValuePair<int, string>>
             {
                 new KeyValuePair<int, string>(100, DimensionContextMarker),
@@ -187,8 +220,8 @@ namespace GeometryHelper.Dxf
                 Pair(293, 0),
                 Pair(10, wordsX),
                 Pair(20, wordsY),
-                Pair(294, 1),
-                Pair(140, 0.0),
+                Pair(294, dimension.UsingDefaultTextPosition ? 1 : 0),
+                Pair(140, dimension.TextRotation),
                 Pair(298, 0),
                 Pair(291, 0),
                 Pair(70, 0),
@@ -198,18 +231,35 @@ namespace GeometryHelper.Dxf
                 Pair(295, 0),
                 Pair(296, 0),
                 Pair(297, 0),
-                new KeyValuePair<int, string>(100, kind.Marker),
             };
 
-            for (int i = 0; i < kind.Records.Length; i++)
+            // The points of each subclass, numbered on from 11: a jogged radius's 11 is in the radial subclass, its 12 and 13 in
+            // the large one.
+            int n = 0;
+
+            if (kind.Before != null)
             {
-                int code = kind.Records[i];
-                groups.Add(Pair(11 + i, Rec(code, 0.0)));
-                groups.Add(Pair(21 + i, Rec(code + 10, 0.0)));
-                groups.Add(Pair(31 + i, Rec(code + 20, 0.0)));
+                groups.Add(new KeyValuePair<int, string>(100, kind.Before));
+                n = AddPoints(groups, kind.BeforeRecords, n);
             }
 
+            groups.Add(new KeyValuePair<int, string>(100, kind.Marker));
+            AddPoints(groups, kind.Records, n);
             return groups;
+        }
+
+        /// <summary>Adds the points of a context's subclass, each taken from a group of the record, from the number <paramref name="n"/> on (11 + n); the next number.</summary>
+        private int AddPoints(List<KeyValuePair<int, string>> groups, int[] records, int n)
+        {
+            foreach (int code in records)
+            {
+                groups.Add(Pair(11 + n, Rec(code, 0.0)));
+                groups.Add(Pair(21 + n, Rec(code + 10, 0.0)));
+                groups.Add(Pair(31 + n, Rec(code + 20, 0.0)));
+                n++;
+            }
+
+            return n;
         }
 
         /// <summary>
@@ -388,7 +438,7 @@ namespace GeometryHelper.Dxf
                 IReadOnlyList<DxfTypedValue> groups = context.File.GroupsOf(context);
                 string marker = null;
 
-                foreach (int first in new[] { 10, 11, 12 })
+                foreach (int first in new[] { 10, 11, 12, 13 })
                 {
                     marker = null;
                     double[] at = { double.NaN, double.NaN, z };
@@ -464,6 +514,59 @@ namespace GeometryHelper.Dxf
                         i,
                         Numbers.Exact((groups[i].TypeCode == 10 ? words.X : words.Y) + 0.0)
                     );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the points of its kind (11, 12 and 13 of each context: the record's 10, 15, 13 or 14 by the kind) and the words'
+        /// flags (294 and 140) of every context of a dimension as the record holds them now, as they are after the dimension's
+        /// definition points or its words were edited and its pictures drawn again.
+        /// </summary>
+        internal void SetDimensionPoints(string key)
+        {
+            DimensionContextKind kind = DimensionKindOf();
+            DxfItem context = FindContext(key);
+
+            if (kind == null || context == null)
+            {
+                return;
+            }
+
+            var dimension = (DxfDimension)this;
+            var records = new List<int>(kind.BeforeRecords);
+            records.AddRange(kind.Records);
+            IReadOnlyList<DxfTypedValue> groups = context.File.GroupsOf(context);
+            string marker = null;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int code = groups[i].TypeCode;
+
+                if (code == 100)
+                {
+                    marker = groups[i].Value.Trim();
+                }
+                else if (marker == DimensionContextMarker && code == 294)
+                {
+                    context.File.SetValueAt(context, i, dimension.UsingDefaultTextPosition ? "1" : "0");
+                }
+                else if (marker == DimensionContextMarker && code == 140)
+                {
+                    context.File.SetValueAt(context, i, Numbers.Exact(dimension.TextRotation + 0.0));
+                }
+                else if (
+                    marker != DimensionContextMarker
+                    && marker != ContextDataMarker
+                    && marker != ScaleContextMarker
+                    && code >= 11
+                    && code <= 33
+                    && code % 10 >= 1
+                    && code % 10 <= records.Count
+                )
+                {
+                    int record = records[code % 10 - 1] + (code / 10 - 1) * 10;
+                    context.File.SetValueAt(context, i, Numbers.Exact(Rec(record, 0.0) + 0.0));
                 }
             }
         }

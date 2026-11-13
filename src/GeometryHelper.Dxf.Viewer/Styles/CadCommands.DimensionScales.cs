@@ -64,6 +64,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (scale != null)
             {
+                // AutoCAD 2021 writes an angular dimension of an annotative style with DIMSCALE 0 as an override of its own (the
+                // extended data DSTYLE {40 0.0}, probe GHA3); a linear, radius or ordinate one has none.
+                if (dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2)
+                {
+                    dimension.WriteOverride(DxfDimVariable.Named("Dimscale"), 0.0);
+                }
+
                 dimension.MakeDimensionAnnotative(scale);
             }
         }
@@ -81,7 +88,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 return "A "
                     + CadDocument.KindName(dimension)
-                    + " is not made annotative here: its words are moved or turned, or it is of a kind the presenter has no annotative picture of yet.";
+                    + " is not made annotative here: it is of a kind the presenter has no annotative picture of yet.";
             }
 
             DxfAnnotationScale scale = CurrentScale(database, isModel);
@@ -128,7 +135,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new NotSupportedException(
                     "A "
                         + CadDocument.KindName(dimension)
-                        + " is not shown at a second scale here: its words are moved or turned, or it is of a kind the presenter lays out at one scale only."
+                        + " is not shown at a second scale here: it is of a kind the presenter lays out at one scale only."
                 );
             }
 
@@ -144,6 +151,7 @@ namespace GeometryHelper.Dxf.Viewer
             var block = new DxfBlockTableRecord { Name = "*D" };
             database.BlockTable.Add(block);
             Fill(block, picture);
+            BreakAgain(dimension, block, 1.0 / scale.Scale);
             dimension.AddDimensionContext(scale, block, RecordedPoint(picture) ?? dimension.TextPosition);
         }
 
@@ -183,9 +191,11 @@ namespace GeometryHelper.Dxf.Viewer
                     dimension.SetDimensionWords(pair.Key.Key, words.Value);
                 }
 
+                dimension.SetDimensionPoints(pair.Key.Key);
+                BreakAgain(dimension, pair.Key.Block, 1.0 / pair.Key.Scale.Scale);
+
                 if (pair.Key.IsDefault)
                 {
-                    BreakAgain(dimension);
                     Recorded(dimension, pair.Value);
                 }
             }

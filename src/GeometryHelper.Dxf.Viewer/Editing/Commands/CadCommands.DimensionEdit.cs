@@ -315,6 +315,7 @@ namespace GeometryHelper.Dxf.Viewer
                         else
                         {
                             KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
+                            RedrawAnnotativeBreaks(d);
                         }
                     },
                     remove
@@ -359,7 +360,11 @@ namespace GeometryHelper.Dxf.Viewer
                     only,
                     "Dimension break",
                     "Auto",
-                    d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null)),
+                    d =>
+                    {
+                        KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
+                        RedrawAnnotativeBreaks(d);
+                    },
                     false
                 );
             }
@@ -394,6 +399,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         BreakAt(d, null, new[] { first, second });
                         KeepManualBreak(d, first, second);
+                        RedrawAnnotativeBreaks(d);
                     },
                     false
                 );
@@ -1155,11 +1161,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Breaks the lines of a dimension's picture (its extension lines and dimension line, not its points of definition): a
         /// gap of the break size about each place an object crosses one, or between where two points fall on the line nearest
-        /// them. Gives the objects that cross a line, in the order given; none for a break between two points.
+        /// them. Gives the objects that cross a line, in the order given; none for a break between two points. The lines are
+        /// those of <paramref name="block"/> where it is given (the picture of one scale of an annotative dimension), else of the
+        /// dimension's own block, the gap of the DIMSCALE <paramref name="dimscale"/> where that is given.
         /// </summary>
-        private static List<DxfEntity> BreakAt(DxfDimension dimension, List<DxfEntity> cutters, GeoPoint2[] manual)
+        private static List<DxfEntity> BreakAt(
+            DxfDimension dimension,
+            List<DxfEntity> cutters,
+            GeoPoint2[] manual,
+            DxfBlockTableRecord block = null,
+            double? dimscale = null
+        )
         {
-            DxfBlockTableRecord picture = dimension.DimBlock;
+            DxfBlockTableRecord picture = block ?? dimension.DimBlock;
             var crossed = new List<DxfEntity>();
 
             if (picture == null)
@@ -1172,7 +1186,7 @@ namespace GeometryHelper.Dxf.Viewer
                 .OfType<DxfLine>()
                 .Where(l => !l.IsErased && !string.Equals(l.Layer, "Defpoints", StringComparison.OrdinalIgnoreCase))
                 .ToList();
-            double size = BreakSize(dimension);
+            double size = BreakSize(dimension, dimscale);
 
             if (manual != null)
             {
@@ -1246,12 +1260,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The break size of a dimension: DIMBREAK from its style's extended data (ACAD_DSTYLE_DIMBREAK), else AutoCAD 2021's
         /// default, 0.125 in a drawing of MEASUREMENT 0 and 3.75 in one of 1, whatever the arrowheads, a header without
-        /// MEASUREMENT read as 0 as AutoCAD reads it; by DIMSCALE.
+        /// MEASUREMENT read as 0 as AutoCAD reads it; by DIMSCALE, which is <paramref name="dimscale"/> where it is given (the
+        /// annotation scale's one over it under an annotative style: 6.25 at 1:50 and 12.5 at 1:100, probe GHA3).
         /// </summary>
-        private static double BreakSize(DxfDimension dimension)
+        private static double BreakSize(DxfDimension dimension, double? dimscale = null)
         {
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
-            double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
+            double scale = dimscale ?? (data.Dimscale > 0.0 ? data.Dimscale : 1.0);
             double size = DefaultBreakSize(dimension.Item?.File.Database);
 
             try

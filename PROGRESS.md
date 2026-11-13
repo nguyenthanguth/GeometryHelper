@@ -138,11 +138,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         counter; annotative dimension and multileader styles making new ones annotative (the DIMSTYLE Fit tab box);
         ANNOAUTOSCALE; INSERT attributes drawn at the scale; HATCHEDIT Annotative; MOVE/COPY carrying every picture;
         AutoCAD AUDIT 0 with every context kept
-  - [ ] Annotative objects 3 (the OBJECTSCALE dialog and the two boxes in the design done by dialogs7): arc-length and jogged dimensions annotative (context classes not probed); moved or turned
-        words at a second scale (flags 293/294/140); multileaders of several leaders or block content at a second scale;
-        DSTYLE 40 on angular dimensions; dimension breaks on second pictures; attribute contexts; the hatch view collection;
-        the OBJECTSCALE dialog and the two Annotative boxes (Hatch dialog, DIMSTYLE Fit tab, added without a design) put
-        into the Design artifact; small text width differences against AutoCAD (177.4 vs 177.47) (M)
+  - [x] Annotative objects 3 (annot3): arc-length and jogged dimensions annotative (AutoCAD's context classes); moved or
+        turned words at a second scale; multileaders of one or two leaders, text or block content, at a second scale (equal
+        to AutoCAD's contexts); DIMBREAK on every scale's picture; angular DSTYLE 40; -INSERT of an annotative block at
+        CANNOSCALE with attribute contexts; AUDIT 0 on five checked sets (OBJECTSCALE dialog and design boxes by dialogs7)
+  - [ ] Annotative objects 4: turned words that do not fit at 1:100 (AutoCAD outside at x 154.381; our LayOut's Chord test);
+        moved and turned words' arrows; an angular context's arc point at a second scale with the words outside; MLEADEREDIT
+        keeping contexts, the presenter's MLEADER landing at 1:50 and block-content MLEADER; multileaders of three leaders;
+        the text width gap (177.4 vs 177.47); DIMARC words with DIMDEC ("314.159" vs "314.1593") (M)
   - [ ] R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
@@ -313,7 +316,7 @@ the ones wanted.
 - [x] Associative dimensions follow-ups 3 (fu-misc): DIMARC's arc point under 90 degrees and two thirds round when the
       words do not fit, kept after a scale; angular arc points two thirds round likewise (88 of 88 AutoCAD cases equal);
       DIMARC of a polyline arc segment; Partial length order and parameters (16 cases); flag 128 checked
-- [ ] Associative dimensions follow-ups 4: DIMARC's fit rule for small arcs (r 3 sweep 20: 4 of 48 rows now 0.35 off that
+- [ ] (dimarc4, running) Associative dimensions follow-ups 4: DIMARC's fit rule for small arcs (r 3 sweep 20: 4 of 48 rows now 0.35 off that
       matched before; words 0.33 further in on 33 of 48 small-arc rows); the out-to-in scale transition (0.001-0.04 off in
       7 cases) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
@@ -329,7 +332,7 @@ the ones wanted.
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
 - [x] Dynamic blocks: visibility states list every parameter, XY corner and block-table grips, live preview of custom grip drags, GRIPDYNCOLOR
 - [x] Dynamic block follow-ups 1 (fu-misc): the insertion grip last, as AutoCAD orders grips; grip colour already ACI 140
-- [ ] Dynamic block follow-ups 2: XY/linear base point moved by a corner drag (AutoCAD Width 80, ours 100; a core evaluator
+- [ ] (dynblock2, running) Dynamic block follow-ups 2: XY/linear base point moved by a corner drag (AutoCAD Width 80, ours 100; a core evaluator
       change, three refusals in DxfDynamicBlockRepresentation); a linear parameter's base grip; the block-table grip menu
       and glyph (GUI); the Design artifact's grip colour #19B5F0 to AutoCAD's #00BFFF (S)
 
@@ -347,7 +350,7 @@ the ones wanted.
         (THUMBNAILIMAGE); VIEWPORT, HATCH, LEADER, MULTILEADER, MLINE, IMAGE, WIPEOUT, meshes and MINSERT checked object by
         object against AutoCAD's own DWG (bytes equal but the last bit of a double); records without a handle counted and
         warned; DxfColor.ColorValue of BYLAYER white as AutoCAD (CHANGED)
-  - [ ] DWG follow-ups 2: OLE2FRAME and proxies (need a GUI-made sample); R2000/R2004 TABLECONTENT; surfaces in DWG;
+  - [ ] (dwg8, running) DWG follow-ups 2: OLE2FRAME and proxies (need a GUI-made sample); R2000/R2004 TABLECONTENT; surfaces in DWG;
         ACIS 4.00 of R2000; pre-R2013 VISUALSTYLE from a DXF; relative handle codes, SPLINE knot tolerance (1E-10) and the
         other byte differences listed in the dwg7 merge; SORTENTSTABLE, FIELD/FIELDLIST and DATALINK read; a rendered
         thumbnail for new drawings; Red/Green/Blue of ByAci (AutoCAD 0); R2000 round-trip colours; tcustom reader parity
