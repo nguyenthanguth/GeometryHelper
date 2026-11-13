@@ -10,7 +10,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// MLEADEREDIT (MLE), as AutoCAD 2021's (its prompts probed in its console): "Select a multileader:", then "Specify leader
     /// arrowhead location or [Remove leaders]:", each point given adding a leader line whose arrowhead stands there (as
     /// <see cref="DxfMLeader.AddLeaderLine(GeoPoint3)"/> adds one), and under Remove leaders "Select leader to remove or [Add
-    /// leaders]:", the leader line picked taken away; Enter ends it, each change one edit of the command's one undo step.
+    /// leaders]:", the leader line picked taken away; Enter ends it, each change one edit of the command's one undo step. An
+    /// annotative multileader has each change made in the context of every scale it is shown at, not in its default's alone: a
+    /// line added for an arrowhead on the right of words lands against their right end at each scale, as AutoCAD 2021 lands it.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -101,7 +103,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (!s.IsHandled(handle))
                 {
-                    change((DxfMLeader)s.Document.FindEntity(handle));
+                    // An annotative multileader has the change made in the context of each scale as well as in its record, as
+                    // AutoCAD 2021's MLEADEREDIT makes it.
+                    var mleader = (DxfMLeader)s.Document.FindEntity(handle);
+                    mleader.EditMLeaderAtEachScale(() => change(mleader));
                 }
             });
 

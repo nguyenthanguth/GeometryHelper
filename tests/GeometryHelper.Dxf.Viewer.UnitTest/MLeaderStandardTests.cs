@@ -87,6 +87,54 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // AutoCAD 2021 put the circle of radius 5 at (25.36, 10, 0): past the landing by the dogleg and the radius.
             Assert.Equal(25.36, mleader.BlockPosition.X, 9);
             Assert.Equal(10, mleader.BlockPosition.Y, 9);
+
+            // And wrote its matrix there: the translation of AutoCAD's 47 groups is the place (25.36, 10).
+            Assert.Matches(@"\n\s*47\n25\.36\d*\n", document.Database.ToText());
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void TheSecondPoint_IsWhereTheLeaderLands_TheWordsStandPastTheDoglegAndTheGap_AsAutoCadLandsThem()
+        {
+            // AutoCAD 2021 (probe GHAQ, an arrow at (100, 100) and a landing at (150, 150) in a style of a dogleg 0.36, a gap
+            // 0.09 and words 0.18 high): the dogleg starts at the landing, the base of the content is at its end, (150.36, 150),
+            // and the words are held at (150.45, 150.09), their first line's middle level with the landing.
+            CadDocument document = BlankWithMLeaderStyle();
+            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, "Standard");
+
+            Run(Session(document), "MLD", P(0, 0), P(30, 20), "B-12");
+
+            DxfMLeader mleader = Assert.Single(All<DxfMLeader>(document.ModelSpace));
+            int leader = mleader.GetLeaderIndexes().Single();
+            int line = mleader.GetLeaderLineIndexes(leader).Single();
+            Assert.Equal(new GeoPoint3(0, 0, 0), mleader.GetFirstVertex(line));
+            Assert.Equal(new GeoPoint3(30, 20, 0), mleader.GetLastVertex(line));
+            Assert.Equal(new GeoVector3(1, 0, 0), mleader.GetDogleg(leader));
+            Assert.Equal(DxfAttachmentPoint.TopLeft, mleader.MText.Attachment);
+            Assert.Equal(30 + style.DoglegLength + style.LandingGap, mleader.MText.Location.X, 9);
+            Assert.Equal(20 + style.TextHeight / 2.0, mleader.MText.Location.Y, 9);
+            AssertReopens(document);
+        }
+
+        [Fact]
+        public void ALandingOnTheLeftOfTheArrow_HasTheWordsHeldAtTheirRightPastTheDogleg_AsAutoCadLandsThem()
+        {
+            // AutoCAD 2021 (probe GHAQ, an arrow at (100, 100) and a landing at (50, 150)): the dogleg runs left from the landing,
+            // the words are held at their right, 0.45 on from the landing (49.55 for 50), 11 of -1 in the leader.
+            CadDocument document = BlankWithMLeaderStyle();
+            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, "Standard");
+
+            Run(Session(document), "MLD", P(100, 0), P(30, 20), "B-12");
+
+            DxfMLeader mleader = Assert.Single(All<DxfMLeader>(document.ModelSpace));
+            int leader = mleader.GetLeaderIndexes().Single();
+            int line = mleader.GetLeaderLineIndexes(leader).Single();
+            Assert.Equal(new GeoPoint3(100, 0, 0), mleader.GetFirstVertex(line));
+            Assert.Equal(new GeoPoint3(30, 20, 0), mleader.GetLastVertex(line));
+            Assert.Equal(new GeoVector3(-1, 0, 0), mleader.GetDogleg(leader));
+            Assert.Equal(DxfAttachmentPoint.TopRight, mleader.MText.Attachment);
+            Assert.Equal(30 - style.DoglegLength - style.LandingGap, mleader.MText.Location.X, 9);
+            Assert.Equal(20 + style.TextHeight / 2.0, mleader.MText.Location.Y, 9);
             AssertReopens(document);
         }
 

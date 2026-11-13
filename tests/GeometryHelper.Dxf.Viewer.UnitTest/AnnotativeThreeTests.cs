@@ -269,6 +269,63 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(0.0, double.Parse(data[at + 1].Value, CultureInfo.InvariantCulture), 9);
         }
 
+        /// <summary>The arc points (11, 21) of the angular contexts of the drawing, in the order of its text, each rounded to 1E-2.</summary>
+        private static List<string> ArcPoints(CadDocument document) =>
+            System
+                .Text.RegularExpressions.Regex.Matches(
+                    document.Database.ToText(),
+                    @"AcDbAngularDimensionObjectContextData\n\s*11\n(?<x>[-\d.E]+)\n\s*21\n(?<y>[-\d.E]+)\n"
+                )
+                .Cast<System.Text.RegularExpressions.Match>()
+                .Select(m =>
+                    double.Parse(m.Groups["x"].Value, CultureInfo.InvariantCulture)
+                        .ToString("0.00", CultureInfo.InvariantCulture)
+                    + ","
+                    + double.Parse(m.Groups["y"].Value, CultureInfo.InvariantCulture)
+                        .ToString("0.00", CultureInfo.InvariantCulture)
+                )
+                .ToList();
+
+        [Fact]
+        public void AnAngularContextAtASecondScale_WhereTheWordsGoOutside_HasItsArcPointTwoThirdsRound()
+        {
+            CadDocument document = Scaled();
+            CadCommandSession session = Run(Session(document), "L", P(0, 0), P(300, 0), Enter);
+            string one = Last(document);
+            double a = 45.0 * Math.PI / 180.0;
+            Run(session, "L", P(0, 0), P(300 * Math.Cos(a), 300 * Math.Sin(a)), Enter);
+            string two = Last(document);
+            double at = a * 0.5;
+            Run(session, "DIMANGULAR", new[] { one }, new[] { two }, P(80 * Math.Cos(at), 80 * Math.Sin(at)));
+            var dimension = Assert.Single(All<DxfLineAngularDimension2>(document.ModelSpace));
+
+            AddScale(document, dimension.Handle);
+
+            // AutoCAD 2021 (probe GHAQ, 45 degrees, the arc 80 out, style Annotative): the words fit between the extension lines at
+            // 1:50, the arc point a third of the way round, 15 degrees at (77.27, 20.71); at 1:100 they stand outside and it is two
+            // thirds, 30 degrees at (69.28, 40.00). The record keeps the one of 1:50.
+            Assert.Equal(new[] { "77.27,20.71", "69.28,40.00" }, ArcPoints(document));
+            Assert.Equal(77.27, dimension.ArcPoint.X, 2);
+            Assert.Equal(20.71, dimension.ArcPoint.Y, 2);
+        }
+
+        [Fact]
+        public void AnAngularContextAtASecondScale_WhereTheWordsStillFit_KeepsItsArcPointAThirdRound()
+        {
+            CadDocument document = Scaled();
+            CadCommandSession session = Run(Session(document), "L", P(0, 0), P(300, 0), Enter);
+            string one = Last(document);
+            Run(session, "L", P(0, 0), P(0, 300), Enter);
+            string two = Last(document);
+            Run(session, "DIMANGULAR", new[] { one }, new[] { two }, P(80 * Math.Cos(0.7), 80 * Math.Sin(0.7)));
+            var dimension = Assert.Single(All<DxfLineAngularDimension2>(document.ModelSpace));
+
+            AddScale(document, dimension.Handle);
+
+            // AutoCAD 2021 (probe GHAQ, 90 degrees, the arc 80 out): both scales fit, the arc point at 30 degrees, (69.28, 40.00).
+            Assert.Equal(new[] { "69.28,40.00", "69.28,40.00" }, ArcPoints(document));
+        }
+
         [Fact]
         public void AnInsertOfAnAnnotativeBlock_IsShownAtCannoscaleFromTheStart_ItsAttributeToo()
         {

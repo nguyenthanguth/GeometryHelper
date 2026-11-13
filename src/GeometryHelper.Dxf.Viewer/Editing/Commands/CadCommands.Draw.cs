@@ -659,7 +659,7 @@ namespace GeometryHelper.Dxf.Viewer
                         (input.Point - arrow).Length > c.Session.Tolerance.EqualPoint
                             ? Current(
                                 c,
-                                CadMLeaderStyleEditor.Make(
+                                CadMLeaderStyleEditor.MakeLanded(
                                     CadMLeaderStyleEditor.Find(c.Database, style),
                                     scale,
                                     P3(arrow),
@@ -753,6 +753,18 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!scale.Equals(found.Scale))
                 {
                     mleader.Scale = scale;
+                }
+
+                // The words, at their scale, landed where the second point says, measured by the drawing's fonts.
+                if (words != null)
+                {
+                    CadMLeaderStyleEditor.LandWords(mleader, P3(arrow), P3(landing));
+                }
+
+                // A block's matrix holds the scale and the place it stands at, as AutoCAD 2021's MLEADER writes it.
+                if (record != null)
+                {
+                    mleader.WriteBlockMatrix();
                 }
 
                 if (annotation != null)

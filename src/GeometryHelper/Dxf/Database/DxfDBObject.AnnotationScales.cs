@@ -79,7 +79,7 @@ namespace GeometryHelper.Dxf
         /// given one as well, its point moved out from the INSERT's by the same factor: the attribute at (300, 1003) of an
         /// INSERT at (300, 1000) is at (300, 1150) at 1:50. An INSERT that holds no context gets the scale as its one context,
         /// the default, its record's factors and those of the context multiplied by 1 over the scale, as AutoCAD 2021 gave
-        /// it. A MULTILEADER of one leader holding text is laid out again: its scale (40) is 1 over the new scale's, its sizes (the
+        /// it. A MULTILEADER holding text is laid out again: its scale (40) is 1 over the new scale's, its sizes (the
         /// text height, the arrowhead, the landing gap, the dogleg) multiplied by the default's scale over the new one's, the landing
         /// and its lines kept, and the content moved out from the landing by the new dogleg: text 0.2 high at 1:50 is 0.4 at 1:100,
         /// a dogleg of 0.36 is 0.72, and the words stand 9.72 right of the landing (check GHAN4). The record of the other kinds is
@@ -91,7 +91,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the object is not annotative (<see cref="Annotative"/>), as AutoCAD
         /// answers eNotApplicable; is in no file, is erased, or is a copy in no file that carries its original's contexts.</exception>
         /// <exception cref="NotSupportedException">Thrown for a dimension, whose picture the library does not lay out (the
-        /// presenter does: a context per scale each with its own block), for a multileader of more than one leader or of a block, and
+        /// presenter does: a context per scale each with its own block), for a multileader that holds neither words nor a block, and
         /// for the other annotative kinds whose contexts the library does not make for a second scale yet.</exception>
         public void AddContext(DxfObjectContext context)
         {

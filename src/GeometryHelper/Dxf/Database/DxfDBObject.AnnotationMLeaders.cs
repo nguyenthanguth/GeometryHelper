@@ -36,12 +36,14 @@ namespace GeometryHelper.Dxf
         /// stay where they are. The dogleg of a leader ends at the content (its landing moved along its direction by its
         /// length). A multileader of one leader keeps its landing: the content moves with the dogleg's end, its base (10) and
         /// its location (12 for text, 15 for a block) at the old offsets from the old end multiplied by the factor. A
-        /// multileader of two leaders (one on each side of the text) keeps its base: the text and the ends of the doglegs are
-        /// at the old offsets from it multiplied by the factor, and each landing is the end moved back by the new length. Text
-        /// 0.2 high at 1:50 with the landing (100, 100) and a dogleg of 0.36 has at 1:100 the base (100.72, 100) and the text
-        /// 9.72 right of it, 0.4 high; the same with a second leader on the other side keeps the base at (100.36, 100) and
-        /// moves the first landing to (99.64, 100). A block content has its scale (16) and the diagonal of its matrix (47)
-        /// multiplied by the factor, its translation as it was.
+        /// multileader of two or more leaders keeps its base, whichever sides they are on (probed with two on one side and with
+        /// four, two on each side): the text and the ends of the doglegs are at the old offsets from it multiplied by the
+        /// factor, and each landing is the end moved back by the new length. Text 0.2 high at 1:50 with the landing (100, 100)
+        /// and a dogleg of 0.36 has at 1:100 the base (100.72, 100) and the text 9.72 right of it, 0.4 high; the same with a
+        /// second leader on the other side keeps the base at (100.36, 100) and moves the first landing to (99.64, 100), and with
+        /// two more leaders on each side of "HELLO" the base (168, 150) stays at 1:100 while the landings left of the words go
+        /// from 150 to 132. A block content has its scale (16) and the diagonal of its matrix (47) multiplied by the factor,
+        /// its translation as it was.
         /// </summary>
         internal static List<KeyValuePair<int, string>> MLeaderLaidOut(
             List<KeyValuePair<int, string>> inner,
@@ -118,13 +120,12 @@ namespace GeometryHelper.Dxf
 
             if (
                 leaders.Count < 1
-                || leaders.Count > 2
                 || !content
                 || leaders.Exists(l => !Guard.IsFinite(l.Dogleg) || !Guard.IsFinite(l.Landing[0]))
             )
             {
                 throw new NotSupportedException(
-                    "A multileader is shown at a second scale here only when it has one or two leaders and holds text or a block: AutoCAD lays others out again, which the library does not do."
+                    "A multileader is shown at a second scale here only when it has a leader and holds text or a block: AutoCAD lays others out again, which the library does not do."
                 );
             }
 
@@ -312,6 +313,93 @@ namespace GeometryHelper.Dxf
             }
 
             return allVisible;
+        }
+
+        /// <summary>
+        /// Runs an edit of the leaders of a multileader (a leader line added or taken out) once on the context of every scale it
+        /// is shown at, each laid out by the edit as it is at that scale, and once on its record, as AutoCAD 2021's MLEADEREDIT
+        /// does it: probed on text at 1:50 and 1:100, a line added to the leader on the left of the words is in both contexts at
+        /// the arrow, a leader added for an arrowhead on the right of them lands 234.6589 right of them at 1:50 and 319.3179 at
+        /// 1:100. Each context's data is put in the record for the edit and written back after it; the record keeps the data of
+        /// the default. A multileader that is not annotative, or holds no context but its record's, has the edit done once.
+        /// </summary>
+        /// <param name="edit">The edit, of this multileader's record as it stands.</param>
+        internal void EditMLeaderAtEachScale(Action edit)
+        {
+            var mleader = (DxfMLeader)this;
+            var held = new List<ScaleContext>();
+
+            if (
+                _item != null
+                && _item.CopiedContexts == null
+                && _item.File.ExtensionDictionaryOf(_item) != null
+                && Annotative == DxfAnnotativeStates.True
+            )
+            {
+                held = ScaleContexts();
+            }
+
+            foreach (ScaleContext other in held.FindAll(c => !c.IsDefault))
+            {
+                DxfItem context = FindContext(other.Key);
+
+                if (context == null)
+                {
+                    continue;
+                }
+
+                var own = new List<KeyValuePair<int, string>>();
+                MLeaderContextGroups(own);
+                mleader.SetContextData(ContextData(context));
+
+                try
+                {
+                    edit();
+                    var laid = new List<KeyValuePair<int, string>>();
+                    MLeaderContextGroups(laid);
+                    ReplaceContextData(context, laid);
+                }
+                finally
+                {
+                    mleader.SetContextData(own);
+                }
+            }
+
+            edit();
+
+            // The context of the default scale holds what the record does.
+            int at = held.FindIndex(c => c.IsDefault);
+            DxfItem defaultContext = at < 0 ? null : FindContext(held[at].Key);
+
+            if (defaultContext != null)
+            {
+                var now = new List<KeyValuePair<int, string>>();
+                MLeaderContextGroups(now);
+                ReplaceContextData(defaultContext, now);
+            }
+        }
+
+        /// <summary>Writes the groups of a multileader's context after its scale (340) anew, those before it kept.</summary>
+        private static void ReplaceContextData(DxfItem context, List<KeyValuePair<int, string>> groups)
+        {
+            List<DxfTypedValue> tail = context.File.TailOf(context, 0);
+            string marker = null;
+            int from = tail.Count;
+
+            for (int i = 0; i < tail.Count; i++)
+            {
+                if (tail[i].TypeCode == 100)
+                {
+                    marker = tail[i].Value.Trim();
+                }
+                else if (tail[i].TypeCode == 340 && marker == ScaleContextMarker)
+                {
+                    from = i + 1;
+                    break;
+                }
+            }
+
+            context.File.ReplaceTail(context, from, groups);
         }
 
         private static string Scaled(string value, double factor) =>

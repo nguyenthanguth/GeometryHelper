@@ -1172,7 +1172,12 @@ gives every multileader of the style its values, those it has of its own kept: a
 multileader whose words were set 6 high at 6. The Symbol list of Leader Format shows each arrowhead with its picture, as
 AutoCAD's list shows it and as the First, Second and Leader lists of the Dimension Style dialog show theirs, a user arrow
 drawn from its block. MLEADER draws in the current style (CMLEADERSTYLE, else Standard): a
-multileader of a style of words and arrows 4 high has words and arrows 4 high. Each change is one undo step. In a drawing
+multileader of a style of words and arrows 4 high has words and arrows 4 high. The second point is where the leader lands, as in
+AutoCAD 2021: the leader line runs from the arrow to it, the dogleg goes on from it away from the arrow, and the words stand past the
+dogleg and the gap, held at their left for a landing on the right of the arrow and at their right for one on its left, their first
+line's middle level with the landing (an arrow at (100, 100), a landing at (150, 150), a dogleg of 0.36 and a gap of 0.09 give words
+0.18 high held at (150.45, 150.09); at 1:50 the dogleg is 18, the gap 4.5 and the words held at (172.5, 154.5)); the presenter does not
+measure the font, so the words' own height is taken where AutoCAD adds the depth of their ink. Each change is one undo step. In a drawing
 of R2007 or later with no style to draw in, MLEADER first makes Standard current, metric as above, or in an imperial
 drawing (MEASUREMENT 0) AutoCAD 2021's own: text and arrows 0.18, a landing of 0.36, a gap of 0.09 and a break of 0.125,
 in the same undo step. A style of no content draws the leader alone, asking no text, its dogleg from the landing away from
@@ -1652,7 +1657,8 @@ MLEADEREDIT (MLE) takes "Select a multileader:", then "Specify leader arrowhead 
 adds a leader line whose arrowhead stands there (`DxfMLeader.AddLeaderLine`), Enter ends; under Remove leaders "Select leader to
 remove or [Add leaders]:" takes the leader line nearest the point within the pick aperture away (`No leader line there.` where
 none is), and the last line of a multileader is kept (`A multileader keeps at least one leader line.`). Each change is a step
-of the one undo step. MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
+of the one undo step; on an annotative multileader the line is added or taken out in the context of every scale it is shown at, as
+AutoCAD 2021 does it, not in the record alone. MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
 "Select multileader to align to or [Options]:" and "Specify direction:": the content of each (its words' attachment point, or
 its block's position) moves with its landing onto the line through the content of the one picked along the direction, the
 arrowheads staying. Options asks "Enter an option [Distribute/make leader segments Parallel/specify Spacing/Use current
@@ -1777,7 +1783,7 @@ stays. -OBJECTSCALE adds a picture to a dimension, drawing it again from its var
 its own scale), and deleting the default scale makes the next the default, the record taking its block and the middle of its words
 and the block of the deleted scale going. A multileader drawn in an annotative multileader style is annotative at the annotation
 scale too (its scale 50 at 1:50), and at a second scale its context data is laid out again (text 0.2 high at 1:50 is 0.4 at 1:100,
-the dogleg and the gap doubled; a multileader of two leaders, one on each side of the words, or one holding a block, is laid out
+the dogleg and the gap doubled; a multileader of any number of leaders, or one holding a block, is laid out
 as AutoCAD 2021 lays it out too, see the DXF guide). An arc length dimension's context is an angular one with the point of its
 arc, a jogged radius's holds the chord point, the centre it is measured from and the jog (294 of 0, its words being put), and a
 dimension whose words DIMTEDIT moved or turned writes 294 (0 where moved) and 140 (the angle, in radians) in each context, the
@@ -1785,7 +1791,9 @@ words at the place they were put at every scale: a DIMLINEAR of 100 whose words 
 arrowheads, 18 long, outside the extension lines. The points of every context follow the record when its dimension line or words
 are edited. Breaks (DIMBREAK) are kept in each picture: a break between two points at the same two points, one at an object as
 wide as the break size over the scale makes it (0.125 is 6.25 at 1:50 and 12.5 at 1:100); an angular dimension of an annotative
-style carries DSTYLE {40 0.0}. An INSERT of an annotative block made by -INSERT is shown at CANNOSCALE from the start, as
+style carries DSTYLE {40 0.0}; the arc point of an angular dimension (two lines or three points) is written in each context as AutoCAD 2021 writes it, a
+third of the way round the angle where the words fit between the extension lines and two thirds where they stand outside, so an angle of
+45 degrees with its arc 80 out has it at 15 degrees at 1:50 and at 30 degrees at 1:100 (the arc put elsewhere by a grip stays as it is). An INSERT of an annotative block made by -INSERT is shown at CANNOSCALE from the start, as
 AutoCAD 2021 does: its factors 50 for 1 at 1:50, a context of 1:50, and each attribute a context at its point. A HATCH made by the Hatch dialog or HATCHEDIT with its Annotative box ticked is annotative as
 -HATCH ANnotative makes it; HATCHEDIT laying the pattern again of an annotative hatch gives it back the scales it had. ANNOAUTOSCALE
 (-4 to 4, kept by the presenter, -4 by default) adds the scale CANNOSCALE is set to to the annotative objects of model space, as

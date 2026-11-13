@@ -142,10 +142,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         turned words at a second scale; multileaders of one or two leaders, text or block content, at a second scale (equal
         to AutoCAD's contexts); DIMBREAK on every scale's picture; angular DSTYLE 40; -INSERT of an annotative block at
         CANNOSCALE with attribute contexts; AUDIT 0 on five checked sets (OBJECTSCALE dialog and design boxes by dialogs7)
-  - [ ] (annot4, running) Annotative objects 4: turned words that do not fit at 1:100 (AutoCAD outside at x 154.381; our LayOut's Chord test);
-        moved and turned words' arrows; an angular context's arc point at a second scale with the words outside; MLEADEREDIT
-        keeping contexts, the presenter's MLEADER landing at 1:50 and block-content MLEADER; multileaders of three leaders;
-        the text width gap (177.4 vs 177.47); DIMARC words with DIMDEC ("314.159" vs "314.1593") (M)
+  - [x] Annotative objects 4 (annot4): MLEADEREDIT keeping every scale's context; the presenter's MLEADER landed as AutoCAD
+        (base and words, the block content's matrix); multileaders of any number of leaders at a second scale; an angular
+        context's arc point at a second scale (36 probes equal); DIMARC with DIMDEC found to match AutoCAD already
+  - [ ] Annotative objects 5: turned words that do not fit in the plain layout (DIMLINEAR at DIMSCALE 100: AutoCAD outside
+        at (154.38, 30), ours inside; changes non-annotative pictures, needs its own round with the harness); MLEADEREDIT's
+        far-side arrow making its own leader (needs measured fonts); words' y offset by the ink depth; small context group
+        differences (90, 172, 91, 141, 295, record 45); the text width gap (177.4 vs 177.47) (S)
   - [ ] R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's

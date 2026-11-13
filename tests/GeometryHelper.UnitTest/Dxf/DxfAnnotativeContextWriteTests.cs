@@ -386,6 +386,113 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ALeaderLineAddedAtEachScale_IsInTheContextOfEveryScale_AsAutoCADsMLeaderEditPutsIt()
+        {
+            // AutoCAD 2021 (probe GHAQ, MLEADEREDIT on text at 1:50 and 1:100): the line added to the leader on the left of the words
+            // is in both contexts, at the arrowhead given, with the index 1 after the line 0.
+            DxfDatabase db = DxfDatabase.Parse(Scaled().ToText());
+            var leader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "HELLO",
+                    Location = new GeoPoint3(100, 100, 0),
+                    TextHeight = 2.5,
+                },
+            };
+            db.ModelSpace.AppendEntity(leader);
+            leader.AddLeaderLine(new GeoPoint3(0, 0, 0));
+            leader.Annotative = DxfAnnotativeStates.True;
+            leader.AddContext(Of(db, "1:50"));
+            leader.AddContext(Of(db, "1:100"));
+            Assert.Equal(new[] { "*A1", "*A2", "*A3" }, Keys(leader));
+
+            leader.EditMLeaderAtEachScale(() => leader.AddLeaderLine(new GeoPoint3(0, 40, 0)));
+
+            Assert.Equal(2, leader.LeaderLineCount);
+
+            foreach (string key in Keys(leader))
+            {
+                List<KeyValuePair<int, string>> groups = Context(db, leader, key, out _);
+                Assert.Equal(2, groups.Count(g => g.Key == 304 && g.Value == "LEADER_LINE{"));
+                string text = After(groups);
+                Assert.Contains("304=LEADER_LINE{ 10=0 20=0 30=0 91=0 305=}", text, StringComparison.Ordinal);
+                Assert.Contains("304=LEADER_LINE{ 10=0 20=40 30=0 91=1 305=}", text, StringComparison.Ordinal);
+            }
+
+            // The sizes of each context stay its own: the dogleg of 8 at 1:1 is 400 at 1:50 and 800 at 1:100.
+            Assert.Contains(
+                "90=0 40=800 304=LEADER_LINE{",
+                After(Context(db, leader, "*A3", out _)),
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                "90=0 40=400 304=LEADER_LINE{",
+                After(Context(db, leader, "*A2", out _)),
+                StringComparison.Ordinal
+            );
+        }
+
+        [Fact]
+        public void ALeaderLineTakenOutAtEachScale_IsOutOfTheContextOfEveryScale()
+        {
+            DxfDatabase db = DxfDatabase.Parse(Scaled().ToText());
+            var leader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "HELLO",
+                    Location = new GeoPoint3(100, 100, 0),
+                    TextHeight = 2.5,
+                },
+            };
+            db.ModelSpace.AppendEntity(leader);
+            leader.AddLeaderLine(new GeoPoint3(0, 0, 0));
+            leader.Annotative = DxfAnnotativeStates.True;
+            leader.AddContext(Of(db, "1:50"));
+            leader.EditMLeaderAtEachScale(() => leader.AddLeaderLine(new GeoPoint3(0, 40, 0)));
+            Assert.Equal(2, leader.LeaderLineCount);
+
+            leader.EditMLeaderAtEachScale(() => leader.RemoveLeaderLine(1));
+
+            Assert.Equal(1, leader.LeaderLineCount);
+
+            foreach (string key in Keys(leader))
+            {
+                string text = After(Context(db, leader, key, out _));
+                Assert.Contains("304=LEADER_LINE{ 10=0 20=0 30=0 91=0 305=}", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("91=1 305=}", text, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void AMultileaderThatIsNotAnnotative_IsEditedOnce()
+        {
+            DxfDatabase db = DxfDatabase.Parse(Scaled().ToText());
+            var leader = new DxfMLeader
+            {
+                MText = new DxfMText
+                {
+                    Contents = "HELLO",
+                    Location = new GeoPoint3(100, 100, 0),
+                    TextHeight = 2.5,
+                },
+            };
+            db.ModelSpace.AppendEntity(leader);
+            leader.AddLeaderLine(new GeoPoint3(0, 0, 0));
+            int calls = 0;
+
+            leader.EditMLeaderAtEachScale(() =>
+            {
+                calls++;
+                leader.AddLeaderLine(new GeoPoint3(0, 40, 0));
+            });
+
+            Assert.Equal(1, calls);
+            Assert.Equal(2, leader.LeaderLineCount);
+        }
+
+        [Fact]
         public void AnInsertIsNotMadeAnnotativeItself_ButAsItsBlockIs_AndABlockIsNotMadeNotAnnotative()
         {
             DxfDatabase db = Scaled();
