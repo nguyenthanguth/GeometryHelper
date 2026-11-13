@@ -797,9 +797,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForPoint("Specify corner of viewport", null, new[] { "Fit", "Object" }, "Fit");
+            yield return CadPrompt.ForPoint(
+                "Specify corner of viewport",
+                null,
+                new[] { "Fit", "Object", "Polygonal" },
+                "Fit"
+            );
             DisplayBox frame;
             string clipHandle = null;
+            DxfPolyline polygonal = null;
 
             if (c.Input.IsPoint)
             {
@@ -852,6 +858,40 @@ namespace GeometryHelper.Dxf.Viewer
                 clipHandle = picked.Handle;
                 frame = new DisplayBox(box.Min.X, box.Min.Y, box.Max.X, box.Max.Y);
             }
+            else if (c.Input.Is("Polygonal"))
+            {
+                // The points of a polygon as PLINE asks them, as VPCLIP's Polygonal does: a closed polyline of them becomes the
+                // viewport's border and its frame the box of it. AutoCAD 2021 made the polyline before the viewport.
+                var points = new List<GeoPoint2>();
+                var bulges = new List<double>();
+
+                foreach (CadPrompt prompt in ClipPolygon(c, points, bulges))
+                {
+                    yield return prompt;
+                }
+
+                if (points.Count < 3)
+                {
+                    yield break;
+                }
+
+                polygonal = new DxfPolyline();
+
+                for (int i = 0; i < points.Count; i++)
+                {
+                    polygonal.AddVertexAt(i, points[i], bulges[i], 0.0, 0.0);
+                }
+
+                polygonal.Closed = true;
+
+                if (!DxfViewport.CanClip(polygonal, out GeoAabb3 box))
+                {
+                    c.Write("Clip object must be closed.");
+                    yield break;
+                }
+
+                frame = new DisplayBox(box.Min.X, box.Min.Y, box.Max.X, box.Max.Y);
+            }
             else
             {
                 yield break;
@@ -891,6 +931,7 @@ namespace GeometryHelper.Dxf.Viewer
                     s.Added(space, sheet);
                 }
 
+                DxfEntity border = polygonal == null ? null : s.Append(space, Current(c, polygonal));
                 var viewport = new DxfViewport();
                 s.Append(space, Current(c, viewport));
                 viewport.CenterPoint = new GeoPoint3(
@@ -904,7 +945,11 @@ namespace GeometryHelper.Dxf.Viewer
                 viewport.ViewHeight = viewHeight;
                 viewport.On = true;
 
-                if (clipHandle != null)
+                if (border != null)
+                {
+                    viewport.ClipTo(border);
+                }
+                else if (clipHandle != null)
                 {
                     viewport.ClipTo(s.Document.FindEntity(clipHandle));
                 }

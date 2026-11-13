@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** -VIEW Restore shows a paper view in the layout it was saved in (a view saved in Sheet 2, restored from Layout1 or the Model
+tab, shows Sheet 2), and a view of model space restored in a layout asks `Restoring Model space view.` / `Select Viewport for view:`
+and shows the whole view through the viewport picked, which is then the one worked through (a view 600 by 400 into a viewport 200 by
+100 is shown 400 high, one 900 by 300 450 high); one undo step. `DxfViewTableRecord.Layout` reads and writes the layout of a view
+(group 330 of its XRECORD ADSK_XREC_VTRVIEWINFO, as AutoCAD 2021 writes it); setting a layer snapshot keeps it.
+**NEW.** MVIEW's Polygonal option: the points of a polygon as PLINE asks them, a closed polyline made, and the viewport clipped to it,
+its frame the box of the polygon.
+**CHANGED.** The outline of a viewport clipped by a region is kept between paints and read again once the drawing is edited: 80
+microseconds a call before, 0.4 after.
 **NEW.** HATCHEDIT's dialog has Click to set new origin, as HATCH's has: the dialog closes, `Specify origin point:` is asked, and the
 dialog comes back with the point as Origin X, Y and Specified origin on (Esc brings it back as it was); OK lays the pattern of the
 hatch from that origin. The button was greyed in the Hatch Editor.

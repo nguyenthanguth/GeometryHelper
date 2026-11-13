@@ -270,8 +270,92 @@ namespace GeometryHelper.Dxf
                     data.Add(new DxfTypedValue(293, "0"));
                 }
 
-                data.Add(new DxfTypedValue(294, "0"));
                 DxfXrecord info = Info();
+
+                // The layout the view was saved in, groups 292 and 330, stays where the record had it.
+                if (info != null)
+                {
+                    data.AddRange(info.Data.Where(g => g.TypeCode == 292 || g.TypeCode == 330));
+                }
+
+                data.Add(new DxfTypedValue(294, "0"));
+
+                if (info != null)
+                {
+                    info.Data = data;
+                    return;
+                }
+
+                CreateExtensionDictionary();
+                ExtensionDictionary.SetAt(ViewInfo, new DxfXrecord { Data = data });
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the layout a view of paper space was saved in, as AutoCAD's <c>Layout</c>: the handle in group 330 of the
+        /// XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. Null where the view names none, as a view of model space
+        /// does not, or the layout is gone.
+        /// </summary>
+        /// <value>
+        /// Set, written as AutoCAD 2021 writes a view saved in Layout1: the XRECORD's 290 and 292 of nought, the 330 and its 294
+        /// of nought, the extension dictionary made where the view has none; a record that has a layer snapshot keeps it and takes
+        /// the 330 in before its 294. Null takes the 330 out.
+        /// </value>
+        /// <exception cref="ArgumentException">Thrown when the layout set is not one of the drawing's.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set on a view in no file, or one erased.</exception>
+        public DxfLayout Layout
+        {
+            get
+            {
+                string handle = Info()?.Data.Where(g => g.TypeCode == 330).Select(g => g.Value).FirstOrDefault();
+
+                return string.IsNullOrWhiteSpace(handle)
+                    ? null
+                    : Item.File.Database?.Layouts.FirstOrDefault(l =>
+                        string.Equals(l.Handle, handle.Trim(), StringComparison.OrdinalIgnoreCase)
+                    );
+            }
+            set
+            {
+                if (Item == null || IsErased)
+                {
+                    throw new InvalidOperationException("The view " + Name + " is in no file, and is given no layout.");
+                }
+
+                if (value != null && !Item.File.Database.Layouts.Any(l => l.Handle == value.Handle))
+                {
+                    throw new ArgumentException("The layout is not one of the drawing's.", nameof(value));
+                }
+
+                if (string.Equals(value?.Handle, Layout?.Handle, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                DxfXrecord info = Info();
+                var data = new List<DxfTypedValue>();
+
+                if (info == null && value == null)
+                {
+                    return;
+                }
+
+                if (info != null)
+                {
+                    data.AddRange(info.Data.Where(g => g.TypeCode != 330));
+                }
+                else
+                {
+                    data.Add(new DxfTypedValue(290, "0"));
+                    data.Add(new DxfTypedValue(292, "0"));
+                    data.Add(new DxfTypedValue(294, "0"));
+                }
+
+                if (value != null)
+                {
+                    int before = data.FindIndex(g => g.TypeCode == 294);
+                    data.Insert(before < 0 ? data.Count : before, new DxfTypedValue(330, value.Handle));
+                }
 
                 if (info != null)
                 {

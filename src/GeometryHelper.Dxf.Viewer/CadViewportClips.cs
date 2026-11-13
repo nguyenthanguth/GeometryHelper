@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -40,7 +41,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (boundary is DxfUnknownEntity region)
             {
-                return OutlineOfRegion(region);
+                return CachedOutlineOfRegion(region);
             }
 
             foreach (object shape in boundary.GetGeometry())
@@ -84,6 +85,43 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return null;
+        }
+
+        // The outline of each region of a file, with the count of edits of the file it was read at: the canvas asks for it on every
+        // paint of a clipped viewport, and reading the region's ACIS data again took 80 microseconds a call.
+        private static readonly ConditionalWeakTable<DxfUnknownEntity, RegionOutline> RegionOutlines =
+            new ConditionalWeakTable<DxfUnknownEntity, RegionOutline>();
+
+        /// <summary>The outline of a region of a file, read again once the file has been edited; null where the region is not read.</summary>
+        private static DisplayClip2 CachedOutlineOfRegion(DxfUnknownEntity region)
+        {
+            if (!region.IsResident)
+            {
+                return OutlineOfRegion(region);
+            }
+
+            int edits = region.Item.File.EditCount;
+            RegionOutline kept = RegionOutlines.GetOrCreateValue(region);
+
+            lock (kept)
+            {
+                if (!kept.Read || kept.Edits != edits)
+                {
+                    kept.Outline = OutlineOfRegion(region);
+                    kept.Edits = edits;
+                    kept.Read = true;
+                }
+
+                return kept.Outline;
+            }
+        }
+
+        /// <summary>The outline of a region and the count of edits of its file it was read at.</summary>
+        private sealed class RegionOutline
+        {
+            internal bool Read;
+            internal int Edits;
+            internal DisplayClip2 Outline;
         }
 
         /// <summary>

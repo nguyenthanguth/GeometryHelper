@@ -820,6 +820,27 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     MoveSettings(step.Records, undo);
                 }
+                else if (undo)
+                {
+                    BackToPaper(step.Records);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Puts the viewport worked through back to what a step found, where the step changed the drawing as well (-VIEW Restore
+        /// of a view of model space into a viewport edits the viewport and works through it): the drawing read again keeps what
+        /// is worked through, which is no part of it.
+        /// </summary>
+        private void BackToPaper(IReadOnlyList<CadEditRecord> records)
+        {
+            for (int k = records.Count - 1; k >= 0; k--)
+            {
+                if (records[k].Replay != null && records[k].Property == "CVPORT")
+                {
+                    _shownState = null;
+                    records[k].Replay(this, false);
+                }
             }
         }
 
