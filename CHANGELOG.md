@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DIMARC in the presenter lays the words of a small arc out as AutoCAD 2021 does when DIMTIH keeps them level
+(probed on 48 arcs of 1 and 3 from 10 degrees, and on some 30 000 more by sweep, chord, direction, arrowhead and gap): they fit between the
+extension lines by what they take of the chord across the turn of the arc, not by their width along it (the arc of 3 through 20
+degrees from 10 keeps its words "1.0472" between the extension lines, an arrowhead outside each end; it put them outside
+before, its arc point 0.35 off), and words outside stand past the first end to the right where it points up and to the left
+where it points down, a gap and the room of the arc symbol from the landing (0.33 for text 0.18 high, where they stood that much
+too near). A dimension put on its arc draws its extension lines in from the ends where two arrowheads fit between them and out
+where they do not. An arc length dimension moved in along the middle of its arc and scaled until its arc point stands nearer
+the centre than the arc (the arc of 1 through 20 degrees put 1.2 out, scaled by 5) is measured on that arc, as AutoCAD does,
+and no longer reads the rest of the circle (29.67 for 1.7453). Of the 48 small arcs, 1 differs from AutoCAD's picture where 36
+did (that one sweeps 120 degrees); the arc point of a dimension scaled until its words go from out to in still differs from
+AutoCAD's by 0.001 to 0.065, which grows with the sweep and the scale. DIMARC words aligned (DIMTIH off) fit and stand as before, and angular dimensions
+and every other dimension are drawn as before.
+
 **NEW.** The DWG writer writes the solids of SAT text, which it left out: a REGION, 3DSOLID or BODY of a DXF of AutoCAD 2004,
 2007 or 2010 is turned into the SAB AutoCAD 2021 writes for R2018 (`DwgSat.ToSab`, the grammars of the reader turned round),
 named by the GUID its extended data kept (`ACAD_OBJECT_CHANGE_GUID`, taken out) or one made of its handle, and kept in the data

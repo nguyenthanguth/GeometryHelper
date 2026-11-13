@@ -846,6 +846,15 @@ out, and two thirds where the words do not fit between the extension lines (the 
 lines): the arc of 50 from 10 to 40 degrees put 70 out, below 90 degrees, has it a third of the way between where its
 extension lines meet its arc, at 21.45 degrees, not at 20; an angle of 20 degrees at radius 1 in text 0.18 high, its arc put
 1.2 out, has its words outside and its arc point at 13.33 degrees, where one of 40 degrees has it at 13.33 too, a third of 40.
+Words kept level (DIMTIH) fit by what they take of the chord across the turn of the arc: their width (with the arc symbol
+and four gaps) times the sine of the direction of the arc's middle, and their height (and four gaps) times its cosine, the
+two joined at 45 degrees; the arc of 10 put 12 out takes its level words from a chord of 0.57 at 1.6 degrees to 1.43 at 92,
+so the arc of 3 through 20 degrees from 10 (a chord of 1.04) keeps its words "1.0472" between its extension lines, an arrowhead
+outside each end. Level words outside stand past the first end of the arc, to the right where it points up from the
+horizontal and to the left where it points down, the room of the arc symbol between the landing and them whichever side.
+A dimension put on its arc has its extension lines run in from the ends where two arrowheads fit between them, out where they
+do not, and one scaled until its arc point is nearer the centre than the arc is, as AutoCAD 2021 keeps the arc moved in,
+is measured on that arc (the arc of 1 through 20 degrees put 1.2 out and scaled by 5 reads 1.7453, not the rest of the circle).
 DIMORDINATE
 (DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.

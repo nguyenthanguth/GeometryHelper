@@ -873,6 +873,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// <see cref="Angular"/>, and whether its words stand outside the arc, where they did not fit between the extension lines
         /// (and were not put by hand): AutoCAD 2021 writes the arc point of such an angle two thirds of the way round, not a third.
+        /// For an arc length dimension (<paramref name="arcLength"/>) the words kept level by DIMTIH fit by what they take of the
+        /// chord across the turn of the arc, and words outside stand level past the first end, the room of the arc symbol
+        /// (<paramref name="before"/>) between the landing and them.
         /// </summary>
         internal static List<DxfEntity> AngularLaidOut(
             DxfDimStyleTableRecord style,
@@ -888,7 +891,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2? placed,
             double before,
             double? turned,
-            out bool wordsOutside
+            out bool wordsOutside,
+            bool arcLength = false
         )
         {
             Sizes(
@@ -982,6 +986,21 @@ namespace GeometryHelper.Dxf.Viewer
             double needText = width + before + 2.0 * gap + (onInside ? 2.0 * gap : 0.0);
             double needArrows = noRoom ? 0.0 : 2.0 * arrow;
             double needBoth = needText + needArrows;
+
+            if (arcLength && levelInside && !turned.HasValue)
+            {
+                // An arc length dimension's words, with the symbol, stand level where DIMTIH keeps them so: what they take of the
+                // chord is their width times the sine of the direction of the arc's middle and their height (grown by the gaps
+                // as their width is) times its cosine, the two joined at 45 degrees rather than the right angle of their box.
+                // Probed with arcs of 10 put 12 out, the chord that first took the words ran from 0.57 at 1.6 degrees to 1.43 at
+                // 92, within 0.04 of this, and from 0.375 to 2.35 as DIMGAP went from 0.045 to 0.4.
+                double toward = from + sweep / 2.0;
+                double along = needText * Math.Abs(Math.Sin(toward));
+                double across = (height + 2.0 * gap + (onInside ? 2.0 * gap : 0.0)) * Math.Abs(Math.Cos(toward));
+                needText = Math.Sqrt(along * along + across * across + Math.Sqrt(2.0) * along * across);
+                needBoth = needText + needArrows;
+            }
+
             bool textInside;
             bool arrowsInside;
             bool arrowsLeftOut = false;
@@ -1276,6 +1295,17 @@ namespace GeometryHelper.Dxf.Viewer
                     // whose first ray points at -5 degrees to the left, and at 100 degrees to the right.
                     textAngle = 0.0;
                     double flat = way.X < -1E-9 ? -1.0 : 1.0;
+
+                    if (arcLength)
+                    {
+                        // An arc length dimension's go by the direction of its first end (the arc's start): to the right where it
+                        // points up from the horizontal, to the left where it points down, the other way round past the second
+                        // ray (DIMJUST 1); and the room of the arc symbol stands before the words on either side of the landing.
+                        double s = Math.Sin(from);
+                        flat = s > 1E-9 || (s >= -1E-9 && Math.Cos(from) > 0.0) ? 1.0 : -1.0;
+                        flat = second ? -flat : flat;
+                    }
+
                     var x = new GeoVector2(flat, 0.0);
                     double upSide =
                         tad == 4 ? -1.0
@@ -1289,7 +1319,7 @@ namespace GeometryHelper.Dxf.Viewer
                     );
                     at =
                         point
-                        + x * (arrow + gap + width / 2.0)
+                        + x * (arrow + gap + (arcLength ? before : 0.0) + width / 2.0)
                         + new GeoVector2(0.0, 1.0) * (on ? onOffset : upSide * lift);
                 }
                 else
