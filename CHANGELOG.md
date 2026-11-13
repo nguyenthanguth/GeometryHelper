@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A drawing saved as R12 (`DxfDatabase.Save(path, "AC1009")`) holds the hatches and multileaders it breaks into as AutoCAD 2021
+writes them. The INSERT of a hatch carries the hatch as R14 held it, in the extended data of the application `ACAD`: a pattern hatch
+as `HATCH` with its name, scale and angle, what it follows (`ASC_BOUNDS`) and its seed points (`ASC_SEEDPOINT`) where it is
+associative, then `R14_HATCH_DATA`; a fill or a gradient `R14_HATCH_DATA` alone: its handle, the axes of its system, elevation and
+normal, name, flags, every loop with its lines, arcs, ellipses, splines or polyline vertices, the lines of its pattern and its seed
+points. The lines and polylines a pattern hatch follows carry `ACAD ASC_BOUNDS` with the hatch's handle, the INSERT of a multileader
+`ACAD_MLEADERVER` 2 (the application is in the table), and the applications a hatch's extended data names are in capitals. The 24
+INSERTs of AutoCAD's sample drawing that carry extended data (8 hatches, 15 multileaders and a table's) are equal to AutoCAD's own R12
+of it, group for group, and so are 14 of the 15 hatches probed in AutoCAD 2021's console (every kind of boundary, holes, a tilted
+plane); the 15th differs by the last digit of a number.
+**NEW.** Saved as R12, the polyline of an ellipse is written as AutoCAD writes it (its first vertex as the place of the polyline,
+the layer before the handle, every vertex with six figures as C's `%#.6g`: `40.0000`, `1.53457e+06`) and the polyline of a spline with
+its place the zeros `0.00000`; a MESH is the polylines of the edges its record lists, in its order and direction (a tetrahedron's were
+read from its faces before); the lines of an MLINE come element by element; the pieces carry no turn of nought, no extrusion (0, 0, 1),
+no flag 0 of a polyline or vertex, no linetype or colour by layer, as AutoCAD leaves them out; the BLOCK and ENDBLK of a block made
+carry the current colour; the pieces of a pattern hatch are by block and those of a fill the linetype CONTINUOUS; a table's pieces are
+by layer where its block drew them by block; and two names of one kind that clean to one (`A{1}` and `A_1_`) are told apart as
+AutoCAD tells them: `A_1_0` and `A_1_`.
+**CHANGED.** Saved as R12, what breaks in a block is an INSERT of an anonymous block of its pieces, as it is in a space (an MTEXT in a
+dimension's block, a table's cells, a hatch, a multileader, a solid), where it used to be written in place: AutoCAD does so, and the
+blocks are numbered on from the highest of the drawing in the order of the handles of the entities they were made of, those of the
+spaces and of the blocks together (of the 66 INSERTs of AutoCAD's sample that AutoCAD's R12 has too, 24 have its block number and the
+others one up to three above it: AutoCAD keeps three dimension texts, with a degree sign or a stacked fraction, as TEXTs of its own
+regeneration and takes no number for them). An ellipse, a spline
+or an LWPOLYLINE in a block is still a polyline in its place, and a ray or an infinite line in a block is a LINE of no length at its
+base point, as AutoCAD writes them. The words of an MTEXT copied from a drawing (a table's cells, a dimension's block) are laid out
+in that drawing's fonts when they are exploded, so that a table's cells are left-aligned TEXTs at the places AutoCAD puts them.
 **NEW.** The ACIS data of R2000 (ACIS 4.00) is turned into the ASM data of the other versions and back when a drawing is saved as
 another version of DXF (`DxfDatabase.Save(path, version)`), as AutoCAD 2021 writes it. Where a 3DSOLID, a BODY, a surface or a region
 used to keep the SAT of R2010 in an R2000 file and, going up, to be left out of R2013 and R2018, it now comes out as ACIS 4.00 going

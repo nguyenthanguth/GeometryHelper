@@ -26,8 +26,36 @@ namespace GeometryHelper.Dxf
             StringComparer.OrdinalIgnoreCase
         );
 
-        // The blocks made for what stood in a space, in the order they were made.
-        private readonly List<List<Record>> _made = new List<List<Record>>();
+        // The blocks made for what stood in a space or a block, each with the INSERT that stands for it: AutoCAD numbers them
+        // by the handle of the entity they were made of, once the drawing is through.
+        private readonly List<MadeBlock> _made = new List<MadeBlock>();
+
+        private sealed class MadeBlock
+        {
+            internal MadeBlock(ulong key, int order, char letter, Record insert, List<Record> content)
+            {
+                Key = key;
+                Order = order;
+                Letter = letter;
+                Insert = insert;
+                Content = content;
+            }
+
+            /// <summary>The handle of the entity the block was made of, as a number.</summary>
+            internal ulong Key { get; }
+
+            /// <summary>Where the entity stood among the others, to settle two with one handle.</summary>
+            internal int Order { get; }
+
+            /// <summary>The letter of the block's name: <c>X</c> for a hatch of lines, <c>U</c> for the rest.</summary>
+            internal char Letter { get; }
+
+            /// <summary>The INSERT of the block, which names it once it is numbered.</summary>
+            internal Record Insert { get; }
+
+            /// <summary>The block's records, from its BLOCK to its ENDBLK.</summary>
+            internal List<Record> Content { get; }
+        }
 
         // Whether an attribute was written with its flags as the extended data of AcDbAttr, which the table of applications then holds.
         private bool _attributeApplication;
@@ -77,6 +105,22 @@ namespace GeometryHelper.Dxf
             ["$PUCSNAME"] = 2,
         };
 
+        // The kind of symbol each of those variables names.
+        private static readonly Dictionary<string, string> R12NamedKind = new Dictionary<string, string>(
+            StringComparer.Ordinal
+        )
+        {
+            ["$TEXTSTYLE"] = "STYLE",
+            ["$CLAYER"] = "LAYER",
+            ["$CELTYPE"] = "LTYPE",
+            ["$DIMSTYLE"] = "DIMSTYLE",
+            ["$DIMBLK"] = "BLOCK",
+            ["$DIMBLK1"] = "BLOCK",
+            ["$DIMBLK2"] = "BLOCK",
+            ["$UCSNAME"] = "UCS",
+            ["$PUCSNAME"] = "UCS",
+        };
+
         /// <summary>The header of R12: the variables it has, in its order, those a later version has not left out.</summary>
         private void R12Header(Section header)
         {
@@ -119,7 +163,7 @@ namespace GeometryHelper.Dxf
                     {
                         if (record.Groups[i].Code == code)
                         {
-                            record.Groups[i] = new Group(code, R12Name(record.Groups[i].Value));
+                            record.Groups[i] = new Group(code, R12Name(record.Groups[i].Value, R12NamedKind[name]));
                         }
                     }
                 }
@@ -262,6 +306,161 @@ namespace GeometryHelper.Dxf
             return made.ToString();
         }
 
+        // The names of each kind of symbol (LAYER, LTYPE, STYLE, VIEW, UCS, DIMSTYLE, BLOCK) that R12 writes other than as
+        // R12Name makes them, by the name the drawing has: two names that come to one are told apart.
+        private readonly Dictionary<string, Dictionary<string, string>> _renamed = new Dictionary<
+            string,
+            Dictionary<string, string>
+        >(StringComparer.Ordinal);
+
+        /// <summary>
+        /// A symbol's name as R12 writes it where two come to one: a name that cleaning changed (<c>A{1}</c> is <c>A_1_</c>) while
+        /// another of the same kind is that name already (<c>A_1_</c>) takes a number after it, as AutoCAD 2021 gives one: <c>A_1_0</c>,
+        /// and the next <c>A_1_1</c>. A name that cleaning leaves but for its capitals keeps its own.
+        /// </summary>
+        private void MakeNamesUnique(Section tables, Section blocks)
+        {
+            var names = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+            foreach (string kind in new[] { "LAYER", "LTYPE", "STYLE", "VIEW", "UCS", "DIMSTYLE" })
+            {
+                names[kind] =
+                    tables == null
+                        ? new List<string>()
+                        : tables.Records.Where(r => r.Type == kind).Select(Name).Where(n => n != null).ToList();
+            }
+
+            names["BLOCK"] =
+                blocks == null
+                    ? new List<string>()
+                    : blocks.Records.Where(r => r.Type == "BLOCK").Select(Name).Where(n => n != null).ToList();
+
+            foreach (KeyValuePair<string, List<string>> kind in names)
+            {
+                var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                // The names cleaning leaves are kept first.
+                foreach (string name in kind.Value)
+                {
+                    if (string.Equals(R12Name(name), name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        used.Add(R12Name(name));
+                    }
+                }
+
+                var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (string name in kind.Value)
+                {
+                    string cleaned = R12Name(name);
+
+                    if (string.Equals(cleaned, name, StringComparison.OrdinalIgnoreCase) || map.ContainsKey(name))
+                    {
+                        continue;
+                    }
+
+                    string candidate = cleaned;
+
+                    for (int number = 0; !used.Add(candidate); number++)
+                    {
+                        string suffix = number.ToString(CultureInfo.InvariantCulture);
+                        candidate =
+                            cleaned.Substring(0, Math.Min(cleaned.Length, R12NameLength - suffix.Length)) + suffix;
+                    }
+
+                    if (!string.Equals(candidate, cleaned, StringComparison.Ordinal))
+                    {
+                        map[name] = candidate;
+                    }
+                }
+
+                if (map.Count > 0)
+                {
+                    _renamed[kind.Key] = map;
+                }
+            }
+        }
+
+        /// <summary>A symbol's name of a kind as R12 writes it: as <see cref="R12Name(string)"/>, but told apart from another that comes to the same.</summary>
+        private string R12Name(string name, string kind) =>
+            kind != null
+            && _renamed.TryGetValue(kind, out Dictionary<string, string> map)
+            && map.TryGetValue(name, out string unique)
+                ? unique
+                : R12Name(name);
+
+        /// <summary>The kind of symbol a group names in a record: LAYER for 8, LTYPE for 6, STYLE for 7, and for 2 and 3 that of the record; null for none.</summary>
+        private static string NameKind(string type, int code)
+        {
+            switch (code)
+            {
+                case 8:
+                    return "LAYER";
+                case 6:
+                case 7:
+                    return type == "DIMSTYLE" ? "BLOCK"
+                        : code == 6 ? "LTYPE"
+                        : "STYLE";
+                case 2:
+                case 3:
+                    switch (type)
+                    {
+                        case "LAYER":
+                        case "LTYPE":
+                        case "STYLE":
+                        case "VIEW":
+                        case "UCS":
+                        case "DIMSTYLE":
+                            return type;
+                        case "BLOCK":
+                        case "INSERT":
+                        case "DIMENSION":
+                            return "BLOCK";
+                    }
+
+                    return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>Whether a value is a number written as nought.</summary>
+        private static bool IsZero(string value) =>
+            double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && Math.Abs(number) < 1E-12;
+
+        /// <summary>Whether a record holds the extrusion (0, 0, 1) in its groups 210, 220 and 230, which R12 leaves out as it is the default.</summary>
+        private static bool HasPlainNormal(Record record)
+        {
+            double x = double.NaN;
+            double y = double.NaN;
+            double z = double.NaN;
+
+            foreach (Group group in record.Groups)
+            {
+                if (
+                    (group.Code == 210 || group.Code == 220 || group.Code == 230)
+                    && double.TryParse(group.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                )
+                {
+                    if (group.Code == 210)
+                    {
+                        x = value;
+                    }
+                    else if (group.Code == 220)
+                    {
+                        y = value;
+                    }
+                    else
+                    {
+                        z = value;
+                    }
+                }
+            }
+
+            return Math.Abs(x) < 1E-12 && Math.Abs(y) < 1E-12 && Math.Abs(z - 1.0) < 1E-12;
+        }
+
         /// <summary>A record as R12 holds it: the groups it has, names in capitals; null where R12 has no such record.</summary>
         private Record R12Record(Record record)
         {
@@ -278,6 +477,7 @@ namespace GeometryHelper.Dxf
             bool anonymousBlock = false;
             bool own = false;
             var flags = new List<string>(2);
+            bool plainNormal = HasPlainNormal(record);
 
             for (int i = 1; i < record.Groups.Count; i++)
             {
@@ -375,11 +575,29 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                // What is as the default is as AutoCAD leaves it out: a flag of 0 on a polyline or a vertex, a text turned by 0, and
+                // the extrusion (0, 0, 1) of an entity.
+                if (
+                    (plainNormal && (group.Code == 210 || group.Code == 220 || group.Code == 230))
+                    || (
+                        group.Code == 6
+                        && string.Equals(group.Value.Trim(), "BYLAYER", StringComparison.OrdinalIgnoreCase)
+                    )
+                    || (group.Code == 62 && group.Value.Trim() == "256")
+                    || (
+                        ((type == "POLYLINE" || type == "VERTEX") && group.Code == 70)
+                        || (type == "TEXT" && group.Code == 50)
+                    ) && IsZero(group.Value)
+                )
+                {
+                    continue;
+                }
+
                 string value = group.Value;
 
                 if (IsName(type, group.Code))
                 {
-                    value = type == "APPID" ? value.ToUpperInvariant() : R12Name(value);
+                    value = type == "APPID" ? value.ToUpperInvariant() : R12Name(value, NameKind(type, group.Code));
                 }
 
                 if (type == "BLOCK" && (group.Code == 2 || group.Code == 3))
@@ -615,6 +833,19 @@ namespace GeometryHelper.Dxf
                 applications.Add(application);
             }
 
+            // The application the extended data of a broken multileader names is in the table, as AutoCAD registers it.
+            if (
+                records.TryGetValue("APPID", out List<Record> listed)
+                && !listed.Any(a => string.Equals(Name(a), "ACAD_MLEADERVER", StringComparison.OrdinalIgnoreCase))
+            )
+            {
+                var version = new Record();
+                version.Groups.Add(new Group(0, "APPID"));
+                version.Groups.Add(new Group(2, "ACAD_MLEADERVER"));
+                version.Groups.Add(Whole(70, 0));
+                listed.Add(version);
+            }
+
             tables.Records.Clear();
 
             foreach (string name in R12Tables)
@@ -645,6 +876,20 @@ namespace GeometryHelper.Dxf
             return null;
         }
 
+        /// <summary>Gives a record the name of a block made: its group 2, and for the BLOCK itself its group 3.</summary>
+        private static void Rename(Record record, string name)
+        {
+            for (int i = 0; i < record.Groups.Count; i++)
+            {
+                Group group = record.Groups[i];
+
+                if (group.Code == 2 || (group.Code == 3 && record.Type == "BLOCK"))
+                {
+                    record.Groups[i] = new Group(group.Code, name);
+                }
+            }
+        }
+
         #endregion
 
         #region The blocks and the entities
@@ -664,7 +909,7 @@ namespace GeometryHelper.Dxf
 
                     if (handle != null && name != null)
                     {
-                        names[handle] = R12Name(name);
+                        names[handle] = R12Name(name, "LAYER");
                     }
                 }
             }
@@ -687,7 +932,7 @@ namespace GeometryHelper.Dxf
 
                     if (handle != null && name != null)
                     {
-                        names[handle] = R12Name(name);
+                        names[handle] = R12Name(name, "BLOCK");
                     }
                 }
             }
@@ -764,11 +1009,9 @@ namespace GeometryHelper.Dxf
 
         private void R12Content(
             Section section,
-            bool space,
             Dictionary<string, List<Record>> pieces,
             Dictionary<string, Record> ends,
-            Dictionary<string, string> layers,
-            ref int number
+            Dictionary<string, string> layers
         )
         {
             var made = new List<Record>(section.Records.Count);
@@ -810,42 +1053,40 @@ namespace GeometryHelper.Dxf
                     _broken[piece.Type] = _broken.TryGetValue(piece.Type, out int total) ? total + 1 : 1;
                     List<Record> content = pieces[piece.Block];
 
-                    if (!space || piece.Direct)
+                    if (piece.Direct)
                     {
-                        // Inside a block they are written where the entity stood; so is a curve made a polyline or a line, which
-                        // keeps the handle.
-                        bool first = true;
+                        // A curve made a polyline or a line stands where the entity stood, with its handle.
+                        List<Record> parts = R12Parts(content);
 
-                        foreach (Record part in content)
+                        if (parts.Count > 0)
                         {
-                            Record converted = R12Record(part);
+                            int at = parts[0].Groups.FindIndex(g => g.Code == 5);
 
-                            if (converted == null)
+                            if (at >= 0)
                             {
-                                continue;
+                                parts[0].Groups[at] = new Group(5, handle);
                             }
-
-                            if (first && piece.Direct)
-                            {
-                                int at = converted.Groups.FindIndex(g => g.Code == 5);
-
-                                if (at >= 0)
-                                {
-                                    converted.Groups[at] = new Group(5, handle);
-                                }
-                            }
-
-                            first = false;
-                            made.Add(converted);
                         }
 
+                        made.AddRange(parts);
                         continue;
                     }
 
-                    number++;
-                    string block = "*" + piece.Letter + number.ToString(CultureInfo.InvariantCulture);
-                    made.Add(Insert(record, block));
-                    _made.Add(NewBlock(block, content, ends[piece.Block]));
+                    // The rest, in a space or in a block alike, is an INSERT of a block of its pieces, numbered once the drawing is
+                    // through.
+                    Record insert = Insert(record, null);
+                    made.Add(insert);
+                    _made.Add(
+                        new MadeBlock(
+                            ulong.TryParse(handle, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong key)
+                                ? key
+                                : ulong.MaxValue,
+                            _made.Count,
+                            piece.Letter,
+                            insert,
+                            NewBlock(null, content, ends[piece.Block])
+                        )
+                    );
                     continue;
                 }
 
@@ -853,6 +1094,11 @@ namespace GeometryHelper.Dxf
 
                 if (one != null)
                 {
+                    if (handle != null && _bounds.TryGetValue(handle, out List<string> followers))
+                    {
+                        AddBounds(one, followers);
+                    }
+
                     if (type == "BLOCK")
                     {
                         paper = Name(one) == "$PAPER_SPACE";
@@ -934,7 +1180,7 @@ namespace GeometryHelper.Dxf
                 insert.Groups.Add(handle);
             }
 
-            insert.Groups.Add(new Group(8, R12Name(HeaderValue("$CLAYER", 8) ?? "0")));
+            insert.Groups.Add(new Group(8, R12Name(HeaderValue("$CLAYER", 8) ?? "0", "LAYER")));
             string line = HeaderValue("$CELTYPE", 6);
 
             if (
@@ -942,7 +1188,7 @@ namespace GeometryHelper.Dxf
                 || (line != null && !string.Equals(line, "BYLAYER", StringComparison.OrdinalIgnoreCase))
             )
             {
-                insert.Groups.Add(new Group(6, old.Type == "HATCH" ? "CONTINUOUS" : R12Name(line)));
+                insert.Groups.Add(new Group(6, old.Type == "HATCH" ? "CONTINUOUS" : R12Name(line, "LTYPE")));
             }
 
             string colour = HeaderValue("$CECOLOR", 62);
@@ -959,60 +1205,236 @@ namespace GeometryHelper.Dxf
                 insert.Groups.Add(space);
             }
 
-            insert.Groups.Add(new Group(2, block));
+            insert.Groups.Add(new Group(2, block ?? string.Empty));
             insert.Groups.Add(new Group(10, "0.0"));
             insert.Groups.Add(new Group(20, "0.0"));
             insert.Groups.Add(new Group(30, "0.0"));
 
-            // A hatch keeps the colours of its gradient (the indices of its first and second) in the extended data, in capitals.
-            for (int i = 0; old.Type == "HATCH" && i + 1 < old.Groups.Count; i++)
+            // A hatch keeps its own extended data (the colours of its gradient, an annotative scale) in capitals and holds itself as
+            // R14 did in the application ACAD; a multileader says which version of it made the pieces.
+            if (old.Type == "HATCH")
             {
-                Group application = old.Groups[i];
-
-                if (
-                    application.Code == 1001
-                    && (
-                        string.Equals(application.Value, "GradientColor1ACI", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(application.Value, "GradientColor2ACI", StringComparison.OrdinalIgnoreCase)
-                    )
-                )
-                {
-                    insert.Groups.Add(new Group(1001, application.Value.ToUpperInvariant()));
-                    insert.Groups.Add(old.Groups[i + 1]);
-                }
+                insert.Groups.AddRange(HatchData(old));
+            }
+            else if (old.Type == "MULTILEADER")
+            {
+                insert.Groups.Add(new Group(1001, "ACAD_MLEADERVER"));
+                insert.Groups.Add(Whole(1070, 2));
             }
 
             return insert;
         }
 
-        /// <summary>The block of the pieces made for an entity of a space: anonymous (flag 1), at the origin, its end with the handle the scratch block's had.</summary>
+        /// <summary>
+        /// The block of the pieces made for an entity of a space or a block: anonymous (flag 1), at the origin, in the current colour
+        /// of the drawing where it is not by layer, as the INSERT is, its end with the handle the scratch block's had.
+        /// </summary>
         private List<Record> NewBlock(string name, List<Record> content, Record end)
         {
             var block = new List<Record>(content.Count + 2);
             var head = new Record();
             head.Groups.Add(new Group(0, "BLOCK"));
             head.Groups.Add(new Group(8, "0"));
-            head.Groups.Add(new Group(2, name));
+            string colour = HeaderValue("$CECOLOR", 62);
+            int index = 256;
+            bool coloured = colour != null && Number(colour, out index) && index != 256;
+
+            if (coloured)
+            {
+                head.Groups.Add(Whole(62, index));
+            }
+
+            head.Groups.Add(new Group(2, name ?? string.Empty));
             head.Groups.Add(Whole(70, 1));
             head.Groups.Add(new Group(10, "0.0"));
             head.Groups.Add(new Group(20, "0.0"));
             head.Groups.Add(new Group(30, "0.0"));
-            head.Groups.Add(new Group(3, name));
+            head.Groups.Add(new Group(3, name ?? string.Empty));
             head.Groups.Add(new Group(1, string.Empty));
             block.Add(head);
+            block.AddRange(R12Parts(content));
+            Record last = R12Record(end);
 
-            foreach (Record part in content)
+            if (coloured)
             {
-                Record converted = R12Record(part);
-
-                if (converted != null)
-                {
-                    block.Add(converted);
-                }
+                last.Groups.Insert(Math.Max(last.Groups.FindIndex(g => g.Code == 8), 0) + 1, Whole(62, index));
             }
 
-            block.Add(R12Record(end));
+            block.Add(last);
             return block;
+        }
+
+        /// <summary>
+        /// The pieces of a broken entity as R12 holds them. A 3D polyline made of an ellipse or a spline is written as AutoCAD writes
+        /// that one: the ellipse's polyline carries its first vertex in its own place (10, 20, 30) and the spline's zeros of five
+        /// decimals, the layer of each before the handle, every vertex with six figures as C's <c>%#.6g</c> gives them.
+        /// </summary>
+        private List<Record> R12Parts(List<Record> content)
+        {
+            var parts = new List<Record>(content.Count);
+            char sampled = '\0';
+            Record owner = null;
+
+            for (int index = 0; index < content.Count; index++)
+            {
+                Record part = content[index];
+                Record converted = R12Record(part);
+
+                if (converted == null)
+                {
+                    continue;
+                }
+
+                if (converted.Type == "POLYLINE")
+                {
+                    string handle = HandleOf(part);
+                    sampled = handle != null && _plan.Sampled.TryGetValue(handle, out char kind) ? kind : '\0';
+
+                    if (sampled != '\0')
+                    {
+                        Record first = content.Skip(index + 1).FirstOrDefault(r => r.Type == "VERTEX");
+                        Sample(converted, sampled, first);
+                    }
+                }
+                else if (sampled != '\0')
+                {
+                    Sample(converted, sampled, null);
+                }
+
+                // The vertices of a polyline and its end carry its linetype and colour, as AutoCAD writes them.
+                if (converted.Type == "POLYLINE")
+                {
+                    owner = converted;
+                }
+                else if (owner != null && (converted.Type == "VERTEX" || converted.Type == "SEQEND"))
+                {
+                    Inherit(owner, converted);
+                }
+
+                if (converted.Type == "SEQEND")
+                {
+                    sampled = '\0';
+                }
+
+                parts.Add(converted);
+            }
+
+            return parts;
+        }
+
+        /// <summary>
+        /// Gives one record of the polyline made of an ellipse (<c>E</c>) or a spline (<c>S</c>) AutoCAD's form of it. A vertex and
+        /// the end have the layer before the handle and a vertex six figures; the polyline of an ellipse keeps the handle first and
+        /// holds its first vertex (<paramref name="first"/>) as its own place, ahead of its flag of vertices, the spline's zeros
+        /// of five decimals.
+        /// </summary>
+        private static void Sample(Record record, char kind, Record first)
+        {
+            string type = record.Type;
+            int handle = record.Groups.FindIndex(g => g.Code == 5);
+            int layer = record.Groups.FindIndex(g => g.Code == 8);
+
+            if (handle >= 0 && layer > handle && !(type == "POLYLINE" && kind == 'E'))
+            {
+                Group moved = record.Groups[layer];
+                record.Groups.RemoveAt(layer);
+                record.Groups.Insert(handle, moved);
+            }
+
+            if (type == "POLYLINE")
+            {
+                for (int i = 0; i < record.Groups.Count; i++)
+                {
+                    int axis = record.Groups[i].Code / 10 - 1;
+
+                    if (record.Groups[i].Code % 10 == 0 && axis >= 0 && axis <= 2)
+                    {
+                        string value = "0.00000";
+
+                        if (kind == 'E' && first != null)
+                        {
+                            Group start = first.Groups.FirstOrDefault(g => g.Code == record.Groups[i].Code);
+                            value = start.Value == null ? "0.0" : Real(start.Value);
+                        }
+
+                        record.Groups[i] = new Group(record.Groups[i].Code, value);
+                    }
+                }
+
+                // The ellipse's polyline has its flag of vertices (66) after its place.
+                int flag = record.Groups.FindIndex(g => g.Code == 66);
+                int last = record.Groups.FindLastIndex(g => g.Code == 30);
+
+                if (kind == 'E' && flag >= 0 && last > flag)
+                {
+                    Group moved = record.Groups[flag];
+                    record.Groups.RemoveAt(flag);
+                    record.Groups.Insert(last, moved);
+                }
+
+                return;
+            }
+
+            if (type == "VERTEX")
+            {
+                for (int i = 0; i < record.Groups.Count; i++)
+                {
+                    Group group = record.Groups[i];
+
+                    if (
+                        (group.Code == 10 || group.Code == 20 || group.Code == 30)
+                        && double.TryParse(
+                            group.Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out double value
+                        )
+                    )
+                    {
+                        record.Groups[i] = new Group(group.Code, SixFigures(value));
+                    }
+                }
+            }
+        }
+
+        /// <summary>A real number as a group of AutoCAD's R12 holds it: a whole one with its <c>.0</c>.</summary>
+        private static string Real(string text)
+        {
+            string trimmed = text.Trim();
+            return trimmed.IndexOfAny(new[] { '.', 'E', 'e' }) < 0 ? trimmed + ".0" : trimmed;
+        }
+
+        /// <summary>A number as C's <c>%#.6g</c> writes it, six figures with their trailing zeros: 40 is <c>40.0000</c>, 0 is <c>0.00000</c>, 1534567.5 is <c>1.53457e+06</c>.</summary>
+        internal static string SixFigures(double value)
+        {
+            if (value == 0.0)
+            {
+                return BitConverter.DoubleToInt64Bits(value) < 0 ? "-0.00000" : "0.00000";
+            }
+
+            string scientific = value.ToString("E5", CultureInfo.InvariantCulture);
+            int e = scientific.IndexOf('E');
+            int exponent = int.Parse(
+                scientific.Substring(e + 1),
+                NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture
+            );
+
+            if (exponent < -4 || exponent >= 6)
+            {
+                string digits = scientific.Substring(0, e);
+                return digits
+                    + "e"
+                    + (exponent < 0 ? "-" : "+")
+                    + Math.Abs(exponent).ToString("00", CultureInfo.InvariantCulture);
+            }
+
+            int decimals = 5 - exponent;
+            string fixedPoint = value.ToString(
+                "F" + decimals.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture
+            );
+            return decimals == 0 ? fixedPoint + "." : fixedPoint;
         }
 
         /// <summary>
@@ -1031,7 +1453,7 @@ namespace GeometryHelper.Dxf
 
                 if (found.Value != null)
                 {
-                    made.Groups.Add(new Group(code, code == 8 ? R12Name(found.Value) : found.Value));
+                    made.Groups.Add(new Group(code, code == 8 ? R12Name(found.Value, "LAYER") : found.Value));
                 }
             }
 
@@ -1128,10 +1550,11 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            Dictionary<string, string> layers = LayerNames();
-            _blockNames = BlockNames();
             Section blocks = Find("BLOCKS");
             Section entities = Find("ENTITIES");
+            MakeNamesUnique(Find("TABLES"), blocks);
+            Dictionary<string, string> layers = LayerNames();
+            _blockNames = BlockNames();
             var pieces = new Dictionary<string, List<Record>>(StringComparer.OrdinalIgnoreCase);
             var ends = new Dictionary<string, Record>(StringComparer.OrdinalIgnoreCase);
             int number = 0;
@@ -1142,19 +1565,43 @@ namespace GeometryHelper.Dxf
                 number = HighestAnonymous(blocks);
             }
 
-            // The spaces first, in the order their entities stand in, as the blocks made for them are numbered by it.
+            // What each associative hatch follows comes first: the entity says so in its own extended data.
             if (entities != null)
             {
-                R12Content(entities, true, pieces, ends, layers, ref number);
+                CollectBounds(entities);
             }
 
             if (blocks != null)
             {
-                R12Content(blocks, false, pieces, ends, layers, ref number);
+                CollectBounds(blocks);
+            }
 
-                foreach (List<Record> block in _made)
+            if (entities != null)
+            {
+                R12Content(entities, pieces, ends, layers);
+            }
+
+            if (blocks != null)
+            {
+                R12Content(blocks, pieces, ends, layers);
+
+                // The blocks made are numbered on from the highest of the drawing in the order of the handles of the entities they
+                // were made of, those of the spaces and of the blocks together, as AutoCAD numbers them.
+                _made.Sort(
+                    (a, b) =>
+                    {
+                        int byHandle = a.Key.CompareTo(b.Key);
+                        return byHandle != 0 ? byHandle : a.Order.CompareTo(b.Order);
+                    }
+                );
+
+                foreach (MadeBlock made in _made)
                 {
-                    blocks.Records.AddRange(block);
+                    number++;
+                    string name = "*" + made.Letter + number.ToString(CultureInfo.InvariantCulture);
+                    Rename(made.Insert, name);
+                    Rename(made.Content[0], name);
+                    blocks.Records.AddRange(made.Content);
                 }
             }
 

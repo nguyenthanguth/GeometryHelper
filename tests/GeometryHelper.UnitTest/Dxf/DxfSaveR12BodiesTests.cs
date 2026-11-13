@@ -419,7 +419,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASolidInABlock_IsItsLinesWhereItStood_WithNoBlockOfItsOwn()
+        public void ASolidInABlock_IsAnInsertOfABlockOfItsLines_AsInASpace()
         {
             DxfDatabase database = Drawing();
             var block = new DxfBlockTableRecord { Name = "Plate" };
@@ -431,10 +431,10 @@ namespace GeometryHelper.UnitTest.Dxf
             Dictionary<string, List<Record>> sections = Sections(R12(RegionAsSolid(database)));
 
             List<Record> inside = BlockNamed(sections, "PLATE");
-            Assert.Equal(24, inside.Count(r => r.Type == "LINE"));
-            Assert.DoesNotContain(sections["BLOCKS"], r =>
-                r.Type == "BLOCK" && r.First(2).StartsWith("*U", StringComparison.Ordinal)
-            );
+            Record insert = Assert.Single(inside, r => r.Type == "INSERT");
+            Assert.Matches("^[*]U[0-9]+$", insert.First(2));
+            Assert.Equal(24, BlockNamed(sections, insert.First(2)).Count(r => r.Type == "LINE"));
+            Assert.DoesNotContain(inside, r => r.Type == "LINE");
         }
 
         [Fact]
@@ -705,7 +705,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 .Groups.Where(g => g.Key >= 1000)
                 .Select(g => g.Key + "=" + g.Value.Trim())
                 .ToArray();
-            Assert.Equal(new[] { "1001=GRADIENTCOLOR1ACI", "1070=5", "1001=GRADIENTCOLOR2ACI", "1070=2" }, xdata);
+            Assert.Equal(
+                new[] { "1001=GRADIENTCOLOR1ACI", "1070=5", "1001=GRADIENTCOLOR2ACI", "1070=2", "1001=ACAD" },
+                xdata.Take(5).ToArray()
+            );
         }
 
         // ---- what AutoCAD 2021 opens ---------------------------------------------------------------------------------------------

@@ -106,6 +106,92 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The edges of a MESH as its record lists them (94 and two indices each), each as the two points of its vertices, in
+        /// the order and the direction the record gives: AutoCAD writes a MESH saved as R12 as these edges. Null where the
+        /// record lists none or is not readable.
+        /// </summary>
+        internal List<GeoPoint3[]> MeshEdges()
+        {
+            if (DxfName != "MESH")
+            {
+                return null;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = GetOwnGroups(0);
+            int n = groups.Count;
+            int i = 0;
+
+            while (i < n && groups[i].TypeCode != 92)
+            {
+                i++;
+            }
+
+            if (i >= n)
+            {
+                return null;
+            }
+
+            int vertices = DxfLeaderGroups.Whole(groups[i].Value, -1);
+            var points = new List<GeoPoint3>(Math.Max(vertices, 0));
+
+            for (i++; i < n && groups[i].TypeCode != 93 && vertices > 0; i++)
+            {
+                if (groups[i].TypeCode != 10)
+                {
+                    continue;
+                }
+
+                double[] point = { DxfLeaderGroups.Num(groups[i].Value, 0.0), 0.0, 0.0 };
+
+                while (i + 1 < n && (groups[i + 1].TypeCode == 20 || groups[i + 1].TypeCode == 30))
+                {
+                    i++;
+                    point[groups[i].TypeCode / 10 - 1] = DxfLeaderGroups.Num(groups[i].Value, 0.0);
+                }
+
+                points.Add(new GeoPoint3(point[0], point[1], point[2]));
+            }
+
+            if (points.Count != vertices || i >= n)
+            {
+                return null;
+            }
+
+            int size = DxfLeaderGroups.Whole(groups[i].Value, -1);
+            i += 1 + Math.Max(size, 0);
+
+            if (size < 0 || i >= n || groups[i].TypeCode != 94)
+            {
+                return null;
+            }
+
+            int count = DxfLeaderGroups.Whole(groups[i].Value, -1);
+            i++;
+
+            if (count <= 0 || i + 2 * count > n)
+            {
+                return null;
+            }
+
+            var edges = new List<GeoPoint3[]>(count);
+
+            for (int k = 0; k < count; k++, i += 2)
+            {
+                int a = DxfLeaderGroups.Whole(groups[i].Value, -1);
+                int b = DxfLeaderGroups.Whole(groups[i + 1].Value, -1);
+
+                if (a < 0 || b < 0 || a >= points.Count || b >= points.Count)
+                {
+                    return null;
+                }
+
+                edges.Add(new[] { points[a], points[b] });
+            }
+
+            return edges;
+        }
+
+        /// <summary>
         /// The faces of a MESH, as <see cref="Explode"/> sets them out, read in one pass over its record (AcDbSubDMesh) by its
         /// counts, as AutoCAD writes them: its level of smoothing (91), its vertices (92 and a point 10 for each), its faces (93,
         /// the count of the groups 90 after it, each face the count of its corners and their indices), its edges (94 and two
@@ -671,8 +757,18 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal IReadOnlyList<DxfEntity> ExplodeMline(DxfMline.Style style) => MlineParts(style).AsReadOnly();
 
-        /// <summary>The parts of an MLINE, as <see cref="Explode"/> sets them out, its record and its style read once.</summary>
-        private List<DxfEntity> MlineParts(DxfMline.Style given = null)
+        /// <summary>
+        /// The entities an MLINE breaks into when it is saved as R12, as <see cref="Explode"/> gives them but for the lines along
+        /// its segments, which AutoCAD writes element by element (all the segments of the first, then of the second) and not
+        /// segment by segment.
+        /// </summary>
+        internal IReadOnlyList<DxfEntity> ExplodeMlineByElement() => MlineParts(null, true).AsReadOnly();
+
+        /// <summary>
+        /// The parts of an MLINE, as <see cref="Explode"/> sets them out, its record and its style read once; the lines along
+        /// its segments by element where <paramref name="byElement"/> is set.
+        /// </summary>
+        private List<DxfEntity> MlineParts(DxfMline.Style given = null, bool byElement = false)
         {
             DxfMline mline = DxfMline.Read(GetOwnGroups(0));
             var parts = new List<DxfEntity>();
@@ -817,13 +913,33 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            for (int i = 0; i + 1 < miters.Count; i++)
+            if (byElement)
             {
-                DxfMline.Vertex vertex = mline.Vertices[i];
-
                 for (int k = 0; k < count; k++)
                 {
-                    Pieces(miters[i][k], miters[i + 1][k], vertex.Parameters[k], k, Line, i == 0 && !closed);
+                    for (int i = 0; i + 1 < miters.Count; i++)
+                    {
+                        Pieces(
+                            miters[i][k],
+                            miters[i + 1][k],
+                            mline.Vertices[i].Parameters[k],
+                            k,
+                            Line,
+                            i == 0 && !closed
+                        );
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i + 1 < miters.Count; i++)
+                {
+                    DxfMline.Vertex vertex = mline.Vertices[i];
+
+                    for (int k = 0; k < count; k++)
+                    {
+                        Pieces(miters[i][k], miters[i + 1][k], vertex.Parameters[k], k, Line, i == 0 && !closed);
+                    }
                 }
             }
 

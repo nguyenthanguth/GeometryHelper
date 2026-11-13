@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -315,7 +316,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMtextInModelSpace_IsAnInsertOfABlockOfItsTexts_AndInABlock_ItsTextsAlone()
+        public void AnMtextInModelSpace_IsAnInsertOfABlockOfItsTexts_AndInABlock_TheSame()
         {
             DxfDatabase database = Ezdxf();
             DxfMText inSpace = database.ModelSpace.OfType<DxfMText>().Single();
@@ -341,12 +342,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal("TEXT", blocks[start + 1].Type);
             Assert.Equal("ENDBLK", blocks.Skip(start + 1).First(r => r.Type != "TEXT").Type);
 
-            // In a block it breaks where it stands, into its texts, with no block of its own.
+            // In a block it is an INSERT of a block of its texts too, as AutoCAD 2021 writes it (a dimension's text, a table's cells).
             int from = blocks.FindIndex(r => r.Type == "BLOCK" && r.First(2) == homeName);
             int to = blocks.FindIndex(from, r => r.Type == "ENDBLK");
             List<Record> content = blocks.Skip(from + 1).Take(to - from - 1).ToList();
-            Assert.Contains(content, r => r.Type == "TEXT");
+            Assert.DoesNotContain(content, r => r.Type == "TEXT");
             Assert.Equal(linesBefore, content.Count(r => r.Type == "LINE"));
+            Record inner = content.First(r =>
+                r.Type == "INSERT" && r.First(2).StartsWith("*U", StringComparison.Ordinal)
+            );
+            int innerStart = blocks.FindIndex(r => r.Type == "BLOCK" && r.First(2) == inner.First(2));
+            Assert.Equal("TEXT", blocks[innerStart + 1].Type);
             Assert.Contains(said, s => s.Contains("MTEXT"));
         }
 
@@ -461,20 +467,36 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void TheAnonymousBlocksMade_AreNumberedOnFromTheHighestOfTheDrawing_InTheOrderTheyStandIn()
+        public void TheAnonymousBlocksMade_AreNumberedOnFromTheHighestOfTheDrawing_InTheOrderOfTheirHandles()
         {
-            Dictionary<string, List<Record>> sections = Sections(R12(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018)));
-            string[] made = sections["ENTITIES"]
-                .Where(r => r.Type == "INSERT" && r.First(2).StartsWith("*", StringComparison.Ordinal))
-                .Select(r => r.First(2))
-                .Where(n => n[1] == 'U' || n[1] == 'X')
+            DxfDatabase database = Ezdxf();
+            Dictionary<string, List<Record>> sections = Sections(R12(database));
+
+            // The INSERTs of the blocks made, those of the spaces and of the blocks together, with the handle of the entity each stood for.
+            Record[] inserts = sections["ENTITIES"]
+                .Concat(sections["BLOCKS"])
+                .Where(r => r.Type == "INSERT" && r.First(5) != null && Regex.IsMatch(r.First(2), "^[*][UX][0-9]+$"))
                 .ToArray();
-            int[] numbers = made.Select(n => int.Parse(n.Substring(2), CultureInfo.InvariantCulture)).ToArray();
+            int highest = database
+                .BlockTable.Select(b => Regex.Match(b.Name ?? string.Empty, "^[*][A-Z]([0-9]+)$"))
+                .Where(m => m.Success)
+                .Select(m => int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture))
+                .DefaultIfEmpty(0)
+                .Max();
+            Record[] made = inserts
+                .Where(r => int.Parse(r.First(2).Substring(2), CultureInfo.InvariantCulture) > highest)
+                .OrderBy(r => long.Parse(r.First(5), NumberStyles.HexNumber, CultureInfo.InvariantCulture))
+                .ToArray();
+            int[] numbers = made.Select(r => int.Parse(r.First(2).Substring(2), CultureInfo.InvariantCulture))
+                .ToArray();
 
             Assert.NotEmpty(numbers);
-            Assert.Equal(numbers.OrderBy(n => n).ToArray(), numbers);
-            Assert.Equal(numbers.Distinct().Count(), numbers.Length);
-            Assert.All(made, n => Assert.Single(sections["BLOCKS"], r => r.Type == "BLOCK" && r.First(2) == n));
+            Assert.Equal(Enumerable.Range(highest + 1, numbers.Length).ToArray(), numbers);
+            Assert.Contains(made, r => sections["BLOCKS"].Contains(r));
+            Assert.Contains(made, r => sections["ENTITIES"].Contains(r));
+            Assert.All(made, r =>
+                Assert.Single(sections["BLOCKS"], b => b.Type == "BLOCK" && b.First(2) == r.First(2))
+            );
         }
 
         [Fact]
