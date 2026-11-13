@@ -346,8 +346,8 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// Leaves out the evaluation graph of a dynamic block whose expressions are not all read (the parameters, actions and
-        /// grips of a flip, a rotation or a visibility state are not), with the expressions it owns: a graph that names an
+        /// Leaves out the evaluation graph of a dynamic block whose expressions are not all read (a constraint parameter, a
+        /// user parameter, a properties table and a proxy node are not), with the expressions it owns: a graph that names an
         /// expression the drawing lacks is no graph, and AutoCAD drops its nodes. The block stays an ordinary one.
         /// </summary>
         private void LeaveOutIncompleteGraphs()

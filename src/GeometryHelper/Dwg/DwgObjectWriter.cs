@@ -379,6 +379,48 @@ namespace GeometryHelper.Dwg
                     return R2007Plus ? WriteBlockLinearParameter : (Action)null;
                 case "BLOCKSTRETCHACTION":
                     return R2007Plus ? WriteBlockStretchAction : (Action)null;
+                case "BLOCKVISIBILITYPARAMETER":
+                    return R2007Plus ? WriteBlockVisibilityParameter : (Action)null;
+                case "BLOCKVISIBILITYGRIP":
+                case "BLOCKROTATIONGRIP":
+                case "BLOCKXYGRIP":
+                case "BLOCKPOLARGRIP":
+                case "BLOCKLOOKUPGRIP":
+                    return R2007Plus ? WritePlainGrip : (Action)null;
+                case "BLOCKFLIPPARAMETER":
+                    return R2007Plus ? WriteBlockFlipParameter : (Action)null;
+                case "BLOCKFLIPGRIP":
+                    return R2007Plus ? WriteBlockFlipGrip : (Action)null;
+                case "BLOCKFLIPACTION":
+                    return R2007Plus ? WriteBlockFlipAction : (Action)null;
+                case "BLOCKROTATIONPARAMETER":
+                    return R2007Plus ? WriteBlockRotationParameter : (Action)null;
+                case "BLOCKROTATEACTION":
+                    return R2007Plus ? WriteBlockRotateAction : (Action)null;
+                case "BLOCKXYPARAMETER":
+                    return R2007Plus ? WriteBlockXYParameter : (Action)null;
+                case "BLOCKPOLARPARAMETER":
+                    return R2007Plus ? WriteBlockPolarParameter : (Action)null;
+                case "BLOCKPOLARSTRETCHACTION":
+                    return R2007Plus ? WriteBlockPolarStretchAction : (Action)null;
+                case "BLOCKMOVEACTION":
+                    return R2007Plus ? WriteBlockMoveAction : (Action)null;
+                case "BLOCKSCALEACTION":
+                    return R2007Plus ? WriteBlockScaleAction : (Action)null;
+                case "BLOCKARRAYACTION":
+                    return R2007Plus ? WriteBlockArrayAction : (Action)null;
+                case "BLOCKLOOKUPPARAMETER":
+                    return R2007Plus ? WriteBlockLookupParameter : (Action)null;
+                case "BLOCKLOOKUPACTION":
+                    return R2007Plus ? WriteBlockLookupAction : (Action)null;
+                case "BLOCKALIGNMENTPARAMETER":
+                    return R2007Plus ? WriteBlockAlignmentParameter : (Action)null;
+                case "BLOCKALIGNMENTGRIP":
+                    return R2007Plus ? WriteBlockLinearGrip : (Action)null;
+                case "BLOCKPOINTPARAMETER":
+                    return R2007Plus ? WriteBlockPointParameter : (Action)null;
+                case "BLOCKBASEPOINTPARAMETER":
+                    return R2007Plus ? WriteBlockBasePointParameter : (Action)null;
                 case "ACDB_BLOCKREPRESENTATION_DATA":
                     return R2007Plus ? WriteBlockRepresentationData : (Action)null;
                 case "ACAD_TABLE":

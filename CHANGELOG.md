@@ -4355,6 +4355,19 @@ the types not read.
 style Standard, as the rows of a table style are, which AUDIT could not repair without it.
 **FIXED.** DWG: the multibyte codes of a DXF of R2004 and before (`\M+182A0`, the Shift-JIS a) are written as the letters they stand
 for, as the `\U+` escapes are, in every name and text; `\u+` and `\m+` in small letters too.
+**NEW.** DWG: the evaluation graphs of dynamic blocks with a visibility, flip, rotation, XY, polar, point, base point, lookup or
+alignment parameter, and with a polar stretch, move, scale, rotate, flip, array or lookup action, are read and written from R2007 (21
+more object types, with their grips; only the linear parameter with a stretch action was before), so AutoCAD keeps the dynamic
+behaviour of the block, and the anonymous block of one that no INSERT places. 72 of the 90 evaluation graphs of AutoCAD 2021's 120
+sample and template drawings go through (12 before): 41 with a visibility parameter, 14 with a flip, 12 with a rotation, 18 with a
+point and 16 with a base point parameter, 10 with a lookup, 24 with a move action, 12 with a scale, 6 with an alignment parameter, 4 with
+an array action, 2 with an XY and 2 with a polar parameter. AutoCAD's DXF of the DWGs written again holds their 1 492 objects as the
+DXF of the originals does, group for group (15 stretch actions list their entities in AutoCAD's own order), and `AUDIT` finds what it
+found before: 113 drawings at 0, 7 with the errors of their originals; the 71 test drawings audit at 0. The other 18 graphs hold a
+constraint parameter, a user parameter, a properties table or a proxy node and are left out whole, as before.
+**FIXED.** DWG: the unset value of a grip location component of a dynamic block (AutoCAD's DXF gives `double.MaxValue` as
+`1.797693134862314E+99`) was written as the number that text names, which AutoCAD read back as `1.797693134862313E+99`; it is written
+as the largest real, as AutoCAD keeps it.
 
 ## 13.11.0 (2026-11-07)
 
