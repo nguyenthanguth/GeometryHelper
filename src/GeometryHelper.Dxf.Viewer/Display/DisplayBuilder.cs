@@ -1159,6 +1159,15 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     return;
+                case DxfUnknownEntity mline
+                    when mline.DxfName == "MLINE" && TryExplode(mline, out IReadOnlyList<DxfEntity> mlineParts):
+                    // A multiline is drawn as AutoCAD breaks it: a line for each element along each segment, its caps and joints.
+                    foreach (DxfEntity part in mlineParts)
+                    {
+                        Draw(part, frame, list, handle);
+                    }
+
+                    return;
                 case DxfDBPoint point when _pdmode != 0:
                     AddPoint(point, frame.Matrix, list, style, handle, layerName);
                     return;

@@ -439,6 +439,19 @@ simple linetypes alone. `db.LoadMlineStyleFile("STANDARD", "acad.mln")` adds a m
 multiline styles, made where the drawing has none, each of its elements drawn with a linetype the drawing has. A style of
 that dictionary is a [`DxfMlineStyle`](xref:GeometryHelper.Dxf.DxfMlineStyle), read as AutoCAD's `MlineStyle`: its `Elements` (each a [`DxfMlineStyleElement`](xref:GeometryHelper.Dxf.DxfMlineStyleElement) of
 `Offset`, `Color` and `Linetype`), `Filled`, `FillColor`, the caps and the angles of its ends.
+A style is made in code as AutoCAD's `new MlineStyle()` is added to the dictionary: `db.AddMlineStyle("WALL", settings)` takes a
+[`DxfMlineStyleSettings`](xref:GeometryHelper.Dxf.DxfMlineStyleSettings) (a new one holds what the New Multiline Style
+dialog starts from, STANDARD's two elements 0.5 either side, square ends, no caps, no fill) and writes the MLINESTYLE as
+AutoCAD writes one, its name in capitals (`ghLow` is `GHLOW` in the record, `ghLow` in the dictionary), the flags of its
+caps, fill and joints (a start line 16, an end arc 1024, the fill 1, joints 2), the angles in degrees (51, 52) and the
+elements from the greatest offset to the least; `style.GetSettings()` reads them back and `style.Apply(settings)` rewrites them,
+keeping the name and handle. A multiline is built by [`DxfMlineBuilder`](xref:GeometryHelper.Dxf.DxfMlineBuilder), as AutoCAD's
+`new Mline()` with `AppendSegment`, `MoveVertexAt` and `IsClosed`: `Points`, `Scale`, `Justification` and `Normal` set, `Build()`
+giving the MLINE (a `DxfUnknownEntity`) and `Rebuild(mline)` writing the record of one anew after a point is moved. The record
+is AutoCAD's own: for STANDARD at scale 1 through (0, 0), (100, 0), (100, 100) the corner's miter is (-0.7071, 0.7071) and its
+second element at -1.4142 (the offset from the top, -1, over the cosine of the half angle); at scale 20 and justified at the
+middle the first parameters are 10 and -10. The cuts MLEDIT makes stay with the points when a record is read and written
+back, and a multiline is moved by `TransformBy` (a transformation that scales alike; the style and handle of a copy kept).
 
 ### Tidying up
 

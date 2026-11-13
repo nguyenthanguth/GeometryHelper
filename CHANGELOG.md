@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Multilines, R2.1 of the presenter's round two (AutoCAD 2021 parity; the prompts, messages and records probed in
+accoreconsole): MLINE (`ML`), MLEDIT and MLSTYLE with the variables CMLJUST, CMLSCALE and CMLSTYLE, three commands and
+three variables more in the registry. MLINE asks `Current settings: Justification = Top, Scale = 20.00, Style = STANDARD` and
+`Specify start point or [Justification/Scale/STyle]:`, then `Specify next point:` with Undo from the second point and Close
+from the third; the multiline is previewed as the points and the cursor make it and made when the command ends. MLEDIT asks
+`Enter mline editing option [CC/OC/MC/CT/OT/MT/CJ/AV/DV/CS/CA/WA]:` and does the closed, open and merged crosses and tees, the
+corner joint, a vertex added and deleted, a cut of one element or all, and the weld, leaving the records AutoCAD leaves
+(the style of three elements, scale 1, through (0, 0)-(100, 0) crossed by (50, -50)-(50, 50): CC breaks the first's elements
+from 50 to 51, OC also the second's outer ones from 49 to 50, a tee stops its elements at 49, the merged tee's middle one at
+49.5; a corner joint runs the elements on past the end by 1, 0.5 and 0). AutoCAD 2021 has no typed MLSTYLE, so the presenter
+asks its own: `[?/Current/New/Modify]`, then description, elements, caps, fill, joints and angles; STANDARD and a style a
+multiline is drawn by keep their elements. The 29 multilines of a drawing made by these commands, caps, fills, tees,
+corners, cuts, moves, scales, rotates and mirrors, open in AutoCAD 2021 with AUDIT finding 0 errors, and AutoCAD's own Explode
+of each gives the same lines as ours, 224 of them, to the sixth decimal. New in the library: `DxfMlineBuilder` (`Build`,
+`Rebuild`, from points, style, scale, justification, flags and normal, as AutoCAD writes an MLINE: STANDARD through (0, 0),
+(100, 0), (100, 100) has its corner's miter at (-0.7071, 0.7071) and its second element at -1.4142; justified at the middle at
+scale 20 the elements are 10 and -10), `DxfMlineJustification`, `DxfMlineStyleSettings`, `DxfDatabase.AddMlineStyle`,
+`DxfMlineStyle.GetSettings` and `Apply`, and a public constructor of `DxfMlineStyleElement`. An MLINE is now moved by
+`TransformBy` and `GetTransformedCopy` (a transformation that scales alike; its scale and cuts follow, a mirror keeps its
+elements on the same side), where it was refused; `Explode` of one draws what a corner joint or a tee leaves past the last
+vertex or before the first, which it dropped. The presenter draws an MLINE by its Explode.
+
 **NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
 EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
 variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog
