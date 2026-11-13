@@ -6,6 +6,10 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
+(`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had
+one, and a test keeps every new command described.
+
 **NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
 EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
 variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog

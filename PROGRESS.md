@@ -106,7 +106,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [ ] R2.2 (hatch2, running) HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
         -BOUNDARY refusing ellipses and splines as AutoCAD (from Batch 3b) (M)
   - [ ] R2.3 (splinedit2, running, with R3.1) SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
-  - [ ] R2.4 Dialogs, designed first then built: RENAME, Lineweight Settings, Boundary Creation, classic Insert, Check
+  - [ ] R2.4 (dialogs4, running) Dialogs, designed first then built: RENAME, Lineweight Settings, Boundary Creation, classic Insert, Check
         Spelling, and ribbon buttons for the commands of batches 1 to 5 (from Batches 1b, 2b, 3b) (M)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 (splinedit2, running) MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)

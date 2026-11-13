@@ -53,7 +53,8 @@ AutoCAD defaults, reads the aliases of a `.pgp` file you pick as AutoCAD does (`
 a comment, external commands passed over) and merges them, the file's winning: a file of `ZZ, *ZOOM`, `L, *PLINE`,
 `C, *CIRCLE`, `QQ, *NOSUCHCOMMAND` and one line of nonsense says "acad.pgp: 1 alias added, 1 changed, 1 unchanged; 1 skipped,
 its command not in this app; 1 line not read." No acad.pgp is shipped; nothing is taken until Apply or OK.
-
+Each command of the page has a short description of what it does
+(`DIVIDE`, "Points or blocks at equal parts of an object").
 The defaults are AutoCAD's where it has one. Numbers show as the units say: `FormatNumber(12345.678, 2)` is `12 345.68`, and
 with a comma for the thousands `12,345.68`. The thousands cannot be parted by the decimal separator: `ThousandsSeparator =
 "Point"` with `DecimalSeparator = "Point"` throws. `SetShortcuts(aliases, keys)` replaces the aliases and keys, and
