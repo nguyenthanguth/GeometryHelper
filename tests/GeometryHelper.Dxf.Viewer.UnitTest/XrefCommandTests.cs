@@ -106,7 +106,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "XA");
 
             Assert.Contains("Attach Xref \"grid\": ..\\xref\\grid.dxf", session.History);
-            Assert.Contains("\"grid\" loaded.", session.History);
+            Assert.Contains("\"grid\" loaded: " + Path.GetFullPath(grid), session.History);
             DxfBlockTableRecord block = document.Database.BlockTable["grid"];
             Assert.True(block.IsFromExternalReference);
             Assert.False(block.IsFromOverlayReference);
@@ -421,7 +421,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(Items<DisplayArc2>(document));
 
             Run(session, "-XREF", "R", "grid");
-            Assert.Contains("\"grid\" loaded.", session.History);
+            Assert.Contains("\"grid\" loaded: " + Path.GetFullPath(grid), session.History);
             Assert.Equal(CadReferenceStatus.Loaded, Assert.Single(document.Xrefs.GetReferences()).Status);
             Assert.Equal(2, Items<DisplayArc2>(document).Count);
         }

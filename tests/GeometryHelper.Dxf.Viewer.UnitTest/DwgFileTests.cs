@@ -174,7 +174,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "XATTACH");
 
-            Assert.Contains("\"grid\" loaded.", session.History);
+            Assert.Contains("\"grid\" loaded: " + Path.GetFullPath(grid), session.History);
             Assert.Equal(".\\grid.dwg", document.Database.BlockTable["grid"].PathName);
             DisplayPolyline2 line = Assert.Single(
                 document.GetDisplay(document.ModelSpace).Items.OfType<DisplayPolyline2>(),
@@ -283,7 +283,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(grid, seen);
             Assert.False(session.IsRunning);
-            Assert.Contains("\"grid\" loaded.", session.History);
+            Assert.Contains("\"grid\" loaded: " + Path.GetFullPath(grid), session.History);
         }
 
         [Fact]

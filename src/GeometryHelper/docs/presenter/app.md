@@ -230,7 +230,7 @@ document while it runs, so CLOSE raises `CloseRequested` and the window closes t
 
 The window is laid out as AutoCAD's own: a ribbon of tabs and panels with the layer box and a properties box, Properties on the
 right, the command line and the status bar at the bottom, and the Model and layout tabs at the bottom left of the canvas.
-A tab clicked, LAYOUT Set and TILEMODE are one undo step each, named LAYOUT: U goes back to the space shown before and REDO forward,
+A tab clicked, LAYOUT Set, TILEMODE and CTAB are one undo step each, named as AutoCAD 2021's U says it (LAYOUT for a tab and LAYOUT Set, TILEMODE, CTAB): U goes back to the space shown before and REDO forward,
 with the view each space had kept and no copy of the drawing (see [Editing](editing.md#model-space-through-a-viewport)). The Undo and Redo
 buttons, the canvas menu and Ctrl+Z take a wheel turn made less than 80 milliseconds before as a step first.
 The panel on the left lists the drawing files, and has no layouts or layers. The ribbon has, among its tabs, Insert, Annotate and View, a Plugins

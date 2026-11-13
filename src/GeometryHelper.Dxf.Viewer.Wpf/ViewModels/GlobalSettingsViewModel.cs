@@ -626,6 +626,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["QVDRAWINGCLOSE"] = "Hide the Drawings list",
             ["QVLAYOUT"] = "Show the Model and layout tabs",
             ["QVLAYOUTCLOSE"] = "Hide the Model and layout tabs",
+            ["CTAB"] = "The layout shown, by name",
             ["CTABLESTYLE"] = "The table style new tables take",
             ["DIMLINEAR"] = "Horizontal or vertical dimension",
             ["DIMALIGNED"] = "Dimension along two points",

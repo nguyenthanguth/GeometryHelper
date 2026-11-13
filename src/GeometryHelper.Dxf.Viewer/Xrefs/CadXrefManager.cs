@@ -347,16 +347,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// read once; null where it is unloaded, not found or cannot be read, <paramref name="missing"/> then the path to show
         /// for one not found or not read, null for one unloaded.
         /// </summary>
-        internal CadXrefContent ContentOf(
-            DxfBlockTableRecord block,
-            string referrerFolder,
-            bool topLevel,
-            out string missing
-        )
+        internal CadXrefContent ContentOf(DxfBlockTableRecord block, string referrerFolder, out string missing)
         {
             missing = null;
 
-            if (topLevel && _unloadedXrefs.Contains(block.Name))
+            if (_unloadedXrefs.Contains(block.Name))
             {
                 return null;
             }
@@ -462,6 +457,7 @@ namespace GeometryHelper.Dxf.Viewer
                 CadXrefContent content = found == null ? null : Read(found);
                 CadReferenceStatus status =
                     !shown ? CadReferenceStatus.Orphaned
+                    : _unloadedXrefs.Contains(block.Name) ? CadReferenceStatus.Unloaded
                     : found == null ? CadReferenceStatus.NotFound
                     : content.Database == null ? CadReferenceStatus.Unresolved
                     : content.HasChanged ? CadReferenceStatus.NeedsReloading

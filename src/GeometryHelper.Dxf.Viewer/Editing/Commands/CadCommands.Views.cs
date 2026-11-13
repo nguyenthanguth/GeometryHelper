@@ -731,9 +731,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
+                // The switch joins the command's step, as AutoCAD 2021's console undoes -VIEW Restore from the Model tab in one
+                // U that goes back to the tab, the layout shown by it.
+                c.OpenUndoStep();
+                CadEditResult shown = c.Document.ShowSpace(wanted, c.Command.Name);
+
+                if (!shown.Succeeded)
+                {
+                    c.Write(shown.Message);
+                    return;
+                }
+
                 wanted.PendingView = box;
-                c.Document.CurrentSpace = wanted;
-                c.Document.Selection.Clear();
             }
 
             string state = view.LayerState;

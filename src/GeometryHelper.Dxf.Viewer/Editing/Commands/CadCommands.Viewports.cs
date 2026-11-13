@@ -10,7 +10,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// MSPACE (MS): works in model space through the viewport last worked through, else the layout's first, as AutoCAD's;
-        /// refused on the Model tab and in a layout with no viewport to work through.
+        /// refused on the Model tab; in a layout with no viewport to work through it says "There are no active Model space
+        /// viewports.", and worked through one already "Already in model space." Each is one undo step, an empty one for the
+        /// two that say so, as AutoCAD 2021's console records them.
         /// </summary>
         private static IEnumerable<CadPrompt> ModelSpaceThrough(CadCommandContext c)
         {
@@ -20,8 +22,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (c.Document.ActiveViewport != null)
+            DxfViewport active = c.Document.ActiveViewport;
+
+            if (active != null)
             {
+                c.Write("Already in model space.");
+                c.Document.WorkThrough(active.Handle, "MSPACE");
                 yield break;
             }
 
@@ -29,11 +35,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (viewport == null)
             {
-                c.Write("There are no active model space viewports.");
-                yield break;
+                c.Write("There are no active Model space viewports.");
             }
 
-            c.Document.EnterViewport(viewport.Handle);
+            c.Document.WorkThrough(viewport?.Handle, "MSPACE");
         }
 
         /// <summary>
@@ -454,7 +459,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>PSPACE (PS): works on the paper of the layout shown again; refused on the Model tab.</summary>
+        /// <summary>
+        /// PSPACE (PS): works on the paper of the layout shown again; refused on the Model tab; on the paper already it says
+        /// "Already in paper space." One undo step, an empty one where it says so.
+        /// </summary>
         private static IEnumerable<CadPrompt> PaperSpace(CadCommandContext c)
         {
             if (c.Document.CurrentSpace.IsModel)
@@ -463,7 +471,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Document.LeaveViewport();
+            if (c.Document.ActiveViewport == null)
+            {
+                c.Write("Already in paper space.");
+            }
+
+            c.Document.WorkThrough(null, "PSPACE");
         }
     }
 }

@@ -238,6 +238,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             List<DxfBlockTableRecord> blocks = XrefsNamed(c.Database, names);
 
+            // Path and pathType say so before they ask anything more, as AutoCAD 2021 does.
+            if (blocks.Count == 0 && (option == "Path" || option == "pathType"))
+            {
+                c.Write("No matching xref names found.");
+                yield break;
+            }
+
             switch (option)
             {
                 case "?":
@@ -250,61 +257,10 @@ namespace GeometryHelper.Dxf.Viewer
                     BindXrefs(c, blocks, names);
                     break;
                 case "Unload":
-                    // Only a reference loaded is unloaded; "No matching and loaded xref names found." where all those named are not.
-                    List<DxfBlockTableRecord> loaded = blocks.FindAll(b => !c.Document.Xrefs.IsUnloaded(b.Name));
-
-                    if (loaded.Count == 0)
-                    {
-                        c.Write(
-                            blocks.Count == 0
-                                ? "No matching xref names found."
-                                : "No matching and loaded xref names found."
-                        );
-                        break;
-                    }
-
-                    foreach (DxfBlockTableRecord block in loaded)
-                    {
-                        c.Write("Xref \"" + block.Name + "\": " + block.PathName);
-                        c.Document.Xrefs.SetUnloaded(block.Name, true);
-                        string unloaded = block.Name;
-
-                        // Its layers and linetypes flagged 16, no longer resolved, as AutoCAD 2021 flags them.
-                        if (CadXrefLayers.Unresolve(c.Database, unloaded, false))
-                        {
-                            c.OpenUndoStep();
-                            c.Apply(
-                                new[]
-                                {
-                                    new CadEditRecord(
-                                        CadEditRecordKind.TableChanged,
-                                        null,
-                                        "Unload xref",
-                                        null,
-                                        unloaded
-                                    ),
-                                },
-                                s => CadXrefLayers.Unresolve(s.Database, unloaded, true)
-                            );
-                        }
-
-                        c.Write("\"" + block.Name + "\" is unloaded.");
-                    }
-
-                    Redisplay(c, loaded.Count);
+                    UnloadXrefs(c, blocks);
                     break;
                 case "Reload":
-                    if (blocks.Count == 0)
-                    {
-                        c.Write("No matching xref names found.");
-                    }
-
-                    foreach (DxfBlockTableRecord block in blocks)
-                    {
-                        ReloadXref(c, block);
-                    }
-
-                    Redisplay(c, blocks.Count);
+                    ReloadXrefs(c, blocks);
                     break;
                 case "Path":
                     foreach (DxfBlockTableRecord block in blocks)
@@ -509,6 +465,32 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            // A reference no INSERT of the drawing places and no reference placed bound with it is refused as nested, as AutoCAD 2021
+            // refuses an unreferenced one: "Xref "c" is nested and cannot be bound."
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfBlockTableRecord block in blocks.Where(b => b.GetBlockReferences(true).Count > 0))
+            {
+                covered.UnionWith(NestedUnder(tree, block.Name).Select(r => r.Name));
+            }
+
+            List<DxfBlockTableRecord> refused = blocks.FindAll(b =>
+                b.GetBlockReferences(true).Count == 0 && !covered.Contains(b.Name)
+            );
+
+            foreach (DxfBlockTableRecord block in refused)
+            {
+                c.Write("Xref \"" + block.Name + "\" is nested and cannot be bound.");
+            }
+
+            blocks = blocks.FindAll(b => !refused.Contains(b));
+
+            if (blocks.Count == 0)
+            {
+                return;
+            }
+
             List<DxfBlockTableRecord> unloaded = blocks.FindAll(b => xrefs.IsUnloaded(b.Name));
 
             if (unloaded.Count > 0)
@@ -666,10 +648,217 @@ namespace GeometryHelper.Dxf.Viewer
         internal static int BindType(CadCommandSession session) => (int)Kept(session, "bindtype", 0.0);
 
         /// <summary>
-        /// -XREF Reload: the file found again and read anew, in AutoCAD 2021's words; its layers and linetypes the drawing has
-        /// not yet written, and those it has flagged resolved again, as <see cref="CadXrefLayers.Bring"/> says.
+        /// -XREF Unload, in AutoCAD 2021's words: each reference named that is loaded (one orphaned counts as loaded) is
+        /// unloaded, "Xref "b": path" and ""b" is unloaded.", and each reference it places that the names do not name is said
+        /// after it, "Xref "c": path" and ""c" is orphaned." where it is loaded, ""c" is unloaded." where it is unloaded
+        /// already (probed on a host attaching b that places c: Unload b said both, Unload * said the two of them each on its
+        /// own, Unload c unloaded c alone). The parent goes before the references it places.
         /// </summary>
-        private static void ReloadXref(CadCommandContext c, DxfBlockTableRecord block)
+        private static void UnloadXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+
+            // Only a reference loaded is unloaded; "No matching and loaded xref names found." where all those named are not.
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            List<DxfBlockTableRecord> loaded = InTreeOrder(tree, blocks.FindAll(b => !xrefs.IsUnloaded(b.Name)));
+
+            if (loaded.Count == 0)
+            {
+                c.Write(
+                    blocks.Count == 0 ? "No matching xref names found." : "No matching and loaded xref names found."
+                );
+                return;
+            }
+
+            foreach (DxfBlockTableRecord block in loaded)
+            {
+                c.Write("Xref \"" + block.Name + "\": " + block.PathName);
+                xrefs.SetUnloaded(block.Name, true);
+                string unloaded = block.Name;
+
+                // Its layers and linetypes flagged 16, no longer resolved, as AutoCAD 2021 flags them.
+                if (CadXrefLayers.Unresolve(c.Database, unloaded, false))
+                {
+                    c.OpenUndoStep();
+                    c.Apply(
+                        new[]
+                        {
+                            new CadEditRecord(CadEditRecordKind.TableChanged, null, "Unload xref", null, unloaded),
+                        },
+                        s => CadXrefLayers.Unresolve(s.Database, unloaded, true)
+                    );
+                }
+
+                c.Write("\"" + block.Name + "\" is unloaded.");
+
+                foreach (CadExternalReference nested in NestedUnder(tree, block.Name))
+                {
+                    if (!blocks.Exists(b => string.Equals(b.Name, nested.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        SayNested(c, nested, xrefs.IsUnloaded(nested.Name) ? "unloaded" : "orphaned");
+                    }
+                }
+            }
+
+            Redisplay(c, loaded.Count);
+        }
+
+        /// <summary>
+        /// -XREF Reload, in AutoCAD 2021's words: "No matching xref names found." where none is named; a reference whose parent
+        /// is unloaded is only said orphaned and left as it is; any other is reloaded (see <see cref="ReloadXref"/>), and where
+        /// it was unloaded, or orphaned when the command began, restored, the references it places that are unloaded said so
+        /// after it. The parent goes before the references it places.
+        /// </summary>
+        private static void ReloadXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks)
+        {
+            if (blocks.Count == 0)
+            {
+                c.Write("No matching xref names found.");
+                return;
+            }
+
+            CadXrefManager xrefs = c.Document.Xrefs;
+            IReadOnlyList<CadExternalReference> tree = xrefs.GetReferences();
+            var notLoaded = new HashSet<string>(
+                tree.Where(r =>
+                        !r.IsImage
+                        && (r.Status == CadReferenceStatus.Orphaned || r.Status == CadReferenceStatus.Unloaded)
+                    )
+                    .Select(r => r.Name),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            foreach (DxfBlockTableRecord block in InTreeOrder(tree, blocks))
+            {
+                int at = IndexOf(tree, block.Name);
+
+                if (at >= 0 && ParentUnloaded(c, tree, at))
+                {
+                    SayNested(c, tree[at], "orphaned");
+                    continue;
+                }
+
+                // One no INSERT places, here or in a drawing it is nested in, is not reloaded, only said so and no longer unloaded.
+                if (at >= 0 && tree[at].Status == CadReferenceStatus.Unreferenced)
+                {
+                    xrefs.SetUnloaded(block.Name, false);
+                    SayNested(c, tree[at], "unreferenced");
+                    continue;
+                }
+
+                bool restored = xrefs.IsUnloaded(block.Name) || notLoaded.Contains(block.Name);
+                ReloadXref(c, block, restored);
+
+                if (!restored)
+                {
+                    continue;
+                }
+
+                foreach (CadExternalReference nested in NestedUnder(tree, block.Name))
+                {
+                    if (
+                        xrefs.IsUnloaded(nested.Name)
+                        && !blocks.Exists(b => string.Equals(b.Name, nested.Name, StringComparison.OrdinalIgnoreCase))
+                    )
+                    {
+                        SayNested(c, nested, "unloaded");
+                    }
+                }
+            }
+
+            Redisplay(c, blocks.Count);
+        }
+
+        /// <summary>Says a reference placed by another as AutoCAD does after the other was unloaded or reloaded: its name and path, then its state.</summary>
+        private static void SayNested(CadCommandContext c, CadExternalReference nested, string state)
+        {
+            string path = c.Database.BlockTable.Has(nested.Name)
+                ? c.Database.BlockTable[nested.Name].PathName
+                : nested.SavedPath;
+            c.Write("Xref \"" + nested.Name + "\": " + path);
+            c.Write("\"" + nested.Name + "\" is " + state + ".");
+        }
+
+        /// <summary>The blocks in the order of the palette's tree, a parent before the references it places, the rest after them in their own order.</summary>
+        private static List<DxfBlockTableRecord> InTreeOrder(
+            IReadOnlyList<CadExternalReference> tree,
+            List<DxfBlockTableRecord> blocks
+        )
+        {
+            var ordered = new List<DxfBlockTableRecord>();
+
+            foreach (CadExternalReference row in tree)
+            {
+                DxfBlockTableRecord block = row.IsImage
+                    ? null
+                    : blocks.Find(b => string.Equals(b.Name, row.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (block != null && !ordered.Contains(block))
+                {
+                    ordered.Add(block);
+                }
+            }
+
+            ordered.AddRange(blocks.Where(b => !ordered.Contains(b)));
+            return ordered;
+        }
+
+        /// <summary>The index of the row of a reference of a name in the tree, the references of a drawing before its images; -1 for none.</summary>
+        private static int IndexOf(IReadOnlyList<CadExternalReference> tree, string name)
+        {
+            for (int i = 0; i < tree.Count; i++)
+            {
+                if (!tree[i].IsImage && string.Equals(tree[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>The rows below the row of a name, which the reference places, nested to any depth, in the order of the tree.</summary>
+        private static List<CadExternalReference> NestedUnder(IReadOnlyList<CadExternalReference> tree, string name)
+        {
+            var found = new List<CadExternalReference>();
+            int at = IndexOf(tree, name);
+
+            for (int i = at + 1; at >= 0 && i < tree.Count && !tree[i].IsImage && tree[i].Depth > tree[at].Depth; i++)
+            {
+                found.Add(tree[i]);
+            }
+
+            return found;
+        }
+
+        /// <summary>Whether a row of the tree is placed by a reference now unloaded, however far up.</summary>
+        private static bool ParentUnloaded(CadCommandContext c, IReadOnlyList<CadExternalReference> tree, int at)
+        {
+            int depth = tree[at].Depth;
+
+            for (int i = at - 1; i >= 0 && depth > 0; i--)
+            {
+                if (tree[i].Depth < depth)
+                {
+                    depth = tree[i].Depth;
+
+                    if (c.Document.Xrefs.IsUnloaded(tree[i].Name))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// One reference reloaded, in AutoCAD 2021's words: "Reload Xref "b": path", then where its file did not change since it
+        /// was read "path has not changed.", else the file read anew and ""b" loaded: path"; where it was unloaded, ""b" has
+        /// been restored." Its layers and linetypes the drawing has not yet written, and those it has flagged resolved again,
+        /// are brought as <see cref="CadXrefLayers.Bring"/> says.
+        /// </summary>
+        private static void ReloadXref(CadCommandContext c, DxfBlockTableRecord block, bool restored)
         {
             c.Write("Reload Xref \"" + block.Name + "\": " + block.PathName);
             CadXrefManager xrefs = c.Document.Xrefs;
@@ -682,9 +871,20 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
+            bool changed = xrefs.Read(found).HasChanged;
             xrefs.Forget(found);
             DxfDatabase referenced = xrefs.Read(found).Database;
-            c.Write(referenced == null ? "Error: Unable to load " + found + "." : "\"" + block.Name + "\" loaded.");
+            c.Write(
+                referenced == null ? "Error: Unable to load " + found + "."
+                : changed ? "\"" + block.Name + "\" loaded: " + found
+                : found + " has not changed."
+            );
+
+            if (referenced != null && restored)
+            {
+                c.Write("\"" + block.Name + "\" has been restored.");
+            }
+
             string name = block.Name;
 
             if (referenced != null && CadXrefLayers.Bring(c.Database, name, referenced, false))
@@ -927,7 +1127,7 @@ namespace GeometryHelper.Dxf.Viewer
             else
             {
                 c.Write((request.IsOverlay ? "Overlay" : "Attach") + " Xref \"" + name + "\": " + request.SavedPath);
-                c.Write("\"" + name + "\" loaded.");
+                c.Write("\"" + name + "\" loaded: " + request.FileName);
             }
 
             var placing = new XrefPlacing
@@ -1207,6 +1407,13 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // A drawing with no image definition says so at the option and asks no names, as AutoCAD 2021 does.
+            if (ImagesNamed(c.Database, "*").Count == 0)
+            {
+                c.Write("No images in current drawing.");
+                yield break;
+            }
+
             string ask =
                 option == "?" ? "Images to list"
                 : option == "Path" ? "Enter list of images for path modification"
@@ -1223,6 +1430,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             List<KeyValuePair<string, DxfRasterImageDef>> images = ImagesNamed(c.Database, names);
+
+            if (images.Count == 0 && option != "?")
+            {
+                c.Write("No matching image names found.");
+                yield break;
+            }
 
             switch (option)
             {
