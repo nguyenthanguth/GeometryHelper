@@ -358,6 +358,19 @@ namespace GeometryHelper.Dxf.Viewer
             var move = new GeoVector3(at.X - basePoint.X, at.Y - basePoint.Y, 0.0);
             c.Apply(null, s =>
             {
+                // A layout never shown has no viewport 1 for its sheet yet; AutoCAD gives it one before the first viewport it gets
+                // (the file of a layout without one made AUDIT say "Invalid linetype eNullObjectId changed to ByLayer").
+                if (held.Exists(e => e is DxfViewport) && c.Space.Layout != null)
+                {
+                    int before = c.Space.Layout.GetViewports().Count;
+                    DxfViewport sheet = c.Space.Layout.Initialize();
+
+                    if (c.Space.Layout.GetViewports().Count > before)
+                    {
+                        s.Added(c.Space, sheet);
+                    }
+                }
+
                 IReadOnlyList<DxfEntity> copies = fragment.WblockCloneObjects(held, c.Space.Block);
                 GeoTransform3 transform = move.X == 0.0 && move.Y == 0.0 ? null : GeoTransform3.Translation(move);
 

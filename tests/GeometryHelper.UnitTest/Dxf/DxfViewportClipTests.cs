@@ -265,5 +265,101 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(60.0, read.Height, 9);
             Assert.Contains(read.Handle, boundary.GetPersistentReactorIds());
         }
+
+        /// <summary>A REGION in the layout: a box, a circle of radius 40 with a hole, or two squares apart, as AutoCAD 2021 makes them.</summary>
+        private static DxfUnknownEntity Region(DxfDatabase db, DxfBlockTableRecord sheet, params DxfCurve[][] loops)
+        {
+            DxfRegionShape shape = DxfRegionShape.Create(loops[0], loops.Skip(1).ToArray(), Tolerance.Default);
+            DxfUnknownEntity region = DxfUnknownEntity.CreateRegion(shape, db);
+            sheet.AppendEntity(region);
+            return region;
+        }
+
+        [Fact]
+        public void ARegionOfAnLShape_ClipsTheViewport_TakingTheBoxOfItsLoop_AndKeepingTheView()
+        {
+            DxfViewport viewport = Viewport(out DxfDatabase db, out DxfBlockTableRecord sheet);
+            DxfUnknownEntity region = Region(db, sheet, new DxfCurve[] { LShape() });
+
+            viewport.ClipTo(region);
+
+            // AutoCAD 2021 (VPCLIP on a REGION of the L): the frame is the box of the region, 80 by 60 about (100, 100), the view
+            // 120 high about the origin, the region itself the boundary with the viewport among its reactors.
+            Assert.True(viewport.NonRectClipOn);
+            Assert.Same(region, viewport.NonRectClipEntity);
+            Assert.Equal(new GeoPoint3(100, 100, 0), viewport.CenterPoint);
+            Assert.Equal(80.0, viewport.Width, 9);
+            Assert.Equal(60.0, viewport.Height, 9);
+            Assert.Equal(120.0, viewport.ViewHeight, 9);
+            Assert.Contains(viewport.Handle, region.GetPersistentReactorIds());
+        }
+
+        [Fact]
+        public void ARegionWithAHole_ClipsToTheBoxOfItsOuterLoop_AndAMovedRegionFitsAgain()
+        {
+            DxfViewport viewport = Viewport(out DxfDatabase db, out DxfBlockTableRecord sheet);
+            var outer = new DxfCircle(new GeoPoint3(100, 100, 0), GeoVector3.ZAxis, 40);
+            var hole = new DxfCircle(new GeoPoint3(100, 100, 0), GeoVector3.ZAxis, 15);
+            DxfUnknownEntity region = Region(db, sheet, new DxfCurve[] { outer }, new DxfCurve[] { hole });
+
+            viewport.ClipTo(region);
+
+            // AutoCAD 2021 (VPCLIP on a ring of area 4 319.69): 80 by 80 about (100, 100), the view 160 high at 1:2.
+            Assert.Equal(80.0, viewport.Width, 9);
+            Assert.Equal(80.0, viewport.Height, 9);
+            Assert.Equal(160.0, viewport.ViewHeight, 9);
+            Assert.Equal(0.5, viewport.CustomScale, 9);
+
+            region.TransformBy(GeoTransform3.Translation(new GeoVector3(30, 0, 0)));
+
+            Assert.True(viewport.FitToClip());
+            Assert.Equal(130.0, viewport.CenterPoint.X, 9);
+            Assert.Equal(60.0, viewport.ViewCenter.X, 9);
+        }
+
+        [Fact]
+        public void ARegionOfTwoFaces_ClipsToTheBoxOfBoth()
+        {
+            DxfViewport viewport = Viewport(out DxfDatabase db, out DxfBlockTableRecord sheet);
+            DxfUnknownEntity first = Region(
+                db,
+                sheet,
+                new DxfCurve[] { Polygon(60, 90, 0, 90, 90, 0, 90, 120, 0, 60, 120, 0) }
+            );
+            DxfUnknownEntity second = Region(
+                db,
+                sheet,
+                new DxfCurve[] { Polygon(120, 90, 0, 150, 90, 0, 150, 120, 0, 120, 120, 0) }
+            );
+            DxfRegionShape both = DxfRegionShape.Unite(
+                new[] { first.GetRegionShape(), second.GetRegionShape() },
+                Tolerance.Default
+            );
+            DxfUnknownEntity region = DxfUnknownEntity.CreateRegion(both, db);
+            sheet.AppendEntity(region);
+
+            viewport.ClipTo(region);
+
+            // AutoCAD 2021 (a union of two squares 30 by 30, 30 apart): the frame 90 by 30 about (105, 105).
+            Assert.Equal(90.0, viewport.Width, 9);
+            Assert.Equal(30.0, viewport.Height, 9);
+            Assert.Equal(105.0, viewport.CenterPoint.X, 9);
+        }
+
+        [Fact]
+        public void ARegionBoundary_SurvivesADxfRoundTrip()
+        {
+            DxfViewport viewport = Viewport(out DxfDatabase db, out DxfBlockTableRecord sheet);
+            DxfUnknownEntity region = Region(db, sheet, new DxfCurve[] { LShape() });
+            viewport.ClipTo(region);
+
+            DxfDatabase again = DxfDatabase.Parse(db.ToText());
+
+            DxfViewport read = ByHandle<DxfViewport>(again, viewport.Handle);
+            DxfUnknownEntity boundary = Assert.IsType<DxfUnknownEntity>(read.NonRectClipEntity);
+            Assert.Equal("REGION", boundary.DxfName);
+            Assert.Equal(region.Handle, boundary.Handle);
+            Assert.Equal(db.ToText(), again.ToText());
+        }
     }
 }

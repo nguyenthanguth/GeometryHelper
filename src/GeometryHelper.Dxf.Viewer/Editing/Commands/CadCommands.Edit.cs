@@ -1149,6 +1149,26 @@ namespace GeometryHelper.Dxf.Viewer
                     DxfEntity entity = s.Document.FindEntity(handle);
                     ReadableMirror kept = readable?.Invoke(entity);
 
+                    if (
+                        entity is DxfViewport plain
+                        && plain.NonRectClipEntity == null
+                        && (how == "Rotate" || how == "Mirror")
+                    )
+                    {
+                        // A viewport that is not clipped cannot be turned or mirrored itself: a mirror moves its centre, a quarter
+                        // turn turns it, any other turn makes it clipped (CadViewportClips.TurnPlain).
+                        DxfViewport turned = plain;
+
+                        if (copy)
+                        {
+                            turned = (DxfViewport)AppendCopy(s, handle, GeoTransform3.Identity);
+                            copies[handle] = turned;
+                        }
+
+                        CadViewportClips.TurnPlain(s, turned, transform, how);
+                        continue;
+                    }
+
                     if (copy)
                     {
                         // A clipped viewport copied with its boundary is not moved itself: it is tied to the copy of the boundary and

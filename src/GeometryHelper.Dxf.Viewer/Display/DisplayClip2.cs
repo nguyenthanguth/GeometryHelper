@@ -1,17 +1,22 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The outline of a clipped viewport (VPCLIP): a closed ring of vertices in paper units, an edge going from a vertex to the
     /// next, an arc where the bulge of the first is not nought, as a polyline's bulge says. A circle of radius 30 is two
-    /// vertices 60 apart, each with the bulge 1; an L-shape six vertices, every bulge nought.
+    /// vertices 60 apart, each with the bulge 1; an L-shape six vertices, every bulge nought. A region with a hole or of several
+    /// faces adds its other rings (<see cref="Others"/>), and a point is inside where it is inside an odd number of rings, so that a
+    /// ring inside the first is a hole.
     /// </summary>
     public sealed class DisplayClip2
     {
         private readonly double[] _xy;
         private readonly double[] _bulges;
         private readonly double[] _fine;
+        private readonly DisplayClip2[] _others;
 
         /// <summary>Makes an outline.</summary>
         /// <param name="xy">The vertices as x, y pairs, the last joined to the first.</param>
@@ -21,7 +26,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentException">Thrown when the vertices are fewer than two, or the bulges are not one to a
         /// vertex.</exception>
         public DisplayClip2(double[] xy, double[] bulges)
+            : this(xy, bulges, null) { }
+
+        /// <summary>Makes an outline of several rings, as a region with a hole or of several faces has.</summary>
+        /// <param name="xy">The vertices of the first ring as x, y pairs, the last joined to the first.</param>
+        /// <param name="bulges">The bulge of the edge leaving each vertex of the first ring.</param>
+        /// <param name="others">The other rings, each a <see cref="DisplayClip2"/> of its own; null or empty for none. A point is
+        /// inside the outline where it is inside an odd number of the rings.</param>
+        /// <exception cref="ArgumentNullException">Thrown when an array is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the vertices are fewer than two, or the bulges are not one to a
+        /// vertex.</exception>
+        public DisplayClip2(double[] xy, double[] bulges, IReadOnlyList<DisplayClip2> others)
         {
+            _others = others == null ? new DisplayClip2[0] : others.ToArray();
             _xy = xy ?? throw new ArgumentNullException(nameof(xy));
             _bulges = bulges ?? throw new ArgumentNullException(nameof(bulges));
 
@@ -42,7 +59,28 @@ namespace GeometryHelper.Dxf.Viewer
             _fine = Flatten(Math.Max((most - least) * 1E-5, 1E-9));
         }
 
-        /// <summary>Gets the number of vertices.</summary>
+        /// <summary>Gets the rings after the first, a hole or another face of the region the outline is of; none for an outline of one ring.</summary>
+        public IReadOnlyList<DisplayClip2> Others => _others;
+
+        /// <summary>
+        /// Gets every ring as a ring of straight edges, as <see cref="Flatten"/> gives the first, the first ring first and then the
+        /// others in order: the rings to fill even-odd, so that a ring inside another is a hole.
+        /// </summary>
+        /// <param name="tolerance">The farthest a chord may lie from its arc, in paper units; above nought.</param>
+        /// <returns>The rings, each as x, y pairs, the last not repeating the first.</returns>
+        public IReadOnlyList<double[]> FlattenAll(double tolerance)
+        {
+            var rings = new List<double[]>(1 + _others.Length) { Flatten(tolerance) };
+
+            foreach (DisplayClip2 other in _others)
+            {
+                rings.Add(other.Flatten(tolerance));
+            }
+
+            return rings;
+        }
+
+        /// <summary>Gets the number of vertices of the first ring.</summary>
         public int Count => _bulges.Length;
 
         /// <summary>Gets the x of a vertex.</summary>
@@ -119,11 +157,23 @@ namespace GeometryHelper.Dxf.Viewer
             return points.ToArray();
         }
 
-        /// <summary>Gets whether a point lies inside the outline; a point on an edge may fall either side.</summary>
+        /// <summary>Gets whether a point lies inside the outline, inside an odd number of its rings; a point on an edge may fall either side.</summary>
         /// <param name="x">The x, in paper units.</param>
         /// <param name="y">The y, in paper units.</param>
         /// <returns>Whether it does.</returns>
         public bool Contains(double x, double y)
+        {
+            bool inside = Within(x, y);
+
+            foreach (DisplayClip2 other in _others)
+            {
+                inside ^= other.Within(x, y);
+            }
+
+            return inside;
+        }
+
+        private bool Within(double x, double y)
         {
             int m = _fine.Length / 2;
             bool inside = false;
@@ -149,6 +199,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="y">The y, in paper units.</param>
         /// <returns>The distance, in paper units.</returns>
         public double DistanceToEdge(double x, double y)
+        {
+            double best = EdgeDistance(x, y);
+
+            foreach (DisplayClip2 other in _others)
+            {
+                best = Math.Min(best, other.EdgeDistance(x, y));
+            }
+
+            return best;
+        }
+
+        private double EdgeDistance(double x, double y)
         {
             int m = _fine.Length / 2;
             double best = double.MaxValue;

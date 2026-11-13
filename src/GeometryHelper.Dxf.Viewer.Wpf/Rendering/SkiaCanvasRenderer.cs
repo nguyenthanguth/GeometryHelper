@@ -503,7 +503,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 IReadOnlyList<double[]> rings =
                     item is DisplayFill2 mask ? mask.Rings
                     : item is DisplayViewport2 clipped && clipped.Clip != null
-                        ? new[] { clipped.Clip.Flatten(OutlineTolerance / zoom) }
+                        ? clipped.Clip.FlattenAll(OutlineTolerance / zoom)
                     : new[] { Frame(item.Bounds) };
 
                 using (SKPath path = RingsPath(rings, m))
@@ -2125,7 +2125,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // A viewport clipped by an entity shows model space through the entity's outline, arcs kept to a tenth of a pixel.
             if (viewport.Clip != null)
             {
-                using (SKPath outline = RingsPath(new[] { viewport.Clip.Flatten(OutlineTolerance / m.Scale) }, m))
+                using (SKPath outline = RingsPath(viewport.Clip.FlattenAll(OutlineTolerance / m.Scale), m))
                 {
                     canvas.ClipPath(outline, SKClipOperation.Intersect, true);
                 }
@@ -2178,7 +2178,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     stroke.Color = Color(options.SelectionColor, 255);
                     stroke.StrokeWidth = 2f;
 
-                    using (SKPath outline = RingsPath(new[] { viewport.Clip.Flatten(OutlineTolerance / m.Scale) }, m))
+                    using (SKPath outline = RingsPath(viewport.Clip.FlattenAll(OutlineTolerance / m.Scale), m))
                     {
                         canvas.DrawPath(outline, stroke);
                     }

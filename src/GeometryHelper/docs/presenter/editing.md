@@ -2018,9 +2018,10 @@ the model distance given, and ZOOM Window fits the box as the view turns it.
 
 VPCLIP clips a viewport of the layout shown as AutoCAD 2021's does, word for word as its console prints them: `Select viewport
 to clip:` (a line or a circle picked says `Object selected was not a viewport.` and asks again), then `Select clipping
-object or [Polygonal] <Polygonal>:`. A closed polyline, circle, ellipse or closed spline picked becomes the border of the
+object or [Polygonal] <Polygonal>:`. A closed polyline, circle, ellipse, closed spline or region picked becomes the border of the
 viewport and the frame its box, the view kept in place (a viewport 200 by 100 about (110, 60) at 1:10, clipped to a circle
-of radius 30 about (110, 60), is 60 by 60 there with its view height 600); an open polyline says `Clip object must be
+of radius 30 about (110, 60), is 60 by 60 there with its view height 600; a region of a ring, a circle of radius 40 less one of 15, makes
+it 80 by 80 and shows nothing in the hole, and one of two faces shows two windows, as AutoCAD 2021 plotted them); an open polyline says `Clip object must be
 closed.`, a viewport `Invalid: Clip entity not currently regen'ed.`, and the command asks `Select object to clip viewport:`
 again. Polygonal asks `Specify start point:` and `Specify next point or [Arc/Length/Undo]:` (with Close from the second
 segment on) as PLINE does, the arcs by their end point or Angle, CEnter, Direction, Radius and Second pt (`Enter an arc boundary
@@ -2043,14 +2044,36 @@ and moves the view's centre to (2 100, 1 100); ROTATE turns the view by the angl
 frame's centre carried by the rotation and T the view's target, whatever the scale of the view: turned 45 degrees about the
 origin, the viewport above is about (35.355, 120.208), twisted 45 degrees, with its view centre at (767.107, 2 011.320), and
 turned 90 degrees about its own middle it stays where it is, twisted 90 degrees, its view centre at (-940, 1 890). A copy
-made by COPY, ROTATE Copy or MIRROR is tied to the copy of its boundary and fitted the same way. Copied (COPYCLIP) and pasted
+made by COPY, ROTATE Copy or MIRROR is tied to the copy of its boundary and fitted the same way, with one difference for a
+mirror: a copy whose frame changes size (a triangle with the box 80 by 60, mirrored about a line that is not horizontal or
+vertical, has a box 60 by 80) has the view's centre moved by the step of the frame's centre from where the copy stands over the
+scale of the view, as a stretch moves it, where one that keeps its size keeps the view (a circle, or any boundary mirrored about
+a horizontal or vertical line; a line 3E-7 degrees off horizontal still keeps it, one 1E-6 degrees off moves it, which is the
+size AutoCAD 2021 tells apart). A mirror that erases the original moves the view only by the step from where the frame's centre
+went with the mirror to the box of the mirrored boundary, which is nothing where the box is the mirror of the old one.
+A viewport that is not clipped is turned and mirrored too, as AutoCAD 2021's ROTATE and MIRROR do: a mirror puts the centre of
+the frame at its mirror image and keeps its size and its view; a turn by a multiple of a quarter turn (within a millionth of a
+radian, so 90.00001 degrees is one) turns the frame about the base point, its width and height swapped for 90 and 270 degrees,
+and the view by the angle; any other turn makes the viewport clipped, to a new closed 2D polyline of the four corners of its
+frame turned (lower left first, counter-clockwise) on the viewport's layer, the frame the box of that polyline. The twist grows
+by the angle, the view height by the frame's, and the view's centre becomes the turn by the new twist of the centre less the
+target. A viewport 200 by 100 about (110, 60) showing (1 000, 500) at 1:10, turned 45 degrees about the origin, is clipped to
+the corners (0, 14.142), (141.421, 155.564), (70.711, 226.274) and (-70.711, 84.853), 212.132 square about (35.355, 120.208),
+twisted 45 degrees, its view centre at (353.553, 1 060.660), 2 121.32 high; turned 90 degrees about the origin it is 100 by 200
+about (-60, 110), twisted 90 degrees, its view centre at (-500, 1 000). MVIEW's Object option makes a viewport of a closed
+polyline, circle, ellipse, spline or region picked (`Select object to clip viewport:`): its frame the box of the object, the
+object its border; an open polyline says `Clip object must be closed.` and any other entity `Invalid viewport clip object.`,
+and the command asks again. Copied (COPYCLIP) and pasted
 (PASTECLIP) into another drawing the pair comes along whole, the copy of the viewport naming the copy of its boundary (group
-340) and listed as its reactor, as AutoCAD 2021's `WblockCloneObjects` brings it; PASTEBLOCK does not take viewports, and
-a paste into model space is refused. An image of the layout (IMAGEOUT, PNGOUT) and its plot to a PNG show the model only
+340) and listed as its reactor, as AutoCAD 2021's `WblockCloneObjects` brings it, into a layout never shown after the viewport
+1 of its sheet, which AutoCAD's AUDIT asks for (the drawing without it said `Invalid linetype eNullObjectId changed to ByLayer`);
+PASTEBLOCK does not take viewports (its refusal is the library's own wording: no string of AutoCAD 2021's resources says it),
+and a paste into model space is refused. A click on the boundary of a clipped viewport picks the pair as one object, not a list of the
+boundary and the viewport under it (SELECTIONCYCLING 2). An image of the layout (IMAGEOUT, PNGOUT) and its plot to a PNG show the model only
 inside the outline of the boundary, as the canvas does (no pixel of the model lies outside a circle clip, where an unclipped
 viewport shows walls beyond it); a plot to a PDF is drawn by the same renderer. Through the viewport (MSPACE) the cursor, the picks and the snaps work inside the outline alone, the thick frame follows it,
 and the viewport's grid is drawn inside it. [`CadViewportClips`](xref:GeometryHelper.Dxf.Viewer.CadViewportClips) gives
-`WithPartners` and `WhyNotClip`.
+`WithPartners`, `WithoutPartners`, `WhyNotClip` and `WhyNotMakeViewport`.
 
 ### Clipping a block or an external reference
 

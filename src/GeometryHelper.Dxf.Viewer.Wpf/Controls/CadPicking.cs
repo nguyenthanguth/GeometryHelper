@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         /// <summary>
         /// Gets the objects SELECTIONCYCLING 2 lists for a click: those within the aperture, the nearest first and of those as
-        /// near the one drawn on top first (<see cref="PickIndex.Pick"/>), where more than one lies there and the click would
+        /// near the one drawn on top first (<see cref="PickIndex.Pick"/>), a clipped viewport and its boundary counting as one
+        /// (<see cref="CadViewportClips.WithoutPartners"/>), where more than one lies there and the click would
         /// pick (no command, or "Select objects:" and the like); else none.
         /// </summary>
         public static IReadOnlyList<string> Overlapping(
@@ -31,7 +32,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Array.Empty<string>();
             }
 
-            IReadOnlyList<string> found = document.GetPickIndex(space).Pick(at.X, at.Y, aperture);
+            IReadOnlyList<string> found = CadViewportClips.WithoutPartners(
+                document,
+                document.GetPickIndex(space).Pick(at.X, at.Y, aperture)
+            );
             return found.Count > 1 ? found : (IReadOnlyList<string>)Array.Empty<string>();
         }
 

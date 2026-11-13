@@ -292,7 +292,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the entity that clips the viewport (group 340), as AutoCAD's <c>NonRectClipEntityId</c> names it: a circle, an
-        /// ellipse, a closed polyline or a closed spline of the same layout, drawn as the border of the viewport. Null for a
+        /// ellipse, a closed polyline, a closed spline or a REGION of the same layout, drawn as the border of the viewport. Null for a
         /// viewport that is not clipped (<see cref="NonRectClipOn"/>), one whose boundary the drawing no longer holds, and one of a
         /// file older than R2000.
         /// </summary>
@@ -318,10 +318,12 @@ namespace GeometryHelper.Dxf
         /// viewport 100 by 80 about (100, 100) at 1:2 clipped to a circle of radius 30 about (110, 105) is 60 by 60 about
         /// (110, 105), the model point at its centre now the one that lay 10 right and 5 above, 20 and 10 in model units. The
         /// boundary stays the entity it is, with the viewport among its reactors (102 <c>{ACAD_REACTORS</c>), as AutoCAD writes
-        /// it; the boundary the viewport had before stays an entity of the layout, let go.
+        /// it; the boundary the viewport had before stays an entity of the layout, let go. A region is a boundary as it is: one
+        /// of a ring (a circle of radius 40 less one of 15) makes the frame 80 by 80, the box of its outer loop, and shows nothing
+        /// in the hole, and one of two squares apart has a frame round both.
         /// </summary>
-        /// <param name="boundary">A circle, a whole ellipse, a closed polyline (LWPOLYLINE or 2D POLYLINE) or a closed spline of the
-        /// viewport's block, which is not the viewport.</param>
+        /// <param name="boundary">A circle, a whole ellipse, a closed polyline (LWPOLYLINE or 2D POLYLINE), a closed spline or a REGION whose
+        /// shape is read (<see cref="DxfUnknownEntity.GetRegionShape"/>) of the viewport's block, which is not the viewport.</param>
         /// <exception cref="ArgumentNullException">Thrown when the boundary is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the boundary is not an entity of the viewport's block, is erased, has no area, or is not a closed circle, ellipse, polyline or spline, as AutoCAD says "Clip object must be closed."</exception>
         /// <exception cref="InvalidOperationException">Thrown when the viewport is erased or in no file, or the file is older than R2000, which has no such link.</exception>
@@ -347,23 +349,14 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            if (
-                !(
-                    boundary is DxfCircle
-                    || boundary is DxfEllipse
-                    || boundary is DxfPolyline
-                    || boundary is DxfPolyline2d
-                    || boundary is DxfSpline
-                ) || !((DxfCurve)boundary).Closed
-            )
+            if (!CanClip(boundary, out GeoAabb3 box))
             {
                 throw new ArgumentException(
-                    "Clip object must be closed: a circle, a whole ellipse, a closed polyline or a closed spline.",
+                    "Clip object must be closed: a circle, a whole ellipse, a closed polyline, a closed spline or a region.",
                     nameof(boundary)
                 );
             }
 
-            GeoAabb3 box = boundary.GeometricExtents;
             double least = Tolerance.Default.EqualPoint;
 
             if (!(box.Max.X - box.Min.X > least) || !(box.Max.Y - box.Min.Y > least))
@@ -411,7 +404,12 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            KeyValuePair<int, string>[] groups = FitGroups(boundary.GeometricExtents, anchor);
+            if (!CanClip(boundary, out GeoAabb3 box))
+            {
+                return false;
+            }
+
+            KeyValuePair<int, string>[] groups = FitGroups(box, anchor);
 
             if (groups.Length == 0)
             {
@@ -474,6 +472,48 @@ namespace GeometryHelper.Dxf
 
             SetGroups(new[] { new KeyValuePair<int, string>(340, boundary.Handle) });
             Item.File.SetReactor(boundary.Item, Handle, true);
+        }
+
+        /// <summary>
+        /// Whether an entity can clip a viewport, and the box of it the frame is fitted to: a closed circle, ellipse, polyline or
+        /// spline by its extents, a REGION whose shape is read by the box of its loops (a REGION has no extents of its own here).
+        /// </summary>
+        internal static bool CanClip(DxfEntity boundary, out GeoAabb3 box)
+        {
+            box = default;
+
+            if (boundary is DxfUnknownEntity region)
+            {
+                DxfRegionShape shape = region.GetRegionShape();
+                bool any = false;
+
+                foreach (DxfRegionLoop loop in shape?.Loops ?? Array.Empty<DxfRegionLoop>())
+                {
+                    foreach (DxfCurve curve in loop.Curves)
+                    {
+                        box = any ? box.Union(curve.GeometricExtents) : curve.GeometricExtents;
+                        any = true;
+                    }
+                }
+
+                return any;
+            }
+
+            if (
+                !(
+                    boundary is DxfCircle
+                    || boundary is DxfEllipse
+                    || boundary is DxfPolyline
+                    || boundary is DxfPolyline2d
+                    || boundary is DxfSpline
+                ) || !((DxfCurve)boundary).Closed
+            )
+            {
+                return false;
+            }
+
+            box = boundary.GeometricExtents;
+            return true;
         }
 
         private void CheckClippable()
