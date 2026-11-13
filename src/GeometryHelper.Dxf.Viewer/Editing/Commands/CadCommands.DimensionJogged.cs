@@ -482,14 +482,23 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (onLine)
             {
-                GeoPoint2 middle = center + u * Dot(at - center, u);
+                double along = Dot(at - center, u);
                 // Level words take out of the line what runs through their box grown by the gap.
                 double half = level ? Chord(width, height, gap, wordsAngle - Math.Atan2(u.Y, u.X)) : width / 2.0 + gap;
+
+                // Words whose box straddles the rim leave the line a box all on their side of their point, not about it, as AutoCAD
+                // 2021 breaks it: "R8" of a circle of 20 put 21.795 out (the box would run from 18.044 to 25.544) has the line gone
+                // from 21.795 to 29.295.
+                if (along - half < radius - 1E-9 && along + half > radius + 1E-9)
+                {
+                    along += along >= radius ? half : -half;
+                }
+
+                GeoPoint2 middle = center + u * along;
                 run = Broken(run, middle, u, half);
 
                 // Words reaching past the back of the arrowhead: AutoCAD 2021 still draws the line from the back out to the edge of
                 // their box on the far side, over the arrowhead (a radius of 8 at 30 degrees, "R8" put 4 out: from 5.5 to 6.708).
-                double along = Dot(at - center, u);
                 double end = Dot(arrowBack - center, u);
 
                 if (along - half < end - 1E-9 && along + half > end + 1E-9)

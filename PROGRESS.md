@@ -286,10 +286,13 @@ the ones wanted.
       41 of 4 680 to 0), DIMTEDIT's DIMTMOVE 1 leader threshold (gap + max(arrow, height/2 + DIMEXE)), a jogged radius
       keeping level words level with AutoCAD's stubs (j1 162 to 18), the arc break of wide angular words (a2 to 0), letters
       Arial lacks measured as AutoCAD sets them; harness in .claude/gk/dims-harness9
-- [ ] (dims10, running) Dimension follow-ups 10: the angular leader band for words outside the sector (a4 74 of 712; a7 data in
-      dims-harness9 acad-ac, no box-circle model fits); j1's last 18 (words moved to the jog); level landings W or L under
-      DIMTAD 1/4 in a tight circle or behind the centre (t6 99 of 1 584, r6 36 of 1 024); points exactly on an extension line
-      of an aligned dimension (m2 14, AutoCAD's rounding); lines exactly 15 degrees from level (S)
+- [x] Dimension follow-ups 10 (dims10): the angular leader band by the point's direction (a4 74 to 15 of 712, a7 941 to 159
+      of 5 832), level landings W or L inside a circle under DIMTAD 1/4 (t6 99 to 15, r6 36 to 8), jogged words straddling
+      the rim (j1 18 to 0, j2 466 to 16 of 1 136); the arc-length threshold under DIMTMOVE 1 follows the new band; harness
+      .claude/gk/dims-harness11
+- [ ] Dimension follow-ups 11: the angular band's jump at the height of the arc's middle; diameters of 6 put out at f 1.6
+      (t6 15); DIMTMOVE 2 arrowhead behind the centre (r6 8); near-level ties at exactly 2 arrowheads; jogged words exactly
+      on the rim; points exactly on an extension line of an aligned dimension (m2 14); lines exactly 15 degrees (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

@@ -334,7 +334,20 @@ namespace GeometryHelper.Dxf.Viewer
             else if (single)
             {
                 // Inside where they were put: the line from the back of the arrowhead in to the words.
-                wordsAt = words2.Along(lines, back, knee, -u, level, false, ref angle, clearOfBend: false);
+                wordsAt = words2.Along(
+                    lines,
+                    back,
+                    knee,
+                    -u,
+                    level,
+                    false,
+                    ref angle,
+                    clearOfBend: false,
+                    lineLength: style.Dimtmove == 1 ? double.PositiveInfinity : (diameter ? 2.0 * radius : radius),
+                    leftTheLine: style.Dimtmove == 1
+                        && along < -1E-9
+                        && (!diameter || (location - center).Length > radius + 1E-9)
+                );
             }
             else if (diameter && !arrowOut)
             {
@@ -682,8 +695,27 @@ namespace GeometryHelper.Dxf.Viewer
             private double Side => _tad == 4 ? -1.0 : 1.0;
 
             /// <summary>
+            /// Whether level words inside a radius or a diameter (DIMTAD 1 and 4) keep to its line, standing level with a landing an
+            /// arrowhead long, or leave it for a wider landing, above or below. AutoCAD 2021 keeps them where the line, whole, has
+            /// two arrowheads of room (and the words' height more on a line that runs down) and, on a slanting line, the width of
+            /// the words and a gap as well, as far as it leans toward level: a radius of 8 with "R8" at 30 degrees does not keep
+            /// them (it would need 5 + 4.66 across), at 60 degrees it does (5 + 2.3). On a line within 15 degrees of level only the
+            /// arrowheads and the height count. Fitted over 17 000 probes (98 of 100 right; wide words on steep lines are the
+            /// ones it misses).
+            /// </summary>
+            private bool KeepsToLine(double lineLength, double across, bool runsDown, bool nearlyLevel)
+            {
+                double need =
+                    2.0 * _arrow + (runsDown ? _height : 0.0) + (nearlyLevel ? 0.0 : (_width + _gap) * across);
+                return !(lineLength < need - 1E-9);
+            }
+
+            /// <summary>
             /// Words at the end of a line from <paramref name="start"/> that runs <paramref name="way"/> to <paramref name="bend"/>:
             /// along it, on it (the line stopped a gap short of them) or beside it (run on under them); or kept level on a landing.
+            /// <paramref name="lineLength"/> is the length of the whole line the words are inside, the radius or the diameter, for
+            /// level words under DIMTAD 1 and 4 inside it: they keep to the line only where it has the room (see
+            /// <see cref="KeepsToLine"/>), else they stand above a landing.
             /// </summary>
             internal GeoPoint2 Along(
                 List<KeyValuePair<GeoPoint2, GeoPoint2>> lines,
@@ -694,7 +726,9 @@ namespace GeometryHelper.Dxf.Viewer
                 bool outside,
                 ref double angle,
                 bool clearOfBend,
-                bool pushed = false
+                bool pushed = false,
+                double lineLength = double.PositiveInfinity,
+                bool leftTheLine = false
             )
             {
                 // Level words pushed out past the rim by the room next to it stand on their landing under DIMTAD 1 and 4 as under 0,
@@ -702,6 +736,20 @@ namespace GeometryHelper.Dxf.Viewer
                 bool on =
                     On(level && !outside)
                     || (pushed && level && (_tad == 1 || _tad == 4) && Math.Abs(way.X) >= Math.Sin(Math.PI / 12.0));
+                bool nearly = Math.Abs(way.Y) < Math.Sin(Math.PI / 12.0) - 1E-9;
+                bool inside =
+                    level
+                    && !outside
+                    && (_tad == 1 || _tad == 4)
+                    && (leftTheLine || !double.IsPositiveInfinity(lineLength));
+
+                if (inside)
+                {
+                    // way runs from the words toward the centre, so a line that runs down has way.Y above nought.
+                    on = !leftTheLine && KeepsToLine(lineLength, Math.Abs(way.X), way.Y > 1E-9, nearly);
+                }
+
+                bool wide = inside && !on && !nearly && !leftTheLine;
 
                 if (level)
                 {
@@ -724,7 +772,7 @@ namespace GeometryHelper.Dxf.Viewer
                     // On a line within 15 degrees of level (not exactly 15), outside or inside for words on the line, as AutoCAD 2021
                     // draws them: words on it have no landing, standing a gap past the bend, and words off it the landing under them;
                     // both are recorded by the bend.
-                    bool nearlyLevel = (outside || on) && Math.Abs(way.Y) < Math.Sin(Math.PI / 12.0) - 1E-9;
+                    bool nearlyLevel = (outside || on || inside) && nearly;
 
                     if (nearlyLevel && on)
                     {
@@ -732,11 +780,15 @@ namespace GeometryHelper.Dxf.Viewer
                         return bend + x * (_gap + _width / 2.0) + up * _onOffset;
                     }
 
-                    double landing = on ? _arrow : _width + _gap + (_box ? _gap : 0.0);
+                    // Words inside that left the line stand where they stood on it, an arrowhead and a gap past its end, above a
+                    // landing run on under them.
+                    double landing =
+                        on ? _arrow
+                        : wide ? _arrow + _width + _gap + (_box ? _gap : 0.0)
+                        : _width + _gap + (_box ? _gap : 0.0);
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + x * landing));
-                    GeoPoint2 wordsMiddle = on
-                        ? bend + x * (_arrow + _gap + _width / 2.0)
-                        : bend + x * (_gap + _width / 2.0);
+                    GeoPoint2 wordsMiddle =
+                        on || wide ? bend + x * (_arrow + _gap + _width / 2.0) : bend + x * (_gap + _width / 2.0);
                     Standing = nearlyLevel || _bendRecorded ? bend : wordsMiddle;
                     GeoPoint2 at = wordsMiddle + (on ? up * _onOffset : up * (Side * _lift));
 
@@ -1128,18 +1180,62 @@ namespace GeometryHelper.Dxf.Viewer
                     // the leader appears once the end of its landing, a landing's length (half the words, the gap and an arrowhead)
                     // before the point, is 1.405 and 0.137 heights of the words off the arc as the landing leans: 6.85 off for 2.5, 2.5
                     // and 0.625, and 12.3 for "60.00%%d" of 4. The fit holds to 0.05 for words as "60%%d", to 0.1 for wider.
+                    // The band follows the direction the point lies in from the vertex, and is not the same either side of the arc:
+                    // refitted over 11 000 probes of "60%%d" put at every 5 degrees (and on a grid) about an angle of 60 degrees,
+                    // outside it is what it was at 30 degrees (0.866 landings) and 0.6 landings more per unit of cosine of the
+                    // direction, inside it 0.065 landings and 0.8 per unit (98 of 100 right; the band still jumps a third of a
+                    // landing where the point crosses the height of the arc's middle, which it does not follow).
+                    double distance = (at - vertex).Length;
+                    double offArc = distance - radius;
+                    double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
+                    double basicOff = 1.405 + 0.137 * height;
+                    double landingLen = width / 2.0 + gap + arrow;
+
+                    // Words exactly above or below the vertex, under DIMTAD 1 and 4, are the one direction AutoCAD 2021 draws another
+                    // leader for: its landing runs under (over) the words, from a gap past them on the side the leader comes from to
+                    // their far end, and the band is as wide as it is a little off level (0.79 landings out, 0.7 in).
+                    bool straight = Math.Abs(at.X - vertex.X) < 1E-9 && (style.Dimtad == 1 || style.Dimtad == 4);
+
                     if (
                         (at - start).Length > gap + height / 2.0
-                        && Math.Abs((at - vertex).Length - radius)
-                            > 1.405 + 0.137 * height + Math.Cos(Math.PI / 6.0) * (width / 2.0 + gap + arrow)
+                        && (
+                            straight
+                                ? offArc > basicOff + landingLen * 0.79 || offArc < -(basicOff + landingLen * 0.7)
+                                : offArc
+                                    > basicOff
+                                        + landingLen
+                                            * (Math.Cos(Math.PI / 6.0) + 0.6 * (leans - Math.Cos(Math.PI / 6.0)))
+                                    || offArc < -(basicOff + landingLen * (0.065 + 0.8 * leans))
+                        )
                     )
                     {
                         double flat = at.X >= start.X ? 1.0 : -1.0;
-                        GeoPoint2 knee = at - new GeoVector2(flat, 0.0) * (width / 2.0 + gap + arrow);
-                        lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, knee));
-                        lines.Add(
-                            new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + new GeoVector2(flat, 0.0) * arrow)
-                        );
+
+                        if (straight)
+                        {
+                            double under = at.Y + (style.Dimtad == 4 ? lift : -lift);
+                            var knee = new GeoPoint2(at.X - flat * (width / 2.0 + gap), under);
+                            lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, knee));
+                            lines.Add(
+                                new KeyValuePair<GeoPoint2, GeoPoint2>(
+                                    knee,
+                                    new GeoPoint2(at.X + flat * width / 2.0, under)
+                                )
+                            );
+                        }
+                        else
+                        {
+                            GeoPoint2 knee = at - new GeoVector2(flat, 0.0) * (width / 2.0 + gap + arrow);
+                            lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start, knee));
+                            lines.Add(
+                                new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + new GeoVector2(flat, 0.0) * arrow)
+                            );
+                        }
+                    }
+                    else if (straight)
+                    {
+                        // Without a leader such words stand a gap and half their height above (below) the point, as above their landing.
+                        at += new GeoVector2(0.0, style.Dimtad == 4 ? -lift : lift);
                     }
                 }
 
