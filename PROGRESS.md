@@ -91,11 +91,19 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Batch 3, shapes and hatching (pgp-cmds3): SOLID, -BOUNDARY (Advanced options), -HATCH (Properties, Select objects, Advanced, DRaw order), GRADIENT, HATCHTOBACK, SPLINEDIT (Close/Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT (= INSERT); REGION counts loops but makes none (no ACIS writer)
 - [ ] Batch 3b (left from pgp-cmds3): an ACIS SAT/SAB writer so REGION and -BOUNDARY Region work (L); the rest of -HATCH (draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, ANnotative, Boundary set, Gap tolerance) and Single color gradients; SPLINEDIT Fit data, Join, Refine, Close/Open of control-point splines; plain HATCH drawn behind its boundary as -HATCH is (AutoCAD default); -BOUNDARY on ellipses/splines (AutoCAD refuses them); Boundary Creation and classic Insert dialogs (design first) (M)
 - [x] Batch 4a (pgp-cmds4a, design v135-v136): VPORTS/-VPORTS (model tiles, *Active VPORT records read and written as AutoCAD), FILTER (Object Selection Filters), QUICKCALC and CAL, QUICKPROPERTIES with QPMODE (Ctrl+Shift+P)
-- [ ] (fu-views, running) Batch 4a follow-ups: -VPORTS MOde; the Viewports dialog's Change view to, Visual Style and Rename; FILTER AND/OR/XOR/NOT and value tests, and its Object names against AutoCAD's list; QuickCalc Units Conversion and Variables, CAL snap functions, transparent 'CAL; QP's CUI lists and QPLOCATION; a drawing's saved tiles shown on opening; other tiles redrawn only when their part changes (speed); look at it in the running app (M)
 - [x] Batch 4b (pgp-cmds4b): -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND/XBIND (typed), SAVE (the drawing takes the new name, as AutoCAD), QUIT/EXIT, COMMANDLINE/COMMANDLINEHIDE, HIDEPALETTES/SHOWPALETTES (Ctrl+Shift+H); fixed a layout tab left in the wrong case after undoing a rename
-- [ ] (fu-views, running) Batch 4b follow-ups: -LAYOUT Template and SAveas (template files); layers and styles of a block bound by XBIND renamed x$0$ as AutoCAD; XBIND dialog (design first); LAYOUT in AutoCAD's words (default Set, its messages); the current layout after deleting the current one, and tab order after a delete, checked by AUDIT in AutoCAD; -OSNAP short names of the rarer snaps; whether HIDEPALETTES hides the command line (S)
 - [x] Batch 5, output (pgp-cmds5): EXPORTPDF (typed as -EXPORT Pdf), EXPORTDWF/DWFX (refused: no DWF writer), PLOTSTAMP and -PLOTSTAMP in AutoCAD's words, the stamp on PDF plots with its log, PDFSHX (searchable SHX text), IMPORT of DWG/DXF as a block
-- [ ] Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
+- [x] Batch 4a/4b follow-ups 1 (fu-views): saved model tiles shown on opening; other tiles redrawn only when what they show
+      changes (30 pan/zoom steps over 40 000 lines: 81-92 ms a step down to 7.1-7.6 ms); LAYOUT in AutoCAD's words (= -LAYOUT);
+      -LAYOUT Template and SAveas (DWT/DWG/DXF); the current layout and tab numbers after a delete as AutoCAD; fixed: deleting
+      the layout holding *Paper_Space wrote a DXF AutoCAD refuses, a copied or imported sheet's own viewport numbered 2;
+      XBIND Block binding its layers, linetypes and text styles as NAME$0$SYMBOL
+- [ ] Batch 4a/4b follow-ups 2: -VPORTS MOde (prompt probed: "Apply viewport configuration to [Display/Current viewport]
+      <Display>:"); FILTER AND/OR/XOR/NOT groups and value tests; CAL snap functions and transparent 'CAL; the Viewports
+      dialog's Change view to, Visual Style and Rename; QuickCalc Units Conversion and Variables; QP CUI lists and
+      QPLOCATION; dimension styles of a block bound by XBIND; a Standard text style bound from a block; Insert Layout and
+      template dialogs (design first); -OSNAP rarer short names; whether HIDEPALETTES hides the command line (S)
+- [ ] (dialogs5, running: dialogs) Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
@@ -108,7 +116,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 1 (fu-mline): MLINE grips and STRETCH (core DxfMlineBuilder.MoveVertexAt, cuts kept as AutoCAD),
         TRIM and EXTEND of and to an MLINE, AutoCAD's refusals of OFFSET, FILLET, CHAMFER, LENGTHEN, BREAK; MLEDIT's quiet miss,
         closed refusals, cuts across segments and 4-element merged tees and crosses; MLSTYLE Rename, Delete, Load, Save (.mln)
-  - [ ] R2.1 follow-ups 2: the Multiline Styles and Multiline Edit Tools dialogs (design first); WA across the first vertex of
+  - [ ] (dialogs5, running: dialogs) R2.1 follow-ups 2: the Multiline Styles and Multiline Edit Tools dialogs (design first); WA across the first vertex of
         a closed MLINE (AutoCAD's result looks inverted, parked); OT and MT with a closed bar, EXTEND Edge=Extend on oblique
         edges, trims near a corner (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -146,7 +154,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         DxfUnknownEntity.CreateRegion/GetRegionShape), REGION and -BOUNDARY Region making regions, drawn, LIST/AREA/Properties
         with area and perimeter, EXPLODE; 12 regions in each of R2000-R2018 DXF and R2018 DWG open in AutoCAD 2021 with AUDIT
         0 and AutoCAD's own areas, perimeters and Explode curves
-  - [ ] R3.3 follow-ups: UNION/SUBTRACT/INTERSECT of regions (2D booleans); MOVE, ROTATE, SCALE, MIRROR and COPY of a region
+  - [ ] (regions2, running) R3.3 follow-ups: UNION/SUBTRACT/INTERSECT of regions (2D booleans); MOVE, ROTATE, SCALE, MIRROR and COPY of a region
         (rebuild the body); regions kept across Save As between SAT and SAB versions; regions in DWG R2000-R2010; splines and
         multi-face bodies; -BOUNDARY Region islands (holes or separate regions?) and its message checked in the GUI; cache the
         parse for drawings of thousands of regions (M)
@@ -212,7 +220,7 @@ the ones wanted.
 - [x] Dimension follow-ups 5: DIM's radial and continue/baseline prompts (AcDimRes strings); radius/diameter words near the rim (941 of 2742 differing down to 31); upright-line landing direction (8 of 448 down to 0)
 - [x] Dimension follow-ups 6: radius/diameter written as AutoCAD writes them (leader 0; 164/163 only where the words stand at the point given, probed over 192 combinations); AutoCAD's regen of our files differing 723 to 0 on 1920 cases; level-word landings near level
 - [x] Dimension follow-ups 7: DIMTIX radius/diameter pictures (2 063 of 2 752 differing down to 75); DIMTEDIT at DIMTMOVE 0 by DIMATFIT (625 of 1 024 down to 1); AutoCAD's regen of moved ordinate/linear/aligned/angular words (114 of 289 down to 5)
-- [ ] Dimension follow-ups 8: level words in a tight radius/diameter (603 left of 4 065); the angular leader threshold fit; words exactly on the first extension line; points exactly on the rim and lines exactly 15 degrees from level (rounding, parked); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
+- [ ] (dims8, running) Dimension follow-ups 8: level words in a tight radius/diameter (603 left of 4 065); the angular leader threshold fit; words exactly on the first extension line; points exactly on the rim and lines exactly 15 degrees from level (rounding, parked); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in

@@ -1677,10 +1677,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gives each layout an edit added (LAYOUT New) a space of its own, after the others, as its tab is the last; a layout an
         /// edit renamed (LAYOUT Rename) a space of its new name in the place of its old one; takes the space of a layout an edit
-        /// erased (-LAYOUT Delete) out, the next tab shown where it was the one shown, else the one before it, else Model.
+        /// erased (-LAYOUT Delete) out, the next tab shown where it was the one shown, else the one before it, the new Layout1 that
+        /// replaces a deleted only sheet among them.
         /// </summary>
         private void AddNewSpaces()
         {
+            int shownWas = -1;
+            string shownName = null;
+
             for (int i = _spaces.Count - 1; i >= 0; i--)
             {
                 CadSpace gone = _spaces[i];
@@ -1694,8 +1698,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (CurrentSpace == gone)
                     {
-                        CurrentSpace = _spaces[Math.Min(i, _spaces.Count - 1)];
-                        Selection.Clear();
+                        shownWas = i;
+                        shownName = gone.Name;
                     }
                 }
             }
@@ -1732,6 +1736,16 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     _spaces.Add(new CadSpace(this, layout.LayoutName, false, layout.BlockTableRecord, layout));
                 }
+            }
+
+            // The tab after the one deleted, else the one before it: chosen last, so that the Layout1 a deleted only sheet leaves is among them.
+            if (shownWas >= 0)
+            {
+                // A layout of the name still there was moved into the place of the one that held *Paper_Space (-LAYOUT Delete): the
+                // same sheet, shown still.
+                CurrentSpace = _spaces.Find(s => string.Equals(s.Name, shownName, StringComparison.OrdinalIgnoreCase))
+                    ?? _spaces[Math.Min(shownWas, _spaces.Count - 1)];
+                Selection.Clear();
             }
         }
 

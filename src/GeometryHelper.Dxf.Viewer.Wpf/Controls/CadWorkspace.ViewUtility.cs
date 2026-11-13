@@ -44,10 +44,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     LayOutTiles();
                     break;
                 case nameof(MainViewModel.Revision):
-                    // The other tiles show the drawing too: drawn again once the canvas has.
+                    // The other tiles show the drawing too: drawn again once the canvas has, where what they show changed.
                     if (_model?.ModelTiles?.IsTiled == true)
                     {
-                        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(TilesView.Refresh));
+                        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(TilesView.RefreshIfChanged));
                     }
 
                     break;

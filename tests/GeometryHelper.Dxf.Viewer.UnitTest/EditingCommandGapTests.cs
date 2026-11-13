@@ -339,14 +339,17 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Blank();
 
             CadCommandSession session = Start(document, "LO");
-            Assert.Equal("Enter layout option [New/Rename/Set/?] <New>:", session.PromptText);
+            Assert.Equal(
+                "Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:",
+                session.PromptText
+            );
             Run(session, "R");
-            Assert.Equal("Enter layout to rename:", session.PromptText);
+            Assert.Equal("Enter layout to rename <Layout1>:", session.PromptText);
             Run(session, "layout1");
-            Assert.Equal("Enter new layout name <Layout1>:", session.PromptText);
+            Assert.Equal("Enter new layout name:", session.PromptText);
             Run(session, "Sheet A");
 
-            Assert.Equal("Layout \"Layout1\" renamed to \"Sheet A\".", session.History.Last());
+            Assert.Equal("Layout \"layout1\" renamed to \"Sheet A\".", session.History.Last());
             Assert.Equal(new[] { "Model", "Sheet A" }, document.Spaces.Select(s => s.Name));
             Assert.Equal("Sheet A", document.Spaces[1].Layout.LayoutName);
             AssertReopens(document);
@@ -361,7 +364,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(new[] { "Model", "Layout1" }, document.Spaces.Select(s => s.Name));
 
             Run(session, "LAYOUT", "S", "Nowhere");
-            Assert.Equal("Layout \"Nowhere\" not found.", session.History.Last());
+            Assert.Equal("Cannot find layout \"Nowhere\".", session.History.Last());
         }
 
         [Fact]

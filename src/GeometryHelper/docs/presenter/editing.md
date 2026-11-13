@@ -200,7 +200,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 |---|---|
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
-| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
+| draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
 | shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
@@ -468,8 +468,9 @@ two points, or a displacement followed by ENTER.`, asking again where PAN ends.
 until a blank one; the lines are the paragraphs of one text (`Hello\PWorld`), and a blank first line makes an MTEXT of no words,
 as AutoCAD 2021 does.
 
--LAYOUT (`-LO`) asks `Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:`, in the words of AutoCAD,
-where LAYOUT keeps its shorter list. Set asks `Enter layout to make current <Layout1>:` and says `Cannot find layout "X".`
+LAYOUT (`LO`) and -LAYOUT (`-LO`) ask alike, in the words of AutoCAD 2021: `Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] <set>:`,
+Set the default. The layout offered by Set, Rename, Copy, Delete and SAveas is the one shown, or the first tab where Model is
+shown (`Enter layout to make current <Layout1>:`). Set says `Cannot find layout "X".`
 for a name that is none; `?` writes `Active Layouts:` and a row `Layout: Layout1       Block name: *Paper_Space.` for each
 sheet, by name. New asks `Enter new Layout name <Layout2>:`, the first LayoutN not taken, says nothing when it is made, and
 `Layout "X" already exists, not created.` otherwise. Rename asks the layout and `Enter new layout name:` (a change of letters
@@ -477,18 +478,39 @@ alone is allowed), and says `Layout "Plan" renamed to "Sheet1".`. Copy asks `Ent
 layout name for copy <Layout1 (2)>:`, makes a layout of the page settings of the first and a copy of everything in its sheet,
 its viewports among it, and says `Layout "Layout1" copied to "Layout1 (2)".`. Delete asks `Enter name of layout to delete
 <Layout1>:`, takes the layout with its block and what is drawn in it out, and says `Layout "Plan" deleted.`; where it was the
-sheet shown, the next tab is shown, and where it was the last sheet a new Layout1 is made, as AutoCAD leaves a drawing one.
+sheet shown, the next tab is shown (else the one before it), and where it was the only sheet a new Layout1 is made and shown, as
+AutoCAD 2021 leaves a drawing one; the tabs left keep their numbers (Layout1 1, C 3, D 4), as AutoCAD keeps them, and the next new
+layout takes the number after the highest. The sheet whose block is `*Paper_Space`, drawn in the ENTITIES section, cannot just go: a
+DXF without that block is refused by AutoCAD 2021 ("Missing Default entry *Paper_Space in SymbolTable:BLOCK_RECORD"), so the layout
+that follows it (the last one where there is none) is moved into its place, with its page settings and everything in its sheet,
+under its own name.
 Model is refused by Copy, Delete and Rename (`May not delete Model tab.`), and a name with one of the characters < > / \ " : ; ? * | , = or a backtick in it, or
-longer than 255 letters, by New, Rename and Copy. Each option is one undo step. Template and SAveas, which read and write a
-template file, are in the list and say they are not built.
+longer than 255 letters, by New, Rename and Copy. Each option is one undo step.
+
+Template asks `Enter file name:` (a name with no extension is looked for as .dwt, in the folder of the drawing where it is not
+found as typed, and `"nofile.dwt": Can't find file.` says it is not there) and `Enter layout name(s) or [?]:`; `?` writes
+`Layout(s) in drawing:` and the sheets of the file, and asks again, names are parted by commas and take wild cards (`Lay*`), a name
+the file has no sheet of is passed over, and where none is found `The specified layout(s) were not found in <file>.` is said and the
+question asked again; Enter ends it. The file may be a DWT or DWG (read as a DWG) or a DXF. Each sheet comes as the last tabs, with
+its page settings and everything in it, its own viewport 1 made again, and its layers, linetypes and styles; the layout shown does not change,
+nothing is said, and the whole is one undo step. A sheet takes its own name where the drawing has no layout of that name, else
+`Layout3-Plan`: the first N that no layout of the drawing starts with (the numbers AutoCAD 2021 gave: with Layout1, Layout2 and Plan
+there, a second Plan was Layout3-Plan and Layout1 then Layout4-Layout1). SAveas asks `Enter layout to save to template <Layout1>:`
+and `Enter name of output file:` and writes the drawing as a template of that one layout: the other layouts out, model space empty,
+the layers, linetypes, styles and blocks as they are, as AutoCAD 2021 writes it. A name with no extension takes .dwt; .dwt and .dwg
+are written as a DWG of AutoCAD 2018, .dxf as a DXF after the questions DXFOUT asks of its settings; a file of the name is replaced
+without asking, as AutoCAD's console does. Model says `May not save Model tab.`, a name that is no layout `Layout "x" does not exist.`.
+The Template Description and Insert Layout dialogs of AutoCAD are not built: the command line asks as the console does.
 
 -XBIND (`-XB`, XBIND, `XB`) asks `Enter symbol type to bind [Block/Dimstyle/LAyer/LType/Style]:` and `Enter dependent Layer
 name(s):`, names with wildcards parted by commas, and binds what an external reference brought into the drawing, as
 AutoCAD 2021's console does: the layer `grid|WALL` becomes `grid$0$WALL` (`grid$1$WALL` where that is taken) and is the
 drawing's own, with what drew by it and the linetype, text style or dimension style it names following, and `1 Layer(s) bound.`
 or `No matching Layer names found.` (a name the drawing made itself is never matched). Block makes the block `grid$0$BLK` of
-the block BLK of the drawing grid references, with a copy of what it draws, from the file the reference names; the layers and
-styles that drawing uses by name come in under their own names, not as `grid$0$WALL`. The command asks the symbol type again
+the block BLK of the drawing grid references, with a copy of what it draws, from the file the reference names; the layers,
+linetypes and text styles its entities use are bound with it, as AutoCAD 2021 binds them (a line on WALL and a text on DOOR in
+MYSTYLE come as `grid$0$WALL`, `grid$0$DOOR` and `grid$0$MYSTYLE`, the reference's `grid|WALL` gone with them), layer 0 and what
+the block does not use left as they were. The command asks the symbol type again
 until Enter and is one undo step. Nothing opens a dialog: XBIND asks the same questions.
 
 SAVE asks, with FILEDIA 0 or no window, `Save drawing as <file>:` and, where the file is there, `A drawing with this name
@@ -520,7 +542,11 @@ rectangle.`). Each change is one undo step. In a layout VPORTS and -VPORTS ask M
 drawing's VPORT table and written back when it is saved: the current viewport into the first `*Active` record, which keeps
 the snap and grid, the others and each configuration as copies of it with their own corners (10, 20, 11, 21) and views (12,
 22, 40, 41). A drawing never split is saved with its VPORT table as it was. The window lays the canvas over the current
-viewport, framed in the accent, and draws the others beside it with their own views; a click in one makes it current. MOde
+viewport, framed in the accent, and draws the others beside it with their own views; a click in one makes it current. A drawing saved with
+tiles opens with them: the canvas takes the view of the current viewport (its centre and height, 12, 22 and 40, the height kept
+as AutoCAD keeps it, the width following the shape of the canvas), and the others are drawn with theirs; a drawing with one viewport
+still opens fitted to its extents. The other viewports are drawn again only when what they show changes (an edit, a selection,
+their own view or size), not when the current viewport is panned or zoomed. MOde
 is not built, nor Change view to and Visual Style of the dialog (a 2D presenter has one view and one style).
 
 FILTER (`FI`) shows the Object Selection Filters dialog: a list of lines, each `Object = Line`, `Layer = WALLS` (wild cards

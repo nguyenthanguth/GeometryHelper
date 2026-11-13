@@ -76,6 +76,33 @@ Delete, Load and Save (.mln). Library: `DxfMlineBuilder.MoveVertexAt`, `DxfDatab
 `DxfDatabase.SaveMlineStyleFile`, which writes a style as acad.mln is written. 4 core tests and 27 presenter tests, every
 number AutoCAD wrote. Left: the Multiline Styles and Multiline Edit Tools dialogs (design first).
 **FIXED.** `LoadMlineStyleFile` gave a description the space acad.mln writes before every value (STANDARD's read as " ").
+**NEW.** -LAYOUT Template and SAveas (and LAYOUT, which now asks what -LAYOUT asks), as AutoCAD 2021's console does them, probed
+with layouts made in a side database. Template asks `Enter file name:` (no extension: .dwt) and `Enter layout name(s) or [?]:`,
+takes names parted by commas and wild cards, and brings each sheet in as the last tabs with its page settings, its viewport 1,
+everything drawn in it and the layers, linetypes and styles it names; a name the drawing has becomes `Layout3-Plan` (the first N no
+layout starts with). SAveas asks the layout and `Enter name of output file:` and writes a template of that one layout, model space
+empty, as a DWG of AutoCAD 2018 (.dwt, .dwg) or a DXF (.dxf, after DXFOUT's settings).
+
+**NEW.** A drawing saved with tiles of model space opens with them: the canvas shows the view of the current tile (its centre and
+height, the height kept as AutoCAD keeps it) and the others their own, where it used to open fitted to the drawing's extents.
+`CadView.ZoomToHeight` gives a view by its centre and height.
+
+**NEW.** XBIND Block binds the layers, linetypes and text styles the block's entities use, as AutoCAD 2021 does: a line on WALL and a
+text on DOOR in MYSTYLE come as `grid$0$WALL`, `grid$0$DOOR` and `grid$0$MYSTYLE`, where they came in under their own names.
+
+**CHANGED.** LAYOUT asks AutoCAD 2021's words, the same as -LAYOUT: `Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?]
+<set>:` with Set the default (it was New, and its list was New, Rename, Set and ?), and its messages (`Cannot find layout "X".`,
+`Layout "X" already exists, not created.`, nothing said of a new layout, `Active Layouts:` for ?). The layout offered is the one
+shown, the first tab where Model is shown (it was `<Model>`, which AutoCAD never offers).
+
+**FIXED.** Deleting the layout that held `*Paper_Space` (Layout1 of a new drawing) left a DXF that AutoCAD 2021 refuses to open
+("Missing Default entry *Paper_Space in SymbolTable:BLOCK_RECORD"); the layout that follows is moved into its place, and the DXFs
+of deleted, copied and imported layouts now AUDIT with 0 errors. Deleting the only layout shown now shows the new Layout1 (it
+showed Model), and a copied layout's own viewport is number 1, where it was 2 and showed model space across its sheet.
+
+**FIXED.** With model space tiled, the other tiles were all drawn again at every pan and zoom of the current tile; each is now drawn
+again only when what it shows changes (an edit, the selection, its own view or size). With four tiles over a drawing of 40 000
+lines a pan or zoom step takes 7 ms where it took 87 ms.
 
 **NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
 (`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had

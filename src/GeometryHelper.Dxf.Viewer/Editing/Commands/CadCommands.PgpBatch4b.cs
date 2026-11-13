@@ -71,11 +71,13 @@ namespace GeometryHelper.Dxf.Viewer
         #region -LAYOUT
 
         /// <summary>
-        /// -LAYOUT: "Enter layout option [Copy/Delete/New/Template/Rename/SAveas/Set/?] &lt;set&gt;:" in the words of AutoCAD
-        /// 2021, each option one undo step: Copy makes a layout of another, named as the layout and (2) where the answer is
-        /// Enter, with its sheet and its entities; Delete takes one out, the last leaving a new Layout1; New adds one of the
-        /// first name LayoutN not taken; Rename, Set and ? as AutoCAD asks them. Template and SAveas, which read and write a
-        /// template file, say they are not built.
+        /// LAYOUT and -LAYOUT, which AutoCAD 2021 asks alike: "Enter layout option
+        /// [Copy/Delete/New/Template/Rename/SAveas/Set/?] &lt;set&gt;:", each option one undo step: Copy makes a layout of
+        /// another, named as the layout and (2) where the answer is Enter, with its sheet and its entities; Delete takes one out,
+        /// the last leaving a new Layout1, and shows the next tab where it was the one shown; New adds one of the first name
+        /// LayoutN not taken; Rename, Set and ? as AutoCAD asks them, the layout shown offered, the first tab where Model is
+        /// shown. Template brings layouts in from a template file, SAveas saves one to a template (see
+        /// <see cref="LayoutTemplate"/> and <see cref="LayoutSaveAs"/>).
         /// </summary>
         private static IEnumerable<CadPrompt> LayoutTyped(CadCommandContext c)
         {
@@ -98,20 +100,18 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            if (c.Input.Is("Template"))
+            if (c.Input.Is("Template") || c.Input.Is("SAveas"))
             {
-                c.Write("A layout is not brought in from a template file here.");
-                yield break;
-            }
+                foreach (CadPrompt prompt in c.Input.Is("Template") ? LayoutTemplate(c) : LayoutSaveAs(c))
+                {
+                    yield return prompt;
+                }
 
-            if (c.Input.Is("SAveas"))
-            {
-                c.Write("A layout is not saved to a template file (*.dwt) here.");
                 yield break;
             }
 
             string option = c.Input.Kind == CadInputKind.Keyword ? c.Input.Text : null;
-            string offered = c.Space.Name;
+            string offered = OfferedLayout(c);
 
             if (option == "Set")
             {
@@ -316,17 +316,24 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var layout = new DxfLayout { LayoutName = name };
             layout.AddToLayoutDictionary(database, null);
-            layout.CopyFrom(source);
-            database.WblockCloneObjects(new List<DxfEntity>(source.BlockTableRecord), layout.BlockTableRecord);
+            CopySheet(database, source, layout);
         }
 
         /// <summary>
         /// A layout taken out of the drawing with its block and what is drawn in it; where it was the last of the sheets a new
-        /// Layout1 takes its place, as AutoCAD leaves a drawing one.
+        /// Layout1 takes its place, as AutoCAD leaves a drawing one. The block named *Paper_Space, which AutoCAD refuses a drawing
+        /// without, goes to the first sheet left where the one deleted held it.
         /// </summary>
         private static void RemoveLayout(DxfDatabase database, DxfLayout layout)
         {
             DxfBlockTableRecord block = layout.BlockTableRecord;
+
+            if (string.Equals(block.Name, DxfBlockTableRecord.PaperSpace, StringComparison.OrdinalIgnoreCase))
+            {
+                RemoveHolderOfPaperSpace(database, layout);
+                return;
+            }
+
             database.LayoutDictionary.Remove(layout.LayoutName);
             block.Remove();
 
@@ -334,6 +341,65 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 AddLayout(database, "Layout1");
             }
+        }
+
+        /// <summary>
+        /// Takes out the layout whose block is <c>*Paper_Space</c>, the one that block, drawn in the ENTITIES section, belongs
+        /// to, and which AutoCAD refuses a DXF without ("Missing Default entry *Paper_Space in SymbolTable:BLOCK_RECORD"; a
+        /// block of that name that holds entities in BLOCKS is refused too). AutoCAD 2021 gives the name to the layout that
+        /// follows (probed: with Layout1 deleted, Layout2 listed with the block *Paper_Space), so the layout that follows, the
+        /// last where there is none, is moved into this one's place: the page settings and the entities of the next one are put
+        /// in this layout, which takes its name, and the next one is taken out. A drawing left with no sheet gets the new
+        /// Layout1 the same way. The viewport 1 of the sheet stays the one this layout has.
+        /// </summary>
+        private static void RemoveHolderOfPaperSpace(DxfDatabase database, DxfLayout layout)
+        {
+            DxfBlockTableRecord block = layout.BlockTableRecord;
+            List<DxfLayout> others = database
+                .Layouts.Where(l =>
+                    l != layout
+                    && !string.Equals(l.LayoutName, "Model", StringComparison.OrdinalIgnoreCase)
+                    && l.BlockTableRecord != null
+                )
+                .ToList();
+            DxfLayout next = others.FirstOrDefault(l => l.TabOrder > layout.TabOrder) ?? others.LastOrDefault();
+            string name = next?.LayoutName ?? "Layout1";
+
+            if (next == null)
+            {
+                // Named after this layout, which is the only one, so that it clashes with none; taken out again, this one renamed Layout1.
+                next = AddLayout(database, layout.LayoutName + "+");
+            }
+
+            layout.CopyFrom(next);
+            bool sheet = next.BlockTableRecord.OfType<DxfViewport>().Any(v => v.Number == 1);
+
+            foreach (DxfEntity entity in block.ToList())
+            {
+                if (!(entity is DxfViewport viewport && viewport.Number == 1))
+                {
+                    entity.Erase();
+                }
+            }
+
+            if (sheet && !block.OfType<DxfViewport>().Any(v => v.Number == 1))
+            {
+                layout.Initialize();
+            }
+
+            List<DxfEntity> moved = next
+                .BlockTableRecord.Where(e => !(e is DxfViewport v && v.Number == 1 && sheet))
+                .ToList();
+
+            if (moved.Count > 0)
+            {
+                database.WblockCloneObjects(moved, block);
+            }
+
+            DxfBlockTableRecord nextBlock = next.BlockTableRecord;
+            database.LayoutDictionary.Remove(next.LayoutName);
+            nextBlock.Remove();
+            layout.LayoutName = name;
         }
 
         #endregion
@@ -415,13 +481,20 @@ namespace GeometryHelper.Dxf.Viewer
                 },
                 s => bound = s.Database.BindDependentSymbols(table, matched)
             );
+            if (!result.Succeeded)
+            {
+                c.Write("Cannot bind: " + result.Message);
+            }
+
             return result.Succeeded ? bound : 0;
         }
 
         /// <summary>
         /// Binds the blocks of the drawings the external references name, <c>grid|BLK</c> for the block BLK of the drawing grid
         /// references, as the blocks <c>grid$0$BLK</c> holding a copy of what it draws; a block of that name the drawing was
-        /// left, by AutoCAD, as a record of the reference goes. How many.
+        /// left, by AutoCAD, as a record of the reference goes. The layers, linetypes and text styles its entities use are bound
+        /// with it as AutoCAD 2021 binds them (<c>grid|WALL</c> as <c>grid$0$WALL</c>, the entities drawn on it): by the reference's
+        /// records of the drawing where it has them, a text style it has none of made again from the reference's drawing. How many.
         /// </summary>
         private static int BindBlocks(CadCommandContext c, string[] patterns)
         {
@@ -501,12 +574,249 @@ namespace GeometryHelper.Dxf.Viewer
 
                         var made = new DxfBlockTableRecord { Name = name, Origin = step.Item2.Origin };
                         s.Database.BlockTable.Add(made);
+                        var had = new SymbolNames(s.Database);
                         step.Item3.WblockCloneObjects(new List<DxfEntity>(step.Item2), made);
+                        BindSymbolsUsedBy(
+                            s.Database,
+                            made,
+                            step.Item1.Substring(0, step.Item1.IndexOf('|') + 1),
+                            had,
+                            step.Item3
+                        );
                         bound++;
                     }
                 }
             );
+            if (!result.Succeeded)
+            {
+                c.Write("Cannot bind: " + result.Message);
+            }
+
             return result.Succeeded ? bound : 0;
+        }
+
+        /// <summary>The names the layer, linetype and text style tables of a drawing hold.</summary>
+        private sealed class SymbolNames
+        {
+            internal SymbolNames(DxfDatabase database)
+            {
+                Layers = Names(database.LayerTable.Cast<DxfSymbolTableRecord>());
+                Linetypes = Names(database.LinetypeTable.Cast<DxfSymbolTableRecord>());
+                Styles = Names(database.TextStyleTable.Cast<DxfSymbolTableRecord>());
+            }
+
+            internal HashSet<string> Layers { get; }
+
+            internal HashSet<string> Linetypes { get; }
+
+            internal HashSet<string> Styles { get; }
+
+            private static HashSet<string> Names(IEnumerable<DxfSymbolTableRecord> records) =>
+                new HashSet<string>(records.Select(r => r.Name ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Binds the layers, linetypes and text styles the entities of a block just bound by XBIND use, as AutoCAD 2021 binds them
+        /// (probed: a block TAG whose line was on the layer WALL and whose text was on DOOR in the style MYSTYLE came as
+        /// <c>grid$0$TAG</c> with its entities on <c>grid$0$WALL</c> and <c>grid$0$DOOR</c>, the text in <c>grid$0$MYSTYLE</c>,
+        /// the reference's own <c>grid|WALL</c> gone with them, and what the block did not use, <c>grid|Standard</c>, still of
+        /// the reference). Each entity is pointed at the reference's record of its name (<c>grid|WALL</c>) where the drawing has
+        /// one, and those records are bound as XBIND binds them; what the copy of the block brought under the plain name, where
+        /// the drawing had none, is erased again once nothing uses it. Layer 0, ByLayer and ByBlock are not touched.
+        /// </summary>
+        private static void BindSymbolsUsedBy(
+            DxfDatabase database,
+            DxfBlockTableRecord block,
+            string prefix,
+            SymbolNames had,
+            DxfDatabase source
+        )
+        {
+            var arrived = new SymbolNames(database);
+            List<DxfEntity> entities = block.ToList();
+
+            // What the entities draw by that the reference brought, then those records bound, then the entities pointed at them.
+            var layers = new List<string>();
+            var linetypes = new List<string>();
+            var styles = new List<string>();
+
+            foreach (DxfEntity entity in entities)
+            {
+                AddOnce(layers, Dependent(database.LayerTable, prefix, entity.Layer));
+                AddOnce(linetypes, Dependent(database.LinetypeTable, prefix, entity.Linetype));
+                AddOnce(styles, Dependent(database.TextStyleTable, prefix, StyleOf(entity)));
+            }
+
+            Dictionary<string, string> layerNames = Bind(database, "LAYER", database.LayerTable, layers);
+            Dictionary<string, string> linetypeNames = Bind(database, "LTYPE", database.LinetypeTable, linetypes);
+            Dictionary<string, string> styleNames = Bind(database, "STYLE", database.TextStyleTable, styles);
+
+            // A text style comes with no record of the reference in this drawing: made again from the reference's drawing.
+            var copied = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity entity in entities)
+            {
+                string plain = StyleOf(entity);
+
+                if (
+                    plain != null
+                    && !styleNames.ContainsKey(prefix + plain)
+                    && !copied.ContainsKey(plain)
+                    && source.TextStyleTable.Has(plain)
+                )
+                {
+                    copied[plain] = CopyStyle(database, source.TextStyleTable[plain], prefix);
+                }
+            }
+
+            foreach (DxfEntity entity in entities)
+            {
+                if (layerNames.TryGetValue(prefix + entity.Layer, out string layer))
+                {
+                    entity.Layer = layer;
+                }
+
+                if (linetypeNames.TryGetValue(prefix + entity.Linetype, out string linetype))
+                {
+                    entity.Linetype = linetype;
+                }
+
+                string wanted = StyleOf(entity);
+
+                if (
+                    wanted != null
+                    && (
+                        styleNames.TryGetValue(prefix + wanted, out string style)
+                        || copied.TryGetValue(wanted, out style)
+                    )
+                )
+                {
+                    if (entity is DxfDBText text)
+                    {
+                        text.TextStyleName = style;
+                    }
+                    else if (entity is DxfMText mtext)
+                    {
+                        mtext.TextStyleName = style;
+                    }
+                }
+            }
+
+            // What the copy brought under the plain name is of no use now; one still in use stays.
+            EraseUnused(database.LayerTable, arrived.Layers, had.Layers);
+            EraseUnused(database.LinetypeTable, arrived.Linetypes, had.Linetypes);
+            EraseUnused(database.TextStyleTable, arrived.Styles, had.Styles);
+        }
+
+        /// <summary>A text style of the reference's drawing made again in this one under the name XBIND gives it, <c>grid$0$MYSTYLE</c> (the number raised where taken); its name.</summary>
+        private static string CopyStyle(DxfDatabase database, DxfTextStyleTableRecord from, string prefix)
+        {
+            string name = null;
+
+            for (int i = 0; name == null; i++)
+            {
+                string candidate =
+                    prefix.Replace("|", "$" + i.ToString(CultureInfo.InvariantCulture) + "$") + from.Name;
+                name = database.TextStyleTable.Has(candidate) ? null : candidate;
+            }
+
+            var made = new DxfTextStyleTableRecord
+            {
+                Name = name,
+                FileName = from.FileName,
+                BigFontFileName = from.BigFontFileName,
+                TextSize = from.TextSize,
+                XScale = from.XScale,
+                ObliquingAngle = from.ObliquingAngle,
+                FlagBits = from.FlagBits,
+            };
+            database.TextStyleTable.Add(made);
+            return name;
+        }
+
+        /// <summary>The text style an entity draws by, of a text or an MTEXT; null for another entity.</summary>
+        private static string StyleOf(DxfEntity entity) =>
+            entity is DxfDBText text ? text.TextStyleName
+            : entity is DxfMText mtext ? mtext.TextStyleName
+            : null;
+
+        /// <summary>
+        /// Binds records of a table as XBIND does and says the names they took, by the names they had: <c>grid|WALL</c> becomes
+        /// <c>grid$0$WALL</c>, or <c>grid$1$WALL</c> where that is taken, as <see cref="DxfDatabase.BindDependentSymbols"/> numbers them.
+        /// </summary>
+        private static Dictionary<string, string> Bind(
+            DxfDatabase database,
+            string kind,
+            DxfSymbolTable table,
+            List<string> olds
+        )
+        {
+            var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var given = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string old in olds)
+            {
+                for (int i = 0; ; i++)
+                {
+                    string name = old.Replace("|", "$" + i.ToString(CultureInfo.InvariantCulture) + "$");
+
+                    if (!table.Has(name) && given.Add(name))
+                    {
+                        names[old] = name;
+                        break;
+                    }
+                }
+            }
+
+            if (names.Count > 0)
+            {
+                database.BindDependentSymbols(kind, olds);
+            }
+
+            return names
+                .Where(p => table.Has(p.Value))
+                .ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>The name a record of a reference's table has, <c>grid|WALL</c> for WALL, where the table has such a record of a reference; else null.</summary>
+        private static string Dependent(DxfSymbolTable table, string prefix, string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            string dependent = prefix + name;
+            return table.Has(dependent) && table[dependent].IsDependent ? dependent : null;
+        }
+
+        private static void AddOnce(List<string> names, string name)
+        {
+            if (name != null && !names.Contains(name))
+            {
+                names.Add(name);
+            }
+        }
+
+        /// <summary>Erases the records of a table that the copy of a block brought (in the table after it, not before) and nothing uses.</summary>
+        private static void EraseUnused(DxfSymbolTable table, HashSet<string> after, HashSet<string> before)
+        {
+            foreach (string name in after.Where(n => !before.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
+            {
+                if (!table.Has(name))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    table[name].Erase();
+                }
+                catch (InvalidOperationException)
+                {
+                    // In use: it stays.
+                }
+            }
         }
 
         #endregion

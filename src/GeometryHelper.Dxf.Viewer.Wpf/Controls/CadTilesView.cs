@@ -93,7 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen Accent = Frozen(
             new Pen(Frozen(new SolidColorBrush(Color.FromRgb(0x3D, 0x9B, 0xFF))), 2.0)
         );
-        private readonly Dictionary<int, BitmapSource> _pictures = new Dictionary<int, BitmapSource>();
+        private readonly Dictionary<int, Drawn> _pictures = new Dictionary<int, Drawn>();
         private MainViewModel _model;
         private CanvasOptions _options;
 
@@ -133,12 +133,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _options = options;
         }
 
-        /// <summary>Draws the tiles again, their pictures made anew, as after the drawing or a tile's view changed.</summary>
-        public void Refresh()
+        /// <summary>
+        /// Draws the tiles again, as after the tiles were laid out anew. A tile's picture is made anew only where what it shows
+        /// changed since it was made (the drawing, the view, its size or what is drawn highlighted), so that panning or zooming
+        /// the current tile, which changes none of them, makes none.
+        /// </summary>
+        public void Refresh() => InvalidateVisual();
+
+        /// <summary>Draws the tiles again where a tile shows something other than its picture does: the drawing, its view or the highlight changed.</summary>
+        internal void RefreshIfChanged()
         {
-            _pictures.Clear();
-            InvalidateVisual();
+            CadTiledViewports tiles = _model?.ModelTiles;
+
+            if (tiles == null || !tiles.IsTiled || ActualWidth <= 0 || ActualHeight <= 0)
+            {
+                return;
+            }
+
+            foreach (CadTiledViewport tile in tiles.Tiles.Skip(1))
+            {
+                Rect rect = Place(Box(tile), ActualWidth, ActualHeight, 1.0);
+
+                if (
+                    !rect.IsEmpty && (!_pictures.TryGetValue(tile.Id, out Drawn kept) || !kept.Shows(KeyOf(tile, rect)))
+                )
+                {
+                    InvalidateVisual();
+                    return;
+                }
+            }
         }
+
+        /// <summary>Gets how many tile pictures were made since the view was made, for the tests and the timings.</summary>
+        internal int PicturesMade { get; private set; }
 
         /// <inheritdoc/>
         protected override void OnRender(DrawingContext dc)
@@ -215,25 +242,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private BitmapSource Picture(CadTiledViewport tile, Rect rect)
         {
-            if (_pictures.TryGetValue(tile.Id, out BitmapSource kept))
+            Drawn key = KeyOf(tile, rect);
+
+            if (_pictures.TryGetValue(tile.Id, out Drawn kept) && kept.Shows(key))
             {
-                return kept;
+                return kept.Picture;
             }
+
+            PicturesMade++;
 
             double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
             var view = new CadView(Math.Max(1.0, rect.Width * scale), Math.Max(1.0, rect.Height * scale));
 
-            if (tile.Width > 0.0 && tile.Height > 0.0)
+            if (tile.Height > 0.0)
             {
-                view.ZoomTo(
-                    new DisplayBox(
-                        tile.Center.X - tile.Width / 2.0,
-                        tile.Center.Y - tile.Height / 2.0,
-                        tile.Center.X + tile.Width / 2.0,
-                        tile.Center.Y + tile.Height / 2.0
-                    ),
-                    0.0
-                );
+                view.ZoomToHeight(tile.Center.X, tile.Center.Y, tile.Height);
             }
 
             CadDocument document = _model.Document;
@@ -260,9 +283,86 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     drawn.RowBytes
                 );
                 picture.Freeze();
-                _pictures[tile.Id] = picture;
+                key.Picture = picture;
+                _pictures[tile.Id] = key;
                 return picture;
             }
+        }
+
+        /// <summary>What a tile's picture shows, as of now: the drawing and how often it changed, the tile's view, the size in pixels and what is highlighted.</summary>
+        private Drawn KeyOf(CadTiledViewport tile, Rect rect)
+        {
+            double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+            return new Drawn
+            {
+                Document = _model.Document,
+                Revision = _model.DrawingRevision,
+                CenterX = tile.Center.X,
+                CenterY = tile.Center.Y,
+                ViewHeight = tile.Height,
+                PixelWidth = Math.Max(1.0, rect.Width * scale),
+                PixelHeight = Math.Max(1.0, rect.Height * scale),
+                Options = Fingerprint(_options),
+            };
+        }
+
+        /// <summary>A number that changes whenever an option the tiles are drawn with does, the selection and the entity under the cursor among them.</summary>
+        private static int Fingerprint(CanvasOptions options)
+        {
+            if (options == null)
+            {
+                return 0;
+            }
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + options.Background;
+                hash = hash * 31 + options.Paper;
+                hash = hash * 31 + options.SelectionColor;
+                hash = hash * 31 + (options.ShowLineWeights ? 1 : 0);
+                hash = hash * 31 + options.LineweightScale.GetHashCode();
+                hash = hash * 31 + (options.FontName?.GetHashCode() ?? 0);
+                hash = hash * 31 + options.VisibleLineColor;
+                hash = hash * 31 + options.GripColor;
+                hash = hash * 31 + (options.Hover?.GetHashCode() ?? 0);
+
+                if (options.Selected != null)
+                {
+                    hash = hash * 31 + options.Selected.Count;
+
+                    foreach (string handle in options.Selected)
+                    {
+                        hash = hash * 31 + handle.GetHashCode();
+                    }
+                }
+
+                return hash;
+            }
+        }
+
+        /// <summary>A tile's picture with what it was made from.</summary>
+        private sealed class Drawn
+        {
+            internal BitmapSource Picture;
+            internal CadDocument Document;
+            internal int Revision;
+            internal double CenterX;
+            internal double CenterY;
+            internal double ViewHeight;
+            internal double PixelWidth;
+            internal double PixelHeight;
+            internal int Options;
+
+            /// <summary>Whether this picture, made from what it records, shows what another record says.</summary>
+            internal bool Shows(Drawn now) =>
+                ReferenceEquals(Document, now.Document)
+                && Revision == now.Revision
+                && CenterX == now.CenterX
+                && CenterY == now.CenterY
+                && ViewHeight == now.ViewHeight
+                && PixelWidth == now.PixelWidth
+                && PixelHeight == now.PixelHeight
+                && Options == now.Options;
         }
 
         private static DisplayBox Box(CadTiledViewport t) => new DisplayBox(t.Left, t.Bottom, t.Right, t.Top);

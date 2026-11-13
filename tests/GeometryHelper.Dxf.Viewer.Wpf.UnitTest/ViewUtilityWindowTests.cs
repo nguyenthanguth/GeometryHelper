@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -143,6 +146,130 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(model.ActivateTile(2));
                 Assert.Equal(moved, tiles.Tiles.First(t => t.Id == 3).Center.X, 6);
                 Assert.False(model.ActivateTile(9));
+            }
+        }
+
+        [Fact]
+        public void ADrawingSavedWithTiles_OpensWithThem_TheCurrentOneAtItsSavedView_TheOthersAtTheirs()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel first = Open(folder);
+                first.SetCanvasSize(800, 600);
+                first.Execute("-VPORTS");
+                first.Execute("2");
+                first.Execute("V");
+                first.View.ZoomToHeight(40, 20, 80);
+                CadTiledViewport other = first.ModelTiles.Tiles[1];
+                other.Center = new GeoPoint2(300, -5);
+                other.Height = 60;
+                other.Width = 40;
+                string saved = Path.Combine(folder.FullPath, "tiles-saved.dxf");
+                first.Document.SaveAs(saved, null, null);
+
+                var second = new MainViewModel();
+                Assert.True(second.Open(saved));
+                second.SetCanvasSize(400, 600);
+
+                // The drawing's own extents would put the middle of the view at about (162, 37); the saved view is kept.
+                CadTiledViewports tiles = second.ModelTiles;
+                Assert.Equal(2, tiles.Tiles.Count);
+                Assert.Equal(40.0, second.View.CenterX, 6);
+                Assert.Equal(20.0, second.View.CenterY, 6);
+                Assert.Equal(80.0, second.View.Height / second.View.PixelsPerUnit, 6);
+                CadTiledViewport left = tiles.Tiles[1];
+                Assert.Equal(300.0, left.Center.X, 6);
+                Assert.Equal(-5.0, left.Center.Y, 6);
+                Assert.Equal(60.0, left.Height, 6);
+
+                // A new canvas size keeps the saved height of the view, as AutoCAD keeps it; only the user's zoom ends that.
+                second.SetCanvasSize(500, 300);
+                Assert.Equal(80.0, second.View.Height / second.View.PixelsPerUnit, 6);
+                second.ZoomExtents();
+                second.SetCanvasSize(400, 600);
+                Assert.NotEqual(40.0, second.View.CenterX, 1);
+            }
+        }
+
+        [Fact]
+        public void TheOtherTiles_AreDrawnAgainOnlyWhereWhatTheyShowChanged_NotWhenTheCurrentTileIsPanned()
+        {
+            using (var folder = new TestFolder())
+            {
+                string path = folder.Write("redraw.dxf", Drawing());
+                Exception failure = null;
+                var thread = new Thread(() =>
+                {
+                    try
+                    {
+                        var model = new MainViewModel();
+                        Assert.True(model.Open(path));
+                        model.SetCanvasSize(400, 300);
+                        model.Execute("-VPORTS");
+                        model.Execute("3");
+                        model.Execute("H");
+                        var options = new CanvasOptions();
+                        var tilesView = new CadTilesView();
+                        tilesView.Attach(model, options);
+                        tilesView.Measure(new Size(800, 600));
+                        tilesView.Arrange(new Rect(0, 0, 800, 600));
+                        var target = new RenderTargetBitmap(800, 600, 96, 96, PixelFormats.Pbgra32);
+                        void Draw()
+                        {
+                            tilesView.Refresh();
+                            tilesView.Measure(new Size(800, 600));
+                            tilesView.Arrange(new Rect(0, 0, 800, 600));
+                            target.Render(tilesView);
+                        }
+
+                        Draw();
+                        Assert.Equal(2, tilesView.PicturesMade);
+
+                        // Panning and zooming the current tile changes none of what the other two show.
+                        for (int step = 0; step < 5; step++)
+                        {
+                            model.View.Pan(30, 10);
+                            model.View.ZoomAt(200, 150, 1.1);
+                            model.NotifyViewChangedByUser();
+                            tilesView.RefreshIfChanged();
+                            Draw();
+                        }
+
+                        Assert.Equal(2, tilesView.PicturesMade);
+
+                        // An edit does, and so does a selection, or the entity under the cursor.
+                        model.Execute("CIRCLE");
+                        model.Execute("20,20");
+                        model.Execute("10");
+                        Assert.Equal(2, model.Document.ModelSpace.Block.OfType<DxfCircle>().Count());
+                        tilesView.RefreshIfChanged();
+                        Draw();
+                        Assert.Equal(4, tilesView.PicturesMade);
+
+                        Draw();
+                        Assert.Equal(4, tilesView.PicturesMade);
+                        options.Selected = new[] { model.Document.ModelSpace.Block.OfType<DxfCircle>().First().Handle };
+                        Draw();
+                        Assert.Equal(6, tilesView.PicturesMade);
+                        options.Hover = "1";
+                        Draw();
+                        Assert.Equal(8, tilesView.PicturesMade);
+
+                        // Another tile current: the one that was becomes an other tile and is drawn; the rest are kept.
+                        Assert.True(model.ActivateTile(model.ModelTiles.Tiles[1].Id));
+                        Draw();
+                        Assert.Equal(9, tilesView.PicturesMade);
+                    }
+                    catch (Exception ex)
+                    {
+                        failure = ex;
+                    }
+                });
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start();
+                thread.Join();
+
+                Assert.Null(failure);
             }
         }
 

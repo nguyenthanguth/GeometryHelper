@@ -111,7 +111,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 Assert.Equal(new[] { "Model", "Layout1", "Layout2" }, model.SpaceTabs.Select(t => t.Name));
                 Assert.True(model.SpaceTabs[0].IsActive);
-                Assert.Equal("Layout \"Layout2\" created.", model.History.Last());
+                Assert.DoesNotContain(model.History, l => l.StartsWith("Layout \"", StringComparison.Ordinal));
 
                 model.SelectSpaceCommand.Execute(model.SpaceTabs[2]);
                 Assert.Equal("Layout2", model.Space.Name);
