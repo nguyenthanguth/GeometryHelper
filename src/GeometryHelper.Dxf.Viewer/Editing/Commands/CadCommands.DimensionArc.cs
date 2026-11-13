@@ -448,7 +448,7 @@ namespace GeometryHelper.Dxf.Viewer
                 out _,
                 out wordsFirst,
                 true,
-                symbol == 1 ? 0.4 * tall : 0.0
+                symbol == 1 ? 0.3 * tall : 0.0
             );
 
             if (picture == null)
