@@ -214,7 +214,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "-H");
             Assert.Contains("Current hatch pattern:  ANSI31", session.History);
             Assert.Equal(
-                "Specify internal point or [Properties/Select objects/Advanced/DRaw order]:",
+                "Specify internal point or [Properties/Select objects/draW boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:",
                 session.PromptText
             );
 
@@ -239,7 +239,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "ANSI37", "2", Enter);
 
             Assert.Equal(
-                "Specify internal point or [Properties/Select objects/Advanced/DRaw order]:",
+                "Specify internal point or [Properties/Select objects/draW boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:",
                 session.PromptText
             );
             Run(session, P(10, 10), Enter);
@@ -266,7 +266,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Squares(0, 0, 100, 20, 20, 60);
             CadCommandSession session = Start(document, "-HATCH", "A");
             Assert.Equal(
-                "Enter an option [Retain boundary/Island detection/Style/Associativity/separate Hatches]:",
+                "Enter an option [Boundary set/Retain boundary/Island detection/Style/Associativity/Gap tolerance/separate Hatches]:",
                 session.PromptText
             );
             Run(session, "I");
@@ -361,7 +361,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Squares(0, 0, 100);
             CadCommandSession session = Start(document, "-HATCH", "P", "G");
-            Assert.Equal("Enter a gradient name or [?/Two color] <GR_LINEAR>:", session.PromptText);
+            Assert.Equal("Enter a gradient name or [?/Single color/Two color] <GR_LINEAR>:", session.PromptText);
             Run(session, "?");
             Assert.Contains(session.History, l => l.Contains("GR_CYLIN"));
             Run(session, "GR_CYLIN");
@@ -382,9 +382,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Squares(0, 0, 100);
             CadCommandSession session = Start(document, "-HATCH", "P", "G", "T");
-            Assert.Equal("New gradient color <0,0,255>:", session.PromptText);
+            Assert.Equal("New gradient color [Truecolor/COlorbook] <0,0,255>:", session.PromptText);
             Run(session, "1");
-            Assert.Equal("New gradient second color: <255,255,153>:", session.PromptText);
+            Assert.Equal("New gradient second color:[Truecolor/COlorbook] <255,255,153>:", session.PromptText);
             Run(session, "3", P(10, 10), Enter);
 
             DxfHatch hatch = OnlyHatch(document);

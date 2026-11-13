@@ -22,11 +22,35 @@ namespace GeometryHelper.Dxf.Viewer
         Gradient,
     }
 
+    /// <summary>Where a hatch's pattern is laid from, as AutoCAD's HPORIGINMODE holds it.</summary>
+    public enum CadHatchOriginMode
+    {
+        /// <summary>The origin given (<see cref="CadHatchSettings.OriginX"/> and <see cref="CadHatchSettings.OriginY"/>), nought nought as AutoCAD starts.</summary>
+        Current,
+
+        /// <summary>The bottom left corner of the box round the hatch's outer loops.</summary>
+        BottomLeft,
+
+        /// <summary>The bottom right corner of the box round the hatch's outer loops.</summary>
+        BottomRight,
+
+        /// <summary>The top right corner of the box round the hatch's outer loops.</summary>
+        TopRight,
+
+        /// <summary>The top left corner of the box round the hatch's outer loops.</summary>
+        TopLeft,
+
+        /// <summary>The middle of the box round the hatch's outer loops.</summary>
+        Center,
+    }
+
     /// <summary>
     /// The settings HATCH makes a hatch with and HATCHEDIT changes, as the Hatch Creation tab holds them: what it is filled with,
-    /// the pattern, its angle and scale or spacing, the origin, the island style, whether it follows its objects, and the two
-    /// colours of a gradient. AutoCAD's own start: ANSI31 at angle nought and scale 1, associative, the Normal island style, a
-    /// gradient GR_LINEAR from blue to a pale yellow.
+    /// the pattern, its angle and scale or spacing, the origin, the island style, whether it follows its objects, and the one
+    /// colour or two of a gradient; and the layer, colour, background colour and transparency a new hatch takes in place of the
+    /// current ones, and the widest gap a boundary is taken as closed over. AutoCAD's own start: ANSI31 at angle nought and
+    /// scale 1, associative, the Normal island style, a gradient GR_LINEAR from blue to a pale yellow, no gap tolerance, the
+    /// current layer and colour.
     /// </summary>
     public sealed class CadHatchSettings
     {
@@ -107,14 +131,46 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether a gradient is centred (its shift nought) rather than shifted a quarter towards its end.</summary>
         public bool GradientCentered { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets whether a gradient runs from <see cref="GradientColor1"/> to its shade or tint (<see cref="GradientTint"/>)
+        /// rather than to <see cref="GradientColor2"/>, as AutoCAD's Single color (GFCLRSTATE 1); false as it starts.
+        /// </summary>
+        public bool GradientOneColor { get; set; }
+
+        /// <summary>
+        /// Gets or sets how a gradient of one colour is shaded or tinted, from 0, black, through the colour's own hue at 0.5 to 1,
+        /// white, as AutoCAD's GFCLRLUM; 1 as it starts. The second end of the gradient is the colour's hue and saturation at that
+        /// lightness: red (255, 0, 0) at 0.25 ends in (128, 0, 0), at 0.75 in (255, 128, 128).
+        /// </summary>
+        public double GradientTint { get; set; } = 1.0;
+
+        /// <summary>Gets or sets where the pattern is laid from: the origin given, or a corner or the middle of the box round the hatch (HPORIGINMODE).</summary>
+        public CadHatchOriginMode OriginMode { get; set; }
+
+        /// <summary>Gets or sets the colour a new hatch is drawn in; null for the current colour, as HPCOLOR's "." says.</summary>
+        public DxfColor Color { get; set; }
+
+        /// <summary>Gets or sets the colour behind the lines of a new hatch's pattern; null for none, as HPBACKGROUNDCOLOR's "." says.</summary>
+        public DxfColor BackgroundColor { get; set; }
+
+        /// <summary>Gets or sets the layer a new hatch is on; null for the current layer, as HPLAYER's "." says. A layer the drawing has not (any more) leaves the hatch on the current one.</summary>
+        public string Layer { get; set; }
+
+        /// <summary>Gets or sets how much a new hatch lets show through; null for the current setting, as HPTRANSPARENCY's "." says.</summary>
+        public DxfTransparency? Transparency { get; set; }
+
+        /// <summary>Gets or sets the widest gap between two loose ends that a boundary is taken as closed over (HPGAPTOL), in drawing units; 0 for none, as AutoCAD starts.</summary>
+        public double GapTolerance { get; set; }
+
         /// <summary>Gets a copy.</summary>
         /// <returns>The copy.</returns>
         public CadHatchSettings Clone() => (CadHatchSettings)MemberwiseClone();
 
         /// <summary>
         /// Reads the settings of a hatch, as HATCHEDIT shows them: its type, pattern, angle in degrees, scale, spacing, double,
-        /// island style and association, and its gradient's name, colours and shift. The origin is not read back: a hatch keeps
-        /// it in its lines' base points, and HATCHEDIT lays them again from the origin it is given.
+        /// island style and association, and its gradient's name, colours, one colour or two, tint and shift. The origin, layer,
+        /// colour, background colour and transparency are not read back (they stay as a new hatch leaves them, null): a hatch
+        /// keeps its origin in its lines' base points, and HATCHEDIT lays them again from the origin it is given.
         /// </summary>
         /// <param name="hatch">The hatch.</param>
         /// <returns>The settings.</returns>
@@ -135,6 +191,8 @@ namespace GeometryHelper.Dxf.Viewer
                 settings.GradientName = known >= 0 ? GradientNamesOfAutoCad[known] : GradientNamesOfAutoCad[0];
                 settings.Angle = hatch.GradientAngle * 180.0 / Math.PI;
                 settings.GradientCentered = hatch.GradientShift == 0.0f;
+                settings.GradientOneColor = hatch.GradientOneColorMode;
+                settings.GradientTint = hatch.ShadeTintValue;
                 DxfGradientColor[] colours = hatch.GetGradientColors();
 
                 if (colours.Length > 0)
@@ -216,6 +274,65 @@ namespace GeometryHelper.Dxf.Viewer
             return document;
         }
 
+        /// <summary>
+        /// The second end of a gradient of one colour as AutoCAD 2021 works it out (read from the colours it wrote for 45 pairs of
+        /// colour and tint): the colour's hue, in whole degrees, and saturation at the lightness the tint is, in hue, saturation
+        /// and lightness, each channel rounded half up. Red (255, 0, 0) at 0.25 gives (128, 0, 0); (100, 150, 50) at 0.9, (230, 242, 217); any grey at
+        /// 0.4, a grey of 102; (255, 200, 200) at 0.5, a red of 255, since its saturation is full.
+        /// </summary>
+        internal static DxfColor Tinted(DxfColor colour, double tint)
+        {
+            // The channels stay whole numbers of 255 here, so that a saturation of full is exactly 1: (255, 200, 200) is 55 of 55.
+            double r = colour.Red;
+            double g = colour.Green;
+            double b = colour.Blue;
+            double max = Math.Max(r, Math.Max(g, b));
+            double min = Math.Min(r, Math.Min(g, b));
+            double span = max - min;
+            double saturation =
+                span <= 0.0 ? 0.0
+                : max + min <= 255.0 ? span / (max + min)
+                : span / (510.0 - max - min);
+            double exact =
+                span <= 0.0 ? 0.0
+                : max == r ? 60.0 * (((g - b) / span % 6.0 + 6.0) % 6.0)
+                : max == g ? 60.0 * ((b - r) / span + 2.0)
+                : 60.0 * ((r - g) / span + 4.0);
+
+            // The hue in whole degrees: (0, 128, 255), at 209.88, is worked from 210, which gives the 191 AutoCAD wrote at 0.75
+            // where the hue itself gives 191.5 and a green of 192.
+            double h = Math.Round(exact, MidpointRounding.AwayFromZero) % 360.0 / 360.0;
+            double l = Math.Max(0.0, Math.Min(1.0, tint));
+
+            // The usual way from hue, saturation and lightness back: its sums come to a hair under a half where AutoCAD's do,
+            // (200, 100, 50) at 0.25 giving a blue of 25.4999 and so 25, which a sum worked another way gives 26.
+            double q = l < 0.5 ? l * (1.0 + saturation) : l + saturation - l * saturation;
+            double p = 2.0 * l - q;
+            return DxfColor.FromRgb(
+                Channel(HueToChannel(p, q, h + 1.0 / 3.0)),
+                Channel(HueToChannel(p, q, h)),
+                Channel(HueToChannel(p, q, h - 1.0 / 3.0))
+            );
+        }
+
+        /// <summary>One channel of a colour of hue, saturation and lightness, from the two bounds the lightness and saturation make and the hue shifted for it.</summary>
+        private static double HueToChannel(double p, double q, double t)
+        {
+            t =
+                t < 0.0 ? t + 1.0
+                : t > 1.0 ? t - 1.0
+                : t;
+
+            return t < 1.0 / 6.0 ? p + (q - p) * 6.0 * t
+                : t < 0.5 ? q
+                : t < 2.0 / 3.0 ? p + (q - p) * (2.0 / 3.0 - t) * 6.0
+                : p;
+        }
+
+        /// <summary>A channel from 0 to 1 as a whole number of 255, rounded half up.</summary>
+        private static byte Channel(double value) =>
+            (byte)Math.Max(0.0, Math.Min(255.0, Math.Floor(value * 255.0 + 0.5)));
+
         /// <summary>The name a gradient of AutoCAD's dialog is written under in a DXF: GR_CYLIN as CYLINDER.</summary>
         internal static string DxfGradientName(string name)
         {
@@ -236,6 +353,27 @@ namespace GeometryHelper.Dxf.Viewer
         {
             hatch.HatchStyle = IslandStyle;
 
+            // The layer, colour and transparency of a new hatch where the settings give them, else the current ones it has.
+            if (Layer != null && database.LayerTable.Has(Layer))
+            {
+                hatch.Layer = Layer;
+            }
+
+            if (Color != null)
+            {
+                hatch.Color = Color;
+            }
+
+            if (Transparency.HasValue)
+            {
+                hatch.Transparency = Transparency.Value;
+            }
+
+            if (BackgroundColor != null && (Type == CadHatchType.Pattern || Type == CadHatchType.UserDefined))
+            {
+                hatch.BackgroundColor = BackgroundColor;
+            }
+
             switch (Type)
             {
                 case CadHatchType.Solid:
@@ -243,10 +381,25 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 case CadHatchType.Gradient:
                     hatch.SetGradient(DxfGradientPatternType.PreDefinedGradient, DxfGradientName(GradientName));
+
+                    // AutoCAD writes two colours for a gradient of one colour too: the colour at 0 and its shade or tint at 1.
                     hatch.SetGradientColors(
-                        new[] { new DxfGradientColor(GradientColor1, 0.0f), new DxfGradientColor(GradientColor2, 1.0f) }
+                        new[]
+                        {
+                            new DxfGradientColor(GradientColor1, 0.0f),
+                            new DxfGradientColor(
+                                GradientOneColor ? Tinted(GradientColor1, GradientTint) : GradientColor2,
+                                1.0f
+                            ),
+                        }
                     );
-                    hatch.GradientOneColorMode = false;
+                    hatch.GradientOneColorMode = GradientOneColor;
+
+                    if (GradientOneColor)
+                    {
+                        hatch.ShadeTintValue = (float)Math.Max(0.0, Math.Min(1.0, GradientTint));
+                    }
+
                     hatch.GradientAngle = Angle * Math.PI / 180.0;
                     hatch.GradientShift = GradientCentered ? 0.0f : 0.25f;
                     return null;

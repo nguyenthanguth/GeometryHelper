@@ -81,6 +81,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="point">The point picked, in the world.</param>
         /// <param name="tolerance">The tolerance: points within its point tolerance are one corner.</param>
         /// <param name="within">The part of the drawing looked at, as AutoCAD looks at what is shown; null for all of it.</param>
+        /// <param name="candidates">The handles of the objects looked at, as HATCH's Boundary set holds them; null for every object of the space.</param>
+        /// <param name="gap">The widest gap between two loose ends that is taken as closed, as HPGAPTOL holds it: two open ends no
+        /// further apart than this are joined by a straight edge, which belongs to no object; 0 for none.</param>
         /// <returns>The loops, the outer first and then the islands by depth; or null.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the document or the space is null.</exception>
         public static IReadOnlyList<CadBoundaryLoop> Find(
@@ -88,7 +91,9 @@ namespace GeometryHelper.Dxf.Viewer
             CadSpace space,
             GeoPoint2 point,
             Tolerance tolerance,
-            DisplayBox? within = null
+            DisplayBox? within = null,
+            IReadOnlyCollection<string> candidates = null,
+            double gap = 0.0
         )
         {
             if (document == null)
@@ -102,9 +107,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double tol = Math.Max(tolerance.EqualPoint, 1E-9);
-            List<Raw> raws = Gather(document, space, within, tol);
+            List<Raw> raws = Gather(document, space, within, tol, candidates);
             var graph = new Graph(tol);
-            graph.Build(raws);
+            graph.Build(raws, gap);
             List<Cycle> cycles = graph.Trace();
             Cycle outer = null;
 
@@ -418,17 +423,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The edges of the objects of a space that may close an area: those of visible layers, within the part looked at.</summary>
-        private static List<Raw> Gather(CadDocument document, CadSpace space, DisplayBox? within, double tol)
+        private static List<Raw> Gather(
+            CadDocument document,
+            CadSpace space,
+            DisplayBox? within,
+            double tol,
+            IReadOnlyCollection<string> candidates
+        )
         {
             var hidden = new HashSet<string>(
                 document.Layers.Where(l => !l.IsOn || l.IsFrozen).Select(l => l.Name),
                 StringComparer.OrdinalIgnoreCase
             );
+            HashSet<string> only =
+                candidates == null ? null : new HashSet<string>(candidates, StringComparer.OrdinalIgnoreCase);
             var raws = new List<Raw>();
 
             foreach (DxfEntity entity in space.Block)
             {
-                if (hidden.Contains(entity.Layer ?? "0"))
+                if (hidden.Contains(entity.Layer ?? "0") || (only != null && !only.Contains(entity.Handle)))
                 {
                     continue;
                 }
@@ -736,7 +749,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (string source in Sources)
                 {
-                    if (!sources.Contains(source, StringComparer.OrdinalIgnoreCase))
+                    // The edge that closes a gap belongs to no object.
+                    if (source.Length > 0 && !sources.Contains(source, StringComparer.OrdinalIgnoreCase))
                     {
                         sources.Add(source);
                     }
@@ -759,7 +773,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _tol = tol;
             }
 
-            public void Build(List<Raw> raws)
+            public void Build(List<Raw> raws, double gap)
             {
                 Cut(raws);
                 var seen = new Dictionary<(int, int), List<Piece>>();
@@ -810,7 +824,79 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
+                if (gap > _tol)
+                {
+                    Bridge(gap);
+                }
+
                 Prune();
+            }
+
+            /// <summary>
+            /// Joins the loose ends no further apart than the gap by a straight piece of no object, nearest pair first and each end
+            /// once, so that a boundary with a gap in it closes as HPGAPTOL says. Only ends meet ends: a gap to the middle of another
+            /// piece is not closed. The ends are swept along the axis they spread over more, the fewer pairs.
+            /// </summary>
+            private void Bridge(double gap)
+            {
+                var degree = new int[_nodes.Count];
+
+                foreach (Piece piece in _pieces)
+                {
+                    degree[piece.A]++;
+                    degree[piece.B]++;
+                }
+
+                var ends = new List<int>();
+
+                for (int n = 0; n < degree.Length; n++)
+                {
+                    if (degree[n] == 1)
+                    {
+                        ends.Add(n);
+                    }
+                }
+
+                bool alongX =
+                    ends.Count == 0
+                    || ends.Max(n => _nodes[n].X) - ends.Min(n => _nodes[n].X)
+                        >= ends.Max(n => _nodes[n].Y) - ends.Min(n => _nodes[n].Y);
+                Func<int, double> along = alongX ? (Func<int, double>)(n => _nodes[n].X) : n => _nodes[n].Y;
+                ends.Sort((a, b) => along(a) != along(b) ? along(a).CompareTo(along(b)) : a.CompareTo(b));
+                var pairs = new List<(double Distance, int A, int B)>();
+
+                for (int i = 0; i < ends.Count; i++)
+                {
+                    for (int j = i + 1; j < ends.Count && along(ends[j]) - along(ends[i]) <= gap; j++)
+                    {
+                        double distance = _nodes[ends[i]].DistanceTo(_nodes[ends[j]]);
+
+                        if (distance <= gap)
+                        {
+                            pairs.Add((distance, Math.Min(ends[i], ends[j]), Math.Max(ends[i], ends[j])));
+                        }
+                    }
+                }
+
+                pairs.Sort(
+                    (x, y) =>
+                        x.Distance != y.Distance ? x.Distance.CompareTo(y.Distance)
+                        : x.A != y.A ? x.A.CompareTo(y.A)
+                        : x.B.CompareTo(y.B)
+                );
+                var joined = new HashSet<int>();
+
+                foreach ((double Distance, int A, int B) pair in pairs)
+                {
+                    if (joined.Contains(pair.A) || joined.Contains(pair.B))
+                    {
+                        continue;
+                    }
+
+                    joined.Add(pair.A);
+                    joined.Add(pair.B);
+                    _pieces.Add(new Piece(pair.A, pair.B, _nodes[pair.A], _nodes[pair.B], 0.0, string.Empty));
+                }
             }
 
             public List<Cycle> Trace()

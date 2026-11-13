@@ -29,19 +29,23 @@ namespace GeometryHelper.Dxf.Viewer
         };
 
         /// <summary>
-        /// -HATCH: "Current hatch pattern:  ANSI31", then "Specify internal point or [Properties/Select objects/Advanced/DRaw
-        /// order]:" until Enter, each point finding the area round it with its islands (Undo takes the last back; a point in an
-        /// area already specified says so), Select objects taking closed objects, Properties asking the pattern typed
-        /// (<see cref="HatchPropertiesTyped"/>), Advanced options Retain boundary, Island detection, Style, Associativity and
-        /// separate Hatches, DRaw order where the hatch goes in the draw order (behind its boundary as AutoCAD starts). Enter
-        /// makes the hatch, or a hatch of each area where they are to be separate, as one undo step. The settings are the
-        /// document's, as HATCH's are. AutoCAD's Gap tolerance, Boundary set, draW boundary, remove Boundaries, Origin, hatch
-        /// COlor, LAyer, Transparency and ANnotative are not built.
+        /// -HATCH: "Current hatch pattern:  ANSI31", then "Specify internal point or [Properties/Select objects/draW
+        /// boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:" until Enter, each
+        /// point finding the area round it with its islands (Undo takes the last back; a point in an area already specified
+        /// says so), Select objects taking closed objects, Properties asking the pattern typed
+        /// (<see cref="HatchPropertiesTyped"/>), draW boundary a shape drawn point by point (<see cref="HatchDrawBoundary"/>),
+        /// remove Boundaries taking loops out (<see cref="HatchRemoveBoundaries"/>), Advanced options Boundary set, Retain
+        /// boundary, Island detection, Style, Associativity, Gap tolerance and separate Hatches, DRaw order where the hatch goes
+        /// in the draw order (behind its boundary as AutoCAD starts), Origin, hatch COlor, LAyer and Transparency (kept in the
+        /// document's <see cref="CadHatchSettings"/>, as AutoCAD keeps HPCOLOR and the rest), and ANnotative, which is said not
+        /// to be made yet. Enter makes the hatch, or a hatch of each area where they are to be separate, as one undo step. The
+        /// settings are the document's, as HATCH's are.
         /// </summary>
         private static IEnumerable<CadPrompt> HatchTyped(CadCommandContext c)
         {
             CadHatchSettings settings = c.Document.HatchSettings.Clone();
             var picks = new List<IReadOnlyList<CadBoundaryLoop>>();
+            var run = new HatchRun();
 
             while (true)
             {
@@ -50,7 +54,20 @@ namespace GeometryHelper.Dxf.Viewer
                     .ForPoint(
                         "Specify internal point",
                         null,
-                        new[] { "Properties", "Select objects", "Advanced", "DRaw order" }
+                        new[]
+                        {
+                            "Properties",
+                            "Select objects",
+                            "draW boundary",
+                            "remove Boundaries",
+                            "Advanced",
+                            "DRaw order",
+                            "Origin",
+                            "ANnotative",
+                            "hatch COlor",
+                            "LAyer",
+                            "Transparency",
+                        }
                     )
                     .Hiding("Undo");
 
@@ -64,7 +81,9 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Space,
                         c.Input.Point,
                         c.Session.Tolerance,
-                        c.Session.WorkView?.VisibleBox
+                        c.Session.WorkView?.VisibleBox,
+                        run.Candidates,
+                        settings.GapTolerance
                     );
 
                     if (loops == null)
@@ -126,9 +145,23 @@ namespace GeometryHelper.Dxf.Viewer
                         picks.Add(loops);
                     }
                 }
+                else if (c.Input.Is("draW boundary"))
+                {
+                    foreach (CadPrompt prompt in HatchDrawBoundary(c, settings, run, picks))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("remove Boundaries"))
+                {
+                    foreach (CadPrompt prompt in HatchRemoveBoundaries(c, picks))
+                    {
+                        yield return prompt;
+                    }
+                }
                 else if (c.Input.Is("Advanced"))
                 {
-                    foreach (CadPrompt prompt in HatchAdvanced(c, settings))
+                    foreach (CadPrompt prompt in HatchAdvanced(c, settings, run))
                     {
                         yield return prompt;
                     }
@@ -146,6 +179,41 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Remember(HatchOrderKey, chosen);
                     }
                 }
+                else if (c.Input.Is("Origin"))
+                {
+                    foreach (CadPrompt prompt in HatchOrigin(c, settings, run))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("ANnotative"))
+                {
+                    foreach (CadPrompt prompt in HatchAnnotative(c))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("hatch COlor"))
+                {
+                    foreach (CadPrompt prompt in HatchColors(c, settings))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("LAyer"))
+                {
+                    foreach (CadPrompt prompt in HatchLayer(c, settings))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("Transparency"))
+                {
+                    foreach (CadPrompt prompt in HatchTransparency(c, settings))
+                    {
+                        yield return prompt;
+                    }
+                }
                 else
                 {
                     break;
@@ -160,45 +228,87 @@ namespace GeometryHelper.Dxf.Viewer
                     settings,
                     c.Remembered(HatchSeparateKey, 0.0) != 0.0,
                     c.Remembered(HatchRetainKey, 0.0) != 0.0,
-                    (int)c.Remembered(HatchOrderKey, 3.0)
+                    (int)c.Remembered(HatchOrderKey, 3.0),
+                    run
                 );
             }
         }
 
         /// <summary>
-        /// The two colours of a gradient asked as "Two color" asks them: "New gradient color &lt;0,0,255&gt;:" and "New gradient
-        /// second color: &lt;255,255,153&gt;:", each a name from red to white, an index 1 to 255 or red, green and blue as
-        /// 255,128,0; AutoCAD's Truecolor and COlorbook keywords are not built, a true colour being typed as its three numbers.
+        /// The colours of a gradient asked as "Single color" and "Two color" ask them: "New gradient color
+        /// [Truecolor/COlorbook] &lt;0,0,255&gt;:" and, for two colours, "New gradient second color:[Truecolor/COlorbook]
+        /// &lt;255,255,153&gt;:", or, for one, "Specify a shade or tint value (0-1) &lt;1.0000&gt;:". Each colour is a name from
+        /// red to white, an index 1 to 255, Truecolor and its "Red,Green,Blue:", or red, green and blue as 255,128,0; a colour
+        /// that is none is said so and asked again, and one of a gradient is of its own, not ByLayer or ByBlock. A tint outside 0
+        /// to 1 is taken as the nearer end.
         /// </summary>
-        private static IEnumerable<CadPrompt> GradientColorsTyped(CadCommandContext c, CadHatchSettings settings)
+        private static IEnumerable<CadPrompt> GradientColorsTyped(
+            CadCommandContext c,
+            CadHatchSettings settings,
+            bool one
+        )
         {
-            for (int i = 0; i < 2; i++)
+            foreach (
+                CadPrompt prompt in ColorAsked(
+                    c,
+                    "New gradient color [Truecolor/COlorbook]",
+                    HatchColorOffered(settings.GradientColor1),
+                    false,
+                    false,
+                    color => settings.GradientColor1 = color
+                )
+            )
             {
-                DxfColor current = i == 0 ? settings.GradientColor1 : settings.GradientColor2;
+                yield return prompt;
+            }
+
+            if (!one)
+            {
+                foreach (
+                    CadPrompt prompt in ColorAsked(
+                        c,
+                        "New gradient second color:[Truecolor/COlorbook]",
+                        HatchColorOffered(settings.GradientColor2),
+                        false,
+                        false,
+                        color => settings.GradientColor2 = color
+                    )
+                )
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            while (true)
+            {
                 yield return CadPrompt.ForString(
-                    i == 0 ? "New gradient color" : "New gradient second color:",
-                    CadPropertyEditor.ColorName(current).ToLowerInvariant()
+                    "Specify a shade or tint value (0-1)",
+                    settings.GradientTint.ToString("0.0000", CultureInfo.InvariantCulture)
                 );
 
                 if (c.Input.Kind != CadInputKind.Text)
                 {
-                    continue;
+                    yield break;
                 }
 
-                string error = CadPropertyEditor.ParseColor(c.Input.Text.Trim(), out DxfColor color);
+                if (
+                    double.TryParse(
+                        c.Input.Text.Trim(),
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double tint
+                    )
+                    && !double.IsNaN(tint)
+                    && !double.IsInfinity(tint)
+                )
+                {
+                    settings.GradientTint = Math.Max(0.0, Math.Min(1.0, tint));
+                    yield break;
+                }
 
-                if (error != null || color.IsByLayer || color.IsByBlock)
-                {
-                    c.Write(error ?? "A gradient colour is a colour of its own, not ByLayer or ByBlock.");
-                }
-                else if (i == 0)
-                {
-                    settings.GradientColor1 = color;
-                }
-                else
-                {
-                    settings.GradientColor2 = color;
-                }
+                c.Write("Requires numeric value.");
             }
         }
 
@@ -236,20 +346,49 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The Advanced options of -HATCH, each asked as AutoCAD asks it, until Enter: "Retain derived boundaries? [Yes/No]
-        /// &lt;N&gt;:", "Do you want island detection? [Yes/No] &lt;Y&gt;:", "Enter hatching style [Ignore/Outer/Normal]
-        /// &lt;Normal&gt;:", "Do you want associativity? [Yes/No] &lt;Y&gt;:" and "Create separate hatches? [Yes/No] &lt;N&gt;:".
+        /// The Advanced options of -HATCH, each asked as AutoCAD asks it, until Enter: Boundary set
+        /// (<see cref="HatchBoundarySet"/>), "Retain derived boundaries? [Yes/No] &lt;N&gt;:", "Do you want island detection?
+        /// [Yes/No] &lt;Y&gt;:", "Enter hatching style [Ignore/Outer/Normal] &lt;Normal&gt;:", "Do you want associativity?
+        /// [Yes/No] &lt;Y&gt;:", Gap tolerance (<see cref="HatchGapTolerance"/>) and "Create separate hatches? [Yes/No]
+        /// &lt;N&gt;:".
         /// </summary>
-        private static IEnumerable<CadPrompt> HatchAdvanced(CadCommandContext c, CadHatchSettings settings)
+        private static IEnumerable<CadPrompt> HatchAdvanced(
+            CadCommandContext c,
+            CadHatchSettings settings,
+            HatchRun run
+        )
         {
             while (true)
             {
                 yield return CadPrompt.ForKeyword(
                     "Enter an option",
-                    new[] { "Retain boundary", "Island detection", "Style", "Associativity", "separate Hatches" }
+                    new[]
+                    {
+                        "Boundary set",
+                        "Retain boundary",
+                        "Island detection",
+                        "Style",
+                        "Associativity",
+                        "Gap tolerance",
+                        "separate Hatches",
+                    }
                 );
 
-                if (c.Input.Is("Retain boundary"))
+                if (c.Input.Is("Boundary set"))
+                {
+                    foreach (CadPrompt prompt in HatchBoundarySet(c, run))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("Gap tolerance"))
+                {
+                    foreach (CadPrompt prompt in HatchGapTolerance(c, settings))
+                    {
+                        yield return prompt;
+                    }
+                }
+                else if (c.Input.Is("Retain boundary"))
                 {
                     foreach (CadPrompt prompt in YesNoKept(c, "Retain derived boundaries?", HatchRetainKey, 0.0))
                     {
@@ -338,7 +477,8 @@ namespace GeometryHelper.Dxf.Viewer
             CadHatchSettings settings,
             bool separate,
             bool retain,
-            int order
+            int order,
+            HatchRun run
         )
         {
             var groups = new List<List<IReadOnlyList<CadBoundaryLoop>>>();
@@ -358,52 +498,24 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (List<IReadOnlyList<CadBoundaryLoop>> group in groups)
                 {
                     List<CadBoundaryLoop> loops = KeptLoops(group, settings);
-                    DxfHatch hatch = AppendHatch(c, s, loops, settings, out string made);
+                    DxfHatch hatch = AppendHatch(c, s, loops, settings, run.OriginOnce, out string made);
                     fault = fault ?? made;
 
-                    if (retain)
+                    // The polylines of the loops derived are kept where asked, those drawn where draW boundary was asked to.
+                    foreach (CadBoundaryLoop loop in loops)
                     {
-                        foreach (CadBoundaryLoop loop in loops)
+                        bool drawn = run.Drawn.Contains(loop);
+
+                        // A loop of an ellipse or a spline has no corners to make a polyline of.
+                        if (loop.Vertices.Count > 0 && (drawn ? run.RetainDrawn : retain))
                         {
-                            s.Append(c.Space, Current(c, LoopPolyline(loop)));
+                            DxfPolyline kept = Current(c, LoopPolyline(loop));
+                            kept.Closed = !run.Open.Contains(loop);
+                            s.Append(c.Space, kept);
                         }
                     }
 
-                    if (order == 0)
-                    {
-                        continue;
-                    }
-
-                    DxfDrawOrderTable table = c.Space.Block.CreateDrawOrderTable();
-                    var moving = new List<DxfEntity> { hatch };
-
-                    if (order == 1)
-                    {
-                        table.MoveToBottom(moving);
-                    }
-                    else if (order == 2)
-                    {
-                        table.MoveToTop(moving);
-                    }
-                    else
-                    {
-                        List<DxfEntity> boundary = loops
-                            .SelectMany(l => l.Sources)
-                            .Distinct(StringComparer.OrdinalIgnoreCase)
-                            .Select(h => s.Document.FindEntity(h))
-                            .Where(e => e != null)
-                            .ToList();
-                        DxfEntity target = Extreme(c.Space.Block, boundary, order == 4);
-
-                        if (target != null && order == 3)
-                        {
-                            table.MoveBelow(moving, target);
-                        }
-                        else if (target != null)
-                        {
-                            table.MoveAbove(moving, target);
-                        }
-                    }
+                    PlaceHatch(c, s, hatch, loops, order);
                 }
             });
 

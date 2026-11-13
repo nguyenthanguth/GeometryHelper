@@ -103,8 +103,13 @@ Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics fi
 the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
 - Round 2, finishing the 2D commands drafters use every day:
   - [ ] R2.1 MLINE, MLSTYLE (typed), MLEDIT joins, with a core `DxfMline` builder (from Batch 2b) (mline, running) (M)
-  - [ ] R2.2 (hatch2, running) HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
-        -BOUNDARY refusing ellipses and splines as AutoCAD (from Batch 3b) (M)
+  - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
+        set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
+        (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
+  - [ ] R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; AutoCAD's DXF kept in scratch); draW boundary
+        Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
+        gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
+        console showed it (S)
   - [ ] R2.3 (splinedit2, running, with R3.1) SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
@@ -113,7 +118,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 (splinedit2, running) MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
-  - [ ] R3.2 INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
+  - [ ] R3.2 (pgp-r32, running) INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
   - [ ] R3.3 An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.

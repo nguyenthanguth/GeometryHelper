@@ -201,7 +201,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT (New, Rename, Set, ?), -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
-| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, Advanced, DRaw order, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
+| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Close, Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
@@ -234,22 +234,62 @@ retention (Retain boundaries, always on, and the object type, Polyline or Region
 every object of the space; New is not built). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
 point:` until Enter; Cancel ends the command with nothing kept. The request is a public
 [`CadBoundaryRequest`](xref:GeometryHelper.Dxf.Viewer.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
-REGION asks `Select objects:`, counts the loops the closed objects make (`2 loops extracted.`) and says the same of the
-regions: `0 Regions created.` where nothing closes, the ACIS limit where something does. AutoCAD's Boundary set is not built.
+An area with an ellipse or a spline in it, as a side of the area or as an island, makes no polyline either: `Spline or
+ellipse detected. Cannot create boundary.`, as AutoCAD refuses it (HATCH takes such an area). An ellipse or spline elsewhere
+in the drawing does not stop it. REGION asks `Select objects:`, counts the loops the closed objects make (`2 loops
+extracted.`) and says the same of the regions: `0 Regions created.` where nothing closes, the ACIS limit where something
+does. AutoCAD's Boundary set is not built for -BOUNDARY.
 
--HATCH writes `Current hatch pattern:  ANSI31` and asks `Specify internal point or [Properties/Select objects/Advanced/DRaw
-order]:` until Enter, then makes the hatch as one undo step. A point in an area already specified says `This area has
-already been specified.`; Undo takes the last pick back; Select objects takes closed objects and asks again. Properties
-types the pattern as HATCHEDIT does and goes back to the prompt; for a gradient it asks `Enter a gradient name or [?/Two
-color] <GR_LINEAR>:`, `Specify an angle for the gradient <0>:` and `Center the gradient [Yes/No] <Yes>:`, and Two color the
-two colours typed as a name, an index or red, green and blue. Advanced asks `Enter an option [Retain boundary/Island
-detection/Style/Associativity/separate Hatches]:` until Enter: Retain boundary keeps polylines of the loops as well, Style is
-`[Ignore/Outer/Normal]`, separate Hatches makes one hatch of each pick. DRaw order asks `Enter draw order [do Not assign/send to
-Back/bring to Front/send beHind boundary/bring in front of bounDary] <send beHind boundary>:`, as AutoCAD starts: the hatch
-is put under the lowest object of its boundary (HATCH leaves the hatch on top). Gap tolerance, Boundary set, draW boundary,
-remove Boundaries, Origin, hatch COlor, LAyer, Transparency and ANnotative are not built, nor Single color. GRADIENT is HATCH
-with the type set to a gradient, as AutoCAD's ribbon takes it; HATCHTOBACK sends every hatch of the current space behind the
-other objects (`1 hatch object(s) sent to back.`, or `No hatch objects found.`).
+-HATCH writes `Current hatch pattern:  ANSI31` and asks `Specify internal point or [Properties/Select objects/draW
+boundary/remove Boundaries/Advanced/DRaw order/Origin/ANnotative/hatch COlor/LAyer/Transparency]:` until Enter, then makes
+the hatch as one undo step. A point in an area already specified says `This area has already been specified.`; Undo takes the
+last pick back; Select objects takes closed objects and asks again. Properties types the pattern as HATCHEDIT does and goes
+back to the prompt; for a gradient it asks `Enter a gradient name or [?/Single color/Two color] <GR_LINEAR>:`, `Specify an
+angle for the gradient <0>:` and `Center the gradient [Yes/No] <Yes>:`. Two color asks `New gradient color
+[Truecolor/COlorbook] <0,0,255>:` and `New gradient second color:[Truecolor/COlorbook] <255,255,153>:`, each a name, an
+index, red, green and blue as `255,128,0`, or Truecolor and `Red,Green,Blue:`; a colour that is none is said so, `A color
+number or standard color name is required.`, and asked again. Single color asks the first and then `Specify a shade or tint
+value (0-1) <1.0000>:`, and goes back to the prompt with the name and angle as they were, as AutoCAD does. The gradient is
+written as AutoCAD writes one of one colour: the colour at 0, its shade or tint at 1, group 452 of 1 and the value in group
+462. The end is the colour's hue and saturation at the lightness the value says (red at 0.25 ends in 128, 0, 0; at 1 in white;
+(255, 200, 200) at 0.5 in a full red), the way AutoCAD 2021 worked out the ends of 45 pairs of colour and tint it was probed
+with; a value outside 0 to 1 is the nearer end.
+
+draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
+(`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
+each shape drawn, one inside another an island; Enter leaves a shape open and the hatch closes it across. The hatch is not
+associative, and associativity stays off afterwards, as AutoCAD leaves HPASSOC. Length goes on along the last segment; an Arc
+segment is not drawn here (draw it with PLINE and use Select objects). remove Boundaries asks `Select objects or [Add
+boundaries]:` and takes out the loops the objects selected make (an island by its circle, say; the outer loop going takes the
+area with it), asks `Select objects or [Add boundaries/Undo]:` again, Undo bringing the last removal back and Add boundaries
+going back to the point prompt. Origin asks `[Use current origin/Set new origin/Default to boundary extents] <Use current
+origin>:`: Set new origin asks `Select point:` and `Store as default origin? [Yes/No] <N>:` (Yes keeps it for the next hatches,
+No lays this -HATCH's hatches from it alone), and Default to boundary extents asks `[bottom Left/bottom Right/top rIght/top
+lEft/Center] <bottom Left>:` and lays each hatch's pattern from that corner, or the middle, of the box round its outer loops,
+the corner kept as HPORIGINMODE keeps it. hatch COlor asks `New color [Truecolor/COlorbook/. (for use current)] <use
+current>:` and `New background color [Truecolor/COlorbook/. (for none)] <None>:`, LAyer `Specify layer or [. (for use
+current)] <use current>:` (`Cannot find layer "NOSUCH".` and asks again for a layer the drawing has not), and Transparency
+`Specify transparency value (0-90) or [. (for use current)] <use current>:` (a whole number, ByLayer or ByBlock; the alpha is
+255 times what is left, rounded down, 127 for 50), a dot putting each back to the current one; they are kept in the
+document's hatch settings, as AutoCAD keeps HPCOLOR, HPBACKGROUNDCOLOR, HPLAYER and HPTRANSPARENCY. ANnotative asks `Create
+annotative hatch [Yes/No] <N>:`; the presenter does not write the annotation scale of an annotative hatch yet, so Yes is said
+so and the hatch is made as before.
+
+Advanced asks `Enter an option [Boundary set/Retain boundary/Island detection/Style/Associativity/Gap tolerance/separate
+Hatches]:` until Enter: Boundary set asks `Specify candidate set for boundary [New/Everything] <Everything>:`, New taking
+`Select objects:` and then finding an area among those objects alone (a point where they close none says `Valid hatch
+boundary not found.`), Everything all the objects of the space again; Retain boundary keeps polylines of the loops as well
+(those of an ellipse or spline have no corners and are left out), Style is `[Ignore/Outer/Normal]`, Gap tolerance asks `Specify
+a boundary gap tolerance value <0>:` from 0 to 5000 (`Value must be between 0 and 5000.` outside), says `HPGAPTOL set to 3` and
+joins two loose ends no further apart than that with a straight edge of no object, so that a square 100 by 100 with a gap of 2
+in one side is hatched at 3 and not at 1 (a gap to the middle of another line is not closed; HATCH takes the same value),
+and separate Hatches makes one hatch of each pick. DRaw order asks `Enter draw order [do Not assign/send to Back/bring to
+Front/send beHind boundary/bring in front of bounDary] <send beHind boundary>:`, as AutoCAD starts (HPDRAWORDER 3): the hatch
+is put under the lowest object of its boundary, and -HATCH and HATCH share the choice. HATCH draws the hatch behind its
+boundary now too, as AutoCAD 2021's does: a square of four lines hatched by HATCH has the hatch first in the draw order. A
+hatch whose loops no object makes (draW boundary) stays on top. GRADIENT is HATCH with the type set to a gradient, as
+AutoCAD's ribbon takes it; HATCHTOBACK sends every hatch of the current space behind the other objects (`1 hatch object(s)
+sent to back.`, or `No hatch objects found.`).
 
 SPLINEDIT asks `Select spline:` and `Enter an option [Close/Move vertex/rEverse/convert to Polyline/Undo/eXit] <eXit>:`.
 For a spline of fit points Close makes the periodic cubic AutoCAD makes through them and its first point again (the
