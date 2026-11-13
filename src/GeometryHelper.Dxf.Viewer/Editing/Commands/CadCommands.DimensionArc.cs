@@ -403,7 +403,7 @@ namespace GeometryHelper.Dxf.Viewer
                 dimscale,
                 textHeight,
                 out double scale,
-                out _,
+                out double arrow,
                 out double height,
                 out _,
                 out double offset,
@@ -445,7 +445,8 @@ namespace GeometryHelper.Dxf.Viewer
                 null,
                 before,
                 textAngle,
-                out wordsOutside
+                out wordsOutside,
+                true
             );
 
             if (picture == null)
@@ -462,7 +463,12 @@ namespace GeometryHelper.Dxf.Viewer
                 // past the dimension's arc.
                 GeoVector2 run = tips[i] - ends[i];
                 double length = run.Length;
-                GeoVector2 way = length > 1E-12 ? run / length : bisector;
+                // A dimension put on its arc has no run: AutoCAD 2021 draws the extension lines in from the ends where the arrowheads
+                // fit between them, out where they do not.
+                GeoVector2 way =
+                    length > 1E-9 ? run / length
+                    : 2.0 * size * Math.Sin(Math.Min(turn, Math.PI) / 2.0) >= 2.0 * arrow ? -bisector
+                    : bisector;
                 double first = ExtensionStart(style, dimscale > 0.0 ? dimscale : 1.0, offset, length);
 
                 if (!suppressed[i] && length + beyond > first)
@@ -560,7 +566,25 @@ namespace GeometryHelper.Dxf.Viewer
             sweep = Turned(Math.Atan2(second.Y - center.Y, second.X - center.X) - start);
             sweep = sweep <= 1E-12 ? 2.0 * Math.PI : sweep;
 
-            if (Turned(Math.Atan2(arcPoint.Y - center.Y, arcPoint.X - center.X) - start) > sweep)
+            // The arc point of a dimension moved in along the middle of the arc stands on that arc, whose centre is not the arc's
+            // (the arc of 1 through 20 degrees from 10, put 1.2 out and scaled by 5, has it at 6 degrees from its centre, the
+            // sector 10 to 30), so it is placed about that arc's centre.
+            GeoPoint2 about = center;
+
+            if (sweep < RadialFrom && (arcPoint - center).Length < radius)
+            {
+                GeoVector2 bisector = Heading(start + sweep / 2.0);
+                GeoVector2 d = arcPoint - center;
+                double along = Dot(d, bisector);
+                double disc = along * along - Dot(d, d) + radius * radius;
+
+                if (along > 0.0 && disc >= 0.0)
+                {
+                    about = center + bisector * (along - Math.Sqrt(disc));
+                }
+            }
+
+            if (Turned(Math.Atan2(arcPoint.Y - about.Y, arcPoint.X - about.X) - start) > sweep)
             {
                 start += sweep;
                 sweep = 2.0 * Math.PI - sweep;

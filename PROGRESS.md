@@ -316,9 +316,14 @@ the ones wanted.
 - [x] Associative dimensions follow-ups 3 (fu-misc): DIMARC's arc point under 90 degrees and two thirds round when the
       words do not fit, kept after a scale; angular arc points two thirds round likewise (88 of 88 AutoCAD cases equal);
       DIMARC of a polyline arc segment; Partial length order and parameters (16 cases); flag 128 checked
-- [ ] (dimarc4, running) Associative dimensions follow-ups 4: DIMARC's fit rule for small arcs (r 3 sweep 20: 4 of 48 rows now 0.35 off that
-      matched before; words 0.33 further in on 33 of 48 small-arc rows); the out-to-in scale transition (0.001-0.04 off in
-      7 cases) (S)
+- [x] Associative dimensions follow-ups 4 (dimarc4): DIMARC's level words fitted by what their box takes across the arc's
+      turn, as AutoCAD (the 4 regressed rows and 33 of 48 small-arc rows now 0 off; tar sets 7 031 differing of 11 156 down
+      to 1 962), the outside side from the arc's start direction, extension lines of a dimension on its arc, the sector
+      test after a scale; harness .claude/gk/dims-harness10
+- [ ] Associative dimensions follow-ups 5: angular three-point dimensions with level words fitted the same way (tar16: 56 of
+      432 differ; DECIDED by recommendation: match AutoCAD even though angular pictures change); DIMJUST 1/2 of DIMARC
+      (tar9 288, tar13 57); DIMARCSYM 1 (about 0.07 more height); the radial case (sweep >= 90, arrowheads in); AutoCAD's
+      arc-point offset after a scale (-g d sweep^2, g 0.002-0.014, no closed form) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
@@ -359,7 +364,7 @@ the ones wanted.
         AutoCAD's DXF gives them) and written; VISUALSTYLE of R2004-R2010 written into R2018 (390 of 390 equal AutoCAD's);
         fixed: a block record owner's handle code and a multileader attribute code; draw order made in code no longer
         dropped; 19 drawings AUDIT 0; DxfColor Red/Green/Blue of ByAci kept as the palette (documented, AutoCAD gives 0)
-  - [ ] DWG follow-ups 3: tables holding a field or a data link (Cover Sheet, Mechanical - Data Links: unknown cell kinds;
+  - [ ] (dwg9, running) DWG follow-ups 3: tables holding a field or a data link (Cover Sheet, Mechanical - Data Links: unknown cell kinds;
         60 fields lost with the table); Existing Conditions Plan rewritten refused by AutoCAD (ErrorStatus 53, also before
         this change); R2000/R2004 table content (DATATABLE); ACFD_FIELDTEXT_CHECKSUM of old files; OLE2FRAME and proxies
         (GUI sample); surfaces in DWG; ACIS 4.00 of R2000; tcustom reader parity; TABLEGEOMETRY head bit; a rendered
