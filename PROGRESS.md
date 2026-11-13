@@ -381,10 +381,14 @@ the ones wanted.
       value sets applied after a base move; the insertion grip left out where a custom grip stands on it; 26 INSERTs AUDIT
       0, 23 equal AutoCAD's values to 6 places. NOTE for a release: DynamicBlockReferencePropertyCollection has more items
       (the hidden Origin), written up as NEW with the advice to filter on Show
-- [ ] (dynblock4, running) Dynamic block follow-ups 4: a polar base drag after an end drag (AutoCAD composes the edits; refused now); the edge a
-      base-following stretch holds after a later value set (DWG probe: 3 of 26 differ); ATTSYNC on a moved INSERT
-      (accoreconsole /i plus AutoLISP); GRIPLOC of linear/XY grips in blocks with a polar parameter; setting Origin; the
-      block-table grip menu and glyph (GUI); the Design artifact's grip colour #19B5F0 to #00BFFF (S)
+- [x] Dynamic block follow-ups 4 (dynblock4): polar grip edits replayed one after the other from the history, as AutoCAD
+      (end, base, end: (45.434873, 25.724788)); base-following stretch, move and array kept at the base point at every
+      later value set (settled by probe in memory, DXF and DWG); Origin settable for linear, XY and polar; GRIPLOC for
+      linear/XY base and end grips; history kept in block units and started for array and scale blocks; about 1 500 random
+      edit sequences equal AutoCAD's, ten files AUDIT 0
+- [ ] Dynamic block follow-ups 5: ATTSYNC on a moved INSERT (not in the console or acdbmgd); GRIPLOC for point, rotation
+      and other XY corner grips (written as property records now); a value-set tie AutoCAD breaks by float noise; a cheaper
+      history replay (+8% on polar sets); the block-table grip menu and glyph (GUI); the Design artifact's grip colour (S)
 
 ### To do
 

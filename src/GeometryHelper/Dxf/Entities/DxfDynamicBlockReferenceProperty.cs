@@ -64,7 +64,7 @@ namespace GeometryHelper.Dxf
         /// Gets or sets the property's value for this INSERT, as AutoCAD's <c>Value</c>: a <see cref="double"/> for a length or
         /// an angle (in radians), a <see cref="short"/> for the state of a flip (0 not flipped, 1 flipped), a <see cref="string"/>
         /// for a visibility state or a value looked up, a <see cref="GeoPoint3"/> for the Origin of a parameter, its base point in
-        /// the block's coordinates (read, not set).
+        /// the block's coordinates (set to a point of the file's coordinates, as AutoCAD sets it: see below).
         /// </summary>
         /// <value>
         /// <para>
@@ -183,13 +183,26 @@ namespace GeometryHelper.Dxf
         /// AutoCAD 2021 added Block Table1 2, Spaces 5 Spaces and Width 5400 to its Parking sample's (plugin D26), the same
         /// property set twice in a row keeping the last value alone, as AutoCAD 2021 kept Width 120 of Width 140 and then 120
         /// (plugin GhDy3a); an INSERT of no history is given none, as AutoCAD gave none to the library's INSERTs it set, unless
-        /// its block has a polar parameter: AutoCAD 2021 started the history at the first value set of a pointer. The INSERT
+        /// its block has a polar parameter or an array or a scale action: AutoCAD 2021 started the history at the first value set of
+        /// a pointer, a panel with an array and a bar scaled (plugin GhDb4a); a distance is kept in the block's own units (Width 150 of
+        /// Width 300 at the scale 2). The INSERT
         /// keeps its place, scale, attributes and look; the dynamic block is not changed.
+        /// </para>
+        /// <para>
+        /// The Origin of a linear, an XY or a polar parameter is set to a point in the coordinates of the file, as AutoCAD 2021
+        /// sets it (plugin GhDb4a): the point is taken into the block's coordinates (the Origin of an INSERT at (1 000, 500),
+        /// not turned or scaled, set to (1 030, 520, 0) reads (30, 20, 0), and on one at a quarter turn and the scale 2 reads
+        /// (10, -15, 0)), and the parameter's base point and end point move together to it, the distances kept: a panel 100
+        /// wide from (0, 100) whose Origin is set to (30, 120) runs from (30, 120) to (130, 120), and the edges the stretches of
+        /// its base point and its end point hold move by (30, 20), the base point's off the line too; the lines of a pointer's
+        /// polar stretch stay, as it measures the end point from the base point. The set is a record of the INSERT's history in
+        /// a block that keeps one (the node, Origin and the point), replacing an earlier record of the same Origin. The Origin of
+        /// a rotation or a constraint parameter is read only.
         /// </para>
         /// </value>
         /// <exception cref="ArgumentNullException">Thrown when the value set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the value set is not a finite number for a distance, a position or an
-        /// angle, not a whole number for a flip state or a block properties table, not the name of a state of a visibility
+        /// angle, not a point for an Origin, not a whole number for a flip state or a block properties table, not the name of a state of a visibility
         /// parameter, not the label of a row of a lookup's table, or not a string for a user parameter of text.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance, taken to the value set, is not above the point
         /// tolerance of <see cref="Tolerance.Default"/>, a flip state is neither 0 nor 1, or a row is not one of the block
@@ -216,9 +229,10 @@ namespace GeometryHelper.Dxf
         /// its properties must match (290 of 1), or a parameter of such a table of a column of a user parameter or of the
         /// visibility state, a user parameter of another kind than a text or a real, or of an expression; or when the INSERT keeps
         /// the base point of a rotation or a flip parameter away from the block's own, or that of a linear, an XY or a polar
-        /// parameter a move carries or a scale or a rotate follows, or a linear one's off its line, beyond the point tolerance
+        /// parameter a move carries or a scale or a rotate follows, beyond the point tolerance
         /// of <see cref="Tolerance.Default"/>. A base point a grip moved on a linear, an XY or a polar parameter is worked out from
-        /// where the INSERT keeps it, as AutoCAD does (<see cref="MoveBasePoint"/>). Nothing is written then.</exception>
+        /// where the INSERT keeps it, as AutoCAD does (<see cref="MoveBasePoint"/>), and a grip edit of a polar parameter from the
+        /// history of the INSERT's edits where the distance or the angle was set. Nothing is written then.</exception>
         public object Value
         {
             get => _value;
@@ -231,13 +245,6 @@ namespace GeometryHelper.Dxf
                     );
                 }
 
-                if (PropertyTypeCode == OriginTypeCode)
-                {
-                    throw new NotSupportedException(
-                        "The property Origin is read, not set: the library moves the base point of a parameter by MoveBasePoint of its distance, as a base grip does."
-                    );
-                }
-
                 if (_insert == null)
                 {
                     throw new NotSupportedException(
@@ -245,6 +252,12 @@ namespace GeometryHelper.Dxf
                             + PropertyName
                             + " is of a parameter the library does not work out: it sets those of linear, XY, polar, point, rotation, flip, visibility, lookup, user and horizontal, vertical and radial constraint parameters and of block properties tables."
                     );
+                }
+
+                if (PropertyTypeCode == OriginTypeCode)
+                {
+                    _value = DxfDynamicBlockRepresentation.MoveOrigin(_insert, _node, _part, value);
+                    return;
                 }
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);
@@ -266,7 +279,12 @@ namespace GeometryHelper.Dxf
         /// of an XY parameter the move leaves alone is not taken. The base point of a polar parameter is moved anywhere: a
         /// pointer from (0, 0) to (100, 0) whose base point is moved by (30, 10) reads Length 81.39 and Angle 354.3 degrees,
         /// its lines stay (the end point stays), and the INSERT's history gets the record GRIPLOC of the parameter's base grip,
-        /// (30, 10, 0), as AutoCAD 2021 wrote it; a polar stretch worked out after it turns the lines about the new base point.
+        /// (30, 10, 0), as AutoCAD 2021 wrote it; a polar stretch worked out after it turns the lines about the new base point,
+        /// and after an end grip dragged before it works the edits out one after the other, as AutoCAD did (the end grip to (0,
+        /// 50), the base grip by 30 and the end grip to (35, 0) leave the first line from (45.43, 25.72) to (35, 0), plugin
+        /// GhDb4a). The history keeps the move of the base grip of a linear or an XY parameter too, in a block that keeps one
+        /// (a polar parameter, an array or a scale action), and a stretch or an array that follows the base point stays where
+        /// it stands at the next value set. A move of no more than 1E-12, or one a second move brings back, leaves no record.
         /// </summary>
         /// <param name="by">The move, in the coordinates of the file (the world's, as <see cref="DxfDynamicBlockGrip.Position"/>
         /// is given): an XY parameter's along x and along y of the block, a linear parameter's along its line alone, the part
@@ -280,8 +298,9 @@ namespace GeometryHelper.Dxf
         /// drawing, or scaled unlike along its axes.</exception>
         /// <exception cref="NotSupportedException">Thrown when the block has a block properties table, a move carries the
         /// parameter or carries other parameters by it, a scale or a rotate follows it, the parameter is a polar one whose
-        /// distance or angle was set away from the values its base point gives the block's own end point (AutoCAD 2021 worked
-        /// those grip edits out one after the other), or <see cref="Value"/> would refuse the block or the INSERT. Nothing is
+        /// distance or angle was set away from the values its base point gives the block's own end point and the INSERT keeps no
+        /// history of the grip edits that led there (AutoCAD 2021 worked them out one after the other), or <see cref="Value"/>
+        /// would refuse the block or the INSERT. Nothing is
         /// written then.</exception>
         public void MoveBasePoint(GeoVector3 by)
         {
@@ -305,18 +324,20 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Drags the end grip of the polar parameter this property is the distance or the angle of to a point, as AutoCAD's
+        /// Drags the end grip of the linear, XY or polar parameter this property is a distance or the angle of to a point, as AutoCAD's
         /// grip does: the distance and the angle of the point from the base point, taken to their value sets, are the parameter's
         /// values, the block is worked out from them (a polar stretch turning and moving what it holds), and the INSERT's history
         /// gets the record GRIPLOC of the parameter's end grip, how far the end point went in this drag, in the block's
         /// coordinates, as AutoCAD 2021 wrote it. A pointer of two lines from (0, 0) to (100, 0), at (1 000, 500), whose end grip
         /// is dragged to (1 000, 550) reads Length 50 and Angle 90 degrees, runs its line to (0, 50) and keeps GRIPLOC
         /// (-100, 50, 0); dragged to (1 010, 500) next it keeps the one record, (-90, 0, 0), the two moves added, unless another
-        /// record came between (plugin GhDy3a).
+        /// record came between (plugin GhDy3a). The end grip of a linear parameter takes the distance along its line from the base
+        /// point, that of an XY parameter each distance along its axis, each taken to its value set, and the history keeps the
+        /// same GRIPLOC of the grip in a block that keeps one (plugin GhDb4a).
         /// </summary>
         /// <param name="to">The point, in the coordinates of the file (the world's, as <see cref="DxfDynamicBlockGrip.Position"/>
         /// is given).</param>
-        /// <exception cref="ArgumentException">Thrown when the property is not a distance or an angle of a polar parameter, or a
+        /// <exception cref="ArgumentException">Thrown when the property is not a distance or an angle of a linear, an XY or a polar parameter, or a
         /// coordinate of the point is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance, taken to the value set, would not be above the
         /// point tolerance of <see cref="Tolerance.Default"/>.</exception>
@@ -344,7 +365,7 @@ namespace GeometryHelper.Dxf
                 throw new NotSupportedException(
                     "The property "
                         + PropertyName
-                        + " is of a parameter the library does not work out: it drags the end grip of a polar parameter."
+                        + " is of a parameter the library does not work out: it drags the end grip of a linear, an XY or a polar parameter."
                 );
             }
 

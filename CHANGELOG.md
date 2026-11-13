@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Dynamic blocks, the grip edits of a polar parameter worked out one after the other, as AutoCAD 2021 works them (probed in its
+console on side databases, grips through `MoveGripPointsAt`; about 1 000 random sequences on five kinds of pointer gave its lines to
+1E-3). `DxfDynamicBlockReferenceProperty.MoveBasePoint` of a polar parameter no longer refuses a base grip dragged after the end
+grip, or after the distance or the angle was set: the end grip to block point (0, 50), the base grip by (30, 0) and the end grip to
+(35, 0) leave the first line, which the polar stretch does not hold at its start, from (45.43, 25.72) to (35, 0) and the tip from (35,
+0) to (28.998, 9.432), where the lines worked out from the final values alone stand at (0, 0). Each edit turns the lines as they
+stand about the base point as it stood then, and moves the points the stretch holds along the new direction by the distance it
+gains; the library replays the INSERT's history of grip edits (`ACAD_ENHANCEDBLOCKHISTORY`) to do the same, the Length and the Angle
+set between the edits and the Origin included, and refuses a base grip with `NotSupportedException` only where the INSERT keeps no
+history that leads to where it stands (the distance or the angle set away from the block's own and the history taken out).
+**NEW.** The `Origin` of a linear, an XY or a polar parameter can be set (`DxfDynamicBlockReferenceProperty.Value` of the hidden
+property, a `GeoPoint3`), as AutoCAD 2021 sets it: the point is taken as a point of the file's coordinates and worked into the block's
+(set to (1 030, 520, 0) on an INSERT at (1 000, 500) it reads (30, 20, 0); at a quarter turn and the scale 2 (10, -15, 0)), and the
+parameter's base point and its end point move together to it, the distances and the angle kept: a panel 100 wide from (0, 100) whose
+Origin is set to (30, 120) runs from (30, 120) to (130, 120) and the edges its stretches hold move by (30, 20), the base point's off
+the line too (a linear parameter's base point may now stand beside its line), and the lines of a pointer stay. It was refused with
+`NotSupportedException` before; the Origin of a rotation or a constraint parameter stays read only (`InvalidOperationException`).
+**NEW.** `DxfDynamicBlockReferenceProperty.MoveEndPoint` drags the end grip of a linear parameter (the distance along its line) and of
+an XY parameter (each distance along its axis) too, each taken to its value set, and the presenter's linear end grip and XY end corner
+use it. In a block that keeps a history of grip edits it writes the `GRIPLOC` of the grip where a typed value would have written a
+record of the property, and so does the base grip of a linear or an XY parameter (`MoveBasePoint`), as AutoCAD 2021 wrote them.
+**CHANGED.** A stretch, a move or an array that follows the base point of a linear or an XY parameter now stays where the base point
+stands at the next value set. AutoCAD 2021 kept the left edge of a panel whose base grip went 10 along x at x 10 when Width was set to
+150 (right edge at x 160), in memory, after the drawing was written to DXF or DWG and read back, and from the library's own file; the
+first circle of an array at x 60, and at 70 after 10 more; the attribute definition LOWER of a plate at (22, 2). The library put them
+back at the block's own place at a value set, which AutoCAD did only from an anonymous block whose geometry was there.
+**FIXED.** The history of grip edits (`ACAD_ENHANCEDBLOCKHISTORY`) as AutoCAD 2021 keeps it: a block with an array or a scale action
+starts one too (a panel with an array, a grid, a bar a scale action scales; a block of stretches, moves, rotates and flips alone none);
+a distance is kept in the block's own units (Width 150 of Width 300 on an INSERT scaled by 2, not 300); a `GRIPLOC` of a drag of no more
+than 1E-12, or of two drags of one grip that bring it back, is left out, and so is the history a first drag of nowhere would start.
+Not done: ATTSYNC of a moved INSERT could not be probed (AutoCAD 2021's console knows neither `ATTSYNC` nor `-ATTSYNC`, and the managed
+API has no `AttSync`); the end grip of a point or a rotation parameter and the corners of an XY parameter other than its end write
+a record of the property where AutoCAD writes a `GRIPLOC`; a value set tie that AutoCAD broke by floating-point noise once the base
+point was moved (Length 185 of 50 to 300 by 10 taken to 190, not 180).
 **NEW.** A drawing saved as R12 (`DxfDatabase.Save(path, "AC1009")`) holds the hatches and multileaders it breaks into as AutoCAD 2021
 writes them. The INSERT of a hatch carries the hatch as R14 held it, in the extended data of the application `ACAD`: a pattern hatch
 as `HATCH` with its name, scale and angle, what it follows (`ASC_BOUNDS`) and its seed points (`ASC_SEEDPOINT`) where it is

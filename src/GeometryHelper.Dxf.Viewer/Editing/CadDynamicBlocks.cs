@@ -450,8 +450,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// base point's x to 20, so that Width reads 80 and the right edge stays at x 100 (plugins GhDb1 and GhDy2a). The base
         /// grip of an XY, a linear or a polar parameter moves the base point, the end point staying
         /// (<see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/>), the distances taken to the value set; the end grip of
-        /// a polar parameter drags the end point (<see cref="DxfDynamicBlockReferenceProperty.MoveEndPoint"/>), which keeps the
-        /// GRIPLOC AutoCAD wrote in the INSERT's history.
+        /// a linear, an XY or a polar parameter drags the end point (<see cref="DxfDynamicBlockReferenceProperty.MoveEndPoint"/>),
+        /// which keeps the GRIPLOC AutoCAD wrote in the INSERT's history.
         /// </summary>
         internal static Action<DxfBlockReference> Plan(
             DxfBlockReference insert,
@@ -481,7 +481,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return null;
                 }
 
-                return i => Set(i, custom.PropertyNames[0], distance);
+                var end = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                return i => MoveEnd(i, custom.PropertyNames[0], end);
             }
 
             // The rest are worked in the block's own coordinates: the INSERT may be turned, mirrored or scaled.
@@ -528,6 +529,14 @@ namespace GeometryHelper.Dxf.Viewer
                         new GeoVector3(setsX ? 0.0 : local.X - at.X, setsY ? 0.0 : local.Y - at.Y, 0.0)
                     );
                     bool movesBase = !setsX || !setsY;
+
+                    // The end grip takes both distances from the end point dragged, as AutoCAD's does: one GRIPLOC of the grip in
+                    // the INSERT's history where the block keeps one (plugin GhDb4a).
+                    if (setsX && setsY)
+                    {
+                        var end = new GeoPoint3(to.X, to.Y, custom.Position.Z);
+                        return i => MoveEnd(i, custom.PropertyNames[0], end);
+                    }
 
                     // The distances first, the base point last: a stretch or a move that follows the base point follows this move
                     // alone, and a value set after it would take it back.
@@ -773,7 +782,7 @@ namespace GeometryHelper.Dxf.Viewer
             property.MoveBasePoint(by);
         }
 
-        /// <summary>Drags the end grip of the polar parameter a property of a name of an INSERT is of to a point, read anew, as the library works the block out.</summary>
+        /// <summary>Drags the end grip of the linear, XY or polar parameter a property of a name of an INSERT is of to a point, read anew, as the library works the block out.</summary>
         private static void MoveEnd(DxfBlockReference insert, string name, GeoPoint3 to)
         {
             DxfDynamicBlockReferenceProperty property = Find(insert, name)
