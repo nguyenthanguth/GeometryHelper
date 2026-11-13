@@ -37,7 +37,7 @@ namespace GeometryHelper.Dwg
             ["tcoedge-coedge"] = "* b(forward,reversed) *",
             ["edge"] = "* b(forward,!) *",
             ["tedge-edge"] = "* b(forward,!) *",
-            ["transform"] = "* b(no_rotate,!) b(no_reflect,!) b(no_shear,!)",
+            ["transform"] = "* b(no_rotate,rotate) b(no_reflect,!) b(no_shear,!)",
             ["plane-surface"] = "r i r P U V b(forward_v,reverse_v) I I I I",
             ["sphere-surface"] = "* b(forward_v,reverse_v) I I I I",
             ["torus-surface"] = "r i r P U d d V b(forward_v,reverse_v) I I I I",
@@ -333,14 +333,15 @@ namespace GeometryHelper.Dwg
                 records,
                 records.Count - 1,
                 form == null ? Int(sab, 15) : form.Version,
-                Int(sab, 23),
+                form != null && form.Version == Acis4Version ? form.Roots : Int(sab, 23),
                 form == null ? Int(sab, 27) : form.Flags,
                 strings,
-                reals
+                reals,
+                form != null && form.Version == Acis4Version
             );
         }
 
-        /// <summary>The SAT of the first <paramref name="count"/> records (the end of the data after them is not written) under the head of the version, roots and flags given.</summary>
+        /// <summary>The SAT of the first <paramref name="count"/> records (the end of the data after them is not written) under the head of the version, roots and flags given, in the form of ACIS 4.00 where <paramref name="acis4"/>.</summary>
         private static string Print(
             List<List<Token>> records,
             int count,
@@ -348,7 +349,8 @@ namespace GeometryHelper.Dwg
             int roots,
             int flags,
             List<string> strings,
-            List<double> reals
+            List<double> reals,
+            bool acis4 = false
         )
         {
             var text = new StringBuilder();
@@ -383,7 +385,7 @@ namespace GeometryHelper.Dwg
 
             for (int i = 0; i < count; i++)
             {
-                var writer = new Writer(records[i], text);
+                var writer = new Writer(records[i], text, acis4);
 
                 if (!writer.Record())
                 {
@@ -712,13 +714,15 @@ namespace GeometryHelper.Dwg
         {
             private readonly List<Token> _tokens;
             private readonly StringBuilder _text;
+            private readonly bool _acis4;
             private int _at;
             private long _last;
 
-            public Writer(List<Token> tokens, StringBuilder text)
+            public Writer(List<Token> tokens, StringBuilder text, bool acis4 = false)
             {
                 _tokens = tokens;
                 _text = text;
+                _acis4 = acis4;
             }
 
             private char Next => _at < _tokens.Count ? _tokens[_at].Kind : '#';
@@ -743,6 +747,11 @@ namespace GeometryHelper.Dwg
                 if (!Records.TryGetValue(name.ToString(), out string grammar))
                 {
                     return false;
+                }
+
+                if (_acis4)
+                {
+                    grammar = Acis4Grammar(name.ToString(), grammar);
                 }
 
                 Emit(name.ToString());
@@ -787,7 +796,12 @@ namespace GeometryHelper.Dwg
                         Emit(Number(token.Triple[2]));
                         return true;
                     case 's':
-                        Emit("@" + token.Text.Length.ToString(CultureInfo.InvariantCulture) + " " + token.Text);
+                        Emit(
+                            (_acis4 ? string.Empty : "@")
+                                + token.Text.Length.ToString(CultureInfo.InvariantCulture)
+                                + " "
+                                + token.Text
+                        );
                         return true;
                     case 'N':
                         Emit(token.Text);
@@ -1032,6 +1046,13 @@ namespace GeometryHelper.Dwg
 
                 Emit("{");
                 Emit(name.Text);
+
+                // ACIS 4.00 has no word of fullness before the spline of an exact curve or surface.
+                if (_acis4 && HasFullWord(name.Text))
+                {
+                    grammar = grammar.Substring("e(0=full) ".Length);
+                }
+
                 string[] items = Items(grammar);
 
                 if (!Run(items, 0, items.Length) || !Take("}", out Token _))

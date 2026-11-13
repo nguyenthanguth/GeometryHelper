@@ -100,13 +100,13 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
-        public void ASolidOfSatText_AsADxfOfR2000GivesIt_IsLeftOut()
+        public void ASolidOfSatText_AsADxfOfR2000GivesIt_IsLeftOut_WhereItsSplinesHaveNoForm()
         {
-            // The DXF of R2000 gives the box and the region as SAT text, which a DWG of R2018 keeps as SAB only.
-            DwgWriter.ToDwg(Source("solids_AC1015").ToText(), "AC1032", out IDictionary<string, int> leftOut);
+            // The DXF of R2000 gives its solids as SAT text, which a DWG of R2018 keeps as SAB only: the box and the region are
+            // turned (DwgSatBodiesWriterTests), the two solids of splines are not.
+            DwgWriter.ToDwg(Source("splines_AC1015").ToText(), "AC1032", out IDictionary<string, int> leftOut);
 
-            Assert.Equal(1, leftOut["3DSOLID"]);
-            Assert.Equal(1, leftOut["REGION"]);
+            Assert.Equal(2, leftOut["3DSOLID"]);
         }
     }
 }

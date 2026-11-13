@@ -187,25 +187,6 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASolidOfR2000_ItsTextBeingACIS4_IsLeftOutOfR2013AndKeptInTheOthers()
-        {
-            byte[] r2000 = DwgAnswerKey.Key("solids_AC1015");
-            int solids = Solids(r2000).Count;
-
-            Assert.True(solids > 0);
-
-            // Going to R2013 the entity cannot keep text: AutoCAD refuses a file whose solid does, as no drawing.
-            byte[] as2013 = Saved(r2000, "AC1027", out IReadOnlyList<string> said);
-            Assert.Empty(Solids(as2013));
-            Assert.Contains(said, s => s.Contains("3DSOLID " + solids.ToString(CultureInfo.InvariantCulture)));
-
-            // To R2010 the text stays, and the solid gets the history that version writes.
-            List<DwgAnswerKey.Record> as2010 = Solids(Saved(r2000, "AC1024"));
-            Assert.Equal(solids, as2010.Count);
-            Assert.All(as2010, solid => Assert.Contains(solid.Groups, g => g.Key == 100 && g.Value == "AcDb3dSolid"));
-        }
-
-        [Fact]
         public void ABodyThatIsNotASolid_IsTurnedAsASolidIs()
         {
             // A BODY holds the same data and none of the solid's history.
@@ -271,7 +252,7 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ASatOfAnUnknownRecordOrOfACIS4_IsRefused()
+        public void ASatOfAnUnknownRecord_IsRefused()
         {
             List<string> box = Sat(Solids(DwgAnswerKey.Key("acis_AC1024"))[0]);
             AcisFormat r2013 = AcisFormat.For("AC1027");
@@ -280,11 +261,14 @@ namespace GeometryHelper.UnitTest.Dxf
             unknown.Insert(5, "blend-surface $-1 -1 $-1 0 0 0 #");
             Assert.Null(DwgSat.ToSab(unknown, r2013, string.Empty));
 
-            // ACIS 4.00 has records of its own forms: version 400 is not read.
+            // ACIS 4.00 is read now (DxfAcis4Tests): the same refusal of an unknown record there.
             List<string> old = Sat(Solids(DwgAnswerKey.Key("solids_AC1015"))[0]);
             Assert.StartsWith("400 ", old[0], StringComparison.Ordinal);
-            Assert.Null(DwgSat.ToSab(old, r2013, string.Empty));
-            Assert.Null(DwgSat.ToSat(old, AcisFormat.For("AC1024")));
+            Assert.NotNull(DwgSat.ToSab(old, r2013, string.Empty));
+
+            var unknownOld = new List<string>(old);
+            unknownOld.Insert(5, "blend-surface $-1 0 0 0 #");
+            Assert.Null(DwgSat.ToSab(unknownOld, r2013, string.Empty));
         }
 
         /// <summary>The SAB of R2010 of the head, an asmheader and a plane whose normal is the vector given.</summary>
@@ -535,25 +519,38 @@ namespace GeometryHelper.UnitTest.Dxf
         public void TheVisualStylesOfR2004_GoingToR2010_AreSetInEveryProperty_WhereAutoCadLeavesThreeToTheirParent()
         {
             // R2004 holds no word on how a property is set; AutoCAD writes it set (1) but for the 3 styles that give their edges
-            // no colour, no jitter and no overhang, whose properties come from the style they derive from (0).
+            // no colour, no jitter and no overhang: every property of them comes from the style they derive from (0) but the
+            // edge modifiers (92), which they set themselves (2).
             Dictionary<string, List<KeyValuePair<int, string>>> key = Styles(DwgAnswerKey.Key("acis_AC1024"));
             Dictionary<string, List<KeyValuePair<int, string>>> saved = Styles(
                 Saved(DwgAnswerKey.Key("acis_AC1018"), "AC1024")
             );
-            var inherited = new[] { "EdgeColorOff", "JitterOff", "OverhangOff" };
 
             // The lighting of Realistic differs between AutoCAD's own R2004 and R2010 files of this drawing (72 is 2 and 3).
-            foreach (string name in key.Keys.Where(k => !inherited.Contains(k) && k != "Realistic"))
+            foreach (string name in key.Keys.Where(k => k != "Realistic"))
             {
                 Assert.Equal(Show(key[name]), Show(saved[name]));
             }
 
-            foreach (string name in inherited)
+            Assert.Equal(1, saved["JitterOff"].Count(g => g.Key == 176 && g.Value == "2"));
+            Assert.Equal(27, saved["JitterOff"].Count(g => g.Key == 176 && g.Value == "0"));
+        }
+
+        [Theory]
+        [InlineData("AC1027")]
+        [InlineData("AC1032")]
+        public void TheVisualStylesOfR2004_GoingToR2013AndLater_LeaveTheThreeStylesOfTheEdgesToTheirParentInTheNewPropertiesToo(
+            string version
+        )
+        {
+            Dictionary<string, List<KeyValuePair<int, string>>> key = Styles(DwgAnswerKey.Key("acis_" + version));
+            Dictionary<string, List<KeyValuePair<int, string>>> saved = Styles(
+                Saved(DwgAnswerKey.Key("acis_AC1018"), version)
+            );
+
+            foreach (string name in new[] { "EdgeColorOff", "JitterOff", "OverhangOff" })
             {
-                Assert.Equal(
-                    Show(key[name].Where(g => g.Key != 176).ToList()),
-                    Show(saved[name].Where(g => g.Key != 176).ToList())
-                );
+                Assert.Equal(Show(key[name]), Show(saved[name]));
             }
         }
 

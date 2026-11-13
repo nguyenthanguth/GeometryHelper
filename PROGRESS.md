@@ -223,10 +223,13 @@ User note 2026-11-12 evening (note.md 1-14):
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
       to R2013+ written so that AutoCAD discarded the drawing, R2000<->R2004 tables (data table class name)
-- [ ] (dxfver3, running) DXF versions follow-ups 3: ACIS 4.00 of R2000 both ways (field differences listed in the dxfver2 merge); procedural
-      sweep_sur and the R2004 cylsur/surfintcur forms; the round-trip dictionaries AutoCAD makes going down (old tables,
-      RTVSPost2010Prop); the 176 flag of three styles from R2004/R2007; R2000 MTEXTBEGIN xdata; BODY and other surfaces
-      probed; SAT-text bodies written into DWG now that ToSab exists (M)
+- [x] DXF versions follow-ups 3 (dxfver3): ACIS 4.00 of R2000 turned both ways (35 bodies x 6 versions: down 170 of 175
+      AutoCAD's SAT digit for digit, up 130 equal and 40 within 1E-12, all 910 files open with AutoCAD's volume and area);
+      R2000 solids and regions now written into DWG; visual styles' round-trip records written going down and read going
+      up (the three styles' 176 flags); fixed: a turned solid (transform rotate) refused; BODY probed
+- [ ] DXF versions follow-ups 4: ACIS 4.00 splines (sweep along a spline, loft of different circles, extruded closed
+      spline: tolerant records and curve parameters, 3 attempts used); the table round trip going down
+      (ACAD_ROUNDTRIP_2008_TABLE_ENTITY); R2000 MTEXTBEGIN xdata of leader MTEXT; reflect and shear transform words (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)

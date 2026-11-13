@@ -12,6 +12,7 @@ namespace GeometryHelper.Dwg
     /// <see cref="ToSat(byte[])"/> turned round, and the records whose values the grammars leave to "*" (the transform, the
     /// edges and the tolerant ones, the point, the name attribute) by a layout of their own that gives each value its kind.
     /// A record, a subtype or a value that fits no grammar refuses the data, so that no SAB is written that is not AutoCAD's.
+    /// The SAT of R2000, ACIS 4.00, is read as the records of R2004 (<c>DwgSat.Acis4.cs</c>) and written from them.
     /// </summary>
     internal static partial class DwgSat
     {
@@ -20,7 +21,7 @@ namespace GeometryHelper.Dwg
             StringComparer.Ordinal
         )
         {
-            ["transform"] = "r i V V V V d b(no_rotate,!) b(no_reflect,!) b(no_shear,!)",
+            ["transform"] = "r i V V V V d b(no_rotate,rotate) b(no_reflect,!) b(no_shear,!)",
             ["point"] = "r i r P",
             ["straight-curve"] = "r i r P V I I",
             ["sphere-surface"] = "r i r P d V V b(forward_v,reverse_v) I I I I",
@@ -65,7 +66,8 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// The SAT in <paramref name="lines"/> in the form of <paramref name="form"/>, another version of the modeler's text:
         /// the head's version and flags the form's, a vertex's number in or out. Null where the SAT holds what the grammars do
-        /// not place, or is of a version whose records are not known (that of R2000, ACIS 4.00, is).
+        /// not place, or is of a version whose records are not known. ACIS 4.00, the version of R2000, is read and written: the
+        /// form of R2000 has no asmheader, so one root.
         /// </summary>
         internal static string ToSat(IReadOnlyList<string> lines, AcisFormat form)
         {
@@ -76,7 +78,16 @@ namespace GeometryHelper.Dwg
                 return null;
             }
 
-            return Print(sat.Records, sat.Records.Count, form.Version, sat.Roots, form.Flags, sat.Strings, sat.Reals);
+            return Print(
+                sat.Records,
+                sat.Records.Count,
+                form.Version,
+                form.Version == Acis4Version ? form.Roots : sat.Roots,
+                form.Flags,
+                sat.Strings,
+                sat.Reals,
+                form.Version == Acis4Version
+            );
         }
 
         /// <summary>The head and the records of a SAT, the records as the values of SAB.</summary>
@@ -108,7 +119,7 @@ namespace GeometryHelper.Dwg
                 || !WholeOf(sat, ref at, out int _)
                 || !WholeOf(sat, ref at, out read.Roots)
                 || !WholeOf(sat, ref at, out int _)
-                || !IsKnownVersion(read.Version)
+                || !(IsKnownVersion(read.Version) || read.Version == Acis4Version)
             )
             {
                 return null;
@@ -170,6 +181,12 @@ namespace GeometryHelper.Dwg
                     break;
                 }
 
+                // A record of ACIS 4.00 is read as the record of ASM it becomes.
+                if (read.Version == Acis4Version && (raw = LiftRecord(raw)) == null)
+                {
+                    return null;
+                }
+
                 var reader = new Reader(raw);
 
                 if (!reader.Record())
@@ -180,7 +197,12 @@ namespace GeometryHelper.Dwg
                 read.Records.Add(reader.Result);
             }
 
-            return read.Records.Count == 0 ? null : read;
+            if (read.Records.Count == 0 || (read.Version == Acis4Version && !Finish(read)))
+            {
+                return null;
+            }
+
+            return read;
         }
 
         #region Reading the SAT
@@ -905,15 +927,20 @@ namespace GeometryHelper.Dwg
         /// coedge's (a whole number after the face, in the SAB of R2013) and a vertex's (a whole number after its edge, from
         /// R2007). The number of a vertex that has none is that of the end it stands at, 0 at the start of its edge and 1 at the
         /// end of it, which AutoCAD writes for most; a vertex of a closed edge has 0, where AutoCAD gives 2 to the seam of a swept
-        /// surface. False where the version is one whose records are not known.
+        /// surface. ACIS 4.00 comes in as the records of R2004 (its vertices numbered 2 from R2007) and goes out as them less the
+        /// header, the history and what is left of the edges (<c>Lower</c>). False where the version is one whose records are not
+        /// known.
         /// </summary>
         private static bool Adjust(List<List<Token>> records, int from, AcisFormat to)
         {
-            if (!IsKnownVersion(from))
+            if (!IsKnownVersion(from) && from != Acis4Version)
             {
                 return false;
             }
 
+            // ACIS 4.00 was read as the records of R2004; a vertex it gives ASM later has no end known: AutoCAD writes 2 for it.
+            bool fromAcis4 = from == Acis4Version;
+            from = fromAcis4 ? 20800 : from;
             bool hadCoedge = from >= 21800;
             bool hadVertex = from >= 21200;
             int fromForm =
@@ -1011,12 +1038,21 @@ namespace GeometryHelper.Dwg
                     }
                     else
                     {
-                        record.Insert(v + 4, new Token { Kind = 'i', Whole = EndOf(records, i, record[v + 3].Whole) });
+                        record.Insert(
+                            v + 4,
+                            new Token { Kind = 'i', Whole = fromAcis4 ? 2 : EndOf(records, i, record[v + 3].Whole) }
+                        );
                     }
                 }
             }
 
-            return true;
+            // ACIS 4.00 is the form of R2004 without the history, the header and what is left of the edges.
+            if (fromAcis4 && toForm == 2)
+            {
+                Dated(records);
+            }
+
+            return to.Version != Acis4Version || Lower(records);
         }
 
         /// <summary>

@@ -352,7 +352,9 @@ an arc and a revolve) and three regions (discs of radius 7, 9 and 4) of a DXF of
 so; AutoCAD 2021 opens all of them, `AUDIT` finds 0 errors, and each solid has the volume, surface area and centroid
 AutoCAD gives it from its own DWG of the drawing (the box 6 000 and 2 200, the sphere 2 144.66 and 804.25, the plate
 13 721.42 and 6 000, a revolve of 270 degrees 2 968.81 and 1 585.94), to the last digit. The ACIS 4.00 text of AutoCAD
-2000 is not turned: its records are laid out otherwise than those of the later versions, and its solids are left out.
+2000 is turned too (its records are those of R2004 less the asmheader, the history and the parameters of an edge: see the DXF
+versions in the index of this guide), as the box and the region of AutoCAD's own R2000 are; the solids whose splines are another
+curve in ACIS 4.00 (a loft through circles of different shapes, an extrusion of a closed spline) are left out.
 
 Two values of the SAB of a spline solid cannot be told from the SAT alone. The parameter curve of a face (`pcurve`) ends in
 two reals, which the SAT writes `0 0` or `1 0` and which were taken for two whole numbers; and the surface of a loft

@@ -124,11 +124,22 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void ASatOfAnUnknownRecord_IsStillLeftOut()
         {
-            // The DXF of R2000 gives ACIS 4.00 text, whose records the grammars do not place.
-            Written(DwgAnswerKey.Key("solids_AC1015"), out IDictionary<string, int> leftOut);
+            // The DXF of R2000 gives ACIS 4.00 text, whose splines (sumsur, the tolerances R2004 adds) the grammars do not place.
+            Written(DwgAnswerKey.Key("splines_AC1015"), out IDictionary<string, int> leftOut);
 
-            Assert.Equal(1, leftOut["3DSOLID"]);
-            Assert.Equal(1, leftOut["REGION"]);
+            Assert.Equal(2, leftOut["3DSOLID"]);
+        }
+
+        [Fact]
+        public void TheSolidAndTheRegionOfR2000_AreWrittenToo_FromTheirACIS4Text()
+        {
+            byte[] dwg = Written(DwgAnswerKey.Key("solids_AC1015"), out IDictionary<string, int> leftOut);
+            byte[] back = DwgReader.ToDxf(dwg);
+
+            Assert.DoesNotContain("3DSOLID", leftOut.Keys);
+            Assert.DoesNotContain("REGION", leftOut.Keys);
+            Assert.Single(Entities(back, "3DSOLID"));
+            Assert.Single(Entities(back, "REGION"));
         }
     }
 }
