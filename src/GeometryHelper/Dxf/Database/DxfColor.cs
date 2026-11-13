@@ -341,13 +341,19 @@ namespace GeometryHelper.Dxf
         /// </summary>
         public short ColorIndex { get; }
 
-        /// <summary>Gets the red of the colour, 0 to 255: its own for a true colour, the index's for one of the index, nought for BYLAYER and BYBLOCK.</summary>
+        /// <summary>
+        /// Gets the red of the colour, 0 to 255: its own for a true colour, the palette's for one of the index, nought for
+        /// BYLAYER and BYBLOCK. AutoCAD 2021's <c>Color.Red</c> gives nought for a colour of the index too, and its
+        /// <c>ColorValue</c> the palette colour (index 1 is 255, 0, 0 by <see cref="ColorValue"/> and 0, 0, 0 by <c>Red</c>,
+        /// <c>Green</c> and <c>Blue</c>); here they give the palette colour, which the viewer draws with, so that the three read
+        /// the same as <see cref="ColorValue"/> except for BYLAYER.
+        /// </summary>
         public byte Red => (byte)(_rgb >> 16);
 
-        /// <summary>Gets the green of the colour, 0 to 255.</summary>
+        /// <summary>Gets the green of the colour, 0 to 255; see <see cref="Red"/> for a colour of the index.</summary>
         public byte Green => (byte)(_rgb >> 8);
 
-        /// <summary>Gets the blue of the colour, 0 to 255.</summary>
+        /// <summary>Gets the blue of the colour, 0 to 255; see <see cref="Red"/> for a colour of the index.</summary>
         public byte Blue => (byte)_rgb;
 
         /// <summary>

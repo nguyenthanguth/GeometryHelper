@@ -147,6 +147,18 @@ namespace GeometryHelper.Dwg
             + "LATITUDE=37.795;LONGITUDE=-122.394;TIMEZONE=-8000;LIGHTGLYPHDISPLAY=1;TILEMODELIGHTSYNCH=1;DWFFRAME=2;"
             + "REALWORLDSCALE=1;INTERFERECOLOR=1";
 
+        /// <summary>
+        /// The classes of the objects of the draw order, of fields and of data links, as AutoCAD lists them: DXF name, C++ name
+        /// and proxy flags.
+        /// </summary>
+        private static readonly string[][] ClassesOfFields =
+        {
+            new[] { "SORTENTSTABLE", "AcDbSortentsTable", "0" },
+            new[] { "FIELD", "AcDbField", "1152" },
+            new[] { "FIELDLIST", "AcDbFieldList", "1152" },
+            new[] { "DATALINK", "AcDbDataLink", "1152" },
+        };
+
         private static readonly Dictionary<string, string> DefaultValues = ParseDefaults();
 
         private readonly DwgDrawing _drawing;
@@ -191,8 +203,38 @@ namespace GeometryHelper.Dwg
             return writer.Write(progress);
         }
 
+        /// <summary>
+        /// Lists the classes of <see cref="ClassesOfFields"/> that the drawing holds objects of and its CLASSES section does not
+        /// list, as a drawing made in code does: a DWG names the type of each object by its class.
+        /// </summary>
+        private void ListClassesOfFields()
+        {
+            foreach (string[] one in ClassesOfFields)
+            {
+                if (
+                    _drawing.Classes.Exists(c => c.Of(null).Text(1).Trim() == one[0])
+                    || !_drawing.Objects.Exists(r => r.Type == one[0])
+                )
+                {
+                    continue;
+                }
+
+                var record = new DwgRecord { Type = "CLASS" };
+                record.Groups.Add(new KeyValuePair<int, string>(1, one[0]));
+                record.Groups.Add(new KeyValuePair<int, string>(2, one[1]));
+                record.Groups.Add(new KeyValuePair<int, string>(3, "ObjectDBX Classes"));
+                record.Groups.Add(new KeyValuePair<int, string>(90, one[2]));
+                record.Groups.Add(new KeyValuePair<int, string>(280, "0"));
+                record.Groups.Add(new KeyValuePair<int, string>(281, "0"));
+                record.Split();
+                _drawing.Classes.Add(record);
+            }
+        }
+
         private byte[] Write(ProgressSteps progress)
         {
+            ListClassesOfFields();
+
             foreach (DwgRecord one in _drawing.Classes)
             {
                 _classNames.Add(one.Of(null).Text(1).Trim());
@@ -215,6 +257,7 @@ namespace GeometryHelper.Dwg
                     _drawing.Find(record.Handle) != record
                     || record.Type == "ENDTAB"
                     || (_number >= 1024 && DwgObjectWriter.IsOfDxfAlone(record))
+                    || (_number >= 1027 && _objects.IsRoundTripOfVisualStyle(record))
                 )
                 {
                     continue;
@@ -489,6 +532,7 @@ namespace GeometryHelper.Dwg
                 case "ACDBDICTIONARYWDFLT":
                     return new[] { 22, 42 };
                 case "DICTIONARYVAR":
+                case "SORTENTSTABLE":
                 case "IMAGE":
                 case "IMAGEDEF":
                 case "IMAGEDEF_REACTOR":
@@ -500,9 +544,12 @@ namespace GeometryHelper.Dwg
                     return new[] { 26, 0 };
                 case "SCALE":
                 case "TABLEGEOMETRY":
+                case "DATALINK":
                     return new[] { 27, 1 };
                 case "ACAD_TABLE":
                 case "TABLESTYLE":
+                case "FIELD":
+                case "FIELDLIST":
                     return new[] { 25, 20 };
                 case "TABLECONTENT":
                     return new[] { 25, 21 };

@@ -103,7 +103,7 @@ namespace GeometryHelper.Dwg
 
             foreach (object[] label in labels)
             {
-                H(5, (ulong)label[0]);
+                H(4, (ulong)label[0]);
                 T((string)label[1]);
                 _data.BitShort((int)label[2]);
                 _data.BitDouble((double)label[3]);

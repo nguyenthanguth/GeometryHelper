@@ -27,6 +27,21 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void AColourOfTheIndex_GivesItsPaletteForRedGreenAndBlue_WhereAutoCadGivesNought()
+        {
+            // AutoCAD 2021 (probe Gh8): Color.FromColorIndex(ByAci, 1) has Red, Green and Blue 0 and ColorValue 0xFF0000; 30 is
+            // 0xFF7F00 and 140 is 0x00BFFF. Here the three read as the palette colour, which the viewer draws with.
+            DxfColor red = DxfColor.FromColorIndex(DxfColorMethod.ByAci, 1);
+
+            Assert.Equal(0xFF0000, red.ColorValue);
+            Assert.Equal(255, red.Red);
+            Assert.Equal(0, red.Green);
+            Assert.Equal(0, red.Blue);
+            Assert.Equal(0xFF7F00, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 30).ColorValue);
+            Assert.Equal(0x00BFFF, DxfColor.FromColorIndex(DxfColorMethod.ByAci, 140).ColorValue);
+        }
+
+        [Fact]
         public void ByBlock_HasTheColorValueOfBlack_AndTheForegroundOfWhite()
         {
             Assert.Equal(0, DxfColor.ByBlock.ColorValue);

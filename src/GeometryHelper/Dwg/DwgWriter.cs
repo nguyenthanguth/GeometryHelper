@@ -38,7 +38,9 @@ namespace GeometryHelper.Dwg
     /// section <c>THUMBNAILIMAGE</c> of the DXF (a bitmap of Windows without its file header, or a PNG file) is written as
     /// the preview of the DWG, the picture of the file in Explorer and in the Open dialog. A SHAPE is written where its DXF
     /// gives its number (group 70, or a number as its name), of the first text style of a file of shapes; one given by
-    /// its name alone is left out. A record of another type, and a record that has no handle, which a DWG cannot name, is
+    /// its name alone is left out. The FIELD and FIELDLIST of fields, the SORTENTSTABLE of the draw order of a block and
+    /// the DATALINK of a table linked to data are written as AutoCAD writes them, with their class listed where the DXF
+    /// lists none, as a drawing made in code does. A record of another type, and a record that has no handle, which a DWG cannot name, is
     /// left out, every handle to it written as 0 and every dictionary entry naming it dropped, and one Warn line of
     /// <see cref="GeometryHelperLog"/> counts them by type.
     /// </para>

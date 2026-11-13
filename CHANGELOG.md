@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The DWG reader and writer take four more types of AutoCAD 2021's own sample drawings: the FIELD and FIELDLIST of
+fields, the SORTENTSTABLE of the draw order of a block and the DATALINK of a table linked to data, which were left out and
+counted among the types not read yet. A field is read with its evaluator, its code (over 250 letters in pieces under group 3,
+as AutoCAD's DXF gives it), the fields it holds, its options and state, its own value and the values it keeps by name, in the
+order of their names as AutoCAD's DXF gives them; a data link with its adapter, options, last update, the objects it fills and
+its data map, which the file holds only where bit 8 of its options says so; a draw order table with the sort handle of each
+entity. In the 96 sample drawings the 2 646 fields, 46 field lists, 256 draw order tables and 5 data links read as AutoCAD's
+DXF of them (142 fields of files that AutoCAD 2005 saved lack the checksum its DXF adds, and the objects a data link fills
+come in the order of their handles, not of AutoCAD's memory), in the DWG of R2000, R2004, R2007, R2010, R2013 and R2018. The
+writer puts the four types back as AutoCAD does, object for object AutoCAD's own bits but the last bit of a real of 16
+places in R2010, R2013 and R2018; it lists their classes where a DXF made in code lists none (a draw order made by
+`CreateDrawOrderTable` was left out for that), puts the fields of a DXF of AutoCAD 2004 and before into the form of R2007,
+and leaves out of a draw order the entities it does not write. AutoCAD opens the 13 drawings written so, `AUDIT` finding 0
+errors. A table that holds a field or a link in a cell is still left out, with its TABLECONTENT, and so are the fields it owns.
+The visual styles of a DXF of AutoCAD 2004, 2007 and 2010 are written too, which the writer left out with a Warn line: the 28
+properties of the file and the 30 of the record `ACAD_XREC_ROUNDTRIP` of the style's extension dictionary are put into the list
+of 58 AutoCAD 2021 writes for R2018 (the dictionary and its record, and the stamp `AcDbSavedByObjectVersion`, taken into the
+style), and the 26 styles of each of five sample drawings, saved by AutoCAD as R2004, R2007 and R2010, come out as AutoCAD's own
+bits, 390 objects. A DXF of AutoCAD 2000 gives no true colour, so those come with
+the index alone. AutoCAD opens the drawings written so, `AUDIT` finding 0 errors.
+
+**FIXED.** The DWG writer gives the owner of a block record that follows its table as AutoCAD does, one before the record
+(handle code 8) where it gave the handle itself, and the handle of the block an attribute of a multileader names as a soft
+pointer (code 4) where it gave a hard one (5). Of the 21 941 objects of the 18 drawings AutoCAD 2021 made and the 9 samples it
+saved as R2018, read to DXF and written again, no object differs in the choice of a handle code from AutoCAD's own bytes any
+more (5 did, 4 multileaders and a block record). What still differs is what a DXF cannot say: the last bit of a real of 16
+places, the normal (0, 0, 1) that AutoCAD keeps whole in some entities, the extents of an MTEXT, the structure of a table, the
+lineweight index 28 that some old files hold for BYLAYER, the plot style handle old files hold.
+
 **NEW.** The DWG writer writes the solids of SAT text, which it left out: a REGION, 3DSOLID or BODY of a DXF of AutoCAD 2004,
 2007 or 2010 is turned into the SAB AutoCAD 2021 writes for R2018 (`DwgSat.ToSab`, the grammars of the reader turned round),
 named by the GUID its extended data kept (`ACAD_OBJECT_CHANGE_GUID`, taken out) or one made of its handle, and kept in the data

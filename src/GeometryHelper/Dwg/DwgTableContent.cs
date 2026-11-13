@@ -116,6 +116,12 @@ namespace GeometryHelper.Dwg
         /// <summary>A double value.</summary>
         public double Double;
 
+        /// <summary>The bytes of a value of a kind kept whole, a date of a field.</summary>
+        public byte[] Bytes;
+
+        /// <summary>Of a value of a field written by the DXF of R2004 or before: set where it has no flags, unit or text.</summary>
+        public bool Old;
+
         /// <summary>A string value.</summary>
         public string Text = string.Empty;
 
