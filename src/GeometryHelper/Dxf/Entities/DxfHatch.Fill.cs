@@ -7,22 +7,26 @@ namespace GeometryHelper.Dxf
     public sealed partial class DxfHatch
     {
         /// <summary>
-        /// Gets the SOLIDs a HATCH filled solid or with a gradient is written as in R12, as AutoCAD 2021 writes one saved as R12:
-        /// each filled loop, less the loops within it that are holes, cut into triangles (the third corner written again as the
-        /// fourth) with the look of the HATCH; a gradient is the one colour of the HATCH, not the bands AutoCAD makes of it. A
-        /// HATCH whose normal is not (0, 0, 1) gives none, for a SOLID is made here in the world plane.
+        /// Gets the SOLIDs and LINEs a HATCH filled solid or with a gradient is written as in R12, as AutoCAD 2021 writes one saved
+        /// as R12: each filled loop, less the loops within it that are holes, cut into horizontal trapezoids (see
+        /// <see cref="DxfHatchStrips"/>), each trapezoid two triangles in a plane turned over (the normal (0, 0, -1), x negated),
+        /// the third corner written again as the fourth, with the look of the HATCH. A rectangle 100 by 60 gives two SOLIDs and
+        /// the two LINEs of its sides; the LINEs are the non-horizontal sides of the trapezoids. A gradient is the one colour of
+        /// the HATCH, with no lines, not the bands AutoCAD makes of it. A HATCH whose normal is not (0, 0, 1) gives none, for a
+        /// SOLID is made here in the world plane.
         /// </summary>
-        /// <returns>The entities, in no file.</returns>
+        /// <returns>The SOLIDs, then the LINEs, in no file.</returns>
         /// <exception cref="InvalidOperationException">Thrown when a loop has an edge that is no shape.</exception>
         internal IReadOnlyList<DxfEntity> FillSolids()
         {
             Snapshot snapshot = Measured(Snap());
-            var parts = new List<DxfEntity>();
+            var solids = new List<DxfEntity>();
+            var lines = new List<DxfEntity>();
             GeoVector3 normal = snapshot.Normal;
 
             if (Math.Abs(normal.X) > 1E-9 || Math.Abs(normal.Y) > 1E-9 || normal.Z < 0.0)
             {
-                return parts.AsReadOnly();
+                return solids.AsReadOnly();
             }
 
             int count = snapshot.Loops.Count;
@@ -35,7 +39,11 @@ namespace GeometryHelper.Dxf
             }
 
             DxfHatchStyle style = HatchStyle;
+            bool edges = !IsGradient;
             var look = new Look(this);
+            double elevation = snapshot.Elevation;
+            var turned = new GeoVector3(0.0, 0.0, -1.0);
+            var trapezoids = new List<DxfHatchStrips.Trapezoid>();
 
             for (int i = 0; i < count; i++)
             {
@@ -44,7 +52,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                var holes = new List<GeoPolygon2>();
+                var region = new List<IReadOnlyList<GeoPoint2>> { snapshot.Outlines[i].Points };
 
                 for (int j = 0; j < count; j++)
                 {
@@ -54,37 +62,88 @@ namespace GeometryHelper.Dxf
                         && Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance)
                     )
                     {
-                        holes.Add(new GeoPolygon2(snapshot.Outlines[j].Points));
+                        region.Add(snapshot.Outlines[j].Points);
                     }
                 }
 
-                GeoTriangle2[] triangles;
+                trapezoids.AddRange(DxfHatchStrips.Cut(region, Tolerance.Default));
+            }
 
-                try
+            trapezoids.Sort(DxfHatchStrips.Compare);
+
+            foreach (DxfHatchStrips.Trapezoid trapezoid in trapezoids)
+            {
+                if (!trapezoid.BottomPoint)
                 {
-                    triangles = new GeoFace2(new GeoPolygon2(snapshot.Outlines[i].Points), holes).TriangulateSurface(
-                        Tolerance.Default
+                    solids.Add(
+                        Triangle(
+                            look,
+                            trapezoid.TopLeft,
+                            trapezoid.BottomRight,
+                            trapezoid.BottomLeft,
+                            elevation,
+                            turned
+                        )
                     );
                 }
-                catch (ArgumentException)
+
+                if (!trapezoid.TopPoint)
                 {
-                    // A loop of no area, which has nothing to fill.
+                    solids.Add(
+                        Triangle(look, trapezoid.TopLeft, trapezoid.TopRight, trapezoid.BottomRight, elevation, turned)
+                    );
+                }
+
+                if (!edges)
+                {
                     continue;
                 }
 
-                foreach (GeoTriangle2 triangle in triangles)
+                // The left side goes up and the right side down; of a triangle the right is written first.
+                bool rightFirst = trapezoid.TopPoint || trapezoid.BottomPoint;
+
+                for (int side = 0; side < 2; side++)
                 {
-                    var solid = new DxfSolid(
-                        new GeoPoint3(triangle.A.X, triangle.A.Y, snapshot.Elevation),
-                        new GeoPoint3(triangle.B.X, triangle.B.Y, snapshot.Elevation),
-                        new GeoPoint3(triangle.C.X, triangle.C.Y, snapshot.Elevation)
+                    bool right = (side == 0) == rightFirst;
+
+                    if (right ? trapezoid.RightPointed : trapezoid.LeftPointed)
+                    {
+                        continue;
+                    }
+
+                    GeoPoint2 from = right ? trapezoid.TopRight : trapezoid.BottomLeft;
+                    GeoPoint2 to = right ? trapezoid.BottomRight : trapezoid.TopLeft;
+                    var line = new DxfLine(
+                        new GeoPoint3(from.X, from.Y, elevation),
+                        new GeoPoint3(to.X, to.Y, elevation)
                     );
-                    look.GiveTo(solid);
-                    parts.Add(solid);
+                    look.GiveTo(line);
+                    lines.Add(line);
                 }
             }
 
-            return parts.AsReadOnly();
+            solids.AddRange(lines);
+            return solids.AsReadOnly();
+        }
+
+        /// <summary>A SOLID of three corners in the plane turned over, as AutoCAD writes the triangles of a fill: x negated and the height too, so that it stands at the elevation of the HATCH.</summary>
+        private static DxfSolid Triangle(
+            Look look,
+            GeoPoint2 a,
+            GeoPoint2 b,
+            GeoPoint2 c,
+            double elevation,
+            GeoVector3 turned
+        )
+        {
+            var solid = new DxfSolid(
+                new GeoPoint3(-a.X, a.Y, -elevation),
+                new GeoPoint3(-b.X, b.Y, -elevation),
+                new GeoPoint3(-c.X, c.Y, -elevation)
+            );
+            solid.Normal = turned;
+            look.GiveTo(solid);
+            return solid;
         }
     }
 }

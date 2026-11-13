@@ -389,11 +389,13 @@ namespace GeometryHelper.UnitTest.Dxf
                     .ToArray();
                 Assert.NotEmpty(types);
 
-                // A hatch of a pattern is its lines in a block of the letter X; one filled solid its SOLIDs, in a U.
+                // A hatch of a pattern is its lines in a block of the letter X; one filled solid its SOLIDs and the LINEs of the
+                // sides of its strips, in a U.
                 if (entity is DxfHatch pattern)
                 {
                     Assert.Equal(pattern.IsSolidFill ? 'U' : 'X', insert.First(2)[1]);
-                    Assert.Equal(new[] { pattern.IsSolidFill ? "SOLID" : "LINE" }, types);
+                    Assert.Equal(pattern.IsSolidFill ? "SOLID" : "LINE", types[0]);
+                    Assert.All(types, t => Assert.True(t == "SOLID" || t == "LINE"));
                 }
             }
 
@@ -425,12 +427,16 @@ namespace GeometryHelper.UnitTest.Dxf
             Record insert = sections["ENTITIES"].Single(r => r.Type == "INSERT" && r.First(5) == handle);
             List<Record> blocks = sections["BLOCKS"];
             int start = blocks.FindIndex(r => r.Type == "BLOCK" && r.First(2) == insert.First(2));
-            List<Record> solids = blocks.Skip(start + 1).TakeWhile(r => r.Type != "ENDBLK").ToList();
+            List<Record> content = blocks.Skip(start + 1).TakeWhile(r => r.Type != "ENDBLK").ToList();
+            List<Record> solids = content.Where(r => r.Type == "SOLID").ToList();
 
-            // The ring of a square 100 by 100 and a hole 20 by 20 is triangles, each the third corner written again as the fourth.
-            Assert.True(solids.Count >= 8);
-            Assert.All(solids, r => Assert.Equal("SOLID", r.Type));
+            // The ring of a square 100 by 100 and a hole 20 by 20 is triangles, each the third corner written again as the fourth,
+            // and the LINEs of the sides of its strips; the corners are in the plane turned over, x negated.
+            Assert.Equal(8, solids.Count);
+            Assert.All(content, r => Assert.True(r.Type == "SOLID" || r.Type == "LINE"));
             Assert.All(solids, r => Assert.Equal(r.First(12), r.First(13)));
+            Assert.All(solids, r => Assert.Equal("-1", r.First(230).Trim().Replace(".0", string.Empty)));
+            Assert.All(solids, r => Assert.True(double.Parse(r.First(10), CultureInfo.InvariantCulture) <= 0.0));
             double area = 0.0;
 
             foreach (Record solid in solids)

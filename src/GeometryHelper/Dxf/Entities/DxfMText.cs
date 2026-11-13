@@ -710,6 +710,12 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// The drawing whose fonts and text style lay out the words of an MTEXT made in no drawing, as a multileader's are when it
+        /// is exploded; null for every other, which is laid out in the drawing it is in or was copied from.
+        /// </summary>
+        internal DxfDatabase MeasuredIn { get; set; }
+
         /// <summary>The MTEXT's words laid out in lines, as <see cref="ActualWidth"/> measures them; null where they are not.</summary>
         /// <summary>Whether the words flow in one column: an MTEXT with no columns, or dynamic columns of a count of one, which AutoCAD 2021 writes for the MTEXT of a box it has wrapped.</summary>
         private bool OneColumn() =>
@@ -718,7 +724,7 @@ namespace GeometryHelper.Dxf
         private DxfMTextLayout Layout()
         {
             // A copy in no drawing is laid out in the fonts of the drawing it was copied from, as a table's words are when it is exploded.
-            DxfFonts fonts = (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
+            DxfFonts fonts = MeasuredIn?.Fonts ?? (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
 
             if (fonts == null)
             {
@@ -726,6 +732,11 @@ namespace GeometryHelper.Dxf
             }
 
             DxfTextStyleTableRecord style = TextStyle;
+
+            if (style == null && MeasuredIn != null && MeasuredIn.TextStyleTable.Has(TextStyleName))
+            {
+                style = MeasuredIn.TextStyleTable[TextStyleName];
+            }
 
             if (style == null || !Same(style.XScale, 1.0) || style.ObliquingAngle != 0.0 || !OneColumn())
             {
@@ -2389,6 +2400,135 @@ namespace GeometryHelper.Dxf
             }
 
             return texts;
+        }
+
+        /// <summary>
+        /// The five corners, in the world, of the frame AutoCAD draws round the words of a multileader: the box that holds the
+        /// ink of every line as the font lays it out, with <paramref name="gap"/> on each side, from the top left round to the
+        /// top left again. "Note" of txt 2.5 high, held at the middle left at (30, 20), has its ink from (30, 18.66) to (39.17,
+        /// 21.16), so a gap of 0.09 gives the corners (29.91, 21.25), (39.26, 21.25), (39.26, 18.57) and (29.91, 18.57).
+        /// </summary>
+        /// <param name="gap">How far the frame stands off the ink.</param>
+        /// <returns>The corners; null where no font measures the words, or they leave no ink.</returns>
+        internal List<GeoPoint3> InkFrame(double gap)
+        {
+            DxfMTextLayout layout = Layout();
+
+            if (layout == null)
+            {
+                return null;
+            }
+
+            int attachment = (int)Attachment;
+            attachment = attachment >= 1 && attachment <= 9 ? attachment - 1 : 0;
+            int row = attachment / 3;
+            int column = attachment % 3;
+            double top =
+                row == 0 ? 0.0
+                : row == 1 ? layout.ActualHeight / 2.0
+                : layout.ActualHeight;
+            double left = double.PositiveInfinity;
+            double right = double.NegativeInfinity;
+            double bottom = double.PositiveInfinity;
+            double high = double.NegativeInfinity;
+
+            foreach (DxfMTextLayout.Line line in layout.Lines)
+            {
+                DxfTextLine measure = line.Measure;
+
+                if (!measure.HasInk)
+                {
+                    continue;
+                }
+
+                double start = -column * measure.ActualWidth / 2.0;
+                left = Math.Min(left, start);
+                right = Math.Max(right, start + measure.InkRight - measure.InkLeft);
+                bottom = Math.Min(bottom, top + line.Baseline + measure.InkBottom);
+                high = Math.Max(high, top + line.Baseline + measure.InkTop);
+            }
+
+            if (double.IsInfinity(left))
+            {
+                return null;
+            }
+
+            GeoVector3 along = Direction;
+            GeoVector3 up = DxfOcsTransform.Normalized(Normal.CrossProduct(along));
+            GeoPoint3 location = Location;
+            GeoPoint3 Corner(double x, double y) =>
+                new GeoPoint3(
+                    location.X + along.X * x + up.X * y,
+                    location.Y + along.Y * x + up.Y * y,
+                    location.Z + along.Z * x + up.Z * y
+                );
+            return new List<GeoPoint3>
+            {
+                Corner(left - gap, high + gap),
+                Corner(right + gap, high + gap),
+                Corner(right + gap, bottom - gap),
+                Corner(left - gap, bottom - gap),
+                Corner(left - gap, high + gap),
+            };
+        }
+
+        /// <summary>
+        /// The TEXT AutoCAD writes into an R12 for the words of an angular dimension, whose block it draws as an R12 would: one
+        /// TEXT of the words, held at the left of its baseline (<c>72</c> and <c>71</c> of nought), not laid out by the fonts but
+        /// put 2 heights before and 1.77 heights below the place the MTEXT is held at, however long the words, with a degree sign
+        /// written <c>%%d</c>. "90" and a degree sign 0.18 high held at (30, 30) give "90%%d" at (29.64, 29.6814).
+        /// </summary>
+        /// <returns>The TEXT, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
+        internal DxfEntity R12AngularText()
+        {
+            double height = TextHeight;
+            GeoVector3 normal = Normal;
+            GeoVector3 along = Direction;
+            GeoVector3 up = DxfOcsTransform.Normalized(normal.CrossProduct(along));
+            GeoPoint3 location = Location;
+            GeoPoint3 at = WorldToOcs(
+                normal,
+                new GeoPoint3(
+                    location.X - along.X * 2.0 * height - up.X * 1.77 * height,
+                    location.Y - along.Y * 2.0 * height - up.Y * 1.77 * height,
+                    location.Z - along.Z * 2.0 * height - up.Z * 1.77 * height
+                )
+            );
+            string words = Text.Replace("°", "%%d").Replace("±", "%%p").Replace("∅", "%%c");
+            var own = new List<KeyValuePair<int, string>>
+            {
+                G(100, "AcDbText"),
+                G(10, Numbers.Exact(at.X + 0.0)),
+                G(20, Numbers.Exact(at.Y + 0.0)),
+                G(30, Numbers.Exact(at.Z + 0.0)),
+                G(40, Numbers.Exact(height + 0.0)),
+                G(1, words),
+                G(210, Numbers.Exact(normal.X + 0.0)),
+                G(220, Numbers.Exact(normal.Y + 0.0)),
+                G(230, Numbers.Exact(normal.Z + 0.0)),
+                G(100, "AcDbText"),
+            };
+            return Of(Item.File.TextOf(Item, own));
+        }
+
+        /// <summary>
+        /// How far along its direction from its <see cref="Location"/> the ink of the first line of the words begins, as the font
+        /// lays them out: the line held at its middle or its right stands that far from the place the words are held at. Words
+        /// of 11.67 held at the middle begin 5.83 before it.
+        /// </summary>
+        /// <returns>The distance; null where no font measures the words, or the first line leaves no ink.</returns>
+        internal double? FirstInkOffset()
+        {
+            DxfMTextLayout layout = Layout();
+
+            if (layout == null || layout.Lines.Count == 0 || !layout.Lines[0].Measure.HasInk)
+            {
+                return null;
+            }
+
+            int attachment = (int)Attachment;
+            int column = attachment >= 1 && attachment <= 9 ? (attachment - 1) % 3 : 0;
+            return -column * layout.Lines[0].Measure.ActualWidth / 2.0;
         }
 
         private static KeyValuePair<int, string> G(int code, string value) =>
