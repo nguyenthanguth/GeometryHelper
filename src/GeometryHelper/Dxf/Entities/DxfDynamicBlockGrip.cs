@@ -74,7 +74,10 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the kind of parameter the grip drives.</summary>
         public DxfDynamicBlockGripType GripType { get; }
 
-        /// <summary>Gets where the grip is, in the coordinates of the file: where the INSERT's values put it.</summary>
+        /// <summary>
+        /// Gets where the grip is, in the coordinates of the file: where the INSERT's values put it. The base grip of a linear
+        /// or an XY parameter stands at its <see cref="BasePoint"/>.
+        /// </summary>
         public GeoPoint3 Position { get; }
 
         /// <summary>

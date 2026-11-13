@@ -258,7 +258,13 @@ and the `PropertyNames` it sets. A grip stands where the block puts it, moved as
 (375, -312.5) and Opening Angle at (-125, 375). A rectangle 100 by 50 of an XY parameter from (0, 0) to (100, 50) inserted
 at (1 000, 500) gives its grips at (1 100, 550), (1 000, 550) and (1 100, 500), and a block properties table at (0, -20)
 its grip at (1 000, 480), of the type `BlockTable`, as AutoCAD 2021 gave them (probe GhDb1). A linear or an XY
-parameter's base grip is not given, as a value set moves the end alone; AutoCAD 2021 showed none of an XY parameter.
+parameter's base grip is given where an action follows its base point (a stretch or a move of BaseXDelta and BaseYDelta, an
+array), as AutoCAD 2021 gave it (probe GhDy2a), after the end grip in the order of the block's graph: the plate above with a
+stretch of its bottom left corner that follows the base point gives (1 100, 550), (1 000, 500), (1 000, 550) and (1 100, 500),
+and an XY array its base grip too; a linear parameter's only once the INSERT has kept its values, as AutoCAD showed it. A
+base grip's `Position` is its `BasePoint`, and dragged it moves the base point
+(`DxfDynamicBlockReferenceProperty.MoveBasePoint`, see [parameters and actions](dynamic-actions.md)); without such an action
+the base grip is not given, as a value set moves the end alone and AutoCAD 2021 showed none of an XY parameter's.
 
 A block of a visibility parameter shows a parameter, its grip and its property in the states that list it, as AutoCAD's
 Block Editor lists them: `VisibleInCurrentVisibilityState` is false for the others, and their grips are not given, as

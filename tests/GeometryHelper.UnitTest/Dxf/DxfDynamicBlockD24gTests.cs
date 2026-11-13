@@ -954,6 +954,21 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void TheBasePointOfAParameterWhoseMoveCarriesAnother_IsNotMoved()
+        {
+            // A move carrying Bottom follows Depth, whose base point a grip would move: the library does not work out where the
+            // carried parameter then stands, and writes nothing (plugin GhDy2a moved the base points of parameters no move carries).
+            DxfDatabase db = Reopened(Frame(out _, out _, out _));
+            Property(TheInsert(db), "Depth").Value = 100.0;
+            string before = db.ToText();
+
+            Assert.Throws<NotSupportedException>(() =>
+                Property(TheInsert(db), "Depth").MoveBasePoint(new GeoVector3(0, 10, 0))
+            );
+            Assert.Equal(before, db.ToText());
+        }
+
+        [Fact]
         public void TwoAttributeDefinitionsOfOneTagMovedApart_AreNotSet()
         {
             // An ATTRIB is told to its ATTDEF by its tag: two ATTDEFs NOTE, one moved by Mark and one not, leave the INSERT's

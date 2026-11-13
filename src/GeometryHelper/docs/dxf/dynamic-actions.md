@@ -233,12 +233,34 @@ other action, and a block's own distance that holds the spacing twice draws one 
 The linear parameter's array is written as the XY sample's with no rows (140 nought). AutoCAD 2021 refused to set again an
 INSERT whose array the library had set while its copies were not tagged (eInvalidInput, check v21); with the tags it set
 each again (check v21b), a fence of a post every 60 from four posts at 250 to one at 119 and three at 222, and a plate of
-bolts every 25 by 20 from 12 at 100 by 70 to six at 60 by 70. The INSERT of the XY sample of 100.59 by 104.30 keeps its
-base point where a grip moved it, from (0, 5) to (0, 104.30), its end point at (100.59, 0), and AutoCAD draws its rows from
-there, at y 99.30 down to 19.30. The library works a block out from the block's own base points, and would draw them at 0
-down to -80: it sets no property of an INSERT that keeps the base point of a linear, an XY, a rotation or a flip parameter
-away from the block's own, moved by the moves that carry the parameter (below), beyond the point tolerance of
-`Tolerance.Default`, and refuses with NotSupportedException, writing nothing.
+bolts every 25 by 20 from 12 at 100 by 70 to six at 60 by 70.
+
+### A base point a grip moved
+
+The INSERT of the XY sample of 100.59 by 104.30 keeps its base point where a grip moved it, from (0, 5) to (0, 104.30), its
+end point at (100.59, 0). A linear or an XY parameter's base point is worked out from where the INSERT keeps it, as
+AutoCAD 2021 worked it out (plugin GhDy2a): the end point is the base point and the distance, and a stretch, a move or an
+array that follows the end point moves its points by the end point's change from the block's own, the base point's move
+included. A plate 100 by 50 whose XY parameter runs from (0, 0) to (100, 50), its right and top edges stretched by the end
+point, whose corner of base x and end y was dragged by (20, 10) keeps the base point at (20, 0) and the end point at
+(100, 60): it reads Width 80 and Height 60 and the right edge stays at x 100, and a Width then set to 120 takes the end
+point to (140, 60). The same holds of a linear parameter, Width set to 200 from a base point at (20, 0) putting its end
+point at x 220.
+
+`MoveBasePoint` of one of the parameter's properties (`DxfDynamicBlockReferenceProperty`) moves the base point as a grip does, the end point staying: a distance shrinks as the
+base point goes towards the end point, an XY parameter's along x and along y, a linear parameter's along its line alone,
+and two moves add up. A stretch or a move that follows the base point (BaseXDelta and BaseYDelta) and the first copy of an
+array (which AutoCAD ties to the base point) follow the move being made: the left edge and the lower attribute definition
+of a plate whose base point is dragged by (20, 0) start 20 along x, and the array of a grid whose base grip is dragged by
+(10, 20) starts at (10, 20). The INSERT keeps the base point and not that move, as AutoCAD 2021 read an INSERT back from its
+file: a value set afterwards leaves those points where the block has them, while the anonymous blocks worked out anew
+(`UpdateAnonymousBlocks`) take them to where the base point stands, the left edge at (20, 0) and the attribute definition
+at (22, 2). The distances a move leaves are not taken to the parameter's value set.
+
+The library still sets no property of an INSERT that keeps the base point of a polar, a rotation or a flip parameter away
+from the block's own, or the base point of a linear or an XY parameter that a move carries (below) or a scale or a rotate
+follows, or a linear parameter's off its line, beyond the point tolerance of `Tolerance.Default`: it refuses with
+NotSupportedException, writing nothing.
 
 ## What a block from AutoCAD's Block Editor holds
 

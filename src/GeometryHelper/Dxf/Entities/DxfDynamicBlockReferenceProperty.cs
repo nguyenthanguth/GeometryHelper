@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
 {
@@ -208,11 +209,10 @@ namespace GeometryHelper.Dxf
         /// user parameters, the visibility state and attribute definitions, a lookup or a user parameter of a block whose table
         /// its properties must match (290 of 1), or a parameter of such a table of a column of a user parameter or of the
         /// visibility state, a user parameter of another kind than a text or a real, or of an expression; or when the INSERT keeps
-        /// the base point of a linear, an XY, a polar, a rotation or a flip parameter away from the
-        /// block's own, as the moves carrying the parameter take it, beyond the point tolerance of <see cref="Tolerance.Default"/>, as a grip moved it: AutoCAD works such
-        /// an INSERT out from the base point it keeps, and drew the array of its XY sample's INSERT whose base point a grip
-        /// took from (0, 5) to (0, 104.30) at y 99.30 down to 19.30, where the library, working from the block's own base
-        /// point, would draw it at 0 down to -80. Nothing is written then.</exception>
+        /// the base point of a polar, a rotation or a flip parameter away from the block's own, or that of a linear or an XY
+        /// parameter a move carries or a scale or a rotate follows, or a linear one's off its line, beyond the point tolerance
+        /// of <see cref="Tolerance.Default"/>. A base point a grip moved on a linear or an XY parameter is worked out from
+        /// where the INSERT keeps it, as AutoCAD does (<see cref="MoveBasePoint"/>). Nothing is written then.</exception>
         public object Value
         {
             get => _value;
@@ -236,6 +236,49 @@ namespace GeometryHelper.Dxf
 
                 _value = DxfDynamicBlockRepresentation.Set(_insert, _node, _part, value);
             }
+        }
+
+        /// <summary>
+        /// Moves the base point of the linear or XY parameter this property is a distance of, as a grip of AutoCAD's moves it:
+        /// the end point stays, the INSERT keeps the base point where it was moved to, and the block is worked out from there,
+        /// as with <see cref="Value"/>. A plate 100 by 50 of an XY parameter from (0, 0) to (100, 50), its right and top edges
+        /// stretched by the end point, whose base point is moved by (20, 0) reads Width 80 and keeps its right edge at x 100,
+        /// as AutoCAD 2021 read the plate whose corner of base x and end y was dragged by (20, 10), the top edge going up by 10
+        /// with the end point's y (plugin GhDy2a); a stretch or a move tied to the base point (BaseXDelta, BaseYDelta) moves its
+        /// points by the move, and an array starts where the base point is, as AutoCAD drew the array of its XY sample's INSERT
+        /// whose base point a grip took from (0, 5) to (0, 104.30). Moves add up: moving by (20, 0) and then by (5, 0) keeps the
+        /// base point 25 along x. The distances the move leaves are not taken to the parameter's value set.
+        /// </summary>
+        /// <param name="by">The move, in the coordinates of the file (the world's, as <see cref="DxfDynamicBlockGrip.Position"/>
+        /// is given): an XY parameter's along x and along y of the block, a linear parameter's along its line alone, the part
+        /// across it left out.</param>
+        /// <exception cref="ArgumentException">Thrown when the property is not a distance of a linear or an XY parameter.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance of the parameter would not be above the point
+        /// tolerance of <see cref="Tolerance.Default"/> once the base point is moved.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
+        /// drawing, or scaled unlike along its axes.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the block has a block properties table, a move carries the
+        /// parameter or carries other parameters by it, or a scale or a rotate follows it, or <see cref="Value"/> would refuse
+        /// the block or the INSERT. Nothing is written then.</exception>
+        public void MoveBasePoint(GeoVector3 by)
+        {
+            if (ReadOnly && !_settable)
+            {
+                throw new InvalidOperationException(
+                    "The property " + PropertyName + " is read only, as AutoCAD keeps it."
+                );
+            }
+
+            if (_insert == null)
+            {
+                throw new NotSupportedException(
+                    "The property "
+                        + PropertyName
+                        + " is of a parameter the library does not work out: it moves the base point of a linear or an XY parameter."
+                );
+            }
+
+            _value = DxfDynamicBlockRepresentation.MoveBase(_insert, _node, _part, by);
         }
 
         /// <summary>

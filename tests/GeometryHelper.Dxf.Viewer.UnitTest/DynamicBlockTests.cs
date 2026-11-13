@@ -399,15 +399,26 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         /// A drawing with the block GH_PLATE, a rectangle 100 by 50 whose XY parameter Width and Height from (0, 0) to (100, 50)
         /// stretches its right and top edges at the far corner, inserted at (1 000, 500).
         /// </summary>
-        private static CadDocument Plate(out string handle)
+        private static CadDocument Plate(out string handle) => Plate(false, out handle);
+
+        /// <summary>
+        /// The plate with its bottom and left edges too; where asked, a stretch of the bottom left corner that follows the XY
+        /// parameter's base point (BaseXDelta, BaseYDelta, as AutoCAD's Block Editor writes one tied to the base grip), made by
+        /// the text of the drawing, and with it the base grip AutoCAD shows.
+        /// </summary>
+        private static CadDocument Plate(bool baseStretch, out string handle)
         {
             var db = new DxfDatabase("AC1032");
             var block = new DxfBlockTableRecord { Name = "GH_PLATE", Origin = new GeoPoint3(0, 0, 0) };
             db.BlockTable.Add(block);
             var right = new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0));
             var top = new DxfLine(new GeoPoint3(0, 50, 0), new GeoPoint3(100, 50, 0));
+            var bottom = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
+            var left = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(0, 50, 0));
             block.AppendEntity(right);
             block.AppendEntity(top);
+            block.AppendEntity(bottom);
+            block.AppendEntity(left);
             DxfBlockXYParameter xy = block.AddXYParameter(
                 "Width",
                 null,
@@ -417,9 +428,46 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 new GeoPoint3(100, 50, 0)
             );
             block.AddStretchAction(xy, new GeoPoint2(90, 40), new GeoPoint2(110, 60), new DxfEntity[] { right, top });
+
+            if (baseStretch)
+            {
+                block.AddStretchAction(
+                    xy,
+                    new GeoPoint2(-10, -10),
+                    new GeoPoint2(10, 10),
+                    new DxfEntity[] { left, bottom }
+                );
+            }
+
             var insert = new DxfBlockReference(new GeoPoint3(1000, 500, 0), block);
             db.ModelSpace.AppendEntity(insert);
             handle = insert.Handle;
+
+            if (baseStretch)
+            {
+                // The second stretch follows the base point: its connections named so, as AutoCAD names them.
+                string[] lines = db.ToText().Replace("\r\n", "\n").Split('\n');
+                int seen = -1;
+
+                for (int i = 0; i + 1 < lines.Length; i += 2)
+                {
+                    if (lines[i].Trim() != "0" || lines[i + 1].Trim() != "BLOCKSTRETCHACTION" || ++seen != 1)
+                    {
+                        continue;
+                    }
+
+                    for (int j = i + 2; j + 1 < lines.Length && lines[j].Trim() != "0"; j += 2)
+                    {
+                        lines[j + 1] =
+                            lines[j + 1].Trim() == "EndXDelta" ? "BaseXDelta"
+                            : lines[j + 1].Trim() == "EndYDelta" ? "BaseYDelta"
+                            : lines[j + 1];
+                    }
+                }
+
+                db = DxfDatabase.Parse(string.Join("\n", lines));
+            }
+
             return CadDocument.From(db, "plate.dxf");
         }
 
@@ -447,11 +495,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AnXYCornerDragged_SetsTheDistanceOfTheAxisItTakesFromTheEnd_AndDrawsTheBlockAsAutoCadDrewIt()
+        public void AnXYCornerDragged_SetsTheDistanceOfTheAxisItTakesFromTheEnd_AndMovesTheBasePointAlongTheOther_AsAutoCadDid()
         {
             // AutoCAD 2021 moved each grip by (20, 10): the end set Width 120 and Height 60; base x with end y Height 60, the
-            // base point's x moved with it (Width 80) and nothing drawn moved along x; end x with base y Width 120, the base
-            // point's y moved (Height 40) and nothing drawn moved along y (plugin GhDb1). The library keeps the base point.
+            // base point's x moved with it (Width 80) and the right edge stayed at x 100; end x with base y Width 120, the base
+            // point's y moved (Height 40) and the top edge stayed at y 50 (plugins GhDb1 and GhDy2a).
             CadDocument document = Plate(out string handle);
             Assert.True(document.GripDrag(handle, 0, P(1120, 560)).Succeeded);
             Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
@@ -459,21 +507,87 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             document = Plate(out handle);
             Assert.True(document.GripDrag(handle, 1, P(1020, 560)).Succeeded);
-            Assert.Equal(100.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(80.0, (double)ValueOf(document, handle, "Width"), 9);
             Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
-            Near(P(1000, 560), CadGrips.Of(Insert(document, handle))[1].Point);
+            Near(P(1020, 560), CadGrips.Of(Insert(document, handle))[1].Point);
+            Near(P(1100, 560), CadGrips.Of(Insert(document, handle))[0].Point);
+            Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(100, 60, 0), Tight)
+            );
 
             document = Plate(out handle);
             Assert.True(document.GripDrag(handle, 2, P(1120, 510)).Succeeded);
             Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
-            Assert.Equal(50.0, (double)ValueOf(document, handle, "Height"), 9);
+            Assert.Equal(40.0, (double)ValueOf(document, handle, "Height"), 9);
             Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
                 l.StartPoint.IsEqualTo(new GeoPoint3(0, 50, 0), Tight)
                 && l.EndPoint.IsEqualTo(new GeoPoint3(120, 50, 0), Tight)
             );
+            Assert.Equal("GRIP", document.NextUndo.Name);
 
             // A corner dragged onto the base point's line along the axis it sets is refused.
             Assert.False(document.GripDrag(handle, 2, P(1000, 530)).Succeeded);
+        }
+
+        [Fact]
+        public void TheBaseGripOfAnXYParameter_MovesTheBasePoint_AndTheStretchOfItFollows()
+        {
+            // AutoCAD 2021 showed the base grip of a plate whose bottom left corner a stretch of the base point holds, second
+            // after the end grip, and dragged by (20, 10) it read Width 80 and Height 40 with the bottom and left edges
+            // starting at (20, 10) and the end point staying (plugin GhDy2a); the corner of base x and end y by (20, 10)
+            // moved the stretch by (20, 0) alone.
+            CadDocument document = Plate(true, out string handle);
+            IReadOnlyList<CadGrip> grips = CadGrips.Of(Insert(document, handle));
+            Assert.Equal(5, grips.Count);
+            Near(P(1100, 550), grips[0].Point);
+            Near(P(1000, 500), grips[1].Point);
+            Near(P(1000, 550), grips[2].Point);
+            Near(P(1100, 500), grips[3].Point);
+            Assert.Equal(CadGripKind.Insertion, grips[4].Kind);
+
+            Assert.True(document.GripDrag(handle, 1, P(1020, 510)).Succeeded);
+
+            Assert.Equal(80.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(40.0, (double)ValueOf(document, handle, "Height"), 9);
+            IEnumerable<DxfLine> lines = Insert(document, handle).BlockTableRecord.OfType<DxfLine>();
+            Assert.Contains(lines, l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(20, 10, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Tight)
+            );
+            Assert.Contains(lines, l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(20, 10, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(0, 50, 0), Tight)
+            );
+            Assert.Contains(lines, l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(100, 50, 0), Tight)
+            );
+            Assert.Equal("GRIP", document.NextUndo.Name);
+
+            document = Plate(true, out handle);
+            Assert.True(document.GripDrag(handle, 2, P(1020, 560)).Succeeded);
+
+            Assert.Equal(80.0, (double)ValueOf(document, handle, "Width"), 9);
+            Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
+            lines = Insert(document, handle).BlockTableRecord.OfType<DxfLine>();
+            Assert.Contains(lines, l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(20, 0, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Tight)
+            );
+            Assert.Contains(lines, l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(100, 0, 0), Tight)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(100, 60, 0), Tight)
+            );
+        }
+
+        [Fact]
+        public void TheBaseGripDragged_PastTheEndPoint_IsRefusedAndTheDrawingKept()
+        {
+            CadDocument document = Plate(true, out string handle);
+
+            Assert.False(document.GripDrag(handle, 1, P(1100, 510)).Succeeded);
+            Assert.Equal(100.0, (double)ValueOf(document, handle, "Width"), 9);
         }
 
         [Fact]

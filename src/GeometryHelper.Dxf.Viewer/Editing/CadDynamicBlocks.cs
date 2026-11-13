@@ -444,10 +444,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// What a custom grip dragged to a point sets of an INSERT, as <see cref="Drag"/> says, the INSERT the grip was read of
         /// or a copy of it in its place: null, with the reason, where the point gives no value. A corner of an XY parameter
-        /// sets the distance of the axis it takes from the end point alone: the corner of base x and end y dragged by (20, 10)
-        /// on a rectangle 100 by 50 sets a Height of 60 and keeps the Width. AutoCAD 2021 moved the base point's x with it and
-        /// read a Width of 80, the block drawn as the library draws it, as no action of its follows the base point (plugin
-        /// GhDb1); the library works a block out from its own base points.
+        /// sets the distance of the axis it takes from the end point and moves the base point along the other, as AutoCAD 2021
+        /// did: the corner of base x and end y dragged by (20, 10) on a rectangle 100 by 50 sets a Height of 60 and moves the
+        /// base point's x to 20, so that Width reads 80 and the right edge stays at x 100 (plugins GhDb1 and GhDy2a). The base
+        /// grip of an XY or a linear parameter moves the base point, the end point staying
+        /// (<see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/>).
         /// </summary>
         internal static Action<DxfBlockReference> Plan(
             DxfBlockReference insert,
@@ -461,6 +462,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (grip.Kind == CadGripKind.CustomLinear)
             {
+                // The base grip of a linear parameter moves its base point along the line, the end point staying.
+                if (custom.Position.IsEqualTo(custom.BasePoint, Tolerance.Default))
+                {
+                    var by = new GeoVector3(to.X - custom.Position.X, to.Y - custom.Position.Y, 0.0);
+                    return i => MoveBase(i, custom.PropertyNames[0], by);
+                }
+
                 double distance =
                     (to.X - custom.BasePoint.X) * custom.Direction.X + (to.Y - custom.BasePoint.Y) * custom.Direction.Y;
 
@@ -495,7 +503,10 @@ namespace GeometryHelper.Dxf.Viewer
                     };
                 case DxfDynamicBlockGripType.XY:
                 {
-                    // A corner takes x or y from the base point, which it leaves: the end grip sets both.
+                    // The end grip takes both distances from the point; a corner takes one from the end point and moves the base
+                    // point along the other axis, as AutoCAD 2021 did: the corner of base x and end y dragged by (20, 10) on a plate
+                    // 100 by 50 gave a Height of 60 and a Width of 80, the right edge staying at x 100 (plugin GhDy2a); the base grip
+                    // moves it along both, the end point staying.
                     GeoPoint3 at = inverse.Transform(custom.Position);
                     bool setsX = !(Math.Abs(at.X - origin.X) <= Tolerance.Default.EqualPoint);
                     bool setsY = !(Math.Abs(at.Y - origin.Y) <= Tolerance.Default.EqualPoint);
@@ -510,6 +521,13 @@ namespace GeometryHelper.Dxf.Viewer
                         return null;
                     }
 
+                    GeoVector3 moves = insert.BlockTransform.Transform(
+                        new GeoVector3(setsX ? 0.0 : local.X - at.X, setsY ? 0.0 : local.Y - at.Y, 0.0)
+                    );
+                    bool movesBase = !setsX || !setsY;
+
+                    // The distances first, the base point last: a stretch or a move that follows the base point follows this move
+                    // alone, and a value set after it would take it back.
                     return i =>
                     {
                         if (setsX)
@@ -520,6 +538,11 @@ namespace GeometryHelper.Dxf.Viewer
                         if (setsY)
                         {
                             Set(i, custom.PropertyNames[1], y);
+                        }
+
+                        if (movesBase)
+                        {
+                            MoveBase(i, custom.PropertyNames[0], moves);
                         }
                     };
                 }
@@ -731,6 +754,16 @@ namespace GeometryHelper.Dxf.Viewer
                     "The block reference " + insert.Handle + " has no property " + name + "."
                 );
             property.Value = value;
+        }
+
+        /// <summary>Moves the base point of the parameter a property of a name of an INSERT is of, read anew, as the library works the block out.</summary>
+        private static void MoveBase(DxfBlockReference insert, string name, GeoVector3 by)
+        {
+            DxfDynamicBlockReferenceProperty property = Find(insert, name)
+                ?? throw new InvalidOperationException(
+                    "The block reference " + insert.Handle + " has no property " + name + "."
+                );
+            property.MoveBasePoint(by);
         }
 
         /// <summary>The value of a property as the palette writes it.</summary>
