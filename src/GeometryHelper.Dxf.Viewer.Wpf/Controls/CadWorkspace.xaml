@@ -541,6 +541,52 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
 
+            <!--
+            An item of a panel's slide-out (design RibbonPgpButtons): the icon in Tag, the words as Content, the command it runs
+            on the right as typed.
+            -->
+            <Style x:Key="SlideOutItem" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                <Setter Property="Padding" Value="4,3" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <DockPanel>
+                                <local:IconView
+                                    DockPanel.Dock="Left"
+                                    Size="16"
+                                    StrokeThickness="1.8"
+                                    Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}"
+                                />
+                                <TextBlock
+                                    DockPanel.Dock="Right"
+                                    Text="{Binding CommandParameter, RelativeSource={RelativeSource AncestorType=Button}}"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    FontWeight="Normal"
+                                    Foreground="{StaticResource GhTextMuted}"
+                                    VerticalAlignment="Center"
+                                />
+                                <TextBlock Text="{Binding}" Margin="8,0" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The title of a panel with a slide-out: its name and a down arrow, pressed while the slide-out is open. -->
+            <Style x:Key="SlideOutTitle" TargetType="ToggleButton" BasedOn="{StaticResource GhStatusToggle}">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="Padding" Value="4,0" />
+                <Setter Property="Margin" Value="0,4,0,0" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter
+                    Property="IsChecked"
+                    Value="{Binding IsDropDownOpen, RelativeSource={RelativeSource AncestorType=local:RibbonPanel}, Mode=TwoWay}"
+                />
+            </Style>
+
             <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
                 <Setter Property="Background" Value="{StaticResource GhAccent}" />
                 <Setter Property="Foreground" Value="{StaticResource GhAccentInk}" />
@@ -2193,6 +2239,38 @@
                         MinCollapsedWidth="56"
                         Icon="{StaticResource GhIconMText}"
                     >
+                        <!-- Text's slide-out: Check Spelling and Text Align. -->
+                        <local:RibbonPanel.Header>
+                            <ToggleButton
+                                Style="{StaticResource SlideOutTitle}"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Content="Text ▾"
+                                ToolTip="More of Text: Check Spelling, Text Align"
+                            />
+                        </local:RibbonPanel.Header>
+                        <local:RibbonPanel.SlideOut>
+                            <StackPanel Width="260">
+                                <Button
+                                    Style="{StaticResource SlideOutItem}"
+                                    Tag="{StaticResource GhIconCheckSpelling}"
+                                    Content="Check Spelling"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="SPELL"
+                                    ToolTip="Check Spelling (SPELL)"
+                                />
+                                <Button
+                                    Style="{StaticResource SlideOutItem}"
+                                    Tag="{StaticResource GhIconTextAlign}"
+                                    Content="Text Align"
+                                    Margin="0"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="TEXTALIGN"
+                                    ToolTip="Text Align (TEXTALIGN)"
+                                />
+                            </StackPanel>
+                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <!-- The big buttons 56 wide, their labels on two lines, as the design draws them. -->
                             <Button
@@ -2263,7 +2341,7 @@
                                 IsEnabled="{Binding Model.HasDocument}"
                                 Content="Dimensions ▾"
                                 FontSize="11"
-                                ToolTip="More of Dimensions: Oblique, Text Angle"
+                                ToolTip="More of Dimensions: Oblique, Text Angle, Override"
                                 IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource AncestorType=local:RibbonPanel}, Mode=TwoWay}"
                             />
                         </local:RibbonPanel.Header>
@@ -2324,6 +2402,16 @@
                                         <TextBlock Text="Text Angle" Margin="8,0" VerticalAlignment="Center" />
                                     </DockPanel>
                                 </Button>
+                                <Button
+                                    Style="{StaticResource SlideOutItem}"
+                                    Tag="{StaticResource GhIconDimOverride}"
+                                    Content="Override"
+                                    Margin="0,2,0,0"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="DIMOVERRIDE"
+                                    ToolTip="Override (DIMOVERRIDE)"
+                                />
                             </StackPanel>
                         </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
@@ -2505,6 +2593,29 @@
                         MinCollapsedWidth="64"
                         Icon="{StaticResource GhIconLeader}"
                     >
+                        <!-- Leaders' slide-out: Align (MLEADERALIGN); Collect joins it once MLEADERCOLLECT is built. -->
+                        <local:RibbonPanel.Header>
+                            <ToggleButton
+                                Style="{StaticResource SlideOutTitle}"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Content="Leaders ▾"
+                                ToolTip="More of Leaders: Align"
+                            />
+                        </local:RibbonPanel.Header>
+                        <local:RibbonPanel.SlideOut>
+                            <StackPanel Width="260">
+                                <Button
+                                    Style="{StaticResource SlideOutItem}"
+                                    Tag="{StaticResource GhIconLeaderAlign}"
+                                    Content="Align"
+                                    Margin="0"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}"
+                                    CommandParameter="MLEADERALIGN"
+                                    ToolTip="Align (MLEADERALIGN)"
+                                />
+                            </StackPanel>
+                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -2625,6 +2736,29 @@
                         MinCollapsedWidth="56"
                         Icon="{StaticResource GhIconModel}"
                     >
+                        <!-- Views' slide-out: Viewport Configuration, the Viewports dialog of VPORTS (design RibbonPgpButtons). -->
+                        <local:RibbonPanel.Header>
+                            <ToggleButton
+                                Style="{StaticResource SlideOutTitle}"
+                                IsEnabled="{Binding Model.HasDocument}"
+                                Content="Views ▾"
+                                ToolTip="More of Views: Viewport Configuration"
+                            />
+                        </local:RibbonPanel.Header>
+                        <local:RibbonPanel.SlideOut>
+                            <StackPanel Width="260">
+                                <Button
+                                    Style="{StaticResource SlideOutItem}"
+                                    Tag="{StaticResource GhIconViewports}"
+                                    Content="Viewport Configuration"
+                                    Margin="0"
+                                    IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding RunCommand}"
+                                    CommandParameter="VPORTS"
+                                    ToolTip="Viewport Configuration (VPORTS)"
+                                />
+                            </StackPanel>
+                        </local:RibbonPanel.SlideOut>
                         <StackPanel Orientation="Horizontal">
                             <Button
                                 Style="{StaticResource BigButton}"
@@ -3293,6 +3427,74 @@
                                 MinMediumWidth="278"
                                 Icon="{StaticResource GhIconLine}"
                             >
+                                <!-- Draw's slide-out: Hatch, Gradient and Boundary, Divide, Measure and 2D Solid. -->
+                                <local:RibbonPanel.Header>
+                                    <ToggleButton
+                                        Style="{StaticResource SlideOutTitle}"
+                                        IsEnabled="{Binding HasDocument}"
+                                        Content="Draw ▾"
+                                        ToolTip="More of Draw: Hatch, Gradient, Boundary, Divide, Measure, 2D Solid"
+                                    />
+                                </local:RibbonPanel.Header>
+                                <local:RibbonPanel.SlideOut>
+                                    <StackPanel Width="260">
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconHatch}"
+                                            Content="Hatch"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="HATCH"
+                                            ToolTip="Hatch (HATCH)"
+                                        />
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconGradient}"
+                                            Content="Gradient"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="GRADIENT"
+                                            ToolTip="Gradient (GRADIENT)"
+                                        />
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconBoundary}"
+                                            Content="Boundary"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="BOUNDARY"
+                                            ToolTip="Boundary (BOUNDARY)"
+                                        />
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconDivide}"
+                                            Content="Divide"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="DIVIDE"
+                                            ToolTip="Divide (DIVIDE)"
+                                        />
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconMeasure}"
+                                            Content="Measure"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="MEASURE"
+                                            ToolTip="Measure (MEASURE)"
+                                        />
+                                        <Button
+                                            Style="{StaticResource SlideOutItem}"
+                                            Tag="{StaticResource GhIconSolid}"
+                                            Content="2D Solid"
+                                            Margin="0"
+                                            IsEnabled="{Binding HasDocument}"
+                                            Command="{Binding StartCommandCommand}"
+                                            CommandParameter="SOLID"
+                                            ToolTip="2D Solid (SOLID)"
+                                        />
+                                    </StackPanel>
+                                </local:RibbonPanel.SlideOut>
                                 <StackPanel Orientation="Horizontal">
                                     <Button
                                         Style="{StaticResource BigButton}"

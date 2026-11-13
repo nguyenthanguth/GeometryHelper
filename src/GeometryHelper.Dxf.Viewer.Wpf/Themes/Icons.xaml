@@ -156,4 +156,17 @@
     <Geometry x:Key="GhIconPalette">
         M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.5-1-1.5-1-2.5S13.5 15 15 15h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11h.01M10 7.5h.01M14 7.5h.01
     </Geometry>
+    <!-- Round 2 (design RibbonPgpButtons): the slide-out items of Draw, Text, Leaders and Dimensions, and Model Viewports. -->
+    <Geometry x:Key="GhIconSelectObjects">M4 4l7 16 2-7 7-2z</Geometry>
+    <Geometry x:Key="GhIconHatch">M4 4h16v16H4zM4 12l8-8M4 20 20 4M12 20l8-8</Geometry>
+    <Geometry x:Key="GhIconGradient">M4 4h16v16H4zM8 4v16M12 4v16</Geometry>
+    <Geometry x:Key="GhIconBoundary">M4 4h16v16H4zM9 12h6M12 9v6</Geometry>
+    <Geometry x:Key="GhIconDivide">M3 12h18M8 10v4M12 10v4M16 10v4</Geometry>
+    <Geometry x:Key="GhIconMeasure">M3 16h18M6 13v3M10 14v2M14 13v3M18 14v2</Geometry>
+    <Geometry x:Key="GhIconSolid">M4 18 8 6h10l2 12z</Geometry>
+    <Geometry x:Key="GhIconCheckSpelling">M4 16 7 6l3 10M5 13h4M13 6v10h3a2.5 2.5 0 0 0 0-5h-3M16 19l2 2 4-4</Geometry>
+    <Geometry x:Key="GhIconTextAlign">M4 6h10M4 12h10M4 18h10M18 4v16</Geometry>
+    <Geometry x:Key="GhIconLeaderAlign">M6 4v16M6 8h12M6 16h8</Geometry>
+    <Geometry x:Key="GhIconDimOverride">M4 18h16M4 14v8M20 14v8M9 10l3-6 3 6M10 8h4</Geometry>
+    <Geometry x:Key="GhIconViewports">M3 4h18v16H3zM12 4v16M3 12h9</Geometry>
 </ResourceDictionary>

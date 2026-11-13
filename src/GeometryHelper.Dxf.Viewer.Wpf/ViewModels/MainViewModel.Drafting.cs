@@ -248,6 +248,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var state = new DraftingState { Grid = _settings.Grid, LineWeights = _settings.ShowLineWeights };
             DxfViewportTableRecord active = ActiveViewport(document);
+            document.DefaultLineWeight = _settings.DefaultLineweight / 100.0;
 
             if (active != null)
             {
@@ -267,9 +268,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return state;
         }
 
-        /// <summary>Settings applied: a drawing with no GRIDMODE or LWDISPLAY of its own takes theirs, as it took them when opened.</summary>
+        /// <summary>
+        /// Settings applied: a drawing with no GRIDMODE or LWDISPLAY of its own takes theirs, as it took them when opened, and
+        /// a changed LWDEFAULT draws its Default lineweights again.
+        /// </summary>
         private void FollowSettings(KnownFile file)
         {
+            double weight = _settings.DefaultLineweight / 100.0;
+
+            if (!file.Document.DefaultLineWeight.Equals(weight))
+            {
+                file.Document.DefaultLineWeight = weight;
+                file.Document.Regen();
+            }
+
             if (ActiveViewport(file.Document) == null)
             {
                 file.Drafting.Grid = _settings.Grid;

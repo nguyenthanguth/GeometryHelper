@@ -18,7 +18,143 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
+        /// <summary>
+        /// SPELL: the window's Check Spelling dialog over a <see cref="CadSpellCheck"/>, shown again after its Select objects
+        /// button has had the objects picked; once it closes, the words it changed are written, each text one edit of the
+        /// command's one undo step, and the words added appended to the custom dictionary file. With no window, the command
+        /// line's form.
+        /// </summary>
         private static IEnumerable<CadPrompt> Spell(CadCommandContext c)
+        {
+            var check = new CadSpellCheck(
+                (string where, IReadOnlyList<string> selected, out int locked) =>
+                    SpellItems(c, SpellEntities(c, where, selected), out locked)
+            );
+
+            while (true)
+            {
+                check.IsSelecting = false;
+
+                if (!c.Session.Request("SPELL", c.Document, check))
+                {
+                    foreach (CadPrompt prompt in SpellTyped(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
+                if (!check.IsSelecting)
+                {
+                    break;
+                }
+
+                yield return CadPrompt.ForSelection("Select objects");
+
+                if (c.Input.Kind == CadInputKind.Selection)
+                {
+                    check.SelectedHandles = c.Input.Handles;
+                    check.Where = CadSpellCheck.SelectedObjects;
+                }
+            }
+
+            foreach (KeyValuePair<SpellItem, List<KeyValuePair<CadSpelling.Word, string>>> changed in check.Changes)
+            {
+                WriteSpelling(c, changed.Key, changed.Value);
+            }
+
+            if (check.CustomDictionary != null)
+            {
+                foreach (string word in check.Added)
+                {
+                    AppendWord(c, check.CustomDictionary, word);
+                }
+            }
+        }
+
+        /// <summary>The objects Check Spelling looks through: of every space for the entire drawing, else of the space on screen, all or those selected.</summary>
+        private static IEnumerable<DxfEntity> SpellEntities(
+            CadCommandContext c,
+            string where,
+            IReadOnlyList<string> selected
+        )
+        {
+            if (where == CadSpellCheck.EntireDrawing)
+            {
+                return c.Document.Spaces.SelectMany(s => s.Block.ToList());
+            }
+
+            if (where == CadSpellCheck.SelectedObjects)
+            {
+                var wanted = new HashSet<string>(selected ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+                return c.Space.Block.Where(e => wanted.Contains(e.Handle ?? string.Empty)).ToList();
+            }
+
+            return c.Space.Block.ToList();
+        }
+
+        /// <summary>The texts of objects that SPELL checks: each TEXT, MTEXT and attribute of a block reference, those on a locked layer counted and left out.</summary>
+        private static List<SpellItem> SpellItems(CadCommandContext c, IEnumerable<DxfEntity> entities, out int locked)
+        {
+            var items = new List<SpellItem>();
+            locked = 0;
+
+            foreach (DxfEntity entity in entities)
+            {
+                if (entity.IsErased)
+                {
+                    continue;
+                }
+
+                bool checkable =
+                    (entity is DxfBlockReference block && block.AttributeCollection.Count > 0)
+                    || entity is DxfMText
+                    || (entity is DxfDBText && !(entity is DxfAttributeDefinition));
+
+                if (!checkable)
+                {
+                    continue;
+                }
+
+                if (CadLayerEditor.IsLocked(c.Database, entity.Layer))
+                {
+                    locked++;
+                    continue;
+                }
+
+                if (entity is DxfBlockReference insert)
+                {
+                    foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+                    {
+                        if (!attribute.IsErased)
+                        {
+                            items.Add(
+                                new SpellItem(
+                                    insert.Handle,
+                                    attribute.Handle,
+                                    attribute.TextString ?? string.Empty,
+                                    false
+                                )
+                            );
+                        }
+                    }
+                }
+                else if (entity is DxfMText mtext)
+                {
+                    items.Add(new SpellItem(mtext.Handle, null, mtext.Contents ?? string.Empty, true));
+                }
+                else
+                {
+                    var text = (DxfDBText)entity;
+                    items.Add(new SpellItem(text.Handle, null, text.TextString ?? string.Empty, false));
+                }
+            }
+
+            return items;
+        }
+
+        private static IEnumerable<CadPrompt> SpellTyped(CadCommandContext c)
         {
             var custom = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var ignored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -74,60 +210,11 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
-            var wanted = chosen == null ? null : new HashSet<string>(chosen, StringComparer.OrdinalIgnoreCase);
-            var items = new List<SpellItem>();
-            int locked = 0;
-
-            foreach (DxfEntity entity in c.Space.Block.ToList())
-            {
-                if (entity.IsErased || (wanted != null && !wanted.Contains(entity.Handle ?? string.Empty)))
-                {
-                    continue;
-                }
-
-                bool checkable =
-                    (entity is DxfBlockReference block && block.AttributeCollection.Count > 0)
-                    || entity is DxfMText
-                    || (entity is DxfDBText && !(entity is DxfAttributeDefinition));
-
-                if (!checkable)
-                {
-                    continue;
-                }
-
-                if (CadLayerEditor.IsLocked(c.Database, entity.Layer))
-                {
-                    locked++;
-                    continue;
-                }
-
-                if (entity is DxfBlockReference insert)
-                {
-                    foreach (DxfAttributeReference attribute in insert.AttributeCollection)
-                    {
-                        if (!attribute.IsErased)
-                        {
-                            items.Add(
-                                new SpellItem(
-                                    insert.Handle,
-                                    attribute.Handle,
-                                    attribute.TextString ?? string.Empty,
-                                    false
-                                )
-                            );
-                        }
-                    }
-                }
-                else if (entity is DxfMText mtext)
-                {
-                    items.Add(new SpellItem(mtext.Handle, null, mtext.Contents ?? string.Empty, true));
-                }
-                else
-                {
-                    var text = (DxfDBText)entity;
-                    items.Add(new SpellItem(text.Handle, null, text.TextString ?? string.Empty, false));
-                }
-            }
+            List<SpellItem> items = SpellItems(
+                c,
+                SpellEntities(c, chosen == null ? CadSpellCheck.CurrentSpace : CadSpellCheck.SelectedObjects, chosen),
+                out int locked
+            );
 
             if (locked > 0)
             {
@@ -227,7 +314,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A text to check: the object (an INSERT for one of its attributes), the attribute, the words as written, and whether they are an MTEXT's.</summary>
-        private sealed class SpellItem
+        internal sealed class SpellItem
         {
             internal SpellItem(string handle, string attribute, string raw, bool isMText)
             {

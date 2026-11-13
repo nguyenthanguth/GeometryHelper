@@ -983,6 +983,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
             CanvasView.Options.SelectionColor = settings.Selection;
             CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
+            CanvasView.Options.LineweightScale = settings.LineweightDisplayScale;
             CanvasView.Options.FontName = settings.DrawingFont;
             CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
             CanvasView.WheelReversed = settings.WheelZoomReversed;

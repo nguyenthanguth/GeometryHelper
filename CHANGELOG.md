@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Four dialogs of AutoCAD 2021 in the presenter, designed first in the design canvas: Rename (RENAME, `REN`), Lineweight
+Settings (LWEIGHT, `LW`), Check Spelling (SPELL, `SP`) and Boundary Creation (BOUNDARY, `BO`); each command keeps its
+command-line form where no window listens. Rename lists Blocks, Dimension styles, Layers, Linetypes, Multileader styles, Table
+styles, Text styles, UCSs, Viewports and Views with the items that can be renamed; Rename To renames in the list at once and
+refuses a bad or taken name (`"DOORS" already exists.`), and OK makes every rename as -RENAME would, in one undo step.
+Lineweight Settings sets the lineweight of new objects (CELWEIGHT), LWDISPLAY, the units of the list (`0.25 mm` or
+`0.010"`), the Default width (LWDEFAULT, now drawn: a line of Default at 0.50 mm draws 0.50 mm wide) and the display scale
+(half to twice the width on screen). Check Spelling checks the entire drawing, the space on screen or the objects picked,
+with Ignore, Ignore All, Change, Change All and Add to Dictionary; the words changed are written once it closes, in one undo
+step. Boundary Creation sets island detection and the object type that -BOUNDARY shares, and Pick Points asks the points.
+New: `CadRenameRequest`, `CadRename`, `CadSpellCheck`, `CadBoundaryRequest`, `CadDocument.DefaultLineWeight`,
+`GlobalSettings.LineweightsInInches`, `DefaultLineweight`, `LineweightDisplayScale` and `Lineweights`, and in the WPF
+presenter the windows and view models of the four dialogs and `CanvasOptions.LineweightScale`.
+**NEW.** Ribbon buttons for commands of the acad.pgp batches, each in its panel's slide-out so that the tabs keep their widths:
+Home Draw ▾ (Hatch, Gradient, Boundary, Divide, Measure, 2D Solid), Annotate Text ▾ (Check Spelling, Text Align), Leaders ▾
+(Align), Dimensions ▾ (Override, after Oblique and Text Angle) and View Views ▾ (Viewport Configuration, VPORTS).
+**CHANGED.** RENAME no longer writes "The Rename dialog is not designed yet" before asking -RENAME's questions with no window.
 **NEW.** Batch 5 of acad.pgp's commands in the presenter, output, in the words of AutoCAD 2021 (probed in accoreconsole):
 EXPORTPDF (`EPDF`), EXPORTDWF (`EDWF`), EXPORTDWFX (`EDWFX`), IMPORT (`IMP`), PLOTSTAMP (`DDPLOTSTAMP`) with -PLOTSTAMP, and the
 variable PDFSHX (`EPDFSHX`): six commands and one variable more in the registry. EXPORTPDF asks the window's Save As PDF dialog

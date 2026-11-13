@@ -229,6 +229,11 @@ next (after a triangle, the third corner twice), until Enter; the whole command 
 polylines, `BOUNDARY created 2 polylines`. Advanced options asks `Enter an option [Island detection/Object type]:` until
 Enter: island detection off makes the outer loop alone, and BOUNDARY takes the same settings for the rest of the session.
 An object type of Region makes nothing: a region is ACIS data, which the presenter cannot write yet, and the command says so.
+BOUNDARY (`BO`) shows the window's Boundary Creation dialog first, as AutoCAD 2021's: Pick Points, Island detection, Boundary
+retention (Retain boundaries, always on, and the object type, Polyline or Region) and the boundary set (the current viewport:
+every object of the space; New is not built). Pick Points keeps the settings, shared with -BOUNDARY, and asks `Pick internal
+point:` until Enter; Cancel ends the command with nothing kept. The request is a public
+[`CadBoundaryRequest`](xref:GeometryHelper.Dxf.Viewer.CadBoundaryRequest); with no window BOUNDARY asks the points at once.
 REGION asks `Select objects:`, counts the loops the closed objects make (`2 loops extracted.`) and says the same of the
 regions: `0 Regions created.` where nothing closes, the ACIS limit where something does. AutoCAD's Boundary set is not built.
 
@@ -253,8 +258,9 @@ open cubic through the points again. Move vertex marks the first control vertex 
 [Next/Previous/Select point/eXit] <N>:`: a point moves the marked vertex, which stays marked, and a spline of fit points loses
 its fit data. rEverse says `Spline has been reversed.`; convert to Polyline asks `Specify a precision <10>:` and replaces
 the spline by a polyline of lines (53 vertices for the spline above at 10) and ends the command. Fit data, Join and Refine are
-not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT (the classic dialog
-is not in the presenter's design).
+not built, nor Close of a spline of control points. CLASSICINSERT shows the same Insert palette as INSERT: AutoCAD's classic
+Insert dialog asks the same things (the block or file, insertion point, scale and rotation each given or specified on screen,
+explode) in another frame, so it is not built apart.
 
 **The command-line forms and SAVE (batch 4 of acad.pgp).**
 
@@ -1110,8 +1116,15 @@ the centre mark of DIMCEN on a circle or an arc as lines of the current layer: a
 nought centre lines from twice DIMCEN out to DIMCEN past the rim, only where the radius is over twice DIMCEN (a circle of
 5.01 under -2.5 has them, one of 5 the cross alone; a radius dimension follows the same rule). COLOR shows the window's
 Select Color dialog for the colour of new objects, and -COLOR asks `Enter default object color [Truecolor/COlorbook]
-<1 (red)>:`; LWEIGHT and -LWEIGHT ask `Enter default lineweight for new objects or [?]:` and round a width to the
-nearest of AutoCAD's, `0.33` to 0.35 mm with a word saying so. REDRAW and REDRAWALL have nothing left to draw, and
+<1 (red)>:`; -LWEIGHT asks `Enter default lineweight for new objects or [?]:` and rounds a width to the
+nearest of AutoCAD's, `0.33` to 0.35 mm with a word saying so. LWEIGHT (`LW`, `LINEWEIGHT`) shows the window's Lineweight
+Settings dialog, as AutoCAD 2021's: the Lineweights list (ByLayer, ByBlock, Default and the 24 widths, each with its
+sample), whose line picked is the lineweight of new objects (CELWEIGHT, one undo step named LWEIGHT where it changed); Units
+for Listing in millimetres (`0.25 mm`) or inches (`0.010"`), Display Lineweight (LWDISPLAY), Default (the width a lineweight
+of Default is drawn with, AutoCAD's LWDEFAULT, 0.25 mm until set) and Adjust Display Scale (lines drawn from half to twice
+their width on screen, a 0.50 mm line about 2 pixels at the middle); the last three are kept in the global settings
+(`GlobalSettings.LineweightsInInches`, `DefaultLineweight`, `LineweightDisplayScale`) and every drawing open is drawn again
+with them. With no window LWEIGHT asks -LWEIGHT's question. REDRAW and REDRAWALL have nothing left to draw, and
 REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of the space, HIDEOBJECTS those selected,
 as AutoCAD 2021 hides them (their Visible off) for the session only: a save writes them shown, and UNISOLATEOBJECTS shows
 them again, saying `1 object(s) unisolated.` or `No objects to unisolate.`. Each is one undo step.
@@ -1143,7 +1156,14 @@ INSERTs of a block, the entities, layers, multiline styles and the current linet
 tables of a text style, the dimensions of a dimension style, and the current multileader or table style. Layer 0, Standard
 and the linetypes ByLayer, ByBlock and Continuous keep their names. Material, dEtailviewstyle and seCtionviewstyle say the
 drawing holds none. One undo step (a UCS rename is made on the UCS manager and is not a step, as the UCS command's are).
-RENAME (`REN`) has its dialog left, to be designed: with no window it says so and runs -RENAME.
+RENAME (`REN`) shows the window's Rename dialog, laid out as AutoCAD 2021's: the Named Objects list (Blocks, Dimension styles,
+Layers, Linetypes, Multileader styles, Table styles, Text styles, UCSs, Viewports, Views), the Items of the kind picked
+(those that can be renamed, sorted by their letters: no layer 0, no Standard style, no ByLayer, ByBlock or Continuous), Old
+Name, and Rename To with the name typed. Rename To renames the item in the list at once and refuses an empty name, one with
+any of `< > / \ " : ; ? * | , = `` ` in it, or another item's name (`"DOORS" already exists.`); OK hands the renames to
+RENAME, which makes them in order as -RENAME would, all in one undo step, and writes any refusal on the command line; Cancel
+renames nothing. With no window RENAME asks -RENAME's questions. The request is a public
+[`CadRenameRequest`](xref:GeometryHelper.Dxf.Viewer.CadRenameRequest) of [`CadRename`](xref:GeometryHelper.Dxf.Viewer.CadRename)s.
 The helpers behind it are public: `CadBlocks.Rename`, `CadLinetypes.Rename`, `CadMLeaderStyleEditor.Rename` and
 `CadTableStyleEditor.Rename` join `CadLayerEditor.Rename`, `CadDimStyleEditor.Rename` and `CadTextStyleEditor.Rename`.
 PROPERTIES, OPTIONS and LAYER ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
@@ -1199,7 +1219,14 @@ not built here: the mode stays as it was.` MLEADERCOLLECT, which joins block mul
 ATTIPEDIT (ATI) asks "Select an attribute:" and edits the one clicked (that of the block drawn nearest the click, as -ATTEDIT
 takes it; the first of a block given by its handle) in place, in the box over it on the canvas, writing its value as one undo
 step; a click on the block's own lines says `Selected object is not an attribute.` An attribute of several lines is not edited
-here. SPELL (SP) is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or
+here. SPELL (SP) shows the window's Check Spelling dialog, as AutoCAD 2021's: Where to check (Entire drawing, every space;
+Current space/layout; Selected objects, whose button closes the dialog for `Select objects:` and shows it again), Start, Not in
+dictionary, Suggestions with the replacement typed above them, Ignore, Ignore All, Change, Change All (the word changed
+wherever it comes again), Add to Dictionary, the main dictionary (the built-in English list) and a custom dictionary file.
+Change with nothing typed takes the first suggestion and with none says `No suggestions.`. Nothing is written while the
+dialog is open: Close writes the words changed, each text one edit of SPELL's one undo step, and appends the words added to
+the custom dictionary file. The check is a public [`CadSpellCheck`](xref:GeometryHelper.Dxf.Viewer.CadSpellCheck). With no
+window SPELL is the command line form of Check Spelling: "Select objects or [All/Dictionary]:" takes objects, or Enter or
 All every TEXT, MTEXT and attribute of the space, and Dictionary "Enter custom dictionary file <none>:", a text file of words one
 to a line (`Cannot read custom dictionary.` where it cannot be read). Each word not in the built-in list (about 700 English
 words and drafting terms, the endings -s, -es, -ed, -ing, -ly, -er, -est and 's tried; words in capitals, with a digit or of
