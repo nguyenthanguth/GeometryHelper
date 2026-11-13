@@ -1413,8 +1413,8 @@ namespace GeometryHelper.Dxf.Viewer
             double b = height / 2.0 + gap;
             low = theta;
             high = theta;
-            double lowest = 0.0;
-            double highest = 0.0;
+            double lowest = double.MaxValue;
+            double highest = double.MinValue;
 
             // Each side of the box, as a + s t for t from 0 to 1, meets the circle where |a + s t - vertex| = radius.
             GeoPoint2[] corners = { at - x * a - y * b, at + x * a - y * b, at + x * a + y * b, at - x * a + y * b };
@@ -1448,6 +1448,13 @@ namespace GeometryHelper.Dxf.Viewer
                     lowest = Math.Min(lowest, off);
                     highest = Math.Max(highest, off);
                 }
+            }
+
+            // An arc that leaves the point at the words' angle outside their box (its corner clipped by the circle) is broken only
+            // where the circle meets the box: "60%%d" of 3 wide, a gap of 1.5, put 5 off an arc of 30 at 30 degrees, from 29.45 to 29.53.
+            if (lowest > highest)
+            {
+                return;
             }
 
             low = theta + lowest;

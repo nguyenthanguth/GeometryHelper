@@ -209,7 +209,7 @@ namespace GeometryHelper.Dxf.Viewer
                 out _,
                 out _
             );
-            double width = WordsWidth(style, words, height, out _);
+            double width = WordsWidth(style, words, height, out double tall);
             JogPlaces(
                 center,
                 radius,
@@ -220,7 +220,9 @@ namespace GeometryHelper.Dxf.Viewer
                 arrow,
                 gap,
                 width,
-                style.Dimtad == 0,
+                style.Dimtad,
+                style.Dimtih,
+                tall,
                 c.Session.Tolerance.EqualPoint,
                 out GeoPoint2 chord,
                 out GeoPoint2 jog,
@@ -268,7 +270,9 @@ namespace GeometryHelper.Dxf.Viewer
             double arrow,
             double gap,
             double width,
-            bool onLine,
+            int tad,
+            bool levelWords,
+            double height,
             double tolerance,
             out GeoPoint2 chord,
             out GeoPoint2 jog,
@@ -321,7 +325,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (t < Math.Min(tBack, radius) - 1E-9 || t > Math.Max(tBack, radius) + 1E-9)
             {
                 double way = tBack >= radius ? 1.0 : -1.0;
-                double past = radius + way * (arrow + (onLine ? 2.0 : 1.0) * gap + width / 2.0);
+                // DIMTIH keeps the words level, on a line that is not level, where their reach along it is the box's chord (see Jogged).
+                bool level = levelWords && Math.Abs(u.Y) > 1E-9;
+                bool onLine = tad == 0 || (level && (tad == 1 || tad == 4));
+                double reach = level ? Chord(width, height, gap, -Math.Atan2(u.Y, u.X)) : width / 2.0 + gap;
+                double past = radius + way * (arrow + (onLine ? gap : 0.0) + reach);
                 double half = (radius + way * arrow + tBack) / 2.0;
                 words = center + u * (way > 0.0 ? Math.Min(past, half) : Math.Max(past, half));
             }
@@ -431,7 +439,10 @@ namespace GeometryHelper.Dxf.Viewer
             var picture = new List<DxfEntity>();
             GeoVector2 u = (chord - center) / radius;
             double angle = Readable(Math.Atan2(u.Y, u.X));
-            DxfEntity text = Words(style, default, angle, height, words, scale);
+            // DIMTIH keeps the words level, on the line when it is not level, as AutoCAD 2021 draws them (see FreeRadial).
+            bool level = style.Dimtih && Math.Abs(Math.Sin(angle)) > 1E-9;
+            double wordsAngle = level ? 0.0 : angle;
+            DxfEntity text = Words(style, default, wordsAngle, height, words, scale);
             double width = WordsWidth(style, words, height, out height);
             JogFrame(
                 center,
@@ -466,13 +477,26 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 new KeyValuePair<GeoPoint2, GeoPoint2>(back, arrowBack),
             };
-            bool onLine = style.Dimtad == 0;
+            bool onLine = style.Dimtad == 0 || (level && (style.Dimtad == 1 || style.Dimtad == 4));
             GeoPoint2 wordsAt = at;
 
             if (onLine)
             {
                 GeoPoint2 middle = center + u * Dot(at - center, u);
-                run = Broken(run, middle, u, width / 2.0 + gap);
+                // Level words take out of the line what runs through their box grown by the gap.
+                double half = level ? Chord(width, height, gap, wordsAngle - Math.Atan2(u.Y, u.X)) : width / 2.0 + gap;
+                run = Broken(run, middle, u, half);
+
+                // Words reaching past the back of the arrowhead: AutoCAD 2021 still draws the line from the back out to the edge of
+                // their box on the far side, over the arrowhead (a radius of 8 at 30 degrees, "R8" put 4 out: from 5.5 to 6.708).
+                double along = Dot(at - center, u);
+                double end = Dot(arrowBack - center, u);
+
+                if (along - half < end - 1E-9 && along + half > end + 1E-9)
+                {
+                    double edge = Dot(back - center, u) < end ? along + half : along - half;
+                    run.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(arrowBack, center + u * edge));
+                }
             }
             else
             {

@@ -1550,7 +1550,9 @@ namespace GeometryHelper.Dxf.Viewer
                     arrow,
                     tad == 0,
                     offLine,
-                    style.Dimtxtdirection
+                    style.Dimtxtdirection,
+                    !ticks,
+                    beyond
                 );
                 return layout;
             }
@@ -1750,12 +1752,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// by the gap and half their height, or on it for DIMTAD 0, the line broken a gap clear of them; past an end the line
         /// runs on under them to a gap beyond them, or up to a gap short of words on it. Under 2 the words' middle is the point,
         /// the line broken where it runs through them. Under 1 they stand there too (above it, but for DIMTAD 0) until the point
-        /// is further from the line than DIMGAP and half the heights of the words and the arrowheads; then a leader runs from
+        /// is as far from the line as DIMGAP and the larger of an arrowhead and half the words' height with DIMEXE; then a leader runs from
         /// the middle of the line to a gap short of the point, three for DIMTAD 0, and a landing on away from the middle, under
         /// words above it (as wide as they are and a gap each side) or two gaps up to words on it, the words starting at the
         /// point. "100" moved 10 above the line 10 left of its middle has a leader to 0.625 short of the point and a landing
         /// 6.53 long, the words above it. Words read from right to left (<paramref name="backward"/>, DIMTXTDIRECTION) stand on
-        /// the other side of the point there, as AutoCAD 2021 puts them.
+        /// the other side of the point there, as AutoCAD 2021 puts them. Words whose box (their width and a gap each side) reaches
+        /// within an arrowhead of an extension line are laid again: under 0 a point before the first line (or past the second) goes
+        /// out beside it, the line run back to the words, and a point on the first line itself goes past the second; words on the
+        /// line between the lines turn the arrowheads out, the line left whole where the break would take only one of its ends. "100"
+        /// 6.53 wide with its gaps put 3 before the first extension line of a line 100 long stands 5.765 before it. Under 1 the line
+        /// is run on to words past an end only once they stand clear of an arrowhead's length from it.
         /// </summary>
         private static void PlaceMoved(
             LinearLayout layout,
@@ -1773,7 +1780,9 @@ namespace GeometryHelper.Dxf.Viewer
             double arrow,
             bool onLine,
             double offLine,
-            bool backward
+            bool backward,
+            bool arrowheads,
+            double beyond
         )
         {
             double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
@@ -1781,24 +1790,72 @@ namespace GeometryHelper.Dxf.Viewer
             double across = (at - foot).X * above.X + (at - foot).Y * above.Y;
             double half = width / 2.0 + gap;
             bool crossing = Math.Abs(across) < height / 2.0 + gap;
+            double length = (q2 - q1).Length;
+
+            // Words that reach within an arrowhead of an extension line (their box, DIMGAP wide each side, over the arrowhead's
+            // length either side of the line) are laid again, as AutoCAD 2021 draws them.
+            bool zoned = arrowheads && layout.ArrowsInside;
+            double zone = arrow + half;
+            // Words touching an arrowhead's length from the first extension line count as within it under 1, not under the others, and
+            // not at the second, as AutoCAD 2021 draws them.
+            double slack = move == 1 ? NearZero : -NearZero;
+            bool turnedOut = false;
+
+            if (zoned && move == 0)
+            {
+                // Under 0 the point past an end and within the zone is moved out to the zone's edge on its side (the point on the
+                // first extension line itself to the second one's), the dimension line then running on under the words.
+                if (t < NearZero && t > -zone)
+                {
+                    t = t < -NearZero ? -zone : length + zone;
+                }
+                else if (t > length - NearZero && t < length + zone)
+                {
+                    t = length + zone;
+                }
+
+                foot = q1 + along * t;
+            }
+
+            if (zoned && t > NearZero && t < length - NearZero && (t < zone + slack || t > length - zone + NearZero))
+            {
+                // Words on the line, between the extension lines and in the zone, turn the arrowheads out (and leave the line
+                // whole under 1 and 2); words above it, clear of the arrowheads, do not.
+                double centre = move == 0 ? offLine : across + (move == 1 ? offLine : 0.0);
+
+                if (Math.Abs(centre) < height / 2.0 + gap - NearZero)
+                {
+                    turnedOut = true;
+                    layout.ArrowsInside = false;
+                    layout.Outside.Add(
+                        new KeyValuePair<GeoPoint2, GeoPoint2>(q1 - along * arrow, q1 - along * (2.0 * arrow))
+                    );
+                    layout.Outside.Add(
+                        new KeyValuePair<GeoPoint2, GeoPoint2>(q2 + along * arrow, q2 + along * (2.0 * arrow))
+                    );
+                }
+            }
+
+            // The line the words may break: from arrowhead to arrowhead, or whole where they are turned out.
+            double first = layout.ArrowsInside && arrowheads ? arrow : 0.0;
 
             if (move == 0)
             {
                 layout.At = foot + above * offLine;
-                double length = (q2 - q1).Length;
                 double reach = onLine ? -half : half;
 
-                if (onLine)
+                if (onLine && !(zoned && Straddles(t, half, first, length - first)))
                 {
                     layout.Middle = foot;
                     layout.Break = half;
                 }
 
-                if (t > length && t + reach > length)
+                // The line runs on to words past an end only where they stand clear of the arrowhead's length from it.
+                if (t > length && t + reach > length && (!zoned || t - half >= length + arrow - NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q2, q1 + along * (t + reach)));
                 }
-                else if (t < 0.0 && t - reach < 0.0)
+                else if (t < 0.0 && t - reach < 0.0 && (!zoned || t + half <= -arrow + NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1 + along * (t - reach), q1));
                 }
@@ -1806,7 +1863,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (move == 1 && Math.Abs(across) > gap + (height + arrow) / 2.0)
+            if (move == 1 && Math.Abs(across) >= gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero)
             {
                 GeoVector2 away =
                     (at - middle).X * readable.X + (at - middle).Y * readable.Y >= 0.0 ? readable : -readable;
@@ -1825,27 +1882,46 @@ namespace GeometryHelper.Dxf.Viewer
             // Words put past the end of the line, on its way, under DIMTMOVE 1: the line runs on from the end to them, to the near
             // edge of words on it, and under words off it to their far edge, a gap past each, as AutoCAD 2021 draws it: "100" 5
             // wide put 20 past the end of a line 100 long has its line run on from 100 to 116.875 (on it), 123.125 (above it).
+            // Words nearer an end than an arrowhead's length leave the line as it is.
             if (move == 1)
             {
-                double length = (q2 - q1).Length;
                 double reachEnd = onLine ? -half : half;
 
-                if (t > length && t + reachEnd > length)
+                if (t > length && t + reachEnd > length && (!zoned || t - half > length + arrow + NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q2, q1 + along * (t + reachEnd)));
                 }
-                else if (t < 0.0 && t - reachEnd < 0.0)
+                else if (t < 0.0 && t - reachEnd < 0.0 && (!zoned || t + half < -arrow - NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1 + along * (t - reachEnd), q1));
                 }
             }
 
-            if (crossing && (move == 2 || onLine))
+            if (
+                crossing
+                && (move == 2 || onLine)
+                && !turnedOut
+                && !(zoned && Straddles(t, half, first, length - first))
+            )
             {
                 layout.Middle = foot;
                 layout.Break = half;
             }
         }
+
+        /// <summary>The distance below which words are on an extension line, as AutoCAD 2021 reads their point.</summary>
+        private const double NearZero = 1E-9;
+
+        /// <summary>
+        /// Whether the length <paramref name="half"/> either side of <paramref name="centre"/> takes in one end of the line from
+        /// <paramref name="from"/> to <paramref name="to"/> and not the other: AutoCAD 2021 leaves such a line whole.
+        /// </summary>
+        private static bool Straddles(double centre, double half, double from, double to) =>
+            Takes(centre, half, from) != Takes(centre, half, to);
+
+        /// <summary>Whether the length <paramref name="half"/> either side of <paramref name="centre"/> takes in <paramref name="at"/>, by more than the tolerance.</summary>
+        private static bool Takes(double centre, double half, double at) =>
+            centre - half < at - NearZero && centre + half > at + NearZero;
 
         /// <summary>Whether words turned to one angle run along a line at another, either way.</summary>
         private static bool Parallel(double words, double line) => Math.Abs(Math.Sin(words - line)) <= 1E-9;

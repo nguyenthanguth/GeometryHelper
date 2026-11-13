@@ -133,7 +133,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         writes them (xdata, extension dictionary, contexts *A1, *A2...), second scales added to TEXT, MTEXT, ATTDEF, HATCH and
         INSERT; -OBJECTSCALE, AIOBJECTSCALEADD/REMOVE, ANNOALLVISIBLE; -HATCH ANnotative; text under an annotative style;
         drawn at CANNOSCALE and at a viewport's scale; AutoCAD reads our 12 objects annotative with their scales, AUDIT 0
-  - [ ] Annotative objects 2: DIMENSION and MULTILEADER at a second scale (a *D picture per scale, re-laid words; probe
+  - [ ] (annot2, running) Annotative objects 2: DIMENSION and MULTILEADER at a second scale (a *D picture per scale, re-laid words; probe
         numbers in .claude/gk/annot-probe-notes.md); ANNOAUTOSCALE; the OBJECTSCALE dialog (design first); a dimension style's annotative
         flag for new dimensions; ATTRIBs of an annotative INSERT drawn at the scale; deleting the default context (AutoCAD
         promotes the next); HATCHEDIT reading and writing Annotative; context names from AutoCAD's counter; the hatch's view
@@ -250,11 +250,14 @@ the ones wanted.
 - [x] Dimension follow-ups 8 (dims8): level words in a tight radius/diameter fit as AutoCAD (the r-sets: 603 differing down
       to 60 of 6 336 probes), the angular leader threshold refitted over 5 800 probes, DIM Angular on an arc switching back
       to Radius/Diameter; harness kept in .claude/gk/dims-harness8
-- [ ] (dims9, running) Dimension follow-ups 9: words within about 5.6 of an extension line (m3: 114 of 532 differ; AutoCAD turns the arrows
-      out); the angular leader for words outside the sector (a4: 76 of 712); jogged radius (j1: 162 of 288: level words and
-      line stubs) and arc Length; letters a font lacks measured through AutoCAD's substitute font; DxfShxFont extents; fit 3
-      level words in a tight circle and DIMTMOVE 1 words behind the centre (t6 99 of 1 584, r6 36 of 1 024); lines exactly
-      15 degrees from level and points exactly on the rim (S)
+- [x] Dimension follow-ups 9 (dims9): words near an extension line laid as AutoCAD (m3 125 differing of 588 down to 0, m4
+      41 of 4 680 to 0), DIMTEDIT's DIMTMOVE 1 leader threshold (gap + max(arrow, height/2 + DIMEXE)), a jogged radius
+      keeping level words level with AutoCAD's stubs (j1 162 to 18), the arc break of wide angular words (a2 to 0), letters
+      Arial lacks measured as AutoCAD sets them; harness in .claude/gk/dims-harness9
+- [ ] Dimension follow-ups 10: the angular leader band for words outside the sector (a4 74 of 712; a7 data in
+      dims-harness9 acad-ac, no box-circle model fits); j1's last 18 (words moved to the jog); level landings W or L under
+      DIMTAD 1/4 in a tight circle or behind the centre (t6 99 of 1 584, r6 36 of 1 024); points exactly on an extension line
+      of an aligned dimension (m2 14, AutoCAD's rounding); lines exactly 15 degrees from level (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
