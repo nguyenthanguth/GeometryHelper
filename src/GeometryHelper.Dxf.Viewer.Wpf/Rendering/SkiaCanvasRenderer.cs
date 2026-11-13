@@ -29,6 +29,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets whether line weights are drawn; off, every line is one pixel wide, as AutoCAD shows a drawing with lineweights hidden.</summary>
         public bool ShowLineWeights { get; set; }
 
+        /// <summary>
+        /// Gets or sets how much wider than their printed width lineweights are drawn while shown, the Adjust Display Scale of
+        /// Lineweight Settings: 1 by default, a 0.50 mm line about 2 pixels wide, 4 at 2.
+        /// </summary>
+        public double LineweightScale { get; set; } = 1.0;
+
         /// <summary>Gets or sets the handles of the selected entities, drawn in the selection colour and at least 2 pixels wide; may be null.</summary>
         public IReadOnlyCollection<string> Selected { get; set; }
 
@@ -863,7 +869,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 y0 = Math.Min(Math.Min(ay, by), Math.Min(cy, dy));
                 x1 = Math.Max(Math.Max(ax, bx), Math.Max(cx, dx));
                 y1 = Math.Max(Math.Max(ay, by), Math.Max(cy, dy));
-                double width = Math.Max(2.0, options.ShowLineWeights ? item.Style.LineWeight * 96.0 / 25.4 : 1.0);
+                double width = Math.Max(
+                    2.0,
+                    options.ShowLineWeights ? item.Style.LineWeight * 96.0 / 25.4 * options.LineweightScale : 1.0
+                );
                 double reach = 2.0 * width + 3.0;
                 x0 -= reach;
                 y0 -= reach;
@@ -1201,7 +1210,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SKColor color = ColorOf(item, options, isSelected, isHover, background);
             float width =
                 _plot != null ? (float)(Math.Max(item.Style.LineWeight, 0.0) * _plot.LineweightScale)
-                : options.ShowLineWeights ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4)
+                : options.ShowLineWeights
+                    ? (float)Math.Max(1.0, item.Style.LineWeight * 96.0 / 25.4 * options.LineweightScale)
                 : 1f;
             stroke.Color = color;
             stroke.StrokeWidth = isSelected || isHover ? Math.Max(width, 2f) : width;

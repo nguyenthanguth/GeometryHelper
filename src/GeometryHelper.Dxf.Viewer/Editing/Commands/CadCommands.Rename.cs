@@ -55,23 +55,99 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        // The Named Objects of AutoCAD 2021's Rename dialog and the kind of -RENAME each is, in the dialog's order.
+        private static readonly string[][] RenameDialogKinds =
+        {
+            new[] { "Blocks", "Block" },
+            new[] { "Dimension styles", "Dimstyle" },
+            new[] { "Layers", "LAyer" },
+            new[] { "Linetypes", "LType" },
+            new[] { "Multileader styles", "multileadeRstyle" },
+            new[] { "Table styles", "Tablestyle" },
+            new[] { "Text styles", "Style" },
+            new[] { "UCSs", "Ucs" },
+            new[] { "Viewports", "VPort" },
+            new[] { "Views", "VIew" },
+        };
+
         /// <summary>
-        /// RENAME: the window's Rename dialog; with no window, or none designed yet for it, -RENAME on the command line with a
-        /// line saying so.
+        /// RENAME: the window's Rename dialog, the renames it asks for made in order once it closes with OK, each refusal
+        /// written, all in one undo step; with no window, -RENAME on the command line.
         /// </summary>
         private static IEnumerable<CadPrompt> RenameDialog(CadCommandContext c)
         {
-            if (c.Session.Request("RENAME"))
+            var request = new CadRenameRequest(c.Document, RenameNames(c));
+
+            if (!c.Session.Request("RENAME", c.Document, request))
+            {
+                foreach (CadPrompt prompt in RenameTyped(c))
+                {
+                    yield return prompt;
+                }
+
+                yield break;
+            }
+
+            if (!request.IsAccepted)
             {
                 yield break;
             }
 
-            c.Write("The Rename dialog is not designed yet: -RENAME asks on the command line.");
-
-            foreach (CadPrompt prompt in RenameTyped(c))
+            foreach (CadRename rename in request.Renames)
             {
-                yield return prompt;
+                string kind = RenameDialogKinds.FirstOrDefault(k => k[0] == rename.Kind)?[1];
+                string refused =
+                    kind == null || !RenameExists(c, kind, rename.OldName)
+                        ? "Cannot find " + (kind == null ? "object" : RenameNoun(kind)) + " \"" + rename.OldName + "\"."
+                        : Rename(c, kind, rename.OldName, rename.NewName.Trim());
+
+                if (refused != null)
+                {
+                    c.Write(refused);
+                }
             }
+        }
+
+        /// <summary>The names the Rename dialog lists for each kind, in the dialog's order: those -RENAME takes, sorted by their letters.</summary>
+        private static IReadOnlyDictionary<string, IReadOnlyList<string>> RenameNames(CadCommandContext c)
+        {
+            DxfDatabase db = c.Database;
+            var names = new Dictionary<string, IReadOnlyList<string>>();
+
+            IReadOnlyList<string> Sorted(IEnumerable<string> found) =>
+                found
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(n => n, StringComparer.Ordinal)
+                    .ToList();
+
+            bool NotStandard(string n) => !string.Equals(n, "Standard", StringComparison.OrdinalIgnoreCase);
+
+            names["Blocks"] = Sorted(CadBlocks.Named(db).Select(b => b.Name));
+            names["Dimension styles"] = Sorted(CadDimStyleEditor.Styles(db).Select(s => s.Name).Where(NotStandard));
+            names["Layers"] = Sorted(db.LayerTable.Select(l => l.Name).Where(n => n != "0"));
+            names["Linetypes"] = Sorted(
+                CadLinetypes.Names(db).Where(n => !string.Equals(n, "Continuous", StringComparison.OrdinalIgnoreCase))
+            );
+            names["Multileader styles"] = Sorted(CadMLeaderStyleEditor.Styles(db).Where(NotStandard));
+            names["Table styles"] = Sorted(CadTableStyleEditor.Styles(db).Where(NotStandard));
+            names["Text styles"] = Sorted(CadTextStyleEditor.Styles(db).Select(s => s.Name).Where(NotStandard));
+            names["UCSs"] = Sorted(c.Document.Ucs.Named.Select(u => u.Name));
+            names["Viewports"] = Sorted(
+                db.ViewportTable.Select(v => v.Name)
+                    .Where(n => n != null && !n.StartsWith("*", StringComparison.Ordinal))
+            );
+            names["Views"] = Sorted(db.ViewTable.Select(v => v.Name));
+
+            var ordered = new Dictionary<string, IReadOnlyList<string>>();
+
+            foreach (string[] kind in RenameDialogKinds)
+            {
+                ordered[kind[0]] = names[kind[0]];
+            }
+
+            return ordered;
         }
 
         /// <summary>

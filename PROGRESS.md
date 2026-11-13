@@ -106,8 +106,11 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [ ] R2.2 (hatch2, running) HATCH completed: -HATCH's other keywords, Single color gradients, plain HATCH behind its boundary as AutoCAD,
         -BOUNDARY refusing ellipses and splines as AutoCAD (from Batch 3b) (M)
   - [ ] R2.3 (splinedit2, running, with R3.1) SPLINEDIT completed: Fit data, Join, Refine, Close/Open of control-point splines (from Batch 3b) (S)
-  - [ ] R2.4 (dialogs4, running) Dialogs, designed first then built: RENAME, Lineweight Settings, Boundary Creation, classic Insert, Check
-        Spelling, and ribbon buttons for the commands of batches 1 to 5 (from Batches 1b, 2b, 3b) (M)
+  - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
+        Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
+  - [ ] R2.4 follow-ups: Rename wildcard old names; Check Spelling Settings and Undo; Boundary set New; Collect in the
+        Leaders slide-out (after MLEADERCOLLECT); an Output tab with Export to PDF; LWUNITS and LWDEFAULT as variables; the
+        buttons in the panel bodies as AutoCAD (now in slide-outs); look at the dialogs in the running app (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 (splinedit2, running) MLEADERCOLLECT, MLEADERALIGN Parallel, TEXTALIGN on an oblique line as AutoCAD places it (S)
   - [ ] R3.2 INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)

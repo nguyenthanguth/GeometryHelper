@@ -113,6 +113,8 @@ namespace GeometryHelper.Dxf.Viewer
         private int _pickboxPixels = 5;
         private int _gripSize = 5;
         private int _gripMultifunctional = 3;
+        private int _defaultLineweight = 25;
+        private double _lineweightDisplayScale = 1.0;
         private int _aperturePixels = 10;
         private int _shortcutMenu = 11;
         private double _polarAngle = 90.0;
@@ -296,6 +298,76 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets whether lines are drawn with their lineweights: on by default.</summary>
         public bool ShowLineWeights { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the Lineweight Settings dialog lists lineweights in inches, as AutoCAD's LWUNITS 0; false, the
+        /// default, lists them in millimetres (LWUNITS 1).
+        /// </summary>
+        public bool LineweightsInInches { get; set; }
+
+        /// <summary>
+        /// Gets or sets the width a lineweight of Default is drawn with, in hundredths of a millimetre, as AutoCAD's LWDEFAULT:
+        /// 25 (0.25 mm) by default, one of AutoCAD's 24 widths from 0 to 211.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not one of AutoCAD's lineweights.</exception>
+        public int DefaultLineweight
+        {
+            get => _defaultLineweight;
+            set
+            {
+                if (!Lineweights.Contains(value))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(DefaultLineweight),
+                        value,
+                        "Not one of AutoCAD's lineweights."
+                    );
+                }
+
+                _defaultLineweight = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets how much wider than their printed width lineweights are drawn on screen, 0.5 to 2: 1 by default, the
+        /// Adjust Display Scale slider of Lineweight Settings. A 0.50 mm line is about 2 pixels wide at 1 and 4 at 2.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public double LineweightDisplayScale
+        {
+            get => _lineweightDisplayScale;
+            set => _lineweightDisplayScale = Range(value, 0.5, 2.0, nameof(LineweightDisplayScale));
+        }
+
+        /// <summary>Gets AutoCAD's 24 lineweights, in hundredths of a millimetre, from 0 to 211.</summary>
+        public static IReadOnlyList<int> Lineweights { get; } =
+            new[]
+            {
+                0,
+                5,
+                9,
+                13,
+                15,
+                18,
+                20,
+                25,
+                30,
+                35,
+                40,
+                50,
+                53,
+                60,
+                70,
+                80,
+                90,
+                100,
+                106,
+                120,
+                140,
+                158,
+                200,
+                211,
+            };
 
         // ---- Canvas and cursor
 
@@ -951,6 +1023,9 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("gripMultifunctional", _gripMultifunctional);
             w.Value("grid", Grid);
             w.Value("showLineWeights", ShowLineWeights);
+            w.Value("lineweightsInInches", LineweightsInInches);
+            w.Value("defaultLineweight", _defaultLineweight);
+            w.Value("lineweightDisplayScale", _lineweightDisplayScale);
             w.Close();
             w.Open("canvas");
             w.Value("wheelZoomFactor", _wheelZoomFactor);
@@ -1211,6 +1286,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("appearance", "gripMultifunctional", v => _s.GripMultifunctional = Whole(v));
                 Flag("appearance", "grid", v => _s.Grid = v);
                 Flag("appearance", "showLineWeights", v => _s.ShowLineWeights = v);
+                Flag("appearance", "lineweightsInInches", v => _s.LineweightsInInches = v);
+                Number("appearance", "defaultLineweight", v => _s.DefaultLineweight = Whole(v));
+                Number("appearance", "lineweightDisplayScale", v => _s.LineweightDisplayScale = v);
                 Number("canvas", "wheelZoomFactor", v => _s.WheelZoomFactor = v);
                 Flag("canvas", "wheelZoomReversed", v => _s.WheelZoomReversed = v);
                 Number("canvas", "shortcutMenu", v => _s.ShortcutMenu = Whole(v));

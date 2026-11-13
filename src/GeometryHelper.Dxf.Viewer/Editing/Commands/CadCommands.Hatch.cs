@@ -553,9 +553,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// BOUNDARY: "Pick internal point:" until Enter, each point's area and its islands made closed polylines on the current
-        /// layer, "BOUNDARY created 2 polylines"; areas closed by ellipses or splines drawn through their points. One undo step.
+        /// BOUNDARY: the Boundary Creation dialog (CadCommands.BoundaryDialog.cs), then "Pick internal point:" until Enter,
+        /// each point's area and its islands made closed polylines on the current layer, "BOUNDARY created 2 polylines"; areas
+        /// closed by ellipses or splines drawn through their points. One undo step.
         /// </summary>
-        private static IEnumerable<CadPrompt> Boundary(CadCommandContext c) => BoundaryPoints(c, false);
+        private static IEnumerable<CadPrompt> Boundary(CadCommandContext c) => BoundaryDialog(c);
     }
 }

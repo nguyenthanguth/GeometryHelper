@@ -291,11 +291,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 popup.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
 
                 Assert.True(dimensions.IsDropDownOpen);
-                List<Button> items = Descendants(popup.Child)
+                List<Button> all = Descendants(popup.Child)
                     .OfType<Button>()
                     .Where(b => b.CommandParameter is string)
                     .ToList();
-                Assert.Equal(new[] { "DIMEDIT O", "DIMEDIT R" }, items.Select(b => (string)b.CommandParameter));
+                Assert.Equal(
+                    new[] { "DIMEDIT O", "DIMEDIT R", "DIMOVERRIDE" },
+                    all.Select(b => (string)b.CommandParameter)
+                );
+                List<Button> items = all.Take(2).ToList();
 
                 foreach (Button item in items)
                 {
@@ -309,6 +313,67 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         && l.EndsWith(" " + option, StringComparison.Ordinal)
                     );
                     model.Escape();
+                }
+            });
+        }
+
+        [Fact]
+        public void TheSlideOutsOfDrawTextLeadersAndViews_StartTheCommandsOfTheAcadPgpBatches()
+        {
+            OnWorkspace(1600, (model, workspace) =>
+            {
+                // The dialogs answered with Cancel, so that pressing shows none.
+                model.ShowBoundaryCreation = dialog => false;
+                model.ShowCheckSpelling = dialog => { };
+                model.ShowViewports = dialog => false;
+                var expected = new Dictionary<string, string[]>
+                {
+                    ["Draw"] = new[] { "HATCH", "GRADIENT", "BOUNDARY", "DIVIDE", "MEASURE", "SOLID" },
+                    ["Text"] = new[] { "SPELL", "TEXTALIGN" },
+                    ["Leaders"] = new[] { "MLEADERALIGN" },
+                    ["Views"] = new[] { "VPORTS" },
+                };
+                var pressed = new[] { "BOUNDARY", "DIVIDE", "MEASURE", "SOLID", "SPELL", "TEXTALIGN", "MLEADERALIGN" };
+
+                foreach (KeyValuePair<string, string[]> panelItems in expected)
+                {
+                    CadWorkspaceExtension tab =
+                        panelItems.Key == "Draw" ? null
+                        : panelItems.Key == "Views" ? model.ViewTab
+                        : model.AnnotateTab;
+                    model.SelectedTab = tab;
+                    Layout(workspace, 1600);
+                    object content = tab == null ? model : tab.TabContent;
+                    RibbonStrip strip = Descendants(workspace)
+                        .OfType<RibbonStrip>()
+                        .Single(s => ReferenceEquals(s.DataContext, content));
+                    RibbonPanel panel = strip.Children.OfType<RibbonPanel>().Single(p => p.Title == panelItems.Key);
+                    ToggleButton title = Descendants(panel)
+                        .OfType<ToggleButton>()
+                        .Single(t => Equals(t.Content, panelItems.Key + " ▾"));
+                    var popup = (Popup)panel.Template.FindName("PART_Popup", panel);
+
+                    title.IsChecked = true;
+                    popup.Dispatcher.Invoke(DispatcherPriority.Background, new Action(() => { }));
+
+                    Assert.True(panel.IsDropDownOpen);
+                    List<Button> items = Descendants(popup.Child)
+                        .OfType<Button>()
+                        .Where(b => b.CommandParameter is string)
+                        .ToList();
+                    Assert.Equal(panelItems.Value, items.Select(b => (string)b.CommandParameter));
+
+                    foreach (Button item in items.Where(b => pressed.Contains((string)b.CommandParameter)))
+                    {
+                        Press(
+                            model,
+                            item.IsEnabled,
+                            () => item.Command.Execute(item.CommandParameter),
+                            (string)item.CommandParameter
+                        );
+                    }
+
+                    title.IsChecked = false;
                 }
             });
         }

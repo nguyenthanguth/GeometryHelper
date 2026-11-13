@@ -22,6 +22,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.ShowViewports = dialog => ViewportsWindow.Show(Window.GetWindow(this), dialog);
             model.ShowSelectionFilters = dialog => SelectionFiltersWindow.Show(Window.GetWindow(this), dialog);
             model.ShowQuickCalc = palette => QuickCalcWindow.ShowPalette(Window.GetWindow(this), palette);
+
+            // Round 2: Rename, Lineweight Settings, Check Spelling and Boundary Creation.
+            model.ShowRename = dialog => RenameWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowLineweightSettings = dialog => LineweightSettingsWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowCheckSpelling = dialog => CheckSpellingWindow.Show(Window.GetWindow(this), dialog);
+            model.ShowBoundaryCreation = dialog => BoundaryCreationWindow.Show(Window.GetWindow(this), dialog);
             TilesView.Attach(model, CanvasView.Options);
             model.TilesChanged += (s, e) => LayOutTiles();
             model.PropertyChanged += OnViewUtilityChanged;

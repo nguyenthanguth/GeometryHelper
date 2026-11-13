@@ -422,6 +422,12 @@ namespace GeometryHelper.Dxf.Viewer
         public double PointViewHeight { get; set; }
 
         /// <summary>
+        /// Gets or sets the width, in millimetres, a lineweight of Default is drawn with when a space is next drawn, as AutoCAD's
+        /// LWDEFAULT: 0.25 until set. A display list already made keeps its widths until <see cref="Regen"/>.
+        /// </summary>
+        public double DefaultLineWeight { get; set; } = 0.25;
+
+        /// <summary>
         /// Gets the display list of a space, made on the first call and kept. After an edit, an undo or a redo the list is made
         /// again from the one before: the entities the edit's records name, and those that read a layer it switched or
         /// recoloured, are drawn anew and every other entity keeps its items, so that moving one line of a drawing of a million

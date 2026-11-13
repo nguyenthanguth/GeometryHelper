@@ -357,15 +357,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void Rename_AsksTheKindOfAutoCad2021_AndSaysItsDialogIsLeft()
+        public void Rename_WithNoWindowToShowItsDialog_AsksTheKindOfAutoCad2021()
         {
             CadDocument document = Plan();
             CadCommandSession session = Start(document, "REN");
 
-            Assert.Contains(
-                "The Rename dialog is not designed yet: -RENAME asks on the command line.",
-                session.History
-            );
             Assert.Equal(
                 "Enter object type to rename [Block/dEtailviewstyle/Dimstyle/LAyer/LType/Material/multileadeRstyle/seCtionviewstyle/Style/Tablestyle/Ucs/VIew/VPort]:",
                 session.PromptText

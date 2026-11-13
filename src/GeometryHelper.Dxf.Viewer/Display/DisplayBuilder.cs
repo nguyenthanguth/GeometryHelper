@@ -95,6 +95,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The document's VISRETAIN: whether the records of the layers of its references give every property (1), or only those changed since they were last read (0).</summary>
         private readonly bool _visretain;
 
+        /// <summary>The width, in millimetres, a lineweight of Default is drawn with: the document's LWDEFAULT, 0.25 with none.</summary>
+        private readonly double _defaultWeight;
+
         public DisplayBuilder(DxfDatabase database, CadDocument document = null)
             : this(database, document, null, null, null) { }
 
@@ -112,6 +115,7 @@ namespace GeometryHelper.Dxf.Viewer
             _host = host;
             _prefix = prefix;
             _folder = folder;
+            _defaultWeight = document?.DefaultLineWeight ?? 0.25;
             double scale = 1.0;
 
             // VISRETAIN of the document's drawing, which every drawing it references is shown under.
@@ -149,7 +153,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayerTableRecord layer in database.LayerTable)
             {
-                _layers[Prefixed(layer.Name)] = new LayerState(layer);
+                _layers[Prefixed(layer.Name)] = new LayerState(layer, _defaultWeight);
             }
 
             try
@@ -636,12 +640,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private sealed class LayerState
         {
-            public LayerState(DxfLayerTableRecord record)
+            public LayerState(DxfLayerTableRecord record, double defaultWeight)
             {
                 Visible = !record.IsOff && !record.IsFrozen;
                 Rgb = SafeRgb(record.Color);
                 int weight = (int)record.LineWeight;
-                LineWeight = weight >= 0 ? weight / 100.0 : 0.25;
+                LineWeight = weight >= 0 ? weight / 100.0 : defaultWeight;
                 Linetype = record.LinetypeName ?? "Continuous";
                 Record = record;
                 Overrides = record.IsDependent ? CadXrefLayers.Overrides(record) : null;
@@ -663,12 +667,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             /// <summary>A layer as one viewport shows it: its colour, lineweight and linetype there.</summary>
-            public LayerState(DxfLayerTableRecord record, DxfLayerViewportProperties look)
-                : this(record)
+            public LayerState(DxfLayerTableRecord record, DxfLayerViewportProperties look, double defaultWeight)
+                : this(record, defaultWeight)
             {
                 Rgb = SafeRgb(look.Color);
                 int weight = (int)look.LineWeight;
-                LineWeight = weight >= 0 ? weight / 100.0 : 0.25;
+                LineWeight = weight >= 0 ? weight / 100.0 : defaultWeight;
                 Linetype = look.Linetype ?? "Continuous";
             }
 
@@ -777,11 +781,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (raw == (int)DxfLineWeight.ByLineWeightDefault)
             {
-                weight = 0.25;
+                weight = _defaultWeight;
             }
             else
             {
-                weight = layer != null ? layer.LineWeight : 0.25;
+                weight = layer != null ? layer.LineWeight : _defaultWeight;
             }
 
             string linetype = entity.Linetype;
@@ -1875,7 +1879,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfLayerViewportProperties look in looks)
             {
-                inner._layers[look.Layer.Name] = new LayerState(look.Layer, look);
+                inner._layers[look.Layer.Name] = new LayerState(look.Layer, look, _defaultWeight);
             }
 
             return inner.Build(_database.ModelSpace, false);

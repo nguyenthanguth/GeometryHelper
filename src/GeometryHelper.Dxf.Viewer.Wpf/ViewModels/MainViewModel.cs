@@ -1855,6 +1855,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "FIND":
                     OnFindRequested(e);
                     break;
+                case "RENAME":
+                case "LWEIGHT":
+                case "SPELL":
+                case "BOUNDARY":
+                    OnRoundTwoDialogRequested(e);
+                    break;
                 case "XREF":
                 case "XOPEN":
                 case "XATTACH":
