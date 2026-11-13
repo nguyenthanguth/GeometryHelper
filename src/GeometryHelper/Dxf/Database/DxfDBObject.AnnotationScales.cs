@@ -270,6 +270,33 @@ namespace GeometryHelper.Dxf
             WriteContext(scales, type, scale, true, groups);
         }
 
+        /// <summary>
+        /// Gives an attribute of an INSERT of an annotative block, which holds no context, the one AutoCAD 2021's -INSERT gives it
+        /// (probe GHA3, a block of a circle and an attribute definition at 1:50): a context of the scale, the default, of the class
+        /// of an attribute's (ACDB_MTEXTATTRIBUTEOBJECTCONTEXTDATA_CLASS) holding the attribute's angle and point as its record
+        /// has them; no extended data <c>AcadAnnotative</c> comes with it. One that holds contexts already is left.
+        /// </summary>
+        internal void AddFirstAttributeContext(DxfAnnotationScale scale)
+        {
+            DxfFile file = InFile("be shown at a scale");
+
+            if (_item.Type != "ATTRIB")
+            {
+                throw new InvalidOperationException("Only an attribute of an INSERT is given a first context here.");
+            }
+
+            if (ContextEntries(_item).Count > 0)
+            {
+                return;
+            }
+
+            var groups = new List<KeyValuePair<int, string>>();
+            TextContext(groups, true);
+            string type = DxfDBText.AttributeContextType;
+            file.AddClass(type, ClassOf(type), 1153);
+            WriteContext(EnsureContextDictionary(_item), type, scale, true, groups);
+        }
+
         /// <summary>The class of the contexts of an entity's kind.</summary>
         private static string ContextTypeOf(string kind)
         {

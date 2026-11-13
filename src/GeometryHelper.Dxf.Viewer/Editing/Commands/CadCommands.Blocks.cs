@@ -1169,6 +1169,22 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!explode)
                 {
                     AddAttributes(insert, block, values);
+
+                    // An INSERT of an annotative block is shown at the annotation scale it is made at, as AutoCAD 2021's -INSERT makes
+                    // it: its factors multiplied by that scale's (50 for 1 at 1:50), a context of the scale, and one for each attribute.
+                    DxfAnnotationScale current =
+                        block.Annotative == DxfAnnotativeStates.True ? CurrentScale(s.Database, space.IsModel) : null;
+
+                    if (current != null)
+                    {
+                        foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+                        {
+                            attribute.AddFirstAttributeContext(current);
+                        }
+
+                        insert.AddContext(current);
+                    }
+
                     return;
                 }
 

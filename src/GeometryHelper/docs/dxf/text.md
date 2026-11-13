@@ -292,12 +292,18 @@ multiplied by the default's scale over the new one's, a width of 40 at 1:1 becom
 multiplied so and 40 of 1 over the scale; an INSERT its three factors, 1 at 1:1 becoming 50 at 1:50 and 100 at 1:100, and each
 attribute of it that holds contexts one of its own, its point moved out from the INSERT's by the same factor (300, 1003 of an
 INSERT at (300, 1000) becomes (300, 1150) at 1:50). An INSERT that holds no context, shown at 1:1 by its block, is given the scale as
-its one context, the default, with its factors divided by the scale, as AutoCAD 2021 did. A multileader of one leader holding
-text is laid out again, as AutoCAD 2021 lays it out (probed on the style Annotative): the scale (40) is 1 over the new one, the
-sizes (the text height 41, the arrowhead 140, the landing gap 145, the dogleg length) are multiplied by the default's scale
-over the new one's, the landing and the leader's lines stay, the base of the content is the landing moved out by the new dogleg
-and the words stand the old offset, multiplied, from it: text 0.2 high at 1:50 with a dogleg of 0.36 and a gap of 4.5 is 0.4 high
-at 1:100 with a dogleg of 0.72 and a gap of 9, the words 9.72 right of a landing at (100, 100). A dimension and the other kinds
+its one context, the default, with its factors divided by the scale, as AutoCAD 2021 did. A multileader of one or two leaders
+holding text or a block is laid out again, as AutoCAD 2021 lays it out (probed on the style Annotative): the scale (40) is 1 over
+the new one, the sizes (the text height 41, the arrowhead 140, the landing gap 145, the dogleg length) are multiplied by the
+default's scale over the new one's, and the leader's lines stay. With one leader the landing stays, the base of the content is
+the landing moved out by the new dogleg and the words stand the old offset, multiplied, from it: text 0.2 high at 1:50 with a
+dogleg of 0.36 and a gap of 4.5 is 0.4 high at 1:100 with a dogleg of 0.72 and a gap of 9, the words 9.72 right of a landing at
+(100, 100); words to the left of their leader stand the gap, multiplied, back from the dogleg's end, the base the old offset
+from them. With a leader on each side of the words (the second leader AutoCAD adds for an arrowhead on the other side) the base
+stays and each landing moves, the dogleg's end at the old offset from the base multiplied: a base at (118, 550) with a landing
+at (100, 550) has it at (82, 550) at 1:100, and the landing of the leader on the other side 36 on from the far end of the doubled
+words. A block's scale (16) and the diagonal of its matrix (47) are multiplied, its place (15) kept at the multiplied offset
+from the base and the translation of the matrix left as it was. A multileader of three leaders or more is refused. A dimension and the other kinds
 are refused a second scale (`NotSupportedException`), AutoCAD laying them out again at each scale. `GetContexts()`
 lists the scales an object is shown at, as AutoCAD's `ObjectContexts.GetContexts`, the default first. `HasContext`
 reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by

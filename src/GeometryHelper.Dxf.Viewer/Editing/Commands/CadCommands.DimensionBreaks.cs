@@ -101,7 +101,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// Breaks a dimension's picture drawn anew where the dimension keeps breaks: at each object it names that is still in the
         /// drawing, and between each two points it keeps.
         /// </summary>
-        private static void BreakAgain(DxfDimension dimension)
+        private static void BreakAgain(
+            DxfDimension dimension,
+            DxfBlockTableRecord block = null,
+            double? dimscale = null
+        )
         {
             List<DimensionBreak> breaks = StoredBreaks(dimension);
 
@@ -130,15 +134,27 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (cutters.Count > 0)
             {
-                BreakAt(dimension, cutters, null);
+                BreakAt(dimension, cutters, null, block, dimscale);
             }
 
             foreach (DimensionBreak stored in breaks)
             {
                 if (stored.ObjectHandle == null)
                 {
-                    BreakAt(dimension, null, new[] { P2(stored.First), P2(stored.Second) });
+                    BreakAt(dimension, null, new[] { P2(stored.First), P2(stored.Second) }, block, dimscale);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Draws the pictures of an annotative dimension anew after its breaks changed, each broken at the size of its scale: the
+        /// breaks are kept by the dimension, so every scale's picture takes them. A dimension that is not annotative is left.
+        /// </summary>
+        private static void RedrawAnnotativeBreaks(DxfDimension dimension)
+        {
+            if (dimension.Annotative == DxfAnnotativeStates.True && dimension.DimensionPictures().Count > 0)
+            {
+                RedrawAnnotative(dimension);
             }
         }
 

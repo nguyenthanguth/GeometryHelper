@@ -1692,9 +1692,10 @@ writes the extract as -ATTEXT does, a template not there said `"missing.txt": Ca
 
 A TEXT, an MTEXT, an attribute definition, a hatch and a multileader are made annotative as AutoCAD 2021 makes them
 ([`DxfDBObject.Annotative`](xref:GeometryHelper.Dxf.DxfDBObject.Annotative)); the palette's Annotative row (Misc, Yes or No) sets
-it for those kinds and for a linear, aligned, radius, diameter, angular or ordinate dimension, with Annotation scale, read only,
-listing the scales the object is shown at (`1:1, 1:50`); an INSERT, a leader, a tolerance and a dimension of another kind (arc
-length, jogged) or one whose words were moved or turned show the row read only.
+it for those kinds and for a linear, aligned, radius, jogged radius, diameter, angular, arc length or ordinate dimension (its words
+where they were put or turned or not), with Annotation scale, read only,
+listing the scales the object is shown at (`1:1, 1:50`); an INSERT, a leader, a tolerance and a dimension of another kind show
+the row read only.
 -OBJECTSCALE asks `Select annotative objects:`, `Enter an option [Add/Delete/?] <Add>:` and `Enter named scale to add or [?]
 <1:50>:` (the annotation scale of the space is offered), answers `1 object updated to support annotation scale <1:100>.` or
 `1 object scale removed.`, and asks the next scale, with no default, until Enter; a scale the drawing's list has not says
@@ -1729,7 +1730,16 @@ stays. -OBJECTSCALE adds a picture to a dimension, drawing it again from its var
 its own scale), and deleting the default scale makes the next the default, the record taking its block and the middle of its words
 and the block of the deleted scale going. A multileader drawn in an annotative multileader style is annotative at the annotation
 scale too (its scale 50 at 1:50), and at a second scale its context data is laid out again (text 0.2 high at 1:50 is 0.4 at 1:100,
-the dogleg and the gap doubled). A HATCH made by the Hatch dialog or HATCHEDIT with its Annotative box ticked is annotative as
+the dogleg and the gap doubled; a multileader of two leaders, one on each side of the words, or one holding a block, is laid out
+as AutoCAD 2021 lays it out too, see the DXF guide). An arc length dimension's context is an angular one with the point of its
+arc, a jogged radius's holds the chord point, the centre it is measured from and the jog (294 of 0, its words being put), and a
+dimension whose words DIMTEDIT moved or turned writes 294 (0 where moved) and 140 (the angle, in radians) in each context, the
+words at the place they were put at every scale: a DIMLINEAR of 100 whose words stand at (70, 350) has them there at 1:100, the
+arrowheads, 18 long, outside the extension lines. The points of every context follow the record when its dimension line or words
+are edited. Breaks (DIMBREAK) are kept in each picture: a break between two points at the same two points, one at an object as
+wide as the break size over the scale makes it (0.125 is 6.25 at 1:50 and 12.5 at 1:100); an angular dimension of an annotative
+style carries DSTYLE {40 0.0}. An INSERT of an annotative block made by -INSERT is shown at CANNOSCALE from the start, as
+AutoCAD 2021 does: its factors 50 for 1 at 1:50, a context of 1:50, and each attribute a context at its point. A HATCH made by the Hatch dialog or HATCHEDIT with its Annotative box ticked is annotative as
 -HATCH ANnotative makes it; HATCHEDIT laying the pattern again of an annotative hatch gives it back the scales it had. ANNOAUTOSCALE
 (-4 to 4, kept by the presenter, -4 by default) adds the scale CANNOSCALE is set to to the annotative objects of model space, as
 AutoCAD 2021 does when it is positive: 1 to those on layers that are on, thawed and not locked, 2 to those on locked layers too and

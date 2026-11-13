@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Annotative objects, third round (probed in AutoCAD 2021's console, plugin GHA3): arc length and jogged radius dimensions
+are annotative as AutoCAD writes them (an arc length one the angular context class with the point of its arc, a jogged one
+`ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS` with the chord point, the centre it is measured from and the jog) and get a second scale
+with a picture of their own; a dimension whose words DIMTEDIT moved or turned is no longer refused: 294 is 0 where the words were
+put and 140 their angle in radians, the words stay where they were put at every scale (a DIMLINEAR of 100 with its words at
+(70, 350) has them there and its arrowheads, 18 long, outside the extension lines at 1:100), and the points of a context follow
+the record (the dimension line's point was left at 330 after DIMTEDIT moved it to 350). A multileader of two leaders, one on each
+side of the words, or holding a block, is laid out again at a second scale (the base stays and both landings move, a block's scale
+and the diagonal of its matrix are multiplied), and one with its words left of its leader keeps its landing with the words back
+from the dogleg's end; all to the last digit of AutoCAD's own (a base of 118 at 1:50 with landings 100 and 170.3547 is 118 with
+82 and 222.7094 at 1:100); a multileader of three leaders is still refused. DIMBREAK breaks the picture of every scale: between two
+points at the same points, at an object by the break size over the scale (6.25 at 1:50 and 12.5 at 1:100, not 0.125); an angular
+dimension of an annotative style carries `DSTYLE {40 0.0}`; an INSERT of an annotative block made by -INSERT is shown at CANNOSCALE
+from the start (factors 50 for 1 at 1:50, a context of 1:50) and each attribute gets a context (point 525 at 1:50, 550 at 1:100). Not
+done: words turned 30 degrees that do not fit at 1:100 (AutoCAD puts them outside the line's end, arrowheads in; the builder keeps them
+between), words moved and turned (arrowheads outside), and an angular context's arc point at a second scale where the words go outside.
+
 **NEW.** The DWG writer writes the solids of SAT text, which it left out: a REGION, 3DSOLID or BODY of a DXF of AutoCAD 2004,
 2007 or 2010 is turned into the SAB AutoCAD 2021 writes for R2018 (`DwgSat.ToSab`, the grammars of the reader turned round),
 named by the GUID its extended data kept (`ACAD_OBJECT_CHANGE_GUID`, taken out) or one made of its handle, and kept in the data
