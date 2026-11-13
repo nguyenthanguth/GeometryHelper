@@ -397,9 +397,12 @@ the ones wanted.
       later value set (settled by probe in memory, DXF and DWG); Origin settable for linear, XY and polar; GRIPLOC for
       linear/XY base and end grips; history kept in block units and started for array and scale blocks; about 1 500 random
       edit sequences equal AutoCAD's, ten files AUDIT 0
-- [ ] Dynamic block follow-ups 5: ATTSYNC on a moved INSERT (not in the console or acdbmgd); GRIPLOC for point, rotation
-      and other XY corner grips (written as property records now); a value-set tie AutoCAD breaks by float noise; a cheaper
-      history replay (+8% on polar sets); the block-table grip menu and glyph (GUI); the Design artifact's grip colour (S)
+- [x] Dynamic block follow-ups 5 (dynblock5): GRIPLOC for point, rotation and XY corner grips (MoveEndPoint takes point
+      and rotation parameters; public MoveCornerPoint); the history walked once per set (6% at 15 edits); 18 unchanged
+      paths and 300 random sequences byte-identical; five outputs AUDIT 0
+- [ ] Dynamic block follow-ups 6: ATTSYNC on a moved INSERT (not in the console or acdbmgd); a value-set tie AutoCAD breaks
+      by float noise; Block.Of cached per dynamic block (0.14 ms a set); the block-table grip menu and glyph (GUI); the
+      Design artifact's grip colour #19B5F0 to #00BFFF (S)
 
 ### To do
 

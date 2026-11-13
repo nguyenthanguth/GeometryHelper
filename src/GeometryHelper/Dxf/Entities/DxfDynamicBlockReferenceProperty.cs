@@ -324,23 +324,28 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Drags the end grip of the linear, XY or polar parameter this property is a distance or the angle of to a point, as AutoCAD's
-        /// grip does: the distance and the angle of the point from the base point, taken to their value sets, are the parameter's
-        /// values, the block is worked out from them (a polar stretch turning and moving what it holds), and the INSERT's history
-        /// gets the record GRIPLOC of the parameter's end grip, how far the end point went in this drag, in the block's
-        /// coordinates, as AutoCAD 2021 wrote it. A pointer of two lines from (0, 0) to (100, 0), at (1 000, 500), whose end grip
-        /// is dragged to (1 000, 550) reads Length 50 and Angle 90 degrees, runs its line to (0, 50) and keeps GRIPLOC
-        /// (-100, 50, 0); dragged to (1 010, 500) next it keeps the one record, (-90, 0, 0), the two moves added, unless another
-        /// record came between (plugin GhDy3a). The end grip of a linear parameter takes the distance along its line from the base
-        /// point, that of an XY parameter each distance along its axis, each taken to its value set, and the history keeps the
-        /// same GRIPLOC of the grip in a block that keeps one (plugin GhDb4a).
+        /// Drags the end grip of the linear, XY, polar, rotation or point parameter this property is a distance, an angle or a
+        /// position of to a point, as AutoCAD's grip does: the distance and the angle of the point from the base point, taken to
+        /// their value sets, are the parameter's values, the block is worked out from them (a polar stretch turning and moving
+        /// what it holds), and the INSERT's history gets the record GRIPLOC of the parameter's end grip, how far the end point
+        /// went in this drag, in the block's coordinates, as AutoCAD 2021 wrote it. A pointer of two lines from (0, 0) to (100,
+        /// 0), at (1 000, 500), whose end grip is dragged to (1 000, 550) reads Length 50 and Angle 90 degrees, runs its line to
+        /// (0, 50) and keeps GRIPLOC (-100, 50, 0); dragged to (1 010, 500) next it keeps the one record, (-90, 0, 0), the two
+        /// moves added, unless another record came between (plugin GhDy3a). The end grip of a linear parameter takes the
+        /// distance along its line from the base point, that of an XY parameter each distance along its axis, each taken to its
+        /// value set, and the history keeps the same GRIPLOC of the grip in a block that keeps one (plugin GhDb4a). The grip of
+        /// a point parameter takes the position to the point (by (20, 10) it keeps GRIPLOC (20, 10, 0)), and the end grip of a
+        /// rotation parameter takes the angle of the point about the base point from its base angle, to its value set: a bar
+        /// 60 long about (0, 300) whose end grip goes from (60, 300) to (0, 360) reads a quarter turn and keeps GRIPLOC
+        /// (-60, 60, 0), as AutoCAD 2021 wrote them.
         /// </summary>
         /// <param name="to">The point, in the coordinates of the file (the world's, as <see cref="DxfDynamicBlockGrip.Position"/>
         /// is given).</param>
-        /// <exception cref="ArgumentException">Thrown when the property is not a distance or an angle of a linear, an XY or a polar parameter, or a
+        /// <exception cref="ArgumentException">Thrown when the property is not a distance, an angle or a position of a linear, an XY, a polar, a rotation or a point parameter, or a
         /// coordinate of the point is not a finite number.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the distance, taken to the value set, would not be above the
-        /// point tolerance of <see cref="Tolerance.Default"/>.</exception>
+        /// point tolerance of <see cref="Tolerance.Default"/>, or the point of a rotation parameter's end grip is not that far from its
+        /// base point.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
         /// drawing, or scaled unlike along its axes.</exception>
         /// <exception cref="NotSupportedException">Thrown when <see cref="Value"/> would refuse the block or the INSERT. Nothing
@@ -370,6 +375,54 @@ namespace GeometryHelper.Dxf
             }
 
             _value = DxfDynamicBlockRepresentation.MoveEnd(_insert, _node, _part, to);
+        }
+
+        /// <summary>
+        /// Drags a corner grip of the XY parameter this property is a distance of, other than its end corner, to a point, as
+        /// AutoCAD's grip does: the corner takes the distance of one axis from the base point to the point, taken to its value
+        /// set, and moves the base point along the other axis to the point, the end point staying. The corner of base x and end
+        /// y (<paramref name="takesXFromEnd"/> false) takes the distance along y; the corner of end x and base y takes the one
+        /// along x. The INSERT's history gets the one record GRIPLOC of the corner's grip, how far the corner went, in the
+        /// block's coordinates, in a block that keeps one, and none of the distance or of the base grip, as AutoCAD 2021 wrote
+        /// it: a plate 100 by 50 of an XY parameter from (0, 0) to (100, 50) whose corner of base x and end y is dragged by (10,
+        /// 5) reads Width 90 and Height 55, the right edge staying at x 100, and keeps GRIPLOC (10, 5, 0).
+        /// </summary>
+        /// <param name="to">The point, in the coordinates of the file (the world's, as <see cref="DxfDynamicBlockGrip.Position"/>
+        /// is given).</param>
+        /// <param name="takesXFromEnd">True for the corner of end x and base y, false for the corner of base x and end y.</param>
+        /// <exception cref="ArgumentException">Thrown when the property is not a distance of an XY parameter, or a coordinate of
+        /// the point is not a finite number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a distance of the parameter, taken to the value set, would
+        /// not be above the point tolerance of <see cref="Tolerance.Default"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the property is read only, or its INSERT is erased, in no
+        /// drawing, or scaled unlike along its axes.</exception>
+        /// <exception cref="NotSupportedException">Thrown when <see cref="MoveBasePoint"/> would refuse the block or the INSERT.
+        /// Nothing is written then.</exception>
+        public void MoveCornerPoint(GeoPoint3 to, bool takesXFromEnd)
+        {
+            Guard.Argument(
+                Guard.IsFinite(to.X) && Guard.IsFinite(to.Y) && Guard.IsFinite(to.Z),
+                nameof(to),
+                "A coordinate of the point is not a finite number."
+            );
+
+            if (ReadOnly && !_settable)
+            {
+                throw new InvalidOperationException(
+                    "The property " + PropertyName + " is read only, as AutoCAD keeps it."
+                );
+            }
+
+            if (_insert == null)
+            {
+                throw new NotSupportedException(
+                    "The property "
+                        + PropertyName
+                        + " is of a parameter the library does not work out: it drags the corner grip of an XY parameter."
+                );
+            }
+
+            _value = DxfDynamicBlockRepresentation.MoveCorner(_insert, _node, _part, to, takesXFromEnd);
         }
 
         /// <summary>

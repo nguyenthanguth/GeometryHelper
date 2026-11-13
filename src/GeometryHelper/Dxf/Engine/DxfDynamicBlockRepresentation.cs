@@ -70,6 +70,20 @@ namespace GeometryHelper.Dxf
             Apply(insert, node, part, 0.0, null, to);
 
         /// <summary>
+        /// Drags a corner of the XY parameter a node of the INSERT's dynamic block is, other than its end corner, to a point in
+        /// the coordinates of the file, as AutoCAD's grip of it does: the corner takes the distance of one axis from the end
+        /// point (the corner of base x and end y takes the distance along y; the corner of end x and base y, the one along x)
+        /// and moves the base point along the other, and gives back the value the property of the node reads afterwards.
+        /// </summary>
+        internal static object MoveCorner(
+            DxfBlockReference insert,
+            string node,
+            int part,
+            GeoPoint3 to,
+            bool takesXFromEnd
+        ) => Apply(insert, node, part, 0.0, null, to, takesXFromEnd ? 3 : 2);
+
+        /// <summary>
         /// Sets the Origin of the linear, XY or polar parameter a node of the INSERT's dynamic block is, as AutoCAD's property
         /// does: the point given is a point of the file's coordinates, worked into the block's, and the base point and the end
         /// point move together by what takes the base point there, the distances kept; gives back the Origin the property reads
@@ -106,7 +120,8 @@ namespace GeometryHelper.Dxf
             int part,
             object value,
             GeoVector3? by,
-            GeoPoint3? to
+            GeoPoint3? to,
+            int corner = 0
         )
         {
             if (value == null)
@@ -143,7 +158,8 @@ namespace GeometryHelper.Dxf
             string state = ReadNow(insert, dynamic, block, scale, values, labels, users);
 
             ReadShifts(insert, dynamic, block, values);
-            Trails(insert, dynamic, block, scale, values, values);
+            var walks = new Dictionary<string, Walked>(StringComparer.Ordinal);
+            Trails(insert, dynamic, block, scale, values, values, walks);
 
             var before = new Dictionary<string, double[]>(StringComparer.Ordinal);
 
@@ -176,6 +192,10 @@ namespace GeometryHelper.Dxf
             if (by.HasValue)
             {
                 ShiftBase(insert, block, asked, values, by.Value);
+            }
+            else if (to.HasValue && corner != 0)
+            {
+                DragCorner(insert, block, asked, values, to.Value, corner);
             }
             else if (to.HasValue)
             {
@@ -370,7 +390,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Trails(insert, dynamic, block, scale, before, values);
+            Trails(insert, dynamic, block, scale, before, values, walks);
 
             List<KeyValuePair<DxfAttributeReference, GeoTransform3>> follow = Followed(
                 insert,
@@ -423,12 +443,21 @@ namespace GeometryHelper.Dxf
                                     (after == null ? 0.0 : after[2]) - (was == null ? 0.0 : was[2])
                                 );
                             }
+                            else if (corner != 0)
+                            {
+                                // The corner of base x and end y, or of end x and base y: the grip stands at the point the two give.
+                                GeoPoint3 cornerBefore = CornerOf(asked, before[node], corner);
+                                gone = cornerBefore.GetVectorTo(CornerOf(asked, values[node], corner));
+                            }
                             else
                             {
                                 gone = asked.EndOf(before[node]).GetVectorTo(asked.EndOf(values[node]));
                             }
 
-                            string grip = by.HasValue ? asked.BaseGrip : asked.EndGrip;
+                            string grip =
+                                by.HasValue ? asked.BaseGrip
+                                : corner != 0 ? asked.CornerGrips[corner - 2]
+                                : asked.EndGrip;
 
                             if (grip != null)
                             {
@@ -479,10 +508,16 @@ namespace GeometryHelper.Dxf
             GeoPoint3 to
         )
         {
-            if (!(parameter is Polar) && !(parameter is Linear) && !(parameter is Planar))
+            if (
+                !(parameter is Polar)
+                && !(parameter is Linear)
+                && !(parameter is Planar)
+                && !(parameter is Spot)
+                && !(parameter is Turning)
+            )
             {
                 throw new ArgumentException(
-                    "The property is not a distance or an angle of a linear, an XY or a polar parameter, whose end grip is dragged.",
+                    "The property is not a distance, an angle or a position of a linear, an XY, a polar, a rotation or a point parameter, whose end grip is dragged.",
                     nameof(to)
                 );
             }
@@ -562,6 +597,32 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            if (parameter is Spot)
+            {
+                // The position goes to the point, in the block's own units.
+                now[0] = local.X;
+                now[1] = local.Y;
+                return;
+            }
+
+            if (parameter is Turning turning)
+            {
+                double turnX = local.X - from.X,
+                    turnY = local.Y - from.Y;
+
+                if (!(Math.Sqrt(turnX * turnX + turnY * turnY) > slack))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(to),
+                        to,
+                        "The point of a rotation parameter's end grip is above the point tolerance from its base point."
+                    );
+                }
+
+                now[0] = turning.Take(turning.AngleOf(turnX, turnY));
+                return;
+            }
+
             var polar = (Polar)parameter;
             double dx = local.X - from.X,
                 dy = local.Y - from.Y;
@@ -592,6 +653,84 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Drags a corner of an XY parameter other than its end corner to a point in the coordinates of the file: the corner of
+        /// base x and end y (<paramref name="corner"/> 2) takes the distance along y from the base point, the corner of end x and
+        /// base y (3) the one along x, each taken to its value set, and the base point moves along the other axis to the point,
+        /// the end point staying, as the corner of AutoCAD 2021 did (plugins GhDb1 and GhDy2a).
+        /// </summary>
+        private static void DragCorner(
+            DxfBlockReference insert,
+            Block block,
+            Param parameter,
+            Dictionary<string, double[]> values,
+            GeoPoint3 to,
+            int corner
+        )
+        {
+            if (!(parameter is Planar planar))
+            {
+                throw new ArgumentException(
+                    "The property is not a distance of an XY parameter, whose corner grip is dragged.",
+                    nameof(to)
+                );
+            }
+
+            if (!insert.BlockTransform.TryGetInverse(out GeoTransform3 inverse, Tolerance.Default))
+            {
+                throw new InvalidOperationException(
+                    "The block reference cannot be worked back to its block's coordinates."
+                );
+            }
+
+            GeoVector3 factors = insert.ScaleFactors;
+            double scale = Math.Max(Math.Abs(factors.X), Math.Max(Math.Abs(factors.Y), Math.Abs(factors.Z)));
+            GeoPoint3 local = inverse.Transform(to);
+            double[] now = values[parameter.Id];
+            GeoPoint3 from = parameter.BaseOf(now);
+            int axis = corner == 2 ? 1 : 0;
+            double distance = Math.Abs(axis == 0 ? local.X - from.X : local.Y - from.Y);
+
+            if (!(distance > Tolerance.Default.EqualPoint))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(to),
+                    to,
+                    "A distance of an XY parameter is above the point tolerance once its corner is moved."
+                );
+            }
+
+            distance = planar.Take(axis, distance * scale, scale) / scale;
+
+            if (!(distance > Tolerance.Default.EqualPoint))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(to),
+                    to,
+                    "A distance of an XY parameter is above the point tolerance once taken to its value set."
+                );
+            }
+
+            now[axis] = distance;
+            ShiftBase(
+                insert,
+                block,
+                parameter,
+                values,
+                insert.BlockTransform.Transform(
+                    new GeoVector3(axis == 0 ? 0.0 : local.X - from.X, axis == 1 ? 0.0 : local.Y - from.Y, 0.0)
+                )
+            );
+        }
+
+        /// <summary>The corner of an XY parameter at the values given: base x with end y (<paramref name="corner"/> 2), or end x with base y (3).</summary>
+        private static GeoPoint3 CornerOf(Param parameter, double[] now, int corner)
+        {
+            GeoPoint3 from = parameter.BaseOf(now);
+            GeoPoint3 end = parameter.EndOf(now);
+            return corner == 2 ? new GeoPoint3(from.X, end.Y, end.Z) : new GeoPoint3(end.X, from.Y, end.Z);
+        }
+
+        /// <summary>
         /// Works the grip edits of a polar parameter the INSERT's history keeps (ACAD_ENHANCEDBLOCKHISTORY) out one after the
         /// other, from the block's own base point and end point: the states the base point and the end point stood at, the
         /// block's own first and one after each record of the parameter's grips (GRIPLOC: the end point or the base point moved
@@ -605,8 +744,38 @@ namespace GeometryHelper.Dxf
             DxfBlockTableRecord dynamic,
             Polar polar,
             double scale,
-            double[] prior
+            double[] prior,
+            Dictionary<string, Walked> walks = null
         )
+        {
+            // The edits are the history's alone, so a call that goes on with the same history takes the walk of the one before.
+            if (walks == null || !walks.TryGetValue(polar.Id, out Walked walked))
+            {
+                walked = Walk(insert, polar);
+
+                if (walks != null)
+                {
+                    walks[polar.Id] = walked;
+                }
+            }
+
+            GeoPoint3 standing = polar.BaseAt(prior);
+            return
+                standing.IsEqualTo(walked.From, Tolerance.Default)
+                && polar.EndNow(prior).IsEqualTo(walked.To, Tolerance.Default)
+                ? new List<GeoPoint3[]>(walked.States)
+                : null;
+        }
+
+        /// <summary>The states a polar parameter's edits in the INSERT's history lead through, as <see cref="Replay"/> says, and the base point and the end point they end at.</summary>
+        private sealed class Walked
+        {
+            internal List<GeoPoint3[]> States;
+            internal GeoPoint3 From;
+            internal GeoPoint3 To;
+        }
+
+        private static Walked Walk(DxfBlockReference insert, Polar polar)
         {
             DxfDBDictionary cache =
                 DxfDynamicProperties.Entry(
@@ -691,10 +860,12 @@ namespace GeometryHelper.Dxf
                 states.Add(new[] { from, to });
             }
 
-            GeoPoint3 standing = polar.BaseAt(prior);
-            return standing.IsEqualTo(from, Tolerance.Default) && polar.EndNow(prior).IsEqualTo(to, Tolerance.Default)
-                ? states
-                : null;
+            return new Walked
+            {
+                States = states,
+                From = from,
+                To = to,
+            };
         }
 
         /// <summary>
@@ -712,7 +883,8 @@ namespace GeometryHelper.Dxf
             Block block,
             double scale,
             Dictionary<string, double[]> prior,
-            Dictionary<string, double[]> values
+            Dictionary<string, double[]> values,
+            Dictionary<string, Walked> walks = null
         )
         {
             foreach (Param parameter in block.Parameters)
@@ -723,7 +895,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 double[] now = values[polar.Id];
-                List<GeoPoint3[]> states = Replay(insert, dynamic, polar, scale, prior[polar.Id]);
+                List<GeoPoint3[]> states = Replay(insert, dynamic, polar, scale, prior[polar.Id], walks);
 
                 if (states != null)
                 {
@@ -3347,7 +3519,10 @@ namespace GeometryHelper.Dxf
             /// <summary>The node id of the parameter's end grip (the second 91); null where it lists none.</summary>
             internal string EndGrip { get; private set; }
 
-            /// <summary>Reads the ids of the base grip and the end grip of a parameter of two points from its groups.</summary>
+            /// <summary>The node ids of the two corner grips of an XY parameter after its end grip, base x with end y and end x with base y; null where it lists none.</summary>
+            internal string[] CornerGrips { get; private set; } = new string[2];
+
+            /// <summary>Reads the ids of the base grip and the end grip of a parameter of two points from its groups, and of an XY parameter's two corners.</summary>
             protected void ReadGrips(IReadOnlyList<DxfTypedValue> groups)
             {
                 List<DxfTypedValue> grips = DxfDynamicProperties
@@ -3355,6 +3530,17 @@ namespace GeometryHelper.Dxf
                     .FindAll(g => g.TypeCode == 91);
                 BaseGrip = grips.Count > 0 ? grips[0].Value?.Trim() : null;
                 EndGrip = grips.Count > 1 ? grips[1].Value?.Trim() : null;
+                CornerGrips[0] = grips.Count > 2 ? grips[2].Value?.Trim() : null;
+                CornerGrips[1] = grips.Count > 3 ? grips[3].Value?.Trim() : null;
+            }
+
+            /// <summary>Reads the id of the grip of a parameter of one point (its 93) as its end grip.</summary>
+            protected void ReadGrip(IReadOnlyList<DxfTypedValue> groups)
+            {
+                string grip = DxfDynamicProperties
+                    .Text(DxfDynamicProperties.Section(groups, "AcDbBlock1PtParameter"), 93)
+                    ?.Trim();
+                EndGrip = string.IsNullOrEmpty(grip) || grip == "0" ? null : grip;
             }
 
             /// <summary>The handle of the parameter's node.</summary>
@@ -4004,14 +4190,19 @@ namespace GeometryHelper.Dxf
                 }
 
                 var point = new GeoPoint3(at[0], at[1], at[2]);
-                return new Spot
+                var spot = new Spot
                 {
                     Id = id,
                     Base = point,
                     End = point,
                     Own = new[] { at[0], at[1] },
                 };
+                spot.ReadGrip(groups);
+                return spot;
             }
+
+            /// <summary>The position at the values given, level with the block's own along z.</summary>
+            internal override GeoPoint3 EndOf(double[] now) => new GeoPoint3(now[0], now[1], Base.Z);
 
             /// <summary>The move of the position: where it is now less the block's own.</summary>
             internal override double[] Moved(double[] now) => new[] { now[0] - Own[0], now[1] - Own[1] };
@@ -4071,6 +4262,17 @@ namespace GeometryHelper.Dxf
 
             /// <summary>An angle taken to the value set, as <see cref="Allowed.Angle"/> says.</summary>
             internal double Take(double value) => _set.Angle(value, Own[0]);
+
+            /// <summary>The angle of a point at the offset given from the base point, from the base angle, as the value set takes it.</summary>
+            internal double AngleOf(double dx, double dy) => Normal(Math.Atan2(dy, dx) - _from);
+
+            /// <summary>The end point at the values given: on the circle about the base point, the angle from the base angle.</summary>
+            internal override GeoPoint3 EndOf(double[] now) =>
+                new GeoPoint3(
+                    Base.X + _radius * Math.Cos(_from + now[0]),
+                    Base.Y + _radius * Math.Sin(_from + now[0]),
+                    End.Z
+                );
 
             internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
                 double[] now,
