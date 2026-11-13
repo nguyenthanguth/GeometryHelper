@@ -1189,6 +1189,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfRasterImage picture when !(picture is DxfWipeout):
                     DrawImage(picture, frame, list, style, handle, layerName);
                     return;
+                case DxfOle2Frame ole:
+                    DrawOle(ole, frame, list, style, handle, layerName);
+                    return;
                 case DxfPolyline wide when wide.HasWidth:
                     if (AddWide(wide, frame.Matrix, list, style, handle, layerName))
                     {

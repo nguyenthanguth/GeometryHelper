@@ -178,7 +178,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// PASTESPEC: the window's Paste Special dialog, then the paste it chose, as PASTECLIP, PASTEBLOCK or PASTEORIG, or the
-        /// Clipboard's text as an MTEXT (TEXT); nothing where it was cancelled.
+        /// Clipboard's text as an MTEXT (TEXT), or its picture as an OLE object (PICTURE); nothing where it was cancelled.
         /// </summary>
         private static IEnumerable<CadPrompt> PasteSpecial(CadCommandContext c)
         {
@@ -216,6 +216,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                     paste = PasteText(c, data.Text);
                     break;
+                case "PICTURE":
+                    CadClipboardData held = c.Session.Clipboard.GetData();
+
+                    if (held?.Picture == null)
+                    {
+                        c.Write("The Clipboard holds no picture.");
+                        yield break;
+                    }
+
+                    CadOleFrames.TryInsert(c, held.Picture);
+                    yield break;
                 default:
                     yield break;
             }
@@ -255,9 +266,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!data.HasObjects)
             {
+                // As AutoCAD pastes it: words as multiline text before a picture, which is an OLE object where it comes alone.
+                bool words = data.Text != null;
+
                 if (mode != PasteMode.Clip)
                 {
-                    c.Write("The Clipboard holds text, not drawing objects: PASTECLIP pastes it as multiline text.");
+                    c.Write(
+                        words
+                            ? "The Clipboard holds text, not drawing objects: PASTECLIP pastes it as multiline text."
+                            : "The Clipboard holds a picture, not drawing objects: PASTECLIP pastes it as an OLE object."
+                    );
+                    yield break;
+                }
+
+                if (!words)
+                {
+                    CadOleFrames.TryInsert(c, data.Picture);
                     yield break;
                 }
 

@@ -1174,7 +1174,15 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        entity.TransformBy(kept?.Transform ?? transform);
+                        if (entity is DxfOle2Frame ole)
+                        {
+                            CadOleFrames.Transform(ole, kept?.Transform ?? transform);
+                        }
+                        else
+                        {
+                            entity.TransformBy(kept?.Transform ?? transform);
+                        }
+
                         kept?.Finish(entity);
                     }
                 }

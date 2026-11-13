@@ -551,7 +551,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (picture == null || !picture.IsAnonymous)
             {
-                DxfEntity copied = entity.GetTransformedCopy(transform);
+                DxfEntity copied = entity is DxfOle2Frame ole
+                    ? CadOleFrames.TransformedCopy(ole, transform)
+                    : entity.GetTransformedCopy(transform);
                 CadOwnerTag.Remove(copied);
                 DxfEntity added = s.Append(space, copied);
 

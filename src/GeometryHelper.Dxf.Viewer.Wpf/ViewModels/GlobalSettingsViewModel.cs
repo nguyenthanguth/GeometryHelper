@@ -762,6 +762,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["IMPORT"] = "Bring a DWG or DXF in as a block",
             ["INPUTSEARCHOPTIONS"] = "Command line search options",
             ["INSERT"] = "Insert a block or a drawing",
+            ["INSERTOBJ"] = "Insert a bitmap or a PNG as an OLE object",
             ["ISOLATEOBJECTS"] = "Show only the objects selected",
             ["ISOPLANE"] = "Status toggle: the isometric plane",
             ["JOIN"] = "Join objects end to end into one",

@@ -131,9 +131,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         splinedit2 merge) (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
         ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
-  - [ ] (fu-ole, running) R3.2 follow-ups: draw OLE frames, then INSERTOBJ on bmp/png; RECOVERALL over xrefs; IMAGEADJUST's bitonal refusal;
-        dialogs for IMAGEADJUST, ATTEXT, DRAWINGRECOVERY and the QV thumbnails (design first); ATTEXT of layouts and nested
-        blocks and a quote in a CDF value checked in the AutoCAD GUI (S)
+  - [x] OLE frames drawn (fu-ole): the picture of a bmp/png OLE frame on the canvas and in plots (Monochrome by luminance),
+        other objects as their frame and type; OLEFRAME, OLEHIDE, OLEQUALITY; four corner grips scaling about the opposite
+        corner; ROTATE/MIRROR moving the frame upright; Properties group OLE; INSERTOBJ (IO) of a bmp/png; PASTECLIP of a
+        clipboard bitmap
+  - [ ] R3.2 follow-ups: RECOVERALL over xrefs; IMAGEADJUST's bitonal refusal; dialogs for IMAGEADJUST, ATTEXT,
+        DRAWINGRECOVERY, the QV thumbnails and Insert Object (Create New, Link, Display as Icon) (design first); ATTEXT of
+        layouts and nested blocks, a quote in a CDF value, INSERTOBJ/PASTECLIP placement and size, the OLE Properties wording
+        and the OLEFRAME 0 grips checked in the AutoCAD GUI; OLE metafiles and cached presentation streams drawn (S)
   - [x] R3.3 ACIS regions (acis): a core SAT/SAB writer and reader of flat regions (DxfRegionShape,
         DxfUnknownEntity.CreateRegion/GetRegionShape), REGION and -BOUNDARY Region making regions, drawn, LIST/AREA/Properties
         with area and perimeter, EXPLODE; 12 regions in each of R2000-R2018 DXF and R2018 DWG open in AutoCAD 2021 with AUDIT

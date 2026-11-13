@@ -4289,7 +4289,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 DxfEntity entity = document.FindEntity(handles[i]);
 
-                if (entity == null)
+                // The frame of an OLE object must be shown for its grips to be, as OLEFRAME says.
+                if (entity == null || (entity is DxfOle2Frame && document.OleFrame == 0))
                 {
                     continue;
                 }

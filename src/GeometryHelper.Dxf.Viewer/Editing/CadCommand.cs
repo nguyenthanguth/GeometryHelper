@@ -229,6 +229,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["ICL"] = "IMAGECLIP",
                     ["IAD"] = "IMAGEADJUST",
                     ["DDATTEXT"] = "ATTEXT",
+                    ["IO"] = "INSERTOBJ",
                     ["DRM"] = "DRAWINGRECOVERY",
                     ["QVD"] = "QVDRAWING",
                     ["QVDC"] = "QVDRAWINGCLOSE",

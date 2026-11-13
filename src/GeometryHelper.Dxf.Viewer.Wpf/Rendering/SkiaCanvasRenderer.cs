@@ -1328,12 +1328,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (picture.FilePath == null)
+            if (picture.FilePath == null && picture.Picture == null)
             {
                 return;
             }
 
-            SKImage image = CadImageCache.Get(picture.FilePath, picture.FileStamp, _plot != null || !LazyImages);
+            bool wait = _plot != null || !LazyImages;
+            SKImage image =
+                picture.Picture != null
+                    ? CadImageCache.Get(picture.PictureKey, picture.Picture, wait)
+                    : CadImageCache.Get(picture.FilePath, picture.FileStamp, wait);
 
             if (image == null || image.Width <= 0 || image.Height <= 0)
             {
@@ -1385,7 +1389,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         paint.Color = SKColors.Black;
                     }
 
-                    paint.ColorFilter = Adjustments(picture, background);
+                    paint.ColorFilter =
+                        _plot != null && picture.IsMonochrome ? Monochrome() : Adjustments(picture, background);
                     canvas.DrawImage(
                         image,
                         SKRect.Create((float)w, (float)h),
@@ -1400,6 +1405,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 canvas.Restore();
             }
+        }
+
+        /// <summary>
+        /// A colour matrix that turns every pixel black or white by its luminance, brighter than half white, as a plot of an
+        /// OLE picture of the quality Monochrome is drawn.
+        /// </summary>
+        private static SKColorFilter Monochrome()
+        {
+            // Out = 255 (luminance - a half) + a half of each channel, which clamps to 0 or 1.
+            const float steep = 255f;
+            const float lr = 0.2126f * steep;
+            const float lg = 0.7152f * steep;
+            const float lb = 0.0722f * steep;
+            const float shift = 0.5f - 0.5f * steep;
+            return SKColorFilter.CreateColorMatrix(
+                new[] { lr, lg, lb, 0f, shift, lr, lg, lb, 0f, shift, lr, lg, lb, 0f, shift, 0f, 0f, 0f, 1f, 0f }
+            );
         }
 
         /// <summary>

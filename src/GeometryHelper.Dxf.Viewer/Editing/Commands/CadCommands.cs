@@ -156,6 +156,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MTEDIT", MTextEdit));
             AddPlotTo(registry);
             AddImageOutTo(registry);
+            AddOleTo(registry);
             AddExportTo(registry);
             AddSaveAsTo(registry);
             registry.Add(new CadCommand("QSELECT", QuickSelect));

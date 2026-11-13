@@ -37,7 +37,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// What a clipboard holds for the presenter: objects copied, as a small DXF of their own (the objects in its model space
     /// with the layers, linetypes, styles and blocks they need, its <c>$INSBASE</c> the base point they are pasted by), with
     /// where they came from; and plain text, the words of the TEXTs and MTEXTs copied for other apps, or text another app
-    /// copied, which PASTECLIP pastes as an MTEXT.
+    /// copied, which PASTECLIP pastes as an MTEXT; and a picture another app copied, which PASTECLIP pastes as an OLE object
+    /// where there are no objects and no text.
     /// </summary>
     public sealed class CadClipboardData
     {
@@ -53,19 +54,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="sourceName">The name of the drawing copied from, as plan-level2.dxf; null for none.</param>
         /// <param name="spaceName">The space copied from, Model or a layout's name; null for none.</param>
         /// <param name="count">How many objects were copied.</param>
-        /// <exception cref="ArgumentException">Thrown when there is neither a drawing nor text.</exception>
+        /// <param name="picture">The bytes of a bitmap file or a PNG another app copied; null for none.</param>
+        /// <exception cref="ArgumentException">Thrown when there is no drawing, no text and no picture.</exception>
         public CadClipboardData(
             string drawing,
             string text,
             string source = null,
             string sourceName = null,
             string spaceName = null,
-            int count = 0
+            int count = 0,
+            byte[] picture = null
         )
         {
-            if (drawing == null && text == null)
+            if (drawing == null && text == null && picture == null)
             {
-                throw new ArgumentException("A clipboard holds objects, text or both.", nameof(drawing));
+                throw new ArgumentException("A clipboard holds objects, text or a picture.", nameof(drawing));
             }
 
             Drawing = drawing;
@@ -74,6 +77,7 @@ namespace GeometryHelper.Dxf.Viewer
             SourceName = sourceName;
             SpaceName = spaceName;
             Count = Math.Max(0, count);
+            Picture = picture;
         }
 
         /// <summary>Gets the DXF of the objects copied; null for text alone.</summary>
@@ -93,6 +97,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets how many objects were copied.</summary>
         public int Count { get; }
+
+        /// <summary>Gets the bytes of a bitmap file or a PNG another app copied; null for none. It goes on no clipboard from here and is not part of the private format.</summary>
+        public byte[] Picture { get; }
 
         /// <summary>Gets whether the clipboard holds objects of a drawing.</summary>
         public bool HasObjects => Drawing != null;
