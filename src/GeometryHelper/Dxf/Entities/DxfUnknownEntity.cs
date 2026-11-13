@@ -12,7 +12,8 @@ namespace GeometryHelper.Dxf
     /// <remarks>
     /// Its <see cref="DxfEntity.Layer"/>, colour, linetype, lineweight and visibility are set as any entity's are, every other
     /// group of its record kept as it was; its geometry is not changed, so <see cref="DxfEntity.TransformBy(GeoTransform3)"/> is refused,
-    /// but for an MLINE, which a transformation that scales alike moves (<see cref="DxfMlineBuilder"/> builds one).
+    /// but for an MLINE, which a transformation that scales alike moves (<see cref="DxfMlineBuilder"/> builds one), and a REGION,
+    /// whose ACIS data is written anew for the body it becomes (a move, a turn, a scale or a mirror).
     /// It is copied as it is by <see cref="DxfEntity.Clone"/>, and by <see cref="DxfEntity.GetTransformedCopy"/> with the
     /// identity. <see cref="DxfEntity.GetGeometry"/> gives what <see cref="DxfReader"/> reads of it, nothing for a type it
     /// does not read. An MLINE is exploded into its lines and caps, and a MESH into the 3DFACEs of its faces (<see cref="Explode"/>).
@@ -63,7 +64,8 @@ namespace GeometryHelper.Dxf
         /// and one that gives a face a material or a transparency of its own, or an edge or a vertex anything of its own, is
         /// refused. A REGION breaks into the curves of its loops, a hole before the loop it is cut from, as AutoCAD's Explode
         /// gives them: a box 40 by 30 with a circular hole gives a circle and four lines, a stadium two lines and two arcs, each
-        /// with the REGION's look. Any other type refuses: a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
+        /// with the REGION's look; a REGION of several faces (the union of two regions far apart) breaks into a REGION for each face, as
+        /// AutoCAD's does, and its arcs run counter-clockwise about the face's normal. Any other type refuses: a 3DSOLID, a BODY and a surface, which AutoCAD breaks with its solid
         /// modeler, and every type AutoCAD does not break.
         /// </summary>
         /// <returns>The entities, in no file, to be added to a drawing by <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>
@@ -558,17 +560,23 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Moves an MLINE by a transformation that scales alike (a move, a turn, a mirror, a scale): its points moved, its
+        /// Moves an MLINE or a REGION by a transformation that scales alike (a move, a turn, a mirror, a scale). An MLINE has its points moved, its
         /// normal moved (turned the other way by a mirror, so that its elements stay on the same side of its line), its scale
         /// and the stretches of its cuts multiplied by the scale of the transformation. Refuses every other type, the geometry
-        /// of a type the library keeps as it is not being changed, and an MLINE moved by a transformation that scales more one
-        /// way than another or shears.
+        /// of a type the library keeps as it is not being changed, and an MLINE or a REGION moved by a transformation that scales more one
+        /// way than another or shears. A REGION has every edge and plane moved and its ACIS data written anew for its drawing's version (<see cref="GetRegionShape"/>), the loops kept in their order, the normal turned over by a mirror, as AutoCAD's <c>TransformBy</c> leaves a region.
         /// </summary>
         /// <param name="transform">The transformation.</param>
-        /// <exception cref="NotSupportedException">Thrown for a type other than MLINE, and for an MLINE moved by a transformation that does not scale alike.</exception>
+        /// <exception cref="NotSupportedException">Thrown for a type other than MLINE and REGION, for an MLINE or a REGION moved by a transformation that does not scale alike, and for a REGION whose ACIS data is not readable flat faces.</exception>
         /// <exception cref="InvalidOperationException">Thrown for an MLINE whose drawing has no style of its handle or name.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
+            if (DxfName == "REGION")
+            {
+                TransformRegion(transform);
+                return;
+            }
+
             if (DxfName != "MLINE")
             {
                 throw new NotSupportedException(

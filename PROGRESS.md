@@ -157,10 +157,15 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         DxfUnknownEntity.CreateRegion/GetRegionShape), REGION and -BOUNDARY Region making regions, drawn, LIST/AREA/Properties
         with area and perimeter, EXPLODE; 12 regions in each of R2000-R2018 DXF and R2018 DWG open in AutoCAD 2021 with AUDIT
         0 and AutoCAD's own areas, perimeters and Explode curves
-  - [ ] (regions2, running) R3.3 follow-ups: UNION/SUBTRACT/INTERSECT of regions (2D booleans); MOVE, ROTATE, SCALE, MIRROR and COPY of a region
-        (rebuild the body); regions kept across Save As between SAT and SAB versions; regions in DWG R2000-R2010; splines and
-        multi-face bodies; -BOUNDARY Region islands (holes or separate regions?) and its message checked in the GUI; cache the
-        parse for drawings of thousands of regions (M)
+  - [x] R3.3 follow-ups 1 (regions2): UNION, SUBTRACT, INTERSECT of regions keeping arcs (core DxfRegionShape.Unite/
+        Subtract/Intersect over chords traced back to their curves); MOVE, ROTATE, SCALE, MIRROR, COPY and STRETCH of regions;
+        regions converted between SAT and SAB versions on Save As; multi-face regions; fixed: AutoCAD's transform record and
+        whole-ellipse arcs read, Explode directions as AutoCAD; 19 regions x 6 versions AUDIT 0, 540 AutoCAD regions converted
+        with equal Explode
+  - [ ] R3.3 follow-ups 2: regions in DWG R2000-R2010 (DWG writer is R2018 only); -BOUNDARY Region islands and its message
+        (GUI); UNION/SUBTRACT taking the first picked region (selection is kept sorted); a region's grips and UNION's colour
+        reset checked in the GUI; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for thousands of
+        regions (M)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the

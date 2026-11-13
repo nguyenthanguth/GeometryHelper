@@ -106,30 +106,7 @@ namespace GeometryHelper.Dxf
         /// <param name="sab">The SAB.</param>
         internal void AddAcisData(string handle, byte[] sab)
         {
-            var record = new Builder(this);
-            record.Group(0, "ACDSRECORD");
-            record.Group(90, "0");
-            record.Group(2, "AcDbDs::ID");
-            record.Group(280, "10");
-            record.Group(320, handle);
-            record.Group(2, "ASM_Data");
-            record.Group(280, "15");
-            record.Group(94, sab.Length.ToString(CultureInfo.InvariantCulture));
-            var hex = new StringBuilder(254);
-
-            for (int at = 0; at < sab.Length; at += 127)
-            {
-                hex.Clear();
-
-                for (int i = at; i < Math.Min(at + 127, sab.Length); i++)
-                {
-                    hex.Append(sab[i].ToString("X2", CultureInfo.InvariantCulture));
-                }
-
-                record.Group(310, hex.ToString());
-            }
-
-            var piece = new Piece(new List<Rec> { record.Done("ACDSRECORD") });
+            var piece = new Piece(new List<Rec> { AcisRecord(handle, sab) });
 
             if (_acdsHome != null)
             {
@@ -178,6 +155,119 @@ namespace GeometryHelper.Dxf
             _acdsHome.Insert(_acdsHome.Count - 1, piece);
             _acdsHome.Insert(_acdsHome.Count - 1, _acdsEnd);
             _editCount++;
+        }
+
+        /// <summary>
+        /// Gives the entity of a handle other bytes for its SAB, in the record the section ACDSDATA holds for it, as a region
+        /// moved is given the body it has become.
+        /// </summary>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <param name="sab">The SAB.</param>
+        /// <returns>False where the file has no record for the handle.</returns>
+        internal bool SetAcisData(string handle, byte[] sab)
+        {
+            if (handle == null || !TryHex(handle.Trim(), out ulong key) || key == 0)
+            {
+                return false;
+            }
+
+            Rec replacement = AcisRecord(handle, sab);
+
+            foreach (Section section in _sections)
+            {
+                if (section.Name != "ACDSDATA")
+                {
+                    continue;
+                }
+
+                for (int i = section.First; i <= section.Last; i++)
+                {
+                    List<Piece> slot = _slots?[i];
+
+                    if (slot == null)
+                    {
+                        if (AcisHandleOf(Original(i)) == key)
+                        {
+                            Put(i, new List<Piece> { new Piece(new List<Rec> { replacement }) });
+                            return true;
+                        }
+                    }
+                    else if (ReplaceAcis(slot, key, replacement))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return _acdsHome != null && ReplaceAcis(_acdsHome, key, replacement);
+        }
+
+        /// <summary>Puts a record in the place of the ACDSRECORD of a handle among pieces; whether there was one.</summary>
+        private bool ReplaceAcis(List<Piece> pieces, ulong key, Rec replacement)
+        {
+            foreach (Piece piece in pieces)
+            {
+                for (int i = 0; i < piece.Records.Count; i++)
+                {
+                    if (AcisHandleOf(piece.Records[i]) == key)
+                    {
+                        piece.Records[i] = replacement;
+                        _editCount++;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The handle an ACDSRECORD names (group 320); 0 for any other record or one that names none.</summary>
+        private ulong AcisHandleOf(Rec record)
+        {
+            ulong handle = 0;
+
+            if (record.Type != "ACDSRECORD")
+            {
+                return handle;
+            }
+
+            EachGroup(record, (code, start, end) =>
+            {
+                if (code == 320)
+                {
+                    TryHex(Text(record, start, end).Trim(), out handle);
+                }
+            });
+            return handle;
+        }
+
+        /// <summary>The record of an entity's SAB, as AutoCAD writes it: the handle (320) and the bytes in lines of 127 (94 and 310).</summary>
+        private Rec AcisRecord(string handle, byte[] sab)
+        {
+            var record = new Builder(this);
+            record.Group(0, "ACDSRECORD");
+            record.Group(90, "0");
+            record.Group(2, "AcDbDs::ID");
+            record.Group(280, "10");
+            record.Group(320, handle);
+            record.Group(2, "ASM_Data");
+            record.Group(280, "15");
+            record.Group(94, sab.Length.ToString(CultureInfo.InvariantCulture));
+            var hex = new StringBuilder(254);
+
+            for (int at = 0; at < sab.Length; at += 127)
+            {
+                hex.Clear();
+
+                for (int i = at; i < Math.Min(at + 127, sab.Length); i++)
+                {
+                    hex.Append(sab[i].ToString("X2", CultureInfo.InvariantCulture));
+                }
+
+                record.Group(310, hex.ToString());
+            }
+
+            return record.Done("ACDSRECORD");
         }
 
         #endregion

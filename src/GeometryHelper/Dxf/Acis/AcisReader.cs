@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
 {
@@ -171,7 +172,12 @@ namespace GeometryHelper.Dxf
             {
                 return Body(SabRecords(sab));
             }
-            catch (Exception e) when (e is FormatException || e is ArgumentException || e is IndexOutOfRangeException)
+            catch (Exception e)
+                when (e is FormatException
+                    || e is ArgumentException
+                    || e is IndexOutOfRangeException
+                    || e is NotSupportedException
+                )
             {
                 return null;
             }
@@ -350,12 +356,68 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
-            catch (InvalidOperationException)
+            catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
             {
                 return null;
             }
 
-            return faces.Count == 0 ? null : new AcisBody(faces);
+            if (faces.Count == 0)
+            {
+                return null;
+            }
+
+            // AutoCAD moves and turns a body by a transform record it keeps beside the geometry (a scale it writes into the geometry);
+            // the record has no history pointer, so its own fields start one place sooner than the others'.
+            Record transform = At(Field(body, o + 2));
+            return transform != null && transform.Name == "transform"
+                ? Moved(new AcisBody(faces), transform, history ? 2 : 1)
+                : new AcisBody(faces);
+        }
+
+        /// <summary>
+        /// The body with the transform record of its body applied: a matrix of three rows (a point is a row, so its image is the
+        /// point times the matrix), a translation and a scale, as ACIS keeps them. The identity leaves the body as it is; a body
+        /// with a shear is not read.
+        /// </summary>
+        private static AcisBody Moved(AcisBody body, Record transform, int o)
+        {
+            double Number(int index) => transform.Tokens.Count > o + index ? transform.Tokens[o + index].Number : 0.0;
+
+            double scale = Number(12);
+            bool identity = Math.Abs(scale - 1.0) < 1E-15;
+
+            for (int i = 0; i < 12 && identity; i++)
+            {
+                identity = Math.Abs(Number(i) - (i < 9 && i % 4 == 0 ? 1.0 : 0.0)) < 1E-15;
+            }
+
+            if (identity)
+            {
+                return body;
+            }
+
+            // The flags that follow: rotate, reflect, shear. A shear is a transformation that scales more one way than another.
+            Token shear = transform.Tokens.Count > o + 15 ? transform.Tokens[o + 15] : default(Token);
+
+            if (shear.Kind == 's' ? shear.Text == "shear" : shear.Number != 0.0)
+            {
+                return null;
+            }
+
+            var matrix = new double[4, 4];
+
+            for (int r = 0; r < 3; r++)
+            {
+                for (int c = 0; c < 3; c++)
+                {
+                    matrix[r, c] = scale * Number(c * 3 + r);
+                }
+
+                matrix[r, 3] = Number(9 + r);
+            }
+
+            matrix[3, 3] = 1.0;
+            return body.Transformed(new GeoTransform3(matrix));
         }
 
         private static AcisFace Face(
@@ -487,6 +549,20 @@ namespace GeometryHelper.Dxf
                         t0 = -Math.PI;
                         t1 = Math.PI;
                     }
+
+                    // AutoCAD's R2000 data of the result of a boolean gives an arc the bounds of its whole ellipse, or none, and
+                    // lets the two vertices of the edge cut it: the arc runs from one to the other along the curve.
+                    if (Math.Abs(t1 - t0 - 2.0 * Math.PI) < 1E-9 && start.DistanceTo(end) > 1E-9 * (1.0 + major.Length))
+                    {
+                        AcisCurve whole = AcisCurve.Ellipse(centre, normal, major, ratio, 0.0, 1.0);
+                        t0 = whole.ParameterOf(start);
+                        t1 = whole.ParameterOf(end);
+
+                        while (t1 <= t0)
+                        {
+                            t1 += 2.0 * Math.PI;
+                        }
+                    }
                 }
 
                 read = AcisCurve.Ellipse(centre, normal, major, ratio, t0, t1);
@@ -502,7 +578,7 @@ namespace GeometryHelper.Dxf
                 read = read.Reversed();
             }
 
-            return field(coedge, o + 4).Number != 0.0 ? read.Reversed() : read;
+            return field(coedge, o + 4).Number != 0.0 ? read.Reversed().MarkedAgainstEdge() : read;
         }
 
         private static AcisVec PointOf(Record vertex, int o, Func<Token, Record> at, Func<Record, int, Token> field)

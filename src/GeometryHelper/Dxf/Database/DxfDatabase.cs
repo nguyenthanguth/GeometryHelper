@@ -226,7 +226,7 @@ namespace GeometryHelper.Dxf
         /// What cannot be given the form of the older version is left out or written another way, and said in the result: a table,
         /// whose cells are in a form of their own on either side of R2007, is written as the block it is drawn with; the visual
         /// styles, which have a form of their own in each version but R2013 and R2018, are left out, and AutoCAD makes its own
-        /// on opening; the ACIS body of a solid of R2013 or later, binary, cannot be written as the text of R2010 and before; the
+        /// on opening; the ACIS body of a solid of R2013 or later, binary, cannot be written as the text of R2010 and before (a REGION it can: its body is read and written again for each version, SAT text up to R2010 and the data store from R2013); the
         /// columns of an MTEXT and the lines of an attribute, which R2018 holds in an object embedded in it, are written as R2013
         /// writes them. Text beyond the code page of a drawing before R2007 is written as the escapes <c>\U+XXXX</c>, as
         /// <see cref="Parse(string)"/> keeps it.

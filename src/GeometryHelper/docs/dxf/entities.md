@@ -286,13 +286,48 @@ opens the regions written for each of the six versions, and the same drawing wri
 another throws `ArgumentException`, and a drawing before R2000 `NotSupportedException`.
 
 `GetRegionShape()` reads the shape of a REGION back, from the SAT of its groups or the SAB of the data store, whoever wrote
-it: the regions of AutoCAD 2021's own DXF of R2000 to R2018 read to AutoCAD's area and perimeter. It is null for a region
-whose body is not flat faces of lines and arcs of ellipses (a spline edge, a face on a cone). `Explode()` gives a region's curves as AutoCAD's does: a
-box with a hole a circle and four lines, the hole first, a stadium two lines and two arcs, a whole ellipse an ellipse
-whose major axis runs from its centre away from where the loop starts, and the parameter from -pi to pi, each with the
-region's look; AutoCAD 2021's `Explode` and the library's were compared for twelve regions, tilted and elliptical ones among
-them, and agree in every curve, point and axis. A region of more than one face is read but not written, and no region is
-moved, scaled or copied with its data: a copy of one in a drawing of R2013 or later has none of its own.
+it: the regions of AutoCAD 2021's own DXF of R2000 to R2018 read to AutoCAD's area and perimeter, those it made by a boolean
+(its R2000 data cuts an arc out of the ellipse of its whole turn by the two vertices of the edge, which the reader follows)
+and those it moved, turned or mirrored (AutoCAD keeps a `transform` record beside the geometry, which the reader applies: the
+notch of a box 40 by 30 moved by (100, 50) has its arc about (140, 65), mirrored across x = 50 its normal (0, 0, -1) and
+its loop in the same order). It is null for a region whose body is not flat faces of lines and arcs of ellipses (a spline
+edge, a face on a cone). `Explode()` gives a region's curves as AutoCAD's does: a box with a hole a circle and four lines,
+the hole first, a stadium two lines and two arcs, a whole ellipse an ellipse whose major axis runs from its centre away from
+where the loop starts, and the parameter from -pi to pi, an arc counter-clockwise about the face's normal whichever way its
+loop runs (the notch a circle cuts in a box is one arc from its far end to its near one), a line in the direction of its edge,
+each with the region's look; a region of several faces breaks into a REGION for each face. AutoCAD 2021's `Explode` and the
+library's were compared for 744 regions of its own and of the library's, in each of the six versions, booleans, moved and
+mirrored ones, tilted and elliptical ones among them, and agree in every curve, point and axis.
+
+A region is moved as AutoCAD moves one: `TransformBy` and `GetTransformedCopy` of a REGION (and so MOVE, ROTATE, SCALE, MIRROR
+and COPY of the presenter) take a transformation that scales alike in every direction, move every edge and plane, keep the loops
+in their order, turn the normal over under a mirror (a region on the XY plane mirrored across x = 50 has the normal
+(0, 0, -1), as AutoCAD's does) and write the ACIS data anew for the drawing's version, in the groups of the entity or in
+the record of the data store it has; a transformation that scales more one way than another, or shears, throws
+`NotSupportedException`, as AutoCAD refuses it with `eCannotScaleNonUniformly`. A copy (`Clone`, `GetTransformedCopy`) has
+the data of its own, a GUID of its own in R2013 and R2018 and a record of its own once it is added, and one added to a
+drawing of another version has its data written for that version; a region made by `CreateRegion` for one version is still
+refused by another. `SetRegionShape(shape)` gives a region another shape in place, its handle and look kept.
+
+`DxfRegionShape.Unite`, `Subtract` and `Intersect` combine shapes in one plane (`IsCoplanarWith` tells whether two lie in
+one) as AutoCAD's `BooleanOperation` does, the answer keeping arcs and ellipses as arcs and ellipses: a box 40 by 30 united
+with a circle of radius 10 on its right edge has area 1 357.08 and perimeter 151.42 and one loop of five lines and an arc of
+the circle, less that circle 1 042.92, a lens of two circles of radius 10 ten apart 122.84. The library's booleans know only
+straight edges, so each curve is cut into chords (a circle on a grid of angles that depends on its radius alone, so that two
+regions sharing an arc cut it alike and leave no sliver), the booleans are run on the chords, and each edge of the answer is
+traced back to the curve it lies on: a run of edges on one circle is an arc of it between exact ends, found by Newton's
+method as the meeting of the two curves, or the end of an input edge where one lies within the point tolerance. A box and a
+circle far apart are one shape of two faces, as AutoCAD keeps them (a region of two lumps, written as SAT and SAB like any
+other and opened by AutoCAD 2021 in all six versions); the answer is null where nothing is left. The area, perimeter and
+region count were compared with AutoCAD 2021's `BooleanOperation` for the union of a box with a circle on its edge, far away
+from it, inside it and with two, the difference with a notch, a hole and two holes, the intersection of two circles, of a box
+and an ellipse and of three shapes, a frame with an island, and agree to the sixth place.
+
+A drawing saved in another version (`DxfDatabase.Save(path, version)`) has the data of each region written for the
+version: a region of SAT text goes to the data store at R2013 and back, R2013 to R2018 and the texts of R2000, R2004, R2007
+and R2010 into one another, as AutoCAD 2021 gives it in each; a region whose body the library does not read is kept as it
+was going between texts and left out going below R2013, as any other body. A DWG is written for R2018 only, so a region in a
+DWG of R2000 to R2010 waits for the DWG writer to write those versions.
 
 ### What it costs
 
