@@ -226,11 +226,13 @@ User note 2026-11-12 evening (note.md 1-14):
       INSERTs equal AutoCAD's), ellipse and spline polylines in AutoCAD's form, mesh and mline order, pieces in a block as
       INSERTs numbered by handle (95 blocks as AutoCAD), default groups left out, colliding names told apart; 22 probe cases
       open with AutoCAD's counts
-- [ ] R12 follow-ups 3: solid and gradient fills as AutoCAD's strips and band meshes (rect: 2 SOLID + 2 LINE; circle r25: 31
-      SOLID + 36 LINE; SPHERICAL 332); multileader frames and measured left-aligned TEXTs; dimension MTEXTs with a degree
-      sign or stack kept as TEXT; annotative decomposition layers; xdata normalisation (upper-case names, 5-group points);
-      polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions; BODY, surfaces and spline-edge
-      solids (S)
+- [x] R12 follow-ups 3 (r12d): solid fills as AutoCAD's horizontal strips plus side LINEs (32 of 36 shapes equal record
+      for record), multileader frames and measured left-aligned TEXTs (15 of 15 equal), angular dimension words kept as
+      one TEXT of AutoCAD's form (no extra *U block); R12 Save of round fills slower as AutoCAD writes 3x the records
+- [ ] R12 follow-ups 4: round fills' corner count (circle r 25 -> 36 corners, 30 -> 76, ...); the star notch's inner
+      sides; stacked \S words of linear dimensions (3 TEXTs and a bar); xdata normalisation (upper-case names, 5-group
+      points); polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions; gradient band meshes;
+      BODY, surfaces and spline-edge solids (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
@@ -356,7 +358,7 @@ the ones wanted.
       432 to 4), the angle's words left or right by its arc point, DIMJUST 1/2 of DIMARC (tar9 288 of 864 to 0), DIMARCSYM
       1 in the fit, the radial room rule (tar24 1 656 of 5 152 to 415); 45 untouched sets byte-identical; harness
       .claude/gk/dims-harness12
-- [ ] Associative dimensions follow-ups 6: level words beside a ray under DIMJUST (up to 0.035 off; tar13 26); DIMARCSYM 0
+- [ ] (assoc6, running) Associative dimensions follow-ups 6: level words beside a ray under DIMJUST (up to 0.035 off; tar13 26); DIMARCSYM 0
       radial thresholds over 120 degrees (up to 0.05); four borderline tar16 rows; the rest of tar2, tar8, tar10-tar12;
       AutoCAD's arc-point offset after a scale (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the

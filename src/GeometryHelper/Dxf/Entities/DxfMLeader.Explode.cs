@@ -255,6 +255,99 @@ namespace GeometryHelper.Dxf
             return parts.AsReadOnly();
         }
 
+        /// <summary>
+        /// The frame AutoCAD draws round the words of the multileader where its style has one, as it writes it into an R12 with the
+        /// rest of what the multileader breaks into: an LWPOLYLINE of five corners, the first written again, round the ink of the
+        /// words and a landing gap off it (see <see cref="DxfMText.InkFrame"/>), of the colour BYBLOCK. Words of txt 2.5 high held
+        /// at the middle left at (30, 20), with a gap of 0.09, give a frame from (29.91, 18.57) to (39.26, 21.25).
+        /// </summary>
+        /// <param name="parts">What <see cref="Explode"/> gave, among them the words.</param>
+        /// <returns>The frame; null where the multileader has none, holds no words, or no font measures them.</returns>
+        internal DxfEntity R12Frame(IReadOnlyList<DxfEntity> parts)
+        {
+            if (!EnableFrameText)
+            {
+                return null;
+            }
+
+            DxfMText words = null;
+
+            foreach (DxfEntity part in parts)
+            {
+                if (part is DxfMText mtext)
+                {
+                    words = mtext;
+                    break;
+                }
+            }
+
+            if (words == null)
+            {
+                return null;
+            }
+
+            double gap = Num(Text(Context(Read()).Head, 145), 2.0);
+            List<GeoPoint3> corners = words.InkFrame(gap);
+            DxfPolyline frame =
+                corners == null ? null : DxfLeader.PlanePolyline(corners, Normal, Tolerance.Default.EqualPoint);
+
+            if (frame == null)
+            {
+                return null;
+            }
+
+            frame.SetPropertiesFrom(words);
+            frame.ColorIndex = 0;
+            return frame;
+        }
+
+        /// <summary>
+        /// Runs the dogleg of a multileader whose words have no frame and are held at the middle or the right on to the ink of
+        /// their first line, as AutoCAD writes it into an R12: the words "Short" and "A longer second line" held at the middle
+        /// from a landing at (30, 20), whose dogleg is 0.36 long, have it run from (30, 20) to (47.03, 20), the ink of "Short"
+        /// beginning at 46.67; held at the right, to (63.69, 20). Left as it is where the words are held at the left, have a
+        /// frame, or no font measures them.
+        /// </summary>
+        /// <param name="parts">What <see cref="Explode"/> gave, among them the words and the dogleg, which this changes.</param>
+        internal void R12Landing(IReadOnlyList<DxfEntity> parts)
+        {
+            if (EnableFrameText)
+            {
+                return;
+            }
+
+            DxfMText words = null;
+            DxfLine dogleg = null;
+
+            foreach (DxfEntity part in parts)
+            {
+                words = words ?? part as DxfMText;
+                dogleg = dogleg ?? part as DxfLine;
+            }
+
+            double? offset = words?.FirstInkOffset();
+
+            if (dogleg == null || offset == null || Math.Abs(offset.Value) < Tolerance.Default.EqualPoint)
+            {
+                return;
+            }
+
+            GeoVector3 along = words.Direction;
+            GeoPoint3 start = dogleg.StartPoint;
+
+            if (dogleg.Delta.DotProduct(along) <= 0.0)
+            {
+                return;
+            }
+
+            double reach = start.GetVectorTo(words.Location.Add(along.Multiply(offset.Value))).DotProduct(along);
+
+            if (reach > 0.0)
+            {
+                dogleg.EndPoint = dogleg.EndPoint.Add(along.Multiply(reach));
+            }
+        }
+
         /// <summary>How a leader line is drawn: its own type (170) where its flags (93) say it has one, else the multileader's.</summary>
         private static DxfLeaderType LineType(List<KeyValuePair<int, string>> line, DxfLeaderType type)
         {
@@ -487,6 +580,7 @@ namespace GeometryHelper.Dxf
                 Section(ctx.Head, 290, MTextCodes, out int from, out int to);
                 List<KeyValuePair<int, string>> m = ctx.Head.GetRange(from, to - from);
                 mtext.Layer = layer;
+                mtext.MeasuredIn = database;
 
                 // The multileader's own linetype and lineweight, as AutoCAD 2021 gives its words.
                 mtext.Linetype = Linetype;

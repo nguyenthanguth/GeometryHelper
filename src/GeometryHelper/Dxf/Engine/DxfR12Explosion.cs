@@ -117,6 +117,7 @@ namespace GeometryHelper.Dxf
             var plan = new Plan();
             var extents = new Extents(database);
             NameDynamicBlocks(database, plan);
+            HashSet<string> angular = AngularBlocks(database);
 
             foreach (DxfBlockTableRecord block in database.BlockTable)
             {
@@ -199,6 +200,13 @@ namespace GeometryHelper.Dxf
                         point.SetPropertiesFrom(entity);
                         pieces.Add(point);
                     }
+                    else if (type == "MTEXT" && angular.Contains(name) && entity is DxfMText words)
+                    {
+                        // The words of an angular dimension are one TEXT of AutoCAD's own form, standing where the MTEXT stood.
+                        DxfEntity own = words.R12AngularText();
+                        sampling[own] = 'A';
+                        pieces.Add(own);
+                    }
                     else if (!Dropped.Contains(type))
                     {
                         Reduce(entity, extents, pieces, sampling);
@@ -257,7 +265,13 @@ namespace GeometryHelper.Dxf
                         char letter = entity is DxfHatch hatch && !hatch.IsSolidFill ? 'X' : 'U';
                         bool direct =
                             made.Count == 1
-                            && (type == "ELLIPSE" || type == "SPLINE" || type == "XLINE" || type == "RAY");
+                            && (
+                                type == "ELLIPSE"
+                                || type == "SPLINE"
+                                || type == "XLINE"
+                                || type == "RAY"
+                                || (type == "MTEXT" && sampling.ContainsKey(made[0]))
+                            );
                         plan.Pieces[entity.Handle] = new Piece(type, scratch.Name, letter, direct);
                     }
                 }
@@ -307,6 +321,30 @@ namespace GeometryHelper.Dxf
                     plan.Renamed[name] = "*U" + free.ToString(CultureInfo.InvariantCulture);
                 }
             }
+        }
+
+        /// <summary>The names of the blocks the angular dimensions of the drawing are drawn in, whose words AutoCAD writes as a TEXT of its own form.</summary>
+        private static HashSet<string> AngularBlocks(DxfDatabase database)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                foreach (DxfEntity entity in block)
+                {
+                    if (entity is DxfLineAngularDimension2 || entity is DxfPoint3AngularDimension)
+                    {
+                        DxfBlockTableRecord drawn = ((DxfDimension)entity).DimBlock;
+
+                        if (drawn != null && drawn.Name != null)
+                        {
+                            names.Add(drawn.Name);
+                        }
+                    }
+                }
+            }
+
+            return names;
         }
 
         /// <summary>Whether a name is that of an anonymous block, <c>*U17</c> or <c>*D3</c>, and its number.</summary>
@@ -403,9 +441,20 @@ namespace GeometryHelper.Dxf
 
             int before = pieces.Count;
 
+            if (entity is DxfMLeader landing)
+            {
+                landing.R12Landing(parts);
+            }
+
             foreach (DxfEntity part in parts)
             {
                 Reduce(part, extents, pieces, sampling);
+            }
+
+            // The frame round the words of a multileader is the last of its pieces.
+            if (entity is DxfMLeader && ((DxfMLeader)entity).R12Frame(parts) is DxfEntity frame)
+            {
+                Reduce(frame, extents, pieces, sampling);
             }
 
             // What the pieces of a table or a hatch drew by block or by layer is as AutoCAD writes it: asked of the entity once, not of

@@ -168,12 +168,27 @@ a character that is no letter, digit, `$`, `-` or `_` an underscore and the name
 (`{18b73a54-fa43-428c-adcb-c1c7bbdf2c84}` is `_18B73A54-FA43-428C-ADCB-C`), or AutoCAD discards the drawing; two names of one
 kind that come to one are told apart as AutoCAD tells them: the one that cleaning changed takes a number, `A{1}` beside `A_1_`
 is `A_1_0` beside `A_1_`. A TOLERANCE, a
-WIPEOUT, an IMAGE, an underlay, an OLE frame and the layouts beyond the first are left out and said. A gradient hatch is the
-SOLIDs of its triangles in one colour: AutoCAD writes the triangles of its own display mesh, 2 for a LINEAR gradient of any
-rectangle, as here, and 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here;
-nor is the form of a fill, which AutoCAD writes as the SOLIDs of strips between the heights of the vertices of its boundary, each
-in the plane flipped (the extrusion (0, 0, -1)), and for a plain solid fill the LINEs of the boundary's sides that are not
-horizontal: a rectangle 100 by 60 is 2 SOLIDs and 2 LINEs there, 2 SOLIDs here.
+WIPEOUT, an IMAGE, an underlay, an OLE frame and the layouts beyond the first are left out and said. A hatch filled solid is
+the SOLIDs of horizontal strips, as AutoCAD writes it: the area (the loops, the holes taken out) is cut at the height of each
+corner of any loop into trapezoids, one running on over a level only while the same two upright edges bound it, each trapezoid
+two triangles in the plane flipped (the extrusion (0, 0, -1), x and the height negated, the third corner written again as the
+fourth), the strips from the top down, at a level the piece on the right before the one on the left, and after the SOLIDs the
+LINEs of the sides of the trapezoids that are not horizontal (of a triangle the right side before the left), a slanted side that
+ends in a corner the area wraps round, the point of a V notch cut down from the top or of a bite taken from below, left out: a
+rectangle 100 by 60 is 2 SOLIDs and 2 LINEs, with a hole 40 by 20 in it 8 and 8, a triangle 100 wide and 80 high one SOLID and 2
+LINEs (32 of 36 probes of polygons, holes and notches equal AutoCAD's own R12 record for record). A gradient is the same SOLIDs
+with no lines, in one colour: AutoCAD writes 2 for a LINEAR gradient of a rectangle, as here, but the triangles of its own display
+mesh for the others, 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here. The
+strips of a curve are cut from the corners the library flattens it to (16 to a half circle); AutoCAD's number of corners changes
+with the radius (36 for a circle of 25, 76 for 30, 48 for 50), so the SOLIDs of a round fill are not as many as AutoCAD's. The
+words of a multileader whose style has a frame are followed by it, a POLYLINE of five corners (the first again) of the colour
+BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, written after the arrowhead; words held at the
+middle or the right with no frame have their dogleg run on to the ink of their first line (words of 8 and 20 held at the middle
+from a landing at (30, 20) end it at (47.03, 20) instead of (30.36, 20)); and the words of an angular dimension are one TEXT of
+AutoCAD's own form in the dimension's block, not an INSERT of a block of pieces (so it takes no block number): `72` and `71` of
+nought, the place 2 heights before and 1.77 heights below where the MTEXT was held, six figures, a degree sign written `%%d`
+(`90%%d` of 0.18 high at (29.64, 29.6814)). A stack in a linear dimension's words (`\S1/2;`, a tolerance `\S+0.1^-0.1;`) is
+three TEXTs and a LINE in AutoCAD's block and one TEXT here.
 Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
 extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
 ten drawings of dynamic blocks open with a clean AUDIT.

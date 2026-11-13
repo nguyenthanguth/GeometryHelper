@@ -1285,6 +1285,16 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
+                if (
+                    converted.Type == "TEXT"
+                    && HandleOf(part) is string own
+                    && _plan.Sampled.TryGetValue(own, out char form)
+                    && form == 'A'
+                )
+                {
+                    OwnText(converted);
+                }
+
                 if (converted.Type == "POLYLINE")
                 {
                     string handle = HandleOf(part);
@@ -1395,6 +1405,58 @@ namespace GeometryHelper.Dxf
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Gives the TEXT of the words of an angular dimension AutoCAD's form of it: the layer, the height, the handle, the colour,
+        /// the justifications (72 and 71, of nought) and the place of six figures, then the words. "90%%d" is written 8, 40, 5, 62,
+        /// 72, 71, 10 (29.6400), 20, 30 (0.00000) and 1.
+        /// </summary>
+        private static void OwnText(Record record)
+        {
+            var groups = new List<Group> { record.Groups[0] };
+            int[] order = { 8, 40, 5, 62 };
+
+            foreach (int code in order)
+            {
+                int at = record.Groups.FindIndex(g => g.Code == code);
+
+                if (at >= 0)
+                {
+                    groups.Add(record.Groups[at]);
+                }
+            }
+
+            groups.Add(new Group(72, "0"));
+            groups.Add(new Group(71, "0"));
+
+            foreach (int code in new[] { 10, 20, 30 })
+            {
+                int at = record.Groups.FindIndex(g => g.Code == code);
+
+                if (
+                    at >= 0
+                    && double.TryParse(
+                        record.Groups[at].Value,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out double value
+                    )
+                )
+                {
+                    groups.Add(new Group(code, SixFigures(value)));
+                }
+            }
+
+            int words = record.Groups.FindIndex(g => g.Code == 1);
+
+            if (words >= 0)
+            {
+                groups.Add(record.Groups[words]);
+            }
+
+            record.Groups.Clear();
+            record.Groups.AddRange(groups);
         }
 
         /// <summary>A real number as a group of AutoCAD's R12 holds it: a whole one with its <c>.0</c>.</summary>

@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A hatch filled solid, saved as R12 (`DxfDatabase.Save(path, "AC1009")`), is the SOLIDs and LINEs AutoCAD 2021 writes (probed in
+its console, `Database.DxfOut` of side databases at R12 beside their R2018, 36 polygons, holes, notches, turned shapes and rounds): the
+area is cut at the height of each corner into trapezoids, each two triangles in the plane flipped (the extrusion (0, 0, -1), x and the
+height negated), the strips from the top down, then the LINEs of the sides that are not horizontal, those that end in the point of a
+V notch or of a bite left out. A rectangle 100 by 60 is 2 SOLIDs and 2 LINEs (it was 2 SOLIDs), with a hole 40 by 20 in it 8 and 8; 32
+of the 36 shapes are equal to AutoCAD's own R12 record for record. A gradient is the same SOLIDs with no lines (2 for a LINEAR one of a
+rectangle, as AutoCAD). Not done: AutoCAD's own counts for a round fill (its number of corners changes with the radius: 36 for a circle
+of 25, 76 for 30), the star-shaped notch AutoCAD draws the sides of, and the display meshes of the other gradients (152 for a CYLINDER,
+332 for a SPHERICAL one on a rectangle 100 by 60).
+**NEW.** A multileader saved as R12 is written as AutoCAD writes it (15 probes of one and two lines of words, frames, held at the left,
+the middle and the right, four attachments): the frame round the words where the style has one, a POLYLINE of five corners (the first
+again) of the colour BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, after the arrowhead (words of
+txt 2.5 high at (30, 20) give a frame from (29.91, 18.57) to (39.26, 21.25)); the dogleg of words held at the middle or the right with no
+frame runs on to the ink of their first line; the words are laid out by the fonts of the drawing, held at the left, as AutoCAD writes
+them. All 15 are equal to AutoCAD's own R12 record for record.
+**NEW.** The words of an angular dimension saved as R12 are one TEXT of AutoCAD's own form in the dimension's block (its groups in
+AutoCAD's order, the place of six figures 2 heights before and 1.77 heights below where the MTEXT was held, a degree sign written
+`%%d`), not an INSERT of a block of pieces, so that the blocks after it are numbered as AutoCAD numbers them (they were numbered one
+higher for each angular dimension). 6 of 7 angular probes equal AutoCAD's (the seventh has a stack in its words, which AutoCAD flattens with one more space). A stack in the words of a linear dimension is still one TEXT where
+AutoCAD writes three and a LINE.
+**CHANGED.** The MTEXT that `DxfMLeader.Explode()` gives is laid out in the fonts of the multileader's drawing, so that its
+`ActualWidth` and `ActualHeight` are measured (they were 0).
 **NEW.** Dynamic blocks, the grip edits of a polar parameter worked out one after the other, as AutoCAD 2021 works them (probed in its
 console on side databases, grips through `MoveGripPointsAt`; about 1 000 random sequences on five kinds of pointer gave its lines to
 1E-3). `DxfDynamicBlockReferenceProperty.MoveBasePoint` of a polar parameter no longer refuses a base grip dragged after the end
