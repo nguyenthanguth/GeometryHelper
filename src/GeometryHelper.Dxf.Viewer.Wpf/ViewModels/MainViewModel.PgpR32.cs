@@ -25,6 +25,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             private set => Set(ref _spaceTabsShown, value);
         }
 
+        /// <summary>
+        /// Gets or sets how the workspace shows the Drawing Recovery Manager palette, which DRAWINGRECOVERY shows; with none,
+        /// the copies are listed on the command line and one is asked by its number.
+        /// </summary>
+        public Action<DrawingRecoveryViewModel> ShowDrawingRecovery { get; set; }
+
+        /// <summary>The Drawing Recovery Manager over the copies autosave keeps, Open opening one; false with no palette to show.</summary>
+        private bool ShowRecoveryPalette()
+        {
+            if (ShowDrawingRecovery == null)
+            {
+                return false;
+            }
+
+            IEnumerable<BackupFileRow> rows = BackupCopies()
+                .Select(b => new BackupFileRow(
+                    b.Path,
+                    Path.HasExtension(b.Original) ? b.Original : b.Original + Path.GetExtension(b.Path)
+                ));
+            ShowDrawingRecovery(new DrawingRecoveryViewModel(rows, path => Open(path)));
+            return true;
+        }
+
         private void AddPgpR32WindowCommands(CadCommandRegistry registry)
         {
             registry.Add(new CadCommand("OPEN", OpenBody));
@@ -66,6 +89,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return true;
                 case "DRAWINGRECOVERY":
                 case "DRM":
+                    if (ShowRecoveryPalette())
+                    {
+                        return true;
+                    }
+
                     IReadOnlyList<BackupCopy> copies = BackupCopies();
 
                     foreach (string line in BackupLines(copies))
@@ -291,6 +319,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private IEnumerable<CadPrompt> DrawingRecoveryBody(CadCommandContext c)
         {
+            if (ShowRecoveryPalette())
+            {
+                yield break;
+            }
+
             IReadOnlyList<BackupCopy> copies = BackupCopies();
 
             foreach (string line in BackupLines(copies))

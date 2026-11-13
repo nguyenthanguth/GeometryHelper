@@ -296,13 +296,18 @@
                             </DockPanel>
                             <DockPanel Margin="0,6,0,0">
                                 <TextBlock Text="Linetype:" Width="70" Style="{StaticResource Muted}" />
-                                <ComboBox
-                                    Width="140"
-                                    HorizontalAlignment="Left"
-                                    Style="{StaticResource GhComboBox}"
+                                <Button
+                                    Style="{StaticResource GhDialogButton}"
+                                    Content="Linetype..."
+                                    Padding="10,4"
+                                    Margin="0,0,8,0"
                                     AutomationProperties.Name="Linetype"
-                                    ItemsSource="{Binding Linetypes}"
-                                    SelectedItem="{Binding ElementLinetype, Mode=TwoWay}"
+                                    Click="OnLinetype"
+                                />
+                                <TextBlock
+                                    Text="{Binding ElementLinetype}"
+                                    FontFamily="{StaticResource GhMonoFont}"
+                                    Style="{StaticResource Muted}"
                                 />
                             </DockPanel>
                         </StackPanel>

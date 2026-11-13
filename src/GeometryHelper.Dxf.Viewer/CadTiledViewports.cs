@@ -204,7 +204,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentException("No such arrangement: " + arrangement + ".", nameof(arrangement));
             }
 
-            return Split(pieces, whole);
+            return Split(pieces, whole, null);
         }
 
         /// <summary>
@@ -252,16 +252,35 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="whole">Whether the whole drawing area is split.</param>
         /// <returns>Null where done or nothing to do, else what AutoCAD says.</returns>
         /// <exception cref="ArgumentException">Thrown when the name is none of <see cref="StandardNames"/>.</exception>
-        public string SplitAs(string name, bool whole)
+        public string SplitAs(string name, bool whole) => SplitAs(name, whole, null);
+
+        /// <summary>
+        /// Applies a standard configuration as <see cref="SplitAs(string, bool)"/>, each new tile showing the model view its
+        /// entry of the views names, as the Viewports dialog's Change view to gives it: the view's centre, its width and height
+        /// fitted into the tile's shape. An entry that is null, *Current* or no model view of the drawing keeps the view the
+        /// tile was split from; Single with a view shows it in the tile kept. One undo step.
+        /// </summary>
+        /// <param name="name">A name of <see cref="StandardNames"/>.</param>
+        /// <param name="whole">Whether the whole drawing area is split.</param>
+        /// <param name="views">The view of each new tile, in the order of <see cref="PiecesOf"/>; null for none.</param>
+        /// <returns>Null where done or nothing to do, else what AutoCAD says.</returns>
+        /// <exception cref="ArgumentException">Thrown when the name is none of <see cref="StandardNames"/>.</exception>
+        public string SplitAs(string name, bool whole, IReadOnlyList<string> views)
         {
             if (name == "Single")
             {
-                if (whole)
+                if (!whole)
                 {
-                    Single();
+                    return null;
                 }
 
-                return null;
+                if (FindView(views, 0) == null)
+                {
+                    Single();
+                    return null;
+                }
+
+                return Split(new List<double[]> { new[] { 0.0, 0.0, 1.0, 1.0 } }, true, views);
             }
 
             List<double[]> pieces = StandardPieces(name);
@@ -271,7 +290,107 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentException("No standard configuration " + name + ".", nameof(name));
             }
 
-            return Split(pieces, whole);
+            return Split(pieces, whole, views);
+        }
+
+        /// <summary>
+        /// Shows model views in the tiles as they are, as the Viewports dialog's Change view to does with *Active Model
+        /// Configuration* picked: each tile, in the order of <see cref="Tiles"/>, the view its entry names, its centre kept and
+        /// its size fitted to the tile; an entry that is null, *Current* or no model view leaves its tile as it is. One undo
+        /// step; nothing where no entry names a view.
+        /// </summary>
+        /// <param name="views">The view of each tile.</param>
+        /// <returns>Whether any tile changed.</returns>
+        public bool ShowViews(IReadOnlyList<string> views)
+        {
+            if (
+                views == null
+                || !Enumerable.Range(0, Math.Min(views.Count, _tiles.Count)).Any(i => FindView(views, i) != null)
+            )
+            {
+                return false;
+            }
+
+            ReadView?.Invoke(Current);
+            Change(() =>
+            {
+                for (int i = 0; i < _tiles.Count; i++)
+                {
+                    ShowView(_tiles[i], FindView(views, i));
+                }
+            });
+            return true;
+        }
+
+        /// <summary>
+        /// Renames a configuration saved, as Rename on the Viewports dialog's Named Viewports tab does. One undo step.
+        /// </summary>
+        /// <param name="name">The name it has, either case.</param>
+        /// <param name="newName">The name it takes.</param>
+        /// <returns>Null where renamed, where the name is the same or where no configuration has the name; else what AutoCAD
+        /// says: "Invalid viewport configuration name." for an empty name or one with any of &lt; &gt; / \ " : ; ? * | , = `,
+        /// or "Viewport configuration "Plan" already exists.".</returns>
+        public string Rename(string name, string newName)
+        {
+            string wanted = (newName ?? string.Empty).Trim();
+            string was = Names.FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+
+            if (was == null)
+            {
+                return null;
+            }
+
+            if (wanted.Length == 0 || wanted.Length > 255 || wanted.IndexOfAny("<>/\\\":;?*|,=`".ToCharArray()) >= 0)
+            {
+                return "Invalid viewport configuration name.";
+            }
+
+            string other = Names.FirstOrDefault(n =>
+                string.Equals(n, wanted, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(n, was, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (other != null)
+            {
+                return "Viewport configuration \"" + other + "\" already exists.";
+            }
+
+            if (string.Equals(wanted, was, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            Change(() =>
+            {
+                List<CadTiledViewport> tiles = _saved[was];
+                _saved.Remove(was);
+                _saved[wanted] = tiles;
+            });
+            return null;
+        }
+
+        /// <summary>The model view an entry of the views names; null for none, for *Current* and for a name no model view has.</summary>
+        private DxfViewTableRecord FindView(IReadOnlyList<string> views, int index)
+        {
+            string name = views != null && index < views.Count ? views[index] : null;
+
+            if (string.IsNullOrEmpty(name) || name.StartsWith("*", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return _document
+                .Database.ViewTable.Where(v => !v.IsPaperspaceView)
+                .FirstOrDefault(v => string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>Shows a model view in a tile, its centre kept and its size fitted to the tile's shape; nothing for none.</summary>
+        private void ShowView(CadTiledViewport tile, DxfViewTableRecord view)
+        {
+            if (view != null)
+            {
+                Fit(tile, new CadTiledViewport(0, 0.0, 0.0, 1.0, 1.0, view.CenterPoint, view.Height, view.Width));
+            }
         }
 
         private static List<double[]> StandardPieces(string name)
@@ -291,7 +410,7 @@ namespace GeometryHelper.Dxf.Viewer
             return count == 0 ? null : Pieces(count, words[1] == "Equal" ? string.Empty : words[1]);
         }
 
-        private string Split(List<double[]> pieces, bool whole)
+        private string Split(List<double[]> pieces, bool whole, IReadOnlyList<string> views)
         {
             ReadView?.Invoke(Current);
             int kept = whole ? 0 : _tiles.Count - 1;
@@ -320,6 +439,7 @@ namespace GeometryHelper.Dxf.Viewer
                     used.Add(id);
                     CadTiledViewport tile = current.With(id, l + p[0] * w, b + p[1] * h, l + p[2] * w, b + p[3] * h);
                     Fit(tile, current);
+                    ShowView(tile, FindView(views, i));
                     made.Add(tile);
                 }
 

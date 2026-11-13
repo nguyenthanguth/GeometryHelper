@@ -100,7 +100,7 @@
                         <TextBlock
                             TextWrapping="Wrap"
                             Foreground="{StaticResource GhTextMuted}"
-                            Text="Rename To changes the name in the Items list at once; OK writes every rename as one step of undo, with each reference following, as -RENAME does."
+                            Text="Rename To changes the name in the Items list at once; OK writes every rename as one step of undo, with each reference following, as -RENAME does. An Old Name with * or ? renames every item it matches: S-* to A-* renames S-BEAM to A-BEAM."
                         />
                     </DockPanel>
                 </Border>
@@ -121,10 +121,9 @@
                         Grid.Column="2"
                         Style="{StaticResource StyleBox}"
                         Padding="6,3"
-                        IsReadOnly="True"
-                        Foreground="{StaticResource GhTextMuted}"
                         AutomationProperties.Name="Old Name"
-                        Text="{Binding OldName, Mode=OneWay}"
+                        ToolTip="The item picked, or a name with * and ? to rename every item it matches"
+                        Text="{Binding OldName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     />
                     <Button
                         Grid.Row="2"

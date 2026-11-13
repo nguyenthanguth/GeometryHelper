@@ -73,5 +73,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
+
+        /// <summary>Click to set new origin: what is typed taken, the dialog closed for HATCH to ask the point.</summary>
+        private void OnPickOrigin(object sender, RoutedEventArgs e)
+        {
+            (Keyboard.FocusedElement as TextBox)?.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            Model.ClickToSetOrigin();
+            DialogResult = false;
+        }
     }
 }

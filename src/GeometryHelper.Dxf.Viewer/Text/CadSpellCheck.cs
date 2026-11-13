@@ -9,9 +9,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// What SPELL gives its Check Spelling dialog: where to check, the word found not in the dictionary with the words nearest
     /// it, and AutoCAD's answers to it (Ignore, Ignore All, Change, Change All, Add to Dictionary). The words are those of the
-    /// built-in English list and of a custom dictionary file; a word of one letter, with a digit or all in capitals is passed
-    /// over. Nothing is written into the drawing while the dialog is open: once it closes, SPELL writes the words changed, each
-    /// text one edit of its one undo step.
+    /// built-in English list and of a custom dictionary file; a word of one letter, and those the settings name (with a digit
+    /// or all in capitals until set otherwise), are passed over. Nothing is written into the drawing while the dialog is
+    /// open: once it closes, SPELL writes the words changed, each text one edit of its one undo step.
     /// </summary>
     public sealed class CadSpellCheck
     {
@@ -54,6 +54,8 @@ namespace GeometryHelper.Dxf.Viewer
         private int _word;
         private string _where = EntireDrawing;
         private string _lockedNote = string.Empty;
+        private CadSpellSettings _settings = new CadSpellSettings();
+        private readonly Stack<State> _undo = new Stack<State>();
 
         internal CadSpellCheck(Collector collect)
         {
@@ -138,7 +140,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>Whether a word waits.</returns>
         public bool Start()
         {
-            _items = _collect(_where, SelectedHandles, out int locked) ?? new List<CadCommands.SpellItem>();
+            _items = (_collect(_where, SelectedHandles, out int locked) ?? new List<CadCommands.SpellItem>())
+                .Where(i => Settings.BlockAttributes || i.Attribute == null)
+                .ToList();
+            _undo.Clear();
             _item = 0;
             _word = -1;
             _words =
@@ -152,14 +157,52 @@ namespace GeometryHelper.Dxf.Viewer
             return Advance();
         }
 
+        /// <summary>
+        /// Gets or sets the settings: what is included and which words are passed over, as Check Spelling Settings gives them;
+        /// they count from the next <see cref="Start"/>.
+        /// </summary>
+        public CadSpellSettings Settings
+        {
+            get => _settings;
+            set => _settings = value ?? new CadSpellSettings();
+        }
+
+        /// <summary>Gets whether an answer can be taken back by <see cref="Undo"/>.</summary>
+        public bool CanUndo => _undo.Count > 0;
+
+        /// <summary>
+        /// Undo of the dialog: the last answer since <see cref="Start"/> taken back, its word waiting again, the change it made,
+        /// the word it ignored for all or added to the dictionary forgotten.
+        /// </summary>
+        /// <returns>Whether there was one to take back.</returns>
+        public bool Undo()
+        {
+            if (_undo.Count == 0)
+            {
+                return false;
+            }
+
+            _undo.Pop().Restore(this);
+            return true;
+        }
+
         /// <summary>Leaves the word as it is, this once.</summary>
-        public void Ignore() => Answered(null);
+        public void Ignore()
+        {
+            if (IsChecking)
+            {
+                _undo.Push(new State(this));
+            }
+
+            Answered(null);
+        }
 
         /// <summary>Leaves the word as it is here and wherever it comes again.</summary>
         public void IgnoreAll()
         {
             if (IsChecking)
             {
+                _undo.Push(new State(this));
                 _ignored.Add(Word);
             }
 
@@ -179,6 +222,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Adds the word to the custom dictionary, so that it is spelt right from now on, and to its file once SPELL ends.</summary>
         public void AddToDictionary()
         {
+            if (IsChecking)
+            {
+                _undo.Push(new State(this));
+            }
+
             if (IsChecking && _custom.Add(Word))
             {
                 _added.Add(Word);
@@ -206,6 +254,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 typed = Suggestions[0];
             }
+
+            _undo.Push(new State(this));
 
             if (all)
             {
@@ -273,7 +323,7 @@ namespace GeometryHelper.Dxf.Viewer
                 CadCommands.SpellItem item = _items[_item];
 
                 if (
-                    CadSpelling.IsPassedOver(word.Text)
+                    Settings.IsPassedOver(word.Text)
                     || _ignored.Contains(word.Text)
                     || CadSpelling.IsKnown(word.Text, _custom)
                     || IsChanged(item, word)
@@ -308,5 +358,82 @@ namespace GeometryHelper.Dxf.Viewer
 
         private bool IsChanged(CadCommands.SpellItem item, CadSpelling.Word word) =>
             _changes.TryGetValue(Key(item), out var changes) && changes.Value.Any(p => p.Key.Start == word.Start);
+
+        /// <summary>The check as it was before an answer, for Undo to put back.</summary>
+        private sealed class State
+        {
+            private readonly int _item;
+            private readonly int _word;
+            private readonly List<CadSpelling.Word> _words;
+            private readonly bool _checking;
+            private readonly IReadOnlyList<string> _suggestions;
+            private readonly string _status;
+            private readonly List<string> _ignored;
+            private readonly List<KeyValuePair<string, string>> _changeAll;
+            private readonly List<string> _custom;
+            private readonly List<string> _added;
+            private readonly List<string> _changeOrder;
+            private readonly List<
+                KeyValuePair<string, KeyValuePair<CadCommands.SpellItem, List<KeyValuePair<CadSpelling.Word, string>>>>
+            > _changes;
+
+            internal State(CadSpellCheck check)
+            {
+                _item = check._item;
+                _word = check._word;
+                _words = check._words;
+                _checking = check.IsChecking;
+                _suggestions = check.Suggestions;
+                _status = check.Status;
+                _ignored = check._ignored.ToList();
+                _changeAll = check._changeAll.ToList();
+                _custom = check._custom.ToList();
+                _added = check._added.ToList();
+                _changeOrder = check._changeOrder.ToList();
+                _changes = check
+                    ._changes.Select(p => new KeyValuePair<
+                        string,
+                        KeyValuePair<CadCommands.SpellItem, List<KeyValuePair<CadSpelling.Word, string>>>
+                    >(
+                        p.Key,
+                        new KeyValuePair<CadCommands.SpellItem, List<KeyValuePair<CadSpelling.Word, string>>>(
+                            p.Value.Key,
+                            p.Value.Value.ToList()
+                        )
+                    ))
+                    .ToList();
+            }
+
+            internal void Restore(CadSpellCheck check)
+            {
+                check._item = _item;
+                check._word = _word;
+                check._words = _words;
+                check.IsChecking = _checking;
+                check.Suggestions = _suggestions;
+                check.Status = _status;
+                check._ignored.Clear();
+                check._ignored.UnionWith(_ignored);
+                check._changeAll.Clear();
+
+                foreach (KeyValuePair<string, string> pair in _changeAll)
+                {
+                    check._changeAll[pair.Key] = pair.Value;
+                }
+
+                check._custom.Clear();
+                check._custom.UnionWith(_custom);
+                check._added.Clear();
+                check._added.AddRange(_added);
+                check._changeOrder.Clear();
+                check._changeOrder.AddRange(_changeOrder);
+                check._changes.Clear();
+
+                foreach (var pair in _changes)
+                {
+                    check._changes[pair.Key] = pair.Value;
+                }
+            }
+        }
     }
 }

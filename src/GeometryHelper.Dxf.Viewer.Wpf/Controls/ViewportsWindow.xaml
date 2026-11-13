@@ -118,7 +118,7 @@
                     <TextBlock
                         TextWrapping="Wrap"
                         Foreground="{StaticResource GhTextMuted}"
-                        Text="OK splits the display (or the current viewport) into the configuration picked; every new viewport starts with the current view. A new name saves the result, as -VPORTS Save. Named Viewports restores a configuration saved. One undo step."
+                        Text="OK splits the display (or the current viewport) into the configuration picked; click a tile of the preview and Change view to gives it a named view. Visual Style lists the drawing's styles; each is drawn as 2D Wireframe. A new name saves the result, as -VPORTS Save. Named Viewports restores, renames or deletes a configuration saved. One undo step."
                     />
                 </DockPanel>
             </Border>
@@ -207,27 +207,23 @@
                             <ComboBoxItem Content="2D" />
                         </ComboBox>
                     </StackPanel>
-                    <StackPanel Grid.Column="4" Opacity="0.55">
+                    <StackPanel Grid.Column="4">
                         <TextBlock Text="Change view to:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
                         <ComboBox
                             Style="{StaticResource GhComboBox}"
                             AutomationProperties.Name="Change view to"
-                            IsEnabled="False"
-                            SelectedIndex="0"
-                        >
-                            <ComboBoxItem Content="*Current*" />
-                        </ComboBox>
+                            ItemsSource="{Binding Views}"
+                            SelectedItem="{Binding ChangeViewTo, Mode=TwoWay}"
+                        />
                     </StackPanel>
-                    <StackPanel Grid.Column="6" Opacity="0.55">
+                    <StackPanel Grid.Column="6">
                         <TextBlock Text="Visual Style:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
                         <ComboBox
                             Style="{StaticResource GhComboBox}"
                             AutomationProperties.Name="Visual Style"
-                            IsEnabled="False"
-                            SelectedIndex="0"
-                        >
-                            <ComboBoxItem Content="2D Wireframe" />
-                        </ComboBox>
+                            ItemsSource="{Binding VisualStyles}"
+                            SelectedItem="{Binding VisualStyle, Mode=TwoWay}"
+                        />
                     </StackPanel>
                 </Grid>
 
@@ -239,15 +235,30 @@
                         Foreground="{StaticResource GhTextMuted}"
                         Margin="0,0,0,6"
                     />
-                    <Button
-                        DockPanel.Dock="Bottom"
-                        Style="{StaticResource GhDialogButton}"
-                        Content="Delete"
-                        Padding="10,4"
-                        Margin="0,6,0,0"
-                        HorizontalAlignment="Left"
-                        Click="OnDeleteNamed"
-                    />
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Delete"
+                            Padding="10,4"
+                            Margin="6,0,0,0"
+                            Click="OnDeleteNamed"
+                        />
+                        <Button
+                            DockPanel.Dock="Right"
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Rename"
+                            Padding="10,4"
+                            Margin="6,0,0,0"
+                            Click="OnRenameNamed"
+                        />
+                        <TextBox
+                            Style="{StaticResource StyleBox}"
+                            Padding="6,3"
+                            AutomationProperties.Name="Name"
+                            Text="{Binding RenameText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        />
+                    </DockPanel>
                     <ListBox
                         x:Name="NamedList"
                         Background="{StaticResource GhInput}"
@@ -274,7 +285,12 @@
                         Background="#0F1216"
                         Padding="3"
                     >
-                        <local:CadTilePreview Boxes="{Binding Preview}" />
+                        <local:CadTilePreview
+                            Boxes="{Binding Preview}"
+                            Labels="{Binding PreviewLabels}"
+                            Picked="{Binding PickedTile, Mode=TwoWay}"
+                            Cursor="Hand"
+                        />
                     </Border>
                 </DockPanel>
             </Grid>

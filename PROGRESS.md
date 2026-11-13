@@ -101,11 +101,15 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Batch 4a/4b follow-ups 2 (fu-views2): FILTER with AutoCAD 2021's property list, AND/OR/XOR/NOT groups, value tests
       and filter.nfl; CAL snap functions, rad, the vector functions and transparent 'CAL, values written as AutoCAD's
       console writes them (%.9g, 120,80,0); -VPORTS MOde
-- [ ] Batch 4a/4b follow-ups 3: the Viewports dialog's Change view to and Rename, and the FILTER dialog's new rows, in the
-      Design artifact; filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and surface
-      kinds; CAL rad of a polyline segment, getvar, transformations; QuickCalc Units Conversion and Variables; QP CUI lists
-      and QPLOCATION; dimension styles of a block bound by XBIND; Insert Layout and template dialogs (design first);
-      -OSNAP rarer short names (an invalid token hangs the console); whether HIDEPALETTES hides the command line (S)
+- [x] Dialogs 6 (dialogs6, design v141-v142): Viewports dialog's Change view to, Visual Style list and Named Rename; Select
+      Color and Linetype for multiline elements and fill; the Hatch dialog's Click to set new origin; Insert Object dialog
+      and Drawing Recovery Manager; Rename with wildcards; Check Spelling Undo and Settings; the FILTER rows in the design
+- [ ] Batch 4a/4b follow-ups 3: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
+      surface kinds; CAL rad of a polyline segment, getvar, transformations; QuickCalc Units Conversion and Variables; QP CUI
+      lists and QPLOCATION; dimension styles of a block bound by XBIND; Insert Layout and template dialogs (design first);
+      -OSNAP rarer short names; whether HIDEPALETTES hides the command line; HATCHEDIT's Click to set new origin; visual
+      styles drawn; spelling of dimension text and xrefs; the hidden internal visual style names and Check Spelling's
+      punctuation default checked in AutoCAD; CadTiledViewports.Rename and -RENAME VPort agreeing (S)
 - [ ] Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
@@ -183,7 +187,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] Save Drawing As listing each DXF version plainly (2018 down to 2000): DxfDatabase.Save(path, version), groups trimmed as AutoCAD's own files show, AUDIT 0 in AutoCAD 2021; DWG stays 2018 only (DECIDED by recommendation 2026-11-12)
 - [x] DXF versions follow-ups 1: R12 written as AutoCAD's own (exploding what R12 lacks), FILEDIA 0 SAVEAS "Enter file format", DXFOUT and its version list, CadDocument.SaveCopy (saveas2)
 - [ ] R12 follow-ups: 3DSOLID/REGION wireframe (needs an ACIS reader); gradient bands (AutoCAD writes 312); MTEXT wrapped by font metrics (2 TEXTs vs 123); dynamic blocks flattened to *U; repeat the AutoCAD check on a real model (M)
-- [ ] DXF versions follow-ups 2: binary solids below R2013 (SAB to SAT for ACDSDATA); tables across R2007 (not as an INSERT); visual styles across R2007/R2010/R2013; MTEXT column xdata back to the embedded object going up (M)
+- [ ] (dxfver2, running) DXF versions follow-ups 2: binary solids below R2013 (SAB to SAT for ACDSDATA); tables across R2007 (not as an INSERT); visual styles across R2007/R2010/R2013; MTEXT column xdata back to the embedded object going up (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
@@ -237,7 +241,7 @@ the ones wanted.
 - [x] Dimension follow-ups 8 (dims8): level words in a tight radius/diameter fit as AutoCAD (the r-sets: 603 differing down
       to 60 of 6 336 probes), the angular leader threshold refitted over 5 800 probes, DIM Angular on an arc switching back
       to Radius/Diameter; harness kept in .claude/gk/dims-harness8
-- [ ] Dimension follow-ups 9: words within about 5.6 of an extension line (m3: 114 of 532 differ; AutoCAD turns the arrows
+- [ ] (dims9, running) Dimension follow-ups 9: words within about 5.6 of an extension line (m3: 114 of 532 differ; AutoCAD turns the arrows
       out); the angular leader for words outside the sector (a4: 76 of 712); jogged radius (j1: 162 of 288: level words and
       line stubs) and arc Length; letters a font lacks measured through AutoCAD's substitute font; DxfShxFont extents; fit 3
       level words in a tight circle and DIMTMOVE 1 words behind the centre (t6 99 of 1 584, r6 36 of 1 024); lines exactly

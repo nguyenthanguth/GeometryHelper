@@ -76,6 +76,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _document = document ?? throw new ArgumentNullException(nameof(document));
             Settings = (settings ?? throw new ArgumentNullException(nameof(settings))).Clone();
             Title = editing ? "Hatch Editor" : "Hatch Creation";
+            CanPickOrigin = !editing;
             string own = Settings.PatternFile;
             _patternFile =
                 string.IsNullOrWhiteSpace(own)

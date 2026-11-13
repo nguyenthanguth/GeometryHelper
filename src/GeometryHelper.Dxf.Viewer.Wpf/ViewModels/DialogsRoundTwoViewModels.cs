@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
@@ -20,6 +22,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string _kind;
         private string _item;
         private string _newName = string.Empty;
+        private string _oldName;
         private string _message = string.Empty;
 
         /// <summary>Makes the dialog over RENAME's request.</summary>
@@ -67,6 +70,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 if (Set(ref _item, value))
                 {
+                    _oldName = null;
                     Raise(nameof(OldName));
                     NewName = value ?? string.Empty;
                     Message = string.Empty;
@@ -74,8 +78,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets the name of the item picked.</summary>
-        public string OldName => _item ?? string.Empty;
+        /// <summary>
+        /// Gets or sets the Old Name: the name of the item picked, or a name typed, which may hold the wildcards * and ? to
+        /// rename every item it matches, as AutoCAD's Rename takes them.
+        /// </summary>
+        public string OldName
+        {
+            get => _oldName ?? _item ?? string.Empty;
+            set
+            {
+                _oldName = value ?? string.Empty;
+                Raise(nameof(OldName));
+            }
+        }
 
         /// <summary>Gets or sets the name typed beside Rename To.</summary>
         public string NewName
@@ -96,12 +111,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Rename To: the item picked takes the name typed in the list, the rename kept for OK; refused for no item, an empty
-        /// name, one with any of &lt; &gt; / \ " : ; ? * | , = ` in it, or the name of another item of the kind.
+        /// name, one with any of &lt; &gt; / \ " : ; ? * | , = ` in it, or the name of another item of the kind. An Old Name
+        /// with * or ? renames every item it matches: the letters each wildcard matched take the place of the wildcards of
+        /// the new name in turn, so that Old Name S-* and Rename To A-* rename S-BEAM to A-BEAM, and *A* to *B* renames WALLS
+        /// to WBLLS; refused, nothing renamed, where it matches nothing or any new name would be refused.
         /// </summary>
         /// <returns>Whether it was renamed.</returns>
         public bool RenameTo()
         {
             string wanted = _newName.Trim();
+
+            if (_kind != null && OldName.IndexOfAny(new[] { '*', '?' }) >= 0)
+            {
+                return RenameMatching(OldName.Trim(), wanted);
+            }
+
+            if (_oldName != null && _kind != null)
+            {
+                string typed = _items[_kind]
+                    .FirstOrDefault(n => string.Equals(n, _oldName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (typed != null)
+                {
+                    _item = typed;
+                }
+            }
 
             if (_item == null)
             {
@@ -135,7 +169,117 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _request.Renames.Add(new CadRename(_kind, _item, wanted));
-            int at = items.IndexOf(_item);
+            Place(items, _item, wanted);
+            _item = wanted;
+            _oldName = null;
+            Raise(nameof(Item));
+            Raise(nameof(OldName));
+            Raise(nameof(Renames));
+            Message = string.Empty;
+            return true;
+        }
+
+        /// <summary>Rename To with a wildcard Old Name: every item it matches renamed, or none.</summary>
+        private bool RenameMatching(string pattern, string wanted)
+        {
+            ObservableCollection<string> items = _items[_kind];
+            var match = new Regex(
+                "^"
+                    + string.Concat(
+                        pattern.Select(ch =>
+                            ch == '*' ? "(.*?)"
+                            : ch == '?' ? "(.)"
+                            : Regex.Escape(ch.ToString())
+                        )
+                    )
+                    + "$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline
+            );
+            var renames = new List<KeyValuePair<string, string>>();
+
+            foreach (string item in items)
+            {
+                Match found = match.Match(item);
+
+                if (!found.Success)
+                {
+                    continue;
+                }
+
+                var name = new StringBuilder();
+                int group = 1;
+
+                foreach (char ch in wanted)
+                {
+                    if (ch == '*' || ch == '?')
+                    {
+                        name.Append(group < found.Groups.Count ? found.Groups[group].Value : string.Empty);
+                        group++;
+                    }
+                    else
+                    {
+                        name.Append(ch);
+                    }
+                }
+
+                renames.Add(new KeyValuePair<string, string>(item, name.ToString().Trim()));
+            }
+
+            if (renames.Count == 0)
+            {
+                Message = "No item matches " + pattern + ".";
+                return false;
+            }
+
+            if (
+                wanted.Length == 0
+                || renames.Any(r => r.Value.Length == 0 || r.Value.IndexOfAny(BadCharacters.ToCharArray()) >= 0)
+            )
+            {
+                Message = "Invalid name.";
+                return false;
+            }
+
+            var renamed = new HashSet<string>(renames.Select(r => r.Key), StringComparer.OrdinalIgnoreCase);
+            var taken = new HashSet<string>(items.Where(n => !renamed.Contains(n)), StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> rename in renames)
+            {
+                if (!taken.Add(rename.Value))
+                {
+                    Message =
+                        "\""
+                        + (
+                            items.FirstOrDefault(n =>
+                                string.Equals(n, rename.Value, StringComparison.OrdinalIgnoreCase)
+                            ) ?? rename.Value
+                        )
+                        + "\" already exists.";
+                    return false;
+                }
+            }
+
+            foreach (
+                KeyValuePair<string, string> rename in renames.Where(r =>
+                    !string.Equals(r.Key, r.Value, StringComparison.Ordinal)
+                )
+            )
+            {
+                _request.Renames.Add(new CadRename(_kind, rename.Key, rename.Value));
+                Place(items, rename.Key, rename.Value);
+            }
+
+            _item = null;
+            Raise(nameof(Item));
+            Raise(nameof(Renames));
+            Message = string.Empty;
+            return true;
+        }
+
+        /// <summary>Moves an item of the list to its new name's place, the list kept in the order of its letters.</summary>
+        private static void Place(ObservableCollection<string> items, string old, string wanted)
+        {
+            int at = items.IndexOf(old);
             items.RemoveAt(at);
             int to = 0;
 
@@ -154,12 +298,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             items.Insert(to, wanted);
-            _item = wanted;
-            Raise(nameof(Item));
-            Raise(nameof(OldName));
-            Raise(nameof(Renames));
-            Message = string.Empty;
-            return true;
         }
 
         /// <summary>OK: the renames are made once the dialog closes.</summary>
@@ -516,6 +654,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Refresh();
         }
 
+        /// <summary>Gets whether Undo is on: an answer since Start can be taken back.</summary>
+        public bool CanUndo => Check.CanUndo;
+
+        /// <summary>Undo: the last answer taken back, its word asked again.</summary>
+        public void Undo()
+        {
+            Check.Undo();
+            Refresh();
+        }
+
+        /// <summary>
+        /// Gets or sets how the window shows Check Spelling Settings over a copy of the settings: true when OK was pressed, the
+        /// copy then taken.
+        /// </summary>
+        public Func<CheckSpellingSettingsViewModel, bool> AskSettings { get; set; }
+
+        /// <summary>Settings...: Check Spelling Settings; its settings count from the next Start.</summary>
+        public void OpenSettings()
+        {
+            var settings = new CheckSpellingSettingsViewModel(Check.Settings);
+
+            if (AskSettings != null && AskSettings(settings))
+            {
+                Check.Settings = settings.Settings;
+            }
+        }
+
         /// <summary>Select objects: the dialog closes to have them picked, and comes back checking them.</summary>
         public void SelectObjects()
         {
@@ -534,6 +699,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Replacement));
             Raise(nameof(IsChecking));
             Raise(nameof(Status));
+            Raise(nameof(CanUndo));
         }
     }
 

@@ -17,6 +17,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+            model.AskSettings = settings => CheckSpellingSettingsWindow.Show(this, settings);
         }
 
         /// <summary>Gets the view model.</summary>
@@ -46,6 +47,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnStart(object sender, RoutedEventArgs e) => Model.Start();
+
+        private void OnSettings(object sender, RoutedEventArgs e) => Model.OpenSettings();
+
+        private void OnUndo(object sender, RoutedEventArgs e) => Model.Undo();
 
         private void OnAdd(object sender, RoutedEventArgs e) => Model.AddToDictionary();
 

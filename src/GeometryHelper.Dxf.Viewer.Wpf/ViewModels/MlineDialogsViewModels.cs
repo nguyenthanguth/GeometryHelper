@@ -153,7 +153,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _request.SettingsOf(naming.StartWith) ?? new DxfMlineStyleSettings(),
                 false,
                 Linetypes()
-            );
+            )
+            {
+                Document = _request.Document,
+            };
 
             while (EditStyle(editing))
             {
@@ -185,7 +188,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _request.SettingsOf(_selected),
                 _request.IsLocked(_selected),
                 Linetypes()
-            );
+            )
+            {
+                Document = _request.Document,
+            };
 
             while (EditStyle(editing))
             {
@@ -543,6 +549,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         };
 
         private readonly DxfMlineStyleSettings _settings;
+        private readonly ObservableCollection<string> _colors;
+        private readonly ObservableCollection<string> _fillColors;
         private MlineElementRow _element;
         private string _startAngle;
         private string _endAngle;
@@ -573,7 +581,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     .Select(e => new MlineElementRow(e.Offset, ColorName(e.Color), e.Linetype))
             );
             Element = Elements.FirstOrDefault();
+            _colors = new ObservableCollection<string>(ColorNames.Concat(new[] { SelectColorOption }));
+            _fillColors = new ObservableCollection<string>(
+                new[] { "None" }.Concat(ColorNames).Concat(new[] { SelectColorOption })
+            );
+
+            foreach (string name in Elements.Select(e => e.Color).Concat(new[] { FillColor }))
+            {
+                Offer(name);
+            }
         }
+
+        /// <summary>The last entry of the colour lists, which shows Select Color.</summary>
+        public const string SelectColorOption = "Select Color...";
 
         /// <summary>Gets the title.</summary>
         public string Title { get; }
@@ -581,11 +601,46 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether more than the description may be changed.</summary>
         public bool IsEditable { get; }
 
-        /// <summary>Gets the colours offered: BYLAYER, BYBLOCK and the seven named ones.</summary>
-        public IReadOnlyList<string> Colors => ColorNames;
+        /// <summary>
+        /// Gets the colours offered: BYLAYER, BYBLOCK, the seven named ones, the index colours chosen by Select Color, and
+        /// <see cref="SelectColorOption"/> last.
+        /// </summary>
+        public IReadOnlyList<string> Colors => _colors;
 
         /// <summary>Gets the fill colours offered: None, then the colours.</summary>
-        public IReadOnlyList<string> FillColors { get; } = new[] { "None" }.Concat(ColorNames).ToList();
+        public IReadOnlyList<string> FillColors => _fillColors;
+
+        /// <summary>Gets or sets the drawing whose linetypes Select Linetype lists; null for none, Linetype... then doing nothing.</summary>
+        public CadDocument Document { get; set; }
+
+        /// <summary>
+        /// Gets or sets how the window shows Select Color for <see cref="SelectColorOption"/>: true when OK was pressed, the
+        /// colour chosen then taken.
+        /// </summary>
+        public Func<SelectColorViewModel, bool> PickColor { get; set; }
+
+        /// <summary>Gets or sets how the window shows Select Linetype for Linetype...: true when OK was pressed.</summary>
+        public Func<SelectLinetypeViewModel, bool> PickLinetype { get; set; }
+
+        /// <summary>
+        /// Linetype...: Select Linetype on the linetype of the element picked, which takes the one chosen; nothing on Cancel or
+        /// with no element picked.
+        /// </summary>
+        public void ChooseLinetype()
+        {
+            if (_element == null || Document == null || PickLinetype == null)
+            {
+                return;
+            }
+
+            var dialog = new SelectLinetypeViewModel(Document, _element.Linetype, true);
+
+            if (PickLinetype(dialog) && dialog.Linetype != null)
+            {
+                _element.Linetype = dialog.Linetype;
+                Raise(nameof(ElementLinetype));
+            }
+        }
 
         /// <summary>Gets the linetypes offered.</summary>
         public IReadOnlyList<string> Linetypes { get; }
@@ -659,6 +714,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _settings.Filled ? ColorName(_settings.FillColor) : "None";
             set
             {
+                if (value == SelectColorOption)
+                {
+                    value = Chosen(_settings.Filled ? _settings.FillColor : DxfColor.ByLayer) ?? FillColor;
+                }
+
                 _settings.Filled = value != null && value != "None";
 
                 if (_settings.Filled)
@@ -721,11 +781,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             get => _element?.Color;
             set
             {
+                if (_element != null && value == SelectColorOption)
+                {
+                    value = Chosen(ColorOf(_element.Color));
+                }
+
                 if (_element != null && value != null)
                 {
                     _element.Color = value;
                 }
+
+                Raise(nameof(ElementColor));
             }
+        }
+
+        /// <summary>
+        /// Select Color on a colour, ByLayer and ByBlock offered: the name of the colour chosen, added to the lists where it is
+        /// none of theirs; null on Cancel. A true colour is taken as its nearest index colour, all a multiline style keeps.
+        /// </summary>
+        private string Chosen(DxfColor current)
+        {
+            var dialog = new SelectColorViewModel(current, true);
+
+            if (PickColor == null || !PickColor(dialog))
+            {
+                return null;
+            }
+
+            DxfColor color = dialog.Color;
+            string name = color.IsByColor
+                ? ColorName(DxfColor.FromColorIndex(DxfColorMethod.ByAci, color.ColorIndex))
+                : ColorName(color);
+            Offer(name);
+            return name;
+        }
+
+        /// <summary>Adds a colour to both lists, before Select Color..., where it is none of theirs.</summary>
+        private void Offer(string name)
+        {
+            if (name == null || name == "None" || _colors.Contains(name))
+            {
+                return;
+            }
+
+            _colors.Insert(_colors.Count - 1, name);
+            _fillColors.Insert(_fillColors.Count - 1, name);
         }
 
         /// <summary>Gets or sets the linetype of the element picked.</summary>
