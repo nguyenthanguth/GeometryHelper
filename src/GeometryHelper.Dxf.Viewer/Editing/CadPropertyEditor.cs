@@ -322,6 +322,44 @@ namespace GeometryHelper.Dxf.Viewer
             string notNumber = label + " is a number.";
             string notPositive = label + " is a number above nought.";
 
+            if (label == "Annotative" || label == "Annotation scale")
+            {
+                if (label == "Annotation scale")
+                {
+                    return "Annotation scale is read only here: -OBJECTSCALE adds and deletes the scales of an object.";
+                }
+
+                if (!CadCommands.CanMakeAnnotative(entity))
+                {
+                    return "A " + CadDocument.KindName(entity) + " is not made annotative here.";
+                }
+
+                bool yes = string.Equals(text, "Yes", StringComparison.OrdinalIgnoreCase);
+
+                if (!yes && !string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Annotative is Yes or No.";
+                }
+
+                write = e =>
+                {
+                    if (!yes)
+                    {
+                        e.Annotative = DxfAnnotativeStates.False;
+                    }
+                    else if (e.Annotative != DxfAnnotativeStates.True)
+                    {
+                        string why = CadCommands.MakeAnnotative(db, e);
+
+                        if (why != null)
+                        {
+                            throw new InvalidOperationException(why);
+                        }
+                    }
+                };
+                return null;
+            }
+
             switch (entity)
             {
                 case DxfLine _:

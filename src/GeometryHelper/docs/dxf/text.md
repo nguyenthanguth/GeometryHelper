@@ -271,8 +271,28 @@ the unit scale, the current scale and a scale an object points at. `Annotative` 
 TEXT, an MTEXT, an attribute, a dimension, a leader, a multileader (or its own 293), a tolerance, a hatch, a style or a block,
 an INSERT reading its block's, a multileader style its group 296, and gives `NotApplicable` for a line. Set true, it makes
 a text style or a dimension style annotative by that data alone, and a multileader style by 1 in its group 296 with no
-extended data, as AutoCAD 2021 writes the style it makes annotative; an entity is refused, since AutoCAD shows an annotative entity at a scale by a context record
-of the OBJECTS section that the library does not write until that record is checked on a drawing AutoCAD saved. `HasContext`
+extended data, as AutoCAD 2021 writes the style it makes annotative; a block annotative by that data too (set false is
+refused, the INSERTs of it keeping contexts of its scales); an INSERT is annotative as its block is, and is refused.
+A TEXT, an MTEXT, an attribute definition, a hatch or a multileader set true is made annotative as AutoCAD 2021 makes it
+(each record checked on a drawing AutoCAD wrote, the library's drawings audited by it with no error and read back to the same
+scales): its extended data (a multileader its group 293 instead), an extension dictionary with AcDbContextDataManager and
+ACDB_ANNOTATIONSCALES, and in it the default context, the entry `*A1` (290 of 1), of the scale CANNOSCALE names, or 1:1 in paper
+space. A text 2.5 high made annotative at 1:1 holds the context `70 0, 50 0, 10 10, 20 10, 11 0, 21 0` of the scale 1:1; its
+record is kept, which holds the size at the default's scale, so that a text made at 1:50 is 125 high for 2.5 on the sheet. A
+hatch has the lines of its pattern multiplied by 1 over the scale, as AutoCAD 2021 does when it makes one annotative at 1:50
+(the offset 0.0884 of a line becomes 4.42), and its context holds them with 40 of 50, the direction of the pattern (10, 20, 30
+the cosine and sine of its angle) and its loops (90 of their number, then each loop's type and a 290 of 1). A dimension, a
+leader, a tolerance and an attribute of an INSERT are refused, since AutoCAD lays out a picture of a dimension at each scale.
+`AddContext(scale)` shows the object at another scale, as AutoCAD's `ObjectContexts.AddContext` (OBJECTSCALE, Add): a context
+named one more than the highest number the object holds, not the default (290 of 0), made from the default's. A TEXT or
+attribute definition keeps its point and angle; an MTEXT has its width, its box and its words' size (40, 41, 42, 43)
+multiplied by the default's scale over the new one's, a width of 40 at 1:1 becoming 2000 at 1:50; a hatch has its lines
+multiplied so and 40 of 1 over the scale; an INSERT its three factors, 1 at 1:1 becoming 50 at 1:50 and 100 at 1:100, and each
+attribute of it that holds contexts one of its own, its point moved out from the INSERT's by the same factor (300, 1003 of an
+INSERT at (300, 1000) becomes (300, 1150) at 1:50). An INSERT that holds no context, shown at 1:1 by its block, is given the scale as
+its one context, the default, with its factors divided by the scale, as AutoCAD 2021 did. A multileader, a dimension and
+the other kinds are refused a second scale (`NotSupportedException`), AutoCAD laying them out again at each scale. `GetContexts()`
+lists the scales an object is shown at, as AutoCAD's `ObjectContexts.GetContexts`, the default first. `HasContext`
 reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by
 the scale each points at (its 340), and none of an object never annotative, as a LINE or a CIRCLE handed a TEXT's contexts by
 `HandOverTo`, which keeps them, as AutoCAD 2021 reads it; `RemoveContext` erases one, the default and the last refused, and `Annotative =

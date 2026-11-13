@@ -37,8 +37,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// remove Boundaries taking loops out (<see cref="HatchRemoveBoundaries"/>), Advanced options Boundary set, Retain
         /// boundary, Island detection, Style, Associativity, Gap tolerance and separate Hatches, DRaw order where the hatch goes
         /// in the draw order (behind its boundary as AutoCAD starts), Origin, hatch COlor, LAyer and Transparency (kept in the
-        /// document's <see cref="CadHatchSettings"/>, as AutoCAD keeps HPCOLOR and the rest), and ANnotative, which is said not
-        /// to be made yet. Enter makes the hatch, or a hatch of each area where they are to be separate, as one undo step. The
+        /// document's <see cref="CadHatchSettings"/>, as AutoCAD keeps HPCOLOR and the rest), and ANnotative, which makes each
+        /// hatch annotative at the annotation scale of its space. Enter makes the hatch, or a hatch of each area where they are to be separate, as one undo step. The
         /// settings are the document's, as HATCH's are.
         /// </summary>
         private static IEnumerable<CadPrompt> HatchTyped(CadCommandContext c)
@@ -188,10 +188,12 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("ANnotative"))
                 {
-                    foreach (CadPrompt prompt in HatchAnnotative(c))
+                    foreach (CadPrompt prompt in HatchAnnotative(c, settings))
                     {
                         yield return prompt;
                     }
+
+                    c.Document.HatchSettings = settings.Clone();
                 }
                 else if (c.Input.Is("hatch COlor"))
                 {

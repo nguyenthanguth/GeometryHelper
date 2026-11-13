@@ -437,14 +437,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfPaperOrientationStates.False, grid.PaperOrientation);
             Assert.False(grid.HasContext(Scales(db).GetContext("1:1")));
 
-            // An entity is not made annotative: AutoCAD shows it at a scale by a context the library does not write yet.
+            // A dimension is not made annotative: AutoCAD lays out a picture of it at each scale, which the library does not write.
             Assert.Contains(
-                "checked on a drawing AutoCAD saved",
-                Assert.Throws<NotSupportedException>(() => grid.Annotative = DxfAnnotativeStates.True).Message,
+                "one picture of it at each scale",
+                Assert
+                    .Throws<NotSupportedException>(() =>
+                        ByHandle<DxfDimension>(db, "75").Annotative = DxfAnnotativeStates.True
+                    )
+                    .Message,
                 StringComparison.Ordinal
-            );
-            Assert.Throws<NotSupportedException>(() =>
-                ByHandle<DxfMText>(db, "73").Annotative = DxfAnnotativeStates.True
             );
             Assert.Throws<ArgumentException>(() => grid.Annotative = DxfAnnotativeStates.NotApplicable);
             Assert.Throws<ArgumentException>(() => grid.Annotative = (DxfAnnotativeStates)7);

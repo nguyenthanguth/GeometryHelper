@@ -444,8 +444,10 @@ current)] <use current>:` (`Cannot find layer "NOSUCH".` and asks again for a la
 `Specify transparency value (0-90) or [. (for use current)] <use current>:` (a whole number, ByLayer or ByBlock; the alpha is
 255 times what is left, rounded down, 127 for 50), a dot putting each back to the current one; they are kept in the
 document's hatch settings, as AutoCAD keeps HPCOLOR, HPBACKGROUNDCOLOR, HPLAYER and HPTRANSPARENCY. ANnotative asks `Create
-annotative hatch [Yes/No] <N>:`; the presenter does not write the annotation scale of an annotative hatch yet, so Yes is said
-so and the hatch is made as before.
+annotative hatch [Yes/No] <N>:` (`<Y>` once chosen, kept in the document's hatch settings); each hatch made after Yes is
+annotative at the annotation scale of its space (CANNOSCALE in model space, 1:1 in a layout), as AutoCAD 2021 makes one: its
+pattern lines multiplied by 1 over the scale and a context of that scale under its extension dictionary (see "Annotative objects"
+below).
 
 Advanced asks `Enter an option [Boundary set/Retain boundary/Island detection/Style/Associativity/Gap tolerance/separate
 Hatches]:` until Enter: Boundary set asks `Specify candidate set for boundary [New/Everything] <Everything>:`, New taking
@@ -1604,6 +1606,29 @@ dialog: File Format (CDF, SDF or DXX, the output file's extension following), Se
 objects:` is asked and it comes back with `Number found: 2`; none selected is the whole drawing), Template File (greyed for
 DXX) and Output File, the drawing's name with `.txt` to start with. OK refuses a CDF or SDF extract with no template, then
 writes the extract as -ATTEXT does, a template not there said `"missing.txt": Can't find file.` and nothing written.
+
+### Annotative objects
+
+A TEXT, an MTEXT, an attribute definition, a hatch and a multileader are made annotative as AutoCAD 2021 makes them
+([`DxfDBObject.Annotative`](xref:GeometryHelper.Dxf.DxfDBObject.Annotative)); the palette's Annotative row (Misc, Yes or No) sets
+it for those kinds, with Annotation scale, read only, listing the scales the object is shown at (`1:1, 1:50`); a dimension, an
+INSERT, a leader and a tolerance show the row read only, since the library writes no picture of a dimension for each scale.
+-OBJECTSCALE asks `Select annotative objects:`, `Enter an option [Add/Delete/?] <Add>:` and `Enter named scale to add or [?]
+<1:50>:` (the annotation scale of the space is offered), answers `1 object updated to support annotation scale <1:100>.` or
+`1 object scale removed.`, and asks the next scale, with no default, until Enter; a scale the drawing's list has not says
+`Scale 1:7 not found.`; Delete of a scale the object is not shown at, or of its last, says `0 objects scale removed.`,
+`1 object doesn't support annotation scale <1:50>.` and `1 objects cannot remove scale.`, as AutoCAD 2021 does; the whole
+command is one undo step. AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE take the objects and add the current scale to them or take
+it from them, answering as -OBJECTSCALE does. ANNOALLVISIBLE (0 or 1) is the drawing's variable of that name. TEXT and
+MTEXT drawn in an annotative text style are annotative: the height asked is the sheet's, and the text is that over the
+annotation scale high (2.5 at 1:50 is 125). The Edit Drawing Scales list is given the scale an object is first made
+annotative at where it has none.
+
+The display draws an annotative TEXT, MTEXT or hatch of a space at the annotation scale of the space: CANNOSCALE in model
+space, 1:1 in a layout, and in a viewport the scale of the viewport where the list has it. A text 2.5 high on the sheet is 2.5
+high at 1:1 and 125 at 1:50; an MTEXT's height and width and a hatch's pattern lines are multiplied likewise. An object that is
+not shown at the scale is not drawn when ANNOALLVISIBLE is 0, and drawn as its default context says when it is 1. The objects of
+a block, an INSERT's attributes among them, are drawn as they are read, and ANNOAUTOSCALE is not kept.
 
 ### Aliases and keys
 

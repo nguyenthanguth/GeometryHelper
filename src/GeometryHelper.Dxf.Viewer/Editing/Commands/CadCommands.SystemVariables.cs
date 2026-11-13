@@ -451,6 +451,14 @@ namespace GeometryHelper.Dxf.Viewer
             registry.AddVariable(
                 CadSystemVariable.Text("CANNOSCALE", true, s => s.Document.Database.Cannoscale, CurrentAnnotationScale)
             );
+            registry.AddVariable(
+                Flag(
+                    "ANNOALLVISIBLE",
+                    s => s.Document.Database.AnnoAllVisible,
+                    (c, v) => c.Database.AnnoAllVisible = v,
+                    "ANNOALLVISIBLE"
+                )
+            );
 
             // The limits, the base point and the extents.
             registry.AddVariable(

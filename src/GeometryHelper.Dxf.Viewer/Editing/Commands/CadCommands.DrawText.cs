@@ -95,7 +95,9 @@ namespace GeometryHelper.Dxf.Viewer
                         + (style ?? "Standard")
                         + "\"  Text height:  "
                         + Length(height)
-                        + "  Annotative:  No  Justify:  Left"
+                        + "  Annotative:  "
+                        + (record != null && record.Annotative == DxfAnnotativeStates.True ? "Yes" : "No")
+                        + "  Justify:  Left"
                 );
                 yield return CadPrompt.ForPoint("Specify start point of text", null, new[] { "Justify", "Style" });
 
@@ -260,9 +262,17 @@ namespace GeometryHelper.Dxf.Viewer
             byte flags = record?.FlagBits ?? 0;
             DxfAttachmentPoint justification = TextPoints[justify];
 
+            // A text of an annotative style is drawn at the size its scale gives it on the sheet, as AutoCAD 2021 draws it: the
+            // height asked is the paper's, and the record's is that over the annotation scale (2.5 at 1:50 is 125).
+            DxfAnnotationScale scale =
+                record != null && record.Annotative == DxfAnnotativeStates.True
+                    ? CurrentScale(c.Database, c.Space.IsModel)
+                    : null;
+            double drawn = scale == null ? height : height / scale.Scale;
+
             // Line after line until an empty one, each a TEXT of its own five thirds of the height below the one before, as DTEXT
             // goes on; the lines of one run are one undo step.
-            var down = new GeoVector2(Math.Sin(angle), -Math.Cos(angle)) * (height * 5.0 / 3.0);
+            var down = new GeoVector2(Math.Sin(angle), -Math.Cos(angle)) * (drawn * 5.0 / 3.0);
 
             // The rotation kept from nought up to a whole turn, as AutoCAD 2021 keeps 30 degrees clockwise as 330.
             angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
@@ -277,7 +287,7 @@ namespace GeometryHelper.Dxf.Viewer
                     var text = new DxfDBText
                     {
                         Position = P3(line),
-                        Height = height,
+                        Height = drawn,
                         Rotation = angle,
                         TextString = words,
                         WidthFactor = widthFactor,
@@ -333,7 +343,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 DxfEntity made = Line(c.Input.Text);
-                c.Apply(null, s => s.Append(c.Space, made));
+                c.Apply(null, s =>
+                {
+                    s.Append(c.Space, made);
+
+                    if (scale != null)
+                    {
+                        MakeAnnotative(s.Database, made);
+                    }
+                });
                 at += down;
                 second += down;
                 c.Remember("text.next", 1.0);
@@ -508,7 +526,8 @@ namespace GeometryHelper.Dxf.Viewer
                     + (style ?? "Standard")
                     + "\"  Text height:  "
                     + Length(height)
-                    + "  Annotative:  No"
+                    + "  Annotative:  "
+                    + (record != null && record.Annotative == DxfAnnotativeStates.True ? "Yes" : "No")
             );
             yield return CadPrompt.ForPoint("Specify first corner");
 
@@ -833,12 +852,19 @@ namespace GeometryHelper.Dxf.Viewer
             DxfLineSpacingStyle lineSpacing =
                 spacing == "Exactly" ? DxfLineSpacingStyle.Exactly : DxfLineSpacingStyle.AtLeast;
             string refused = null;
+
+            // The words of an annotative style are the height of the sheet's paper over the annotation scale, as AutoCAD 2021
+            // draws them; the box is as it was picked.
+            DxfAnnotationScale scale =
+                record != null && record.Annotative == DxfAnnotativeStates.True
+                    ? CurrentScale(c.Database, c.Space.IsModel)
+                    : null;
             c.Apply(null, s =>
             {
                 var text = new DxfMText
                 {
                     Location = P3(location),
-                    TextHeight = height,
+                    TextHeight = scale == null ? height : height / scale.Scale,
                     Width = boxWidth,
                     Attachment = attachment,
                     Contents = words,
@@ -866,6 +892,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 ApplyBox(text, edit);
                 s.Append(c.Space, Current(c, text));
+
+                if (scale != null)
+                {
+                    MakeAnnotative(s.Database, text);
+                }
 
                 if (edit.Frame == null && columns == DxfColumnType.StaticColumns)
                 {

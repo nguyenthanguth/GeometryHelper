@@ -173,7 +173,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Gives the builder the display list of model space its viewports draw, made before it or kept from another builder.</summary>
-        internal void UseModel(DisplayList2 model) => _modelCache = model;
+        internal void UseModel(DisplayList2 model)
+        {
+            _modelCache = model;
+            _scaledModels = null;
+        }
 
         internal bool IsLayerVisible(string name)
         {
@@ -247,6 +251,94 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         public DisplayList2 Build(DxfBlockTableRecord space, bool isModel) => Patch(space, isModel, null, null, 0);
+
+        // The scale annotative objects are drawn at: the annotation scale of model space (CANNOSCALE) in model space, 1:1 in a
+        // layout, or a viewport's own where model space is drawn through it; and whether the objects that are not shown at it
+        // are drawn anyway (ANNOALLVISIBLE).
+        private DxfAnnotationScale _annotationScale;
+        private bool _allVisible = true;
+        private string _scaleOverride;
+        private Dictionary<string, DisplayList2> _scaledModels;
+
+        /// <summary>
+        /// Takes the scale annotative objects are drawn at for a space about to be built, and gives its key, the scale's name and
+        /// ANNOALLVISIBLE, which a list made at another scale does not share its runs across; null where the drawing has no list
+        /// of scales or the scale.
+        /// </summary>
+        private string AnnotationScaleOf(DxfBlockTableRecord space)
+        {
+            _annotationScale = null;
+
+            try
+            {
+                string name = string.Equals(space?.Name, "*Model_Space", StringComparison.OrdinalIgnoreCase)
+                    ? _scaleOverride ?? _database.Cannoscale
+                    : "1:1";
+                _annotationScale = DxfObjectContextCollection.Find(_database, name);
+                _allVisible = _database.AnnoAllVisible;
+            }
+            catch (Exception)
+            {
+                _annotationScale = null;
+                _allVisible = true;
+            }
+
+            return _annotationScale == null ? null : _annotationScale.Name + (_allVisible ? "|all" : "|only");
+        }
+
+        /// <summary>
+        /// Whether an annotative object of a space is drawn, and the number its sizes are multiplied by to be those at the scale
+        /// of the space (<see cref="DxfDBObject.TryFactorAt"/>); an object of a block, which AutoCAD draws at its INSERT's scale,
+        /// is drawn as it is read.
+        /// </summary>
+        private bool Annotated(DxfEntity entity, Frame frame, out double factor)
+        {
+            factor = 1.0;
+
+            if (_annotationScale == null || frame.Depth != 0 || frame.RootHandle != null)
+            {
+                return true;
+            }
+
+            _sawAnnotative |= entity.Item.File.ExtensionDictionaryOf(entity.Item) != null;
+            return entity.TryFactorAt(_annotationScale, _allVisible, out factor);
+        }
+
+        private bool _sawAnnotative;
+
+        /// <summary>
+        /// The name of the scale a viewport shows model space at, where annotative objects were met and it is another than the
+        /// one model space is drawn at: the scale of the drawing's list the viewport's custom scale is (1:50 for 0.02), null
+        /// for none.
+        /// </summary>
+        private string ViewportScale(DxfViewport viewport)
+        {
+            if (_modelCache == null || !_modelCache.AnnotativeSeen)
+            {
+                return null;
+            }
+
+            try
+            {
+                double custom = viewport.CustomScale;
+
+                foreach (DxfAnnotationScale scale in DxfObjectContextCollection.Scales(_database))
+                {
+                    if (Math.Abs(scale.Scale - custom) <= 1E-9 * custom)
+                    {
+                        return string.Equals(scale.Name, _database.Cannoscale, StringComparison.Ordinal)
+                            ? null
+                            : scale.Name;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // A viewport of no scale shows model space as it is drawn.
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Draws entities that are in no space, as a command's preview makes them before it adds one: each as it would be drawn
@@ -334,19 +426,26 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string fontFolder = _document?.FontFolder;
+            string annotation = AnnotationScaleOf(space);
 
             if (
                 older != null
                 && (
                     older.PointViewHeight != _pointViewHeight
                     || !string.Equals(older.FontFolder, fontFolder, StringComparison.Ordinal)
+                    || !string.Equals(older.AnnotationKey, annotation, StringComparison.Ordinal)
                 )
             )
             {
                 older = null;
             }
 
-            var list = new DisplayList2(older) { PointViewHeight = _pointViewHeight, FontFolder = fontFolder };
+            var list = new DisplayList2(older)
+            {
+                PointViewHeight = _pointViewHeight,
+                FontFolder = fontFolder,
+                AnnotationKey = annotation,
+            };
             var root = new Frame(Affine2.Identity);
 
             // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
@@ -452,9 +551,12 @@ namespace GeometryHelper.Dxf.Viewer
                 _patterns.Clear();
             }
 
+            list.AnnotativeSeen = _sawAnnotative || (older != null && older.AnnotativeSeen);
+
             if (isModel)
             {
                 _modelCache = list;
+                _scaledModels = null;
             }
 
             return list;
@@ -1069,7 +1171,13 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDBText text:
                 {
                     int before = list.Count;
-                    DrawText(text, frame, list, style, handle, layerName);
+
+                    if (!Annotated(text, frame, out double textFactor))
+                    {
+                        return;
+                    }
+
+                    DrawText(text, frame, list, style, handle, layerName, textFactor);
 
                     // A TEXT of the space and an ATTRIB shown give the snap Insertion the point they are placed by.
                     if (
@@ -1087,7 +1195,27 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfMText mtext:
                 {
                     int before = list.Count;
-                    DrawMText(mtext, frame, list, style, handle, layerName);
+
+                    if (!Annotated(mtext, frame, out double wordsFactor))
+                    {
+                        return;
+                    }
+
+                    DxfMText words = mtext;
+
+                    if (wordsFactor != 1.0)
+                    {
+                        // Drawn at the scale of the space on a copy whose height and width are those at that scale.
+                        words = (DxfMText)mtext.Clone();
+                        words.TextHeight = mtext.TextHeight * wordsFactor;
+
+                        if (mtext.Width > 0.0)
+                        {
+                            words.Width = mtext.Width * wordsFactor;
+                        }
+                    }
+
+                    DrawMText(words, frame, list, style, handle, layerName);
 
                     if (
                         frame.RootHandle == null
@@ -1102,8 +1230,24 @@ namespace GeometryHelper.Dxf.Viewer
                     return;
                 }
                 case DxfHatch hatch:
-                    DrawHatch(hatch, frame, list, style, handle, layerName);
+                {
+                    if (!Annotated(hatch, frame, out double lineFactor))
+                    {
+                        return;
+                    }
+
+                    DxfHatch lines = hatch;
+
+                    if (lineFactor != 1.0)
+                    {
+                        // Drawn at the scale of the space on a copy whose pattern lines are those at that scale.
+                        lines = (DxfHatch)hatch.Clone();
+                        DxfDBObject.ScaleHatchLines(lines.Item, lineFactor);
+                    }
+
+                    DrawHatch(lines, frame, list, style, handle, layerName);
                     return;
+                }
                 case DxfMLeader mleader:
                     foreach (DxfEntity part in mleader.Explode())
                     {
@@ -1893,12 +2037,31 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (looks == null || _database.ModelSpace == null)
+            string scaleName = ViewportScale(viewport);
+
+            if ((looks == null && scaleName == null) || _database.ModelSpace == null)
             {
                 return _modelCache;
             }
 
-            var inner = new DisplayBuilder(_database, _document);
+            if (looks == null)
+            {
+                // Model space at another annotation scale, drawn once for each scale the viewports have.
+                _scaledModels = _scaledModels ?? new Dictionary<string, DisplayList2>(StringComparer.Ordinal);
+
+                if (!_scaledModels.TryGetValue(scaleName, out DisplayList2 scaled))
+                {
+                    scaled = new DisplayBuilder(_database, _document) { _scaleOverride = scaleName }.Build(
+                        _database.ModelSpace,
+                        false
+                    );
+                    _scaledModels[scaleName] = scaled;
+                }
+
+                return scaled;
+            }
+
+            var inner = new DisplayBuilder(_database, _document) { _scaleOverride = scaleName };
 
             foreach (DxfLayerViewportProperties look in looks)
             {
@@ -1914,7 +2077,8 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayList2 list,
             DisplayStyle style,
             string handle,
-            string layerName
+            string layerName,
+            double heightFactor = 1.0
         )
         {
             // The spaces before and after the words kept: AutoCAD justifies the words by them (mirror-insert GHMI1), "ABC " on the
@@ -1970,7 +2134,7 @@ namespace GeometryHelper.Dxf.Viewer
                     value,
                     m.X(at.X, at.Y),
                     m.Y(at.X, at.Y),
-                    text.Height * m.Scale,
+                    text.Height * heightFactor * m.Scale,
                     turn,
                     text.WidthFactor,
                     horizontal,

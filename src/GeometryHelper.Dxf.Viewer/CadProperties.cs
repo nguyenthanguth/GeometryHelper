@@ -693,7 +693,50 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
             }
 
+            AddAnnotative(entity, groups);
             return groups;
+        }
+
+        /// <summary>
+        /// The rows of an annotative object, as AutoCAD's palette gives them in Misc: Annotative, Yes or No (read only for a kind the
+        /// presenter does not make annotative), and Annotation scale, the scales the object is shown at, comma apart. An object
+        /// that can never be annotative gives none.
+        /// </summary>
+        private static void AddAnnotative(DxfEntity entity, List<CadPropertyGroup> groups)
+        {
+            DxfAnnotativeStates state = Read(() => entity.Annotative, DxfAnnotativeStates.NotApplicable);
+
+            if (state == DxfAnnotativeStates.NotApplicable)
+            {
+                return;
+            }
+
+            bool yes = state == DxfAnnotativeStates.True;
+            var rows = new List<CadPropertyRow>
+            {
+                new CadPropertyRow("Annotative", YesNo(yes), !CadCommands.CanMakeAnnotative(entity), YesNoChoices),
+            };
+
+            if (yes)
+            {
+                rows.Add(
+                    new CadPropertyRow(
+                        "Annotation scale",
+                        Read(() => string.Join(", ", entity.GetContexts().Select(s => s.Name)), string.Empty),
+                        true
+                    )
+                );
+            }
+
+            int at = groups.FindIndex(g => g.Title == "Misc");
+
+            if (at < 0)
+            {
+                groups.Add(new CadPropertyGroup("Misc", rows));
+                return;
+            }
+
+            groups[at] = new CadPropertyGroup("Misc", groups[at].Rows.Concat(rows).ToList());
         }
 
         /// <summary>The groups two sets share, by title and label, in the order of the first; a value that differs varies.</summary>

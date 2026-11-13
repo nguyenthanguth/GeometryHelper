@@ -392,6 +392,31 @@ namespace GeometryHelper.Dxf
         private GeoVector3 OwnScale() => new GeoVector3(GetDouble(41, 1.0), GetDouble(42, 1.0), GetDouble(43, 1.0));
 
         /// <summary>
+        /// Gives an INSERT of an annotative block that holds no context the scale as its one context, the default, and its record
+        /// and that context the factors it has divided by the scale, as AutoCAD 2021 gave an INSERT the scale 1:50 (50 for 1);
+        /// its attributes get a context of the scale as well, and are not moved otherwise.
+        /// </summary>
+        internal void AddFirstContext(DxfAnnotationScale scale)
+        {
+            GeoVector3 own = OwnScale();
+            double ratio = scale.Scale;
+            var factors = new GeoVector3(own.X / ratio, own.Y / ratio, own.Z / ratio);
+            WriteFirstReferenceContext(Item, scale, factors);
+            SetGroups(
+                Factor(41, factors.X, own.X)
+                    .Concat(Factor(42, factors.Y, own.Y))
+                    .Concat(Factor(43, factors.Z, own.Z))
+                    .ToArray()
+            );
+            AddToAttributes(
+                Item,
+                scale,
+                1.0 / ratio,
+                new GeoPoint3(GetDouble(10, 0.0), GetDouble(20, 0.0), GetDouble(30, 0.0))
+            );
+        }
+
+        /// <summary>
         /// The contexts of an INSERT of an annotative block, as AutoCAD 2021 reads it (<see cref="Position"/>), and the groups of
         /// the one it is shown at, read once until the records of its file next change; null and null for one of none.
         /// </summary>

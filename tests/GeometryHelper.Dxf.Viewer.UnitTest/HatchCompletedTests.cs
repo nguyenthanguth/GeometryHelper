@@ -310,18 +310,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         #region ANnotative
 
         [Fact]
-        public void Annotative_AsksYesOrNo_AndSaysAnAnnotativeHatchIsNotMadeYet()
+        public void Annotative_AsksYesOrNo_AndMakesTheHatchAnnotativeAtTheCurrentScale()
         {
             CadDocument document = Squares(0, 0, 100);
             CadCommandSession session = Start(document, "-HATCH", "AN");
             Assert.Equal("Create annotative hatch [Yes/No] <N>:", session.PromptText);
 
             Run(session, "Y");
-            Assert.Contains(session.History, l => l.Contains("annotative hatch is not made"));
             Assert.Equal(MainPrompt, session.PromptText);
             Run(session, P(50, 50), Enter);
 
-            Assert.Equal(DxfAnnotativeStates.False, OnlyHatch(document).Annotative);
+            // The drawing had no list of scales: the hatch is annotative at 1:1, which the list is given.
+            DxfHatch hatch = OnlyHatch(document);
+            Assert.Equal(DxfAnnotativeStates.True, hatch.Annotative);
+            Assert.Equal(new[] { "1:1" }, hatch.GetContexts().Select(s => s.Name));
         }
 
         #endregion

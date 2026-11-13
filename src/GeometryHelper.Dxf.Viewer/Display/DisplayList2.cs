@@ -127,6 +127,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the folder the fonts were first looked for in when the list was made; null for none.</summary>
         internal string FontFolder { get; set; }
 
+        /// <summary>Gets or sets the annotation scale annotative objects were drawn at when the list was made, with ANNOALLVISIBLE; null for none.</summary>
+        internal string AnnotationKey { get; set; }
+
+        /// <summary>Gets or sets whether an annotative object was met when the list was made, which a viewport of another scale draws model space again for.</summary>
+        internal bool AnnotativeSeen { get; set; }
+
         /// <summary>The bit a layer takes in the masks of the runs: one each for the first 63 layers met, the last shared by the rest.</summary>
         internal ulong LayerBit(string layer)
         {

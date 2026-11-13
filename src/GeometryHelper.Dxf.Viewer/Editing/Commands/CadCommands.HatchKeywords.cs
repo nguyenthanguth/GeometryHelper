@@ -359,18 +359,25 @@ namespace GeometryHelper.Dxf.Viewer
             CadPrompt.ForKeyword(string.Empty, words).MatchKeyword(typed);
 
         /// <summary>
-        /// ANnotative: "Create annotative hatch [Yes/No] &lt;N&gt;:". The presenter does not write the annotation scale an
-        /// annotative hatch is shown at, so Yes is said so and the hatch is made as it was.
+        /// ANnotative: "Create annotative hatch [Yes/No] &lt;N&gt;:", kept in the settings the hatches are made with; Yes makes
+        /// each hatch annotative at the annotation scale of its space, as AutoCAD 2021 does (its pattern lines multiplied by
+        /// 1 over the scale, a context of that scale under its extension dictionary).
         /// </summary>
-        private static IEnumerable<CadPrompt> HatchAnnotative(CadCommandContext c)
+        private static IEnumerable<CadPrompt> HatchAnnotative(CadCommandContext c, CadHatchSettings settings)
         {
-            yield return CadPrompt.ForKeyword("Create annotative hatch", new[] { "Yes", "No" }, "N");
+            yield return CadPrompt.ForKeyword(
+                "Create annotative hatch",
+                new[] { "Yes", "No" },
+                settings.Annotative ? "Y" : "N"
+            );
 
             if (c.Input.Is("Yes"))
             {
-                c.Write(
-                    "An annotative hatch is not made here yet: the presenter does not write the annotation scale a hatch is shown at."
-                );
+                settings.Annotative = true;
+            }
+            else if (c.Input.Is("No"))
+            {
+                settings.Annotative = false;
             }
         }
 
