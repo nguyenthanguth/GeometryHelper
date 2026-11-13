@@ -2091,6 +2091,48 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Whether a line through the origin along <paramref name="way"/> runs through a box with sides along the axes, its
+        /// middle at <paramref name="middle"/>, <paramref name="halfWidth"/> and <paramref name="halfHeight"/> either side of it,
+        /// and where along the line it enters and leaves: a box 7.6 by 3.75 centred (-3, -5.2) is crossed by the line at 30
+        /// degrees from -7.85 to -6.64.
+        /// </summary>
+        private static bool LineThroughBox(
+            GeoVector2 way,
+            GeoVector2 middle,
+            double halfWidth,
+            double halfHeight,
+            out double enters,
+            out double leaves
+        )
+        {
+            enters = double.NegativeInfinity;
+            leaves = double.PositiveInfinity;
+            double[] direction = { way.X, way.Y };
+            double[] centre = { middle.X, middle.Y };
+            double[] half = { halfWidth, halfHeight };
+
+            for (int i = 0; i < 2; i++)
+            {
+                if (Math.Abs(direction[i]) < 1E-12)
+                {
+                    if (Math.Abs(centre[i]) >= half[i])
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                double a = (centre[i] - half[i]) / direction[i];
+                double b = (centre[i] + half[i]) / direction[i];
+                enters = Math.Max(enters, Math.Min(a, b));
+                leaves = Math.Min(leaves, Math.Max(a, b));
+            }
+
+            return leaves - enters > 1E-9;
+        }
+
+        /// <summary>
         /// How far the box of words, grown by the gap each side, reaches along a line at an angle to them: the width and the
         /// height of the box, each over the cosine and the sine of the turn.
         /// </summary>

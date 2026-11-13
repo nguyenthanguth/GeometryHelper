@@ -297,7 +297,9 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if ((tWords - radius) * (tOver - radius) <= 0.0 || Math.Abs(tOver - radius) <= tolerance)
+            // Words exactly on the rim count as inside it: put on the rim of a circle of 20 at 30 degrees with the centre drawn 100
+            // below (the j2 probes, 16 of 16), AutoCAD 2021 keeps them where they are, as for words 0.01 inside.
+            if ((tWords > radius + tolerance) != (tOver > radius) || Math.Abs(tOver - radius) <= tolerance)
             {
                 GeoPoint2 rim = center + u * radius;
                 GeoPoint2 instead = over + (rim - over) * 0.75;
@@ -488,10 +490,10 @@ namespace GeometryHelper.Dxf.Viewer
 
                 // Words whose box straddles the rim leave the line a box all on their side of their point, not about it, as AutoCAD
                 // 2021 breaks it: "R8" of a circle of 20 put 21.795 out (the box would run from 18.044 to 25.544) has the line gone
-                // from 21.795 to 29.295.
+                // from 21.795 to 29.295. Words exactly on the rim are inside it: their box goes to the inside.
                 if (along - half < radius - 1E-9 && along + half > radius + 1E-9)
                 {
-                    along += along >= radius ? half : -half;
+                    along += along > radius + 1E-9 ? half : -half;
                 }
 
                 GeoPoint2 middle = center + u * along;

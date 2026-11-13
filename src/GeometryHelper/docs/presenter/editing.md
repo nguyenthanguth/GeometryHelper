@@ -808,15 +808,26 @@ plus 0.8 of the cosine (in): the band is wider out than in, and widest level, at
 those sizes, 3.8 out and 2.1 in straight above the vertex. Fitted
 to what AutoCAD 2021 draws over 11 000 probes of "60°" put at every 5 degrees round an angle of 60 degrees at the origin,
 its arc 30 out, and on a grid (98 of 100 right), and to 0.05 of a unit over 26 styles of arrowheads, words and gap at 30
-degrees ("60.00°" draws its leader from 8.8 off the arc in Arial). Not followed: the band jumps a third of a landing where
-the point crosses the height of the arc's middle, and words straight above or below the vertex get a landing under them.
+degrees ("60.00°" draws its leader from 8.8 off the arc in Arial). The band jumps where the point crosses the height of
+the arc's middle (15 for an arc of 30 at 30 degrees: probed every 0.1 either side of it, the leader came and went at exactly
+15), and between the height of the vertex and that height it narrows as the point rises: out by 0.2 landings, in on the left
+of the vertex by 0.28 and on the right wider by 0.1 (a7 of 5 832 probes: 159 differing down to 101, a6 29 down to 21, a4
+15 to 13); the rest of the band's shape is still only fitted (a5 49 differ). Not followed: words straight above or below
+the vertex get a landing under them.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,
 to the rim, else DIMCEN marks the centre: "R20" put 1 out under ISO-25, and in acad.dwt's Standard "R20" put 19.4 to
 20.6 out. Put 8 out they leave the arrowhead inside and the line broken about them. DIMTIH keeps words put under 2 level,
 inside the circle or out, whatever DIMTOH says, and the line is broken where it runs through their box grown by DIMGAP:
-"R20" of Arial 0.18 high put 10 out at 30 degrees breaks it from 9.636 to 10.364. Words outside kept level on a line
+"R20" of Arial 0.18 high put 10 out at 30 degrees breaks it from 9.636 to 10.364. Level words stand on a slanting line
+wherever it runs through that box, further off it than half their height, and the break is centred on the middle of what
+the line takes of the box, not on the foot of their middle: "%%c40" of Arial put at (-1.5, 2.598), 3 off a diameter picked
+at 30 degrees through the centre, breaks it from -2 to 5.88 along it (middle 1.94), and the same put 4 off leaves it
+whole. Words behind the centre of a radius leave the arrowhead inside and the line whole unless their box takes the line
+from a quarter of a unit behind the centre to an arrowhead and a half past it: "R8" put at (-3.531, -0.884) of a circle
+picked at 30 degrees (3.5 behind the centre along the line, 1 off it) stays inside, put 2 behind and 1 off it pushes the
+arrowhead out (r6 8 differing down to 0; the box limits are fitted over 340 probes, 6 differing). Words outside kept level on a line
 within 15 degrees of level stand on no landing of their own, a gap past the end of the line, as on a linear dimension.
 Level words under DIMTAD 1 and 4 put past the rim but within the room of the arrowhead stand on their landing of an arrowhead,
 the words on it, as they do under DIMTAD 0, unless the line runs within 15 degrees of upright (where they stand above it) or
@@ -831,11 +842,15 @@ along it: "R8" put 4 out at 30 degrees has its landing from 2.598 to -4.563 (7.1
 at 60 degrees the landing 2.5 long and the words on it. Within 15 degrees of level only the arrowheads and the height
 count, and the landing is the words and a gap long. Under DIMTMOVE 1 words put behind the centre of a radius (or outside
 the circle and behind it, for a diameter) stand above a landing of the words and a gap, as past the rim. Fitted over
-17 000 probes (98 of 100 right; wide words on steep lines are the ones it misses).
+17 000 probes (98 of 100 right; wide words on steep lines are the ones it misses). A line of exactly two arrowheads does not
+keep them (a radius of 5 under DIMASZ 2.5 or of 8 under DIMASZ 4 put at half the radius 10, 170, 190 and 350 degrees left them
+off 14 times of 16; the other two are float noise in AutoCAD). Not followed: a diameter of 6 put out at 1.6 times its radius
+keeps its words on the line at steep angles (80 to 100, 260 to 280), as diameters of 4 to 12 do in windows of angle that
+no one rule fits (d2 of 924 probes: 156 differing).
 Words of a jogged radius whose box (grown by the gap) straddles the rim leave the line a box all on their own side of their
 point, not about it: "R20" of a circle of 20 with its centre drawn 100 below, put 32 out at 30 degrees, stands 21.795 out
 and has the line gone from 21.795 to 29.295, not from 18.045 to 25.545; put inside, 18.2 out, the line is gone from 10.7
-to 18.2.
+to 18.2. Words exactly on the rim count as inside it: they stay at their point and the box goes to the inside (j2 16 of 16).
 Words put past the rim but within the room of the arrowhead stand where the fit would put them: of a radius or a diameter
 under DIMATFIT 3 (and 0 to 2 for a diameter, as for a radius) they stand no nearer the rim than two arrowheads, the gap and
 half their width, or two arrowheads where DIMTOH keeps them level on a landing: "R20.0000" of Arial put 20.2 out from a

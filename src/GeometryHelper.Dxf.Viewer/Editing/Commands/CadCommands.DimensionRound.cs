@@ -485,20 +485,37 @@ namespace GeometryHelper.Dxf.Viewer
             bool onLine = Math.Abs(across) < height / 2.0 + gap;
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
             double reach = (chord - center).Length;
+            // The stretch of the line their box grown by the gap takes: words turned along it take their width and a gap either
+            // side of their middle.
+            double enters = along - width / 2.0 - gap;
+            double leaves = along + width / 2.0 + gap;
 
             // DIMTIH keeps free words level, inside the circle or out, as AutoCAD 2021 draws them whatever DIMTOH says.
             if (style.Dimtih)
             {
                 angle = 0.0;
+
+                // Level words stand on a slanting line wherever it runs through their box grown by the gap, which is further off
+                // than the box's half height: a diameter of 40 at 30 degrees with "%%c40" put 6 out at 240 degrees, 3 off the line,
+                // has its line broken about them (the box reaches 3.5 across it), and AutoCAD 2021 breaks it by the length the words
+                // take (below) about the middle of what the line takes of their box, not about the foot of their middle.
+                if (LineThroughBox(u, location - center, width / 2.0 + gap, height / 2.0 + gap, out enters, out leaves))
+                {
+                    onLine = true;
+                    along = (enters + leaves) / 2.0;
+                }
             }
 
             double lineAngle = Math.Atan2(u.Y, u.X);
             double half = style.Dimtih ? Chord(width, height, gap, angle - lineAngle) : width / 2.0 + gap;
             // Over a rim from outside, or inside reaching the rim (a diameter's the back of its arrowhead); over a radius's
-            // centre by half their width, the gap and an arrowhead, level or not (AutoCAD 2021 pushes "R25" put 6 out under DIMASZ 2.5, not 7).
+            // centre by half their width, the gap and an arrowhead, level or not (AutoCAD 2021 pushes "R25" put 6 out under
+            // DIMASZ 2.5, not 7), but not once they stand behind it: where their box takes the line from a quarter of a unit
+            // behind the centre to an arrowhead and a half past it ("R8" and "R20" put every 0.5 along and across the line,
+            // level and turned, 6 differing of 340; before, words 6 behind the centre pushed the arrowhead out too).
             bool overRim = along - half <= reach && along + half >= (diameter ? reach - trim : reach);
             bool overFarRim = diameter && along + half >= -reach && along - half <= -(reach - farTrim);
-            bool pushed = onLine && (overRim || overFarRim || (!diameter && along - width / 2.0 - gap <= trim));
+            bool pushed = onLine && (overRim || overFarRim || (!diameter && enters <= 1.5 * trim && leaves >= -0.25));
 
             if (pushed)
             {
@@ -523,9 +540,10 @@ namespace GeometryHelper.Dxf.Viewer
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(far - u * farTrim, far - u * (2.0 * farTrim)));
                 }
             }
-            else if (onLine)
+            else if (onLine && (diameter || leaves > 1E-9))
             {
-                GeoPoint2 foot = location - new GeoVector2(-u.Y, u.X) * across;
+                // A radius's line starts at the centre: words whose box takes the line only behind it leave it whole.
+                GeoPoint2 foot = center + u * along;
                 lines = Broken(lines, foot, u, half);
 
                 // Words reaching past the back of a radius's arrowhead short of the rim: AutoCAD 2021 still draws the line
@@ -701,13 +719,16 @@ namespace GeometryHelper.Dxf.Viewer
             /// the words and a gap as well, as far as it leans toward level: a radius of 8 with "R8" at 30 degrees does not keep
             /// them (it would need 5 + 4.66 across), at 60 degrees it does (5 + 2.3). On a line within 15 degrees of level only the
             /// arrowheads and the height count. Fitted over 17 000 probes (98 of 100 right; wide words on steep lines are the
-            /// ones it misses).
+            /// ones it misses). A line within 15 degrees of level of exactly that length does not keep them: a radius of 5 under
+            /// DIMASZ 2.5 or of 8 under DIMASZ 4, put at half the radius 10, 170, 190 and 350 degrees, with words 1.8, 2.5 and 3.5
+            /// high, left them off the line 14 times of 16 (the two that kept them are float noise in AutoCAD); steeper, at 90
+            /// degrees, all 4 kept them.
             /// </summary>
             private bool KeepsToLine(double lineLength, double across, bool runsDown, bool nearlyLevel)
             {
                 double need =
                     2.0 * _arrow + (runsDown ? _height : 0.0) + (nearlyLevel ? 0.0 : (_width + _gap) * across);
-                return !(lineLength < need - 1E-9);
+                return nearlyLevel ? lineLength > need + 1E-9 : !(lineLength < need - 1E-9);
             }
 
             /// <summary>
@@ -1196,13 +1217,24 @@ namespace GeometryHelper.Dxf.Viewer
                     // The band follows the direction the point lies in from the vertex, and is not the same either side of the arc:
                     // refitted over 11 000 probes of "60%%d" put at every 5 degrees (and on a grid) about an angle of 60 degrees,
                     // outside it is what it was at 30 degrees (0.866 landings) and 0.6 landings more per unit of cosine of the
-                    // direction, inside it 0.065 landings and 0.8 per unit (98 of 100 right; the band still jumps a third of a
-                    // landing where the point crosses the height of the arc's middle, which it does not follow).
+                    // direction, inside it 0.065 landings and 0.8 per unit (98 of 100 right). The band jumps where the point crosses
+                    // the height of the arc's middle: probed every 0.1 across it at five distances either side of the arc of 30
+                    // (an angle of 60 degrees) the leader came and went at exactly that height, and between the height of the
+                    // vertex and it the band narrows as the point rises: outside by 0.2 landings, inside on the left of the vertex
+                    // by 0.28 and on the right wider by 0.1 (a7 of 5 832 probes, 159 differing down to 101).
                     double distance = (at - vertex).Length;
                     double offArc = distance - radius;
                     double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
                     double basicOff = 1.405 + 0.137 * height;
                     double landingLen = width / 2.0 + gap + arrow;
+                    double middleRise = start.Y - vertex.Y;
+                    double rise = at.Y - vertex.Y;
+                    bool below = middleRise > 1E-9 && rise > 0.0 && rise < middleRise - 1E-9;
+                    double lower = below ? rise / middleRise : 0.0;
+                    double innerShift =
+                        !below ? 0.0
+                        : at.X < vertex.X ? -0.28 * lower
+                        : 0.1;
 
                     // Words exactly above or below the vertex, under DIMTAD 1 and 4, are the one direction AutoCAD 2021 draws another
                     // leader for: its landing runs under (over) the words, from a gap past them on the side the leader comes from to
@@ -1217,8 +1249,12 @@ namespace GeometryHelper.Dxf.Viewer
                                 : offArc
                                     > basicOff
                                         + landingLen
-                                            * (Math.Cos(Math.PI / 6.0) + 0.6 * (leans - Math.Cos(Math.PI / 6.0)))
-                                    || offArc < -(basicOff + landingLen * (0.065 + 0.8 * leans))
+                                            * (
+                                                Math.Cos(Math.PI / 6.0)
+                                                + 0.6 * (leans - Math.Cos(Math.PI / 6.0))
+                                                - 0.2 * lower
+                                            )
+                                    || offArc < -(basicOff + landingLen * (0.065 + 0.8 * leans + innerShift))
                         )
                     )
                     {
