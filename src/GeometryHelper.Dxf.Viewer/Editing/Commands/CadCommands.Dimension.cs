@@ -507,6 +507,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Words of DIMTMOVE 2 stand where put; of 1 where the point falls on a line kept apart from it.
             GeoPoint2 along = center + unit * ((location - center).X * unit.X + (location - center).Y * unit.Y);
+
+            // Level words under DIMTMOVE 1 slide to where the point is level with the line, not to the foot of the point on it:
+            // AutoCAD 2021 runs the line of a circle picked at 30 degrees, the point put 40 degrees off it, on to the height of the
+            // point, and the words stand level there.
+            if (move == 1 && !style.Dimtix && (style.Dimtoh || style.Dimtih) && Math.Abs(unit.Y) > 1E-9)
+            {
+                double level = (location.Y - center.Y) / unit.Y;
+
+                if (level >= radius - 1E-10 ? style.Dimtoh : style.Dimtih)
+                {
+                    along = center + unit * level;
+                }
+            }
+
             // DIMTIX keeps the words at their default place next to the rim wherever the point was put, under DIMTMOVE 1 and 2 as 0.
             bool free = move == 2 && !style.Dimtix;
             bool slid = move == 1 && !style.Dimtix && (along - location).Length > c.Session.Tolerance.EqualPoint;
@@ -548,7 +562,7 @@ namespace GeometryHelper.Dxf.Viewer
             // of the line they stand by; and 36 where the fit put them, group 11 their middle.
             if (atPoint)
             {
-                made.TextPosition = free || slid ? P3(wordsAt) : RecordedPoint(picture) ?? P3(wordsAt);
+                made.TextPosition = free ? P3(wordsAt) : RecordedPoint(picture) ?? P3(wordsAt);
                 made.UsingDefaultTextPosition = false;
             }
             else
@@ -566,14 +580,32 @@ namespace GeometryHelper.Dxf.Viewer
             return WithTextAngle(made, picture, textAngle);
         }
 
-        private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
+        private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null, null);
+
+        /// <summary>
+        /// What DIM's angular dimension of an arc gives back to DIM: the option it was answered with to go back to the radius or
+        /// the diameter of the arc (Radius, Diameter), and the words and the angle of the words it was given on the way.
+        /// </summary>
+        private sealed class DimBack
+        {
+            internal string Switch;
+            internal string Text;
+            internal double? TextAngle;
+        }
 
         /// <summary>
         /// DIMANGULAR: an arc, a circle and a second point, two lines or a vertex and two points, then where the arc goes. DIM
         /// gives the object it was answered with as <paramref name="given"/>, and the second line where one was picked as
-        /// <paramref name="secondGiven"/>, and the command goes on from there.
+        /// <paramref name="secondGiven"/>, and the command goes on from there. DIM's angle of an arc gives the <paramref name="back"/>
+        /// it keeps its words in: it asks "Specify angular dimension location or [Radius/Diameter/Mtext/Text/text aNgle/Undo]:" and
+        /// answers Radius or Diameter by handing control back to DIM's radius or diameter prompt.
         /// </summary>
-        private static IEnumerable<CadPrompt> DimAngularFrom(CadCommandContext c, DxfEntity given, DxfLine secondGiven)
+        private static IEnumerable<CadPrompt> DimAngularFrom(
+            CadCommandContext c,
+            DxfEntity given,
+            DxfLine secondGiven,
+            DimBack back
+        )
         {
             DxfDimStyleTableRecord style = DimStyle(c);
 
@@ -701,7 +733,8 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string text = null;
+            string text = back?.Text;
+            double? textAngle = back?.TextAngle;
 
             // The picture of the angular dimension of an arc through a point, and the dimension, as it is previewed and made;
             // null where it measures nothing.
@@ -772,17 +805,27 @@ namespace GeometryHelper.Dxf.Viewer
                             null
                         );
                 words = Words(style, made, sweep, typed, string.Empty);
-                return Angular(style, Dimscale(c), TextHeight(c, style), vertex, radius, from, sweep, near, far, words);
+                return WithTextAngle(
+                    made,
+                    Angular(style, Dimscale(c), TextHeight(c, style), vertex, radius, from, sweep, near, far, words),
+                    textAngle
+                );
             }
 
             while (true)
             {
                 string shown = text;
-                yield return CadPrompt
-                    .ForPoint("Specify dimension arc line location", vertex, new[] { "Text" })
-                    .Previewing(DimPreview(c, input => AngularMade(input.Point, shown, out _, out _)));
+                CadPrompt ask =
+                    back == null
+                        ? CadPrompt.ForPoint("Specify dimension arc line location", vertex, new[] { "Text" })
+                        : CadPrompt.ForPoint(
+                            "Specify angular dimension location",
+                            vertex,
+                            new[] { "Radius", "Diameter", "Mtext", "Text", "text aNgle", "Undo" }
+                        );
+                yield return ask.Previewing(DimPreview(c, input => AngularMade(input.Point, shown, out _, out _)));
 
-                if (c.Input.Is("Text"))
+                if (c.Input.Is("Text") || c.Input.Is("Mtext"))
                 {
                     yield return CadPrompt.ForString("Enter dimension text", "<>");
 
@@ -792,6 +835,26 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     continue;
+                }
+
+                if (back != null && c.Input.Is("text aNgle"))
+                {
+                    yield return CadPrompt.ForAngle("Specify angle of dimension text");
+
+                    if (c.Input.Kind == CadInputKind.Number)
+                    {
+                        textAngle = TextAngle(c, c.Input.Number);
+                    }
+
+                    continue;
+                }
+
+                if (back != null && (c.Input.Is("Radius") || c.Input.Is("Diameter")))
+                {
+                    back.Switch = c.Input.Is("Diameter") ? "Diameter" : "Radius";
+                    back.Text = text;
+                    back.TextAngle = textAngle;
+                    yield break;
                 }
 
                 break;

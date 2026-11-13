@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Tight radii and diameters, and their level words, as AutoCAD 2021 draws them (its own DIMRADIUS and DIMDIAMETER probed
+over 40 000 circles of 3 to 30, DIMATFIT 0 to 2, DIMTAD 0, 1 and 4, DIMTOH and DIMTIH, the line at 0 to 360 degrees). What moves
+out is decided by the room the words' box takes along the line, grown by DIMGAP: its width on a level line, its height on an
+upright one, the length the box reaches along a slanting line where DIMTIH keeps the words level. Words on the line need the
+chord of the line through the box and an arrowhead and two gaps to stay in with the arrowhead out, and three arrowheads past
+the chord to keep the arrowhead in too: "R15" of Arial 2.5 high keeps its words in from a radius of 10.5 and its arrowhead in
+from 14.74, "R12" has its arrowhead outside and its words in the middle of the line it leaves, 4.114 out at 30 degrees;
+DIMATFIT 1 keeps the words in from the box alone, 2 keeps the arrowhead in from DIMASZ and two gaps and runs the line on from
+the rim. A diameter on its line needs the chord and two arrowheads and two gaps (11.86 for "%%c6" of 4.357), and level words
+moved out stand on a landing from the rim and two arrowheads. Of 6 336 tight radii and diameters probed under DIMTIX, DIMTMOVE
+and DIMATFIT 603 differed before, 60 do now (the points exactly on the rim, the lines exactly 15 degrees from level and level
+words of DIMATFIT 3 inside a tight circle are left); of 41 308 in nine threshold sweeps some 8 400 differed, 332 do, each a
+line exactly 15 degrees from level or the first probe of a run.
+**FIXED.** Level words under DIMTAD 1 and 4 put past the rim within the room of an arrowhead stand on their landing, as under
+DIMTAD 0 ("R8" put 10.4 out at 30 degrees under DIMATFIT 3 stands 16.402 along its landing from 13 out), unless the line runs
+within 15 degrees of upright. A radius picked at 30 degrees under DIMTMOVE 1 with level words, the point put 150 degrees round,
+runs its line on through the centre to the height of the point and stands the words level there, group 11 the end of the line
+(176 of 1 024 such probes differed, 36 do).
+**FIXED.** The leader of an angle's words under DIMTMOVE 1 appears where AutoCAD 2021 draws it: once the end of its landing is
+1.405 and 0.137 heights of the words off the arc as it leans, the arrowhead, the gap and half the words counting for 0.866 of
+their length: 6.6 off for "60°" of Arial 2.5 high, DIMASZ 2.5 and DIMGAP 0.625, 8.8 for "60.00°". Fitted over 5 800 probes in
+26 styles to 0.05 of a unit (to 0.1 for wider words), where the old fit missed by 0.25 at a gap of 1.5.
+**NEW.** DIM on an arc, Angular: asks "Specify angular dimension location or [Radius/Diameter/Mtext/Text/text aNgle/Undo]" as
+AutoCAD 2021's DIM does, and Radius or Diameter go back to the arc's radius or diameter prompt with the words given kept.
+
 **NEW.** OLE objects in the presenter. A frame that holds a bitmap, a pasted picture or one INSERTOBJ made is drawn as its picture
 on the canvas, in a plot and in a PDF (one 40 by 20 holding a bitmap red on the left and blue on the right plots red and blue; at
 the plot quality Monochrome, black and white), with its frame over it as OLEFRAME says (0 none, 1 shown and plotted, 2, the

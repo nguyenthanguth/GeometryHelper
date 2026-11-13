@@ -205,12 +205,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Angular"))
                 {
-                    foreach (CadPrompt prompt in DimAngularFrom(c, picked, null))
+                    // The angle of the arc asks for its location with Radius and Diameter among its options: answered, they go back to
+                    // the radius or the diameter prompt of the arc, keeping the words given.
+                    var back = new DimBack { Text = text, TextAngle = textAngle };
+
+                    foreach (CadPrompt prompt in DimAngularFrom(c, picked, null, back))
                     {
                         yield return prompt;
                     }
 
-                    yield break;
+                    if (back.Switch == null)
+                    {
+                        yield break;
+                    }
+
+                    diameter = back.Switch == "Diameter";
+                    text = back.Text;
+                    textAngle = back.TextAngle;
+                    continue;
                 }
 
                 break;
@@ -229,7 +241,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (second != null && !ReferenceEquals(second, line))
                 {
-                    foreach (CadPrompt prompt in DimAngularFrom(c, line, second))
+                    foreach (CadPrompt prompt in DimAngularFrom(c, line, second, null))
                     {
                         yield return prompt;
                     }

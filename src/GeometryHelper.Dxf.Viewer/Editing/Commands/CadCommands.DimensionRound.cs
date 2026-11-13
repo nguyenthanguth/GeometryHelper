@@ -40,6 +40,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// stand along it with no landing, and on an exactly upright one the landing runs left where the line runs down.
         /// Level words (DIMTAD 1 and 4) off a line that runs down keep the height of the words more room past two arrowheads, outside
         /// the rim and in; level words on a line within 15 degrees of level stand past the point with no landing, inside as outside.
+        /// Whether the words fit a radius is the room their box takes along its line, grown by the gap (its width along a level
+        /// line, the length the box reaches along a slanting one that DIMTIH keeps level): words on the line need the chord of
+        /// the line through the box and an arrowhead and two gaps to stay in with the arrowhead out, and three arrowheads past the
+        /// chord to keep the arrowhead in as well; "R15" of Arial 2.5 high keeps its words in from a radius of 10.5 and its
+        /// arrowhead in from 14.74. A diameter's words on its line need the chord and two arrowheads and two gaps along it.
         /// </remarks>
         internal static List<DxfEntity> Radial(
             DxfDimStyleTableRecord style,
@@ -149,6 +154,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool nearArrow = true;
             bool single = false;
             bool tixOut = false;
+            bool pushedOut = false;
             bool textOut;
             double at;
 
@@ -164,6 +170,14 @@ namespace GeometryHelper.Dxf.Viewer
             // past two arrowheads outside the rim and inside it, where DIMTAD 0 and a line running up keep the two: "R20" of Arial
             // 0.18 high put 20.3 out straight down, level, DIMTAD 1, has its landing 20.5438 out.
             bool lower = (style.Dimtad == 1 || style.Dimtad == 4) && u.Y < -1E-9;
+            double beyond = style.Dimtoh && !flatLine ? 0.0 : words2.Beside;
+
+            // The room the words take along the line: their box grown by the gap, as long as the box reaches along the line where
+            // they are kept level across it (DIMTIH), and as the line runs through the box's middle.
+            bool across = style.Dimtih && !flatLine;
+            double boxWidth = width + 2.0 * gap;
+            double reachAlong = across ? boxWidth * Math.Abs(u.X) + (height + 2.0 * gap) * Math.Abs(u.Y) : boxWidth;
+            double chordAlong = across ? 2.0 * Chord(width, height, gap, Math.Atan2(u.Y, u.X)) : boxWidth;
 
             // Words put by hand under DIMATFIT 0 to 2 (DIMTEDIT) stand at the point put inside the circle, the line whole from the
             // centre to the arrowhead, and past the rim where the fit puts them, the arrowhead outside but for DIMATFIT 2 keeping
@@ -213,6 +227,7 @@ namespace GeometryHelper.Dxf.Viewer
                 farArrow = diameter && style.Dimtofl;
                 farOut = true;
                 atPoint = (placed || !style.Dimtix) && at <= along + 1E-9;
+                pushedOut = !placed && !atPoint && !diameter && radius > reachAlong + 1E-9;
             }
             else if (!placed && style.Dimtix && !fitted)
             {
@@ -246,31 +261,42 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (!diameter)
             {
-                // The words fit where the radius takes them and a gap each side, the arrowhead not counted, as AutoCAD 2021 fits
-                // "R6" 4.03 wide in a radius of 6 and not "R5" in one of 5; DIMATFIT 2 keeps the arrowhead in where it and a gap fit.
-                bool tight = radius < width + 2.0 * gap + (words2.On(style.Dimtih) ? trim + 2.0 * gap : 0.0);
+                // The words fit where the radius takes them and a gap each side along the line, the arrowhead not counted, as
+                // AutoCAD 2021 fits "R6" 4.03 wide in a radius of 6 and not "R5" in one of 5 (words kept level across a slanting line
+                // take the box's reach along it); on the line (DIMTAD 0) they need the arrowhead and two gaps more to stay in
+                // with the arrowhead going out, and three arrowheads past their chord to keep it in.
+                bool on = words2.On(style.Dimtih && !flatLine);
+                double within = on ? chordAlong + trim + 2.0 * gap : reachAlong;
+                double inside = on ? Math.Max(within, chordAlong + 3.0 * trim) : reachAlong;
+                double fits = style.Dimatfit == 1 ? reachAlong : within;
                 // DIMTIX keeps the words inside however tight the radius, the arrowhead going out where they leave it no room.
-                textOut = tight && !style.Dimtix;
-                arrowOut = style.Dimtix ? tight : textOut && !(style.Dimatfit == 2 && radius >= trim + gap);
+                textOut = !(radius > fits + 1E-9) && !style.Dimtix;
+                arrowOut = textOut
+                    ? !(style.Dimatfit == 2 && radius > trim + 2.0 * gap + 1E-9)
+                    : !(radius > inside + 1E-9);
                 at = !textOut
-                    ? (radius - (arrowOut ? 0.0 : trim)) / 2.0
-                    : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
+                    ? (radius - (arrowOut && !(radius > within + 1E-9) ? 0.0 : trim)) / 2.0
+                    : radius + (arrowOut ? 2.0 * arrow : trim) + beyond;
             }
             else
             {
-                // The words take their width and a gap each side; on the line (DIMTAD 0) they take the arrowheads' room as well,
-                // as a linear dimension's do: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, but with its arrowheads
-                // under DIMATFIT 0 not even one of 9, as AutoCAD 2021 draws them.
-                double needText = width + 2.0 * gap;
+                // The words take their width and a gap each side along the line; on it (DIMTAD 0) they take the arrowheads' room
+                // and two gaps more as well, through their middle, as AutoCAD 2021 draws them: "%%c6" 4.357 wide fits a diameter of 6
+                // under DIMATFIT 1, but with its arrowheads under DIMATFIT 0 not even one of 9.
                 double needArrows =
                     CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName)
                         ? 0.0
                         : 2.0 * arrow + 2.0 * gap;
                 bool both =
-                    2.0 * radius >= (words2.On(false) ? needText + 2.0 * arrow : Math.Max(needText, needArrows));
-                textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius >= needText) && !style.Dimtix;
+                    2.0 * radius
+                    > (
+                        words2.On(style.Dimtih && !flatLine)
+                            ? chordAlong + 2.0 * arrow + (needArrows > 0.0 ? 2.0 * gap : 0.0)
+                            : Math.Max(reachAlong, needArrows)
+                    ) + 1E-9;
+                textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius > reachAlong + 1E-9) && !style.Dimtix;
                 arrowOut = !both && !(style.Dimatfit == 2 && 2.0 * radius >= needArrows && !style.Dimtix);
-                at = !textOut ? 0.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
+                at = !textOut ? 0.0 : radius + (arrowOut ? 2.0 * arrow : trim) + beyond;
                 farArrow = true;
                 farOut = arrowOut;
             }
@@ -295,13 +321,14 @@ namespace GeometryHelper.Dxf.Viewer
                 // The line of words outside with the arrowhead in starts at the rim, past the arrowhead.
                 wordsAt = words2.Along(
                     lines,
-                    arrowOut || !fitPlaced ? back : chord,
+                    arrowOut ? back : chord,
                     knee,
                     u,
                     level,
                     !tixOut,
                     ref angle,
-                    clearOfBend: false
+                    clearOfBend: false,
+                    pushed: pushedOut
                 );
             }
             else if (single)
@@ -321,6 +348,12 @@ namespace GeometryHelper.Dxf.Viewer
                 // about words on it (DIMTAD 0) as AutoCAD 2021 breaks it, a gap clear of them.
                 var through = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
                 wordsAt = words2.Centred(through, far, chord, center, u, level, ref angle);
+
+                // DIMTIX words that take all of the line leave it whole, as they do a radius's.
+                if (style.Dimtix && through.Count == 0)
+                {
+                    through.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(far, chord));
+                }
 
                 if (style.Dimtofl)
                 {
@@ -612,10 +645,12 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly double _height;
             private readonly bool _box;
             private readonly double _arrow;
+            private readonly bool _bendRecorded;
 
             internal RoundWords(DxfDimStyleTableRecord style, double scale, double height, double gap, double width)
             {
                 _arrow = style.Dimasz * scale;
+                _bendRecorded = style.Dimtmove == 1;
                 _tad = style.Dimtad;
                 _box = style.Dimgap < 0.0;
                 _gap = gap;
@@ -658,10 +693,15 @@ namespace GeometryHelper.Dxf.Viewer
                 bool level,
                 bool outside,
                 ref double angle,
-                bool clearOfBend
+                bool clearOfBend,
+                bool pushed = false
             )
             {
-                bool on = On(level && !outside);
+                // Level words pushed out past the rim by the room next to it stand on their landing under DIMTAD 1 and 4 as under 0,
+                // unless the line runs within 15 degrees of upright, where they stand above it.
+                bool on =
+                    On(level && !outside)
+                    || (pushed && level && (_tad == 1 || _tad == 4) && Math.Abs(way.X) >= Math.Sin(Math.PI / 12.0));
 
                 if (level)
                 {
@@ -694,13 +734,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                     double landing = on ? _arrow : _width + _gap + (_box ? _gap : 0.0);
                     lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, bend + x * landing));
-                    Standing = on ? bend + x * (_arrow + _gap + _width / 2.0) : bend + x * (_gap + _width / 2.0);
-                    GeoPoint2 at = Standing + (on ? up * _onOffset : up * (Side * _lift));
-
-                    if (nearlyLevel)
-                    {
-                        Standing = bend;
-                    }
+                    GeoPoint2 wordsMiddle = on
+                        ? bend + x * (_arrow + _gap + _width / 2.0)
+                        : bend + x * (_gap + _width / 2.0);
+                    Standing = nearlyLevel || _bendRecorded ? bend : wordsMiddle;
+                    GeoPoint2 at = wordsMiddle + (on ? up * _onOffset : up * (Side * _lift));
 
                     return at;
                 }
@@ -1027,13 +1065,15 @@ namespace GeometryHelper.Dxf.Viewer
                     textAngle = 0.0;
                     GeoPoint2 start = vertex + Heading(middle) * radius;
 
-                    // Words put near the arc have no leader, as AutoCAD 2021 draws them: probed with words 3 to 16 off an arc of 30 in 8
-                    // styles (DIMASZ 2.5 and 4, DIMTXT 2.5 and 4, DIMGAP 0.625 and 1.5), the leader appears past 6.875 off it for
-                    // 2.5, 2.5 and 0.625 and past 7.75, 8.9 and 10.2 for the others, a line fitted to those: the height of the
-                    // words, the gap and three quarters of an arrowhead and 1.9.
+                    // Words put near the arc have no leader, as AutoCAD 2021 draws them: probed with words every 0.05 off an arc of 30
+                    // in 26 styles (DIMASZ 1.5, 2.5 and 4, DIMTXT 2.5 and 4, DIMGAP 0.3, 0.625 and 1.5, "60%%d" with 0 to 6 decimals),
+                    // the leader appears once the end of its landing, a landing's length (half the words, the gap and an arrowhead)
+                    // before the point, is 1.405 and 0.137 heights of the words off the arc as the landing leans: 6.85 off for 2.5, 2.5
+                    // and 0.625, and 12.3 for "60.00%%d" of 4. The fit holds to 0.05 for words as "60%%d", to 0.1 for wider.
                     if (
                         (at - start).Length > gap + height / 2.0
-                        && Math.Abs((at - vertex).Length - radius) > height + gap + 0.75 * arrow + 1.9
+                        && Math.Abs((at - vertex).Length - radius)
+                            > 1.405 + 0.137 * height + Math.Cos(Math.PI / 6.0) * (width / 2.0 + gap + arrow)
                     )
                     {
                         double flat = at.X >= start.X ? 1.0 : -1.0;
