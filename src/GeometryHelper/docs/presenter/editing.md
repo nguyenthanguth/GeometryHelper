@@ -206,14 +206,14 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
-| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
+| references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 
 **Shapes and hatching (batch 3 of acad.pgp).**
@@ -1235,6 +1235,45 @@ nearest it, `Not in dictionary: "wrold". Suggestions: world`, and "Enter replace
 <Ignore>:" takes a replacement typed, Change (the first suggestion), Add (to the custom dictionary and its file), Ignore, ignore
 all, or Stop. The words changed of a text are written together, the format codes of an MTEXT kept in it, and the whole
 check is one undo step; `Spelling check complete.` ends it. MLINE, MLSTYLE and MLEDIT are not built.
+
+IMAGEADJUST (IAD) and -IMAGEADJUST set the brightness, contrast and fade of images (groups 281, 282 and 283 of the IMAGE), both on the
+command line, as AutoCAD 2021's -IMAGEADJUST asks it: no Image Adjust dialog is built. "Select image(s):" takes the images (a
+line picked with them is not counted, and with no image the command ends), "Enter image option [Contrast/Fade/Brightness]
+<Brightness>:" the option and "Enter brightness value (0-100) <50>:" its value, a whole number from 0 to 100; 150, -5, 30.5 and
+`abc` are each refused with `Value must be an integer between 0 and 100.` and asked again. Enter takes the value offered, which is
+the image's own where one is selected and the factory's (50 for brightness and contrast, 0 for fade) where several are, so that
+Enter then gives them all the factory's: two images of brightness 70 and 50 selected together offer 50 and both become 50. An
+image on a locked layer is left as it is, `The image is on a locked layer.` The change is one undo step, and the canvas draws the
+picture lighter or darker as it was already drawn. AutoCAD refuses a bitonal picture, `Bitonal images cannot be adjusted.`; the
+presenter keeps no colour depth of an image definition and so refuses none, writing the values the picture then ignores. ATTEXT (DDATTEXT) and -ATTEXT write the attributes of the blocks to a file, on the command line as AutoCAD 2021's console
+asks it (no Attribute Extraction dialog is built): "Enter extraction type or enable object selection [Cdf/Sdf/Dxf/Objects] <C>:",
+for Objects "Select objects:" and "Enter attribute extraction type [Cdf/Sdf/Dxf] <C>:", then for a comma-delimited (CDF) or
+space-delimited (SDF) file "Enter template file name:" (the last one named is offered; `.txt` is added to a name with no
+extension; `"names.txt": Can't find file.` asks again) and for every kind "Enter extract file name <plan>:" (`.txt`, or `.dxx` for a
+DXF extract, added to a name with no extension, the folder of the drawing the home of one with no folder, a file there already
+written over, and the template refused as the extract file, `The template and extract files cannot be the same.`). The template
+has a line for each field, its name and its format, C or N then three figures of width and three of decimals: `NAME C012000` is the
+text of the attribute NAME in up to 12 characters, `PRICE N008002` its number in up to 8 with 2 decimals, and the block fields
+`BL:LEVEL` (1, as only the blocks of a space are read), `BL:NAME`, `BL:X`, `BL:Y`, `BL:Z`, `BL:NUMBER` (the place of the block among
+the block references read, those with no attribute counted), `BL:HANDLE`, `BL:LAYER`, `BL:ORIENT` (in degrees), `BL:XSCALE`,
+`BL:YSCALE`, `BL:ZSCALE` and `BL:XEXTRUDE`, `BL:YEXTRUDE`, `BL:ZEXTRUDE` (the normal); letters of either case are the same, and
+`C:DELIM` and `C:QUOTE` lines (`C:DELIM ;`) give a CDF file its own delimiter and quote, comma and apostrophe where it gives none.
+A line that is no field, a field twice or no field at all is told, `** Invalid field specification:` and the line,
+`** Duplicate field specification:` and the line, or `** No Attribute fields specified.`, and nothing is written. A tag the block
+has not gives blank text or nought. The blocks that have attributes are written in the order of the drawing, model space and then
+each layout (or the objects selected), one record each: with the fields of drawing `parts`, a block ITEM at (10, 20) with NAME
+`Bolt M8` and PRICE `1.5` and a template of `BL:NAME C008000`, `BL:X N007002`, `NAME C012000`, `PRICE N008002` is
+`'ITEM', 10.00,'Bolt M8', 1.50` in a CDF file, where a number keeps a place for its sign, and `ITEM      10.00Bolt M8         1.50` in an
+SDF file, text to the left and numbers to the right of their widths. A value too long for its field is cut to it and told once a
+record, `** Field overflow in record 1`; a value of a numeric field that is no number is told, `** Bad numeric value for field
+PRICE, record 3`, and written as nought; `5 records in extract file.` ends it. A DXF extract holds each block as an INSERT with
+its layer, name, insertion point, and the scales, turn and normal that are not 1, 0 and Z, its ATTRIBs (value, tag, flags) and a
+SEQEND, then EOF, `20 objects in extract file.` for 5 blocks of 2 attributes. Compared with AutoCAD 2021's console the
+files are the same record for record, the handles apart; the file is UTF-8 without a mark where AutoCAD writes the system's code
+page, the SEQEND carries no handle, a quote inside a CDF value is written as it is, and a block nested in another is not read, as
+AutoCAD does not. CTABLESTYLE (CT) is the table style new tables take: "Enter new value for CTABLESTYLE <"Standard">:" makes the style
+of that name current, one undo step, and a name of no style says `Cannot set CTABLESTYLE to that value.`, as CMLEADERSTYLE does.
+
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
@@ -1259,7 +1298,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 
 | Kept in | Variables | A change |
 |---|---|---|
-| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
+| the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |

@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Round 3 of the acad.pgp commands in the presenter, in the words of AutoCAD 2021 (its resources and console, probed in
+accoreconsole): IMAGEADJUST (`IAD`) and -IMAGEADJUST set the brightness, contrast and fade of images ("Select image(s):", `Enter
+image option [Contrast/Fade/Brightness] <Brightness>:`, `Enter brightness value (0-100) <50>:`, `Value must be an integer between
+0 and 100.`; Enter offers the image's own value for one image and the factory's for several, an image on a locked layer is left
+as it is), ATTEXT (`DDATTEXT`) and -ATTEXT write the attributes of the blocks to a comma-delimited, space-delimited or DXF extract
+file from a template of `BL:` block fields and attribute tags (`NAME C012000`, `PRICE N008002`), record for record as AutoCAD
+2021's console writes them with `** Field overflow in record 1`, `** Bad numeric value for field PRICE, record 3` and `5 records
+in extract file.`, and the variable CTABLESTYLE (`CT`) makes a table style current (`Cannot set CTABLESTYLE to that value.`).
+IMAGEADJUST and ATTEXT are in their command-line form only: no Image Adjust or Attribute Extraction dialog is built. The
+registry gains ten commands (these four, OPEN, DRAWINGRECOVERY and the four quick views) and one variable, CTABLESTYLE, and the
+defaults ten aliases.
+**NEW.** OPEN (`OPENURL`, `DXFIN`) in the presenter: the Open dialog, or with FILEDIA 0 `Enter name of drawing to open:` on the
+command line; DRAWINGRECOVERY (`DRM`) lists the copies autosave keeps beside the drawings and opens the one chosen; the quick
+views QVDRAWING (`QVD`) and QVDRAWINGCLOSE (`QVDC`) show and hide the Drawings list, QVLAYOUT (`QVL`) and QVLAYOUTCLOSE (`QVLC`)
+the Model and layout tabs (`MainViewModel.AreSpaceTabsShown`), without the thumbnails AutoCAD draws. INSERTOBJ and RECOVERALL are
+not built.
+
 **NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
 (`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had
 one, and a test keeps every new command described.

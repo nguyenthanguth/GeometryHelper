@@ -5628,7 +5628,11 @@
         >
             <DockPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <ItemsControl ItemsSource="{Binding SpaceTabs}" Focusable="False">
+                    <ItemsControl
+                        ItemsSource="{Binding SpaceTabs}"
+                        Focusable="False"
+                        Visibility="{Binding AreSpaceTabsShown, Converter={StaticResource Shown}}"
+                    >
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />

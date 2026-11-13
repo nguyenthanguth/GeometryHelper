@@ -235,6 +235,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "CLAYER",
                     "CMDDIA",
                     "CMLEADERSTYLE",
+                    "CTABLESTYLE",
                     "DATE",
                     "DIMASSOC",
                     "DIMCONTINUEMODE",
@@ -282,8 +283,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 registry.Variables.Select(v => v.Name)
             );
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
-            // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, and the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches 1, 2, 3, 5, 4b, 4a and 1b.
-            Assert.Equal(236, registry.Commands.Count);
+            // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, and the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches 1, 2, 3, 5, 4b, 4a and 1b, and the 4 of round 3 (IMAGEADJUST, -IMAGEADJUST, ATTEXT, -ATTEXT).
+            Assert.Equal(240, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

@@ -227,6 +227,16 @@ namespace GeometryHelper.Dxf.Viewer
                     ["IM"] = "IMAGE",
                     ["-IM"] = "-IMAGE",
                     ["ICL"] = "IMAGECLIP",
+                    ["IAD"] = "IMAGEADJUST",
+                    ["DDATTEXT"] = "ATTEXT",
+                    ["DRM"] = "DRAWINGRECOVERY",
+                    ["QVD"] = "QVDRAWING",
+                    ["QVDC"] = "QVDRAWINGCLOSE",
+                    ["QVL"] = "QVLAYOUT",
+                    ["QVLC"] = "QVLAYOUTCLOSE",
+                    ["CT"] = "CTABLESTYLE",
+                    ["OPENURL"] = "OPEN",
+                    ["DXFIN"] = "OPEN",
 
                     // The rest of AutoCAD 2021's acad.pgp for the commands the presenter has, old names among them.
                     ["ATTE"] = "-ATTEDIT",

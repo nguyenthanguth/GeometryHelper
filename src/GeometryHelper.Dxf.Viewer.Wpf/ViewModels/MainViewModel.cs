@@ -1051,6 +1051,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         // QUIT, COMMANDLINE, HIDEPALETTES and the like are the window's too, and need no drawing.
                     }
+                    else if (RunPgpR32CommandWithoutDocument(line.Trim()))
+                    {
+                        // So are OPEN, DRAWINGRECOVERY and the quick views.
+                    }
                     else if (!_extensions.Any(e => e.TryRunWithoutDocument(line.Trim())))
                     {
                         Say("No drawing is open: Ctrl+O opens a DXF.");
