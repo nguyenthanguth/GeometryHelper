@@ -111,6 +111,18 @@ between the reading and the drawing, as before. A drawing of 1 000 000 entities 
 frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
 the drawing before `Open` returns, as before.
 
+OPEN is the Open dialog of Ctrl+O, with or without a drawing, and with FILEDIA 0 it asks on the command line, `Enter name of
+drawing to open:` (as AutoCAD 2021's resources word it): a name with no extension is looked for as `.dwg` and then as `.dxf`, one
+with no folder in the folder of the drawing shown and then in the folder the app runs in, and the drawing is opened as Ctrl+O opens
+one once the command has ended; `Cannot find the specified drawing file.` where there is none. OPENURL and DXFIN are its aliases.
+DRAWINGRECOVERY (DRM) lists on the command line the copies [autosave](#autosave) keeps, those beside the drawings of the Drawings
+list and of the drawings open, by folder, drawing and age, the newest first, `  1  plan.autosave1.dxf  12 KB  saved 2026-11-13
+08:12`, and "Enter number of the backup file to open <none>:" opens the one chosen as a drawing of its own; a number out of the list
+says `Requires a number from 1 to 3.` and asks again. AutoCAD's Drawing Recovery Manager palette, its thumbnails and its RECOVERALL,
+which also recovers the external references, are not built; RECOVER repairs a damaged file. QVDRAWING (QVD) shows the Drawings list
+and QVDRAWINGCLOSE (QVDC) hides it, QVLAYOUT (QVL) shows the Model and layout tabs at the foot of the window and QVLAYOUTCLOSE
+(QVLC) hides them: the presenter's own quick views, with no thumbnails of the drawings or the layouts, which AutoCAD draws.
+
 ## The progress meter
 
 The status bar has a progress meter, as AutoCAD's: left of the coordinates, what runs, a bar and the percent, and taking

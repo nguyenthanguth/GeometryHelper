@@ -178,6 +178,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddPgpBasicsTo(registry);
             AddOutputBatchTo(registry);
             AddPgpBatch1bTo(registry);
+            AddPgpR32To(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

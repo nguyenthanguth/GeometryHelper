@@ -91,9 +91,9 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Batch 3, shapes and hatching (pgp-cmds3): SOLID, -BOUNDARY (Advanced options), -HATCH (Properties, Select objects, Advanced, DRaw order), GRADIENT, HATCHTOBACK, SPLINEDIT (Close/Open, Move vertex, rEverse, convert to Polyline, Undo), CLASSICINSERT (= INSERT); REGION counts loops but makes none (no ACIS writer)
 - [ ] Batch 3b (left from pgp-cmds3): an ACIS SAT/SAB writer so REGION and -BOUNDARY Region work (L); the rest of -HATCH (draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, ANnotative, Boundary set, Gap tolerance) and Single color gradients; SPLINEDIT Fit data, Join, Refine, Close/Open of control-point splines; plain HATCH drawn behind its boundary as -HATCH is (AutoCAD default); -BOUNDARY on ellipses/splines (AutoCAD refuses them); Boundary Creation and classic Insert dialogs (design first) (M)
 - [x] Batch 4a (pgp-cmds4a, design v135-v136): VPORTS/-VPORTS (model tiles, *Active VPORT records read and written as AutoCAD), FILTER (Object Selection Filters), QUICKCALC and CAL, QUICKPROPERTIES with QPMODE (Ctrl+Shift+P)
-- [ ] Batch 4a follow-ups: -VPORTS MOde; the Viewports dialog's Change view to, Visual Style and Rename; FILTER AND/OR/XOR/NOT and value tests, and its Object names against AutoCAD's list; QuickCalc Units Conversion and Variables, CAL snap functions, transparent 'CAL; QP's CUI lists and QPLOCATION; a drawing's saved tiles shown on opening; other tiles redrawn only when their part changes (speed); look at it in the running app (M)
+- [ ] (fu-views, running) Batch 4a follow-ups: -VPORTS MOde; the Viewports dialog's Change view to, Visual Style and Rename; FILTER AND/OR/XOR/NOT and value tests, and its Object names against AutoCAD's list; QuickCalc Units Conversion and Variables, CAL snap functions, transparent 'CAL; QP's CUI lists and QPLOCATION; a drawing's saved tiles shown on opening; other tiles redrawn only when their part changes (speed); look at it in the running app (M)
 - [x] Batch 4b (pgp-cmds4b): -PAN, -OSNAP, -LAYOUT, -MTEXT, -XBIND/XBIND (typed), SAVE (the drawing takes the new name, as AutoCAD), QUIT/EXIT, COMMANDLINE/COMMANDLINEHIDE, HIDEPALETTES/SHOWPALETTES (Ctrl+Shift+H); fixed a layout tab left in the wrong case after undoing a rename
-- [ ] Batch 4b follow-ups: -LAYOUT Template and SAveas (template files); layers and styles of a block bound by XBIND renamed x$0$ as AutoCAD; XBIND dialog (design first); LAYOUT in AutoCAD's words (default Set, its messages); the current layout after deleting the current one, and tab order after a delete, checked by AUDIT in AutoCAD; -OSNAP short names of the rarer snaps; whether HIDEPALETTES hides the command line (S)
+- [ ] (fu-views, running) Batch 4b follow-ups: -LAYOUT Template and SAveas (template files); layers and styles of a block bound by XBIND renamed x$0$ as AutoCAD; XBIND dialog (design first); LAYOUT in AutoCAD's words (default Set, its messages); the current layout after deleting the current one, and tab order after a delete, checked by AUDIT in AutoCAD; -OSNAP short names of the rarer snaps; whether HIDEPALETTES hides the command line (S)
 - [x] Batch 5, output (pgp-cmds5): EXPORTPDF (typed as -EXPORT Pdf), EXPORTDWF/DWFX (refused: no DWF writer), PLOTSTAMP and -PLOTSTAMP in AutoCAD's words, the stamp on PDF plots with its log, PDFSHX (searchable SHX text), IMPORT of DWG/DXF as a block
 - [ ] Batch 5b (left from pgp-cmds5): Plot Stamp dialog and the PLOT dialog's "Plot stamp on" (design first); the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
@@ -105,7 +105,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 MLINE, MLEDIT (all 12 tools) and typed MLSTYLE (mline), with a public core DxfMlineBuilder and
         DxfDatabase.AddMlineStyle; MLINE drawn on the canvas, moved, copied, scaled and mirrored; AutoCAD 2021 opens our DXF
         and DWG with AUDIT 0, and its Explode of 29 multilines gives our 224 lines to 1E-6
-  - [ ] R2.1 follow-ups: MLSTYLE and MLEDIT dialogs (design first); grips, OFFSET, TRIM, EXTEND, FILLET, BREAK on an MLINE;
+  - [ ] (fu-mline, running) R2.1 follow-ups: MLSTYLE and MLEDIT dialogs (design first); grips, OFFSET, TRIM, EXTEND, FILLET, BREAK on an MLINE;
         style Rename, Delete, Load, Save; Esc mid-MLINE, an empty MLEDIT pick, merged tees of 4+ elements, tees and corners
         on a closed MLINE, cuts across segments checked against AutoCAD (M)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -129,7 +129,11 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
         splinedit2 merge) (S)
-  - [ ] R3.2 (pgp-r32, running) INSERTOBJ, IMAGEADJUST, ATTEXT, CTABLESTYLE, OPEN typed, DRAWINGRECOVERY, the QV* quick views (M)
+  - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
+        ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
+  - [ ] R3.2 follow-ups: draw OLE frames, then INSERTOBJ on bmp/png; RECOVERALL over xrefs; IMAGEADJUST's bitonal refusal;
+        dialogs for IMAGEADJUST, ATTEXT, DRAWINGRECOVERY and the QV thumbnails (design first); ATTEXT of layouts and nested
+        blocks and a quote in a CDF value checked in the AutoCAD GUI (S)
   - [ ] R3.3 (acis, running) An ACIS SAT/SAB writer so REGION, -BOUNDARY Region and region display work (L)
 - Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
   VPCLIP, LAYERP), taken top to bottom, basics first.
