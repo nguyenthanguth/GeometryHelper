@@ -125,7 +125,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
-  - [ ] R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; probe AutoCAD's annotative hatch DXF again: extension dictionary, AcDbContextDataManager, xdata AcadAnnotative); draW boundary
+  - [ ] (annot, running: annotative) R2.2 follow-ups: ANnotative hatches (core writes no annotation scale; probe AutoCAD's annotative hatch DXF again: extension dictionary, AcDbContextDataManager, xdata AcadAnnotative); draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
         console showed it (S)
@@ -234,7 +234,14 @@ the ones wanted.
 - [x] Dimension follow-ups 5: DIM's radial and continue/baseline prompts (AcDimRes strings); radius/diameter words near the rim (941 of 2742 differing down to 31); upright-line landing direction (8 of 448 down to 0)
 - [x] Dimension follow-ups 6: radius/diameter written as AutoCAD writes them (leader 0; 164/163 only where the words stand at the point given, probed over 192 combinations); AutoCAD's regen of our files differing 723 to 0 on 1920 cases; level-word landings near level
 - [x] Dimension follow-ups 7: DIMTIX radius/diameter pictures (2 063 of 2 752 differing down to 75); DIMTEDIT at DIMTMOVE 0 by DIMATFIT (625 of 1 024 down to 1); AutoCAD's regen of moved ordinate/linear/aligned/angular words (114 of 289 down to 5)
-- [ ] (dims8, running) Dimension follow-ups 8: level words in a tight radius/diameter (603 left of 4 065); the angular leader threshold fit; words exactly on the first extension line; points exactly on the rim and lines exactly 15 degrees from level (rounding, parked); DIM Angular on an arc switching back to Radius/Diameter; Jogged and arc Length; words of spaces alone (advances); letters a font lacks measured through a substitute; core DxfShxFont extents with the arc rule (S)
+- [x] Dimension follow-ups 8 (dims8): level words in a tight radius/diameter fit as AutoCAD (the r-sets: 603 differing down
+      to 60 of 6 336 probes), the angular leader threshold refitted over 5 800 probes, DIM Angular on an arc switching back
+      to Radius/Diameter; harness kept in .claude/gk/dims-harness8
+- [ ] Dimension follow-ups 9: words within about 5.6 of an extension line (m3: 114 of 532 differ; AutoCAD turns the arrows
+      out); the angular leader for words outside the sector (a4: 76 of 712); jogged radius (j1: 162 of 288: level words and
+      line stubs) and arc Length; letters a font lacks measured through AutoCAD's substitute font; DxfShxFont extents; fit 3
+      level words in a tight circle and DIMTMOVE 1 words behind the centre (t6 99 of 1 584, r6 36 of 1 024); lines exactly
+      15 degrees from level and points exactly on the rim (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
