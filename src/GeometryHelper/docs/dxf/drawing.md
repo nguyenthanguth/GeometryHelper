@@ -225,7 +225,9 @@ erasing a viewport takes its overrides out of the layers. The layers frozen in a
 "Stair core", CenterPoint = new GeoPoint2(18450, 6200), Height = 9000, Width = 14400 })` writes it as AutoCAD 2021's
 -VIEW Window writes one, looking down Z with a lens of 50; `IsPaperspaceView` marks a layout view (flag 1 of group 70),
 and `LayerState` names the layer state its layer snapshot is kept in, `ACAD_VIEWS_Stair core` as AutoCAD 2021 names it,
-the group 302 of the XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. Setting a value it has changes no byte;
+the group 302 of the XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. `Layout` is the layout a paper view was
+saved in, the group 330 of the same XRECORD (`view.Layout = db.Layouts[1]` writes `290=0, 292=0, 330=handle, 294=0`, as AutoCAD
+2021 writes a view saved in Layout1; a layer snapshot set before or after is kept); a view of model space has none. Setting a value it has changes no byte;
 `Name` renames it, and `Erase` takes it out with its extension dictionary.
 
 ### Snap and grid of the drawing

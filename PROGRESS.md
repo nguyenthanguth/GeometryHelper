@@ -338,8 +338,11 @@ the ones wanted.
 - [x] Layouts follow-ups 2: U after ZOOM P giving the Previous entry back; the layout switch as an undo step (AutoCAD makes it one); the toolbar Undo recording a gesture within 80 ms
 - [x] Layouts follow-ups 3a (fu-layouts): CTAB; MSPACE/PSPACE, LAYOUT Set, -VIEW Restore across spaces and Find's Zoom to
       objects as undo steps named as AutoCAD names them ("Already in ..." an empty step, as AutoCAD)
-- [ ] Layouts follow-ups 3b: ZOOMFACTOR mapping (GUI); -VIEW Restore of a paper view in the layout it was saved in, and of a
-      model view from a layout ("Select Viewport for view:"); the screenshot mode's paper compared with AutoCAD's (S)
+- [x] Layouts follow-ups 3c (fu-vp): -VIEW Restore of a paper view shows the layout it was saved in (ADSK_XREC_VTRVIEWINFO;
+      public DxfViewTableRecord.Layout), a model view restored from a layout asks "Select Viewport for view:" and fits into
+      the viewport picked; fixed: undoing a step that worked through a viewport left it active
+- [ ] Layouts follow-ups 3d: ZOOMFACTOR mapping and the screenshot mode's paper (GUI); the View Manager's restore of a model
+      view in a layout; per-viewport layer snapshots on restore; twisted or locked viewports on restore (S)
 - [x] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
@@ -528,9 +531,9 @@ the ones wanted.
       MIRROR of one; MIRROR copy of a clipped pair about a diagonal off the origin (V + (C' - C)/scale when the box changes
       shape); fixed: a click on a clip boundary opened the selection-cycling list, a pair pasted into a layout never shown
       audited with 1 error in AutoCAD (now 0)
-- [ ] VPCLIP follow-ups 3: viewport grids seen from the paper and GRIDSTYLE through a viewport against an AutoCAD screenshot
-      (GUI); a region off the XY plane as a clip; MVIEW Polygonal and the other MVIEW options; a pixel test of a region clip
-      in plots; a cache of OutlineOf for region boundaries (123 us a call) (S)
+- [x] VPCLIP follow-ups 3a (fu-vp): MVIEW Polygonal as AutoCAD asks; the region outline cached (80 us to 0.4 us a call)
+- [ ] VPCLIP follow-ups 3b: viewport grids seen from the paper and GRIDSTYLE through a viewport (GUI); a region off the XY
+      plane as a clip; MVIEW ON/OFF/Shadeplot/Lock/NEw/NAmed/Restore/LAyer/2/3/4; a pixel test of a region clip in plots (S)
 - [x] POLARDIST answered by two points at SETVAR (AutoCAD: "Specify second point:", stores the distance); needs the command line to take a point at a distance prompt with no base point (deferred by the maintainer 2026-11-11) (S)
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)

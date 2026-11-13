@@ -371,11 +371,48 @@ namespace GeometryHelper.Dxf.Viewer
                         if (view == null)
                         {
                             c.Write("Cannot find view \"" + c.Input.Text.Trim() + "\".");
+                            break;
                         }
-                        else
+
+                        string restoreName = view.Name;
+                        string through = null;
+
+                        // A view of model space restored in a layout goes into a viewport: the one worked through, else one picked
+                        // ("Restoring Model space view." and "Select Viewport for view:", as AutoCAD 2021 asks).
+                        if (!view.IsPaperspaceView && !c.Document.CurrentSpace.IsModel)
                         {
-                            RestoreView(c, view.Name);
+                            through = c.Document.ActiveViewport?.Handle;
+
+                            if (through == null)
+                            {
+                                c.Write("Restoring Model space view.");
+
+                                while (through == null)
+                                {
+                                    yield return CadPrompt.ForEntity("Select Viewport for view");
+
+                                    if (c.Input.Kind != CadInputKind.Selection)
+                                    {
+                                        break;
+                                    }
+
+                                    if (
+                                        c.Document.FindEntity(c.Input.Handles[0]) is DxfViewport picked
+                                        && picked.Number != 1
+                                    )
+                                    {
+                                        through = picked.Handle;
+                                    }
+                                }
+
+                                if (through == null)
+                                {
+                                    break;
+                                }
+                            }
                         }
+
+                        RestoreView(c, restoreName, through);
                     }
 
                     break;
@@ -592,6 +629,9 @@ namespace GeometryHelper.Dxf.Viewer
                     view.IsPaperspaceView = paper;
                     Bound(view, box);
                 }
+
+                // A view saved in a layout remembers the layout, as AutoCAD's -VIEW Save does; one of model space has none.
+                view.Layout = paper ? c.Document.CurrentSpace.Layout : null;
             });
 
             if (snapshot)
@@ -695,15 +735,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// A view shown: its space made current where the canvas shows another (a layout view in the layout on screen, or the
-        /// first layout), the canvas zoomed to it, and its layer snapshot restored, the one edit of the step.
+        /// A view shown: its space made current where the canvas shows another (a layout view in the layout it was saved in, else
+        /// the layout on screen or the first layout), the canvas zoomed to it, and its layer snapshot restored, the one edit of
+        /// the step. A view of model space given a viewport of the layout shown goes into that viewport, as AutoCAD 2021 puts it:
+        /// the viewport shows the whole view, its centre the view's and its height the view's, or the view's width over the
+        /// viewport's shape where that is more (a view 44.85 by 25.4 into a viewport 3 by 2 is shown 29.9 high), and the viewport
+        /// is the one worked through afterwards.
         /// </summary>
-        private static void RestoreView(CadCommandContext c, string name)
+        private static void RestoreView(CadCommandContext c, string name, string viewport = null)
         {
             DxfViewTableRecord view = FindView(c, name);
 
             if (view == null)
             {
+                return;
+            }
+
+            if (viewport != null)
+            {
+                RestoreViewInViewport(c, view, viewport);
                 return;
             }
 
@@ -715,8 +765,13 @@ namespace GeometryHelper.Dxf.Viewer
                 center.Y + view.Height / 2.0
             );
             CadSpace space = c.Document.CurrentSpace;
+            string layout = view.IsPaperspaceView ? view.Layout?.Handle : null;
             CadSpace wanted = view.IsPaperspaceView
-                ? (space.IsModel ? c.Document.Spaces.FirstOrDefault(s => !s.IsModel) : space)
+                ? c.Document.Spaces.FirstOrDefault(s =>
+                    !s.IsModel
+                    && layout != null
+                    && string.Equals(s.Layout?.Handle, layout, StringComparison.OrdinalIgnoreCase)
+                ) ?? (space.IsModel ? c.Document.Spaces.FirstOrDefault(s => !s.IsModel) : space)
                 : c.Document.ModelSpace;
 
             if (wanted == null)
@@ -745,6 +800,35 @@ namespace GeometryHelper.Dxf.Viewer
                 wanted.PendingView = box;
             }
 
+            RestoreViewLayers(c, view);
+        }
+
+        /// <summary>A view of model space shown through a viewport of the layout on screen, which is then the one worked through.</summary>
+        private static void RestoreViewInViewport(CadCommandContext c, DxfViewTableRecord view, string handle)
+        {
+            if (!(c.Document.FindEntity(handle) is DxfViewport viewport) || !(viewport.Height > 0.0))
+            {
+                return;
+            }
+
+            // The view shown whole: its height, or its width fitted to the viewport's shape where that takes more.
+            double height = Math.Max(view.Height, view.Width * viewport.Height / viewport.Width);
+            c.OpenUndoStep();
+            CadEditResult set = c.Document.SetViewportView(handle, view.CenterPoint, height, c.Command.Name);
+
+            if (!set.Succeeded)
+            {
+                c.Write(set.Message);
+                return;
+            }
+
+            c.Document.WorkThrough(handle, c.Command.Name);
+            RestoreViewLayers(c, view);
+        }
+
+        /// <summary>A view's layer snapshot restored, as an edit of the command's step; nothing where the view keeps none.</summary>
+        private static void RestoreViewLayers(CadCommandContext c, DxfViewTableRecord view)
+        {
             string state = view.LayerState;
 
             if (state.Length > 0 && CadLayerStates.Find(c.Database, state) != null)

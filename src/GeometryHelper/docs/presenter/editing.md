@@ -2136,8 +2136,14 @@ and set by a name in letters of either case, spelled as the layout spells it: on
 TILEMODE and LAYOUT Set's LAYOUT; a name that is no layout's, a pattern (`Lay*`), `.` and `?` too, is refused as AutoCAD refuses it,
 `Cannot set CTAB to that value.` Find and Replace's Zoom to objects shows the layout of the objects as a tab clicked does, one undo
 step. -VIEW Restore of a paper view from the Model tab shows the layout as part of the command's one undo step: one U takes back to the
-Model tab, as AutoCAD 2021's console does. (It restores a paper view in the layout the view was saved in; the presenter keeps no
-such layout in the VIEW record, so it shows the layout shown, else the first.)
+Model tab, as AutoCAD 2021's console does. A view saved in a layout remembers it (the group 330 of its XRECORD
+ADSK_XREC_VTRVIEWINFO, `DxfViewTableRecord.Layout`), and -VIEW Restore shows that layout: a view saved in Sheet 2 and restored from
+the Model tab or from Layout1 shows Sheet 2; a view of a file that names no layout is shown in the layout on screen, else the first.
+A view of model space restored in a layout says `Restoring Model space view.` and asks `Select Viewport for view:` (the sheet's own
+viewport, and a pick that is no viewport, ask again); the viewport shows the whole view, its centre the view's and its height the
+view's or the view's width over the viewport's shape where that is more (a view 600 by 400 into a viewport 200 by 100 is shown 400
+high, one 900 by 300 450 high), and is the one worked through afterwards, so a second restore goes into it with no question. It is
+one undo step, which takes the view and the viewport worked through back.
 
 The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper. ZOOM and PAN typed are one undo
 step each, as AutoCAD 2021's console undoes ZOOM 2X, ZOOM 2X and -PAN one U each. The wheel's rolls and the middle
@@ -2272,7 +2278,11 @@ twisted 45 degrees, its view centre at (353.553, 1 060.660), 2 121.32 high; turn
 about (-60, 110), twisted 90 degrees, its view centre at (-500, 1 000). MVIEW's Object option makes a viewport of a closed
 polyline, circle, ellipse, spline or region picked (`Select object to clip viewport:`): its frame the box of the object, the
 object its border; an open polyline says `Clip object must be closed.` and any other entity `Invalid viewport clip object.`,
-and the command asks again. Copied (COPYCLIP) and pasted
+and the command asks again. Its Polygonal option asks `Specify start point:` and `Specify next point or [Arc/Close/Length/Undo]:` as
+PLINE and VPCLIP's Polygonal do (Enter closes it; fewer than three points say `Clip polyline must have at least 3 vertices.` and
+make nothing) and makes a closed polyline on the current layer, then the viewport clipped to it, its frame the box of the polygon (a
+triangle (30, 30), (190, 30), (30, 90) gives 160 by 60 about (110, 60)), in one undo step. The region outline of a clipped viewport
+is kept between paints and read again once the drawing has been edited (80 microseconds a call before, 0.4 after). Copied (COPYCLIP) and pasted
 (PASTECLIP) into another drawing the pair comes along whole, the copy of the viewport naming the copy of its boundary (group
 340) and listed as its reactor, as AutoCAD 2021's `WblockCloneObjects` brings it, into a layout never shown after the viewport
 1 of its sheet, which AutoCAD's AUDIT asks for (the drawing without it said `Invalid linetype eNullObjectId changed to ByLayer`);
