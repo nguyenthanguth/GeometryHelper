@@ -837,8 +837,12 @@ namespace GeometryHelper.Dxf
         /// the grip at its end and then those at its two other corners (base x with end y, end x with base y), of a rotation
         /// parameter the grip at its end, of a flip parameter its grip, of a point, a visibility or a lookup parameter and of a
         /// block properties table its grip, where the parameter lists such a grip and gives a property that is not read only.
-        /// The base grip of a linear, a polar or an XY parameter is not given, as a value set moves the end alone; AutoCAD 2021
-        /// showed none of an XY parameter (plugin GhDb1).
+        /// The base grip of a linear or an XY parameter is given, after the end grip, where an action follows its base point (a
+        /// stretch or a move of BaseXDelta and BaseYDelta, an array), a linear parameter's once the INSERT has saved its values,
+        /// as AutoCAD 2021 showed it (plugin GhDy2a): its <see cref="DxfDynamicBlockGrip.Position"/> is the base point, and
+        /// <see cref="DxfDynamicBlockReferenceProperty.MoveBasePoint"/> moves it. A polar parameter's base grip is not given,
+        /// nor is any where no action follows the base point, as a value set moves the end alone; AutoCAD 2021 showed none of
+        /// an XY parameter then (plugin GhDb1).
         /// </returns>
         /// <remarks>
         /// <para>

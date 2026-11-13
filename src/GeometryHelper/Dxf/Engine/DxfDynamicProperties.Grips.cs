@@ -49,6 +49,7 @@ namespace GeometryHelper.Dxf
 
             Dictionary<string, DxfXrecord> saved = Saved(insert);
             HashSet<string> shown = ShownInState(nodes, saved);
+            HashSet<string> followed = BaseFollowed(nodes);
             IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = Of(insert, dynamic);
             GeoTransform3 placed = insert.BlockTransform;
 
@@ -131,10 +132,18 @@ namespace GeometryHelper.Dxf
 
                 // The grip of a parameter of one point is its 93; of two points the 91 of the slot: the base grip, the end grip,
                 // and two corners of an XY parameter, base x with end y and end x with base y, whose grips AutoCAD 2021 showed
-                // after the end's, and not the base grip (plugin GhDb1).
+                // after the end's, and not the base grip (plugin GhDb1), unless an action follows the base point: a stretch or a
+                // move of its BaseXDelta and BaseYDelta, an array of its Base, as AutoCAD 2021 showed the base grip of an XY
+                // plate whose bottom left corner a stretch followed and of an XY array, and of a linear parameter whose base
+                // point a stretch, a move or an array followed and the INSERT saved (plugin GhDy2a).
                 List<DxfTypedValue> slots = Section(groups, "AcDbBlock2PtParameter").FindAll(g => g.TypeCode == 91);
+                int first =
+                    followed.Contains(id)
+                    && (node.Type == "BLOCKXYPARAMETER" || (node.Type == "BLOCKLINEARPARAMETER" && record != null))
+                        ? 0
+                        : slot;
 
-                for (int s = slot; s <= slot + corners; s++)
+                for (int s = first; s <= slot + corners; s++)
                 {
                     string gripId = (
                         s < 0 ? Text(Section(groups, "AcDbBlock1PtParameter"), 93)
@@ -196,6 +205,50 @@ namespace GeometryHelper.Dxf
             }
 
             return grips.AsReadOnly();
+        }
+
+        /// <summary>
+        /// The node ids of the parameters an action follows by their base point: a stretch or a move whose connections are
+        /// BaseXDelta and BaseYDelta (92 and 93, 301 and 302), an array whose first connection is Base.
+        /// </summary>
+        private static HashSet<string> BaseFollowed(List<DxfItem> nodes)
+        {
+            var followed = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (DxfItem node in nodes)
+            {
+                string section =
+                    node.Type == "BLOCKSTRETCHACTION" ? "AcDbBlockStretchAction"
+                    : node.Type == "BLOCKMOVEACTION" ? "AcDbBlockMoveAction"
+                    : node.Type == "BLOCKARRAYACTION" ? "AcDbBlockArrayAction"
+                    : null;
+
+                if (section == null)
+                {
+                    continue;
+                }
+
+                List<DxfTypedValue> own = Section(node.Groups, section);
+                string id = Text(own, 92)?.Trim();
+                string by = Text(own, 301)?.Trim();
+
+                if (
+                    id != null
+                    && (
+                        (node.Type == "BLOCKARRAYACTION" && by == "Base")
+                        || (
+                            node.Type != "BLOCKARRAYACTION"
+                            && by == "BaseXDelta"
+                            && Text(own, 302)?.Trim() == "BaseYDelta"
+                        )
+                    )
+                )
+                {
+                    followed.Add(id);
+                }
+            }
+
+            return followed;
         }
 
         /// <summary>The vector of a code and the two after it by one (140, 141, 142); null where it cannot be read.</summary>
@@ -270,6 +323,25 @@ namespace GeometryHelper.Dxf
                     );
                     direction = new GeoVector3(-direction.X, -direction.Y, 0.0);
                 }
+            }
+            else if (slot == 0)
+            {
+                // The base grip of a linear or an XY parameter: at the base point, a linear one's arrow pointing the way its grip
+                // object keeps (away from the end point).
+                position = new GeoPoint3(
+                    at[0] + from[0] - fromOwn[0],
+                    at[1] + from[1] - fromOwn[1],
+                    at[2] + from[2] - fromOwn[2]
+                );
+                GeoVector3 way =
+                    VectorOf(Section(gripNode.Groups, "AcDbBlockLinearGrip"), 140) is GeoVector3 kept
+                    && kept.Length > 0.0
+                        ? kept
+                        : new GeoVector3(-along.X, -along.Y, -along.Z);
+                direction =
+                    type == DxfDynamicBlockGripType.Linear && way.Length > 0.0
+                        ? way.Normalize()
+                        : new GeoVector3(0.0, 0.0, 0.0);
             }
             else if (slot >= 2)
             {

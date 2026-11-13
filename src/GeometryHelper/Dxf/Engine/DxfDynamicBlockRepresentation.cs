@@ -50,7 +50,18 @@ namespace GeometryHelper.Dxf
         /// Sets the value of a property of a node of the INSERT's dynamic block (its part: 0, else 1 for the y of a point or of
         /// an XY parameter), as <see cref="DxfDynamicBlockReferenceProperty.Value"/> says, and gives back the value read back.
         /// </summary>
-        internal static object Set(DxfBlockReference insert, string node, int part, object value)
+        internal static object Set(DxfBlockReference insert, string node, int part, object value) =>
+            Apply(insert, node, part, value, null);
+
+        /// <summary>
+        /// Moves the base point of the linear or XY parameter a node of the INSERT's dynamic block is, as a grip of AutoCAD's
+        /// moves it: by the vector given, in the coordinates of the file, the end point staying, and gives back the value the
+        /// property of the node reads afterwards. A linear parameter's base point moves along its line alone.
+        /// </summary>
+        internal static object MoveBase(DxfBlockReference insert, string node, int part, GeoVector3 by) =>
+            Apply(insert, node, part, 0.0, by);
+
+        private static object Apply(DxfBlockReference insert, string node, int part, object value, GeoVector3? by)
         {
             if (value == null)
             {
@@ -85,35 +96,7 @@ namespace GeometryHelper.Dxf
             var users = new Dictionary<string, object>(StringComparer.Ordinal);
             string state = ReadNow(insert, dynamic, block, scale, values, labels, users);
 
-            // A base point a grip moved: AutoCAD keeps it where the INSERT saved it and works the actions from there, drawing the
-            // array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y 99.30 down to
-            // 19.30; the library works a parameter out from the block's own base point, and would draw it at 0 down to -80. A
-            // base point a move carried, with the parameter, stands where the move took it from the block's own.
-            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
-            Dictionary<string, double[]> carried = Carried(block, values);
-
-            foreach (Param parameter in block.Parameters)
-            {
-                // A constraint parameter's base point is where the block's constraints put it, which a value set may move.
-                if (
-                    !(parameter is Spot)
-                    && !(parameter is Dimensional)
-                    && bases.TryGetValue(parameter.Id, out double[] saved)
-                    && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
-                        parameter.BaseNow(carried),
-                        Tolerance.Default
-                    )
-                )
-                {
-                    throw new NotSupportedException(
-                        "The INSERT "
-                            + insert.Handle
-                            + " keeps a base point of a parameter of the block "
-                            + dynamic.Name
-                            + " away from the block's own, as a grip moved it: the library works a block out from its own base points, and does not set it."
-                    );
-                }
-            }
+            ReadShifts(insert, dynamic, block, values, false);
 
             var before = new Dictionary<string, double[]>(StringComparer.Ordinal);
 
@@ -143,7 +126,11 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            if (row)
+            if (by.HasValue)
+            {
+                ShiftBase(insert, block, asked, values, by.Value);
+            }
+            else if (row)
             {
                 long index = Whole(value);
 
@@ -356,7 +343,11 @@ namespace GeometryHelper.Dxf
             {
                 if (property.Node == node && property.Part == part)
                 {
-                    Remember(insert, property);
+                    if (!by.HasValue)
+                    {
+                        Remember(insert, property);
+                    }
+
                     return property.Value;
                 }
             }
@@ -370,7 +361,7 @@ namespace GeometryHelper.Dxf
         /// ATTRIB placed afresh from the dynamic block's definition, as ATTSYNC places one, is taken so where the actions take
         /// its definition (TAG locked at (95, 20) in a stretch of Width set from 100 to 150 by 50 along x). Empty where the INSERT
         /// places no dynamic block. Refused with <see cref="NotSupportedException"/> where the block is one the library does not
-        /// work out, or the INSERT keeps a base point a grip moved, as <see cref="Set"/> refuses them.
+        /// work out, or the INSERT keeps a base point a grip moved that <see cref="Set"/> refuses (<see cref="ReadShifts"/>).
         /// </summary>
         internal static List<KeyValuePair<DxfAttributeReference, GeoTransform3>> FollowedFromOwn(
             DxfBlockReference insert
@@ -390,8 +381,8 @@ namespace GeometryHelper.Dxf
 
             foreach (Param parameter in block.Parameters)
             {
-                own[parameter.Id] = (double[])parameter.Own.Clone();
-                values[parameter.Id] = (double[])parameter.Own.Clone();
+                own[parameter.Id] = parameter.Fresh();
+                values[parameter.Id] = parameter.Fresh();
             }
 
             // The values the INSERT has now, read as Set reads them: lengths in the block's own units.
@@ -418,31 +409,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
-            Dictionary<string, double[]> carried = Carried(block, values);
-
-            foreach (Param parameter in block.Parameters)
-            {
-                if (
-                    !(parameter is Spot)
-                    && !(parameter is Dimensional)
-                    && bases.TryGetValue(parameter.Id, out double[] saved)
-                    && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
-                        parameter.BaseNow(carried),
-                        Tolerance.Default
-                    )
-                )
-                {
-                    throw new NotSupportedException(
-                        "The INSERT "
-                            + insert.Handle
-                            + " keeps a base point of a parameter of the block "
-                            + dynamic.Name
-                            + " away from the block's own, as a grip moved it: the library works a block out from its own base points."
-                    );
-                }
-            }
-
+            ReadShifts(insert, dynamic, block, values, true);
             return Followed(insert, dynamic, block, own, values);
         }
 
@@ -528,31 +495,7 @@ namespace GeometryHelper.Dxf
                         var labelled = new Dictionary<string, string>(StringComparer.Ordinal);
                         var held = new Dictionary<string, object>(StringComparer.Ordinal);
                         states.Add(ReadNow(insert, dynamic, block, scale, now, labelled, held));
-                        Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
-                        Dictionary<string, double[]> carried = Carried(block, now);
-
-                        foreach (Param parameter in block.Parameters)
-                        {
-                            if (
-                                !(parameter is Spot)
-                                && !(parameter is Dimensional)
-                                && bases.TryGetValue(parameter.Id, out double[] saved)
-                                && !new GeoPoint3(saved[0], saved[1], saved[2]).IsEqualTo(
-                                    parameter.BaseNow(carried),
-                                    Tolerance.Default
-                                )
-                            )
-                            {
-                                throw new NotSupportedException(
-                                    "The INSERT "
-                                        + insert.Handle
-                                        + " keeps a base point of a parameter of the block "
-                                        + dynamic.Name
-                                        + " away from the block's own, as a grip moved it."
-                                );
-                            }
-                        }
-
+                        ReadShifts(insert, dynamic, block, now, true);
                         blocks.Add(block);
                         values.Add(now);
                         labels.Add(labelled);
@@ -682,7 +625,7 @@ namespace GeometryHelper.Dxf
 
             foreach (Param parameter in block.Parameters)
             {
-                values[parameter.Id] = (double[])parameter.Own.Clone();
+                values[parameter.Id] = parameter.Fresh();
             }
 
             foreach (User user in block.Users)
@@ -730,6 +673,184 @@ namespace GeometryHelper.Dxf
             }
 
             return state;
+        }
+
+        /// <summary>
+        /// Reads where the INSERT keeps the base point of each linear and XY parameter, against where the block has it (moved, as
+        /// <see cref="Carried"/> says, where a move carries the parameter), into the three values <see cref="Param.Fresh"/> made
+        /// after its distances: AutoCAD keeps a base point a grip moved where the INSERT saved it and works the actions from
+        /// there, drawing the array of its XY sample's INSERT 2AE, whose base point a grip took from (0, 5) to (0, 104.30), at y
+        /// 99.30 down to 19.30, and read Width 80 where a corner of a plate 100 by 50 was dragged by (20, 10) and kept its right
+        /// edge at x 100 (plugin GhDy2a). A constraint parameter's base point is where the block's constraints put it, which a
+        /// value set may move, and is not read. A stretch, a move or an array that follows the base point follows the move a grip
+        /// is giving it, which the INSERT does not keep: the value set of an INSERT read back leaves them where the block has
+        /// them (the left edge, the ATTDEF LOWER and the first circle of an array of a plate or a grid whose base point sat
+        /// moved), and the anonymous blocks worked out anew (<paramref name="following"/>) take them to where the base point
+        /// stands, as AutoCAD 2021's <c>UpdateAnonymousBlocks</c> did (plugin GhDy2a). Refused with
+        /// <see cref="NotSupportedException"/> where another kind of parameter
+        /// keeps its base point away from the block's, a move carries the parameter that does, a scale or a rotate follows it,
+        /// or a linear parameter's has left its line: the library works those out from the block's own base points.
+        /// </summary>
+        private static void ReadShifts(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block,
+            Dictionary<string, double[]> values,
+            bool following
+        )
+        {
+            Dictionary<string, double[]> bases = DxfDynamicProperties.SavedBases(insert);
+            Dictionary<string, double[]> carried = Carried(block, values);
+
+            foreach (Param parameter in block.Parameters)
+            {
+                if (
+                    parameter is Spot
+                    || parameter is Dimensional
+                    || !bases.TryGetValue(parameter.Id, out double[] saved)
+                )
+                {
+                    continue;
+                }
+
+                GeoPoint3 now = parameter.BaseNow(carried);
+                var kept = new GeoPoint3(saved[0], saved[1], saved[2]);
+
+                if (kept.IsEqualTo(now, Tolerance.Default))
+                {
+                    continue;
+                }
+
+                double dx = kept.X - now.X,
+                    dy = kept.Y - now.Y,
+                    dz = kept.Z - now.Z;
+
+                if (
+                    !parameter.Takes
+                    || carried.ContainsKey(parameter.Id)
+                    || (parameter is Linear linear && !linear.Along(dx, dy, dz))
+                    || block.Actions.Exists(a =>
+                        a.Parameter == parameter.Id && (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate)
+                    )
+                )
+                {
+                    throw new NotSupportedException(
+                        "The INSERT "
+                            + insert.Handle
+                            + " keeps a base point of a parameter of the block "
+                            + dynamic.Name
+                            + " away from the block's own, as a grip moved it, which the library does not work out: it works out a linear or an XY parameter's, moved along its line, that no move carries and no scale or rotate follows."
+                    );
+                }
+
+                double[] tail = values[parameter.Id];
+                int at = parameter.Own.Length;
+                tail[at] = dx;
+                tail[at + 1] = dy;
+                tail[at + 2] = dz;
+
+                if (following)
+                {
+                    tail[at + 3] = dx;
+                    tail[at + 4] = dy;
+                    tail[at + 5] = dz;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Moves the base point of a linear or an XY parameter by a vector in the coordinates of the file, as a grip of AutoCAD's
+        /// does: the end point stays, so a distance of the parameter shrinks as the base point goes towards the end point (the
+        /// vector worked into the block's coordinates, an XY parameter's along x and along y, a linear parameter's along its line
+        /// alone). The distances are not taken to the parameter's value set, as the end grip's are.
+        /// </summary>
+        private static void ShiftBase(
+            DxfBlockReference insert,
+            Block block,
+            Param parameter,
+            Dictionary<string, double[]> values,
+            GeoVector3 by
+        )
+        {
+            if (parameter == null || !parameter.Takes)
+            {
+                throw new ArgumentException(
+                    "The property is not a distance of a linear or an XY parameter, whose base point a grip moves.",
+                    nameof(by)
+                );
+            }
+
+            if (
+                block.Sheet != null
+                || Carried(block, values).ContainsKey(parameter.Id)
+                || block.Actions.Exists(a =>
+                    a.Parameter == parameter.Id
+                    && (a.Kind == ActionKind.Scale || a.Kind == ActionKind.Rotate || a.Carried.Count > 0)
+                )
+            )
+            {
+                throw new NotSupportedException(
+                    "The base point of the parameter is not one the library moves: the block has a block properties table, a move carries the parameter or other parameters along with it, or a scale or a rotate follows it."
+                );
+            }
+
+            if (!insert.BlockTransform.TryGetInverse(out GeoTransform3 inverse, Tolerance.Default))
+            {
+                throw new InvalidOperationException(
+                    "The block reference cannot be worked back to its block's coordinates."
+                );
+            }
+
+            GeoVector3 local = inverse.Transform(by);
+            double[] now = values[parameter.Id];
+            int at = parameter.Own.Length;
+            double slack = Tolerance.Default.EqualPoint;
+
+            if (parameter is Planar planar)
+            {
+                double[] signs = planar.Signs;
+                double x = now[0] - signs[0] * local.X,
+                    y = now[1] - signs[1] * local.Y;
+
+                if (!(x > slack) || !(y > slack))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(by),
+                        by,
+                        "A distance of an XY parameter is above the point tolerance once its base point is moved."
+                    );
+                }
+
+                now[0] = x;
+                now[1] = y;
+                now[at] += local.X;
+                now[at + 1] += local.Y;
+                now[at + 3] += local.X;
+                now[at + 4] += local.Y;
+            }
+            else
+            {
+                var linear = (Linear)parameter;
+                double along = local.X * linear.UnitX + local.Y * linear.UnitY;
+                double distance = now[0] - along;
+
+                if (!(distance > slack))
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(by),
+                        by,
+                        "The distance of a linear parameter is above the point tolerance once its base point is moved."
+                    );
+                }
+
+                now[0] = distance;
+                now[at] += linear.UnitX * along;
+                now[at + 1] += linear.UnitY * along;
+                now[at + 2] += linear.UnitZ * along;
+                now[at + 3] += linear.UnitX * along;
+                now[at + 4] += linear.UnitY * along;
+                now[at + 5] += linear.UnitZ * along;
+            }
         }
 
         /// <summary>
@@ -893,18 +1014,25 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The move, in x and y, an action of a stretch or a move gives at the values given: the change of the point it follows
-        /// times its distance multiplier and turned by its angle offset; none for one following a base point, which a value set
-        /// does not move.
+        /// times its distance multiplier and turned by its angle offset; for one following a base point, the move a grip gave the
+        /// base point, none where the INSERT keeps it where the block has it, as a value set does not move it.
         /// </summary>
         private static double[] Change(Block block, BlockAction action, Dictionary<string, double[]> values)
         {
+            Param parameter = block.Parameters.Find(p => p.Id == action.Parameter);
+            return Moves(parameter, action, values[parameter.Id]);
+        }
+
+        /// <summary>The move, in x and y, of the point an action follows, its parameter's values given: see <see cref="Change"/>.</summary>
+        private static double[] Moves(Param parameter, BlockAction action, double[] now)
+        {
             if (action.ByBase)
             {
-                return new double[2];
+                double[] delta = parameter.DeltaOf(now);
+                return delta == null ? new double[2] : action.Factored(new[] { delta[0], delta[1] });
             }
 
-            Param parameter = block.Parameters.Find(p => p.Id == action.Parameter);
-            return action.Factored(parameter.Moved(values[parameter.Id]));
+            return action.Factored(parameter.Moved(now));
         }
 
         /// <summary>
@@ -1543,7 +1671,7 @@ namespace GeometryHelper.Dxf
             switch (action.Kind)
             {
                 case ActionKind.Move:
-                    double[] move = action.ByBase ? new double[2] : action.Factored(parameter.Moved(now));
+                    double[] move = Moves(parameter, action, now);
                     return move[0] == 0.0 && move[1] == 0.0
                         ? null
                         : GeoTransform3.Translation(new GeoVector3(move[0], move[1], 0.0));
@@ -1889,6 +2017,20 @@ namespace GeometryHelper.Dxf
                                     new GeoVector3(signs[0] * i * action.Columns, signs[1] * j * action.Rows, 0.0)
                                 );
                             }
+                        }
+                    }
+                }
+
+                // An array follows its parameter's base point: the entity, the first copy, goes where a grip is taking the base point.
+                double[] delta = parameter.DeltaOf(now);
+
+                if (delta != null)
+                {
+                    foreach (string handle in action.Entities)
+                    {
+                        if (copyOf.TryGetValue(handle, out DxfEntity first))
+                        {
+                            first.TransformBy(GeoTransform3.Translation(new GeoVector3(delta[0], delta[1], delta[2])));
                         }
                     }
                 }
@@ -2548,6 +2690,43 @@ namespace GeometryHelper.Dxf
                     ? new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z)
                     : Base;
 
+            /// <summary>Whether a grip may take the parameter's base point from the block's own, the INSERT keeping where it stands: a linear and an XY parameter's may.</summary>
+            internal virtual bool Takes => false;
+
+            /// <summary>
+            /// The parameter's values as the evaluation keeps them, at the block's own: its distances or angle, and, where a grip
+            /// may move the parameter's base point (<see cref="Takes"/>), six more, nought here: the base point's move from where
+            /// the block has it, which the INSERT keeps (x, y and z), and the move a grip is giving it now (x, y and z), which
+            /// the actions that follow the base point follow and which the INSERT does not keep, as AutoCAD 2021 moved a stretch
+            /// of the base point by the drag alone, the INSERT read back from its file working the same actions from nought
+            /// (plugin GhDy2a).
+            /// </summary>
+            internal double[] Fresh()
+            {
+                var fresh = new double[Own.Length + (Takes ? 6 : 0)];
+                Array.Copy(Own, fresh, Own.Length);
+                return fresh;
+            }
+
+            /// <summary>The base point's move the INSERT keeps, in values <see cref="Fresh"/> made (x, y and z); null where the parameter keeps none or it is nought, so that a parameter whose base point stays works out as it always did.</summary>
+            internal double[] ShiftOf(double[] now) => TailOf(now, 0);
+
+            /// <summary>The move a grip is giving the base point now, in values <see cref="Fresh"/> made (x, y and z); null where there is none.</summary>
+            internal double[] DeltaOf(double[] now) => TailOf(now, 3);
+
+            private double[] TailOf(double[] now, int from)
+            {
+                if (!Takes || now.Length < Own.Length + 6)
+                {
+                    return null;
+                }
+
+                int at = Own.Length + from;
+                return now[at] == 0.0 && now[at + 1] == 0.0 && now[at + 2] == 0.0
+                    ? null
+                    : new[] { now[at], now[at + 1], now[at + 2] };
+            }
+
             /// <summary>The node ids of the grips a parameter lists: the 91s of a parameter of two points, the 93 of one of one point; nought left out.</summary>
             internal static HashSet<string> GripsOf(IReadOnlyList<DxfTypedValue> groups)
             {
@@ -2681,11 +2860,27 @@ namespace GeometryHelper.Dxf
                 return linear;
             }
 
-            /// <summary>The move of the end point along the line from the base point: the distance now less the block's own.</summary>
+            internal override bool Takes => true;
+
+            /// <summary>
+            /// Whether a move of the base point, in x, y and z, is one a grip of the parameter makes: along the line from the base
+            /// point to the end point, to the point tolerance of <see cref="Tolerance.Default"/>.
+            /// </summary>
+            internal bool Along(double x, double y, double z)
+            {
+                double along = x * UnitX + y * UnitY + z * UnitZ;
+                double off = Math.Sqrt(Math.Max(0.0, x * x + y * y + z * z - along * along));
+                return off <= Tolerance.Default.EqualPoint;
+            }
+
+            /// <summary>The move of the end point: the base point's move, and along the line the distance now less the block's own.</summary>
             internal override double[] Moved(double[] now)
             {
                 double change = now[0] - Distance;
-                return new[] { UnitX * change, UnitY * change };
+                double[] shift = ShiftOf(now);
+                return shift == null
+                    ? new[] { UnitX * change, UnitY * change }
+                    : new[] { shift[0] + UnitX * change, shift[1] + UnitY * change };
             }
 
             internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
@@ -2696,6 +2891,13 @@ namespace GeometryHelper.Dxf
                 double distance = now[0];
                 GeoPoint3 from =
                     carried == null ? Base : new GeoPoint3(Base.X + carried[0], Base.Y + carried[1], Base.Z);
+                double[] shift = ShiftOf(now);
+
+                if (shift != null)
+                {
+                    from = new GeoPoint3(from.X + shift[0], from.Y + shift[1], from.Z + shift[2]);
+                }
+
                 var end = new GeoPoint3(
                     from.X + UnitX * distance,
                     from.Y + UnitY * distance,
@@ -3055,17 +3257,27 @@ namespace GeometryHelper.Dxf
             internal double Take(int part, double value, double scale) =>
                 (part == 0 ? _x : _y).Distance(value, scale, Own[part] * scale);
 
-            /// <summary>The move of the end point: each distance now less the block's own, the way the end point lies.</summary>
-            internal override double[] Moved(double[] now) =>
-                new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) };
+            internal override bool Takes => true;
+
+            /// <summary>The move of the end point: the base point's move, and each distance now less the block's own, the way the end point lies.</summary>
+            internal override double[] Moved(double[] now)
+            {
+                double[] shift = ShiftOf(now);
+                return shift == null
+                    ? new[] { _signX * (now[0] - Own[0]), _signY * (now[1] - Own[1]) }
+                    : new[] { shift[0] + _signX * (now[0] - Own[0]), shift[1] + _signY * (now[1] - Own[1]) };
+            }
 
             internal override IEnumerable<KeyValuePair<string, List<KeyValuePair<int, string>>>> Records(
                 double[] now,
                 double[] carried
             )
             {
-                var end = new GeoPoint3(Base.X + _signX * now[0], Base.Y + _signY * now[1], End.Z);
-                yield return Record(Id, PointsRecord(XYKey, Base, end));
+                double[] shift = ShiftOf(now);
+                GeoPoint3 from =
+                    shift == null ? Base : new GeoPoint3(Base.X + shift[0], Base.Y + shift[1], Base.Z + shift[2]);
+                var end = new GeoPoint3(from.X + _signX * now[0], from.Y + _signY * now[1], End.Z + (from.Z - Base.Z));
+                yield return Record(Id, PointsRecord(XYKey, from, end));
             }
         }
 

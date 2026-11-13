@@ -276,7 +276,7 @@ the ones wanted.
       41 of 4 680 to 0), DIMTEDIT's DIMTMOVE 1 leader threshold (gap + max(arrow, height/2 + DIMEXE)), a jogged radius
       keeping level words level with AutoCAD's stubs (j1 162 to 18), the arc break of wide angular words (a2 to 0), letters
       Arial lacks measured as AutoCAD sets them; harness in .claude/gk/dims-harness9
-- [ ] Dimension follow-ups 10: the angular leader band for words outside the sector (a4 74 of 712; a7 data in
+- [ ] (dims10, running) Dimension follow-ups 10: the angular leader band for words outside the sector (a4 74 of 712; a7 data in
       dims-harness9 acad-ac, no box-circle model fits); j1's last 18 (words moved to the jog); level landings W or L under
       DIMTAD 1/4 in a tight circle or behind the centre (t6 99 of 1 584, r6 36 of 1 024); points exactly on an extension line
       of an aligned dimension (m2 14, AutoCAD's rounding); lines exactly 15 degrees from level (S)
@@ -332,9 +332,14 @@ the ones wanted.
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
 - [x] Dynamic blocks: visibility states list every parameter, XY corner and block-table grips, live preview of custom grip drags, GRIPDYNCOLOR
 - [x] Dynamic block follow-ups 1 (fu-misc): the insertion grip last, as AutoCAD orders grips; grip colour already ACI 140
-- [ ] (dynblock2, running) Dynamic block follow-ups 2: XY/linear base point moved by a corner drag (AutoCAD Width 80, ours 100; a core evaluator
-      change, three refusals in DxfDynamicBlockRepresentation); a linear parameter's base grip; the block-table grip menu
-      and glyph (GUI); the Design artifact's grip colour #19B5F0 to AutoCAD's #00BFFF (S)
+- [x] Dynamic block follow-ups 2 (dynblock2): the base point of a linear or XY parameter moved by a grip, as AutoCAD 2021
+      (corner by (20, 10): Width 80, right edge kept), core DxfDynamicBlockReferenceProperty.MoveBasePoint, base grips where
+      a base-following action needs them, base-following stretch/move/array and ATTRIBs following the drag only;
+      UpdateAnonymousBlocks after a base move; AUDIT 0 on ten outputs with AutoCAD's values read back
+- [ ] Dynamic block follow-ups 3: GRIPLOC history records; the Origin property of each parameter; polar, rotation and flip
+      bases moved; carried parameters and scale/rotate followers (still refused); value-set increments after a base move;
+      ATTSYNC (FollowedFromOwn) on a moved INSERT; the block-table grip menu and glyph (GUI); the Design artifact's grip
+      colour #19B5F0 to #00BFFF (S)
 
 ### To do
 

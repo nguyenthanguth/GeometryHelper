@@ -64,6 +64,21 @@ sides of the rows (the top and bottom at (0.3, 0.18) and (0.3, -0.18), the left 
 at (0.45, 0.05), where the first wall is), and a wall meets no side. Before, they took the walls and the strokes of the symbols
 too.
 
+**NEW.** The base point of a linear or an XY parameter a grip moved, as AutoCAD 2021 works it (probed in its console on plates,
+a grid and panels, its own results to the last digit, the library's INSERTs read back with `AUDIT` finding 0 errors).
+`DxfDynamicBlockReferenceProperty.MoveBasePoint(GeoVector3)` moves the base point of the parameter a property is of, the end
+point staying: a plate 100 by 50 whose XY parameter runs from (0, 0) to (100, 50), moved by (20, 0) with its Height set to 60,
+reads Width 80 and Height 60 and keeps its right edge at x 100, where the corner of base x and end y dragged by (20, 10) read
+Width 100 in the presenter before. The INSERT keeps the base point and every later value set, `UpdateAnonymousBlocks` and
+`DxfBlockReference.GetDynamicGrips` work from there (Width then set to 120 takes the end point to (140, 60)); a stretch, a
+move or an array that follows the base point follows the move being made, and `UpdateAnonymous` takes it to where the base
+point stands. The three refusals of `Set`, `FollowedFromOwn` and `UpdateAnonymous` for a saved base point away from the block's
+own are gone for a linear and an XY parameter that no move carries and no scale or rotate follows; a polar, rotation or flip
+parameter's still is refused. The base grip of such a parameter is given by `GetDynamicGrips` where an action follows its base
+point, after the end grip (a linear parameter's once the INSERT has kept its values). In the presenter, the two corners of an
+XY parameter move the base point along the other axis, as AutoCAD's do, and the base grip of an XY or a linear parameter
+drags it; a drag that would take a distance to nought is refused.
+
 **FIXED.** A dynamic block saved from the Block Editor, and `DxfDynamicBlockRepresentation.UpdateAnonymous`, treat the attributes of
 the INSERTs of its anonymous blocks as AutoCAD 2021's `UpdateAnonymousBlocks` does (a panel with TAG locked in a stretch and NOTE
 free, probed in its console): an ATTRIB whose ATTDEF is locked and held by an action is made anew from the ATTDEF of the new *U

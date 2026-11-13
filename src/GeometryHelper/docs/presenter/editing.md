@@ -2007,9 +2007,16 @@ the panel of a Width of 100, 150 or 200 at (1 000, 500) dragged by its arrow to 
 The insertion point's grip comes after the custom grips, as AutoCAD 2021's GetGripPoints gives them (a rectangle of an XY
 parameter at (1 000, 500): (1 100, 550), (1 000, 550), (1 100, 500) and the insertion point (1 000, 500)).
 An XY parameter shows three grips, as AutoCAD does: its end sets Width and Height; the corner of base x and end y sets the
-Height alone, and the corner of end x and base y the Width alone. AutoCAD moves the parameter's base point along the other
-axis, reading a Width of 80 where the presenter keeps 100 for the first corner of a rectangle 100 by 50 dragged by (20,
-10), and draws the block as the presenter does where no action follows the base point (probe GhDb1). A flip grip clicked
+Height and moves the parameter's base point along x, and the corner of end x and base y sets the Width and moves it along
+y, as AutoCAD does: the first corner of a rectangle 100 by 50 dragged by (20, 10) reads Width 80 and Height 60 with the
+base point at (20, 0) and the right edge staying at x 100, the second Width 120 and Height 40 with the base point at (0,
+10) (probes GhDb1 and GhDy2a). Where an action follows the base point (a stretch or a move of BaseXDelta and BaseYDelta, an
+array) the parameter has a base grip too, after the end grip, and a linear parameter does once the INSERT has kept its
+values: dragged, it moves the base point, the end point staying (`MoveBasePoint` of the core), and what follows the base
+point follows the drag alone, the bottom and left edges of a plate whose bottom left corner a stretch of the base point
+holds starting at (20, 10) after a base grip drag by (20, 10); the INSERT keeps the base point, so that a value set
+later leaves them where the block has them, as AutoCAD 2021 did an INSERT read back from its file. A drag that would take
+a distance to nought or below is refused, the drawing as it was. A flip grip clicked
 flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility, lookup or
 block table grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`): a block table
 lists its rows, each its cells parted by commas, "100.0000" and "200.0000" for a table of Width, and the row chosen sets

@@ -10,8 +10,9 @@ namespace GeometryHelper.UnitTest.Dxf
 {
     /// <summary>
     /// A base point a grip moved (D24f): AutoCAD's XY sample keeps an INSERT whose XY parameter's base point a grip moved from
-    /// (0, 5) to (0, 104.30), its end point at (100.59, 0), and draws its array of rows from there, at y 99.30 down to 19.30;
-    /// the library works a block out from the block's own base point, and so does not set such an INSERT.
+    /// (0, 5) to (0, 104.30), its end point at (100.59, 0), and drew its array of rows from there, at y 99.30 down to 19.30;
+    /// the library sets such an INSERT from the base point it keeps, as AutoCAD 2021 sets one read back from its file (plugin
+    /// GhDy2a).
     /// </summary>
     public class DxfDynamicBlockD24fTests
     {
@@ -119,12 +120,14 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnInsertWhoseXYBasePointAGripMoved_IsNotSet_AsAutoCadDrawsItFromTheMovedBasePoint()
+        public void AnInsertWhoseXYBasePointAGripMoved_IsSetFromWhereItKeepsTheBasePoint_AsAutoCadSetsIt()
         {
             // AutoCAD's XY sample (ACadSharp's, saved by AutoCAD 2021) keeps its INSERT 2AE with the XY parameter's base point
-            // at (0, 104.30) and its end point at (100.59, 0), the block's own being (0, 5) and (5, 0): a grip moved both, and
-            // AutoCAD drew the circles of the array at x 0 to 75 and y 99.30 down to 19.30. The library works the array out from
-            // the block's own base point, at y 0 down to -80, so it sets no property of such an INSERT, and writes nothing.
+            // at (0, 104.30) and its end point at (100.59, 0), the block's own being (0, 5) and (5, 0): a grip moved both. The
+            // library works it out from the base point the INSERT keeps, as AutoCAD 2021 did an INSERT read back from its file
+            // (plugin GhDy2a: a base point moved by (10, 20) and X Distance1 set to 105 gave four columns of 25 and five rows
+            // of 20 from the block's own circle, a grip's move of the first copy not being kept): X Distance1 set to 60 gives
+            // two columns, the Y distance staying.
             DxfDatabase db = Grid(out DxfBlockTableRecord block);
             Property(TheInsert(db), "X Distance1").Value = SampleX;
             Property(TheInsert(db), "Y Distance1").Value = SampleY;
@@ -136,23 +139,29 @@ namespace GeometryHelper.UnitTest.Dxf
             );
             DxfDatabase reopened = Reopened(db);
             DxfBlockReference insert = TheInsert(reopened);
-            string before = reopened.ToText();
 
             // Read as AutoCAD read it (plugin v16): the distances between the two points it saved.
             Assert.Equal(SampleX, ValueOf(insert, "X Distance1"), Close);
             Assert.Equal(SampleY, ValueOf(insert, "Y Distance1"), Close);
 
-            Assert.Throws<NotSupportedException>(() => Property(insert, "X Distance1").Value = 60.0);
-            Assert.Throws<NotSupportedException>(() => Property(insert, "Y Distance1").Value = 45.0);
-            Assert.Throws<NotSupportedException>(() => Property(insert, "X Distance1").Value = SampleX);
-            Assert.Equal(before, reopened.ToText());
+            Property(insert, "X Distance1").Value = 60.0;
+
+            DxfBlockReference back = TheInsert(Reopened(reopened));
+            Assert.Equal(60.0, ValueOf(back, "X Distance1"), Close);
+            Assert.Equal(SampleY, ValueOf(back, "Y Distance1"), Close);
+            List<GeoPoint3> dots = Shown<DxfCircle>(back).Select(c => c.Center).ToList();
+            Assert.Equal(10, dots.Count);
+            Assert.Contains(dots, d => d.IsEqualTo(new GeoPoint3(0, 0, 0), Exact));
+            Assert.Contains(dots, d => d.IsEqualTo(new GeoPoint3(25, -80, 0), Exact));
         }
 
         [Fact]
-        public void AnInsertWhoseLinearBasePointAGripMoved_IsNotSet_AsItsDistanceNoLongerTellsWhereItsEndPointIs()
+        public void AnInsertWhoseLinearBasePointAGripMoved_IsSetFromWhereItKeepsTheBasePoint()
         {
             // A linear parameter's base grip moves its base point as an XY parameter's does: Width from (50, 0) to (200, 0) reads
-            // 150, where the block's own base point at the origin and a Width of 150 put the right edge at x = 150, not 200.
+            // 150, and set to 250 it takes the end point to (300, 0) and the right edge, which the end point stretches, to x 300,
+            // where the block's own base point at the origin would put it at 250 (AutoCAD 2021 set Width 200 with the end point
+            // at (220, 0) from the base point at (20, 0) on an INSERT read back from its file, plugin GhDy2a).
             DxfDatabase db = Drawing("GH_PANEL", out DxfBlockTableRecord block);
             DxfLine right = Add(block, new DxfLine(new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0)));
             DxfLine bottom = Add(block, new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0)));
@@ -169,12 +178,17 @@ namespace GeometryHelper.UnitTest.Dxf
             Grip(TheInsert(db), IdOf(block, "BLOCKLINEARPARAMETER"), new GeoPoint3(50, 0, 0), new GeoPoint3(200, 0, 0));
             DxfDatabase reopened = Reopened(db);
             DxfBlockReference insert = TheInsert(reopened);
-            string before = reopened.ToText();
 
             Assert.Equal(150.0, ValueOf(insert, "Width"), Close);
-            Assert.Throws<NotSupportedException>(() => Property(insert, "Width").Value = 150.0);
-            Assert.Throws<NotSupportedException>(() => Property(insert, "Width").Value = 250.0);
-            Assert.Equal(before, reopened.ToText());
+
+            Property(insert, "Width").Value = 250.0;
+
+            DxfBlockReference back = TheInsert(Reopened(reopened));
+            Assert.Equal(250.0, ValueOf(back, "Width"), Close);
+            Assert.Contains(Shown<DxfLine>(back), l =>
+                l.StartPoint.IsEqualTo(new GeoPoint3(300, 0, 0), Exact)
+                && l.EndPoint.IsEqualTo(new GeoPoint3(300, 50, 0), Exact)
+            );
         }
 
         [Fact]
