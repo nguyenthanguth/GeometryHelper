@@ -145,10 +145,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Annotative objects 4 (annot4): MLEADEREDIT keeping every scale's context; the presenter's MLEADER landed as AutoCAD
         (base and words, the block content's matrix); multileaders of any number of leaders at a second scale; an angular
         context's arc point at a second scale (36 probes equal); DIMARC with DIMDEC found to match AutoCAD already
-  - [ ] (turnwords, running: the first item) Annotative objects 5: turned words that do not fit in the plain layout (DIMLINEAR at DIMSCALE 100: AutoCAD outside
-        at (154.38, 30), ours inside; changes non-annotative pictures, needs its own round with the harness); MLEADEREDIT's
-        far-side arrow making its own leader (needs measured fonts); words' y offset by the ink depth; small context group
-        differences (90, 172, 91, 141, 295, record 45); the text width gap (177.4 vs 177.47) (S)
+  - [x] Annotative objects 5a (turnwords): turned words fitted by the reach of their box and placed outside as AutoCAD (the
+        reported DIMSCALE 100 case at (154.381, 30)), with DIMTMOVE 1/2, DIMJUST 3/4, DIMTVP, DIMTXTDIRECTION, slanting lines
+        and moved-then-turned arrowheads; 17 probe sets 6 404 differing of 15 735 down to 377; 66 older sets byte-identical;
+        harness .claude/gk/dims-harness13
+  - [ ] Annotative objects 5b: DIMTMOVE 1 with very wide turned words (no leader in AutoCAD; tw9-tw11 298 differ); words
+        put beyond a slanting line's end (tw17 58); exact ties; MLEADEREDIT's far-side arrow making its own leader (needs
+        measured fonts); words' y offset by the ink depth; context group differences (90, 172, 91, 141, 295, record 45);
+        the text width gap 177.4 vs 177.47 (maybe AutoCAD's live picture against its redraw, as found here) (S)
   - [ ] R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
@@ -225,7 +229,8 @@ User note 2026-11-12 evening (note.md 1-14):
 - [ ] R12 follow-ups 3: solid and gradient fills as AutoCAD's strips and band meshes (rect: 2 SOLID + 2 LINE; circle r25: 31
       SOLID + 36 LINE; SPHERICAL 332); multileader frames and measured left-aligned TEXTs; dimension MTEXTs with a degree
       sign or stack kept as TEXT; annotative decomposition layers; xdata normalisation (upper-case names, 5-group points);
-      polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions (S)
+      polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions; BODY, surfaces and spline-edge
+      solids (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
