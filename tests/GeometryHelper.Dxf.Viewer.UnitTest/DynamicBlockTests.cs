@@ -151,18 +151,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             group.Rows.Single(r => r.Label == label);
 
         [Fact]
-        public void ADynamicInsert_HasItsCustomGripsAfterItsInsertionPoint_AsAutoCadShowsThem()
+        public void ADynamicInsert_HasItsCustomGripsBeforeItsInsertionPoint_AsAutoCadGivesThem()
         {
             CadDocument document = Panel(out string handle);
 
             IReadOnlyList<CadGrip> grips = CadGrips.Of(Insert(document, handle));
 
-            Assert.Equal(new[] { CadGripKind.Insertion, CadGripKind.CustomLinear }, grips.Select(g => g.Kind));
-            Near(P(1100, 500), grips[1].Point);
-            Assert.Equal(1.0, grips[1].Direction.X, 9);
-            Assert.Equal(0.0, grips[1].Direction.Y, 9);
-            Assert.Equal(new[] { "Width" }, grips[1].Custom.PropertyNames);
-            Assert.Null(grips[0].Custom);
+            Assert.Equal(new[] { CadGripKind.CustomLinear, CadGripKind.Insertion }, grips.Select(g => g.Kind));
+            Near(P(1100, 500), grips[0].Point);
+            Assert.Equal(1.0, grips[0].Direction.X, 9);
+            Assert.Equal(0.0, grips[0].Direction.Y, 9);
+            Assert.Equal(new[] { "Width" }, grips[0].Custom.PropertyNames);
+            Assert.Null(grips[1].Custom);
         }
 
         [Fact]
@@ -170,7 +170,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Panel(out string handle);
 
-            CadEditResult result = document.GripDrag(handle, 1, P(1180, 530));
+            CadEditResult result = document.GripDrag(handle, 0, P(1180, 530));
 
             Assert.True(result.Succeeded, result.Message);
             Assert.Equal(200.0, (double)ValueOf(document, handle, "Width"), 9);
@@ -181,7 +181,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 l.StartPoint.IsEqualTo(new GeoPoint3(200, 0, 0), Tight)
                 && l.EndPoint.IsEqualTo(new GeoPoint3(200, 50, 0), Tight)
             );
-            Near(P(1200, 500), CadGrips.Of(insert)[1].Point);
+            Near(P(1200, 500), CadGrips.Of(insert)[0].Point);
             Assert.Equal("GRIP", document.NextUndo.Name);
 
             Assert.True(document.Undo());
@@ -198,7 +198,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
             session.Tolerance = Tolerance.Default;
 
-            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 0) }));
             Assert.Equal("** STRETCH **", session.History.Last());
             Run(session, P(1160, 400));
 
@@ -213,10 +213,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Panel(out string handle);
             string before = document.Database.ToText();
 
-            Assert.False(document.GripDrag(handle, 1, P(900, 500)).Succeeded);
+            Assert.False(document.GripDrag(handle, 0, P(900, 500)).Succeeded);
 
             document.Database.LayerTable["Doors"].IsLocked = true;
-            Assert.False(document.GripDrag(handle, 1, P(1150, 500)).Succeeded);
+            Assert.False(document.GripDrag(handle, 0, P(1150, 500)).Succeeded);
             Assert.False(CadDynamicBlocks.SetProperty(document, new[] { handle }, "Width", "150").Succeeded);
             document.Database.LayerTable["Doors"].IsLocked = false;
             Assert.Equal(before, document.Database.ToText());
@@ -251,14 +251,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheFlipGripClicked_FlipsTheDoor_AndTheCustomGroupNamesItsStates()
         {
             CadDocument document = Door(out string handle);
-            CadGrip flip = CadGrips.Of(Insert(document, handle))[1];
+            CadGrip flip = CadGrips.Of(Insert(document, handle))[0];
             Assert.Equal(CadGripKind.CustomFlip, flip.Kind);
 
             CadPropertyRow row = Row(Group(document, handle, CadProperties.CustomGroup), "Hand");
             Assert.Equal("Not flipped", row.Value);
             Assert.Equal(new[] { "Not flipped", "Flipped" }, row.Choices);
 
-            Assert.True(CadDynamicBlocks.Click(document, handle, 1).Succeeded);
+            Assert.True(CadDynamicBlocks.Click(document, handle, 0).Succeeded);
 
             Assert.Equal((short)1, ValueOf(document, handle, "Hand"));
             Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
@@ -268,18 +268,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(CadDynamicBlocks.SetProperty(document, new[] { handle }, "Hand", "Not flipped").Succeeded);
             Assert.Equal((short)0, ValueOf(document, handle, "Hand"));
-            Assert.False(CadDynamicBlocks.Click(document, handle, 0).Succeeded);
+            Assert.False(CadDynamicBlocks.Click(document, handle, 1).Succeeded);
         }
 
         [Fact]
         public void TheVisibilityGripClicked_ListsTheStatesTheCurrentTicked_AndAStateChosenIsShown()
         {
             CadDocument document = Sign(out string handle);
-            CadGrip grip = CadGrips.Of(Insert(document, handle))[1];
+            CadGrip grip = CadGrips.Of(Insert(document, handle))[0];
             Assert.Equal(CadGripKind.CustomList, grip.Kind);
             Near(P(20, -10), grip.Point);
 
-            IReadOnlyList<string> states = CadDynamicBlocks.ValuesOf(document, handle, 1, out string current);
+            IReadOnlyList<string> states = CadDynamicBlocks.ValuesOf(document, handle, 0, out string current);
             Assert.Equal(new[] { "Cross", "Tick", "Blank" }, states);
             Assert.Equal("Cross", current);
             Assert.Equal(
@@ -287,27 +287,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Row(Group(document, handle, CadProperties.CustomGroup), "Mark").Choices
             );
 
-            Assert.True(CadDynamicBlocks.Choose(document, handle, 1, "Tick").Succeeded);
+            Assert.True(CadDynamicBlocks.Choose(document, handle, 0, "Tick").Succeeded);
 
             Assert.Equal("Tick", ValueOf(document, handle, "Mark"));
-            CadDynamicBlocks.ValuesOf(document, handle, 1, out current);
+            CadDynamicBlocks.ValuesOf(document, handle, 0, out current);
             Assert.Equal("Tick", current);
-            Assert.False(CadDynamicBlocks.Choose(document, handle, 1, "Arrow").Succeeded);
-            Assert.False(document.GripDrag(handle, 1, P(0, 0)).Succeeded);
+            Assert.False(CadDynamicBlocks.Choose(document, handle, 0, "Arrow").Succeeded);
+            Assert.False(document.GripDrag(handle, 0, P(0, 0)).Succeeded);
         }
 
         [Fact]
         public void TheRotationGripDraggedAQuarterTurn_TurnsTheArrowAQuarterTurn()
         {
             CadDocument document = Arrow(out string handle);
-            CadGrip grip = CadGrips.Of(Insert(document, handle))[1];
+            CadGrip grip = CadGrips.Of(Insert(document, handle))[0];
             Assert.Equal(CadGripKind.CustomRotation, grip.Kind);
             Near(P(80, 25), grip.Point);
 
-            Assert.True(document.GripDrag(handle, 1, P(50, 70)).Succeeded);
+            Assert.True(document.GripDrag(handle, 0, P(50, 70)).Succeeded);
 
             Assert.Equal(Math.PI / 2, (double)ValueOf(document, handle, "Angle"), 9);
-            Near(P(50, 55), CadGrips.Of(Insert(document, handle))[1].Point);
+            Near(P(50, 55), CadGrips.Of(Insert(document, handle))[0].Point);
             // The angle to the places of AUPREC, nought in a drawing whose header gives none, as AutoCAD 2021 reads it.
             Assert.Equal("90", Row(Group(document, handle, CadProperties.CustomGroup), "Angle").Value);
 
@@ -430,20 +430,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             IReadOnlyList<CadGrip> grips = CadGrips.Of(Insert(document, handle));
 
-            // AutoCAD 2021 gave (1 100, 550), (1 000, 550) and (1 100, 500) after the insertion point (plugin GhDb1).
+            // AutoCAD 2021 gave (1 100, 550), (1 000, 550) and (1 100, 500), the insertion point (1 000, 500) last (plugin GhDb1).
             Assert.Equal(
                 new[]
                 {
+                    CadGripKind.CustomPoint,
+                    CadGripKind.CustomPoint,
+                    CadGripKind.CustomPoint,
                     CadGripKind.Insertion,
-                    CadGripKind.CustomPoint,
-                    CadGripKind.CustomPoint,
-                    CadGripKind.CustomPoint,
                 },
                 grips.Select(g => g.Kind)
             );
-            Near(P(1100, 550), grips[1].Point);
-            Near(P(1000, 550), grips[2].Point);
-            Near(P(1100, 500), grips[3].Point);
+            Near(P(1100, 550), grips[0].Point);
+            Near(P(1000, 550), grips[1].Point);
+            Near(P(1100, 500), grips[2].Point);
         }
 
         [Fact]
@@ -453,18 +453,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // base point's x moved with it (Width 80) and nothing drawn moved along x; end x with base y Width 120, the base
             // point's y moved (Height 40) and nothing drawn moved along y (plugin GhDb1). The library keeps the base point.
             CadDocument document = Plate(out string handle);
-            Assert.True(document.GripDrag(handle, 1, P(1120, 560)).Succeeded);
+            Assert.True(document.GripDrag(handle, 0, P(1120, 560)).Succeeded);
             Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
             Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
 
             document = Plate(out handle);
-            Assert.True(document.GripDrag(handle, 2, P(1020, 560)).Succeeded);
+            Assert.True(document.GripDrag(handle, 1, P(1020, 560)).Succeeded);
             Assert.Equal(100.0, (double)ValueOf(document, handle, "Width"), 9);
             Assert.Equal(60.0, (double)ValueOf(document, handle, "Height"), 9);
-            Near(P(1000, 560), CadGrips.Of(Insert(document, handle))[2].Point);
+            Near(P(1000, 560), CadGrips.Of(Insert(document, handle))[1].Point);
 
             document = Plate(out handle);
-            Assert.True(document.GripDrag(handle, 3, P(1120, 510)).Succeeded);
+            Assert.True(document.GripDrag(handle, 2, P(1120, 510)).Succeeded);
             Assert.Equal(120.0, (double)ValueOf(document, handle, "Width"), 9);
             Assert.Equal(50.0, (double)ValueOf(document, handle, "Height"), 9);
             Assert.Contains(Insert(document, handle).BlockTableRecord.OfType<DxfLine>(), l =>
@@ -473,7 +473,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             );
 
             // A corner dragged onto the base point's line along the axis it sets is refused.
-            Assert.False(document.GripDrag(handle, 3, P(1000, 530)).Succeeded);
+            Assert.False(document.GripDrag(handle, 2, P(1000, 530)).Succeeded);
         }
 
         [Fact]
@@ -487,23 +487,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 )
             );
 
-            CadGrip grip = CadGrips.Of(Insert(document, handle))[2];
+            CadGrip grip = CadGrips.Of(Insert(document, handle))[1];
             Assert.Equal(CadGripKind.CustomList, grip.Kind);
             Assert.Equal(DxfDynamicBlockGripType.BlockTable, grip.Custom.GripType);
             Near(P(1000, 480), grip.Point);
 
-            IReadOnlyList<string> rows = CadDynamicBlocks.ValuesOf(document, handle, 2, out string current);
+            IReadOnlyList<string> rows = CadDynamicBlocks.ValuesOf(document, handle, 1, out string current);
             Assert.Equal(new[] { "100.0000", "200.0000" }, rows);
             Assert.Equal("100.0000", current);
 
-            Assert.True(CadDynamicBlocks.Choose(document, handle, 2, "200.0000").Succeeded);
+            Assert.True(CadDynamicBlocks.Choose(document, handle, 1, "200.0000").Succeeded);
 
             Assert.Equal((short)1, ValueOf(document, handle, "Block Table1"));
             Assert.Equal(200.0, (double)ValueOf(document, handle, "Width"), 9);
-            CadDynamicBlocks.ValuesOf(document, handle, 2, out current);
+            CadDynamicBlocks.ValuesOf(document, handle, 1, out current);
             Assert.Equal("200.0000", current);
             Assert.Equal("GRIP", document.NextUndo.Name);
-            Assert.False(document.GripDrag(handle, 2, P(1000, 400)).Succeeded);
+            Assert.False(document.GripDrag(handle, 1, P(1000, 400)).Succeeded);
         }
 
         [Fact]
@@ -515,7 +515,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session.Tolerance = Tolerance.Default;
             string before = document.Database.ToText();
 
-            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 0) }));
             CadPreview preview = session.Prompt.Preview;
             Assert.NotNull(preview);
             Assert.True(preview.ShowsBand);
@@ -537,7 +537,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Sign(out string handle);
             CadCommandSession session = Session(document);
-            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 1) }));
+            Assert.True(session.StartGripEdit(new[] { new KeyValuePair<string, int>(handle, 0) }));
             Assert.Null(session.Prompt.Preview);
 
             document = Panel(out handle);

@@ -835,14 +835,111 @@ namespace GeometryHelper.Dxf.Viewer
             };
 
         /// <summary>
-        /// The references of an arc length dimension of an arc, as AutoCAD 2021 writes them: the ends of the length measured as
-        /// the arc's start and end (a partial length's as nearest points of the arc at their angles, 0.349066 and 1.745329 for
-        /// one from 20 to 100 degrees), then the arc's centre.
+        /// The arc segment of a light polyline that DIMARC measures: the segment nearest the point picked (the first arc segment
+        /// where none was), given as its centre, radius, the angle it starts at running counter-clockwise, its sweep and its
+        /// marker (1 for the first segment). False where that segment is straight or the polyline has no arc segment.
         /// </summary>
-        internal static DxfOsnapPointRef[] ArcLengthEnds(DxfArc arc, DxfArcDimension dimension)
+        internal static bool ArcSegmentAt(
+            DxfPolyline polyline,
+            GeoPoint2? picked,
+            out GeoPoint2 center,
+            out double radius,
+            out double start,
+            out double sweep,
+            out int marker
+        )
         {
-            var center = new GeoPoint2(arc.Center.X, arc.Center.Y);
+            center = default;
+            radius = 0.0;
+            start = 0.0;
+            sweep = 0.0;
+            marker = 0;
+            int segments = polyline.Closed ? polyline.NumberOfVertices : polyline.NumberOfVertices - 1;
+            double nearest = double.MaxValue;
+
+            for (int i = 1; i <= segments; i++)
+            {
+                if (!PieceOf(polyline, i, out Piece piece))
+                {
+                    continue;
+                }
+
+                if (!picked.HasValue)
+                {
+                    if (!piece.IsRound)
+                    {
+                        continue;
+                    }
+
+                    marker = i;
+                    break;
+                }
+
+                double d = (ClosestOn(piece, picked.Value) - picked.Value).Length;
+
+                if (d < nearest - Tolerance.Default.EqualPoint)
+                {
+                    nearest = d;
+                    marker = i;
+                }
+            }
+
+            if (marker == 0 || !PieceOf(polyline, marker, out Piece found) || !found.IsRound)
+            {
+                return false;
+            }
+
+            center = found.Center;
+            radius = found.Radius;
+            start = found.Start;
+            sweep = found.Sweep;
+            return radius > Tolerance.Default.EqualPoint;
+        }
+
+        /// <summary>
+        /// The references of an arc length dimension of an arc, or of the arc segment of a polyline (<paramref name="marker"/>,
+        /// 1 for its first segment, 0 for an arc), as AutoCAD 2021 writes them: the ends of the length measured as the start and
+        /// end of the arc (a polyline's by the way its path runs: the segment's start vertex where it turns counter-clockwise, its
+        /// end vertex where it turns clockwise), the parameters counted on from the arc's start, the end past a turn where it
+        /// crosses 0: 5.235988 and 8.028514 for the arc from 300 to 100 degrees. A partial length's are nearest points of the arc
+        /// at their angles counted so, 0.349066 and 1.745329 for one from 20 to 100 degrees. Then the arc's centre, at the
+        /// parameter of the arc's start.
+        /// </summary>
+        internal static DxfOsnapPointRef[] ArcLengthEnds(
+            DxfEntity source,
+            int marker,
+            GeoPoint2 center,
+            double start,
+            double sweep,
+            DxfArcDimension dimension
+        )
+        {
             double least = Tolerance.Default.EqualPoint;
+            GeoPoint3 startPoint;
+            GeoPoint3 endPoint;
+            GeoPoint3 centerPoint;
+            DxfOsnapType startType = DxfOsnapType.StartPoint;
+            DxfOsnapType endType = DxfOsnapType.Endpoint;
+
+            if (source is DxfArc arc)
+            {
+                startPoint = arc.StartPoint;
+                endPoint = arc.EndPoint;
+                centerPoint = arc.Center;
+            }
+            else
+            {
+                var polyline = (DxfPolyline)source;
+                bool counter = polyline.GetBulgeAt(marker - 1) > 0.0;
+                GeoPoint3 first = polyline.GetPointAtParameter(marker - 1.0);
+                GeoPoint3 last = polyline.GetPointAtParameter((double)marker);
+                startPoint = counter ? first : last;
+                endPoint = counter ? last : first;
+                startType = counter ? DxfOsnapType.StartPoint : DxfOsnapType.Endpoint;
+                endType = counter ? DxfOsnapType.Endpoint : DxfOsnapType.StartPoint;
+                centerPoint = new GeoPoint3(center.X, center.Y, first.Z);
+            }
+
             GeoPoint3[] ends = { dimension.XLine1Point, dimension.XLine2Point };
             var references = new DxfOsnapPointRef[3];
 
@@ -851,38 +948,30 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint3 end = ends[i];
                 var at = new GeoPoint2(end.X, end.Y);
                 references[i] =
-                    !dimension.IsPartial && Distance(at, arc.StartPoint) <= least
-                        ? new DxfOsnapPointRef(
-                            i,
-                            DxfOsnapType.StartPoint,
-                            arc.Handle,
-                            0,
-                            arc.StartAngle,
-                            arc.StartPoint,
-                            null
-                        )
-                    : !dimension.IsPartial && Distance(at, arc.EndPoint) <= least
-                        ? new DxfOsnapPointRef(
-                            i,
-                            DxfOsnapType.Endpoint,
-                            arc.Handle,
-                            0,
-                            arc.EndAngle,
-                            arc.EndPoint,
-                            null
-                        )
+                    !dimension.IsPartial && Distance(at, startPoint) <= least
+                        ? new DxfOsnapPointRef(i, startType, source.Handle, marker, start, startPoint, null)
+                    : !dimension.IsPartial && Distance(at, endPoint) <= least
+                        ? new DxfOsnapPointRef(i, endType, source.Handle, marker, start + sweep, endPoint, null)
                     : new DxfOsnapPointRef(
                         i,
                         DxfOsnapType.Nearest,
-                        arc.Handle,
-                        0,
-                        Normal(AngleOf(at, center)),
+                        source.Handle,
+                        marker,
+                        start + Normal(AngleOf(at, center) - start),
                         end,
                         null
                     );
             }
 
-            references[2] = new DxfOsnapPointRef(2, DxfOsnapType.Center, arc.Handle, 0, 0.0, arc.Center, null);
+            references[2] = new DxfOsnapPointRef(
+                2,
+                DxfOsnapType.Center,
+                source.Handle,
+                marker,
+                start,
+                centerPoint,
+                null
+            );
             return references;
         }
 
@@ -1727,10 +1816,18 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoPoint3 start = points.TryGetValue(0, out GeoPoint3 a) ? a : arcLength.XLine1Point;
                     GeoPoint3 end = points.TryGetValue(1, out GeoPoint3 b) ? b : arcLength.XLine2Point;
                     GeoPoint3 center = points.TryGetValue(2, out GeoPoint3 v) ? v : arcLength.CenterPoint;
-                    arcLength.ArcPoint = CadCommands.ArcLengthPointAt(arcLength, center, start, end);
+                    arcLength.ArcPoint = CadCommands.ArcLengthPointAt(arcLength, center, start, end, false);
                     arcLength.XLine1Point = start;
                     arcLength.XLine2Point = end;
                     arcLength.CenterPoint = center;
+
+                    // Where the words no longer fit between the extension lines the arc point goes two thirds of the way along
+                    // (a third where they fit), as AutoCAD 2021 puts it again with the arc scaled.
+                    if (CadCommands.ArcLengthWordsOutside(arcLength))
+                    {
+                        arcLength.ArcPoint = CadCommands.ArcLengthPointAt(arcLength, center, start, end, true);
+                    }
+
                     break;
                 }
 

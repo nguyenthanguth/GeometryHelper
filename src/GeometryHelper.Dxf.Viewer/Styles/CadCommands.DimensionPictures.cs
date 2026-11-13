@@ -175,7 +175,7 @@ namespace GeometryHelper.Dxf.Viewer
                         P2(three.ArcPoint)
                     );
                 case DxfArcDimension arcLength:
-                    return ArcLengthPicture(arcLength, style, textHeight);
+                    return ArcLengthPicture(arcLength, style, textHeight, out _);
                 case DxfRadialDimensionLarge jogged:
                     return JoggedPicture(jogged, style, textHeight);
                 case DxfLineAngularDimension2 two:

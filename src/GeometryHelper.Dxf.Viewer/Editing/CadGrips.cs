@@ -335,8 +335,9 @@ namespace GeometryHelper.Dxf.Viewer
                     Add(CadGripKind.Insertion, tolerance.Location.X, tolerance.Location.Y);
                     break;
                 case DxfBlockReference insert:
-                    Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
-
+                    // The custom grips of a dynamic block first, the insertion point last, as AutoCAD 2021's GetGripPoints gives
+                    // them: a rectangle of an XY parameter at (1 000, 500) gives (1 100, 550), (1 000, 550), (1 100, 500) and
+                    // (1 000, 500).
                     foreach (DxfDynamicBlockGrip custom in CadDynamicBlocks.GripsOf(insert))
                     {
                         grips.Add(
@@ -349,6 +350,7 @@ namespace GeometryHelper.Dxf.Viewer
                         );
                     }
 
+                    Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
                     // A clipped reference's boundary: the arrow and a grip at each corner, as AutoCAD 2021 gives them.
                     ClipGrips(insert, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;

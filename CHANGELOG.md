@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Arc length and angular dimensions in the presenter are written as AutoCAD 2021 writes them (probed in its console on
+48 arc length and 88 angular cases, then followed through moves and scales). The arc point of an arc length dimension of under
+90 degrees put outside its arc is a third of the way between where its extension lines meet the dimension's arc, not a third
+along the arc measured: the arc of 50 from 10 to 40 degrees put 70 out has its arc point at 21.45 degrees, where it was at 20 and
+0.02 off (0.27 at 100 out of 60 degrees, 0.7 of 89). It goes two thirds of the way, not a third, where the words do not fit
+between the extension lines, for an arc length dimension and for an angle of three points or of two lines (all 88 angles of 4
+DIMATFIT, DIMTIX and widths match; the arc of 1 through 20 degrees put 1.2 out, in text 0.18 high, has it at 12.8 of its 20
+degrees), and an arc length dimension scaled so that its words go in or out puts it again by where they stand now. A Partial
+length writes the point further along the arc as its first (13) and the other as its second (14), with the parameters of the
+points in the order given counted on from the arc's start (40 and 41: 6.632251 and 7.330383 for the part from 20 to 60 degrees of
+the arc from 300 to 100 degrees), where both were the points as given; its ties and those of a whole arc count the end past a
+turn (8.028514 for the end at 100 degrees of that arc) and tie the center at the arc's start, 5.235988 and not nought. Flag 128
+of a radius and a diameter stays set through a move or a scale of the circle, as AutoCAD's 164 and 163 do (12 cases equal).
+**NEW.** DIMARC dimensions the arc segment of a polyline picked on it, as AutoCAD 2021 does, tied to its segment by the marker:
+StartPoint and Endpoint by the way the segment's path runs (a clockwise arc starts at its end vertex), parameters counted on from
+the arc's start, the Center at the arc's start; the polyline moved, turned or scaled takes the dimension along (4 cases equal
+AutoCAD's). A straight segment is "Object selected is not an arc or polyline arc segment.".
+**CHANGED.** The grips of a dynamic block reference come in AutoCAD 2021's order, its custom grips first and the insertion
+point's last (`CadGrips.Of`; a rectangle of an XY parameter at (1 000, 500): (1 100, 550), (1 000, 550), (1 100, 500), then
+(1 000, 500)), where the insertion point came first and moved every index by one; `GripDrag`, `StartGripEdit`,
+`CadDynamicBlocks.Click`, `ValuesOf` and `Choose` take the index of a custom grip from nought.
+**NEW.** The object items of the canvas menus that have commands now are enabled and run them on the selection: Remove Style
+Overrides of a dimension (DIMOVERRIDE Clear, the selection taken at the prompt the option opens), the spline menu (SPLINEDIT
+with Fit data, Refine, rEverse, convert to Polyline, Join and Close as the item says), Viewport Clip (VPCLIP) and the image
+menu's Adjust (IMAGEADJUST). 3D Edit Bar, Maximize Viewport, Shade plot, Set Origin, Set Boundary, Generate Boundary, Edit Block
+In-place, Table Style and Export... stay grey, their commands not built.
+**CHANGED.** Recent Input of the Command menu writes the points and numbers in the drawing's units (`100.0000,0.0000`, `@0.0000,50.5000`
+at LUNITS 2 and LUPREC 4,), where it showed what was typed, and at Select objects lists
+the sets answered, "Selection set (2 items)", newest first, each chosen selecting them again (`CadCommandSession.FeedRecentInput`).
+'SETVAR, 'OSNAP, 'ORTHO, 'POLAR, 'GRID and 'SNAP run inside a command as 'PAN and 'ZOOM do.
+
 **NEW.** The dialog items left from rounds 2 to 4 in the presenter, designed first (design canvas v142). The Viewports dialog's
 Change view to: a click in a tile of the preview picks it and gives it *Current* or a named model view, written in the tile, and
 OK shows the view in that new viewport, its centre kept and its size fitted, or in the tile as it is with *Active Model

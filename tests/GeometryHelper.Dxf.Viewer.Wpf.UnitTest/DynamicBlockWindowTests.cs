@@ -154,17 +154,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = Plan(out string[] handles);
             MainViewModel model = Open(document);
 
-            Assert.Null(model.ClickCustomGrip(handles[1], 1));
+            Assert.Null(model.ClickCustomGrip(handles[1], 0));
             Assert.Equal((short)1, ValueOf(document, handles[1], "Hand"));
 
-            IReadOnlyList<CadMenuItemViewModel> states = model.ClickCustomGrip(handles[2], 1);
+            IReadOnlyList<CadMenuItemViewModel> states = model.ClickCustomGrip(handles[2], 0);
             Assert.Equal(new[] { "Cross", "Tick", "Blank" }, states.Select(s => s.Header));
             Assert.Equal(new[] { true, false, false }, states.Select(s => s.IsChecked));
 
             states[1].Command.Execute(null);
 
             Assert.Equal("Tick", ValueOf(document, handles[2], "Mark"));
-            Assert.Equal(new[] { false, true, false }, model.ClickCustomGrip(handles[2], 1).Select(s => s.IsChecked));
+            Assert.Equal(new[] { false, true, false }, model.ClickCustomGrip(handles[2], 0).Select(s => s.IsChecked));
             Assert.True(document.Undo());
             Assert.Equal("Cross", ValueOf(document, handles[2], "Mark"));
         }

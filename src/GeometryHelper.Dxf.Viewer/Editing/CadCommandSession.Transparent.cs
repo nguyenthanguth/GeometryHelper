@@ -5,7 +5,8 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
-    /// PAN and ZOOM run inside another command, as AutoCAD 2021 runs 'PAN and 'ZOOM: typed with an apostrophe at any prompt
+    /// PAN, ZOOM, CAL, SETVAR and the settings ORTHO, POLAR, OSNAP, GRID and SNAP run inside another command, as AutoCAD 2021
+    /// runs 'PAN and 'ZOOM: typed with an apostrophe at any prompt
     /// but one for text, they ask their own prompts after "&gt;&gt;", and once they end the command they interrupted writes
     /// "Resuming LINE command." and asks its prompt again, the objects "Select objects:" gathered still gathered. One nests
     /// in the other, 'ZOOM in a transparent PAN, as AutoCAD's does; 'ZOOM at ZOOM's own prompt is refused with ZOOM's words.
@@ -14,8 +15,20 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed partial class CadCommandSession
     {
-        // The commands that run inside another, as AutoCAD's transparent PAN and ZOOM.
-        private static readonly string[] Transparents = { "PAN", "ZOOM", "CAL" };
+        // The commands that run inside another, as AutoCAD's transparent PAN, ZOOM, CAL, SETVAR and the settings ORTHO, POLAR,
+        // OSNAP, GRID and SNAP.
+        private static readonly string[] Transparents =
+        {
+            "PAN",
+            "ZOOM",
+            "CAL",
+            "SETVAR",
+            "OSNAP",
+            "ORTHO",
+            "POLAR",
+            "GRID",
+            "SNAP",
+        };
 
         // The commands a transparent one interrupted, the one it returns to last.
         private readonly Stack<Suspended> _suspended = new Stack<Suspended>();
