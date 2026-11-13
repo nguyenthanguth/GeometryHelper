@@ -452,15 +452,40 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Contains("47=100 47=0 47=0 47=1118", at100, StringComparison.Ordinal);
         }
 
-        [Fact]
-        public void AMultileaderOfThreeLeaders_IsNotShownAtASecondScale()
-        {
-            string three = TwoLeadersAt50.Replace(
-                "272=9",
-                "302=LEADER{ 290=1 291=1 10=0 20=0 30=0 11=1 21=0 31=0 90=2 40=18 304=LEADER_LINE{ 10=0 20=0 30=0 91=2 305=} 271=0 303=} 272=9"
-            );
+        // AutoCAD 2021 (probe GHAQ, plugin GhAq1 of annot4), style Annotative: "HELLO" from a leader at (100, 100) landing at (150, 150),
+        // a second leader added on the same side by the API (GHAQAPI), the contexts at 1:50 and at 1:100 after OBJECTSCALE.
+        private const string TwoLeadersOneSideAt50 =
+            "40=50.0 10=168.0 20=150.0 30=0.0 41=9.0 140=9.0 145=4.5 174=1 175=1 176=0 177=0 290=1 304=HELLO 11=0.0 21=0.0 31=1.0 340=55 12=172.5 22=154.5767394270123 32=0.0 13=1.0 23=0.0 33=0.0 42=0.0 43=0.0 44=0.0 45=1.0 170=1 90=-1073741824 171=1 172=5 91=-1073741824 141=0.0 92=0 291=0 292=0 173=0 293=0 142=0.0 143=0.0 294=0 295=0 296=0 110=100.0 120=100.0 130=0.0 111=1.0 121=0.0 131=0.0 112=0.0 122=1.0 132=0.0 297=0 302=LEADER{ 290=1 291=1 10=150.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=0 40=18.0 304=LEADER_LINE{ 10=100.0 20=100.0 30=0.0 91=0 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=150.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=1 40=18.0 304=LEADER_LINE{ 10=150.0 20=150.0 30=0.0 91=1 305=} 271=0 303=} 272=9 273=9";
+        private const string TwoLeadersOneSideAt100 =
+            "40=100.0 10=168.0 20=150.0 30=0.0 41=18.0 140=18.0 145=9.0 174=1 175=1 176=0 177=0 290=1 304=HELLO 11=0.0 21=0.0 31=1.0 340=55 12=177.0 22=159.1534788540245 32=0.0 13=1.0 23=0.0 33=0.0 42=0.0 43=0.0 44=0.0 45=1.0 170=1 90=-1073741824 171=1 172=5 91=-1073741824 141=0.0 92=0 291=0 292=0 173=0 293=0 142=0.0 143=0.0 294=0 295=0 296=0 110=100.0 120=100.0 130=0.0 111=1.0 121=0.0 131=0.0 112=0.0 122=1.0 132=0.0 297=0 302=LEADER{ 290=1 291=1 10=132.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=0 40=36.0 304=LEADER_LINE{ 10=100.0 20=100.0 30=0.0 91=0 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=132.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=1 40=36.0 304=LEADER_LINE{ 10=150.0 20=150.0 30=0.0 91=1 305=} 271=0 303=} 272=9 273=9";
 
-            Assert.Throws<NotSupportedException>(() => LaidOut(three, 2.0, "1:100"));
+        // The same with a leader on the right of the words and two more by the API: four leaders, two on each side. The API put the
+        // fourth landing at 250 where the first on that side is at 234.6589; AutoCAD laid both at 301.3179 at 1:100, so it is given
+        // the first's landing here (a leader on that side lands against the words).
+        private const string FourLeadersAt50 =
+            "40=50.0 10=168.0 20=150.0 30=0.0 41=9.0 140=9.0 145=4.5 174=1 175=1 176=0 177=0 290=1 304=HELLO 11=0.0 21=0.0 31=1.0 340=55 12=172.5 22=154.5767394270123 32=0.0 13=1.0 23=0.0 33=0.0 42=0.0 43=0.0 44=0.0 45=1.0 170=1 90=-1073741824 171=1 172=5 91=-1073741824 141=0.0 92=0 291=0 292=0 173=0 293=0 142=0.0 143=0.0 294=0 295=0 296=0 110=100.0 120=100.0 130=0.0 111=1.0 121=0.0 131=0.0 112=0.0 122=1.0 132=0.0 297=0 302=LEADER{ 290=1 291=1 10=150.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=0 40=18.0 304=LEADER_LINE{ 10=100.0 20=100.0 30=0.0 91=0 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=234.6589358799454 20=150.0 30=0.0 11=-1.0 21=0.0 31=0.0 90=1 40=18.0 304=LEADER_LINE{ 10=400.0 20=100.0 30=0.0 91=1 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=150.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=2 40=18.0 304=LEADER_LINE{ 10=150.0 20=150.0 30=0.0 91=2 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=234.6589358799454 20=150.0 30=0.0 11=-1.0 21=0.0 31=0.0 90=3 40=18.0 304=LEADER_LINE{ 10=234.6589358799454 20=150.0 30=0.0 91=3 305=} 271=0 303=} 272=9 273=9";
+        private const string FourLeadersAt100 =
+            "40=100.0 10=168.0 20=150.0 30=0.0 41=18.0 140=18.0 145=9.0 174=1 175=1 176=0 177=0 290=1 304=HELLO 11=0.0 21=0.0 31=1.0 340=55 12=177.0 22=159.1534788540245 32=0.0 13=1.0 23=0.0 33=0.0 42=0.0 43=0.0 44=0.0 45=1.0 170=1 90=-1073741824 171=1 172=5 91=-1073741824 141=0.0 92=0 291=0 292=0 173=0 293=0 142=0.0 143=0.0 294=0 295=0 296=0 110=100.0 120=100.0 130=0.0 111=1.0 121=0.0 131=0.0 112=0.0 122=1.0 132=0.0 297=0 302=LEADER{ 290=1 291=1 10=132.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=0 40=36.0 304=LEADER_LINE{ 10=100.0 20=100.0 30=0.0 91=0 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=301.3178717598909 20=150.0 30=0.0 11=-1.0 21=0.0 31=0.0 90=1 40=36.0 304=LEADER_LINE{ 10=400.0 20=100.0 30=0.0 91=1 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=132.0 20=150.0 30=0.0 11=1.0 21=0.0 31=0.0 90=2 40=36.0 304=LEADER_LINE{ 10=150.0 20=150.0 30=0.0 91=2 305=} 271=0 303=} 302=LEADER{ 290=1 291=1 10=301.3178717598909 20=150.0 30=0.0 11=-1.0 21=0.0 31=0.0 90=3 40=36.0 304=LEADER_LINE{ 10=234.6589358799454 20=150.0 30=0.0 91=3 305=} 271=0 303=} 272=9 273=9";
+
+        [Fact]
+        public void AMultileaderOfTwoLeadersOnOneSide_AtASecondScale_KeepsItsBase_AsAutoCADLaidItOut()
+        {
+            // Both landings 36 back from the base at (168, 150): 132, not the 150 the leader of one keeps.
+            string at100 = LaidOut(TwoLeadersOneSideAt50, 2.0, "1:100");
+
+            Assert.Equal(Rounded(TwoLeadersOneSideAt100), at100);
+            Assert.StartsWith("40=100 10=168 20=150", at100, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AMultileaderOfFourLeaders_AtASecondScale_KeepsItsBase_AndMovesEveryLanding_AsAutoCADLaidItOut()
+        {
+            // The base stays at (168, 150); the landings of the two leaders to its left are 36 back from it at 132, those of the two to
+            // the right of the words 36 on from their far end at (301.3179, 150).
+            string at100 = LaidOut(FourLeadersAt50, 2.0, "1:100");
+
+            Assert.Equal(Rounded(FourLeadersAt100), at100);
+            Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(at100, "10=301.3179 20=150 30=0 11=-1").Count);
         }
 
         private static DxfArcDimension ArcLength(DxfDatabase db)

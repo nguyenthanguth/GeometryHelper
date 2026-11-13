@@ -820,17 +820,22 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!string.IsNullOrEmpty(words))
             {
+                // The words stand past the dogleg and the gap, to the right of a landing on the right of the arrow and to the left
+                // (held at their right) of one on its left, as AutoCAD 2021 sets them (probe GHAQ): a landing at (150, 150) of a
+                // style with a dogleg of 0.36 and a gap of 0.09 has the words held at (150.45, 150.09). Land puts them there.
+                double side = landing.X >= arrow.X ? 1.0 : -1.0;
+                double back = (style.LandingGap + style.DoglegLength) * scale;
                 mleader.MText = new DxfMText
                 {
                     Contents = words,
-                    Location = landing,
+                    Location = new GeoPoint3(
+                        landing.X + side * back,
+                        landing.Y + style.TextHeight * scale / 2.0,
+                        landing.Z
+                    ),
                     TextHeight = style.TextHeight * scale,
+                    Attachment = side > 0.0 ? DxfAttachmentPoint.TopLeft : DxfAttachmentPoint.TopRight,
                 };
-            }
-
-            if (!string.IsNullOrEmpty(words))
-            {
-                mleader.AddLeaderLine(arrow);
                 return mleader;
             }
 
@@ -848,6 +853,46 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return mleader;
+        }
+
+        /// <summary>A multileader made by <see cref="Make"/> and, where it holds words, given its leader and landed by <see cref="LandWords"/>, as the preview draws it.</summary>
+        internal static DxfMLeader MakeLanded(
+            DxfMLeaderStyle style,
+            double scale,
+            GeoPoint3 arrow,
+            GeoPoint3 landing,
+            string words
+        )
+        {
+            DxfMLeader mleader = Make(style, scale, arrow, landing, words);
+            LandWords(mleader, arrow, landing);
+            return mleader;
+        }
+
+        /// <summary>
+        /// Gives a multileader of words, made by <see cref="Make"/>, its leader and lands it as AutoCAD 2021's MLEADER does
+        /// (probe GHAQ): the leader line runs from the arrow to the landing point given, the dogleg on from it to the side away
+        /// from the arrow, the words past the dogleg and the gap (held at their left for a landing on the right of the arrow, at
+        /// their right for one on its left) with their first line's middle level with the landing, and the base of the content at
+        /// the dogleg's end. Asked for an arrow at (100, 100) and a landing at (150, 150), a style of a dogleg of 0.36, a gap of
+        /// 0.09 and words 0.18 high has the dogleg start at (150, 150), the base at (150.36, 150) and the words held at
+        /// (150.45, 150.09). The words' own height is taken, as the library does not measure their font here.
+        /// </summary>
+        internal static void LandWords(DxfMLeader mleader, GeoPoint3 arrow, GeoPoint3 landing)
+        {
+            DxfMText words = mleader.MText;
+
+            if (words == null)
+            {
+                return;
+            }
+
+            double side = landing.X >= arrow.X ? 1.0 : -1.0;
+            double back = (mleader.LandingGap + mleader.DoglegLength) * mleader.Scale;
+            words.Location = new GeoPoint3(landing.X + side * back, landing.Y + words.TextHeight / 2.0, landing.Z);
+            words.Attachment = side > 0.0 ? DxfAttachmentPoint.TopLeft : DxfAttachmentPoint.TopRight;
+            mleader.MText = words;
+            mleader.AddMadeLeader(arrow, landing, new GeoVector3(side, 0.0, 0.0));
         }
 
         /// <summary>
@@ -998,6 +1043,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 mleader.SetFromStyle();
+
+                if (words != null)
+                {
+                    LandWords(mleader, new GeoPoint3(0, 0, 0), new GeoPoint3(6.0 * size, 4.0 * size, 0));
+                }
 
                 if (shownBlock != null)
                 {

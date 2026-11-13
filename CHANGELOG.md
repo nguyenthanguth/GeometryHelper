@@ -6,6 +6,32 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Annotative objects, fourth round (probed in AutoCAD 2021's console, plugin GHAQ of annot4; the library's drawings audited with
+no error and read back to the same contexts). MLEADEREDIT on an annotative multileader makes each change (an arrowhead added, a leader
+line taken out) in the context of every scale it is shown at as well as in its record, as AutoCAD does: a line added at (100, 200) to
+"HELLO" at 1:50 and 1:100 is in both contexts, and a leader added on the right of the words lands against their right end at each scale
+(the library's `AddLeaderLine` and `RemoveLeaderLine` still change the record's context alone).
+A multileader of three leaders or more is shown at a second scale (it was refused): two or more leaders keep the base of the content
+whichever sides they are on and each landing moves from it, as AutoCAD 2021 lays them out (probed with two on the left and with four, two
+on each side: a base at (168, 150) stays at 1:100 and the landings left of the words go from 150 to 132, those on the right to 301.3179).
+The angular dimension's context at a second scale has its arc point as AutoCAD writes it: a third of the way round the angle where the
+words fit between the extension lines and two thirds where they stand outside, so an angle of 45 degrees with its arc 80 out has it at 15
+degrees (77.27, 20.71) at 1:50 and at 30 degrees (69.28, 40.00) at 1:100 (36 angles from 20 to 120 degrees, two arcs and three positions
+each, equal to AutoCAD's in both contexts). **CHANGED.** The presenter's MLEADER lands as AutoCAD 2021's does (its second point was where
+the words stood): the leader line runs from the arrow to the second point, the dogleg goes on from it away from the arrow, and the words
+stand past the dogleg and the gap, held at their left for a landing on the right of the arrow and at their right for one on its left,
+their first line's middle level with the landing: an arrow at (100, 100) and a landing at (150, 150) in a style of a dogleg 0.36 and a gap
+0.09 give a base at (150.36, 150) and words 0.18 high held at (150.45, 150.09), and at 1:50 a base at (168, 150) with the words at
+(172.5, 154.5); the base of the content and the first point of the line are written as AutoCAD writes them, so that a second scale is laid
+out from them as it should (the base was 4.4 short of it at 1:50), and a block's matrix holds its place (25.36, 10 for a block placed at
+(25.36, 10)). The font is not measured, so the words' own height stands where AutoCAD adds the depth of their ink (0.0915 above the
+landing for "HELLO" of 0.18, not 0.09). DIMARC words use DIMDEC as AutoCAD does (checked for DIMDEC 0 to 6 against DIMADEC, DIMAUNIT and
+DIMLUNIT: only DIMDEC changes them, "314.159" at 3 and "314.1593" at 4). Not done: words turned 30 degrees that do not fit at 1:100 (the
+same as a DIMLINEAR of 100 at DIMSCALE 100 and no annotation: AutoCAD puts the words at (154.38, 30) turned 30 degrees, outside, the
+arrowheads in, the library keeps them between the lines with the arrowheads out; fixing it changes the pictures of every dimension with
+turned words that do not fit); where the words of an angular dimension stand when they go outside; the arrowhead on the other side of
+words in MLEADEREDIT where no font measures them (the line goes to the first leader).
+
 **NEW.** The `Origin` property of each parameter of a dynamic block, as AutoCAD 2021 reads it (probed in its console on side
 databases: 25 INSERTs, its values to the last digit, the library's read back with `AUDIT` finding 0 errors on all 25). A linear, XY,
 polar, rotation and constraint parameter gives, after its own properties, a hidden property `Origin` in

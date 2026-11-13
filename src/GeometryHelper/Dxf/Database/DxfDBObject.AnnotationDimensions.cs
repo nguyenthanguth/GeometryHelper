@@ -571,6 +571,44 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>
+        /// Writes the arc point of an angular dimension's context (11, 21, 31 of its subclass) of an entry, as the dimension is
+        /// laid out at that scale: AutoCAD 2021 gives the context of a scale at which the words do not fit between the extension
+        /// lines the arc point two thirds of the way round (a context of 1:100 at (54.77, 31.62) beside the 1:50 one at (61.09,
+        /// 16.37) for an angle of 45 degrees whose arc is 63.25 out), not the record's.
+        /// </summary>
+        internal void SetDimensionArc(string key, GeoPoint3 point)
+        {
+            DimensionContextKind kind = DimensionKindOf();
+            DxfItem context = FindContext(key);
+
+            if (kind == null || context == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = context.File.GroupsOf(context);
+            string marker = null;
+
+            for (int i = 0; i < groups.Count; i++)
+            {
+                int code = groups[i].TypeCode;
+
+                if (code == 100)
+                {
+                    marker = groups[i].Value.Trim();
+                }
+                else if (marker == kind.Marker && (code == 11 || code == 21 || code == 31))
+                {
+                    double value =
+                        code == 11 ? point.X
+                        : code == 21 ? point.Y
+                        : point.Z;
+                    context.File.SetValueAt(context, i, Numbers.Exact(value + 0.0));
+                }
+            }
+        }
+
         /// <summary>The name of the picture block a dimension's context holds (group 2 of AcDbDimensionObjectContextData); null where it names none.</summary>
         private static string ContextBlockName(DxfItem context)
         {

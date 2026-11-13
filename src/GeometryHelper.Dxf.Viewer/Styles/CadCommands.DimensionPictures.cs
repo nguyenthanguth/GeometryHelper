@@ -413,7 +413,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
-            return Angular(
+            List<DxfEntity> picture = AngularLaidOut(
                 style,
                 style.Dimscale,
                 textHeight,
@@ -424,8 +424,22 @@ namespace GeometryHelper.Dxf.Viewer
                 near,
                 far,
                 Formatted(dimension, sweep, string.Empty),
-                placed
+                placed,
+                0.0,
+                null,
+                out bool outside
             );
+
+            // Kept for the context of the scale this picture is drawn at, whose arc point depends on whether the words fit.
+            DxfMText words = picture?.OfType<DxfMText>().FirstOrDefault();
+
+            if (words != null)
+            {
+                ArcFits.Remove(words);
+                ArcFits.Add(words, new ArcFit(vertex, from, sweep, outside));
+            }
+
+            return picture;
         }
 
         /// <summary>

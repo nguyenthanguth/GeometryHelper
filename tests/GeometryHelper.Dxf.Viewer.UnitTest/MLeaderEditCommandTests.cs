@@ -123,5 +123,68 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1, Entity<DxfMLeader>(document, handle).LeaderLineCount);
             Assert.Contains("A multileader keeps at least one leader line.", session.History);
         }
+
+        /// <summary>An annotative multileader of the words "B-12" shown at 1:50 and 1:100, as AutoCAD 2021's MLEADER and OBJECTSCALE make it.</summary>
+        private static CadDocument TwoScales(out string handle)
+        {
+            CadDocument document = BlankWithMLeaderStyle();
+            DxfObjectContextCollection scales = document.Database.ObjectContextManager.GetContextCollection(
+                "ACDB_ANNOTATIONSCALES"
+            );
+
+            foreach (double d in new[] { 1.0, 50.0, 100.0 })
+            {
+                scales.AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:" + d.ToString("0"),
+                        PaperUnits = 1,
+                        DrawingUnits = d,
+                    }
+                );
+            }
+
+            CadMLeaderStyleEditor.Find(document.Database, CadMLeaderStyleEditor.Current(document.Database)).Annotative =
+                DxfAnnotativeStates.True;
+            document.Database.Cannoscale = "1:50";
+            Run(Session(document), "MLD", P(0, 0), P(30, 20), "B-12");
+            handle = Assert.Single(All<DxfMLeader>(document.ModelSpace)).Handle;
+            Run(Session(document), "-OBJECTSCALE", new[] { handle }, Enter, "A", "1:100", Enter);
+            return document;
+        }
+
+        private static int Lines(CadDocument document) =>
+            System.Text.RegularExpressions.Regex.Matches(document.Database.ToText(), "LEADER_LINE\\{").Count;
+
+        [Fact]
+        public void AnArrowheadAddedToAnAnnotativeMultileader_IsInTheContextOfEveryScale_AndUndoneWithThemAll()
+        {
+            // AutoCAD 2021 (probe GHAQ): MLEADEREDIT puts the new leader line in the record and in the context of each scale.
+            CadDocument document = TwoScales(out string handle);
+            Assert.Equal(3, Lines(document));
+
+            Run(Session(document), "MLE", new[] { handle }, P(0, 40), Enter);
+
+            Assert.Equal(2, Entity<DxfMLeader>(document, handle).LeaderLineCount);
+            Assert.Equal(6, Lines(document));
+            AssertReopens(document);
+
+            Assert.True(document.Undo());
+            Assert.Equal(3, Lines(document));
+        }
+
+        [Fact]
+        public void ALeaderLineTakenFromAnAnnotativeMultileader_IsTakenFromTheContextOfEveryScale()
+        {
+            CadDocument document = TwoScales(out string handle);
+            Run(Session(document), "MLE", new[] { handle }, P(0, 40), Enter);
+            Assert.Equal(6, Lines(document));
+
+            Run(Session(document), "MLE", new[] { handle }, "R", P(0, 40), Enter);
+
+            Assert.Equal(1, Entity<DxfMLeader>(document, handle).LeaderLineCount);
+            Assert.Equal(3, Lines(document));
+            AssertReopens(document);
+        }
     }
 }

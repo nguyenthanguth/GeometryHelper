@@ -223,6 +223,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(50.0, mleader.Scale, 9);
             double height = mleader.TextHeight;
 
+            // AutoCAD 2021 (probe GHAQ, style Annotative at 1:50, an arrow at (100, 100), a landing at (150, 150)): the dogleg starts
+            // at the landing, 18 long, the base of the content at (168, 150) and the words held at (172.5, 154.58): the gap and the
+            // dogleg of the style times 50, the words half their height above the landing's line.
+            DxfMLeaderStyle style = StyleOf(document);
+            int leader = mleader.GetLeaderIndexes().Single();
+            int line = mleader.GetLeaderLineIndexes(leader).Single();
+            Assert.Equal(new GeoPoint3(30, 20, 0), mleader.GetLastVertex(line));
+            Assert.Equal(30 + (style.DoglegLength + style.LandingGap) * 50.0, mleader.MText.Location.X, 9);
+            Assert.Equal(20 + height * 50.0 / 2.0, mleader.MText.Location.Y, 9);
+
             Run(Session(document), "-OBJECTSCALE", new[] { mleader.Handle }, Enter, "A", "1:100", Enter);
 
             // AutoCAD 2021 (GHAN4, text 0.2 high at 1:50): the second context is laid out again, its sizes doubled.

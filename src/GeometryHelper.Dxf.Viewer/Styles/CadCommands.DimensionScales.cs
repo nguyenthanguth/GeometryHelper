@@ -25,6 +25,79 @@ namespace GeometryHelper.Dxf.Viewer
             "Dimtxt",
         };
 
+        /// <summary>How an angular dimension's arc stands in a picture: where it starts, its sweep, and whether the words stand outside it.</summary>
+        private sealed class ArcFit
+        {
+            internal ArcFit(GeoPoint2 vertex, double from, double sweep, bool outside)
+            {
+                Vertex = vertex;
+                From = from;
+                Sweep = sweep;
+                Outside = outside;
+            }
+
+            internal GeoPoint2 Vertex { get; }
+
+            internal double From { get; }
+
+            internal double Sweep { get; }
+
+            internal bool Outside { get; }
+        }
+
+        // The fit of the arc of each angular picture, by its words.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfMText, ArcFit> ArcFits =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<DxfMText, ArcFit>();
+
+        /// <summary>
+        /// Gives the context of an angular dimension at a scale its arc point as AutoCAD 2021 writes it: where the record's stands
+        /// a third of the way round the angle (its words between the extension lines) or two thirds (outside), the context's
+        /// stands a third where the words of its picture fit and two thirds where they do not (probe GHAQ: an angle of 45 degrees
+        /// with its arc 80 out has the arc point at 15 degrees at 1:50 and 30 at 1:100, where the words go outside). An arc put
+        /// elsewhere, by a grip, is left as the record has it.
+        /// </summary>
+        private static void SetContextArc(DxfDimension dimension, string key, List<DxfEntity> picture)
+        {
+            GeoPoint3 arc;
+
+            if (dimension is DxfLineAngularDimension2 two)
+            {
+                arc = two.ArcPoint;
+            }
+            else if (dimension is DxfPoint3AngularDimension three)
+            {
+                arc = three.ArcPoint;
+            }
+            else
+            {
+                return;
+            }
+
+            DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
+
+            if (words == null || !ArcFits.TryGetValue(words, out ArcFit fit) || !(fit.Sweep > 1E-12))
+            {
+                return;
+            }
+
+            GeoVector2 out2 = P2(arc) - fit.Vertex;
+            double radius = out2.Length;
+            double turned = Math.Atan2(out2.Y, out2.X) - fit.From;
+            turned -= 2.0 * Math.PI * Math.Floor(turned / (2.0 * Math.PI));
+            double kept = turned / fit.Sweep;
+
+            if (!(radius > 1E-12) || (Math.Abs(kept - 1.0 / 3.0) > 1E-6 && Math.Abs(kept - 2.0 / 3.0) > 1E-6))
+            {
+                return;
+            }
+
+            double at = fit.From + fit.Sweep * (fit.Outside ? 2.0 / 3.0 : 1.0 / 3.0);
+            dimension.SetDimensionArc(
+                key,
+                new GeoPoint3(fit.Vertex.X + Math.Cos(at) * radius, fit.Vertex.Y + Math.Sin(at) * radius, arc.Z)
+            );
+        }
+
         /// <summary>
         /// The DIMSCALE a dimension is drawn by under an annotative current dimension style: one over the annotation scale of
         /// the space (50 at 1:50 in model space, 1 in a layout), whatever the header's DIMSCALE says, as AutoCAD 2021 does;
@@ -153,6 +226,14 @@ namespace GeometryHelper.Dxf.Viewer
             Fill(block, picture);
             BreakAgain(dimension, block, 1.0 / scale.Scale);
             dimension.AddDimensionContext(scale, block, RecordedPoint(picture) ?? dimension.TextPosition);
+
+            foreach (DxfDBObject.DimensionPicture held in dimension.DimensionPictures())
+            {
+                if (held.Block == block)
+                {
+                    SetContextArc(dimension, held.Key, picture);
+                }
+            }
         }
 
         /// <summary>
@@ -192,6 +273,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 dimension.SetDimensionPoints(pair.Key.Key);
+
+                if (!pair.Key.IsDefault)
+                {
+                    SetContextArc(dimension, pair.Key.Key, pair.Value);
+                }
                 BreakAgain(dimension, pair.Key.Block, 1.0 / pair.Key.Scale.Scale);
 
                 if (pair.Key.IsDefault)
