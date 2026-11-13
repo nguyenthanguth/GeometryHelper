@@ -917,7 +917,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            // The walls, symbols and words of a feature control frame give no End or Mid: its rows do, as AutoCAD 2021 gives them.
+            // The walls, symbols and words of a feature control frame give no End, Mid, Intersection or Extension: its rows do, as
+            // AutoCAD 2021 gives them (a line through a frame meets the sides of its rows, no wall; a wall meets no side).
             bool inside = item.IsFrameInside;
 
             if (!inside && Has(CadSnapModes.Endpoint))
@@ -964,7 +965,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 foot = Foot(cursor, a, b, out _);
                 double reach = (foot - cursor).Length;
 
-                if (ends != null && !sampled)
+                if (ends != null && !sampled && !inside)
                 {
                     AddEnd(ends, a, b, item.Handle, cursor, aperture, reach);
                     AddEnd(ends, b, a, item.Handle, cursor, aperture, reach);
@@ -976,7 +977,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 under = true;
-                curves.Add(Curve.Segment(a, b, item.Handle, reach, foot, sampled));
+
+                if (!inside)
+                {
+                    curves.Add(Curve.Segment(a, b, item.Handle, reach, foot, sampled));
+                }
 
                 // Nor Nearest or Perpendicular: AutoCAD 2021 gives them on the sides of a frame's rows alone (probe GHTH2).
                 if (!inside && Has(CadSnapModes.Nearest))

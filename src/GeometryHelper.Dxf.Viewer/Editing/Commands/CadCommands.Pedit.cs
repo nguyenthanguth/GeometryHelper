@@ -261,7 +261,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 DxfEntity entity = c.Document.FindEntity(picked);
 
-                if (entity is DxfPolyline || entity is DxfPolyline2d)
+                if (entity is DxfPolyline || entity is DxfPolyline2d || entity is DxfPolyline3d)
                 {
                     handles.Add(picked);
                 }
@@ -573,6 +573,12 @@ namespace GeometryHelper.Dxf.Viewer
                     bool closed = option == "Close";
                     PeditEach(c, handles, option, marks, (s, p) =>
                     {
+                        if (p is DxfPolyline3d three)
+                        {
+                            Pedit3dWrite(three, Pedit3dFrame(three), closed, three.PolyType);
+                            return;
+                        }
+
                         // A fitted polyline is fitted again closed or open, as AutoCAD fits it.
                         if (PeditType(p) == DxfPoly2dType.SimplePoly)
                         {
@@ -586,12 +592,29 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
 
                 case "Fit":
-                    PeditEach(c, handles, option, marks, (s, p) => PeditHeavy(p).CurveFit());
+                    // A 3D polyline has no curve fit: AutoCAD leaves it as it is.
+                    PeditEach(c, handles, option, marks, (s, p) =>
+                    {
+                        if (!(p is DxfPolyline3d))
+                        {
+                            PeditHeavy(p).CurveFit();
+                        }
+                    });
                     break;
 
                 case "Spline":
                     PeditEach(c, handles, option, marks, (s, p) =>
                     {
+                        if (p is DxfPolyline3d three)
+                        {
+                            if (Pedit3dFrame(three).Count >= (three.Closed ? 3 : 2))
+                            {
+                                three.SplineFit();
+                            }
+
+                            return;
+                        }
+
                         if (PeditFrame(p).Count >= (p.Closed ? 3 : 2))
                         {
                             PeditHeavy(p).SplineFit();
@@ -603,7 +626,11 @@ namespace GeometryHelper.Dxf.Viewer
                     // Every segment made straight, the vertices of a fitting taken out, as AutoCAD's Decurve does to arcs too.
                     PeditEach(c, handles, option, marks, (s, p) =>
                     {
-                        if (PeditType(p) != DxfPoly2dType.SimplePoly)
+                        if (p is DxfPolyline3d three)
+                        {
+                            three.Straighten();
+                        }
+                        else if (PeditType(p) != DxfPoly2dType.SimplePoly)
                         {
                             List<PeditPoint> frame = PeditFrame(p);
                             frame.ForEach(v => v.Bulge = 0.0);
@@ -629,6 +656,15 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Reverse":
                     PeditEach(c, handles, option, marks, (s, p) =>
                     {
+                        // The frame of a 3D polyline turned round, the first vertex of a closed one too, and fitted again as it was.
+                        if (p is DxfPolyline3d three)
+                        {
+                            List<GeoPoint3> frame = Pedit3dFrame(three);
+                            frame.Reverse();
+                            Pedit3dWrite(three, frame, three.Closed, three.PolyType);
+                            return;
+                        }
+
                         // A spline is fitted again on its frame turned round, its curve's vertices written anew as AutoCAD writes them.
                         if (
                             p is DxfPolyline2d heavy
@@ -663,6 +699,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void PeditSetLinetypeGeneration(DxfCurve polyline, bool on)
         {
+            if (polyline is DxfPolyline3d)
+            {
+                // A 3D polyline has no linetype generation to set: AutoCAD asks and leaves it.
+                return;
+            }
+
             if (polyline is DxfPolyline light)
             {
                 light.Plinegen = on;
@@ -675,6 +717,12 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void PeditSetWidth(DxfCurve polyline, double width)
         {
+            if (polyline is DxfPolyline3d)
+            {
+                // A 3D polyline has no width: AutoCAD asks and leaves it.
+                return;
+            }
+
             if (polyline is DxfPolyline light)
             {
                 light.ConstantWidth = width;
@@ -787,7 +835,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 var polyline = (DxfCurve)c.Document.FindEntity(handle);
 
-                if (!polyline.Closed && PeditType(polyline) == DxfPoly2dType.SimplePoly)
+                if (!polyline.Closed && !(polyline is DxfPolyline3d) && PeditType(polyline) == DxfPoly2dType.SimplePoly)
                 {
                     // The bulge PLINE leaves on the last vertex of one ended in arc mode draws nothing and is not joined, as
                     // AutoCAD 2021 joins two such arcs with a last bulge of nought.

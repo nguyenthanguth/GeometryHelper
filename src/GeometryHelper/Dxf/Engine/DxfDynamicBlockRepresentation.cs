@@ -454,7 +454,11 @@ namespace GeometryHelper.Dxf
         /// *U1 and *U2 has them placed by *U3 and *U4 once a circle is added to it, each holding the circle, as AutoCAD 2021
         /// made them (plugin GhAn1); an anonymous block no INSERT places is passed over, as AutoCAD passed over *U1 and *U2 when
         /// it updated the panel again. One whose INSERT the library does not work out (<see cref="Set"/> refuses it) is left as
-        /// it was, and so are its INSERTs.
+        /// it was, and so are its INSERTs. The ATTRIBs of each INSERT that follow their ATTDEF (the ATTDEFs locked in the block
+        /// and held by an action) are made anew from it as the new block holds it, their words kept: their place, height,
+        /// rotation, colour and the rest are the definition's again, whatever the user gave them, and an ATTDEF added or erased
+        /// makes or takes away none; the others are left as they were (plugin GhFm2f, a panel whose TAG ATTDEF was taller, turned
+        /// and moved, and whose NOTE ATTDEF was moved and made oblique).
         /// </summary>
         /// <returns>The names of the anonymous blocks made, in the order of the table of those they take the place of.</returns>
         /// <exception cref="NotSupportedException">Thrown when the block is one the library does not work out.</exception>
@@ -578,9 +582,84 @@ namespace GeometryHelper.Dxf
                     inserts[i].BlockTableRecord = fresh;
                     Cache(inserts[i], dynamic, blocks[i], values[i], states[i], labels[i], users[i]);
                 }
+
+                foreach (DxfBlockReference insert in inserts)
+                {
+                    AttributesFromDefinitions(insert, dynamic, blocks[0]);
+                }
             }
 
             return made;
+        }
+
+        /// <summary>
+        /// Makes anew from the definitions of the block the INSERT places now the ATTRIBs whose tag an ATTDEF of the dynamic block
+        /// holds locked and an action works on, as <see cref="DxfAttributeReference.SetAttributeFromBlock(GeoTransform3)"/>
+        /// does, their words kept.
+        /// </summary>
+        private static void AttributesFromDefinitions(
+            DxfBlockReference insert,
+            DxfBlockTableRecord dynamic,
+            Block block
+        )
+        {
+            var bound = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfEntity entity in dynamic)
+            {
+                if (
+                    entity is DxfAttributeDefinition definition
+                    && definition.LockPositionInBlock
+                    && block.Actions.Exists(a =>
+                        Holds(a, entity.Handle)
+                        || (
+                            a.Kind == ActionKind.PolarStretch
+                            && a.Turned.Exists(h => string.Equals(h, entity.Handle, StringComparison.OrdinalIgnoreCase))
+                        )
+                    )
+                )
+                {
+                    bound.Add(definition.Tag ?? string.Empty);
+                }
+            }
+
+            foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+            {
+                if (!bound.Contains(attribute.Tag ?? string.Empty))
+                {
+                    continue;
+                }
+
+                string words = attribute.TextString;
+
+                try
+                {
+                    attribute.SetAttributeFromBlock(insert.BlockTransform);
+                    attribute.TextString = words;
+                }
+                catch (ArgumentException exception)
+                {
+                    GeometryHelperLog.Debug(
+                        "DxfDynamicBlockRepresentation: the attribute "
+                            + attribute.Tag
+                            + " of the INSERT "
+                            + insert.Handle
+                            + " is left as it was: "
+                            + exception.Message
+                    );
+                }
+                catch (InvalidOperationException exception)
+                {
+                    GeometryHelperLog.Debug(
+                        "DxfDynamicBlockRepresentation: the attribute "
+                            + attribute.Tag
+                            + " of the INSERT "
+                            + insert.Handle
+                            + " is left as it was: "
+                            + exception.Message
+                    );
+                }
+            }
         }
 
         /// <summary>

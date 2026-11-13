@@ -1004,7 +1004,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// JOIN: a source object picked alone takes the objects joined to it by its own rules (a line collinear lines, an arc arcs
         /// of its circle, a polyline lines, arcs and polylines end to end); objects picked at once are joined as AutoCAD joins
         /// them: collinear lines into a line, arcs of one circle into an arc, and what meets end to end into a polyline, or into
-        /// a spline where a spline or an elliptical arc is among them.
+        /// a spline where a spline or an elliptical arc is among them. A POLYLINE (the old-style one PLINETYPE 0 makes) is taken
+        /// as a LWPOLYLINE is: joined into, it is a LWPOLYLINE again at PLINETYPE 1 and 2 and stays a POLYLINE at 0, as AutoCAD
+        /// 2021 leaves it; the polyline made of lines and arcs is a POLYLINE at 0 as PLINE makes it.
         /// </summary>
         private static IEnumerable<CadPrompt> Join(CadCommandContext c)
         {
@@ -1072,6 +1074,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (source != null)
                     {
                         JoinInto(s, space, alive[0], alive, null, said, joinedAll);
+                        PolylinesLightweight(c, s, space, joinedAll);
                         return;
                     }
 
@@ -1090,7 +1093,7 @@ namespace GeometryHelper.Dxf.Viewer
                     foreach (
                         DxfCurve seed in alive
                             .Where(e => e is DxfSpline || e is DxfEllipse)
-                            .Concat(alive.Where(e => e is DxfPolyline))
+                            .Concat(alive.Where(e => e is DxfPolyline || e is DxfPolyline2d))
                             .Concat(alive.Where(e => e is DxfLine || e is DxfArc))
                             .ToList()
                     )
@@ -1102,13 +1105,13 @@ namespace GeometryHelper.Dxf.Viewer
 
                         bool spline = seed is DxfEllipse;
 
-                        if (seed is DxfSpline || seed is DxfPolyline)
+                        if (seed is DxfSpline || seed is DxfPolyline || seed is DxfPolyline2d)
                         {
                             JoinInto(s, space, seed, alive, null, said, joinedAll);
                         }
                         else
                         {
-                            DxfCurve made = spline ? seed.Spline : PolylineOf(seed);
+                            DxfCurve made = spline ? seed.Spline : OfPlineType(c, PolylineOf(seed));
 
                             if (made == null)
                             {
@@ -1139,6 +1142,8 @@ namespace GeometryHelper.Dxf.Viewer
                             );
                         }
                     }
+
+                    PolylinesLightweight(c, s, space, joinedAll);
                 }
             );
 
@@ -1161,6 +1166,37 @@ namespace GeometryHelper.Dxf.Viewer
                         + (discarded == 1 ? " object" : " objects")
                         + " discarded from the operation"
                 );
+            }
+        }
+
+        /// <summary>
+        /// Makes each POLYLINE joined into a LWPOLYLINE again in its own place at PLINETYPE 1 and 2, as AutoCAD 2021 leaves it;
+        /// at 0, and in a drawing of R12, it stays a POLYLINE.
+        /// </summary>
+        private static void PolylinesLightweight(
+            CadCommandContext c,
+            CadEditScope s,
+            CadSpace space,
+            HashSet<string> joined
+        )
+        {
+            if (c.Remembered("plinetype", 2.0) == 0.0 || string.CompareOrdinal(c.Database.Version, "AC1014") < 0)
+            {
+                return;
+            }
+
+            foreach (string handle in joined.OrderBy(h => h, StringComparer.OrdinalIgnoreCase).ToList())
+            {
+                if (
+                    s.Document.FindEntity(handle) is DxfPolyline2d heavy
+                    && !heavy.IsErased
+                    && heavy.PolyType == DxfPoly2dType.SimplePoly
+                )
+                {
+                    s.Record(new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lightweight"));
+                    new DxfPolyline().ConvertFrom(heavy, true);
+                    s.Record(new CadEditRecord(CadEditRecordKind.Added, handle) { Space = space.Name });
+                }
             }
         }
 
@@ -1240,13 +1276,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Whether JOIN takes an object: an open line, arc, elliptical arc, polyline or spline.</summary>
+        /// <summary>Whether JOIN takes an object: an open line, arc, elliptical arc, polyline (a POLYLINE not fitted too) or spline.</summary>
         private static bool Joinable(DxfEntity entity) =>
             (
                 entity is DxfLine
                 || entity is DxfArc
                 || entity is DxfEllipse
                 || entity is DxfPolyline
+                || (entity is DxfPolyline2d heavy && heavy.PolyType == DxfPoly2dType.SimplePoly)
                 || entity is DxfSpline
             ) && !((DxfCurve)entity).Closed;
 

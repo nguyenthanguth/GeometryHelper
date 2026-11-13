@@ -977,6 +977,10 @@ into a polyline without the question, and Multiple's `Convert Lines, Arcs and Sp
 asked. PLINETYPE 0 makes PLINE, POLYGON, DONUT and PEDIT's lines and arcs old-style POLYLINEs and leaves a POLYLINE
 edited alone one, as AutoCAD 2021 does at 0: PLINE from (0, 100) to (100, 100) and, 2 to 4 wide, to (100, 200) is a
 POLYLINE whose second vertex has widths 2 and 4. RECTANG and REVCLOUD make LWPOLYLINEs whatever it is, as AutoCAD's do.
+JOIN takes a POLYLINE as it takes a LWPOLYLINE, and what it does to one is what AutoCAD 2021's console did: a line joined
+into the POLYLINE PLINE drew at PLINETYPE 0 leaves it a POLYLINE at 0 and makes it a LWPOLYLINE of its handle at 1 and 2,
+and a LWPOLYLINE stays one at 0. The polyline JOIN makes of lines and arcs picked at once, and the one -BOUNDARY makes of
+a loop, are POLYLINEs at 0 as PLINE's are (AutoCAD's console runs neither, so those two follow PLINE).
 Both are kept by the session, PEDITACCEPT 0 and PLINETYPE 2 until set. Edit vertex marks the vertex with a cross,
 the first one the view shows (`No visible vertices` where it shows none); Next and Previous stop at the ends, Insert puts a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
@@ -998,7 +1002,11 @@ ask: the 3DPOLY (0, 0, 0), (100, 0, 10),
 the frame, and closed it is fitted again round the frame, 32 vertices of the curve, as AutoCAD stores them. Reverse turns
 the frame round, the first vertex of a closed one too, and fits it again; Decurve straightens it; a vertex moved or put in
 lies at nought, and a fitted polyline is fitted again on its frame. Join asks the objects and adds none, as AutoCAD 2021's
-console did for lines and 3D polylines meeting an end. Multiple leaves 3D polylines out.
+console did for lines and 3D polylines meeting an end. Multiple takes 3D polylines in, as AutoCAD 2021 does (probed in its
+console): a 3D polyline selected alone asks no question about lines, arcs and splines and offers the options of a 2D
+one, `[Close/Open/Join/Width/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]`; Close, Open, Spline, Decurve and Reverse do to
+it what they do alone, Width and Ltype gen ask their questions and leave it as it is, Fit leaves it, and Join asks the
+fuzz distance and adds no segment to it (`0 segments added to polyline`).
 
 REVCLOUD draws a cloud round a rectangle (Rectangular, the type it starts with), a polygon (Polygonal), the cursor's path
 (Freehand), or an object picked, which it replaces (Object: a line, arc, circle, ellipse, polyline or spline). The cloud is
@@ -1210,8 +1218,9 @@ gdt symbols take the room AutoCAD's gdt font gives them, 2/21 of the height eith
 and 2.25/21 right of the runouts, drawn with the presenter's own strokes (board GdtGlyphs); words inked past their pen,
 as Arial's A and f, set what follows on from their ink. `{\Fgdt;j}%%v0.1` at DIMTXT 0.18 in Arial is 0.92296 wide and
 `{\Fgdt;n}0.1{\Fgdt;m}` 1.009563, as in AutoCAD. Lines are in DIMCLRD, words and symbols in DIMCLRT. The snaps End,
-Mid, Nearest and Perpendicular take the sides of each row's rectangle alone, none of the walls between cells or of the
-symbols, and Insertion the frame's insertion point, as AutoCAD 2021 gives them. Selected, a frame shows one grip, at
+Mid, Nearest, Perpendicular, Intersection and Extension take the sides of each row's rectangle alone, none of the walls between
+cells or of the symbols (a line through a frame meets the sides of its rows and no wall, and a wall meets no side), and Insertion
+the frame's insertion point, as AutoCAD 2021 gives them. Selected, a frame shows one grip, at
 its insertion point; MOVE, COPY, ROTATE and SCALE move it as AutoCAD does (SCALE writes DIMTXT and DIMGAP scaled as
 overrides), and MIRROR keeps it readable under MIRRTEXT 0, its normal kept, and turns it over under MIRRTEXT 1. EXPLODE
 refuses one with `Cannot explode TOLERANCE`, as AutoCAD 2021 does. TEXTEDIT (DDEDIT) and a double click open the
@@ -1310,10 +1319,14 @@ What the drawing keeps stays counter-clockwise from the X axis. A dimension that
 in twelve places after a space, as AutoCAD 2021 lists them for every type of dimension: " DIMASZ      5.0000",
 " DIMBLK      Dot", " DIMCLRD     1 (red)", " DIMJOGANG   30", " DIMSE1      On", " DIMTXSTY    GHSTYLE". Distances
 are written in the drawing's units, nought feet and nought inches after whole feet left out (5", 1', 1'-3 1/2" in
-architectural units); DIMSCALE, DIMALTF, DIMLFAC, DIMTVP and DIMTFAC as plain numbers to LUPREC places; DIMJOGANG in the
+architectural units); DIMSCALE, DIMALTF, DIMLFAC, DIMTVP and DIMTFAC as plain numbers to LUPREC places; a number that would
+be longer than twelve characters (the unit marks and the minus sign counted) is written in scientific form with six
+places, five for a negative one, as AutoCAD 2021 writes it (DIMASZ 1 000.5 at LUPREC 8 is `1.000500E+03`, minus 100.5 is
+`-1.00500E+02`; architectural and fractional units are never cut); DIMJOGANG in the
 drawing's angle units; colours 1 to 7 with their names, others by number, BYBLOCK and BYLAYER; arrowheads by AutoCAD's
 names (ArchTick, ClosedFilled for none) and a user arrow by its block's name; DIMFXLEN and its switch as DIMFXL and
-DIMFXLON.
+DIMFXLON. A linetype override of none, or of the handle of an object that is no linetype, is BYBLOCK; an override whose
+handle no object has, a text style of none and a block of the handle of a layer are not listed at all.
 `CadUnits.ToDirection` and `FromDirection` are the two conversions, and `session.CountAngle(radians)` the second with
 the drawing's settings.
 
@@ -1452,7 +1465,12 @@ ATTSYNC is not run), merging the session so far into one undo step, `BEDIT`. A d
 *U blocks its INSERTs place worked out anew from the new definition at each INSERT's values, as AutoCAD 2021's
 `UpdateAnonymousBlocks` works them: a panel whose INSERTs of Width 150 and 200 placed *U1 and *U2, given a circle and
 saved, has them place *U3 and *U4, each stretched to its width with the circle, INSERTs that shared *U1 sharing *U3, and
-*U1 and *U2 left in the drawing placed by none, as AutoCAD leaves them; BSAVEAS copies the content to a new block
+*U1 and *U2 left in the drawing placed by none, as AutoCAD leaves them. The INSERTs' attributes follow as AutoCAD 2021's
+`UpdateAnonymousBlocks` left them (probed in its console): an ATTRIB whose ATTDEF is locked in the block and held by an action
+is made anew from the ATTDEF as the new *U block holds it, its words kept and its place, height, rotation, colour and the rest
+the definition's again, whatever the user gave it (a TAG ATTRIB made 4 high, turned 1 radian and moved to (1100, 510) by the
+user is 5 high, turned 0.3 and at (1140, 515) once the TAG ATTDEF is made 5 high and 0.3 turned and moved to (90, 15)); the other
+ATTRIBs keep what they have, an ATTDEF added makes none and one erased takes none away; BSAVEAS copies the content to a new block
 and goes on with it, the one opened left as it was. BCLOSE (BC) asks `Save changes to DOOR? [Save/Discard/Cancel]
 <Save>:` of a block with changes not saved; Discard reads the drawing back as it stood when the block was opened or last
 saved, so a new block never saved is not made. A door of one line given a second and saved shows both in every INSERT,
