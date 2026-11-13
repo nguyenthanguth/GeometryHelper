@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DWG written by `DwgWriter` and refused by AutoCAD 2021 (`ErrorStatus 53`, a filer error), found by writing
+AutoCAD's own 113 sample drawings again and opening each. The 2D polyline vertex of R2010 and later puts its id between
+its bulge and its tangent direction; it was written after the tangent and not read at all, so a vertex with a tangent
+(`Existing Conditions Plan.dwg` and four more drawings hold polylines AutoCAD curve-fitted, a tangent of 90 degrees) was
+refused, and the tangent of a vertex AutoCAD wrote was read as 0. An attribute of a DXF of R2007 has one group 280, the
+lock of its position, where R2010 and later have the version (0) as well before its tag; the lock was written as the
+version, and an attribute with its position locked was refused (`Mechanical - Multileaders.dwg` and two more). Of the 113
+drawings read and written again 106 now open with `AUDIT` finding 0 errors and 7 with as many as the original (24, 24, 2,
+2, 32, 32, 10); 8 were refused before.
+
+**FIXED.** DWG tables that hold a field or a data link: the reader refused them (AutoCAD gives the flag of linked data
+as 3, not the 1 of the specification) and `Cover Sheet`, `Title Sheet`, `T-01`, `Mechanical - Data Links` and
+`Data Extraction and Multileaders Sample` lost their table, and AutoCAD the 60 fields a table of `Cover Sheet` owns. The
+cell of a field gives it in group 344, the TABLECONTENT lists the fields the table owns (92 and 360) and a linked cell
+its data link, rows and columns (92, 340, 93, 94, 96); written as R2018 the table keeps them, and AutoCAD's own DXF of
+the 113 drawings written again has the 26 tables, 18 table contents and 5 data links of the originals, and the fields of
+their tables (2 598 of the originals' 2 646 fields: the 48 in the dynamic blocks of eight sheet drawings are still lost).
+
+**NEW.** DWG: the TABLECONTENT and the DATATABLE (ACDBDATATABLE in a DXF of R2000) a table of AutoCAD 2000 and 2004 keeps
+for a round trip are read, as AutoCAD's DXF of the same table gives them: before R2007 a value is its type and value
+alone, and the colours of a table content are the long form of R2004 even in R2000. Written as R2018 the DATATABLE is left
+out, as AutoCAD does, and the table keeps its TABLECONTENT.
+
 **NEW.** Annotative objects, third round (probed in AutoCAD 2021's console, plugin GHA3): arc length and jogged radius dimensions
 are annotative as AutoCAD writes them (an arc length one the angular context class with the point of its arc, a jogged one
 `ACDB_RADIMLRGOBJECTCONTEXTDATA_CLASS` with the chord point, the centre it is measured from and the jog) and get a second scale

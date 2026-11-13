@@ -775,6 +775,9 @@ namespace GeometryHelper.Dwg
             }
 
             double bulge = _data.BitDouble();
+
+            // The vertex id (group 91) sits between the bulge and the tangent direction, as ODA gives it for R2010 and later.
+            int id = R2010Plus ? _data.BitLong() : 0;
             double tangent = _data.BitDouble();
             _object.Add(100, "AcDbVertex");
             _object.Add(100, "AcDb2dVertex");
@@ -787,6 +790,11 @@ namespace GeometryHelper.Dwg
             AddNonZero(42, bulge);
             AddNonZero(70, flags);
             AddNonZero(50, Degrees(tangent));
+
+            if (id != 0)
+            {
+                _object.Add(91, id);
+            }
         }
 
         private void ReadVertex3D(string subclass)

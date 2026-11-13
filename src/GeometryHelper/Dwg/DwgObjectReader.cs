@@ -1090,10 +1090,13 @@ namespace GeometryHelper.Dwg
                 case "TABLESTYLE":
                     return ReadTableStyle();
                 case "TABLECONTENT":
-                    return R2007Plus && ReadTableContentObject();
+                    return ReadTableContentObject();
                 case "TABLEGEOMETRY":
                     ReadTableGeometry();
                     return true;
+                case "DATATABLE":
+                case "ACDBDATATABLE":
+                    return ReadDataTable();
                 case "MATERIAL":
                     ReadMaterial();
                     return true;

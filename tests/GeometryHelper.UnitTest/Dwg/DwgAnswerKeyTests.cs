@@ -19,17 +19,9 @@ namespace GeometryHelper.UnitTest.Dwg
     {
         /// <summary>
         /// The types the reader does not read yet, which a comparison may find missing: the class of CELLSTYLEMAP, which
-        /// AutoCAD's DXF lists and the reader's does not, and the content of an R2000 or R2004 table.
+        /// AutoCAD's DXF lists and the reader's does not.
         /// </summary>
-        private static readonly string[] NotReadYet =
-        {
-            "CELLSTYLEMAP",
-            // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips; from
-            // R2007 its TABLECONTENT and TABLEGEOMETRY are read.
-            "ACDBDATATABLE",
-            "DATATABLE",
-            "TABLECONTENT",
-        };
+        private static readonly string[] NotReadYet = { "CELLSTYLEMAP" };
 
         private readonly List<(GeometryHelperLogLevel Level, string Message)> _written =
             new List<(GeometryHelperLogLevel Level, string Message)>();
@@ -507,7 +499,7 @@ namespace GeometryHelper.UnitTest.Dwg
         [Fact]
         public void TheTypesNotReadYet_AreCountedInOneDebugLine_AndTheCallInOneInfoLine()
         {
-            // The table of R2000 keeps its content for a round trip in a TABLECONTENT and ACDBDATATABLEs, not read.
+            // The table style of R2000 keeps its cell styles for a round trip in two CELLSTYLEMAPs, not read.
             DwgReader.ToDxf(DwgAnswerKey.Dwg("table_AC1015"));
 
             string skipped = Assert
@@ -518,7 +510,9 @@ namespace GeometryHelper.UnitTest.Dwg
                 .Message;
             Assert.DoesNotContain(" HATCH ", skipped);
             Assert.DoesNotContain(" LEADER ", skipped);
-            Assert.Contains("TABLECONTENT 1", skipped);
+            Assert.Contains("CELLSTYLEMAP 2", skipped);
+            Assert.DoesNotContain("TABLECONTENT", skipped);
+            Assert.DoesNotContain("DATATABLE", skipped);
             Assert.DoesNotContain("VIEWSTYLE", skipped);
             Assert.DoesNotContain("MATERIAL", skipped);
 

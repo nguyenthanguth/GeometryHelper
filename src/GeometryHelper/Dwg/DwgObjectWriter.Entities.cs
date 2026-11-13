@@ -350,9 +350,14 @@ namespace GeometryHelper.Dwg
             {
                 List<string> versions = attribute.Each(280);
 
+                // The version (0) is the 280 before the tag, which only a DXF of R2010 or later gives; the 280 after the flags
+                // is the lock of the position, the one a DXF of R2007 gives alone. Taken as the version, a lock of 1 was
+                // refused by AutoCAD (ErrorStatus 53).
+                int version = versions.Count > 1 ? DwgRecord.Int(versions[0]) : 0;
+
                 if (R2010Plus)
                 {
-                    _data.RawChar(versions.Count > 0 ? DwgRecord.Int(versions[0]) : 0);
+                    _data.RawChar(version);
                 }
 
                 if (R2018Plus && embedded >= 0)
@@ -385,7 +390,7 @@ namespace GeometryHelper.Dwg
                     // An ATTDEF repeats the version before its prompt.
                     if (R2010Plus)
                     {
-                        _data.RawChar(versions.Count > 0 ? DwgRecord.Int(versions[0]) : 0);
+                        _data.RawChar(version);
                     }
 
                     T(attribute.Text(3));
@@ -690,13 +695,14 @@ namespace GeometryHelper.Dwg
             }
 
             _data.BitDouble(vertex.Double(42));
-            _data.BitDouble(Radians(vertex.Double(50)));
 
             if (R2010Plus)
             {
-                // The vertex id, 0 where the vertex has none.
+                // The vertex id, 0 where the vertex has none; it comes before the tangent direction.
                 _data.BitLong(vertex.Int(91));
             }
+
+            _data.BitDouble(Radians(vertex.Double(50)));
         }
 
         private void WriteVertex3D()

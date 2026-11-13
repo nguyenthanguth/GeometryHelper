@@ -30,6 +30,9 @@ namespace GeometryHelper.Dwg
 
         /// <summary>The handle of the table style.</summary>
         public ulong TableStyle;
+
+        /// <summary>The fields of the cells, which the table owns, in the order the file lists them.</summary>
+        public readonly List<ulong> Fields = new List<ulong>();
     }
 
     /// <summary>A column or a row of a table: its custom data, its overrides, its cell style and its size; a row's cells.</summary>
@@ -68,6 +71,21 @@ namespace GeometryHelper.Dwg
 
         /// <summary>The custom data, a 32-bit number.</summary>
         public int Custom;
+
+        /// <summary>Whether the cell is linked to data: a range of a data link, which the cell is the first of.</summary>
+        public bool Linked;
+
+        /// <summary>The data link (DATALINK) of a linked cell.</summary>
+        public ulong LinkHandle;
+
+        /// <summary>The rows of the range a linked cell holds the data of.</summary>
+        public int LinkRows;
+
+        /// <summary>The columns of the range a linked cell holds the data of.</summary>
+        public int LinkColumns;
+
+        /// <summary>A number of no known use that follows the range of a linked cell, 0 in the drawings seen.</summary>
+        public int LinkExtra;
 
         /// <summary>The items of custom data, each a name and a value, such as the check sum AutoCAD keeps for a round trip.</summary>
         public readonly List<KeyValuePair<string, DwgCellValue>> Items = new List<KeyValuePair<string, DwgCellValue>>();
