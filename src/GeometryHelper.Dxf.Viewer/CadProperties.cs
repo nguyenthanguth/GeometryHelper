@@ -646,6 +646,24 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
+                case DxfOle2Frame ole:
+                    // As AutoCAD 2021's palette gives an OLE object: where and how large it stands, its scale in percent of the
+                    // size it has at 100 percent, whether the two scale together, what kind of object it is and what application
+                    // draws it, and the quality it plots in.
+                    Group(
+                        "OLE",
+                        Row("Position X", () => Length(ole.Location.X)),
+                        Row("Position Y", () => Length(ole.Location.Y)),
+                        Row("Width", () => Length(ole.WcsWidth)),
+                        Row("Height", () => Length(ole.WcsHeight)),
+                        Row("Scale width", () => Percent(ole.ScaleWidth)),
+                        Row("Scale height", () => Percent(ole.ScaleHeight)),
+                        Pick("Lock aspect", () => YesNo(ole.LockAspect), YesNoChoices),
+                        Row("Type", () => OleTypeText(ole.Type), true),
+                        Pick("Plot quality", () => OleQualityText(ole.OutputQuality), OleQualityChoices),
+                        Row("Source application", () => ole.UserType, true)
+                    );
+                    break;
                 case DxfViewport viewport:
                     Group(
                         "Geometry",
@@ -1078,6 +1096,25 @@ namespace GeometryHelper.Dxf.Viewer
         private static string YesNo(bool value) => value ? "Yes" : "No";
 
         /// <summary>A length or coordinate to 4 places, as AutoCAD's palette writes one at <c>$LUPREC</c> 4.</summary>
+        /// <summary>The words of the Plot quality row of an OLE object, by group 73: 0, 1 and 2 as AutoCAD 2021 names them, 3 (automatic) as high graphics, which is what a picture is plotted at.</summary>
+        internal static readonly string[] OleQualityChoices =
+        {
+            "Monochrome (e.g. spreadsheet)",
+            "Low graphics (e.g. color text)",
+            "High graphics (e.g. photograph)",
+        };
+
+        private static string OleQualityText(byte quality) => OleQualityChoices[Math.Min((int)quality, 2)];
+
+        private static string OleTypeText(DxfOle2FrameItemType type) =>
+            type == DxfOle2FrameItemType.Link ? "Linked"
+            : type == DxfOle2FrameItemType.Embedded ? "Embedded"
+            : "Static";
+
+        /// <summary>A scale in percent as the palette writes it: 100%, 88.0349%.</summary>
+        private static string Percent(double value) =>
+            (Math.Abs(value) < 5E-5 ? 0.0 : value).ToString("0.####", CultureInfo.InvariantCulture) + "%";
+
         private static string Length(double value) =>
             (Math.Abs(value) < 5E-5 ? 0.0 : value).ToString("0.0000", CultureInfo.InvariantCulture);
 

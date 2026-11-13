@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** OLE objects in the presenter. A frame that holds a bitmap, a pasted picture or one INSERTOBJ made is drawn as its picture
+on the canvas, in a plot and in a PDF (one 40 by 20 holding a bitmap red on the left and blue on the right plots red and blue; at
+the plot quality Monochrome, black and white), with its frame over it as OLEFRAME says (0 none, 1 shown and plotted, 2, the
+default, shown and left off a plot); an object of another application, a metafile or a damaged one is drawn as its frame with its
+kind written in the corner. A frame has four corner grips that scale it about the corner across, as AutoCAD 2021's grips do (the
+corner of 40 by 20 dragged to (50, 50) makes it 60 by 30 with Lock aspect on), a Properties group OLE (Position X and Y, Width,
+Height, Scale width and height in percent, Lock aspect, Type, Plot quality, Source application), and keeps upright under ROTATE
+and MIRROR about any line as the GUI keeps it, the centre going round the base point. INSERTOBJ (`IO`) is the Create from File of
+the Insert Object dialog for a bitmap or a PNG, a static picture at the upper left of the view, one undo step; PASTECLIP and
+PASTESPEC paste a picture on the Windows clipboard the same way where it holds no objects and no text. OLEFRAME, OLEHIDE
+(frames of one space or both, in the display and the plot) and OLEQUALITY are variables of the document, kept while it is open.
+The registry gains one command and three variables, and the defaults one alias. Create New, Link, the documents of other
+applications, OLESCALE, OLERESET and OLEOPEN are not built.
 **NEW.** Round 3 of the acad.pgp commands in the presenter, in the words of AutoCAD 2021 (its resources and console, probed in
 accoreconsole): IMAGEADJUST (`IAD`) and -IMAGEADJUST set the brightness, contrast and fade of images ("Select image(s):", `Enter
 image option [Contrast/Fade/Brightness] <Brightness>:`, `Enter brightness value (0-100) <50>:`, `Value must be an integer between
@@ -20,8 +33,7 @@ defaults ten aliases.
 **NEW.** OPEN (`OPENURL`, `DXFIN`) in the presenter: the Open dialog, or with FILEDIA 0 `Enter name of drawing to open:` on the
 command line; DRAWINGRECOVERY (`DRM`) lists the copies autosave keeps beside the drawings and opens the one chosen; the quick
 views QVDRAWING (`QVD`) and QVDRAWINGCLOSE (`QVDC`) show and hide the Drawings list, QVLAYOUT (`QVL`) and QVLAYOUTCLOSE (`QVLC`)
-the Model and layout tabs (`MainViewModel.AreSpaceTabsShown`), without the thumbnails AutoCAD draws. INSERTOBJ and RECOVERALL are
-not built.
+the Model and layout tabs (`MainViewModel.AreSpaceTabsShown`), without the thumbnails AutoCAD draws. RECOVERALL is not built.
 
 **NEW.** The Shortcuts page of Global settings says what every command does: each of its 250 commands has a description
 (`DIVIDE` "Points or blocks at equal parts of an object", `-PAN` "Pan by two points or a displacement"), where only 47 had

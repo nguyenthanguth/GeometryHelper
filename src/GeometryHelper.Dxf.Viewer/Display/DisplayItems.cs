@@ -1399,10 +1399,47 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
-        /// <summary>Gets an infinite distance: a picture is picked by its frame, never by a point on it.</summary>
+        /// <summary>
+        /// Gets the bytes of the bitmap file the picture of an OLE frame is, which the renderer decodes in place of a file; null
+        /// for the picture of an IMAGE, which is read from <see cref="FilePath"/>.
+        /// </summary>
+        public byte[] Picture { get; internal set; }
+
+        /// <summary>Gets what tells the bytes of <see cref="Picture"/> from any others, so that a picture is decoded once however many drawings hold it.</summary>
+        public string PictureKey { get; internal set; }
+
+        /// <summary>Gets whether a plot draws the picture in black and white, as the plot quality Monochrome of an OLE frame says.</summary>
+        public bool IsMonochrome { get; internal set; }
+
+        /// <summary>Gets whether a point on the picture picks it, as it does for an OLE frame; an IMAGE is picked by its frame alone.</summary>
+        public bool IsPickedInside { get; internal set; }
+
+        /// <summary>
+        /// Gets the distance from a point to the picture: infinite for an IMAGE, which is picked by its frame, never by a
+        /// point on it; for an OLE frame, nought on the picture and infinite off it.
+        /// </summary>
         /// <param name="x">The X of the point.</param>
         /// <param name="y">The Y of the point.</param>
-        /// <returns>Infinity.</returns>
-        public override double DistanceTo(double x, double y) => double.PositiveInfinity;
+        /// <returns>Nought or infinity.</returns>
+        public override double DistanceTo(double x, double y)
+        {
+            if (!IsPickedInside)
+            {
+                return double.PositiveInfinity;
+            }
+
+            double det = Ux * Vy - Uy * Vx;
+
+            if (!(Math.Abs(det) > 0.0))
+            {
+                return double.PositiveInfinity;
+            }
+
+            double dx = x - X;
+            double dy = y - Y;
+            double a = (dx * Vy - dy * Vx) / det;
+            double b = (Ux * dy - Uy * dx) / det;
+            return a >= 0.0 && a <= 1.0 && b >= 0.0 && b <= 1.0 ? 0.0 : double.PositiveInfinity;
+        }
     }
 }

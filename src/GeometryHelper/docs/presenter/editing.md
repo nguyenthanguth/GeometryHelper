@@ -214,6 +214,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
+| OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 
@@ -257,6 +258,50 @@ the presenter asks its own: `Current multiline style: STANDARD`, then `Enter an 
 `EndLine`, `EndOuter` and `EndInner`; Fill is `[Off/Color]`, Joints shows a line across each joint, Angles asks the angles of
 the start and end (10 to 170). Modify asks the same of a style of the drawing; STANDARD and a style a multiline is drawn by can
 have only their description changed, as the dialog allows. Load and Save of .mln files, Rename and Delete are left.
+
+**OLE objects (R3.2 follow-up).**
+
+A drawing's OLE frames ([`DxfOle2Frame`](xref:GeometryHelper.Dxf.DxfOle2Frame)) are drawn and edited. A frame that holds a bitmap, a
+pasted picture or one INSERTOBJ made, shows its picture on the frame as a `DisplayImage2` that carries the bytes of the .bmp
+instead of a file name; two drawings holding the same picture decode it once. The frame is drawn over it as OLEFRAME says: 0 no
+frame, 1 frames shown and plotted, 2, the default, frames shown and left off a plot (the same `IsNotPlotted` as XCLIPFRAME 2); at 0 a
+point on the picture picks it, and its grips are not shown, as AutoCAD 2021 says the frame must be displayed for them to be. An
+object the presenter cannot draw, one of another application, a metafile, or a frame whose compound file is damaged, is drawn as its
+frame alone with its kind (`Picture (Device Independent Bitmap)`, `OLE Package`) written in its corner, a tenth of its shorter side
+high, as the name of an image not found is; AutoCAD asks the application, or shows the picture it kept, which the library does not
+read. OLEHIDE leaves frames out of the display and of every plot: 1 those of model space, 2 those of paper space, 3 all. A plot at
+the plot quality Monochrome (group 73 of 0, the Plot quality row) draws the picture in black and white, by its luminance, and the
+other qualities in its colours. OLEFRAME, OLEHIDE and OLEQUALITY are the document's, set by SETVAR or typed alone
+(`Enter new value for OLEFRAME <2>:`, `Requires an integer between 0 and 2.`) and kept while it is open: AutoCAD keeps OLEFRAME in the
+drawing and the other two in the registry, but a DXF has no place for them, and none of the three is an undo step.
+
+A frame has four corner grips, from the lower left to the upper left, upper right and lower right, as AutoCAD 2021's
+`GetGripPoints` gives them (a frame 40 by 20 with its lower left corner at (10, 20) has (10, 20), (10, 40), (50, 40) and (50, 20)).
+Dragging one scales the frame about the corner across from it, as AutoCAD 2021's `MoveGripPointsAt` does (the corner (50, 40) of that
+frame dragged to (60, 45) makes it 50 by 25; dragged to (50, 50) it is 40 by 30 with Lock aspect off and 60 by 30 with it on,
+both sides by the larger factor, 1.5): each side by the point's distance from the kept corner over the grip's, the
+frame kept on its side of that corner however far the point goes, never turned over. MOVE, COPY, SCALE and ARRAY move a frame as the
+library does. ROTATE keeps it upright, as AutoCAD 2021's GUI does (its ROTATE of 30 degrees "only moves the picture"): the frame's
+centre goes round the base point, the frame as large as it was and along x and y, its rotation still 0; MIRROR about a line along x or y
+makes the box of the mirrored corners, the picture not turned over, and about any other line moves the frame's centre to its
+mirror image in the same way, which accoreconsole 2021 could not show (it leaves a mirrored frame as it is). The Properties palette
+has a group OLE: Position X and Y (the lower left corner), Width and Height, Scale width and Scale height in percent of the
+size at 100 percent, Lock aspect, Type (Static, Embedded or Linked, read only), Plot quality (Monochrome, Low graphics or High
+graphics) and Source application (read only); Width and Height size the frame from its upper left corner and the other side follows
+while Lock aspect is on, Scale width and Scale height take the percent with or without its sign.
+
+INSERTOBJ (`IO`) is AutoCAD's Insert Object dialog reduced to its Create from File, for a bitmap or a PNG: the window's Open dialog
+titled Insert Object, of the one type `Picture (*.bmp;*.png)`, or with FILEDIA 0 `Enter name of picture file to insert:`. The picture
+becomes a static OLE object (`new DxfOle2Frame(bytes)`: 96 dots an inch where it gives none, so that 40 by 30 pixels are 10.5820 by
+7.9365 millimetres) with its upper left corner at the upper left of the view, as AutoCAD places an object inserted, in the space
+worked in and on the current layer, its plot quality that of OLEQUALITY where that is 0, 1 or 2, and one undo step. A name that is
+not a file is answered `Can't find file.`; one that is no .bmp or .png is refused, `.JPG files cannot be inserted by the presenter,
+which takes a bitmap or a PNG picture: nothing was inserted.`, and one that is no picture, `The file is no picture an OLE object
+can be made of:` and why. Create New, Link, Display as Icon and the documents of other applications need the application's own
+server and are not built, and AutoCAD makes an object of Paint of a bitmap where this makes a static one. PASTECLIP of a picture
+on the Windows clipboard (a bitmap another application copied, read as a PNG) makes the same frame where the clipboard holds no
+objects and no text, as AutoCAD pastes words as an MTEXT before a picture; PASTESPEC offers it as Image (PNG), and PASTEBLOCK and
+PASTEORIG refuse it. OLESCALE and OLEOPEN, OLERESET, OLELINKS, OLECONVERT and COPYLINK are not built.
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 
@@ -1408,7 +1453,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, CTABLESTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, XCLIPFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, SHOWPAGESETUPFORNEWLAYOUTS, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PDFSHX, PEDITACCEPT, PLINETYPE, DIMCONTINUEMODE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, OLEFRAME, OLEHIDE, OLEQUALITY | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, SNAPGRIDLEGACY, AUTOSNAP, DYNMODE, PICKBOX, GRIPSIZE, GRIPMULTIFUNCTIONAL, APERTURE, ZOOMWHEEL, TABLEINDICATOR, GRIPDYNCOLOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | written into the drawing, as AutoCAD saves them there, and one undo step that keeps no copy of the drawing (see below) |
 | the window's lineweight toggle | LWDISPLAY | at once, no undo step; written into the drawing |

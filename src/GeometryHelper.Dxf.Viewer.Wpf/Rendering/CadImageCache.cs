@@ -6,10 +6,10 @@ using SkiaSharp;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// The pictures of the images drawn, decoded once each by their file and its time on disk, so that a picture changed is
-    /// read again: off the window's thread for the canvas, which draws the frame alone until the picture is ready and is told
-    /// by <see cref="Decoded"/>; at once for a plot, a test or a screenshot. A picture of more than 16 million pixels is kept
-    /// at that size, as the screen shows no more.
+    /// The pictures of the images and OLE frames drawn, decoded once each, an image by its file and its time on disk, so that
+    /// a picture changed is read again, an OLE frame by its bytes: off the window's thread for the canvas, which draws the
+    /// frame alone until the picture is ready and is told by <see cref="Decoded"/>; at once for a plot, a test or a
+    /// screenshot. A picture of more than 16 million pixels is kept at that size, as the screen shows no more.
     /// </summary>
     internal static class CadImageCache
     {
@@ -32,9 +32,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The picture of a file: decoded at once where <paramref name="wait"/> is true; else as decoded, null while it is being
         /// decoded on a worker thread. Null for a file that cannot be decoded.
         /// </summary>
-        internal static SKImage Get(string path, long stamp, bool wait)
+        internal static SKImage Get(string path, long stamp, bool wait) =>
+            Fetch(
+                path + "|" + stamp.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                path,
+                () => SKBitmap.Decode(path),
+                wait
+            );
+
+        /// <summary>
+        /// The picture of the bytes of a bitmap file, an OLE frame's, under a key that tells it from any other: decoded at once
+        /// where <paramref name="wait"/> is true; else as decoded, null while it is being decoded on a worker thread. Its alpha
+        /// is ignored, as a bitmap of 32 bits with no alpha holds none. Null for bytes that cannot be decoded.
+        /// </summary>
+        internal static SKImage Get(string key, byte[] bytes, bool wait) =>
+            Fetch(
+                key,
+                key,
+                () =>
+                {
+                    using (var codec = SKCodec.Create(new SKMemoryStream(bytes)))
+                    {
+                        return codec == null
+                            ? null
+                            : SKBitmap.Decode(codec, codec.Info.WithAlphaType(SKAlphaType.Opaque));
+                    }
+                },
+                wait
+            );
+
+        private static SKImage Fetch(string key, string name, Func<SKBitmap> read, bool wait)
         {
-            string key = path + "|" + stamp.ToString(System.Globalization.CultureInfo.InvariantCulture);
             Entry entry;
             bool start = false;
 
@@ -59,7 +87,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     if (!entry.Ready)
                     {
-                        Decode(path, entry);
+                        Decode(name, read, entry);
                     }
                 }
 
@@ -74,7 +102,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     {
                         if (!entry.Ready)
                         {
-                            Decode(path, entry);
+                            Decode(name, read, entry);
                         }
                     }
 
@@ -86,11 +114,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return null;
         }
 
-        private static void Decode(string path, Entry entry)
+        private static void Decode(string name, Func<SKBitmap> read, Entry entry)
         {
             try
             {
-                using (SKBitmap bitmap = SKBitmap.Decode(path))
+                using (SKBitmap bitmap = read())
                 {
                     if (bitmap != null)
                     {
@@ -125,7 +153,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             catch (Exception exception)
             {
-                GeometryHelperLog.Warn("CadImageCache: the picture " + path + " cannot be read.", exception);
+                GeometryHelperLog.Warn("CadImageCache: the picture " + name + " cannot be read.", exception);
                 entry.Image = null;
             }
 

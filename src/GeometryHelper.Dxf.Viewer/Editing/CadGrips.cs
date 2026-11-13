@@ -32,7 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// A corner of a viewport's frame: resizes the frame, the corner across from it kept, the scale and the centre of the view
-        /// kept. A corner of an MTEXT's box: takes its two edges of the box to the point, the width and the height of the MTEXT
+        /// kept. A corner of an OLE frame: scales the frame about the corner across from it (see <see cref="CadGrips.Of"/>). A corner of an MTEXT's box: takes its two edges of the box to the point, the width and the height of the MTEXT
         /// those of the box then; drawn a triangle along the MTEXT at the top right, down it at the bottom left and into the
         /// corner at the bottom right, a square at the top left.
         /// </summary>
@@ -213,6 +213,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// what the clip hides) and a grip at each corner of a rectangle, from its lower left counter-clockwise, or each vertex
         /// of a polygon (<see cref="CadGripKind.ClipVertex"/>); a block 100 by 100 clipped to the rectangle (20, 20) to (60, 70)
         /// has grips at (40, 20), the arrow, then (20, 20), (60, 20), (60, 70) and (20, 70).
+        /// An OLE frame's, as AutoCAD 2021 gives them: a grip at each corner, from the lower left, the upper left and the
+        /// upper right to the lower right (<see cref="CadGripKind.Corner"/>); a frame 40 by 20 with its lower left corner at
+        /// (10, 20) has them at (10, 20), (10, 40), (50, 40) and (50, 20). A frame of no size has none.
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -354,6 +357,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfTable table when IsPlan(table.Normal):
                     TableGrips(table, (kind, at, way) => grips.Add(new CadGrip(grips.Count, kind, at, way)));
                     break;
+                case DxfOle2Frame frame:
+                    OleGrips(frame, (x, y) => Add(CadGripKind.Corner, x, y));
+                    break;
                 case DxfViewport viewport when !(viewport.On && viewport.Number == 1):
                 {
                     // The four corners from the lower left round counter-clockwise, then the middle; the viewport of the sheet has none.
@@ -399,7 +405,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// widths and heights stop at the text height, a gutter at nought. A corner of a clip boundary
         /// (<see cref="CadGripKind.ClipVertex"/>) takes the two sides of a rectangle it is on, the opposite corner kept, or a
         /// polygon's vertex alone, the clip kept inside out where it is: the corner (1020, 520) of the rectangle (1020, 520) to
-        /// (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); a boundary of no area is refused.
+        /// (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); a boundary of no area is refused. A corner of an
+        /// OLE frame scales the frame about the corner across from it, as AutoCAD 2021 does: each side by the distance of the
+        /// point from that corner over the distance of the grip, the frame staying on its side of the corner however far the
+        /// point goes past it, so that no frame turns over; with Lock aspect on, both sides by the larger of the two factors.
+        /// The corner (50, 40) of a frame 40 by 20 from (10, 20) dragged to (60, 45) makes it 50 by 25, and dragged to (50, 50),
+        /// 60 by 30; a frame of no width or height, or a point on the line of the corner across from it, is refused.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -511,6 +522,8 @@ namespace GeometryHelper.Dxf.Viewer
                         v.CenterPoint = new GeoPoint3(to.X, to.Y, v.CenterPoint.Z);
                         return true;
                     });
+                case CadGripKind.Corner when entity is DxfOle2Frame:
+                    return ResizeOle(document, handle, property, was, went, grips, gripIndex, to);
                 case CadGripKind.Corner when entity is DxfMText:
                     return ResizeMText(
                         document,

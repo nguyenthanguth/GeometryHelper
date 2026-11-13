@@ -5,8 +5,8 @@ using System.Linq;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// One way Paste Special offers to paste: its name in the list, the paste it runs (PASTECLIP, PASTEBLOCK, PASTEORIG or
-    /// TEXT) and what it gives, the Result line.
+    /// One way Paste Special offers to paste: its name in the list, the paste it runs (PASTECLIP, PASTEBLOCK, PASTEORIG,
+    /// TEXT or PICTURE) and what it gives, the Result line.
     /// </summary>
     public sealed class PasteFormatViewModel
     {
@@ -21,13 +21,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the name in the As list: "Drawing entities as a block (PASTEBLOCK)".</summary>
         public string Name { get; }
 
-        /// <summary>Gets the paste it runs: PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; null for one not offered.</summary>
+        /// <summary>Gets the paste it runs: PASTECLIP, PASTEBLOCK, PASTEORIG, TEXT or PICTURE; null for one not offered.</summary>
         public string Answer { get; }
 
         /// <summary>Gets what it gives, as the Result line says.</summary>
         public string Result { get; }
 
-        /// <summary>Gets whether it can be chosen: the Clipboard holds what it pastes, and it is built (an image is not, as OLE is parked).</summary>
+        /// <summary>Gets whether it can be chosen: the Clipboard holds what it pastes.</summary>
         public bool IsEnabled { get; }
     }
 
@@ -46,6 +46,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             bool objects = data != null && data.HasObjects;
             bool text = data?.Text != null;
+            bool picture = data?.Picture != null;
 
             if (objects)
             {
@@ -60,6 +61,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (text)
             {
                 Source = "Unicode text";
+                SourceDetail = "copied from another application";
+            }
+            else if (picture)
+            {
+                Source = "Picture";
                 SourceDetail = "copied from another application";
             }
             else
@@ -102,9 +108,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ),
                 new PasteFormatViewModel(
                     "Image (PNG)",
-                    null,
-                    "Pasting a picture as an OLE object is not built yet.",
-                    false
+                    "PICTURE",
+                    "Inserts the clipboard's picture as an OLE object, a static picture of its own size at the upper left of the view.",
+                    picture
                 ),
             };
 
@@ -145,7 +151,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether OK pastes anything.</summary>
         public bool CanPaste => _selected != null;
 
-        /// <summary>Gets the paste OK runs: PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; null for none.</summary>
+        /// <summary>Gets the paste OK runs: PASTECLIP, PASTEBLOCK, PASTEORIG, TEXT or PICTURE; null for none.</summary>
         public string Answer => _selected?.Answer;
 
         private static string Count(int value) => value.ToString("#,0", CultureInfo.InvariantCulture);

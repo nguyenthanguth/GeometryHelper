@@ -504,6 +504,8 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
+                case DxfOle2Frame _ when OleRowLabels.Contains(label):
+                    return OleRow(label, text, ref write);
                 case DxfViewport viewport
                     when label == "Display locked" || label == "Standard scale" || label == "Custom scale":
                     return ViewportRow(label, text, viewport, ref write);

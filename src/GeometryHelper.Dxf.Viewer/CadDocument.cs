@@ -428,6 +428,28 @@ namespace GeometryHelper.Dxf.Viewer
         public double DefaultLineWeight { get; set; } = 0.25;
 
         /// <summary>
+        /// Gets or sets whether the frames of OLE objects are drawn and plotted, as AutoCAD's OLEFRAME: 0 for no frame, 1 for
+        /// frames shown and plotted, 2, the default, for frames shown and left off a plot. AutoCAD saves it in the drawing;
+        /// a DXF has no place for it, so it lasts as long as the document is open. A display list already made keeps its
+        /// frames until <see cref="Regen"/>.
+        /// </summary>
+        public int OleFrame { get; set; } = 2;
+
+        /// <summary>
+        /// Gets or sets which OLE objects are shown and plotted, as AutoCAD's OLEHIDE: 0, the default, those of both spaces, 1
+        /// those of paper space only, 2 those of model space only, 3 none. AutoCAD keeps it in the registry; here it lasts as
+        /// long as the document is open. A display list already made keeps its objects until <see cref="Regen"/>.
+        /// </summary>
+        public int OleHide { get; set; }
+
+        /// <summary>
+        /// Gets or sets the plot quality new OLE objects take, as AutoCAD's OLEQUALITY: 0 monochrome, 1 low graphics, 2 high
+        /// graphics, 3, the default, by the kind of object, which for a picture is high graphics. AutoCAD keeps it in the
+        /// registry; here it lasts as long as the document is open.
+        /// </summary>
+        public int OleQuality { get; set; } = 3;
+
+        /// <summary>
         /// Gets the display list of a space, made on the first call and kept. After an edit, an undo or a redo the list is made
         /// again from the one before: the entities the edit's records name, and those that read a layer it switched or
         /// recoloured, are drawn anew and every other entity keeps its items, so that moving one line of a drawing of a million
