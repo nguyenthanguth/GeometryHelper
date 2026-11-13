@@ -644,9 +644,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case DxfDimKind.Real:
                     return Scalars.Contains(variable.Name)
-                        ? ((double)value).ToString(
-                            "F" + Math.Max(0, Math.Min(8, database.Luprec)).ToString(CultureInfo.InvariantCulture),
-                            CultureInfo.InvariantCulture
+                        ? Capped(
+                            ((double)value).ToString(
+                                "F" + Math.Max(0, Math.Min(8, database.Luprec)).ToString(CultureInfo.InvariantCulture),
+                                CultureInfo.InvariantCulture
+                            ),
+                            (double)value,
+                            database.Luprec
                         )
                         : Distance(c, (double)value);
                 case DxfDimKind.Angle:
@@ -669,6 +673,8 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfDimKind.Block:
                     return CadArrowheads.ListedName(value as DxfBlockTableRecord);
                 case DxfDimKind.Linetype:
+                    // A linetype of none, or of an object that is none, is BYBLOCK as AutoCAD lists it.
+                    return (value as DxfSymbolTableRecord)?.Name ?? "BYBLOCK";
                 case DxfDimKind.TextStyle:
                     return (value as DxfSymbolTableRecord)?.Name ?? string.Empty;
                 default:
@@ -688,7 +694,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if ((units != 3 && units != 4) || mark < 0 || !text.EndsWith("\"", StringComparison.Ordinal))
             {
-                return text;
+                return units == 4 || units == 5 ? text : Capped(text, value, c.Database.Luprec);
             }
 
             string sign = text.StartsWith("-", StringComparison.Ordinal) ? "-" : string.Empty;
@@ -698,10 +704,29 @@ namespace GeometryHelper.Dxf.Viewer
             bool noInches = inches.IndexOfAny("123456789".ToCharArray()) < 0;
 
             // A fraction of no whole inch is written alone: 1/16", not 0 1/16".
-            return noFeet
+            string written =
+                noFeet
                     ? sign + (inches.StartsWith("0 ", StringComparison.Ordinal) ? inches.Substring(2) : inches) + "\""
                 : noInches ? sign + feet + "'"
                 : text;
+            return units == 4 ? written : Capped(written, value, c.Database.Luprec);
+        }
+
+        /// <summary>
+        /// A number as AutoCAD 2021's LIST writes it: the text where it is twelve characters or fewer, else the number in
+        /// scientific form with six places (five for a negative one, to keep to twelve) or the drawing's where that is fewer:
+        /// 1 000.5 at 8 places is 1.000500E+03, minus 100.5 is -1.00500E+02, 1 000.5 at 4 places stays 1000.5000.
+        /// </summary>
+        private static string Capped(string text, double value, int luprec)
+        {
+            if (text.Length <= 12)
+            {
+                return text;
+            }
+
+            int places = Math.Max(0, Math.Min(Math.Min(8, luprec), value < 0.0 ? 5 : 6));
+            string format = (places == 0 ? "0" : "0." + new string('0', places)) + "E+00";
+            return (value < 0.0 ? "-" : string.Empty) + Math.Abs(value).ToString(format, CultureInfo.InvariantCulture);
         }
 
         /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>

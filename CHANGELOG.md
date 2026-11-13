@@ -25,6 +25,41 @@ drawings we wrote is the DXF of its own DWG of them, with no difference.
 **CHANGED.** `DxfColor.ByLayer.ColorValue` is white, 0xFFFFFF, as AutoCAD 2021's `Color.ColorValue` gives it (it was 0, black);
 `Red`, `Green` and `Blue` of BYLAYER stay 0 and BYBLOCK stays black, as AutoCAD gives them. Colours compare as before, and the
 presenter's colour dialogs already took BYLAYER as white.
+**NEW.** PEDIT, JOIN, BOUNDARY and LIST follow-ups in the presenter, checked against AutoCAD 2021's console (probes of 13
+November). PEDIT Multiple takes 3D polylines: a 3D polyline selected alone asks no question about lines, arcs and splines and
+offers `[Close/Open/Join/Width/Fit/Spline/Decurve/Ltype gen/Reverse/Undo]`; Close, Open, Spline, Decurve and Reverse do to it
+what they do alone (the 3DPOLY (0, 0, 0), (100, 0, 10), (100, 100, 20), (0, 100, 30) splined at SPLINETYPE 6 is 13 vertices),
+Width and Ltype gen ask their questions and leave it, Fit leaves it, Join asks the fuzz distance and adds none. JOIN takes a
+POLYLINE as it takes a LWPOLYLINE: a line joined into the POLYLINE PLINE drew at PLINETYPE 0 leaves it a POLYLINE at 0 and
+makes it a LWPOLYLINE of its handle at 1 and 2 (a LWPOLYLINE stays one at 0), and the polyline JOIN makes of lines and arcs
+picked at once, like the one -BOUNDARY makes, is a POLYLINE at 0 as PLINE's is (AutoCAD's console runs neither, so those two
+follow PLINE).
+
+**FIXED.** LIST of a dimension that overrides its style writes a number longer than twelve characters in scientific form, as
+AutoCAD 2021 does (DIMASZ 1 000.5 at LUPREC 8 is `1.000500E+03`, minus 100.5 `-1.00500E+02`, six places and five for a
+negative one; the scale-like overrides too; architectural and fractional units never), a linetype override naming none or an
+object that is no linetype is `BYBLOCK`, and an override whose handle no object has, a text style of none or a block of the
+handle of a layer is left out.
+
+**FIXED.** The snaps Intersection and Extension on a feature control frame take the sides of its rows' rectangles alone, as AutoCAD
+2021's console gave them (a line 0.05 above the middle of a frame and one at x 0.3 across it): a line through a frame meets the
+sides of the rows (the top and bottom at (0.3, 0.18) and (0.3, -0.18), the left side at (0, 0.05)) and no wall between cells (none
+at (0.45, 0.05), where the first wall is), and a wall meets no side. Before, they took the walls and the strokes of the symbols
+too.
+
+**FIXED.** A dynamic block saved from the Block Editor, and `DxfDynamicBlockRepresentation.UpdateAnonymous`, treat the attributes of
+the INSERTs of its anonymous blocks as AutoCAD 2021's `UpdateAnonymousBlocks` does (a panel with TAG locked in a stretch and NOTE
+free, probed in its console): an ATTRIB whose ATTDEF is locked and held by an action is made anew from the ATTDEF of the new *U
+block, its words kept and its place, height, rotation, colour and the rest the definition's (a user's 4 high, turned 1 and
+moved ATTRIB is 5 high, turned 0.3 at (1140, 515) after TAG is made 5 high, turned 0.3 and moved to (90, 15)); the other
+ATTRIBs are left, none is made for an ATTDEF added and none taken away for one erased. Before, they were left whatever the
+definition did.
+
+**CHANGED.** The property of a `DxfDimension` that sets a variable of its dimension style (`Dimasz`, `Dimtad`, `Dimclrd`,
+`TextStyle` and the rest) writes the override whether or not the value is the style's own, as AutoCAD 2021's does (DIMASZ,
+DIMTXT, DIMSCALE, DIMTAD, DIMSE1, DIMCLRD, DIMLWD, DIMJOGANG, DIMTXSTY, DIMLTYPE and DIMBLK each written at the style's value);
+a value set again over an override of the same value changes nothing. It was skipped where the dimension read the value
+already.
 
 **NEW.** A REGION clips a viewport, and MVIEW has its Object option (AutoCAD 2021's VPCLIP and MVIEW probed in its console, and
 a ring plotted to a PNG). `DxfViewport.ClipTo` takes a REGION whose shape is read: the frame becomes the box of its loops and

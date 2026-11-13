@@ -200,8 +200,13 @@ namespace GeometryHelper.UnitTest.Dxf
 
         #region Setting
 
+        /// <summary>
+        /// Every property of every dimension given the value it reads is written as an override where the dimension has none (as
+        /// AutoCAD 2021's property writes the style's own value) and a variable its file's version has not is passed over;
+        /// the drawing saves and reads back, and given the values again changes nothing.
+        /// </summary>
         [Fact]
-        public void EverySetterGivenItsOwnValue_ChangesNothing()
+        public void EverySetterGivenItsOwnValue_WritesTheOverrideOnce_AndAGiveSecondTimeChangesNothing()
         {
             foreach (
                 string text in new[]
@@ -213,32 +218,40 @@ namespace GeometryHelper.UnitTest.Dxf
             )
             {
                 DxfDatabase db = DxfDatabase.Parse(text);
-                byte[] before = Saved(db);
-                int seen = 0;
+                Assert.True(GiveEachItsOwnValue(db) >= 9);
+                byte[] once = Saved(db);
+                Assert.True(DxfDatabase.Parse(System.Text.Encoding.UTF8.GetString(once)).ModelSpace.Any());
 
-                foreach (DxfDimension dim in db.ModelSpace.OfType<DxfDimension>().ToList())
+                GiveEachItsOwnValue(db);
+                Assert.Equal(once, Saved(db));
+            }
+        }
+
+        private static int GiveEachItsOwnValue(DxfDatabase db)
+        {
+            int seen = 0;
+
+            foreach (DxfDimension dim in db.ModelSpace.OfType<DxfDimension>().ToList())
+            {
+                foreach (
+                    var property in dim.GetType()
+                        .GetProperties()
+                        .Where(p =>
+                            p.CanWrite
+                            && p.CanRead
+                            && p.DeclaringType != typeof(DxfEntity)
+                            && p.DeclaringType != typeof(DxfDBObject)
+                        )
+                )
                 {
-                    foreach (
-                        var property in dim.GetType()
-                            .GetProperties()
-                            .Where(p =>
-                                p.CanWrite
-                                && p.CanRead
-                                && p.DeclaringType != typeof(DxfEntity)
-                                && p.DeclaringType != typeof(DxfDBObject)
-                            )
-                    )
-                    {
-                        property.SetValue(dim, property.GetValue(dim));
-                    }
-
-                    dim.SetDimstyleData(dim.GetDimstyleData());
-                    seen++;
+                    property.SetValue(dim, property.GetValue(dim));
                 }
 
-                Assert.True(seen >= 9);
-                Assert.Equal(before, Saved(db));
+                dim.SetDimstyleData(dim.GetDimstyleData());
+                seen++;
             }
+
+            return seen;
         }
 
         [Fact]

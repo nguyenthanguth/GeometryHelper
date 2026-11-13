@@ -120,7 +120,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     foreach (CadBoundaryLoop loop in loops)
                     {
-                        s.Append(c.Space, Current(c, LoopPolyline(loop)));
+                        s.Append(c.Space, OfPlineType(c, Current(c, LoopPolyline(loop))));
                     }
                 });
 

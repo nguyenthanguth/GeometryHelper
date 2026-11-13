@@ -2378,7 +2378,10 @@ namespace GeometryHelper.Dxf
         /// The variables the dimension overrides of its style, each with the value of its override as <see cref="Get"/> reads
         /// it, as AutoCAD's LIST lists them under "dimension style overrides:": every one its list DSTYLE names that the library
         /// knows, the first where two name one, whether or not it is the style's own value; a block, a linetype or a text style
-        /// as its record, null where the override names none. In the order of the variables' groups.
+        /// as its record, null where the override names none. A text style of none, and any record of a handle that is no
+        /// record of the kind (nor, for a linetype, an object at all) is left out, as AutoCAD 2021's LIST leaves it out: a
+        /// linetype of handle 0 or of the handle of a layer is listed (as BYBLOCK), a linetype of a handle no object has is not.
+        /// In the order of the variables' groups.
         /// </summary>
         internal List<KeyValuePair<DxfDimVariable, object>> OverriddenVariables()
         {
@@ -2392,14 +2395,16 @@ namespace GeometryHelper.Dxf
 
                 if (variable != null && read.Override(code, out string text))
                 {
-                    overridden.Add(
-                        new KeyValuePair<DxfDimVariable, object>(
-                            variable,
-                            variable.IsReference
-                                ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text)
-                                : variable.FromOverride(text)
-                        )
-                    );
+                    object value = variable.IsReference
+                        ? DxfDimStyleTableRecord.Resolve(Item.File, variable, text)
+                        : variable.FromOverride(text);
+
+                    if (variable.IsReference && value == null && !r12 && !NamesNoRecord(variable, text))
+                    {
+                        continue;
+                    }
+
+                    overridden.Add(new KeyValuePair<DxfDimVariable, object>(variable, value));
                 }
             }
 
@@ -2407,13 +2412,36 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Sets a variable as an override, where it differs from what the dimension reads: compared first, then checked, so that
-        /// the value read changes nothing whatever the file holds. A block, linetype or text style set while the dimension is
-        /// in no drawing is held as the record it is, and taken to the record of its name in the drawing it is added to.
+        /// Whether an override of a block, a linetype or a text style that reads as no record is still listed: a block of none
+        /// (handle 0) and a linetype of none or of the handle of an object that is no linetype are, a text style never, and no
+        /// override of a handle that names no object at all.
+        /// </summary>
+        private bool NamesNoRecord(DxfDimVariable variable, string text)
+        {
+            string handle = text?.Trim();
+            bool none = string.IsNullOrEmpty(handle) || handle == "0";
+
+            switch (variable.Kind)
+            {
+                case DxfDimKind.Block:
+                    return none;
+                case DxfDimKind.Linetype:
+                    return none || (Item.File.Database != null && Item.File.Database.TryGetObject(handle, out _));
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Sets a variable as an override, as AutoCAD 2021's property does: written whether or not it is what the style gives
+        /// (DIMASZ of 0.18 on a dimension of a style of 0.18 is an override of 0.18). A variable the dimension overrides already
+        /// with the value changes nothing, whatever the file holds; another is checked before it is written. A block,
+        /// linetype or text style set while the dimension is in no drawing is held as the record it is, and taken to the record
+        /// of its name in the drawing it is added to.
         /// </summary>
         private void Set(DxfDimVariable variable, object value)
         {
-            if (variable.SameValue(value, Get(variable)))
+            if (variable.SameValue(value, Get(variable)) && !WritesAnew(variable))
             {
                 return;
             }
@@ -2476,6 +2504,26 @@ namespace GeometryHelper.Dxf
             }
 
             WriteOverride(variable, text, r12);
+        }
+
+        /// <summary>
+        /// Whether setting a variable to the value the dimension reads still writes it: where the dimension does not override it
+        /// yet and its file can hold it, as AutoCAD 2021's property writes the style's own value; not where a variable the file's
+        /// version has not, or the dimension holds the very override.
+        /// </summary>
+        private bool WritesAnew(DxfDimVariable variable)
+        {
+            DxfFile file = Item.File;
+            bool r12 = !file.HasMarkers;
+
+            if (!file.Supports(variable.Since) || (r12 && variable.IsReference && variable.R12Code == 0))
+            {
+                return false;
+            }
+
+            return variable.IsReference && !IsResident
+                ? _held == null || !_held.ContainsKey(variable)
+                : !ReadStyle().Override(variable.CodeIn(r12), out _);
         }
 
         // The overrides and the style as they were last read, kept until the records of the dimension's file next change, as a
