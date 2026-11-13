@@ -27,6 +27,17 @@ namespace GeometryHelper.Dxf
 
                     FitCounts(record);
                     break;
+                case "ACAD_TABLE":
+                    if (_target >= 1024)
+                    {
+                        TableVersion(record);
+                    }
+
+                    break;
+                case "ACDBDATATABLE":
+                case "DATATABLE":
+                    DataTable(record);
+                    break;
                 case "TABLESTYLE":
                     if (_target < 1024)
                     {
@@ -45,6 +56,10 @@ namespace GeometryHelper.Dxf
                     if (_target < 1032)
                     {
                         Columns(record);
+                    }
+                    else if (_source < 1032)
+                    {
+                        ColumnsUp(record);
                     }
 
                     if (_target < 1018)
@@ -319,6 +334,38 @@ namespace GeometryHelper.Dxf
             if (types >= 0 && groups[types + 1].Code == 295)
             {
                 groups.RemoveAt(types + 1);
+            }
+        }
+
+        /// <summary>
+        /// Names the data table a table keeps its round trip in as the version does: <c>ACDBDATATABLE</c>, in the subclass of that
+        /// name, in R2000, <c>DATATABLE</c> in <c>AcDbDataTable</c> from R2004.
+        /// </summary>
+        private void DataTable(Record record)
+        {
+            bool old = _target < 1018;
+            record.Groups[0] = new Group(0, old ? "ACDBDATATABLE" : "DATATABLE");
+            int at = record.Groups.FindIndex(g =>
+                g.Code == 100 && (g.Value == "ACDBDATATABLE" || g.Value == "AcDbDataTable")
+            );
+
+            if (at >= 0)
+            {
+                record.Groups[at] = new Group(100, old ? "ACDBDATATABLE" : "AcDbDataTable");
+            }
+        }
+
+        /// <summary>Gives a table the group 280 R2010 and later write first in it, after its subclass marker (the version of its data, nought), where it has none.</summary>
+        private void TableVersion(Record record)
+        {
+            List<Group> groups = record.Groups;
+
+            if (
+                Subclass(groups, "AcDbTable", out int start, out int end)
+                && groups.FindIndex(start, end - start, g => g.Code == 280) < 0
+            )
+            {
+                groups.Insert(start + 1, Whole(280, 0));
             }
         }
 

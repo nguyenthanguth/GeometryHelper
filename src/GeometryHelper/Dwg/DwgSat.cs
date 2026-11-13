@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dwg
 {
@@ -24,7 +25,7 @@ namespace GeometryHelper.Dwg
     /// product and the ACIS version, each by its length, and an empty date, as AutoCAD writes it; then the unit and the
     /// two tolerances of the SAB.
     /// </remarks>
-    internal static class DwgSat
+    internal static partial class DwgSat
     {
         /// <summary>The records of the SAB whose flags and enums take words, each by its name: the grammar of its values.</summary>
         private static readonly Dictionary<string, string> Records = new Dictionary<string, string>(
@@ -87,7 +88,7 @@ namespace GeometryHelper.Dwg
             ["exactsur"] = "e(0=full) BS3S d / / A / A / A / A / A / A / I I I I",
             ["exact_spl_sur"] = "i e(0=full) BS3S d / / A / A / A / A / A / A / I I I I o(0=UNEXTENDED)",
             ["sweep_sur"] =
-                "i b(!,on_xy) / i CURVE / I I b(!,is_planar) P V P V V V / i b(!,no_z) / CURVE / I I d b(no_scale,!) "
+                "i b(not_on,on_xy) / i CURVE / I I b(!,is_planar) P V P V V V / i b(has_z,no_z) / CURVE / I I d b(no_scale,!) "
                 + "/ s / i / s / CURVE / d / d / e(0=full) BS3S d / / A / A / A / A / A / A / b(F,T)",
             ["loft_spl_sur"] =
                 "i i / [ d / i i CURVE SURF PCUR b(F,T) i i i d d d d d d b(F,T) CURVE i i / ] i / I I I I b(F,T) "
@@ -249,7 +250,15 @@ namespace GeometryHelper.Dwg
         /// The SAT AutoCAD writes in DXF of the SAB in <paramref name="sab"/>, its lines each ended by a line feed; null
         /// where the SAB holds a record, a subtype or a value the grammars do not place.
         /// </summary>
-        internal static string ToSat(byte[] sab)
+        internal static string ToSat(byte[] sab) => ToSat(sab, null);
+
+        /// <summary>
+        /// The SAT of the SAB in <paramref name="sab"/> in the form of <paramref name="form"/>: its head's version and flags
+        /// those of the form, and the records given the numbers the form has, a coedge's of the binary form out and a vertex's
+        /// in or out. A form of null leaves the SAB as it is (the SAT AutoCAD writes of a DWG's). Null where the SAB holds a
+        /// record the grammars do not place or is of a version whose records are not known.
+        /// </summary>
+        internal static string ToSat(byte[] sab, AcisFormat form)
         {
             List<List<Token>> records;
 
@@ -315,16 +324,42 @@ namespace GeometryHelper.Dwg
                 return null;
             }
 
-            int count = records.Count - 1;
+            if (form != null && !Adjust(records, Int(sab, 15), form))
+            {
+                return null;
+            }
+
+            return Print(
+                records,
+                records.Count - 1,
+                form == null ? Int(sab, 15) : form.Version,
+                Int(sab, 23),
+                form == null ? Int(sab, 27) : form.Flags,
+                strings,
+                reals
+            );
+        }
+
+        /// <summary>The SAT of the first <paramref name="count"/> records (the end of the data after them is not written) under the head of the version, roots and flags given.</summary>
+        private static string Print(
+            List<List<Token>> records,
+            int count,
+            int version,
+            int roots,
+            int flags,
+            List<string> strings,
+            List<double> reals
+        )
+        {
             var text = new StringBuilder();
             string counted = count.ToString(CultureInfo.InvariantCulture);
-            text.Append(Int(sab, 15))
+            text.Append(version)
                 .Append(' ')
                 .Append(counted)
                 .Append(' ')
-                .Append(Int(sab, 23))
+                .Append(roots)
                 .Append(' ')
-                .Append(Int(sab, 27))
+                .Append(flags)
                 .Append(' ')
                 .Append(' ', Math.Max(0, 11 - counted.Length))
                 .Append('\n');
@@ -667,6 +702,9 @@ namespace GeometryHelper.Dwg
             public double Real;
             public double[] Triple;
             public string Text;
+
+            /// <summary>Whether a vector is already the unit vector SAT writes (read from SAT), which is not divided by its length again.</summary>
+            public bool Exact;
         }
 
         /// <summary>Writes one record of SAT by its grammar; false where its values do not follow it.</summary>
@@ -886,6 +924,12 @@ namespace GeometryHelper.Dwg
 
                         double[] v = token.Triple;
                         double length = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+                        // A normal that is a unit but for rounding (a length of 0.9999999999999999) is written as it is.
+                        if (token.Exact || Math.Abs(length - 1.0) < 1E-12)
+                        {
+                            length = 1.0;
+                        }
 
                         if (!(length > 0))
                         {
