@@ -47,17 +47,26 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// EXPORTPDF: with the window, its Save As PDF dialog for the file, then the current layout, or the display of model
-        /// space, written as a PDF of the page setup in use. With FILEDIA 0, or with no window to show it, the questions of
-        /// -EXPORT's Pdf on the command line: the plot area, "Detailed plot configuration? [Yes/No] &lt;No&gt;:" for the paper,
-        /// the scale and the plot styles, and "Enter file name &lt;file&gt;:". AutoCAD 2021's console asks nothing of EXPORTPDF, so
-        /// the questions are -EXPORT's, All layouts among them, which writes one PDF of a page for each layout.
+        /// EXPORTPDF: with the window, its Save As PDF dialog for the file and the options AutoCAD 2021's shows beside it
+        /// (<see cref="CadExportJob.PdfOptions"/>): in a layout the current layout or all layouts, in model space the display, the
+        /// extents or a window, its corners asked once the dialog is closed where it gave none; the page setup in use, or the
+        /// one Page Setup Override set; the plot stamp, which becomes the session's; the objects' hyperlinks; and the
+        /// PDF opened in the viewer when written (the request OPENINVIEWER, the file its payload). With FILEDIA 0, or with no
+        /// window to show it, the questions of -EXPORT's Pdf on the command line: the plot area, "Detailed plot configuration?
+        /// [Yes/No] &lt;No&gt;:" for the paper, the scale and the plot styles, and "Enter file name &lt;file&gt;:". AutoCAD 2021's
+        /// console asks nothing of EXPORTPDF, so the questions are -EXPORT's, All layouts among them.
         /// </summary>
         private static IEnumerable<CadPrompt> ExportPdfCommand(CadCommandContext c)
         {
             CadSpace space = c.Space;
             string offered = PlotFileName(c.Document, space);
-            var job = new CadExportJob("Save As PDF", new[] { CadExportJob.Pdf }, CadExportJob.Pdf, offered);
+            CadPlotSettings inUse = CadPlotSettings.Read(c.Document, space);
+            inUse.UseDevice(CadPlotSettings.PdfDevice);
+            var options = new CadExportPdfOptions(space.IsModel, inUse.Clone(), c.Session.PlotStamp.Clone());
+            var job = new CadExportJob("Save As PDF", new[] { CadExportJob.Pdf }, CadExportJob.Pdf, offered)
+            {
+                PdfOptions = options,
+            };
 
             if (!c.Session.FileDialogs || !c.Session.Request("EXPORTPDF", c.Document, job))
             {
@@ -74,11 +83,74 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            CadPlotSettings settings = CadPlotSettings.Read(c.Document, space);
-            settings.UseDevice(CadPlotSettings.PdfDevice);
-            settings.Area = space.IsModel ? CadPlotArea.Display : CadPlotArea.Layout;
-            WithOutputOptions(c, settings);
-            ExportedPdf(c, space, settings, job.FileName);
+            DisplayBox window = options.WindowBox;
+
+            if (options.Export == CadExportPdfOptions.Window && window.IsEmpty)
+            {
+                yield return CadPrompt.ForPoint("Specify first corner");
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                GeoPoint2 first = c.Input.Point;
+                yield return CadPrompt.ForPoint("Specify opposite corner", first);
+
+                if (!c.Input.IsPoint)
+                {
+                    yield break;
+                }
+
+                GeoPoint2 second = c.Input.Point;
+                window = new DisplayBox(
+                    Math.Min(first.X, second.X),
+                    Math.Min(first.Y, second.Y),
+                    Math.Max(first.X, second.X),
+                    Math.Max(first.Y, second.Y)
+                );
+            }
+
+            // The dialog's stamp is the session's from now on, on or off as Include plot stamp left it.
+            c.Session.PlotStamp.CopyFrom(options.PlotStamp);
+            c.Session.PlotStamp.On = options.IncludePlotStamp;
+
+            void WithDialogOptions(CadPlotSettings settings)
+            {
+                WithOutputOptions(c, settings);
+                settings.PdfHyperlinks = options.IncludeHyperlinks;
+            }
+
+            CadPlotSettings overridden = options.OverridePageSetup ? options.PageSetupOverride.Clone() : null;
+
+            if (overridden != null)
+            {
+                overridden.UseDevice(CadPlotSettings.PdfDevice);
+            }
+
+            string written;
+
+            if (options.Export == CadExportPdfOptions.AllLayouts)
+            {
+                written = ExportedPdfOfLayouts(c, overridden, job.FileName, WithDialogOptions);
+            }
+            else
+            {
+                CadPlotSettings settings = overridden ?? inUse;
+                settings.Area =
+                    options.Export == CadExportPdfOptions.CurrentLayout ? CadPlotArea.Layout
+                    : options.Export == CadExportPdfOptions.Extents ? CadPlotArea.Extents
+                    : options.Export == CadExportPdfOptions.Window ? CadPlotArea.Window
+                    : CadPlotArea.Display;
+                settings.Window = settings.Area == CadPlotArea.Window ? window : settings.Window;
+                WithDialogOptions(settings);
+                written = ExportedPdf(c, space, settings, job.FileName);
+            }
+
+            if (written != null && options.OpenInViewer)
+            {
+                c.Session.Request("OPENINVIEWER", c.Document, written);
+            }
         }
 
         /// <summary>EXPORTDWF and EXPORTDWFX: the presenter has no DWF writer, so they say so and write nothing; EXPORTPDF writes a PDF.</summary>

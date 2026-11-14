@@ -328,6 +328,12 @@ namespace GeometryHelper.Dxf.Viewer
         public bool PdfShx { get; set; }
 
         /// <summary>
+        /// Gets or sets whether each hyperlink of an object plotted becomes a link of the PDF over the object's box, as
+        /// EXPORTPDF's Include hyperlinks; only the PDF writer reads it. Off by default.
+        /// </summary>
+        public bool PdfHyperlinks { get; set; }
+
+        /// <summary>
         /// Gets or sets the plot stamp the plot carries, null for none. The commands set a copy of the session's stamp
         /// (<see cref="CadCommandSession.PlotStamp"/>) where it is on; only the PDF writer reads it, and a drawing keeps it
         /// nowhere. Null by default.

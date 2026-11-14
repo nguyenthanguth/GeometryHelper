@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** EXPORTPDF shows Save As PDF as AutoCAD 2021's (designed first): the file with Browse…, Open in viewer when done, Include
+plot stamp with its Plot Stamp dialog, Export (Current layout and All layouts in a layout, Display, Extents and Window in model
+space, a window's corners asked once the dialog closes), Page Setup Current or Override with Page Setup Override (paper size, plot
+style table, orientation, Fit to paper or a scale, Scale lineweights), and Options… for Export to PDF Options. All layouts with an
+override of ISO A1 portrait writes a page of 594 by 841 mm for each layout. Open in viewer, the override and Include hyperlinks are
+kept for the next EXPORTPDF until the app closes. The choices reach the command as `CadExportJob.PdfOptions`
+(`CadExportPdfOptions`); a window that answers only the file exports as before.
+**NEW.** Include hyperlinks: the PDF writer makes the first hyperlink of each object plotted a link over its box
+(`CadPlotSettings.PdfHyperlinks`); a line linked to `https://example.com/B-12.pdf` is a `/URI` link of the page. Layer information,
+bookmarks, merge control and the vector and raster qualities are shown greyed, as the writer always or never does them.
+
 **NEW.** -VIEW Restore shows a paper view in the layout it was saved in (a view saved in Sheet 2, restored from Layout1 or the Model
 tab, shows Sheet 2), and a view of model space restored in a layout asks `Restoring Model space view.` / `Select Viewport for view:`
 and shows the whole view through the viewport picked, which is then the one worked through (a view 600 by 400 into a viewport 200 by

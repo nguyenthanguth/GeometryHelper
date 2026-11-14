@@ -15,7 +15,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// settings carry PDFSHX (<see cref="CadPlotSettings.PdfShx"/>), which writes the words again over the strokes in letters
     /// no eye sees. A plot stamp the settings carry (<see cref="CadPlotSettings.PlotStamp"/>) is drawn in a corner of the sheet
     /// as text, and its line added to the stamp's log file. Several plots, as EXPORTPDF's All layouts, are written as one
-    /// PDF of a page each (<see cref="WritePages"/>).
+    /// PDF of a page each (<see cref="WritePages"/>). Settings that carry <see cref="CadPlotSettings.PdfHyperlinks"/> make the
+    /// first hyperlink of each object plotted a link of the page over the object's box.
     /// </summary>
     /// <remarks>
     /// The page is the sheet as it lies, to a ten-thousandth of a point: ISO A3 on its side is 1 190.5512 by 841.8898 points
@@ -283,6 +284,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                                 shxText: settings.PdfShx
                             );
 
+                            if (settings.PdfHyperlinks)
+                            {
+                                DrawHyperlinks(canvas, document, jobs[i].Space, page);
+                            }
+
                             if (settings.PlotStamp != null)
                             {
                                 CadPlotStampPainter.Draw(
@@ -322,6 +328,119 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return written;
+        }
+
+        /// <summary>
+        /// EXPORTPDF's Include hyperlinks: the first hyperlink of each object plotted of the space itself, with an address, made
+        /// a link of the page over the box of what is drawn of the object, within the printable area. A file's address is
+        /// written as a file URI (D:\Docs\B-12.pdf as file:///D:/Docs/B-12.pdf), any other as it is. Objects seen through a
+        /// layout's viewports carry no link.
+        /// </summary>
+        private static void DrawHyperlinks(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page)
+        {
+            var boxes = new Dictionary<string, DisplayBox>(StringComparer.OrdinalIgnoreCase);
+            var order = new List<string>();
+
+            foreach (DisplayItem2 item in document.GetDisplay(space).Items)
+            {
+                if (
+                    item.Handle == null
+                    || item is DisplayViewport2
+                    || item.IsNotPlotted
+                    || !item.Bounds.Intersects(page.Area)
+                )
+                {
+                    continue;
+                }
+
+                if (!boxes.TryGetValue(item.Handle, out DisplayBox box))
+                {
+                    order.Add(item.Handle);
+                    box = DisplayBox.Empty;
+                }
+
+                boxes[item.Handle] = box.Union(item.Bounds);
+            }
+
+            DisplayBox printable = page.Printable;
+
+            foreach (string handle in order)
+            {
+                DxfEntity entity = document.FindEntity(handle);
+                string url = null;
+
+                for (int i = 0; entity != null && i < entity.Hyperlinks.Count && url == null; i++)
+                {
+                    string name = entity.Hyperlinks[i].Name.Trim();
+                    url = name.Length == 0 ? null : Address(name);
+                }
+
+                if (url == null)
+                {
+                    continue;
+                }
+
+                DisplayBox box = boxes[handle];
+                DisplayBox sheet = DisplayBox.Empty;
+
+                foreach (double[] corner in Corners(box))
+                {
+                    sheet = sheet.Add(
+                        page.DrawingToSheet.X(corner[0], corner[1]),
+                        page.DrawingToSheet.Y(corner[0], corner[1])
+                    );
+                }
+
+                var shown = new DisplayBox(
+                    Math.Max(sheet.MinX, printable.MinX),
+                    Math.Max(sheet.MinY, printable.MinY),
+                    Math.Min(sheet.MaxX, printable.MaxX),
+                    Math.Min(sheet.MaxY, printable.MaxY)
+                );
+
+                if (shown.IsEmpty)
+                {
+                    continue;
+                }
+
+                Affine2 toPoints = SheetToPoints(page);
+                float x0 = (float)toPoints.X(shown.MinX, shown.MinY);
+                float y0 = (float)toPoints.Y(shown.MinX, shown.MinY);
+                float x1 = (float)toPoints.X(shown.MaxX, shown.MaxY);
+                float y1 = (float)toPoints.Y(shown.MaxX, shown.MaxY);
+                canvas.DrawUrlAnnotation(
+                    new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)),
+                    url
+                );
+            }
+        }
+
+        /// <summary>The four corners of a box, as pairs of X and Y.</summary>
+        private static IEnumerable<double[]> Corners(DisplayBox box) =>
+            new[]
+            {
+                new[] { box.MinX, box.MinY },
+                new[] { box.MaxX, box.MinY },
+                new[] { box.MaxX, box.MaxY },
+                new[] { box.MinX, box.MaxY },
+            };
+
+        /// <summary>A hyperlink's address as a PDF link takes it: a rooted file path as a file URI, anything else as it is.</summary>
+        private static string Address(string name)
+        {
+            if (name.IndexOf("://", StringComparison.Ordinal) < 0 && Path.IsPathRooted(name))
+            {
+                try
+                {
+                    return new Uri(name).AbsoluteUri;
+                }
+                catch (UriFormatException)
+                {
+                    return name;
+                }
+            }
+
+            return name;
         }
 
         /// <summary>A size in points rounded to whole points, as SkiaSharp gives a page.</summary>

@@ -129,6 +129,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool Opens { get; set; }
 
+        /// <summary>
+        /// Gets what EXPORTPDF's Save As PDF dialog sets beside the file (Output Controls, Export, Page Setup, Options); null
+        /// for any other file. A window that shows only a file dialog leaves it as made.
+        /// </summary>
+        public CadExportPdfOptions PdfOptions { get; internal set; }
+
         /// <summary>Gets the title of the dialog.</summary>
         public string Title { get; }
 

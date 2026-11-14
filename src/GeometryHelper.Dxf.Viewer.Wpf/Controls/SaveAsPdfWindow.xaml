@@ -1,0 +1,200 @@
+<Window
+    x:Class="GeometryHelper.Dxf.Viewer.Wpf.SaveAsPdfWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Save As PDF"
+    Width="560"
+    Height="470"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterOwner"
+    Background="#262B33"
+>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Design SaveAsPdf: the file, Output Controls, Export, Page Setup and Options. -->
+    <Border
+        x:Name="Root"
+        Background="{StaticResource GhPanel}"
+        BorderBrush="{StaticResource GhBorder}"
+        BorderThickness="1"
+        TextElement.FontFamily="{StaticResource GhFont}"
+        TextElement.FontSize="12"
+        TextElement.Foreground="{StaticResource GhText}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+    >
+        <DockPanel>
+            <Border
+                DockPanel.Dock="Top"
+                Background="{StaticResource GhHeader}"
+                Padding="16,10"
+                MouseLeftButtonDown="OnHeaderDown"
+            >
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhTitleCloseButton}"
+                        Click="OnCancel"
+                        ToolTip="Close"
+                    />
+                    <TextBlock Text="Save As PDF" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button
+                            Style="{StaticResource StylePrimaryButton}"
+                            Content="Save"
+                            Padding="18,5"
+                            Margin="0,0,8,0"
+                            IsDefault="True"
+                            Click="OnOk"
+                        />
+                        <Button
+                            Style="{StaticResource GhDialogButton}"
+                            Content="Cancel"
+                            Padding="14,5"
+                            IsCancel="True"
+                            Click="OnCancel"
+                        />
+                    </StackPanel>
+                    <TextBlock
+                        Text="{Binding Message}"
+                        Foreground="{StaticResource GhError}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                    />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="File name" FontWeight="SemiBold" Width="90" VerticalAlignment="Center" />
+                    <Button
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Browse…"
+                        Padding="12,5"
+                        Margin="8,0,0,0"
+                        Click="OnBrowse"
+                    />
+                    <TextBox
+                        Style="{StaticResource StyleBox}"
+                        FontFamily="{StaticResource GhMonoFont}"
+                        FontSize="11"
+                        Text="{Binding FileName, UpdateSourceTrigger=PropertyChanged}"
+                        AutomationProperties.Name="File name"
+                    />
+                </DockPanel>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Output Controls" Margin="0,0,0,10">
+                    <StackPanel>
+                        <CheckBox
+                            Style="{StaticResource BlockCheck}"
+                            Content="Open in viewer when done"
+                            IsChecked="{Binding OpenInViewer, Mode=TwoWay}"
+                        />
+                        <DockPanel>
+                            <Button
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource GhDialogButton}"
+                                Content="Plot Stamp…"
+                                Padding="10,3"
+                                ToolTip="Plot Stamp Settings"
+                                Click="OnPlotStamp"
+                            />
+                            <CheckBox
+                                Style="{StaticResource StyleCheck}"
+                                VerticalAlignment="Center"
+                                Content="Include plot stamp"
+                                IsChecked="{Binding IncludePlotStamp, Mode=TwoWay}"
+                            />
+                        </DockPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="160" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Export" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ComboBox
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        AutomationProperties.Name="Export"
+                        ItemsSource="{Binding Exports}"
+                        SelectedItem="{Binding Export, Mode=TwoWay}"
+                    />
+                    <Button
+                        Grid.Column="2"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Window &lt;"
+                        Padding="10,5"
+                        Margin="8,0,0,0"
+                        HorizontalContentAlignment="Left"
+                        IsEnabled="{Binding IsWindow}"
+                        ToolTip="Closes the dialog to pick the window's two corners, then writes the PDF"
+                        Click="OnOk"
+                    />
+                    <TextBlock Grid.Row="2" Text="Page setup" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ComboBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Style="{StaticResource GhComboBox}"
+                        AutomationProperties.Name="Page setup"
+                        ItemsSource="{Binding PageSetups}"
+                        SelectedItem="{Binding PageSetup, Mode=TwoWay}"
+                    />
+                    <Button
+                        Grid.Row="2"
+                        Grid.Column="2"
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Page Setup Override…"
+                        Padding="10,5"
+                        Margin="8,0,0,0"
+                        Click="OnOverride"
+                    />
+                </Grid>
+
+                <DockPanel Margin="0,0,0,10">
+                    <Button
+                        Style="{StaticResource GhDialogButton}"
+                        Content="Options…"
+                        Padding="14,5"
+                        Margin="0,0,8,0"
+                        Click="OnOptions"
+                    />
+                    <TextBlock
+                        Text="{Binding OptionsSummary}"
+                        Foreground="{StaticResource GhTextMuted}"
+                        VerticalAlignment="Center"
+                    />
+                </DockPanel>
+
+                <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap">
+                    In model space Export lists Display, Extents and Window; Window &lt; closes the dialog for the two corners, then the PDF is written. Current writes each layout by its own page setup, Override by the one Page Setup Override sets.
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>
