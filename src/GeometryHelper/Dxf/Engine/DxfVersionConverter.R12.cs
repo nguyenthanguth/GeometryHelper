@@ -479,9 +479,31 @@ namespace GeometryHelper.Dxf
             var flags = new List<string>(2);
             bool plainNormal = HasPlainNormal(record);
 
+            // A line of an attribute that was of several lines is a text left on its baseline in the style Standard, as AutoCAD
+            // writes it: what the MTEXT it was made of gave it of those is left out.
+            string handleOf = HandleOf(record);
+            bool line = (type == "ATTDEF" || type == "ATTRIB") && handleOf != null && _plan.Lines.Contains(handleOf);
+
             for (int i = 1; i < record.Groups.Count; i++)
             {
                 Group group = record.Groups[i];
+
+                if (
+                    line
+                    && (
+                        (
+                            group.Code == 7
+                            && string.Equals(group.Value.Trim(), "STANDARD", StringComparison.OrdinalIgnoreCase)
+                        )
+                        || group.Code == 11
+                        || group.Code == 21
+                        || group.Code == 31
+                        || ((group.Code == 72 || group.Code == 74) && IsZero(group.Value))
+                    )
+                )
+                {
+                    continue;
+                }
 
                 // The embedded object of a multi-line attribute (R2018) repeats the groups of the text: R12 has none of it.
                 embedded = embedded || group.Code == 101;
@@ -657,6 +679,12 @@ namespace GeometryHelper.Dxf
                 }
 
                 made.Groups.Add(new Group(group.Code, value));
+            }
+
+            // An attribute of the lines after the first of one of several holds the one 280 of its lock alone: version 0 is understood.
+            if (line && flags.Count == 1)
+            {
+                flags.Insert(0, "0");
             }
 
             // An attribute keeps its version and whether its position is locked (the two 280 of R2010) as the extended data of AcDbAttr,
@@ -1041,11 +1069,29 @@ namespace GeometryHelper.Dxf
             bool paper = false;
             Record owner = null;
             int widthsFrom = -1;
+            var struck = new List<Record>();
+            bool struckPaper = false;
 
             foreach (Record record in section.Records)
             {
                 string type = record.Type;
                 string handle = HandleOf(record);
+
+                // The lines through struck letters come after the last entity of the space they are in, or before the end of the block.
+                if (
+                    struck.Count > 0
+                    && (
+                        type == "ENDBLK"
+                        || (
+                            section.Name == "ENTITIES"
+                            && record.Groups.Exists(g => g.Code == 67 && g.Value.Trim() == "1") != struckPaper
+                        )
+                    )
+                )
+                {
+                    made.AddRange(struck);
+                    struck.Clear();
+                }
 
                 if (skipping)
                 {
@@ -1075,6 +1121,14 @@ namespace GeometryHelper.Dxf
                 {
                     _broken[piece.Type] = _broken.TryGetValue(piece.Type, out int total) ? total + 1 : 1;
                     List<Record> content = pieces[piece.Block];
+                    List<Record> outside = null;
+
+                    if (_plan.Outside.Count > 0)
+                    {
+                        // The lines through struck letters stand in the space after the INSERT, not in its block.
+                        outside = content.Where(r => HandleOf(r) is string own && _plan.Outside.Contains(own)).ToList();
+                        content = content.Where(r => !outside.Contains(r)).ToList();
+                    }
 
                     if (piece.Direct)
                     {
@@ -1110,6 +1164,22 @@ namespace GeometryHelper.Dxf
                             NewBlock(null, content, ends[piece.Block])
                         )
                     );
+
+                    if (outside != null)
+                    {
+                        // The lines through struck letters are kept to be written at the end of the space or block, as AutoCAD writes them.
+                        List<Record> lines = R12Parts(outside);
+                        bool inPaper = record.Groups.Exists(g => g.Code == 67 && g.Value.Trim() == "1");
+
+                        foreach (Record line in lines.Where(l => inPaper && !l.Groups.Exists(g => g.Code == 67)))
+                        {
+                            int after = line.Groups.FindLastIndex(g => g.Code == 8 || g.Code == 6 || g.Code == 62);
+                            line.Groups.Insert(after + 1, Whole(67, 1));
+                        }
+
+                        struck.AddRange(lines);
+                        struckPaper = inPaper;
+                    }
                     continue;
                 }
 
@@ -1160,6 +1230,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            made.AddRange(struck);
             section.Records.Clear();
             section.Records.AddRange(made);
         }

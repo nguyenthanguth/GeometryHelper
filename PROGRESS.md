@@ -267,9 +267,14 @@ User note 2026-11-12 evening (note.md 1-14):
       xdata as AutoCAD (upper-case names, R12 layer names, 5-group points); lightweight polyline default widths in the
       header; splines with 32 vertices per control point; tilted pattern lines' normal; whole-circle fills cut as AutoCAD;
       188 of 198 probe cases equal record for record
-- [ ] (r12f, running) R12 follow-ups 5: stacks under \L/\O/\K; stacks in TrueType or beside a big font; tilted solid fills; partial arcs,
-      bulges and ellipses in fills (donut 173/290, bulge 9/41); the star notch; multi-line attributes as Tag_001...;
-      ANSI37 line order; gradient band meshes; BODY, surfaces, spline-edge solids; annotative decomposition layers (S)
+- [x] R12 follow-ups 5 (r12f): stacks under/over/through letters (\L, \O, \K with strike LINEs), stacks in TrueType and
+      beside a big font, tilted solid fills, arcs/bulges/ellipses in fills, multi-line attributes as Tag_001..., pattern
+      line order as AutoCAD; 204 of 259 harness cases equal (was 42); harness in .claude/gk/r12-harness
+- [ ] R12 follow-ups 6: round holes, stars and hole notches in fills (AutoCAD's cut level beside a hole; donut 136+134
+      vs ours 136+132, circle 10 in 30 142+142 vs 216+214); gradient band meshes (CYLINDER 152, SPHERICAL 332 SOLIDs on
+      100x60; shape-dependent); dashes at 45/135 degrees one short; Palatino stack 0.2 off; big-font letters in a stack
+      half; multi-line attributes not held top-left; hatch SOLIDs on normal (0,0,-1); MTEXT \C colour runs (62 on the
+      TEXT); BODY, surfaces, spline-edge solids, annotative decomposition layers (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
@@ -282,7 +287,7 @@ User note 2026-11-12 evening (note.md 1-14):
       blocks stay tables (AutoCAD reads our downgrades with the same tables and links, AUDIT 0 on 16 files); fixed: an R2018
       table taken to R2000 gave a file AutoCAD refused; R2000 MTEXTBEGIN xdata on every MTEXT; reflect and shear transform
       words; cylsur/cyl_spl_sur (an extruded closed spline) converted, so it is no longer left out of R2013+
-- [ ] DXF versions follow-ups 5: the PRE2007_TABLE and DATATABLE round trip going down (column 1 override mask not decoded);
+- [ ] (dxfver5, running) DXF versions follow-ups 5: the PRE2007_TABLE and DATATABLE round trip going down (column 1 override mask not decoded);
       empty cell borders to R2000; sweeps along splines and lofts of circles (tolerant records); oblique extrusions
       (sumsur); R2010's sweep intcurve form; MTEXT background xdata of R2000 (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)

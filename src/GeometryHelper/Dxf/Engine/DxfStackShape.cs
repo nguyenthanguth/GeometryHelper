@@ -27,6 +27,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The sign between the halves: <c>/</c>, <c>#</c>, <c>^</c>, or nought for none.</summary>
         internal char Kind { get; private set; }
 
+        /// <summary>What a half's TEXT begins with where the stack is lined under or over: <c>%%O</c>, <c>%%U</c>, both (in that order) or none.</summary>
+        internal string Prefix { get; private set; } = string.Empty;
+
         /// <summary>The words above, the TEXT of which is written even where they are none.</summary>
         internal string Numerator { get; private set; }
 
@@ -60,6 +63,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The width of the stack's ink, from its start.</summary>
         internal double Ink { get; private set; }
 
+        /// <summary>How far the pen moves for the numerator's words: the length of the line AutoCAD draws through them when they are struck through.</summary>
+        internal double NumeratorAdvance { get; private set; }
+
         /// <summary>How far the pen moves for the stack: its ink and a third of its height.</summary>
         internal double Advance { get; private set; }
 
@@ -84,8 +90,22 @@ namespace GeometryHelper.Dxf
             double h = letter.Height;
             bool noUp = words.Numerator.Length == 0;
             bool noDown = words.Denominator.Length == 0;
-            double highUp = noUp ? 0.0 : h;
-            double highDown = noDown ? 0.0 : h;
+            bool trueType = font is DxfTrueTypeFont;
+
+            // The halves are as high as the letters are (a TrueType font's ink from the lowest to the highest, a descender counted),
+            // an SHX font's as the height of the letters, whatever they are.
+            double highUp =
+                noUp ? 0.0
+                : trueType ? up.InkTop - up.InkBottom
+                : h;
+            double highDown =
+                noDown ? 0.0
+                : trueType ? down.InkTop - down.InkBottom
+                : h;
+
+            // Where the ink of a half begins from its pen: of a TrueType font its own, even where it is left of it.
+            double leftUp = trueType ? up.InkLeft : up.WordsStart;
+            double leftDown = trueType ? down.InkLeft : down.WordsStart;
             double wideUp = up.ActualWidth;
             double wideDown = down.ActualWidth;
             var shape = new DxfStackShape
@@ -93,16 +113,20 @@ namespace GeometryHelper.Dxf
                 Kind = words.Kind,
                 Numerator = words.Numerator,
                 Denominator = words.Denominator,
+                NumeratorAdvance = up.Advance,
             };
 
             if (words.Kind == '#')
             {
                 // The numerator keeps to the left and the denominator follows its pen, as far as a third of the height where there
                 // is none.
-                double pen = noUp ? h / 3.0 : up.Advance;
-                shape.NumeratorX = -up.WordsStart;
+                double pen =
+                    noUp ? h / 3.0
+                    : trueType ? wideUp + (h / 3.0)
+                    : up.Advance;
+                shape.NumeratorX = -leftUp;
                 shape.NumeratorY = highDown;
-                shape.DenominatorX = pen - down.WordsStart;
+                shape.DenominatorX = pen - leftDown;
                 shape.Ink = pen + wideDown;
                 shape.Top = highDown + highUp;
                 shape.HasLine = true;
@@ -120,8 +144,8 @@ namespace GeometryHelper.Dxf
             {
                 double wide = Math.Max(wideUp, wideDown);
                 bool centred = words.Kind == '/';
-                shape.NumeratorX = (centred ? (wide - wideUp) / 2.0 : 0.0) - up.WordsStart;
-                shape.DenominatorX = (centred ? (wide - wideDown) / 2.0 : 0.0) - down.WordsStart;
+                shape.NumeratorX = (centred ? (wide - wideUp) / 2.0 : 0.0) - leftUp;
+                shape.DenominatorX = (centred ? (wide - wideDown) / 2.0 : 0.0) - leftDown;
                 shape.NumeratorY = highDown + (h / 3.0);
                 shape.Ink = wide;
                 shape.Top = shape.NumeratorY + highUp;
@@ -131,8 +155,56 @@ namespace GeometryHelper.Dxf
                 shape.LineY0 = shape.LineY1 = highDown + (h / 6.0);
             }
 
-            shape.Advance = shape.Ink + (h / 3.0);
+            // A stack lined under or over, each line a fifth of the height of the letters, stands that much further apart for
+            // each half that has words: the denominator's line lifts the numerator and the bar, the numerator's line lifts the
+            // top, and both lines of a stack lined under and over count.
+            if ((letter.Marks & 3) != 0)
+            {
+                double pad = ((letter.Marks & 1) != 0 ? 1.0 : 0.0) + ((letter.Marks & 2) != 0 ? 1.0 : 0.0);
+                pad *= h / 5.0;
+                shape.Prefix =
+                    ((letter.Marks & 2) != 0 ? "%%O" : string.Empty) + ((letter.Marks & 1) != 0 ? "%%U" : string.Empty);
+
+                if (!noDown)
+                {
+                    shape.NumeratorY += pad;
+                    shape.LineY0 += pad;
+                    shape.LineY1 += pad;
+                    shape.Top += pad;
+                }
+
+                if (!noUp)
+                {
+                    shape.Top += pad;
+                }
+            }
+
+            shape.Advance = shape.Ink + (trueType ? Bearing(font, letter) : h / 3.0);
             return shape;
+        }
+
+        /// <summary>
+        /// The room a TrueType font leaves after a stack: the room its zero has right of its ink (Arial 2.5 high: 98 of 1466
+        /// units, 0.167), probed in AutoCAD 2021 on 13 fonts, where an SHX font leaves a third of the height. The letters after
+        /// the stack begin at that distance from the end of its ink, not further back by their own ink as an SHX font's do.
+        /// </summary>
+        private static double Bearing(DxfFont font, DxfFonts.Letter letter)
+        {
+            DxfFont.Glyph zero = font.GlyphOf('0');
+
+            if (zero == null || !zero.HasInk)
+            {
+                return letter.Height / 3.0;
+            }
+
+            double right = zero.Xs[0];
+
+            foreach (double x in zero.Xs)
+            {
+                right = Math.Max(right, x);
+            }
+
+            return (zero.Advance - right) * (letter.Height / font.Above) * letter.Width;
         }
     }
 }

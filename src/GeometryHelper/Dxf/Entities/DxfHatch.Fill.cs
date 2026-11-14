@@ -12,8 +12,10 @@ namespace GeometryHelper.Dxf
         /// <see cref="DxfHatchStrips"/>), each trapezoid two triangles in a plane turned over (the normal (0, 0, -1), x negated),
         /// the third corner written again as the fourth, with the look of the HATCH. A rectangle 100 by 60 gives two SOLIDs and
         /// the two LINEs of its sides; the LINEs are the non-horizontal sides of the trapezoids. A gradient is the one colour of
-        /// the HATCH, with no lines, not the bands AutoCAD makes of it. A HATCH whose normal is not (0, 0, 1) gives none, for a
-        /// SOLID is made here in the world plane.
+        /// the HATCH, with no lines, not the bands AutoCAD makes of it. A HATCH whose normal is not (0, 0, 1) is cut in its own plane, the LINEs in the world and
+        /// the SOLIDs' corners as the plane of the opposite normal reads the world points (a rectangle 100 by 60 on the normal (1, 1, 1)
+        /// has its SOLIDs on the extrusion (-0.577, -0.577, -0.577)). A bulge, an arc and an ellipse are cut into the chords
+        /// <see cref="Edge.Chords(double, double)"/> counts.
         /// </summary>
         /// <returns>The SOLIDs, then the LINEs, in no file.</returns>
         /// <exception cref="InvalidOperationException">Thrown when a loop has an edge that is no shape.</exception>
@@ -23,11 +25,7 @@ namespace GeometryHelper.Dxf
             var solids = new List<DxfEntity>();
             var lines = new List<DxfEntity>();
             GeoVector3 normal = snapshot.Normal;
-
-            if (Math.Abs(normal.X) > 1E-9 || Math.Abs(normal.Y) > 1E-9 || normal.Z < 0.0)
-            {
-                return solids.AsReadOnly();
-            }
+            bool flat = Math.Abs(normal.X) <= 1E-9 && Math.Abs(normal.Y) <= 1E-9 && normal.Z > 0.0;
 
             int count = snapshot.Loops.Count;
             double tolerance = Tolerance.Default.EqualPoint;
@@ -47,7 +45,7 @@ namespace GeometryHelper.Dxf
             bool edges = !IsGradient;
             var look = new Look(this);
             double elevation = snapshot.Elevation;
-            var turned = new GeoVector3(0.0, 0.0, -1.0);
+            GeoVector3 turned = flat ? new GeoVector3(0.0, 0.0, -1.0) : normal.Multiply(-1.0);
             var trapezoids = new List<DxfHatchStrips.Trapezoid>();
 
             for (int i = 0; i < count; i++)
@@ -87,7 +85,9 @@ namespace GeometryHelper.Dxf
                             trapezoid.BottomRight,
                             trapezoid.BottomLeft,
                             elevation,
-                            turned
+                            turned,
+                            normal,
+                            flat
                         )
                     );
                 }
@@ -95,7 +95,16 @@ namespace GeometryHelper.Dxf
                 if (!trapezoid.TopPoint)
                 {
                     solids.Add(
-                        Triangle(look, trapezoid.TopLeft, trapezoid.TopRight, trapezoid.BottomRight, elevation, turned)
+                        Triangle(
+                            look,
+                            trapezoid.TopLeft,
+                            trapezoid.TopRight,
+                            trapezoid.BottomRight,
+                            elevation,
+                            turned,
+                            normal,
+                            flat
+                        )
                     );
                 }
 
@@ -119,8 +128,12 @@ namespace GeometryHelper.Dxf
                     GeoPoint2 from = right ? trapezoid.TopRight : trapezoid.BottomLeft;
                     GeoPoint2 to = right ? trapezoid.BottomRight : trapezoid.TopLeft;
                     var line = new DxfLine(
-                        new GeoPoint3(from.X, from.Y, elevation),
-                        new GeoPoint3(to.X, to.Y, elevation)
+                        flat
+                            ? new GeoPoint3(from.X, from.Y, elevation)
+                            : OcsToWorld(normal, new GeoPoint3(from.X, from.Y, elevation)),
+                        flat
+                            ? new GeoPoint3(to.X, to.Y, elevation)
+                            : OcsToWorld(normal, new GeoPoint3(to.X, to.Y, elevation))
                     );
                     look.GiveTo(line);
                     lines.Add(line);
@@ -138,14 +151,32 @@ namespace GeometryHelper.Dxf
             GeoPoint2 b,
             GeoPoint2 c,
             double elevation,
-            GeoVector3 turned
+            GeoVector3 turned,
+            GeoVector3 normal,
+            bool flat
         )
         {
-            var solid = new DxfSolid(
-                new GeoPoint3(-a.X, a.Y, -elevation),
-                new GeoPoint3(-b.X, b.Y, -elevation),
-                new GeoPoint3(-c.X, c.Y, -elevation)
-            );
+            // In a plane other than the drawing's the corners are the world points of the HATCH's plane, in the plane of the
+            // normal turned the other way.
+            var solid = flat
+                ? new DxfSolid(
+                    new GeoPoint3(-a.X, a.Y, -elevation),
+                    new GeoPoint3(-b.X, b.Y, -elevation),
+                    new GeoPoint3(-c.X, c.Y, -elevation)
+                )
+                : new DxfSolid(
+                    WorldToOcs(turned, OcsToWorld(normal, new GeoPoint3(a.X, a.Y, elevation))),
+                    WorldToOcs(turned, OcsToWorld(normal, new GeoPoint3(b.X, b.Y, elevation))),
+                    WorldToOcs(turned, OcsToWorld(normal, new GeoPoint3(c.X, c.Y, elevation)))
+                );
+
+            // AutoCAD writes the extrusion on a SOLID of a HATCH in a plane other than the drawing's even where it comes to (0, 0, 1),
+            // the plane of a HATCH turned the other way up: set from another direction first, so that the groups are written.
+            if (!flat && Math.Abs(turned.X) <= 1E-9 && Math.Abs(turned.Y) <= 1E-9)
+            {
+                solid.Normal = new GeoVector3(0.0, 0.0, -turned.Z);
+            }
+
             solid.Normal = turned;
             look.GiveTo(solid);
             return solid;

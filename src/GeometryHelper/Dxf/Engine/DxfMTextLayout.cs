@@ -37,13 +37,27 @@ namespace GeometryHelper.Dxf
             private readonly Func<List<Run>> _find;
             private List<Run> _runs;
 
-            internal Line(DxfTextLine measure, Func<List<Run>> runs, double baseline, double start)
+            internal Line(
+                DxfTextLine measure,
+                Func<List<Run>> runs,
+                double baseline,
+                double start,
+                Func<List<Strike>> strikes = null
+            )
             {
                 Measure = measure;
                 _find = runs;
+                _strikes = strikes;
                 Baseline = baseline;
                 Start = start;
             }
+
+            private readonly Func<List<Strike>> _strikes;
+            private List<Strike> _struck;
+
+            /// <summary>The lines drawn through the letters struck through (<c>\K</c>) where the layout is made for R12, which draws them as LINEs of their own; none otherwise.</summary>
+            internal IReadOnlyList<Strike> Strikes =>
+                _struck ?? (_struck = _strikes == null ? new List<Strike>() : _strikes());
 
             /// <summary>The line's words measured; of no letters for an empty paragraph.</summary>
             internal DxfTextLine Measure { get; }
@@ -60,6 +74,26 @@ namespace GeometryHelper.Dxf
             /// AutoCAD 2021 sets at its place unmoved (check F4: romans "ABC {\H2x;DEF} GHI" 30 wide, DEF at the left edge).
             /// </summary>
             internal double Start { get; }
+        }
+
+        /// <summary>A line AutoCAD 2021 draws through letters struck through (<c>\K</c>) when it saves R12: from where it starts along the line, its length, and how far above the baseline of the line it stands.</summary>
+        internal sealed class Strike
+        {
+            internal Strike(double pen, double length, double rise)
+            {
+                Pen = pen;
+                Length = length;
+                Rise = rise;
+            }
+
+            /// <summary>Where the line starts, from the start of its line of words.</summary>
+            internal double Pen { get; }
+
+            /// <summary>How long the line is; nought for the lines AutoCAD draws through the halves of a stack.</summary>
+            internal double Length { get; }
+
+            /// <summary>How far above the baseline of the line of words it stands.</summary>
+            internal double Rise { get; }
         }
 
         /// <summary>
@@ -119,11 +153,14 @@ namespace GeometryHelper.Dxf
         /// letters.</item>
         /// <item>An empty paragraph at the end is no line, but one more is; one before it is a line as high as the letters where
         /// it is.</item>
-        /// <item>A stack (<c>\S1/2;</c>), where <paramref name="stacks"/> asks for it and the words have none of the lines
-        /// under, over or through letters, is laid out by <see cref="DxfStackShape"/>: the line holding it is as high as the
-        /// stack, 0.42 for letters 0.18 high, with its baseline that of the stack's denominator, and the line after it stands
-        /// as far below it as the stack is high, not as the height of the letters and a third of it. txt.shx "A\S1/2;B" 0.18
-        /// high held at the top left has its A and its denominator 0.42 below the top and its numerator 0.24 above them.</item>
+        /// <item>A stack (<c>\S1/2;</c>), where <paramref name="stacks"/> asks for it, is laid out by <see cref="DxfStackShape"/>:
+        /// the line holding it is as high as the stack, 0.42 for letters 0.18 high, with its baseline that of the stack's
+        /// denominator, and the line after it stands as far below it as the stack is high, not as the height of the letters and
+        /// a third of it. txt.shx "A\S1/2;B" 0.18 high held at the top left has its A and its denominator 0.42 below the top
+        /// and its numerator 0.24 above them.</item>
+        /// <item>Where <paramref name="strikes"/> asks for it, letters struck through (<c>\K</c>) are no look of their own (they
+        /// are one TEXT with the letters about them), and each line has the <see cref="Line.Strikes"/> AutoCAD 2021 draws
+        /// through them when it saves R12.</item>
         /// </list>
         /// </summary>
         internal static DxfMTextLayout Of(
@@ -134,7 +171,8 @@ namespace GeometryHelper.Dxf
             double width,
             double factor,
             bool exactly,
-            bool stacks = false
+            bool stacks = false,
+            bool strikes = false
         )
         {
             List<DxfFonts.Letter> letters = DxfFonts.MTextLetters(font, big, contents, height, stacks);
@@ -228,9 +266,12 @@ namespace GeometryHelper.Dxf
                 lines.Add(
                     new Line(
                         line,
-                        () => Runs(font, big, letters, from, to, lineHigh, height),
+                        () => Runs(font, big, letters, from, to, lineHigh, height, strikes),
                         baseline,
-                        restyled ? 0.0 : line.WordsStart
+                        restyled ? 0.0 : line.WordsStart,
+                        strikes
+                            ? () => Struck(font, big, letters, from, to, lineHigh, height)
+                            : (Func<List<Strike>>)null
                     )
                 );
             }
@@ -356,7 +397,8 @@ namespace GeometryHelper.Dxf
             int from,
             int to,
             double lineHigh,
-            double height
+            double height,
+            bool strikes = false
         )
         {
             int end = to;
@@ -368,10 +410,12 @@ namespace GeometryHelper.Dxf
 
             var runs = new List<Run>();
             int start = from;
+            bool stacked = false;
+            double lean = 0.0;
 
             for (int k = from + 1; k <= end; k++)
             {
-                if (k < end && SameLook(letters[k - 1], letters[k]))
+                if (k < end && SameLook(letters[k - 1], letters[k], strikes))
                 {
                     continue;
                 }
@@ -389,13 +433,32 @@ namespace GeometryHelper.Dxf
                     }
 
                     pen = before.Advance;
+
+                    // A TrueType line sets a stack and what follows it where the ink of the letters before it ends where that is
+                    // past their pen (Arial's A is inked to 1369 units and moves the pen 1366): the stack begins at the ink.
+                    if (font is DxfTrueTypeFont && look.Stack != null && !stacked)
+                    {
+                        lean = Math.Max(0.0, before.InkRight - before.Advance);
+                    }
+
+                    if (font is DxfTrueTypeFont && (look.Stack != null || stacked))
+                    {
+                        pen += lean;
+                    }
                 }
+                stacked |= look.Stack != null;
 
                 DxfStackShape stack = look.Stack == null ? null : DxfStackShape.Of(font, look);
 
                 // Letters after a stack begin where the stack ends and the gap after it, as far from the pen as their own ink
                 // stands from it: romans 2.5 high "A\S1/2;B" has the B 0.476 before the end of the gap, where its ink begins.
-                if (start > from && stack == null && letters[start - 1].Stack != null)
+                if (
+                    start > from
+                    && stack == null
+                    && letters[start - 1].Stack != null
+                    && !(font is DxfTrueTypeFont)
+                    && !DxfFonts.IsBigLetter(font, big, letters, start)
+                )
                 {
                     DxfTextLine own = DxfFonts.Measure(font, big, letters, start, k, height);
                     pen -= own == null ? 0.0 : own.WordsStart;
@@ -413,7 +476,7 @@ namespace GeometryHelper.Dxf
                     words
                         .Append((look.Marks & 1) != 0 ? "%%U" : string.Empty)
                         .Append((look.Marks & 2) != 0 ? "%%O" : string.Empty)
-                        .Append((look.Marks & 4) != 0 ? "%%K" : string.Empty);
+                        .Append((look.Marks & 4) != 0 && !strikes ? "%%K" : string.Empty);
 
                     for (int j = start; j < k; j++)
                     {
@@ -429,15 +492,176 @@ namespace GeometryHelper.Dxf
             return runs;
         }
 
-        /// <summary>Whether two letters are of one look: of one height, width, spread, hold, lines and colour.</summary>
-        private static bool SameLook(DxfFonts.Letter a, DxfFonts.Letter b) =>
+        /// <summary>
+        /// The lines AutoCAD 2021 draws through the letters of a line struck through (<c>\K</c>) when it saves R12, found by
+        /// probing its console: one for each stretch of struck letters of one height and hold, from the pen where the stretch
+        /// begins to where it ends (the advances of its letters, a space inside it counted), half the letters' height above
+        /// the baseline. A stretch that carries on from the paragraph before is a line of no length where it begins. A stack in
+        /// a stretch is not lined through whole: where the stretch begins at it the numerator's words are, and the denominator
+        /// has a line of no length, and where struck letters come before it the numerator has one of no length too (at the
+        /// bar, as high as the numerator's baseline, or half the height above it for a stack with no denominator); the letters
+        /// of the stretch after it have a line of no length at the denominator.
+        /// </summary>
+        private static List<Strike> Struck(
+            DxfFont font,
+            DxfFonts.Big big,
+            List<DxfFonts.Letter> letters,
+            int from,
+            int to,
+            double lineHigh,
+            double height
+        )
+        {
+            int end = to;
+
+            while (end > from && letters[end - 1].IsSpace)
+            {
+                end--;
+            }
+
+            var strikes = new List<Strike>();
+            int i = from;
+
+            while (i < end)
+            {
+                if ((letters[i].Marks & 4) == 0)
+                {
+                    i++;
+                    continue;
+                }
+
+                // A stretch of struck letters of one height and hold.
+                DxfFonts.Letter head = letters[i];
+                int stop = i + 1;
+
+                while (
+                    stop < end
+                    && (letters[stop].Marks & 4) != 0
+                    && letters[stop].Height == head.Height
+                    && letters[stop].Align == head.Align
+                )
+                {
+                    stop++;
+                }
+
+                bool carried = (head.Marks & 8) != 0;
+                double half = head.Height / 2.0;
+                double lift =
+                    head.Align == 1 ? (lineHigh - head.Height) / 2.0
+                    : head.Align == 2 ? lineHigh - head.Height
+                    : 0.0;
+                double afterX = 0.0;
+                double afterRise = 0.0;
+                bool stacked = false;
+                int k = i;
+
+                while (k < stop)
+                {
+                    if (letters[k].Stack == null)
+                    {
+                        int next = k;
+
+                        while (next < stop && letters[next].Stack == null)
+                        {
+                            next++;
+                        }
+
+                        DxfTextLine before = DxfFonts.Measure(font, big, letters, from, k, height);
+                        DxfTextLine within =
+                            stacked || carried ? null : DxfFonts.Measure(font, big, letters, k, next, height);
+
+                        if (before == null || (!stacked && !carried && within == null))
+                        {
+                            return new List<Strike>();
+                        }
+
+                        strikes.Add(
+                            stacked
+                                ? new Strike(afterX, 0.0, afterRise)
+                                : new Strike(before.Advance, carried ? 0.0 : within.Advance, lift + half)
+                        );
+                        k = next;
+                        continue;
+                    }
+
+                    DxfFonts.Letter letter = letters[k];
+                    DxfStackShape shape = DxfStackShape.Of(font, letter);
+                    DxfTextLine start = DxfFonts.Measure(font, big, letters, from, k, height);
+
+                    if (shape == null || start == null)
+                    {
+                        return new List<Strike>();
+                    }
+
+                    double pen = start.Advance;
+                    double stackLift =
+                        head.Align == 1 ? (lineHigh - shape.Top) / 2.0
+                        : head.Align == 2 ? lineHigh - shape.Top
+                        : 0.0;
+                    bool begins = !carried && !stacked && k == i && (k == from || (letters[k - 1].Marks & 4) == 0);
+                    double denominatorRise = stackLift + half;
+
+                    if (stacked)
+                    {
+                        // Every line after the first stack's stands at the place that one left the pen.
+                        strikes.Add(
+                            new Strike(
+                                afterX,
+                                0.0,
+                                stackLift + shape.NumeratorY + (shape.Denominator.Length == 0 ? half : 0.0)
+                            )
+                        );
+                        strikes.Add(new Strike(afterX, 0.0, denominatorRise));
+                    }
+                    else if (begins)
+                    {
+                        // A stretch that begins at the stack: the numerator's words are lined through and the denominator has a
+                        // line of no length at its words; the pen then stands after the stack.
+                        strikes.Add(
+                            new Strike(
+                                pen + shape.NumeratorX,
+                                shape.NumeratorAdvance,
+                                stackLift + shape.NumeratorY + half
+                            )
+                        );
+                        strikes.Add(new Strike(pen + shape.DenominatorX, 0.0, denominatorRise));
+                        afterX = pen + shape.Advance;
+                    }
+                    else
+                    {
+                        // Struck letters come before it: both halves have a line of no length, the numerator's at the stack's start,
+                        // the denominator's there too but a third of the height on for a slash.
+                        strikes.Add(
+                            new Strike(
+                                pen,
+                                0.0,
+                                stackLift + shape.NumeratorY + (shape.Denominator.Length == 0 ? half : 0.0)
+                            )
+                        );
+                        afterX = pen + (shape.Kind == '#' ? letter.Height / 3.0 : 0.0);
+                        strikes.Add(new Strike(afterX, 0.0, denominatorRise));
+                    }
+
+                    afterRise = denominatorRise;
+                    stacked = true;
+                    k++;
+                }
+
+                i = stop;
+            }
+
+            return strikes;
+        }
+
+        /// <summary>Whether two letters are of one look: of one height, width, spread, hold, lines and colour; the line through them is none where R12 draws it as LINEs of its own.</summary>
+        private static bool SameLook(DxfFonts.Letter a, DxfFonts.Letter b, bool strikes) =>
             a.Stack == null
             && b.Stack == null
             && a.Height == b.Height
             && a.Width == b.Width
             && a.Track == b.Track
             && a.Align == b.Align
-            && a.Marks == b.Marks
+            && (a.Marks & (strikes ? 3 : 7)) == (b.Marks & (strikes ? 3 : 7))
             && a.Tint == b.Tint;
     }
 }

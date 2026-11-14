@@ -41,6 +41,9 @@ namespace GeometryHelper.Dxf
 
         // Whether the line was drawn beside a big font, and how far the pen stood below and above the baseline in its letters.
         private bool _besideBig;
+
+        // Whether the line holds a stack, whose line is as wide as the ink counted from where it begins even left of the start.
+        private bool _stacked;
         private double _penLow;
         private double _penHigh;
 
@@ -206,6 +209,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
+            _stacked = true;
             Height = Count == 0 ? letter.Height : Math.Max(Height, letter.Height);
             StartsWithSpace = Count != 0 && StartsWithSpace;
             EndsWithSpace = false;
@@ -227,6 +231,13 @@ namespace GeometryHelper.Dxf
             _wordsInked = true;
             _wordsLeft = InkLeft;
             _wordsRight = InkRight;
+
+            // A TrueType line is as high as the ink of its words: the stack's reaches as high as the stack does.
+            if (_font is DxfTrueTypeFont)
+            {
+                Words(0.0, shape.Top);
+            }
+
             StackReach = Math.Max(StackReach, shape.Top);
             Advance += shape.Advance;
             return true;
@@ -374,7 +385,7 @@ namespace GeometryHelper.Dxf
             : _wordsRight
                 - (
                     StartsWithSpace ? 0.0
-                    : _font is DxfTrueTypeFont || _besideBig ? Math.Max(0.0, _wordsLeft)
+                    : (_font is DxfTrueTypeFont && !_stacked) || _besideBig ? Math.Max(0.0, _wordsLeft)
                     : _wordsLeft
                 );
 

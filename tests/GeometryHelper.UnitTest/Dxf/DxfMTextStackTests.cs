@@ -405,14 +405,17 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AStackWithALineUnderIt_IsNotLaidOut_AsBefore()
+        public void AStackWithALineUnderIt_IsLaidOut_TheLineLiftingTheNumeratorAndTheBar()
         {
             InFolder(folder =>
             {
-                // A stack under a line (\L) is not measured: the MTEXT breaks into the TEXT of its words as it did.
+                // A stack under a line (\L) is laid out too (AutoCAD 2021; DxfSaveR12FollowUp5Tests holds more of its numbers): the
+                // TEXTs of its halves begin with %%U, and the line is 1 higher than the stack alone, its baseline 3.1667 below the top.
                 IReadOnlyList<DxfEntity> pieces = Words(Drawing(folder), "\\LA\\S1/2;B", 2.5).Explode();
-                Assert.Single(pieces);
-                Assert.IsType<DxfDBText>(pieces[0]);
+                Assert.Equal(5, pieces.Count);
+                Text(pieces[0], "%%UA", 10.0, 3.1666666666666667, 2.5);
+                Text(pieces[1], "%%U1", 12.916666666666667, 7.0, 2.5);
+                Text(pieces[3], "%%U2", 12.5, 3.1666666666666667, 2.5);
             });
         }
     }
