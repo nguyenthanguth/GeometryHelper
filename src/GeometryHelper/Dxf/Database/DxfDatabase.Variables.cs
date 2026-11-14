@@ -294,6 +294,87 @@ namespace GeometryHelper.Dxf
             set => SetVariableFlag("PELLIPSE", value, PlineEllipse);
         }
 
+        /// <summary>Gets or sets how far the lines of a center mark or a center line run past the circle or the lines (CENTEREXE), in drawing units; 0.12 where the drawing gives none.</summary>
+        /// <value>Set, a finite number: AutoCAD 2021 took a negative one and drew the lines to the rim.</value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value set is not a finite number.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public double CenterExe
+        {
+            get => Real("CENTEREXE", 0.12);
+            set => SetPlaces("CENTEREXE", value, CenterExe);
+        }
+
+        /// <summary>Gets or sets whether a center mark has the lines that run out to the circle (CENTERMARKEXE); true where the drawing gives none.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public bool CenterMarkExe
+        {
+            get => Flag("CENTERMARKEXE", true);
+            set => SetVariableFlag("CENTERMARKEXE", value, CenterMarkExe);
+        }
+
+        /// <summary>Gets or sets the linetype of the lines of a center mark and a center line (CENTERLTYPE), by name; <c>Center2</c> where the drawing gives none.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name set is empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public string CenterLtype
+        {
+            get => Variable("CENTERLTYPE") ?? "Center2";
+            set => SetCenterText("CENTERLTYPE", value, CenterLtype);
+        }
+
+        /// <summary>Gets or sets the linetype scale of a center mark and a center line (CENTERLTSCALE); 1 where the drawing gives none.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the scale set is not a finite number above nought.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public double CenterLtScale
+        {
+            get => Real("CENTERLTSCALE", 1.0);
+            set
+            {
+                if (!(value > 0.0 && Guard.IsFinite(value)))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "CENTERLTSCALE is above nought.");
+                }
+
+                SetPlaces("CENTERLTSCALE", value, CenterLtScale);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the length of the cross of a center mark (CENTERCROSSSIZE) as AutoCAD 2021 keeps it, a number of drawing
+        /// units (<c>6</c>) or a number of times the circle's diameter (<c>0.1x</c>); <c>0.1x</c> where the drawing gives none.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the text set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the text set is neither a number nor a number and <c>x</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public string CenterCrossSize
+        {
+            get => Variable("CENTERCROSSSIZE") ?? "0.1x";
+            set => SetCenterExpression("CENTERCROSSSIZE", value, CenterCrossSize);
+        }
+
+        /// <summary>
+        /// Gets or sets the gap between the cross of a center mark and its lines (CENTERCROSSGAP), kept as
+        /// <see cref="CenterCrossSize"/> is; <c>0.05x</c> where the drawing gives none.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the text set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the text set is neither a number nor a number and <c>x</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public string CenterCrossGap
+        {
+            get => Variable("CENTERCROSSGAP") ?? "0.05x";
+            set => SetCenterExpression("CENTERCROSSGAP", value, CenterCrossGap);
+        }
+
+        /// <summary>Gets or sets the layer a center mark and a center line are drawn on (CENTERLAYER), by name, or <c>.</c> for the current layer; <c>.</c> where the drawing gives none.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the name set is empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set in a file with no variables of the OBJECTS section to hold it.</exception>
+        public string CenterLayer
+        {
+            get => Variable("CENTERLAYER") ?? ".";
+            set => SetCenterText("CENTERLAYER", value, CenterLayer);
+        }
+
         /// <summary>
         /// Gets the picture of the drawing kept for previews, as AutoCAD's <c>ThumbnailBitmap</c> gives it as a bitmap: here the
         /// bytes of the THUMBNAILIMAGE section, its groups 310 one after another, a bitmap of Windows without the file's header;
@@ -549,6 +630,77 @@ namespace GeometryHelper.Dxf
             {
                 SetVariable(name, value.ToString(CultureInfo.InvariantCulture));
             }
+        }
+
+        /// <summary>Sets a real the way AutoCAD 2021 writes the center variables: six places.</summary>
+        private void SetPlaces(string name, double value, double now)
+        {
+            if (!Guard.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, name + " has to be a finite number.");
+            }
+
+            if (BitConverter.DoubleToInt64Bits(value + 0.0) == BitConverter.DoubleToInt64Bits(now + 0.0))
+            {
+                return;
+            }
+
+            SetVariable(name, (value + 0.0).ToString("F6", CultureInfo.InvariantCulture));
+        }
+
+        private void SetCenterText(string name, string value, string now)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (value.Trim().Length == 0)
+            {
+                throw new ArgumentException(name + " is a name, and not an empty one.", nameof(value));
+            }
+
+            if (!string.Equals(value, now, StringComparison.Ordinal))
+            {
+                SetVariable(name, value);
+            }
+        }
+
+        private void SetCenterExpression(string name, string value, string now)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (!IsCenterExpression(value))
+            {
+                throw new ArgumentException(
+                    name + " is a number of drawing units, or a number and x for times the diameter: " + value + ".",
+                    nameof(value)
+                );
+            }
+
+            if (!string.Equals(value, now, StringComparison.Ordinal))
+            {
+                SetVariable(name, value);
+            }
+        }
+
+        /// <summary>Whether a text is a size as the center variables take it: a number of nought or more, or one followed by <c>x</c>.</summary>
+        internal static bool IsCenterExpression(string text)
+        {
+            string number = (text ?? string.Empty).Trim();
+
+            if (number.EndsWith("x", StringComparison.OrdinalIgnoreCase))
+            {
+                number = number.Substring(0, number.Length - 1);
+            }
+
+            return number.Length > 0
+                && double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double size)
+                && Guard.IsFinite(size)
+                && size >= 0.0;
         }
 
         private void SetReal(string name, double value, double now, bool check)

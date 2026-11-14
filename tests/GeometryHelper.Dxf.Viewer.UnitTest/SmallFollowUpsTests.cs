@@ -77,7 +77,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "-RENAME", "VP", "Pair", "other");
 
-            Assert.Contains("Viewport configuration \"Other\" already exists.", session.History);
+            // As any name another object has: the name as typed, then *Invalid* and the end of the command.
+            Assert.Contains("A viewport configuration named \"other\" already exists.", session.History);
+            Assert.Contains("*Invalid*", session.History);
+            Assert.False(session.IsRunning);
             Assert.Equal(new[] { "Other", "Pair" }, tiles.Names);
         }
 

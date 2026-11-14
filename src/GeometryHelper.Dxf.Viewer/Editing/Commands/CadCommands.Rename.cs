@@ -149,8 +149,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// -RENAME: asks the kind (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort; Material,
-        /// dEtailviewstyle and seCtionviewstyle say they are not held), the old name, asked again where nothing has it or it has a
-        /// wildcard in it, and the new name, asked again where it is refused. One undo step.
+        /// dEtailviewstyle and seCtionviewstyle say they are not held), the old name, asked again where it is empty or no name,
+        /// nothing has it, or it is a Standard multileader or table style, and the new name, asked again where it is empty or no
+        /// name. Layer 0 and Continuous, and a new name another object has, end it with <c>*Invalid*</c>, as AutoCAD 2021 does;
+        /// the Standard text and dimension styles are renamed as any other. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> RenameTyped(CadCommandContext c)
         {
@@ -179,28 +181,50 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string noun = RenameNoun(kind);
+            string word = RenameWord(noun);
             string old;
 
             while (true)
             {
                 yield return CadPrompt.ForString("Enter old " + noun + " name");
 
-                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Trim().Length == 0)
+                if (c.Input.Kind != CadInputKind.Text && c.Input.Kind != CadInputKind.None)
                 {
                     yield break;
                 }
 
-                old = c.Input.Text.Trim();
+                old = (c.Input.Text ?? string.Empty).Trim();
 
-                if (old.IndexOfAny(new[] { '*', '?' }) >= 0)
+                // An empty name, one with a character no name has, a wildcard, and for a linetype ByLayer and ByBlock are no names.
+                if (!RenameNameFits(kind, old))
                 {
-                    c.Write("Invalid " + noun + " name.");
+                    c.Write("Invalid " + word + " name.");
                     continue;
                 }
 
+                // AutoCAD 2021 words the missing multileader and table styles without a full stop, the others with one.
                 if (!RenameExists(c, kind, old))
                 {
-                    c.Write("Cannot find " + noun + " \"" + old + "\".");
+                    bool stop = kind != "multileadeRstyle" && kind != "Tablestyle";
+                    c.Write("Cannot find " + word + " \"" + old + "\"" + (stop ? "." : string.Empty));
+                    continue;
+                }
+
+                // Layer 0 and Continuous end the command, as *Invalid* where AutoCAD ends it; the Standard multileader and table
+                // styles are refused and the old name asked again.
+                if ((kind == "LAyer" && old == "0") || (kind == "LType" && IsContinuous(old)))
+                {
+                    c.Write("Cannot rename " + noun + " \"" + old + "\".");
+                    c.Write("*Invalid*");
+                    yield break;
+                }
+
+                if (
+                    (kind == "multileadeRstyle" || kind == "Tablestyle")
+                    && string.Equals(old, "Standard", StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    c.Write("Cannot rename " + noun + " \"" + old + "\".");
                     continue;
                 }
 
@@ -211,12 +235,29 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 yield return CadPrompt.ForString("Enter new " + noun + " name");
 
-                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Trim().Length == 0)
+                if (c.Input.Kind != CadInputKind.Text && c.Input.Kind != CadInputKind.None)
                 {
                     yield break;
                 }
 
-                string refused = Rename(c, kind, old, c.Input.Text.Trim());
+                string wanted = (c.Input.Text ?? string.Empty).Trim();
+
+                if (!RenameNameFits(kind, wanted))
+                {
+                    c.Write("Invalid " + word + " name.");
+                    continue;
+                }
+
+                // A name another has, letters of either case alike, is refused and the command ends; the same name again, or
+                // the old one in other letters, is the rename itself.
+                if (!string.Equals(wanted, old, StringComparison.OrdinalIgnoreCase) && RenameExists(c, kind, wanted))
+                {
+                    c.Write("A " + noun + " named \"" + wanted + "\" already exists.");
+                    c.Write("*Invalid*");
+                    yield break;
+                }
+
+                string refused = Rename(c, kind, old, wanted, true);
 
                 if (refused == null)
                 {
@@ -224,8 +265,31 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 c.Write(refused);
+
+                if (!refused.StartsWith("Invalid ", StringComparison.Ordinal))
+                {
+                    c.Write("*Invalid*");
+                    yield break;
+                }
             }
         }
+
+        /// <summary>The noun AutoCAD 2021 writes in the words "Invalid ... name." and "Cannot find ...": the noun of the prompts, but for UCS in capitals.</summary>
+        private static string RenameWord(string noun) => noun == "ucs" ? "UCS" : noun;
+
+        private static bool IsContinuous(string name) =>
+            string.Equals(name, "Continuous", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Whether a name, the spaces round it taken off, can be one of the kind: no name is empty, holds one of &lt; &gt; / \ " : ; ? * | , = ` or is a control character, and ByLayer and ByBlock are no linetypes.</summary>
+        private static bool RenameNameFits(string kind, string name) =>
+            CadLayerEditor.IsLayerName(name)
+            && !(
+                kind == "LType"
+                && (
+                    string.Equals(name, "ByLayer", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, "ByBlock", StringComparison.OrdinalIgnoreCase)
+                )
+            );
 
         private static bool RenameExists(CadCommandContext c, string kind, string name)
         {
@@ -262,7 +326,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Renames what the kind names, joining the command's undo step; null where it was done, else the line saying why not.</summary>
-        private static string Rename(CadCommandContext c, string kind, string old, string wanted)
+        private static string Rename(CadCommandContext c, string kind, string old, string wanted, bool typed = false)
         {
             CadEditResult result;
             c.OpenUndoStep();
@@ -273,7 +337,7 @@ namespace GeometryHelper.Dxf.Viewer
                     result = CadBlocks.Rename(c.Document, old, wanted);
                     break;
                 case "Dimstyle":
-                    result = CadDimStyleEditor.Rename(c.Document, old, wanted);
+                    result = CadDimStyleEditor.Rename(c.Document, old, wanted, typed);
                     break;
                 case "LAyer":
                     result = CadLayerEditor.Rename(c.Document, old, wanted);
@@ -285,7 +349,7 @@ namespace GeometryHelper.Dxf.Viewer
                     result = CadMLeaderStyleEditor.Rename(c.Document, old, wanted);
                     break;
                 case "Style":
-                    result = CadTextStyleEditor.Rename(c.Document, old, wanted);
+                    result = CadTextStyleEditor.Rename(c.Document, old, wanted, typed);
                     break;
                 case "Tablestyle":
                     result = CadTableStyleEditor.Rename(c.Document, old, wanted);
@@ -298,7 +362,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     catch (ArgumentException)
                     {
-                        return "Invalid ucs name.";
+                        return "Invalid UCS name.";
                     }
 
                 case "VIew":

@@ -439,7 +439,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="name">The style's name.</param>
         /// <param name="newName">The new name.</param>
         /// <returns>What came of it.</returns>
-        public static CadEditResult Rename(CadDocument document, string name, string newName)
+        public static CadEditResult Rename(CadDocument document, string name, string newName) =>
+            Rename(document, name, newName, false);
+
+        /// <summary>Renames a style as <see cref="Rename(CadDocument, string, string)"/>, Standard too where <paramref name="standardToo"/> is set, as -RENAME renames it.</summary>
+        internal static CadEditResult Rename(CadDocument document, string name, string newName, bool standardToo)
         {
             DxfDimStyleTableRecord style = Find(document, name, out CadEditResult refused);
 
@@ -451,7 +455,7 @@ namespace GeometryHelper.Dxf.Viewer
             string set = style.Name;
             string trimmed = (newName ?? string.Empty).Trim();
 
-            if (string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase))
+            if (!standardToo && string.Equals(set, "Standard", StringComparison.OrdinalIgnoreCase))
             {
                 return CadEditResult.Refuse("The Standard style cannot be renamed.");
             }

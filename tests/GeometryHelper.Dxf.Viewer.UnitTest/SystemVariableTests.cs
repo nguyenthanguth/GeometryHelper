@@ -232,6 +232,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "CELTSCALE",
                     "CELTYPE",
                     "CELWEIGHT",
+                    "CENTERCROSSGAP",
+                    "CENTERCROSSSIZE",
+                    "CENTEREXE",
+                    "CENTERLAYER",
+                    "CENTERLTSCALE",
+                    "CENTERLTYPE",
+                    "CENTERMARKEXE",
                     "CHAMFERA",
                     "CHAMFERB",
                     "CLAYER",
@@ -264,6 +271,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     "MIRRTEXT",
                     "MLEADERSCALE",
                     "MSLTSCALE",
+                    "OBJECTISOLATIONMODE",
                     "OFFSETDIST",
                     "OLEFRAME",
                     "OLEHIDE",
@@ -299,8 +307,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
-            // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES.
-            Assert.Equal(260, registry.Commands.Count);
+            // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, and CENTERMARK and CENTERLINE.
+            Assert.Equal(262, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

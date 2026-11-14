@@ -105,7 +105,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentOutOfRangeException>(() => standard.ObliquingAngle = Math.PI / 2);
             Assert.Throws<ArgumentOutOfRangeException>(() => standard.XScale = 0.0);
             Assert.Throws<ArgumentOutOfRangeException>(() => standard.TextSize = -1.0);
-            Assert.Throws<InvalidOperationException>(() => standard.Name = "Other");
+            // Standard is renamed as any other style is, as AutoCAD 2021's -RENAME renames it (DxfStandardStyleRenameTests).
+            Assert.Throws<ArgumentException>(() => standard.Name = "Bad<Name");
 
             standard.Font = new DxfFontDescriptor(string.Empty, false, false, 0, 0);
             Assert.Null(standard.GetXDataForApplication("ACAD"));

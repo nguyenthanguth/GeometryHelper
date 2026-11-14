@@ -117,7 +117,13 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       the hidden internal visual style names (S)
 - [x] (done by dialogs5, dialogs7, dialogs8; the rest in "Dialogs 8 follow-ups") Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
-- [ ] (b1c, running) Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
+- [x] Batch 1b leftovers (b1c, probed through stdin): CENTERMARK and CENTERLINE as AutoCAD's associative anonymous blocks
+      (group for group, they follow MOVE and SCALE, AutoCAD audits and follows ours), the 7 CENTER* variables in the
+      drawing; DIMCENTER lines pinned; AEC_ISOLATED_OBJECTS and ACAD_OBJECTISOLATION records, OBJECTISOLATIONMODE;
+      -RENAME refusals as AutoCAD (Standard text and dimension styles and Defpoints may be renamed)
+- [ ] Batch 1b follow-ups: center mark/line grips (GUI); two U for a second mark; guessed fields (proxy flags,
+      SubentLineWeight, EdgeRefDirectionEnding, closed polyline subent ids); non-Z normals; *U0 numbering; -RENAME of
+      Material and view styles; names with $ (S)
 
 Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics first, each round merged and verified before
 the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
@@ -213,7 +219,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         Replace no longer crashes on open (StyleGroup on a GroupBox); Find's list, New Layer State's description and a
         disabled list (Drafting Settings Polar Tracking) drawn dark; find, attach, layerstate-new in --dialog; all 103
         dialogs redrawn and diffed
-  - [ ] Dialogs 11 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
+  - [ ] (dlg11, running: PDF links through clipped/twisted viewports, Find plural, attribute dialog shots, WMF import) Dialogs 11 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
         .pss location codes 1-3 (needs the GUI's Save As); Collect in the Leaders panel; WMF import; multi-line stamp and
         "." clearing in the GUI; PDF links through VPCLIP-clipped and twisted viewports (untested); Find's "1 matches"
         plural; shots of the attribute dialogs (eattedit, battman, attdia) with a sample block (S)
