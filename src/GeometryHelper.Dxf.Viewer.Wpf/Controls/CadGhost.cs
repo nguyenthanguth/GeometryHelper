@@ -341,17 +341,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             switch (item)
             {
                 case DisplayPolyline2 chain:
-                    var xy = new double[chain.Closed ? chain.Xy.Count + 2 : chain.Xy.Count];
+                    IReadOnlyList<double> chainXy = chain.Xy;
+                    var xy = new double[chain.Closed ? chainXy.Count + 2 : chainXy.Count];
 
-                    for (int i = 0; i < chain.Xy.Count; i++)
+                    for (int i = 0; i < chainXy.Count; i++)
                     {
-                        xy[i] = chain.Xy[i];
+                        xy[i] = chainXy[i];
                     }
 
-                    if (chain.Closed && chain.Xy.Count >= 2)
+                    if (chain.Closed && chainXy.Count >= 2)
                     {
-                        xy[xy.Length - 2] = chain.Xy[0];
-                        xy[xy.Length - 1] = chain.Xy[1];
+                        xy[xy.Length - 2] = chainXy[0];
+                        xy[xy.Length - 1] = chainXy[1];
                     }
 
                     paths.Add(xy);

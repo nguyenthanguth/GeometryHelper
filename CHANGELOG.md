@@ -106,6 +106,22 @@ up) and the other viewports back and works on the paper. `A viewport is currentl
 maximized.` as AutoCAD says them; on the Model tab both are `-VPORTS Toggle`. `CadDocument.IsViewportMaximized` and
 `MaximizedViewportHandle` say whether one is. Each is one undo step. The presenter does not take the maximizing back when the layout is
 changed, as AutoCAD does.
+**CHANGED.** The display list of the presenter holds a third less: a drawing of 1 000 000 entities (77 MB; 1 780 000 items: lines, arcs,
+circles, polylines with a bulge, texts and one INSERT in fifty) keeps 237 MB of it where it kept 335, and the heap grows by 650 MB once
+the drawing is opened, displayed and its pick index made, where it grew by 746 MB (658 MB where it was 755 MB under .NET Framework 4.8);
+a drawing of 100 000 entities keeps 23.6 MB where it kept 33.4. Five things, each the same list as before: an item holds its handle and
+one object shared by the items of its style and layer, which also holds the clip of a block and the flags few items have, in place of two
+references, the clip and three flags (16 bytes an item); a chain of two points, a LINE, is kept as its box and two flags and no array of
+vertices, 80 bytes where it took 96 and an array of 56 (`DisplayPolyline2.Xy` makes the list of four points when asked, so it is asked once
+and read); a text keeps its strokes, parts, measure, slant, width factor other than 1, and bold and italic in one object made when it has
+any, 128 bytes where it took 192; the insertion point of an entity is kept in the entry that finds it, 40 bytes where it took 100, and a
+run of the list that reads no other entity is 24 bytes where it was 32. An arc and a circle lose the 16 bytes of the shared look and keep
+their box (104 bytes where they took 128): worked out at each ask it made a frame of 1 000 000 entities shown whole 10 per cent slower.
+At 1 000 000 entities, .NET 8, medians of three: display 4.5 s to 4.2 s, a frame shown whole 175 to 167 ms, a layer switched on 1 100 to
+1 000 ms and off 200 to 190 ms, all other frames and pans unchanged; at 100 000 entities the same within the noise. The display list of 15
+drawings (4 of our own and 11 AutoCAD samples) and the pixels of each at 3 views, plain, selected, highlighted and hovered, are
+the same bit for bit, as are 200 000 random chains (zeros of either sign, NaN, infinities), arcs and texts, under .NET 8 and .NET Framework
+4.8.
 **CHANGED.** A drawing of the presenter holds a third less memory once displayed: the objects of its entities and what they have read take half of what they took. A DXF of
 1 000 000 entities (77 MB: lines, arcs, circles, polylines with a bulge and texts, one in fifty an INSERT) held 737 MB in the objects of
 its database once displayed, the 73 MB of its bytes among them, and holds 364 MB; opened, displayed and its pick index made, the heap

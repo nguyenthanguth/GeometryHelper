@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using GeometryHelper.Geometry;
 
@@ -15,14 +16,16 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly List<DisplayItem2> _items;
 
         // The insertion points by handle, for the snap Insertion: looked up only, never enumerated.
-        private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(
-            StringComparer.OrdinalIgnoreCase
-        );
+        private Dictionary<string, Insertions> _insertions;
         private DisplayBox _bounds = DisplayBox.Empty;
 
         // The entities of the space in the order they were drawn, each with its items and the layers it read, so that an edit
         // draws again only the entities it changed (see DisplayBuilder.Patch).
-        private readonly List<DisplayRun> _runs;
+        private readonly List<RunRecord> _runs;
+
+        // What the runs read, by the number of the run: few runs read anything, and a run with nothing to read keeps no room for it.
+        private Dictionary<int, string[]> _reads;
+        private RunList _runList;
 
         // The bit of each layer the runs read, numbered as the layers were first met; looked up only, never enumerated.
         private readonly Dictionary<string, int> _layerBits;
@@ -42,7 +45,11 @@ namespace GeometryHelper.Dxf.Viewer
             // Sized as the older list, which a patch mostly copies: grown by doubling, a list of 178 000 items and 100 000 runs
             // makes some 12 MB of arrays on the large object heap, and the collections they bring land in the patch.
             _items = older == null ? new List<DisplayItem2>() : new List<DisplayItem2>(older._items.Count);
-            _runs = older == null ? new List<DisplayRun>() : new List<DisplayRun>(older._runs.Count);
+            _insertions =
+                older == null
+                    ? new Dictionary<string, Insertions>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, Insertions>(older._insertions.Count, StringComparer.OrdinalIgnoreCase);
+            _runs = older == null ? new List<RunRecord>() : new List<RunRecord>(older._runs.Count);
         }
 
         /// <summary>Gets the items in the order they are drawn, the first at the back.</summary>
@@ -99,7 +106,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// in the order they were drawn.
         /// </summary>
         internal IReadOnlyList<GeoPoint2> InsertionPointsOf(string handle) =>
-            handle != null && _insertions.TryGetValue(handle, out List<GeoPoint2> points) ? points : NoPoints;
+            handle != null && _insertions.TryGetValue(handle, out Insertions found) ? found.ToList() : NoPoints;
 
         /// <summary>Keeps an insertion point of an entity.</summary>
         internal void AddInsertionPoint(string handle, double x, double y)
@@ -109,14 +116,40 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            if (!_insertions.TryGetValue(handle, out List<GeoPoint2> points))
+            var point = new GeoPoint2(x, y);
+
+            if (!_insertions.TryGetValue(handle, out Insertions found))
             {
-                // Nearly every entity has one: sized for one, not the four a list makes at its first add.
-                points = new List<GeoPoint2>(1);
-                _insertions[handle] = points;
+                _insertions[handle] = new Insertions { First = point };
+                return;
             }
 
-            points.Add(new GeoPoint2(x, y));
+            if (found.More == null)
+            {
+                found.More = new List<GeoPoint2>(1);
+                _insertions[handle] = found;
+            }
+
+            found.More.Add(point);
+        }
+
+        /// <summary>
+        /// The insertion points of one entity: nearly every entity that has any has one, kept in the entry itself, and the rest,
+        /// of an INSERT with attributes, in a list made then. A list of one in an array of one took 72 bytes more than the
+        /// 16 the point takes.
+        /// </summary>
+        private struct Insertions
+        {
+            public GeoPoint2 First;
+            public List<GeoPoint2> More;
+
+            public IReadOnlyList<GeoPoint2> ToList()
+            {
+                var points = new GeoPoint2[More == null ? 1 : 1 + More.Count];
+                points[0] = First;
+                More?.CopyTo(points, 1);
+                return points;
+            }
         }
 
         /// <summary>Gives back the room the lists of items and runs made by doubling left empty; a list that is full to 9 tenths is left as it is.</summary>
@@ -124,10 +157,13 @@ namespace GeometryHelper.Dxf.Viewer
         {
             _items.TrimExcess();
             _runs.TrimExcess();
+
+            // The entries of a dictionary grown by doubling: up to 4 tenths of them empty, at 48 bytes.
+            _insertions = new Dictionary<string, Insertions>(_insertions, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>Gets the entities of the space in the order they were drawn, each with its place in <see cref="Items"/> and the layers it read.</summary>
-        internal IReadOnlyList<DisplayRun> Runs => _runs;
+        internal IReadOnlyList<DisplayRun> Runs => _runList ?? (_runList = new RunList(this));
 
         /// <summary>Gets or sets the height of the view the points of a relative size were sized by when the list was made.</summary>
         internal double PointViewHeight { get; set; }
@@ -171,7 +207,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Closes the run of an entity drawn: the items added since <paramref name="start"/>, the layers it read, and the other entities and anonymous blocks it read (null for none).</summary>
         internal void AddRun(string handle, int start, ulong layers, string[] reads) =>
-            _runs.Add(new DisplayRun(handle, start, _items.Count - start, layers, reads));
+            AddRecord(handle, start, _items.Count - start, layers, reads);
 
         /// <summary>Takes the run of an entity from an older list of the same space as it was drawn there: its items, its insertion points and its layers.</summary>
         internal void CopyRun(DisplayList2 from, DisplayRun run)
@@ -184,15 +220,78 @@ namespace GeometryHelper.Dxf.Viewer
                 Add(from._items[i]);
             }
 
-            if (
-                !string.IsNullOrEmpty(run.Handle)
-                && from._insertions.TryGetValue(run.Handle, out List<GeoPoint2> points)
-            )
+            if (!string.IsNullOrEmpty(run.Handle) && from._insertions.TryGetValue(run.Handle, out Insertions points))
             {
                 _insertions[run.Handle] = points;
             }
 
-            _runs.Add(new DisplayRun(run.Handle, start, run.Count, run.Layers, run.Reads));
+            AddRecord(run.Handle, start, run.Count, run.Layers, run.Reads);
+        }
+
+        private void AddRecord(string handle, int start, int count, ulong layers, string[] reads)
+        {
+            if (reads != null)
+            {
+                if (_reads == null)
+                {
+                    _reads = new Dictionary<int, string[]>();
+                }
+
+                _reads[_runs.Count] = reads;
+            }
+
+            _runs.Add(new RunRecord(handle, start, count, layers));
+        }
+
+        /// <summary>A run as the list keeps it: 24 bytes where a run with its reads took 32, a million of them in a drawing of 1 000 000 entities.</summary>
+        private readonly struct RunRecord
+        {
+            public RunRecord(string handle, int start, int count, ulong layers)
+            {
+                Handle = handle;
+                Start = start;
+                Count = count;
+                Layers = layers;
+            }
+
+            public string Handle { get; }
+
+            public int Start { get; }
+
+            public int Count { get; }
+
+            public ulong Layers { get; }
+        }
+
+        /// <summary>The runs as <see cref="DisplayRun"/>, each made when asked for from its record and what it read.</summary>
+        private sealed class RunList : IReadOnlyList<DisplayRun>
+        {
+            private readonly DisplayList2 _list;
+
+            public RunList(DisplayList2 list) => _list = list;
+
+            public int Count => _list._runs.Count;
+
+            public DisplayRun this[int index]
+            {
+                get
+                {
+                    RunRecord record = _list._runs[index];
+                    string[] reads = null;
+                    _list._reads?.TryGetValue(index, out reads);
+                    return new DisplayRun(record.Handle, record.Start, record.Count, record.Layers, reads);
+                }
+            }
+
+            public IEnumerator<DisplayRun> GetEnumerator()
+            {
+                for (int i = 0; i < Count; i++)
+                {
+                    yield return this[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 

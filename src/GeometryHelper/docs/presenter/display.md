@@ -48,10 +48,22 @@ back, and the box that holds them all. Each item carries the handle of the entit
 items of a drawing share the strings of its layer names and give back the room the list made by doubling left empty: a
 drawing of 100 000 entities (178 000 items, one in five a text) keeps 35.5 MB of display list where it kept 41.1 MB.
 
+The items themselves are small. An item holds its handle and one object, shared by every item of its style and layer, that
+also holds the clip of a block and the few flags an item may have, so that an item without them pays for neither; a chain of
+two points (a LINE) is its box and two flags saying which corner each end is at, with no array of vertices, and `Xy` makes the
+list of four when asked, so ask it once; a text keeps its SHX strokes, its parts, its measure, its slant and a width factor other
+than 1 in one object made when it has any of them; the insertion point of an entity is kept in its entry, and what an entity
+read, for the edits that draw it again, apart from the runs that read nothing. A LINE takes 80 bytes where it took 96 and an array
+of 56, an arc or a circle 104 where it took 128, a text 128 where it took 192, an insertion point 40 where it took 100 and a run
+24 where it took 32. A drawing of 1 000 000 entities (1 780 000 items: lines, arcs, circles, polylines with a bulge, texts and one
+INSERT in fifty) keeps 237 MB of display list where it kept 335, and of 100 000 entities 23.6 MB where it kept 33.4. An arc keeps
+its box: worked out at each ask, from four sines and cosines, it made the frame of 1 000 000 entities shown whole 10 per cent
+slower, for the box of each arc drawn as a dot is asked for at every frame.
+
 The entities the list is made from keep what they have read, and that is small too: a DXF of 1 000 000 entities (77 MB), once
 displayed, holds 364 MB in the objects of its database, 73 MB of them its bytes, where it held 737 MB. The entities of a drawing
 share the object of each look, a polyline asked for its width keeps none of its vertices, and an entity as it was read from the file
-takes 104 bytes. Opened, displayed and its pick index made, the drawing grows the heap by 747 MB (the display list 340 MB of it).
+takes 104 bytes. Opened, displayed and its pick index made, the drawing grows the heap by 650 MB (the display list 237 MB of it).
 
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with

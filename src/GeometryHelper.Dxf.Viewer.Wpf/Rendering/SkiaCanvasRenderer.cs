@@ -1494,25 +1494,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SKColor color
         )
         {
-            IReadOnlyList<double> xy = chain.Xy;
             int n = chain.Count;
+
+            // A chain of two is read from the item itself: asked for as a list, it would make an array of four to be read once.
+            if (n == 2 && !chain.Closed)
+            {
+                double x0 = chain.VertexX(0),
+                    y0 = chain.VertexY(0);
+                double x1 = chain.VertexX(1),
+                    y1 = chain.VertexY(1);
+                canvas.DrawLine((float)m.X(x0, y0), (float)m.Y(x0, y0), (float)m.X(x1, y1), (float)m.Y(x1, y1), stroke);
+                return;
+            }
+
+            IReadOnlyList<double> xy = chain.Xy;
 
             if (n == 1)
             {
                 fill.Color = color;
                 canvas.DrawCircle((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]), 1.5f, fill);
-                return;
-            }
-
-            if (n == 2 && !chain.Closed)
-            {
-                canvas.DrawLine(
-                    (float)m.X(xy[0], xy[1]),
-                    (float)m.Y(xy[0], xy[1]),
-                    (float)m.X(xy[2], xy[3]),
-                    (float)m.Y(xy[2], xy[3]),
-                    stroke
-                );
                 return;
             }
 

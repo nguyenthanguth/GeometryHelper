@@ -161,7 +161,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         reported DIMSCALE 100 case at (154.381, 30)), with DIMTMOVE 1/2, DIMJUST 3/4, DIMTVP, DIMTXTDIRECTION, slanting lines
         and moved-then-turned arrowheads; 17 probe sets 6 404 differing of 15 735 down to 377; 66 older sets byte-identical;
         harness .claude/gk/dims-harness13
-  - [ ] Annotative objects 5b: DIMTMOVE 1 with very wide turned words (no leader in AutoCAD; tw9-tw11 298 differ); words
+  - [ ] (annot5, running) Annotative objects 5b: DIMTMOVE 1 with very wide turned words (no leader in AutoCAD; tw9-tw11 298 differ); words
         put beyond a slanting line's end (tw17 58); exact ties; MLEADEREDIT's far-side arrow making its own leader (needs
         measured fonts); words' y offset by the ink depth; context group differences (90, 172, 91, 141, 295, record 45);
         the text width gap 177.4 vs 177.47 (maybe AutoCAD's live picture against its redraw, as found here) (S)
@@ -649,9 +649,13 @@ the ones wanted.
 - [x] Speed follow-ups 3 (speed4): core objects of a displayed 1M drawing 737 -> 364 MB (polyline vertex cache not kept by
       HasWidth, shared looks, rare DxfItem fields in Extras, one-shape lists); heap growth 1 119 -> 747 MB, display 4.0 ->
       3.0 s, results bit-identical; a dropped read-ahead stops inside its walk
-- [ ] (speed5, running: the display list) Speed follow-ups 4: the display list (340 MB at 1M: DisplayArc2 128 B, DisplayPolyline2 + double[] 116 MB,
-      DisplayText2 192 B) with pixels identical; dropping shapes after the display (128 MB at 1M, layer-on 70 -> 170 ms at
-      100k: declined for now); read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 4 (speed5): display list of 1M entities 335 -> 237 MB (shared looks, two-point chains without an
+      array, text extras on demand, packed runs and insertion points); heap growth 746 -> 650 MB; pixels and dumps
+      identical on 15 drawings and a 200 000-item fuzz; 24 new tests
+- [ ] Speed follow-ups 5: arc boxes (25 MB at 1M; computing them per ask made the frame 10 % slower); the entities'
+      shape caches left behind by the display (~11 MB per 100k polylines; 128 MB at 1M, layer-on 70 -> 170 ms if
+      dropped); display handle strings (31 MB at 1M); a hatch- and MTEXT-heavy drawing to measure; layer-off at 1M
+      re-timed on a quiet machine; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
