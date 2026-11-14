@@ -111,6 +111,14 @@ between the reading and the drawing, as before. A drawing of 1 000 000 entities 
 frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
 the drawing before `Open` returns, as before.
 
+Esc and Stop are answered within a few milliseconds, whatever the opening is doing. `CadDocument.Open(path, progress,
+cancellationToken)` looks at its token every 4 096 records as the text of a DXF is walked, its handles scanned and its
+entities of model space listed, and the display is looked at every 4 096 entities from the list of them on; a DWG is looked
+at once before it is read and not again until its display is made. On a DXF of 1 000 000 entities (77 MB) the time from Esc
+to the window free, asked at 20 to 2 000 ms into the opening, was up to 0.74 s, and 0.4 to 0.5 s while the file was read,
+and is 59 ms at most now. Opened and drawn to the end, the drawing takes the time it took (open and display 5.3 to 5.6 s, 8.2 to 8.6 s under .NET
+Framework 4.8), and the display list is the one it was, item for item.
+
 OPEN is the Open dialog of Ctrl+O, with or without a drawing, and with FILEDIA 0 it asks on the command line, `Enter name of
 drawing to open:` (as AutoCAD 2021's resources word it): a name with no extension is looked for as `.dwg` and then as `.dxf`, one
 with no folder in the folder of the drawing shown and then in the folder the app runs in, and the drawing is opened as Ctrl+O opens

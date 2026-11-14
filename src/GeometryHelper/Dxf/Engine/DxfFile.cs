@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -57,7 +58,13 @@ namespace GeometryHelper.Dxf
         private IReadOnlyList<KeyValuePair<string, IReadOnlyList<DxfTypedValue>>> _headerInOrder;
         private string _namedPage;
 
-        private DxfFile(byte[] bytes, int length, string source, DxfReader.TextDecoding decoding = null)
+        private DxfFile(
+            byte[] bytes,
+            int length,
+            string source,
+            DxfReader.TextDecoding decoding = null,
+            CancellationToken stop = default
+        )
         {
             if (StartsWith(bytes, 0, length, "AutoCAD Binary DXF"))
             {
@@ -75,7 +82,7 @@ namespace GeometryHelper.Dxf
                 throw Binary();
             }
 
-            var walk = new Walk(this);
+            var walk = new Walk(this, stop);
 
             // A face of a polyface mesh with AcDbVertex before its AcDbFaceRecord, as GeometryHelper 13.0.0 and 13.1.0 wrote
             // one, which AutoCAD 2021 refuses ("Class separator for class AcDbFaceRecord expected"), is read with its own
@@ -83,7 +90,7 @@ namespace GeometryHelper.Dxf
             if (walk.Extra.Count > 0)
             {
                 _bytes = Without(bytes, length, walk.Extra, out _length);
-                walk = new Walk(this);
+                walk = new Walk(this, stop);
             }
 
             _starts = walk.Starts.ToArray();
@@ -129,7 +136,17 @@ namespace GeometryHelper.Dxf
         /// Its text is read as <see cref="DxfReader.Read(string, DxfReadOptions)"/> reads it: UTF-8 from R2007 on, the code page
         /// of its header before. The bytes are kept whatever they are, so a letter the runtime cannot read is saved as it was.
         /// </remarks>
-        public static DxfFile Open(string path)
+        public static DxfFile Open(string path) => Open(path, CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DXF file from a path as <see cref="Open(string)"/> does, the walk over its records looking at a token every
+        /// 4 096 records and giving the file up when it is stopped.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="stop">What stops the opening.</param>
+        /// <returns>The file, as <see cref="Open(string)"/> gives it.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the walk is done.</exception>
+        internal static DxfFile Open(string path, CancellationToken stop)
         {
             if (path == null)
             {
@@ -137,7 +154,7 @@ namespace GeometryHelper.Dxf
             }
 
             byte[] bytes = File.ReadAllBytes(path);
-            return new DxfFile(bytes, bytes.Length, "'" + Path.GetFileName(path) + "'");
+            return new DxfFile(bytes, bytes.Length, "'" + Path.GetFileName(path) + "'", null, stop);
         }
 
         /// <summary>
@@ -884,7 +901,26 @@ namespace GeometryHelper.Dxf
             internal DxfSpace Paper { get; set; }
         }
 
-        private Drawing ReadDrawing()
+        private Drawing _drawingAhead;
+
+        private Drawing ReadDrawing() => _drawingAhead ?? ReadDrawing(CancellationToken.None);
+
+        /// <summary>
+        /// Makes the entities of model space and paper space now, as the first of <see cref="ModelSpace"/> or
+        /// <see cref="PaperSpace"/> makes them, looking at a token every 4 096 records and giving up when it is stopped: for the
+        /// presenter, which asks it of a drawing it opens on a worker thread that Esc stops, a pass that takes 0.35 s at
+        /// 1 000 000 entities. A drawing given up is not kept, and what is asked of the file after it is made as before.
+        /// </summary>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the pass is done.</exception>
+        internal void ReadDrawingAhead(CancellationToken stop)
+        {
+            if (_drawingAhead == null && !_drawing.IsValueCreated)
+            {
+                _drawingAhead = ReadDrawing(stop);
+            }
+        }
+
+        private Drawing ReadDrawing(CancellationToken stop)
         {
             var model = new List<DxfItem>();
             var paper = new List<DxfItem>();
@@ -896,8 +932,13 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                foreach (DxfItem item in Items(section.First + 1, section.Last, null))
+                foreach (DxfItem item in Items(section.First + 1, section.Last, null, stop))
                 {
+                    if (((model.Count + paper.Count) & 4095) == 0)
+                    {
+                        stop.ThrowIfCancellationRequested();
+                    }
+
                     if (InPaperSpace(Original(item.First)))
                     {
                         item.IsPaper = true;
@@ -997,13 +1038,18 @@ namespace GeometryHelper.Dxf
         /// VERTEX records after it and the SEQEND that ends them, and an INSERT with the ATTRIB records after it and their
         /// SEQEND.
         /// </summary>
-        private List<DxfItem> Items(int first, int end, string block)
+        private List<DxfItem> Items(int first, int end, string block, CancellationToken stop = default)
         {
             var items = new List<DxfItem>();
             int i = first;
 
             while (i < end)
             {
+                if ((items.Count & 4095) == 0)
+                {
+                    stop.ThrowIfCancellationRequested();
+                }
+
                 string type = _types[i];
                 int next = i + 1;
                 string part =
@@ -1041,14 +1087,21 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private sealed class Walk
         {
+            // The token is looked at every 4 096 records, a record in a few groups of ten: 0.6 ms of the walk at 1 000 000
+            // entities, so that the file is given up within a few milliseconds. Counted by record, not by group, the look costs
+            // what a timing cannot tell from none.
+            private const int StopEvery = 4096 - 1;
+
             private readonly DxfFile _file;
+            private readonly CancellationToken _stop;
             private readonly Dictionary<string, string> _words = new Dictionary<string, string>(StringComparer.Ordinal);
             private int _at;
             private int _line;
 
-            internal Walk(DxfFile file)
+            internal Walk(DxfFile file, CancellationToken stop)
             {
                 _file = file;
+                _stop = stop;
                 _at = file._decoding.Start;
                 Run();
             }
@@ -1074,6 +1127,7 @@ namespace GeometryHelper.Dxf
                 bool ended = false;
                 bool vertex = false;
                 int vertexMarker = -1;
+                int records = 0;
 
                 while (Next(out int code, out int codeStart, out int valueStart, out int valueEnd, out int line))
                 {
@@ -1094,6 +1148,11 @@ namespace GeometryHelper.Dxf
                         }
 
                         continue;
+                    }
+
+                    if ((++records & StopEvery) == 0)
+                    {
+                        _stop.ThrowIfCancellationRequested();
                     }
 
                     string word = Word(valueStart, valueEnd);

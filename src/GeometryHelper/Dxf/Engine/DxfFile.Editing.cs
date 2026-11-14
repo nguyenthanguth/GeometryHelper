@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using GeometryHelper.Export;
 
 namespace GeometryHelper.Dxf
@@ -2180,7 +2181,15 @@ namespace GeometryHelper.Dxf
         internal bool WritesHandles => UsesHandles();
 
         /// <summary>The greatest handle of the file as it was read, the header's left out, and its <c>$HANDSEED</c>: read once.</summary>
-        private void KnowHandles()
+        private void KnowHandles() => KnowHandles(CancellationToken.None);
+
+        /// <summary>
+        /// Reads the greatest handle of the file as <see cref="KnowHandles()"/> does, looking at a token every 4 096 records and
+        /// giving up when it is stopped: for the presenter, which asks it of a drawing it opens on a worker thread that Esc stops,
+        /// a scan that takes 0.25 s at 1 000 000 entities. What was read of a drawing given up is read again, to the same end.
+        /// </summary>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the scan is done.</exception>
+        internal void KnowHandles(CancellationToken stop)
         {
             if (_handlesKnown)
             {
@@ -2198,6 +2207,11 @@ namespace GeometryHelper.Dxf
 
                 for (int i = section.First; i <= section.Last; i++)
                 {
+                    if ((i & 4095) == 0)
+                    {
+                        stop.ThrowIfCancellationRequested();
+                    }
+
                     Rec record = Original(i);
 
                     if (HandleOf(record, out ulong handle) && handle > _mostHandle)

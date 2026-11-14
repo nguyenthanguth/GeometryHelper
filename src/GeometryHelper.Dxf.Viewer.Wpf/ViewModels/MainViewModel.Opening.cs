@@ -147,7 +147,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseOpening();
             CancellationToken stop = started.Cancel.Token;
 
-            Task.Run(() => CadDocument.Open(full, started.Reading), stop)
+            Task.Run(() => CadDocument.Open(full, started.Reading, stop), stop)
                 .ContinueWith(
                     read => started.Post(() => Read(started, read)),
                     CancellationToken.None,

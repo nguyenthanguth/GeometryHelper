@@ -111,11 +111,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!_insertions.TryGetValue(handle, out List<GeoPoint2> points))
             {
-                points = new List<GeoPoint2>();
+                // Nearly every entity has one: sized for one, not the four a list makes at its first add.
+                points = new List<GeoPoint2>(1);
                 _insertions[handle] = points;
             }
 
             points.Add(new GeoPoint2(x, y));
+        }
+
+        /// <summary>Gives back the room the lists of items and runs made by doubling left empty; a list that is full to 9 tenths is left as it is.</summary>
+        internal void TrimExcess()
+        {
+            _items.TrimExcess();
+            _runs.TrimExcess();
         }
 
         /// <summary>Gets the entities of the space in the order they were drawn, each with its place in <see cref="Items"/> and the layers it read.</summary>

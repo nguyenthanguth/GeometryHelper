@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Esc and Stop stop a drawing opening in the presenter's window within a few milliseconds. The reading of the file looked
+at the stop only between its stages, so a DXF of 1 000 000 entities (77 MB) asked to stop while it was read, or while its
+entities were listed for the display, went on for up to 0.74 s: asked at 20 to 2 000 ms into the opening, the window was free again
+after 0.4 to 0.5 s while the file was read and 0.7 s while its entities were listed. The walk over the records of the file, the
+scan of its handles, the listing of its entities of model space and the listing for the display now look at the stop every 4 096
+records or entities, and the window is free again 59 ms after Esc at most (1 to 2 ms in most runs, 30 to 40 ms where Esc came while
+the bytes of the file were read). An opening that runs to its end takes the time it took (open and display 5.3 to 5.6 s, 8.2 to
+8.6 s under .NET Framework 4.8; the walk of the records 220 ms either way) and gives the display list item for item as before.
+**NEW.** `CadDocument.Open(path, progress, cancellationToken)`; a DWG is looked at once, before it is read. The library's own
+`DxfDatabase.Open` is unchanged.
+
+**CHANGED.** The presenter's display list keeps less memory. The items of a drawing share the strings of its layer names, where
+each entity kept a string of its own; the lists of items and of entities drawn give back the room their doubling left empty; and the
+list of insertion points of an entity is made for one point. A drawing of 100 000 entities (178 000 items: arcs, lines, polylines
+and texts) keeps 35.5 MB of display list where it kept 41.1 MB (estimated from the objects the list holds). The items are the same:
+the display list and the pixels of 3 drawings at 3 views, plain, selected and with a highlight, are the same bit for bit, and the
+whole drawn again takes 250 to 300 ms and the layer switched on 95 to 110 ms, as before.
+
 **CHANGED.** A table going across R2007 (`Save(path, "AC1018")` and back) stays a table where its cells carry more than plain text:
 alignment, text height, text style, colours, background, borders of every side, and a block cell. It was the INSERT of its block before.
 The cells are AutoCAD's group for group: of 4 tables of AutoCAD 2021 (one with a title, a cell 4 high, one aligned bottom left, red
