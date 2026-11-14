@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The DWG writer made the radians of an angle from its degrees as `degrees * pi / 180`, and the reader the degrees of a
+radian as `radians * 180 / pi`, which are not each other's inverse: 236 ARC objects of AutoCAD 2021's own R2018 drawings came back one
+bit off in an angle. AutoCAD turns a degree text into radians as the degrees divided by 57.29577951308232 (1 207 of 1 400 typed ARC
+angles to the bit, against 993; 545 of 600 TEXT rotations, against 451), so the writer divides so and the reader multiplies by it:
+of 470 angles that came back a bit off 422 now come back the same, and 63 of the 236 ARC objects remain, radians no double of degrees
+divides to (a degree is the coarser step there, 1E-16 radians). The DXF a DWG is read as has the last digit of some angles another
+(an arc end of 160.00000000000006 degrees reads 160.00000000000003), and 88 of the 167 DWGs of the corpus, those with angles, are written with an ulp of one
+of them changed.
+**FIXED.** The network and the variable of a dynamic block that come from a DWG of AutoCAD 2010 (the action of version 1) are written
+to R2013 and R2018 as the action of version 2 with its four numbers more, as AutoCAD 2021 brings them up (6 networks and 35 variables
+of Architectural - Metric equal its own R2018 bits; 25 to 63 in each of the other seven drawings that have them), and an action of version 2
+written to R2010 or R2007 is of version 1 without them, as AutoCAD takes it down. The 2 633 dynamic-block objects of the eight
+sample drawings with a network are all in AutoCAD's DXF of the rewrites, and `AUDIT` finds what it found.
+**FIXED.** The true colours and the colours of a book of a DWG of AutoCAD 2000, which AutoCAD keeps as round-trip data (`RTTcAl` extended
+data on an entity, an extension dictionary with `ACAD_XREC_ROUNDTRIP` on a layer, `DBColXD` on a DBCOLOR), are taken into the colour
+when the drawing is written to R2018, as AutoCAD does saving it as R2004 or later: they were written as extended data of an entity
+that shows the nearest index, and a layer's book colour gave no name. 4 layers and 9 entities of true colours and the colour of a
+book, saved by AutoCAD as R2000, are written to R2018 with `AUDIT` 0 and AutoCAD's DXF of them has the 37 true colours and 3 names of
+its own R2018. A transparency is not in R2000's round-trip data. The `RTMaterial` extended data still passes unchanged.
+
 **NEW.** The app's screenshot mode (`--screenshot out.png plan.dxf --dialog name`) draws the dialogs of rounds 5 to 9, each over the
 drawing open in a sample state of its own: `mlstyle`, `mlstyle-new`, `mlstyle-new-page`, `mlstyle-modify`, `mlstyle-load`, `mledit`,
 `plotstamp`, `plotstamp-advanced`, `plotstamp-fields`, `imageadjust`, `attext`, `xbind`, `insertobject`, `recovery`, `spell`,

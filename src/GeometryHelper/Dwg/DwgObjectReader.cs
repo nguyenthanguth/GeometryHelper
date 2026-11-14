@@ -817,7 +817,9 @@ namespace GeometryHelper.Dwg
             return text.ToString();
         }
 
-        private static double Degrees(double radians) => radians * 180.0 / Math.PI;
+        // The pair of Degrees and Radians is one: AutoCAD 2021 reads a degree text as degrees / 57.29577951308232 (86 of 100
+        // typed angles to the bit, against 71 for degrees * pi / 180), and radians * 57.29577951308232 reads its radians back.
+        internal static double Degrees(double radians) => radians * (180.0 / Math.PI);
 
         private static bool IsDefaultExtrusion(double[] extrusion) =>
             extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;

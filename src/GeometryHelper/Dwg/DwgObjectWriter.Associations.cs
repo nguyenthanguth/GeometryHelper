@@ -33,12 +33,25 @@ namespace GeometryHelper.Dwg
             _data.BitLong(Whole(groups, ref at, 90));
             _data.BitLong(Whole(groups, ref at, 90));
 
-            // The version 2 of an action, which AutoCAD 2018 writes, holds four numbers more.
-            for (int i = 0; (written == 0 ? version : written) >= 2 && i < 4; i++)
+            // The version 2 of an action, which AutoCAD 2018 writes, holds four numbers more (taken out of the groups of a
+            // version 2 even where an older one is written, which does not keep them).
+            for (int i = 0; i < 4; i++)
             {
-                _data.BitLong(version >= 2 ? Whole(groups, ref at, 90) : 0);
+                int number = version >= 2 ? Whole(groups, ref at, 90) : 0;
+
+                if ((written == 0 ? version : written) >= 2)
+                {
+                    _data.BitLong(number);
+                }
             }
         }
+
+        /// <summary>
+        /// The version of an action in a network or a variable that AutoCAD writes into a DWG of this writer's version: the 2
+        /// from R2013, the 1 before, whichever the groups give (a drawing of R2010 brought up to R2018 and one of R2018 taken
+        /// down to R2010 were each written by AutoCAD 2021 so).
+        /// </summary>
+        private int ActionVersion => R2013Plus ? 2 : 1;
 
         private void WriteAssocAction(List<KeyValuePair<int, string>> groups, ref int at, int written = 0)
         {
@@ -77,7 +90,7 @@ namespace GeometryHelper.Dwg
         {
             List<KeyValuePair<int, string>> groups = Sequence();
             int at = 0;
-            WriteAssocAction(groups, ref at);
+            WriteAssocAction(groups, ref at, ActionVersion);
             _data.BitLong(Whole(groups, ref at, 90));
 
             for (int i = 0; i < 4; i++)
@@ -103,7 +116,7 @@ namespace GeometryHelper.Dwg
         {
             List<KeyValuePair<int, string>> groups = Sequence();
             int at = 0;
-            WriteAssocAction(groups, ref at);
+            WriteAssocAction(groups, ref at, ActionVersion);
             _data.BitLong(Whole(groups, ref at, 90));
             _data.BitLong(Whole(groups, ref at, 90));
             int count = Whole(groups, ref at, 90);
