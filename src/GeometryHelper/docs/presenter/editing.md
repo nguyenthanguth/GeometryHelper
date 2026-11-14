@@ -287,6 +287,32 @@ keeps the stop at the vertex, which AutoCAD leaves too: the square of 100 cut fr
 picks has its top element whole and its bottom one drawn only from 0 to 20 on the first segment, before the corner. A pick on a
 cut finds nothing there, as nothing is drawn.
 
+The tees work on a pair of segments as the crosses do, found a little differently (AutoCAD 2021's numbers at scale 20). The stem is
+run on past the free end of its first or last segment, and the second must be met on one of its segments (the end of its last
+is not on it): of the pairs that can be made, the one whose meeting is nearest the picks is taken, and the end of the stem kept
+is the one on the side of the meeting its pick is on (the stem (30, -60)-(30, -100)-(80, -100) picked on its second segment at
+(55, -100), onto (0, 0)-(100, 0), has its start moved to (30, 0) with both elements starting 20 along, at the second's near
+edge). Where none can be made, the nearest pair of all says what is said: the stem run on past its free end to a second that is
+met past a vertex of its own on an end segment, or a stem that is met past a vertex of its own while the second is met past its free end
+(the stem (130, -100)-(130, -60)-(180, -60) onto (0, 0)-(100, 0), whose line x = 130 meets the second past its end), is `Invalid
+operation on a self intersecting multiline.`, the stem's start caps put off and nothing else changed; every other miss, such as the
+stem (130, -60)-(130, -100)-(180, -100) run on to the same line, is `These multilines do not intersect.`. A pick on the very point
+the lines meet keeps the start of that multiline in a corner joint; the same multiline picked twice is nothing said for a cross or a
+tee (AutoCAD asks for the first again) and `These multilines do not intersect.` for a corner joint. A break across the second that
+reaches the end of its last segment leaves nothing beyond it, as a cross's does.
+
+A cross near a corner breaks each element on the segment of its own line the crossing is nearest the picks on, so that within the
+width of a multiline of a corner the elements of one crossing are broken on different segments: a break that runs past the end of
+an element over a corner is written from where it starts to the end of that segment, the next segment whole and the rest of the
+break as the start of the one after it, where each of the two lines of the other multiline meets the element's path once (the
+staircase (0, 0)-(100, 0)-(100, 100)-(200, 100) crossed by the vertical (82, -60)-(82, 60), picked at (20, 0) and (82, -30), holds
+`{0, 82}` and `{0, 82, 102}` on its first segment, nothing on its second and `{2}` on its third for the first element). A line that meets
+the element's path twice or not at all (the U (0, 0)-(100, 0)-(100, 100)-(0, 100) crossed by the same vertical; the L crossed at
+x = 85) is `Invalid operation on a self intersecting multiline.`, and the elements are broken one by one up to the one it is said
+of, the ones before it left broken (the staircase crossed by the horizontal (40, 82)-(160, 82) across its second segment breaks
+the first element and says it of the second). A cross that runs the second multiline on past its end (OC, MC), and a break that
+ends exactly on a vertex, are not copied.
+
 **Grips, STRETCH and the modify commands on a multiline.** A multiline has a grip at each vertex of its line, as AutoCAD
 2021's `GetGripPoints`; dragging one moves the vertex as `MoveVertexAt` does: a segment that keeps its way keeps its cuts where
 they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0)-(100, 100), the vertex moved to (100, -10),
@@ -295,7 +321,9 @@ element), a move that makes the segment before whole puts a nought in front of t
 (100, -10) holds 0 and 60) and leaves the end of the multiline with nothing past its last vertex; a segment that turns keeps such a
 list as it was, and no stretch goes below nought. A closed multiline is moved the same way, its first segment following its last (the
 square of 100 cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for
-its first element where it held 50). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+its first element where it held 50), but for the first segment and the last, which join the end of the points to their start:
+AutoCAD puts no nought in front of their lists (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80),
+whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
 inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
 times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
 near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at
