@@ -176,10 +176,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 follow-ups 2 (hatch4): ShadeTintValue recolours colour 2 (tint cut to hundredths as AutoCAD); draW Close
         with 2 points; arc loose ends along their circle; HPGAPTOL reach as AutoCAD (2 gap + a pixel of the view, corners
         gap + pixel/2); AutoCAD's "Unable to fill/hatch the boundary." messages; bridging faster (8000: 145 -> 100 ms)
-  - [ ] (hatch5, running: all but the dialogs and SetGradientColors) R2.2 follow-ups 3: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
+  - [x] R2.2 follow-ups 3 (hatch5): draW boundary keeps drawing order with AutoCAD's depth flags (1/16/0), associative to
+        the retained polylines under HPASSOC 1, open shapes kept as NotClosed loops (alone: "Unable to fill"), clockwise
+        shapes kept clockwise, overlapping shapes both External
+  - [ ] R2.2 follow-ups 4: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
         SetGradientColors refusing one colour or values other than 0/1 (eInvalidInput; ours accepts, files may hold one);
-        draW loop order (AutoCAD keeps drawing order); associative Retain under HPASSOC; an open 2-point shape kept as a
-        NotClosed loop beside a valid one; small circle with a large gap closing through the far crossing (S)
+        a small circle with a large gap closing through the far crossing (needs the original geometry); exact duplicate
+        loops (AutoCAD 17, ours 1) (S)
   - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
         Refine (Add, Delete, Elevate order, Move, Weight), Close/Open of control-point splines, met to 1E-5 against AutoCAD;
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
@@ -219,7 +222,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by
         ellipses, splines, xlines, rays, TEXT and MTEXT (probed through stdin; typed points there are shifted by the first
         object, a console quirk)
-  - [ ] R3.1 follow-ups: MLEADERCOLLECT (needs a core composite-block builder); MLEADERALIGN's side flip when content
+  - [ ] (r31b, running) R3.1 follow-ups: MLEADERCOLLECT (needs a core composite-block builder); MLEADERALIGN's side flip when content
         lands past its arrowhead (171 = 3, leader on the right); TEXTALIGN Set spacing/Distribute on an oblique line (order
         by x, gap rule unknown); DIMBREAK TEXT/MTEXT cutters tested, blocks and hatches as cutters; block content and
         multi-line words in MLEADERALIGN; TEXTALIGNMODE's factory default (S)

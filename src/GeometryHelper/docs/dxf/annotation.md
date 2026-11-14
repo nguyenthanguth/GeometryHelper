@@ -9,7 +9,9 @@ A HATCH is a [`DxfHatch`](xref:GeometryHelper.Dxf.DxfHatch). Its loops are given
 each running the way the loop runs, a part of an ellipse as the [`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3) that is exactly it.
 `AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External, square))` adds one from shapes in the hatch's plane, and
 `AppendLoop(type, points, bulges)` one of AutoCAD's vertices and bulges in the plane's own system; a loop read from a hatch
-is written back as it was read. A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
+is written back as it was read. The edges of a loop have to run end to end and back to the first, unless the loop is flagged
+`DxfHatchLoopTypes.NotClosed`: such a loop, as AutoCAD keeps an open shape drawn beside a closed one, ends where its last edge
+does (the lines (60, 0) to (80, 0) and (80, 0) to (70, 20) with `External | NotClosed` are written as flag 33 and two edges). A change to the loops of an associative hatch takes its association away with the handles of its boundary objects,
 and takes the hatch out of their reactors, as AutoCAD's does. A loop is spliced into the bytes of the record, so that three
 thousand islands appended one at a time take half a second. `Area` is exact on arcs, ellipses and splines, the islands taken
 off as `HatchStyle` says: a square 30 by 20 round a circle of radius 5 fills 521.46, and a loop given twice counts as the

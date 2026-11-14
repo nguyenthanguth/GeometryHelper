@@ -399,7 +399,7 @@ namespace GeometryHelper.Dxf.Viewer
             int order = (int)c.Remembered(HatchOrderKey, 3.0);
             CadEditResult result = c.Apply(null, s =>
             {
-                DxfHatch hatch = AppendHatch(c, s, loops, settings, null, out fault);
+                DxfHatch hatch = AppendHatch(c, s, loops, settings, null, null, null, out fault);
                 PlaceHatch(c, s, hatch, loops, order);
             });
 
@@ -424,12 +424,14 @@ namespace GeometryHelper.Dxf.Viewer
             List<CadBoundaryLoop> loops,
             CadHatchSettings settings,
             GeoPoint2? onceOrigin,
+            HatchRun run,
+            IReadOnlyDictionary<CadBoundaryLoop, DxfPolyline> polylines,
             out string fault
         )
         {
             DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
             fault = WithOrigin(settings, loops, onceOrigin).ApplyTo(hatch, s.Database, s.Document);
-            AppendLoops(hatch, loops);
+            AppendLoops(hatch, loops, run);
 
             if (settings.Associative)
             {
@@ -437,7 +439,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (CadBoundaryLoop loop in loops)
                 {
-                    objects.Add(loop.Sources.Select(h => s.Document.FindEntity(h)).Where(e => e != null).ToList());
+                    // A loop drawn follows the polyline kept of it, where there is one.
+                    objects.Add(
+                        polylines != null && polylines.TryGetValue(loop, out DxfPolyline kept)
+                            ? new List<DxfEntity> { kept }
+                            : loop.Sources.Select(h => s.Document.FindEntity(h)).Where(e => e != null).ToList()
+                    );
                 }
 
                 hatch.SetAssociatedObjects(objects);
@@ -490,12 +497,33 @@ namespace GeometryHelper.Dxf.Viewer
             return loops;
         }
 
-        /// <summary>Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none.</summary>
-        private static void AppendLoops(DxfHatch hatch, List<CadBoundaryLoop> loops)
+        /// <summary>
+        /// Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none. The loops draW boundary
+        /// drew (those of <paramref name="run"/>) are flagged as AutoCAD 2021 flags them: External for none round them, Outermost
+        /// for one, none for more; a loop left open is a loop of edges flagged NotClosed, not closed across.
+        /// </summary>
+        private static void AppendLoops(DxfHatch hatch, List<CadBoundaryLoop> loops, HatchRun run = null)
         {
             foreach (CadBoundaryLoop loop in loops)
             {
                 DxfHatchLoopTypes type = loop.Depth == 0 ? DxfHatchLoopTypes.External : DxfHatchLoopTypes.Default;
+
+                if (run != null && run.Drawn.Contains(loop))
+                {
+                    type =
+                        loop.Depth == 0 ? DxfHatchLoopTypes.External
+                        : loop.Depth == 1 ? DxfHatchLoopTypes.Outermost
+                        : DxfHatchLoopTypes.Default;
+
+                    if (run.Open.Contains(loop))
+                    {
+                        var corners = loop.Vertices.Select(v => new GeoPoint3(v.X, v.Y, 0.0)).ToList();
+                        var up = new GeoVector3(0.0, 0.0, 1.0);
+                        var chain = new GeoPolylineArc3(corners, loop.Bulges, loop.Bulges.Select(b => up));
+                        hatch.AppendLoop(new DxfHatchLoop(type | DxfHatchLoopTypes.NotClosed, new object[] { chain }));
+                        continue;
+                    }
+                }
 
                 if (loop.Curve != null)
                 {

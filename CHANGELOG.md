@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** -HATCH's draW boundary keeps the loops in the order the shapes were drawn and as they were drawn, and flags them as
+AutoCAD 2021 does (probed in its console): an island drawn first is loop 0 (the square (10, 10) to (20, 20) and then (0, 0) to
+(50, 50) give loops flagged 16 and 1, where the outer came first, flagged 1 and 16), a shape drawn clockwise stays clockwise in the
+loop and in the polyline kept, and a loop is flagged External (1) with no loop round it, Outermost (16) inside one and nothing
+inside two or more (five squares nested are 1, 16, 0, 0, 0). A loop lies inside another where it lies wholly in it, edges touching
+allowed: two squares of 60 and 50 that overlap are each External, where the presenter took the one with a corner inside the other as
+its island, and a square sharing an edge with the outer is an island.
+**CHANGED.** An open shape drawn by -HATCH's draW boundary (Enter in place of Close) is a loop that is not closed, as AutoCAD 2021
+keeps it, where the hatch closed it across: beside a closed shape it is kept as the edges drawn, flagged NotClosed (33, or 48 inside
+another loop), so that a line (60, 0) to (80, 0) beside a square is a one-edge loop and an open triangle of two edges stays two; alone,
+or with other open shapes only, it makes no hatch and says `Unable to fill the boundary with solid.` (`Unable to hatch the boundary.`
+for a pattern), and the gap tolerance closes none of them. A shape left open on its first point is a closed loop of the corners before
+it, its polyline kept open with the first point again. Retained, an open shape is still kept as an open polyline where no hatch is
+made. The tests that ended a drawn shape with Enter to have it closed across now close it with Close.
+**CHANGED.** -HATCH's draW boundary retained under associativity makes the hatch associative to the polylines kept, as AutoCAD 2021
+does (HPASSOC 1, Retain Y: group 71 of 1, each loop with its own polyline's handle, the open ones too, HPASSOC left at 1); not retained
+it makes none and turns associativity off, as before. The polylines are made before the hatch, as AutoCAD orders them, where they came
+after it, and a polyline of a shape whose loop an island style dropped is kept all the same.
+**NEW.** A loop of edges flagged `DxfHatchLoopTypes.NotClosed` need not end where it starts: `DxfHatch.AppendLoop` and `InsertLoopAt`
+take two lines (60, 0) to (80, 0) and (80, 0) to (70, 20) as `External | NotClosed` and write flag 33 with two edges, which AutoCAD 2021
+reads; a loop not so flagged still has to close.
+
 **CHANGED.** MLEADERALIGN in the presenter follows AutoCAD 2021's console run through standard input, which runs the real
 current command where a script did not. Make leader segments Parallel is built: each other multileader's first leader line turns
 about its arrowhead to run the way the one picked runs, its length kept, the content and landing moving with its end (arrowheads

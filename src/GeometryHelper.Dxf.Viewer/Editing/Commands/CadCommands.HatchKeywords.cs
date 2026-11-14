@@ -27,14 +27,20 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The origin of "Set new origin" answered No: this run's hatches alone are laid from it.</summary>
             public GeoPoint2? OriginOnce;
 
-            /// <summary>The loops draW boundary drew, which no object makes: their polylines are kept where it was asked to retain them.</summary>
+            /// <summary>The loops draW boundary drew, in the order they were drawn, which no object makes.</summary>
             public readonly List<CadBoundaryLoop> Drawn = new List<CadBoundaryLoop>();
 
-            /// <summary>The drawn loops the user left open: a polyline kept of one is left open too.</summary>
+            /// <summary>The drawn loops the user left open: a loop not closed in the hatch, and a polyline kept of one open too.</summary>
             public readonly HashSet<CadBoundaryLoop> Open = new HashSet<CadBoundaryLoop>();
 
-            /// <summary>Whether the polylines drawn are kept.</summary>
-            public bool RetainDrawn;
+            /// <summary>The drawn loops of a shape left open on its first point: closed in the hatch, their polyline open and running back to that point.</summary>
+            public readonly HashSet<CadBoundaryLoop> Reclosed = new HashSet<CadBoundaryLoop>();
+
+            /// <summary>The drawn loops draW boundary was asked to retain: a polyline is kept of each.</summary>
+            public readonly HashSet<CadBoundaryLoop> Retained = new HashSet<CadBoundaryLoop>();
+
+            /// <summary>The drawn loops whose polyline has been made.</summary>
+            public readonly HashSet<CadBoundaryLoop> Made = new HashSet<CadBoundaryLoop>();
 
             /// <summary>Whether a shape drawn closed no area and was left out: said once the hatch is asked for and there is none.</summary>
             public bool Unfilled;
@@ -52,8 +58,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// draW boundary: "Retain polyline boundary? [Yes/No] &lt;N&gt;:", "Specify start point:", then "Specify next point or
         /// [Arc/Length/Undo]:" (Close from the third corner) until Enter or Close, and "Specify start point for new boundary or
-        /// &lt;Accept&gt;:" for another shape. Each shape of three corners or more is a loop of the hatch, one inside another an
-        /// island; the shapes are closed across where left open. The hatch is not associative, and AutoCAD leaves the setting
+        /// &lt;Accept&gt;:" for another shape. The loops stay in the order the shapes were drawn, as AutoCAD keeps them, each
+        /// as drawn (a shape drawn clockwise stays so); one wholly inside another is an island, and the loops are flagged by how
+        /// deep they lie: External for none round them, Outermost for one, none for more. A shape closed, or left open on its
+        /// first point, is a loop of the hatch; one left open is a loop that is not closed, kept as its own edges (a
+        /// polyline of (60, 0), (80, 0) beside a square is one line edge, flagged NotClosed) and only beside a closed shape: open
+        /// shapes alone make no hatch. Retained, each shape is a polyline made before the hatch, and where the settings are
+        /// associative the hatch follows the polylines; not retained, associativity is turned off and AutoCAD leaves the setting
         /// off after it, as the presenter does. Length goes on along the way the last segment left its end (the tangent of an arc).
         /// Close with two points makes a hatch of the line and back, a loop of no area, as AutoCAD does.
         /// Arc goes on as AutoCAD's "Enter an arc boundary option [Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of
@@ -291,26 +302,39 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                // A shape of two points is a loop where an arc gives it an area (a line and the arc leaving it), or where Close
-                // closed it: a line and back, a hatch of no area, as AutoCAD makes it, unless the two points are one.
+                // A shape left open on its first point is the closed loop of the corners before it, as AutoCAD 2021 reads it; the
+                // polyline kept stays open and runs back to that point.
+                bool reclosed = false;
+
                 if (
-                    points.Count >= 3
-                    || (
-                        points.Count == 2
-                        && (
-                            bulges[0] != 0.0
-                            || bulges[1] != 0.0
-                            || (closed && (points[1] - points[0]).Length > c.Session.Tolerance.EqualPoint)
-                        )
-                    )
+                    !closed
+                    && points.Count >= 4
+                    && (points[points.Count - 1] - points[0]).Length <= c.Session.Tolerance.EqualPoint
                 )
                 {
-                    CadBoundaryLoop loop = DrawnLoop(points, bulges);
+                    points.RemoveAt(points.Count - 1);
+                    bulges.RemoveAt(bulges.Count - 1);
+                    closed = true;
+                    reclosed = true;
+                }
+
+                // A shape of two points is a loop where its points are apart: closed, a line and back, a hatch of no area, as
+                // AutoCAD makes it; open, a one-edge loop beside a closed shape.
+                if (
+                    points.Count >= 3
+                    || (points.Count == 2 && (points[1] - points[0]).Length > c.Session.Tolerance.EqualPoint)
+                )
+                {
+                    CadBoundaryLoop loop = CadBoundaryFinder.Corners(points, bulges, Array.Empty<string>());
                     loops.Add(loop);
 
                     if (!closed)
                     {
                         run.Open.Add(loop);
+                    }
+                    else if (reclosed)
+                    {
+                        run.Reclosed.Add(loop);
                     }
                 }
                 else
@@ -331,48 +355,150 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            double tolerance = Math.Max(c.Session.Tolerance.EqualPoint, 1E-9);
+
             foreach (CadBoundaryLoop loop in loops)
             {
-                loop.Depth = loops.Count(o => o != loop && o.Area > loop.Area && o.Contains(loop.Outline[0]));
+                loop.Depth = loops.Count(o => Nested(loop, o, tolerance));
             }
 
-            picks.Add(
-                loops
-                    .OrderBy(l => l.Depth)
-                    .ThenByDescending(l => l.Area)
-                    .ThenBy(l => l.Outline[0].X)
-                    .ThenBy(l => l.Outline[0].Y)
-                    .ToList()
-                    .AsReadOnly()
-            );
             run.Drawn.AddRange(loops);
-            run.RetainDrawn = retain;
 
-            // A boundary that no object makes cannot be followed: AutoCAD turns associativity off and leaves it so.
-            settings.Associative = false;
+            if (retain)
+            {
+                run.Retained.UnionWith(loops);
+            }
+
+            // Open shapes alone make no hatch: AutoCAD says so where the hatch is asked for, and still keeps their polylines.
+            if (loops.All(run.Open.Contains))
+            {
+                run.Unfilled = true;
+            }
+            else
+            {
+                picks.Add(loops.AsReadOnly());
+            }
+
+            // A boundary that no object makes cannot be followed: AutoCAD turns associativity off and leaves it so; one retained
+            // is followed through its polyline, and the setting is left as it was.
+            if (!retain)
+            {
+                settings.Associative = false;
+            }
+
             c.Document.HatchSettings = settings.Clone();
         }
 
-        /// <summary>The loop of the corners drawn and the bulges of the segments leaving them, turned to run counter-clockwise, with no object it is made of.</summary>
-        private static CadBoundaryLoop DrawnLoop(List<GeoPoint2> points, List<double> bulges)
+        /// <summary>
+        /// Whether a loop lies wholly inside another that closes more area, its edges touching the other's allowed, as AutoCAD
+        /// reads a boundary drawn: a square of 60 holds one of 50 by 30 that shares its right edge, and does not hold a square
+        /// of 50 that overlaps it with a corner inside. An open loop counts closed across.
+        /// </summary>
+        private static bool Nested(CadBoundaryLoop inner, CadBoundaryLoop outer, double tolerance)
         {
-            if (CadBoundaryFinder.Signed(points, bulges) >= 0.0)
+            if (inner == outer || outer.Area <= inner.Area + tolerance * tolerance)
             {
-                return CadBoundaryFinder.Corners(points, bulges, Array.Empty<string>());
+                return false;
             }
 
-            // Turned round, each segment runs the other way: the one that left corner i now arrives at it, with its bulge negated.
-            int n = points.Count;
-            var corners = new List<GeoPoint2>(n);
-            var turned = new double[n];
+            IReadOnlyList<GeoPoint2> edge = inner.Outline;
 
-            for (int k = 0; k < n; k++)
+            for (int i = 0; i < edge.Count; i++)
             {
-                corners.Add(points[n - 1 - k]);
-                turned[k] = -bulges[(2 * n - 2 - k) % n];
+                GeoPoint2 a = edge[i];
+                GeoPoint2 b = edge[(i + 1) % edge.Count];
+
+                if (
+                    !InsideOrOn(outer.Outline, a, tolerance) || !InsideOrOn(outer.Outline, a + (b - a) / 2.0, tolerance)
+                )
+                {
+                    return false;
+                }
             }
 
-            return CadBoundaryFinder.Corners(corners, turned, Array.Empty<string>());
+            return true;
+        }
+
+        /// <summary>Whether a point lies inside a closed run of points or on its edges, within a tolerance.</summary>
+        private static bool InsideOrOn(IReadOnlyList<GeoPoint2> outline, GeoPoint2 point, double tolerance)
+        {
+            if (CadBoundaryFinder.Inside(outline, point))
+            {
+                return true;
+            }
+
+            for (int i = 0; i < outline.Count; i++)
+            {
+                GeoPoint2 a = outline[i];
+                GeoVector2 along = outline[(i + 1) % outline.Count] - a;
+                double length2 = along.X * along.X + along.Y * along.Y;
+                GeoVector2 to = point - a;
+                double t =
+                    length2 <= 0.0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, (to.X * along.X + to.Y * along.Y) / length2));
+                GeoVector2 off = to - along * t;
+
+                if (off.X * off.X + off.Y * off.Y <= tolerance * tolerance)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Makes the polyline of every drawn loop that is to be retained and has none yet, in the current layer: closed, or open
+        /// for a shape left open, or open and back on its first point for one left open there. Gives the polylines made, by loop.
+        /// </summary>
+        private static Dictionary<CadBoundaryLoop, DxfPolyline> AppendDrawnPolylines(
+            CadCommandContext c,
+            CadEditScope s,
+            HatchRun run,
+            IEnumerable<CadBoundaryLoop> loops
+        )
+        {
+            var made = new Dictionary<CadBoundaryLoop, DxfPolyline>();
+
+            foreach (CadBoundaryLoop loop in loops)
+            {
+                if (!run.Retained.Contains(loop) || !run.Made.Add(loop))
+                {
+                    continue;
+                }
+
+                DxfPolyline polyline = LoopPolyline(loop);
+
+                if (run.Open.Contains(loop))
+                {
+                    polyline.Closed = false;
+                }
+                else if (run.Reclosed.Contains(loop))
+                {
+                    polyline.AddVertexAt(loop.Vertices.Count, loop.Vertices[0], 0.0, 0.0, 0.0);
+                    polyline.Closed = false;
+                }
+
+                made[loop] = s.Append(c.Space, Current(c, polyline));
+            }
+
+            return made;
+        }
+
+        /// <summary>
+        /// Keeps the polylines of the drawn loops that no hatch took, as one undo step: where the shapes drawn were open alone,
+        /// or their hatch was undone. AutoCAD makes a polyline as the shape is drawn, hatch or none.
+        /// </summary>
+        private static void KeepStrayPolylines(CadCommandContext c, HatchRun run)
+        {
+            if (run.Retained.Any(l => !run.Made.Contains(l)))
+            {
+                CadEditResult result = c.Apply(null, s => AppendDrawnPolylines(c, s, run, run.Drawn));
+
+                if (!result.Succeeded && result.Message != null)
+                {
+                    c.Write(result.Message);
+                }
+            }
         }
 
         /// <summary>

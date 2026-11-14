@@ -444,6 +444,48 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ALoopFlaggedNotClosed_NeedNotEndWhereItStarts_AndOneNotSoFlaggedMust()
+        {
+            // AutoCAD 2021 keeps an open shape drawn beside a closed one as such a loop: flag 33, the lines (60, 0) to (80, 0) and
+            // (80, 0) to (70, 20), and no line back to (60, 0).
+            DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
+            DxfHatch hatch = ByHandle<DxfHatch>(db, "AD");
+            int loops = hatch.NumberOfLoops;
+            object[] edges =
+            {
+                new GeoLine3(new GeoPoint3(60, 0, 0), new GeoPoint3(80, 0, 0)),
+                new GeoLine3(new GeoPoint3(80, 0, 0), new GeoPoint3(70, 20, 0)),
+            };
+
+            Assert.Throws<ArgumentException>(() =>
+                hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External, edges))
+            );
+            hatch.AppendLoop(new DxfHatchLoop(DxfHatchLoopTypes.External | DxfHatchLoopTypes.NotClosed, edges));
+
+            DxfHatch back = ByHandle<DxfHatch>(DxfDatabase.Parse(db.ToText()), "AD");
+            Assert.Equal(loops + 1, back.NumberOfLoops);
+            Assert.Equal(DxfHatchLoopTypes.External | DxfHatchLoopTypes.NotClosed, back.LoopTypeAt(loops));
+            DxfHatchLoop open = back.GetLoopAt(loops);
+            Assert.False(open.IsPolyline);
+            Assert.Equal(2, open.Curves.Count);
+            Assert.Equal(new GeoPoint3(70, 20, 0), ((GeoLine3)open.Curves[1]).EndPoint);
+
+            // Two edges that leave a break between them are refused whether or not the loop is closed.
+            Assert.Throws<ArgumentException>(() =>
+                hatch.AppendLoop(
+                    new DxfHatchLoop(
+                        DxfHatchLoopTypes.NotClosed,
+                        new object[]
+                        {
+                            new GeoLine3(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)),
+                            new GeoLine3(new GeoPoint3(5, 0, 0), new GeoPoint3(6, 0, 0)),
+                        }
+                    )
+                )
+            );
+        }
+
+        [Fact]
         public void TheGradient_IsSetFromR2004On_ItsAngleAndColoursWritten()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
