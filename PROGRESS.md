@@ -222,10 +222,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 11 (dlg11): PDF links through twisted and VPCLIP-clipped viewports by the drawn points; Find's singular
         as AutoCAD ("1 match in 1 object"); attribute dialogs drawn in --dialog and the Enhanced Attribute Editor's Value
         column fixed
-  - [ ] (wmf1, running: WMFIN) Dialogs 12 follow-ups: WMFIN (AutoCAD makes block WMF0 at scale 25.4 fitted into half the view; polylines with
-        pen widths, TEXT in WMF-Arial0; findings in .claude/gk/wmf-notes); raster image quality, PDF layer information
-        and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3 (GUI Save As); Collect in the Leaders panel
-        (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI; "match(es) replaced" wording (S)
+  - [x] WMFIN (wmf1): our own WMF reader (lines, polygons, rectangles, ellipses, arcs, pies, pens, brushes, fonts,
+        text) and WMFIN as AutoCAD (block WMF<n> of inches, "Units: Unitless Conversion:", Explode and REpeat, the
+        picture in half the view), WMFBKGND/WMFFOREGND kept; IMPORT still refuses .wmf as AutoCAD does
+  - [ ] Dialogs 12 follow-ups: WMF colour index between primaries (45 probed, no rule; .claude/gk/wmf-notes); text height
+        and baseline per font look; clipping to the window, negative extents, RestoreDC, code pages; WMFOPTS (GUI);
+        raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3
+        (GUI Save As); Collect in the Leaders panel (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI;
+        "match(es) replaced" wording (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [x] R3.1 (r31): MLEADERALIGN Parallel, Use current spacing, Spacing and Distribute as AutoCAD (content boxes, the
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by

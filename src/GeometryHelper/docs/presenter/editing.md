@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 262 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 263 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -215,6 +215,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
+| metafiles | WMFIN (Basepoint, Scale, X, Y, Z, Rotate, Explode, REpeat), and the variables WMFBKGND and WMFFOREGND (see WMFIN below) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All), RENAME, -RENAME (Block, Dimstyle, LAyer, LType, multileadeRstyle, Style, Tablestyle, Ucs, VIew, VPort) |
 
@@ -389,6 +390,41 @@ application's own server and are not made, and AutoCAD makes an object of Paint 
 on the Windows clipboard (a bitmap another application copied, read as a PNG) makes the same frame where the clipboard holds no
 objects and no text, as AutoCAD pastes words as an MTEXT before a picture; PASTESPEC offers it as Image (PNG), and PASTEBLOCK and
 PASTEORIG refuse it. OLESCALE and OLEOPEN, OLERESET, OLELINKS, OLECONVERT and COPYLINK are not built.
+
+**WMFIN.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input; its
+IMPORT takes no .wmf, answering `Can't find file.` to one that is there, so IMPORT here still refuses one). The window's Open dialog,
+titled Import WMF, of the one type `Metafile (*.wmf)` gives the file; with FILEDIA 0, or with no window, it asks `Enter name of WMF
+file to import (no extension):`, a name without .wmf taken with it and one without a folder looked for beside the drawing. A name that
+is no file is answered `Cannot find the specified metafile`, one that is no metafile `The file is no Windows Metafile:` and why
+(AutoCAD says nothing), and a metafile that draws nothing is not imported. The file is read by the presenter's own reader, the
+placeable header (or none) and these records: SetWindowOrg and SetWindowExt, MoveTo and LineTo, Polyline, Polygon, PolyPolygon,
+Rectangle, RoundRect, Ellipse, Arc, Pie and Chord, CreatePenIndirect, CreateBrushIndirect and CreateFontIndirect with SelectObject
+and DeleteObject, TextOut and ExtTextOut, SetTextColor and SetTextAlign; bitmaps, regions, clipping, hatch and pattern brushes, the
+mapping mode, the viewport and the saving of the device context are read past.
+
+The picture becomes block WMF0 (WMF1 for the next, and so on) of the unit inches, and an INSERT of it as INSERT places one: `Units:
+Unitless   Conversion:   25.4000` (the factor from inches to the drawing's INSUNITS: 25.4 for millimetres, 1 for inches or for none,
+0.0254 for metres, 2.54 for centimetres), then the insertion point with `Basepoint/Scale/X/Y/Z/Rotate/Explode/REpeat` (Explode and
+REpeat each ask `[Yes/No] <Yes>` and ask the point again; REpeat places the block again until Esc), the scale and the rotation.
+The block is laid out as AutoCAD lays it: its top left at the origin of the block and y down, fitted into half the view (half its
+width and half its height in the units of the view, whatever the unit of the drawing; 8.82739 by 5 where there is no view) with its aspect
+kept, a logical point (x, y) of the file at (x f, -y f) where f is the smaller of the half view's width over the window's width and its
+height over its height, the window's origin not taken (a window of 1 000 by 1 000 and a line from (100, 100) to (900, 900) in a view
+10 high are the points (0.5, -0.5) and (4.5, -4.5), the INSERT scaled 25.4, which AutoCAD gives in a console of millimetres), and the
+window 1 by 1 where the file sets none.
+Each MoveTo and LineTo is a polyline of two vertices, a Polyline record one open polyline, a Rectangle, Polygon, PolyPolygon, RoundRect, Pie
+and Chord a closed one, an Ellipse an open one of 101 points that ends where it starts, an Arc an open one of a hundred
+pieces to the turn; all are 2D polylines of the width of the pen times f (nought for a null pen, which draws no line) in the
+colour index nearest the pen's, 7 for black and white; the closed shapes take the colour of the brush, the pen's where the brush is
+hollow, and an Ellipse the pen's. A text is a TEXT of the style `WMF-` and the face and a number (`WMF-Arial0`, then `WMF-Arial1` for
+another look of Arial, bold or italic, in the file; `WMF-Courier New0`), the style's font the face with its bold and italic file, the
+text's height 0.72 of the em (80 units high at f 0.005 is 0.288, which AutoCAD gives Arial's capitals), turned with the font's
+escapement and coloured by SetTextColor; its reference point, the top left of the font's cell, is taken to the baseline 0.9 of the em
+below it, and a text aligned to the centre or the right is justified at its point. WMFBKGND and WMFFOREGND are variables of 0 or 1 that
+AutoCAD keeps and its console ignores, so they are only kept here too. WMFOPTS (Wire Frame, Wide Lines) is a dialog of the full
+AutoCAD with no command in its console, and is not built. The colour index is the nearest by distance in red, green and blue: the
+primaries, black and white are AutoCAD's, but it gives other indexes for the colours between them (dark green (0, 160, 0) is 92 there
+and 94 here, (128, 128, 128) 251 there and 8 here), by a rule that probing 45 colours did not show.
 
 **Shapes and hatching (batch 3 of acad.pgp).**
 

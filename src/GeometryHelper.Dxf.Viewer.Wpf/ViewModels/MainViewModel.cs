@@ -1848,6 +1848,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "-EXPORT":
                 case "TABLEEXPORT":
                 case "IMPORT":
+                case "WMFIN":
                 case "DXFOUT":
                     OnExportFileRequested(e);
                     break;
