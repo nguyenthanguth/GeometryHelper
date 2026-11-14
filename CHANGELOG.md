@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The app's screenshot mode (`--screenshot out.png plan.dxf --dialog name`) draws the dialogs of rounds 5 to 9, each over the
+drawing open in a sample state of its own: `mlstyle`, `mlstyle-new`, `mlstyle-new-page`, `mlstyle-modify`, `mlstyle-load`, `mledit`,
+`plotstamp`, `plotstamp-advanced`, `plotstamp-fields`, `imageadjust`, `attext`, `xbind`, `insertobject`, `recovery`, `spell`,
+`spell-settings`, `objectscale`, `objectscale-add`, `insertlayout`, `templateoptions`, `saveaspdf`, `pdf-override`, `pdf-options`,
+`rename`, `lweight`, `boundary`, `viewports`, `viewports-named` and `filter`. A drawing that lacks what a dialog is made of (Image Adjust
+with no picture) says so and exits with 2, as does a run with no drawing.
+**FIXED.** Drawing those dialogs showed what no test had: the Advanced Options of Plot Stamp had its log file row under the buttons (the
+window was 480 high and its content 502); the Select objects button of Check Spelling showed no icon (its padding left 2 pixels of
+28); the check boxes the theme draws never showed their words (Link and Display As Icon of Insert Object, every row of Check Spelling
+Settings, Append to current selection set of Quick Select, Match case and List results of Find); the editable boxes showed nothing and
+had no place to type in (UI font of Global settings, Font of Plot Stamp's Advanced Options, Value of Quick Select and of Object Selection
+Filters, and those of Drafting Settings, Attach Reference and New Layer State); and the description of Template Options was one line
+tall and centred, as was the multi-line description of Block Definition, Edit Block and New Layer State. Check Spelling Settings is
+30 higher to hold its rows with their words.
+**NEW.** Include hyperlinks reaches the objects seen through a layout's viewports: an object of model space with a hyperlink gets a link
+in each viewport that shows it, over its box on the paper cut to the frame of the viewport (or to the box of its clipped outline), none
+where its layer is frozen in the viewport. A line (1 800, 1 200) to (2 200, 1 800) in a viewport 200 by 150 at 1:20 about (2 000, 1 500)
+is a link over (140, 85) to (160, 115) of the sheet, the same as one drawn there; the links of objects drawn in the layout itself are
+as before.
+
 **CHANGED.** A table going across R2007 (`Save(path, "AC1018")` and back) stays a table where its cells carry more than plain text:
 alignment, text height, text style, colours, background, borders of every side, and a block cell. It was the INSERT of its block before.
 The cells are AutoCAD's group for group: of 4 tables of AutoCAD 2021 (one with a title, a cell 4 high, one aligned bottom left, red

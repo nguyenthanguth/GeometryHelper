@@ -121,6 +121,7 @@
                             DockPanel.Dock="Right"
                             Style="{StaticResource GhDialogButton}"
                             Width="28"
+                            Padding="0"
                             Margin="6,0,0,0"
                             ToolTip="Select objects"
                             AutomationProperties.Name="Select objects"

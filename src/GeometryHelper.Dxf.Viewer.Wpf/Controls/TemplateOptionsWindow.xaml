@@ -106,6 +106,7 @@
                     Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap"
                     AcceptsReturn="False"
+                    VerticalAlignment="Stretch"
                     VerticalContentAlignment="Top"
                     VerticalScrollBarVisibility="Auto"
                     AutomationProperties.Name="Description"

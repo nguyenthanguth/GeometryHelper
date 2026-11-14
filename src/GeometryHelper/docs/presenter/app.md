@@ -527,6 +527,21 @@ Save As, Export, Print or Close); the command line's menus `cmdline-menu`, `inpu
 and `autocomplete:LA` (the AutoComplete list for LA). A popup of the running window cannot be drawn; these draw its
 content alone. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper DXF.
 
+The dialogs of rounds 5 to 9 are drawn over the drawing open, each in a sample state of its own, the lines of `--run` typed first:
+`mlstyle` (Multiline Style, WALL-240 added with elements 120, 0 and -120 where the drawing has only STANDARD, and chosen),
+`mlstyle-new` (Create New Multiline Style, asking PARTITION), `mlstyle-new-page` (New Multiline Style), `mlstyle-modify` and
+`mlstyle-load`; `mledit`; `plotstamp`, `plotstamp-advanced` (Advanced Options) and `plotstamp-fields` (User Defined Fields);
+`imageadjust` (on the pictures of the space shown); `attext`; `xbind` (on the external references, one attached by
+`--run "-XREF;A;grid.dxf;0,0;;;"`); `insertobject`; `recovery` (three copies written in the temporary folder); `spell` (on the
+entire drawing, started, so that the first word not known is shown) and `spell-settings`; `objectscale` and `objectscale-add` (on
+the annotative objects of the space shown); `insertlayout` and `templateoptions` (over a template written in the temporary
+folder, the second on the first layout); `saveaspdf`, `pdf-override` and `pdf-options`; `rename` (on Layers, one name changed and
+one typed); `lweight`; `boundary`; `viewports` (Three: Right, the second tile given the first named view) and `viewports-named`
+(two configurations saved, the first one's name in Rename); and `filter` (a layer and a kind of object listed). They need a
+drawing: with none, `--dialog rename: needs a drawing.` exits with 2. Where the drawing lacks what a dialog is made of (`imageadjust`
+with no picture, `objectscale` with no annotative object, `xbind` with no reference), the dialog says so, as `--dialog imageadjust:
+the space shown has no image (--run "-IMAGE;...").`, and exits with 2.
+
 GeometryHelper Drawing adds its own: `--new-drawing "Test bodies" Assembly` makes a model drawing from a source with a
 preset and shows it, `--tab Drawing` shows its tab, `--pick view|dimension|mark|line` selects the first entity of the
 drawing that draws one, `--hand-edit` moves its first dimension 25 up by hand, and `--dialog
