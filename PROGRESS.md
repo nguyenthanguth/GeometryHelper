@@ -125,9 +125,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 1 (fu-mline): MLINE grips and STRETCH (core DxfMlineBuilder.MoveVertexAt, cuts kept as AutoCAD),
         TRIM and EXTEND of and to an MLINE, AutoCAD's refusals of OFFSET, FILLET, CHAMFER, LENGTHEN, BREAK; MLEDIT's quiet miss,
         closed refusals, cuts across segments and 4-element merged tees and crosses; MLSTYLE Rename, Delete, Load, Save (.mln)
-  - [ ] (mline3, running) R2.1 follow-ups 2 (the Multiline Styles and Multiline Edit Tools dialogs done by dialogs5): WA across the first vertex of
-        a closed MLINE (AutoCAD's result looks inverted, parked); OT and MT with a closed bar, EXTEND Edge=Extend on oblique
-        edges, trims near a corner (S)
+  - [x] R2.1 follow-ups 2 (mline3): OT, MT and CT on a self-intersecting tee as AutoCAD (message, partial edit); trims
+        across a corner cut each element at its own hit (open MLINEs); WA deletes cut entries between the picks as
+        AutoCAD (inside-out partial welds matched); closed MLINE grips; start trims keep the last vertex tail
+  - [ ] MLINE follow-ups 3: MoveVertexAt on cut MLINEs (9 probes M0-M3, N1-N5 in agent notes: raw turned tails, a 0 put
+        in front after a moved vertex); cross-segment trims on a closed MLINE; CC, OC, MC near corners and CJ near the
+        open end (self-intersecting refusals?)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -177,7 +180,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 9 (dialogs9, design v147-v148): EXPORTPDF's Save As PDF dialog (export area, page setup override, Export to
         PDF Options, open in viewer, plot stamp), PDF hyperlinks (CadPlotSettings.PdfHyperlinks); the dialogs of rounds 5-9
         drawn to PNG and checked (no layout faults)
-  - [ ] Dialogs 9 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); links
+  - [ ] (shots, running: screenshot mode and links) Dialogs 9 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); links
         on objects seen through viewports; the round 5-9 dialogs in --dialog screenshot mode; .pss location codes 1-3; Collect
         in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):

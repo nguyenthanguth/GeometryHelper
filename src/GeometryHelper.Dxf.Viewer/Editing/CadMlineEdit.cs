@@ -291,8 +291,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// Joins the first multiline to the second as a tee: the first is trimmed or extended to where the lines meet, on the
         /// side of the meeting the pick on it was, its elements stopping at the second's near outer element (closed and open) or,
         /// for the merged tee, the inner ones at the second's inner elements, rank for rank from the near side; the open and
-        /// merged tees also break the second's near outer element across the first's width.
+        /// merged tees also break the second's near outer element across the first's width. An element of the first that meets
+        /// the second's element before its start or after its end, where another segment goes on from there (the closed
+        /// multiline's corners, the open one's inner vertices), is left as it was and the second is left whole, as AutoCAD
+        /// 2021 leaves them with "Invalid operation on a self intersecting multiline.": the elements before it are stopped.
         /// </summary>
+        /// <param name="first">The multiline that is trimmed or extended.</param>
+        /// <param name="firstSegment">The segment of the first the pick was on.</param>
+        /// <param name="firstPick">Where the first was picked.</param>
+        /// <param name="second">The multiline that is met.</param>
+        /// <param name="secondSegment">The segment of the second the pick was on.</param>
+        /// <param name="joint">Closed, open or merged.</param>
+        /// <param name="selfIntersecting">True where an element of the first meets the second past a corner, as above.</param>
         /// <returns>False where the lines do not meet within the second's segment, or the first is closed.</returns>
         internal static bool Tee(
             DxfMlineBuilder first,
@@ -300,9 +310,12 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 firstPick,
             DxfMlineBuilder second,
             int secondSegment,
-            Joint joint
+            Joint joint,
+            out bool selfIntersecting
         )
         {
+            selfIntersecting = false;
+
             if (first.IsClosed)
             {
                 return false;
@@ -334,6 +347,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The second's elements from the side the first comes from, nearest first.
             List<int> near = Ranked(second, secondsLeft ? -1.0 : 1.0);
             var stops = new GeoPoint3[first.ElementCount];
+            var passes = new bool[first.ElementCount];
 
             for (int e = 0; e < first.ElementCount; e++)
             {
@@ -346,7 +360,7 @@ namespace GeometryHelper.Dxf.Viewer
                         second.ElementPoint(secondSegment, target),
                         secondWay,
                         out double along,
-                        out double _
+                        out double onTarget
                     )
                 )
                 {
@@ -354,13 +368,16 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 stops[e] = first.ElementPoint(firstSegment, e).Add(firstWay.Multiply(along));
+                passes[e] = Within(second, secondSegment, target, onTarget);
+                selfIntersecting |= !passes[e];
             }
 
             // The first's pairs of lines, which the open and merged tees break the second's near elements between, before the
             // first moves: the open tee the nearest across the outer pair; the merged tee, as AutoCAD 2021's of four elements,
             // each of the near half across the pair of the first as deep in, where the first has one.
             int depths =
-                joint == Joint.Merged ? near.Count / 2
+                selfIntersecting ? 0
+                : joint == Joint.Merged ? near.Count / 2
                 : joint == Joint.Open ? 1
                 : 0;
             var openings = new List<KeyValuePair<int, double[]>>();
@@ -398,7 +415,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            Stop(first, firstSegment, firstWay, meeting, keepsStart, stops);
+            Stop(first, firstSegment, firstWay, meeting, keepsStart, stops, passes);
 
             foreach (KeyValuePair<int, double[]> opening in openings)
             {
@@ -410,6 +427,21 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Whether a point along an element of a multiline's segment is on the element: from its start to its end, past either
+        /// of which another segment goes on where the multiline is closed or the vertex is not its first or last.
+        /// </summary>
+        private static bool Within(DxfMlineBuilder mline, int segment, int element, double along)
+        {
+            double length = mline
+                .ElementPoint(segment, element)
+                .GetVectorTo(mline.ElementPoint(Next(mline, segment), element))
+                .DotProduct(mline.SegmentDirection(segment));
+            bool goesOnBefore = mline.IsClosed || segment > 0;
+            bool goesOnAfter = mline.IsClosed || segment < mline.SegmentCount - 1;
+            return (!goesOnBefore || along >= -Tiny) && (!goesOnAfter || along <= length + Tiny);
         }
 
         /// <summary>
@@ -527,7 +559,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Ends a multiline at a point: kept from its start to the segment, or from the segment to its end; then each element
         /// stopped at the point given for it, its stretches broken there, or run on past the end it stops at (a start before the
-        /// first vertex at the start).
+        /// first vertex at the start). An element the caller names in <paramref name="passes"/> as false is left as it was, drawn
+        /// whole to the end it would have stopped at.
         /// </summary>
         private static void Stop(
             DxfMlineBuilder mline,
@@ -535,7 +568,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector3 way,
             GeoPoint3 meeting,
             bool keepsStart,
-            GeoPoint3[] stops
+            GeoPoint3[] stops,
+            bool[] passes = null
         )
         {
             if (keepsStart)
@@ -551,6 +585,27 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int e = 0; e < mline.ElementCount; e++)
             {
+                if (passes != null && !passes[e])
+                {
+                    if (keepsStart)
+                    {
+                        mline.SetRuns(at + 1, e, new[] { new DxfMlineBuilder.Run(0.0, double.PositiveInfinity) });
+                    }
+                    else
+                    {
+                        List<DxfMlineBuilder.Run> kept = mline.RunsOf(at, e);
+
+                        if (kept.Count > 0 && double.IsNegativeInfinity(kept[0].From))
+                        {
+                            kept[0] = new DxfMlineBuilder.Run(0.0, kept[0].To);
+                        }
+
+                        mline.SetRuns(at, e, kept);
+                    }
+
+                    continue;
+                }
+
                 GeoPoint3 start = mline.ElementPoint(at, e);
                 double stop = start.GetVectorTo(stops[e]).DotProduct(way);
 
@@ -630,6 +685,56 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Welds an element's stretches along a segment as AutoCAD 2021 does: it takes out every start and stop that lies between
+        /// two places, one by one, not a cut and its two ends together, so that a cut the range only half covers is left turned
+        /// inside out (a stop gone and its start left, the element drawn only before it). A segment between the picks is made
+        /// whole, and so is one every start and stop of which went.
+        /// </summary>
+        private static void Weld(
+            DxfMlineBuilder mline,
+            int segment,
+            int element,
+            double from,
+            double to,
+            bool fromExcluded,
+            bool whole
+        )
+        {
+            const double Near = 1E-6;
+            var entries = new List<double>();
+
+            foreach (DxfMlineBuilder.Run run in mline.RunsOf(segment, element))
+            {
+                entries.Add(run.From);
+
+                if (!double.IsPositiveInfinity(run.To))
+                {
+                    entries.Add(run.To);
+                }
+            }
+
+            entries.RemoveAll(v => whole || ((fromExcluded ? v > from + Near : v >= from - Near) && v <= to + Near));
+            var runs = new List<DxfMlineBuilder.Run>();
+
+            for (int i = 0; i < entries.Count; i += 2)
+            {
+                runs.Add(
+                    new DxfMlineBuilder.Run(
+                        entries[i],
+                        i + 1 < entries.Count ? entries[i + 1] : double.PositiveInfinity
+                    )
+                );
+            }
+
+            if (runs.Count == 0)
+            {
+                runs.Add(new DxfMlineBuilder.Run(0.0, double.PositiveInfinity));
+            }
+
+            mline.SetRuns(segment, element, runs);
+        }
+
+        /// <summary>
         /// Cuts one element, or every element, between the two picks, measured along each element; or welds what is cut between
         /// them back (the stretches there made whole). Where the picks fall on two segments, as AutoCAD 2021 cuts it: from the
         /// first pick to the end of its segment, the segments between whole, and the second pick's segment up to the pick,
@@ -676,17 +781,26 @@ namespace GeometryHelper.Dxf.Viewer
                     double from;
                     double to;
 
+                    // Where the pick range lies along this segment's element, before it is held to the element: what a weld takes
+                    // the stops and starts of.
+                    double reachFrom;
+                    double reachTo;
+
                     if (sequence.Count == 1)
                     {
                         double a = start.GetVectorTo(firstPick).DotProduct(way);
                         double b = start.GetVectorTo(secondPick).DotProduct(way);
                         from = Math.Max(0.0, Math.Min(a, b));
                         to = Math.Min(length, Math.Max(a, b));
+                        reachFrom = Math.Min(a, b);
+                        reachTo = Math.Max(a, b);
                     }
                     else if (k == 0)
                     {
-                        from = Math.Max(0.0, start.GetVectorTo(firstPick).DotProduct(way));
+                        reachFrom = start.GetVectorTo(firstPick).DotProduct(way);
+                        from = Math.Max(0.0, reachFrom);
                         to = double.PositiveInfinity;
+                        reachTo = double.PositiveInfinity;
                     }
                     else if (k == sequence.Count - 1)
                     {
@@ -695,29 +809,37 @@ namespace GeometryHelper.Dxf.Viewer
                             s == 0 && mline.IsClosed
                                 ? start.GetVectorTo(mline.Points[0]).DotProduct(way)
                                 : double.NegativeInfinity;
-                        to = Math.Min(length, start.GetVectorTo(secondPick).DotProduct(way));
+                        reachTo = start.GetVectorTo(secondPick).DotProduct(way);
+                        to = Math.Min(length, reachTo);
+                        reachFrom = from;
                     }
                     else
                     {
                         from = double.NegativeInfinity;
                         to = double.PositiveInfinity;
+                        reachFrom = double.NegativeInfinity;
+                        reachTo = double.PositiveInfinity;
                     }
-
-                    List<DxfMlineBuilder.Run> runs = mline.RunsOf(s, e);
 
                     if (weld)
                     {
-                        runs.Add(
-                            new DxfMlineBuilder.Run(
-                                double.IsNegativeInfinity(from) ? 0.0 : from,
-                                double.IsPositiveInfinity(to) ? double.PositiveInfinity : to
-                            )
+                        Weld(
+                            mline,
+                            s,
+                            e,
+                            reachFrom,
+                            reachTo,
+                            // The vertex a cut started at is not itself welded.
+                            sequence.Count > 1
+                                && k == sequence.Count - 1
+                                && s == 0
+                                && mline.IsClosed,
+                            sequence.Count > 2 && k > 0 && k < sequence.Count - 1
                         );
-                        mline.SetRuns(s, e, runs);
                     }
                     else
                     {
-                        mline.SetRuns(s, e, Without(runs, from, to));
+                        mline.SetRuns(s, e, Without(mline.RunsOf(s, e), from, to));
                     }
                 }
             }
