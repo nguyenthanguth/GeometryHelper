@@ -703,6 +703,111 @@ namespace GeometryHelper.Dwg
             _data.Bit(Whole(groups, ref at, 280) != 0);
         }
 
+        private void WriteDynamicBlockProxyNode()
+        {
+            List<KeyValuePair<int, string>> groups = Sequence();
+            int at = 0;
+            WriteEvalExpression(groups, ref at);
+        }
+
+        /// <summary>
+        /// A value of a properties table: its kind (170) and a text (300) or a real (140) after it. A kind the reader does not
+        /// know is written as none, its value skipped.
+        /// </summary>
+        private void WriteVariant(List<KeyValuePair<int, string>> groups, ref int at)
+        {
+            int kind = Whole(groups, ref at, 170, -9999);
+
+            if (kind == 1)
+            {
+                _data.BitShort(kind);
+                T(Take(groups, ref at, 300));
+            }
+            else if (kind == 40)
+            {
+                _data.BitShort(kind);
+                _data.BitDouble(Real(groups, ref at, 140));
+            }
+            else
+            {
+                if (kind != -9999)
+                {
+                    at++;
+                }
+
+                _data.BitShort(-9999);
+            }
+        }
+
+        /// <summary>A user parameter. The value it holds is written as none: every sample's is, and AutoCAD reads it again from the variable it points to.</summary>
+        private void WriteBlockUserParameter()
+        {
+            List<KeyValuePair<int, string>> groups = Sequence();
+            int at = 0;
+            WriteBlock1PtParameter(groups, ref at);
+            _data.BitLong(Whole(groups, ref at, 90));
+            ulong variable = DwgRecord.Hex(Take(groups, ref at, 330));
+            T(Take(groups, ref at, 301));
+            Take(groups, ref at, 309);
+            _data.BitShort(-9999);
+            _data.BitShort(Whole(groups, ref at, 170));
+            H(4, variable);
+        }
+
+        private void WriteBlockPropertiesTable()
+        {
+            List<KeyValuePair<int, string>> groups = Sequence();
+            int at = 0;
+            WriteBlock1PtParameter(groups, ref at);
+            _data.BitLong(Whole(groups, ref at, 90));
+            T(Take(groups, ref at, 300));
+            T(Take(groups, ref at, 301));
+            int columns = Whole(groups, ref at, 91);
+            _data.BitLong(columns);
+
+            for (int i = 0; i < columns; i++)
+            {
+                ulong parameter = DwgRecord.Hex(Take(groups, ref at, 340));
+                _data.BitShort(Whole(groups, ref at, 170));
+                _data.BitShort(Whole(groups, ref at, 171));
+                T(Take(groups, ref at, 300));
+                T(Take(groups, ref at, 301));
+                _data.BitLong(Whole(groups, ref at, 90));
+                WriteVariant(groups, ref at);
+                WriteVariant(groups, ref at);
+
+                for (int flag = 290; flag <= 294; flag++)
+                {
+                    _data.Bit(Whole(groups, ref at, flag) != 0);
+                }
+
+                T(Take(groups, ref at, 302));
+                ulong second = DwgRecord.Hex(Take(groups, ref at, 340));
+                H(5, parameter);
+                H(3, second);
+            }
+
+            int rows = Whole(groups, ref at, 92);
+            _data.BitLong(rows);
+
+            for (int i = 0; i < rows; i++)
+            {
+                _data.BitLong(Whole(groups, ref at, 90));
+
+                for (int j = 0; j < columns; j++)
+                {
+                    WriteVariant(groups, ref at);
+                }
+            }
+
+            _data.BitLong(Whole(groups, ref at, 93));
+
+            for (int flag = 290; flag <= 292; flag++)
+            {
+                _data.Bit(Whole(groups, ref at, flag) != 0);
+            }
+        }
+
         private void WriteBlockRepresentationData()
         {
             DwgGroups data = _record.Of("AcDbBlockRepresentationData");

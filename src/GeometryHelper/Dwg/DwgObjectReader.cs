@@ -1169,6 +1169,18 @@ namespace GeometryHelper.Dwg
                 case "BLOCKBASEPOINTPARAMETER":
                     ReadBlockBasePointParameter();
                     return true;
+                case "ACDB_DYNAMICBLOCKPROXYNODE":
+                    ReadDynamicBlockProxyNode();
+                    return true;
+                case "BLOCKUSERPARAMETER":
+                    ReadBlockUserParameter();
+                    return true;
+                case "BLOCKPROPERTIESTABLE":
+                    ReadBlockPropertiesTable();
+                    return true;
+                case "BLOCKPROPERTIESTABLEGRIP":
+                    ReadBlockGrip();
+                    return true;
                 case "ACDB_BLOCKREPRESENTATION_DATA":
                     ReadBlockRepresentationData();
                     return true;
@@ -1216,6 +1228,39 @@ namespace GeometryHelper.Dwg
                     return true;
                 case "ACDBASSOCPERSSUBENTMANAGER":
                     ReadAssocPersSubentManager();
+                    return true;
+                case "ACDBASSOCVARIABLE":
+                    ReadAssocVariable();
+                    return true;
+                case "ACDBASSOCNETWORK":
+                    ReadAssocNetwork();
+                    return true;
+                case "ACDBASSOC2DCONSTRAINTGROUP":
+                    ReadAssocConstraintGroup();
+                    return true;
+                case "ACDBASSOCDEPENDENCY":
+                    ReadAssocDependency();
+                    return true;
+                case "ACDBASSOCGEOMDEPENDENCY":
+                    ReadAssocGeomDependency();
+                    return true;
+                case "ACDBASSOCVALUEDEPENDENCY":
+                    ReadAssocValueDependency();
+                    return true;
+                case "ASSOCDIMDEPENDENCYBODY":
+                    ReadAssocDependencyBody("AcDbAssocDimDependencyBody");
+                    return true;
+                case "BLOCKPARAMDEPENDENCYBODY":
+                    ReadAssocDependencyBody("AcDbBlockParameterDependencyBody");
+                    return true;
+                case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                    ReadBlockConstraintParameter("AcDbBlockHorizontalConstraintParameter");
+                    return true;
+                case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                    ReadBlockConstraintParameter("AcDbBlockVerticalConstraintParameter");
+                    return true;
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                    ReadBlockConstraintParameter("AcDbBlockRadialConstraintParameter");
                     return true;
                 default:
                     return false;

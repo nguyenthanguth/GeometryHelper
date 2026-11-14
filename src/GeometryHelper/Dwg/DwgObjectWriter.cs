@@ -142,7 +142,9 @@ namespace GeometryHelper.Dwg
 
             if (_classes.TryGetValue(type, out int number) && Encoder(type) != null)
             {
-                return type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null
+                return
+                    (type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null)
+                    || (type == "ACDBASSOC2DCONSTRAINTGROUP" && (R2013Plus || !NodesAreKnown(record)))
                     ? -1
                     : number;
             }
@@ -421,6 +423,14 @@ namespace GeometryHelper.Dwg
                     return R2007Plus ? WriteBlockPointParameter : (Action)null;
                 case "BLOCKBASEPOINTPARAMETER":
                     return R2007Plus ? WriteBlockBasePointParameter : (Action)null;
+                case "ACDB_DYNAMICBLOCKPROXYNODE":
+                    return R2007Plus ? WriteDynamicBlockProxyNode : (Action)null;
+                case "BLOCKUSERPARAMETER":
+                    return R2007Plus ? WriteBlockUserParameter : (Action)null;
+                case "BLOCKPROPERTIESTABLE":
+                    return R2007Plus ? WriteBlockPropertiesTable : (Action)null;
+                case "BLOCKPROPERTIESTABLEGRIP":
+                    return R2007Plus ? WritePlainGrip : (Action)null;
                 case "ACDB_BLOCKREPRESENTATION_DATA":
                     return R2007Plus ? WriteBlockRepresentationData : (Action)null;
                 case "ACAD_TABLE":
@@ -455,6 +465,25 @@ namespace GeometryHelper.Dwg
                     return WriteDataLink;
                 case "ACDBASSOCPERSSUBENTMANAGER":
                     return WriteAssocPersSubentManager;
+                case "ACDBASSOCVARIABLE":
+                    return R2007Plus ? WriteAssocVariable : (Action)null;
+                case "ACDBASSOCNETWORK":
+                    return R2007Plus ? WriteAssocNetwork : (Action)null;
+                case "ACDBASSOC2DCONSTRAINTGROUP":
+                    return R2007Plus ? WriteAssocConstraintGroup : (Action)null;
+                case "ACDBASSOCDEPENDENCY":
+                    return R2007Plus ? WriteAssocDependency : (Action)null;
+                case "ACDBASSOCGEOMDEPENDENCY":
+                    return R2007Plus ? WriteAssocGeomDependency : (Action)null;
+                case "ACDBASSOCVALUEDEPENDENCY":
+                    return R2007Plus ? WriteAssocValueDependency : (Action)null;
+                case "ASSOCDIMDEPENDENCYBODY":
+                case "BLOCKPARAMDEPENDENCYBODY":
+                    return R2007Plus ? WriteAssocDependencyBody : (Action)null;
+                case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                    return R2007Plus ? WriteBlockConstraintParameter : (Action)null;
                 default:
                     return null;
             }

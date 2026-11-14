@@ -231,6 +231,64 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        private bool IsWritten(ulong handle) => handle == 0 || _written.Contains(handle);
+
+        /// <summary>Whether the pointers of the groups of <paramref name="code"/> past the marker <paramref name="after"/> (none: all) are to written objects; the first only where <paramref name="first"/> is set.</summary>
+        private bool PointersAreWritten(DwgRecord record, int code, string after, bool first = false)
+        {
+            bool past = after == null;
+
+            foreach (KeyValuePair<int, string> group in record.Body)
+            {
+                if (group.Key == 100)
+                {
+                    past |= group.Value.Trim() == after;
+                }
+                else if (past && group.Key == code)
+                {
+                    if (!IsWritten(DwgRecord.Hex(group.Value)))
+                    {
+                        return false;
+                    }
+
+                    if (first)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether the graph, network, parameter or network object <paramref name="record"/> has to be left out for what it needs and lacks.</summary>
+        private bool IsLeftOut(DwgRecord record)
+        {
+            switch (record.Type)
+            {
+                case "ACAD_EVALUATION_GRAPH":
+                    return !PointersAreWritten(record, 360, null);
+                case "ACDBASSOCNETWORK":
+                    return !PointersAreWritten(record, 360, "AcDbAssocNetwork") || !IsWritten(record.Owner);
+                case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                    return !PointersAreWritten(record, 330, "AcDbBlockConstraintParameter", true);
+                case "BLOCKUSERPARAMETER":
+                    return !PointersAreWritten(record, 330, "AcDbBlockUserParameter", true);
+                case "ACDBASSOCVARIABLE":
+                case "ACDBASSOC2DCONSTRAINTGROUP":
+                case "ACDBASSOCDEPENDENCY":
+                case "ACDBASSOCGEOMDEPENDENCY":
+                case "ACDBASSOCVALUEDEPENDENCY":
+                case "ASSOCDIMDEPENDENCYBODY":
+                case "BLOCKPARAMDEPENDENCYBODY":
+                    return !IsWritten(record.Owner);
+                default:
+                    return false;
+            }
+        }
+
         private byte[] Write(ProgressSteps progress)
         {
             ListClassesOfFields();
@@ -283,23 +341,39 @@ namespace GeometryHelper.Dwg
                 && _written.Remove(record.Handle)
             );
 
-            // A graph of a dynamic block that names an expression not written is left out with the expressions it owns.
-            foreach (DwgRecord graph in records.FindAll(record => record.Type == "ACAD_EVALUATION_GRAPH"))
-            {
-                if (!graph.Body.Exists(group => group.Key == 360 && !_written.Contains(DwgRecord.Hex(group.Value))))
-                {
-                    continue;
-                }
+            // What a dynamic block keeps whole or not at all (as DwgTranscoder.LeaveOutIncompleteGraphs does for a drawing read):
+            // a graph that names an expression not written is left out with the expressions it owns, and so is a network that
+            // names an action not written, a parameter that points to a dependency or variable not written, and an object of a
+            // network whose owner is not written.
+            bool left = true;
 
-                foreach (DwgRecord left in records.FindAll(record => record == graph || record.Owner == graph.Handle))
+            while (left)
+            {
+                left = false;
+
+                foreach (
+                    DwgRecord one in records.FindAll(record => _written.Contains(record.Handle) && IsLeftOut(record))
+                )
                 {
-                    _written.Remove(left.Handle);
-                    _left.TryGetValue(left.Type, out int count);
-                    _left[left.Type] = count + 1;
+                    left = true;
+
+                    foreach (
+                        DwgRecord gone in records.FindAll(record =>
+                            record == one || (one.Type == "ACAD_EVALUATION_GRAPH" && record.Owner == one.Handle)
+                        )
+                    )
+                    {
+                        if (_written.Remove(gone.Handle))
+                        {
+                            _left.TryGetValue(gone.Type, out int count);
+                            _left[gone.Type] = count + 1;
+                        }
+                    }
                 }
 
                 records.RemoveAll(record => !_written.Contains(record.Handle));
             }
+
             records.Sort((a, b) => a.Handle.CompareTo(b.Handle));
 
             var objects = new MemoryStream();

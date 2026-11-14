@@ -346,38 +346,108 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// Leaves out the evaluation graph of a dynamic block whose expressions are not all read (a constraint parameter, a
-        /// user parameter, a properties table and a proxy node are not), with the expressions it owns: a graph that names an
-        /// expression the drawing lacks is no graph, and AutoCAD drops its nodes. The block stays an ordinary one.
+        /// Leaves out what a dynamic block keeps whole or not at all: an evaluation graph that names an expression not read
+        /// (a constraint parameter whose dependency is not read is no expression), a network that names an action not read, a
+        /// parameter that points to a variable or dependency not read, and each object of the network (variable, dependency, group,
+        /// body) whose owner is not read. A graph that names an expression the drawing lacks is no graph, and AutoCAD drops its
+        /// nodes; one that leans on a network with a hole in it would lose its constraints and be refused. The block stays an
+        /// ordinary one.
         /// </summary>
         private void LeaveOutIncompleteGraphs()
         {
-            foreach (DwgObject graph in _objects)
-            {
-                if (graph.Name != "ACAD_EVALUATION_GRAPH" || !graph.Decoded || GraphIsWhole(graph))
-                {
-                    continue;
-                }
+            bool left = true;
 
-                graph.Decoded = false;
+            while (left)
+            {
+                left = false;
 
                 foreach (DwgObject one in _objects)
                 {
-                    if (one.Owner == graph.Handle)
+                    if (!one.Decoded || !IsLeftOut(one))
                     {
-                        one.Decoded = false;
+                        continue;
+                    }
+
+                    one.Decoded = false;
+                    left = true;
+
+                    // The expressions a graph owns go with it.
+                    if (one.Name == "ACAD_EVALUATION_GRAPH")
+                    {
+                        foreach (DwgObject owned in _objects)
+                        {
+                            if (owned.Owner == one.Handle)
+                            {
+                                owned.Decoded = false;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        private bool GraphIsWhole(DwgObject graph)
+        private bool IsKept(ulong handle) => handle == 0 || (Find(handle)?.Decoded ?? false);
+
+        /// <summary>Whether the object of a dynamic block's graph or network has to be left out for what it needs and lacks.</summary>
+        private bool IsLeftOut(DwgObject one)
         {
-            foreach (DwgGroup group in graph.Body)
+            string after = null;
+
+            switch (one.Name)
             {
-                if (group.Code == 360 && group.Value is ulong handle && !(Find(handle)?.Decoded ?? false))
-                {
+                case "ACAD_EVALUATION_GRAPH":
+                    return !PointersAreKept(one, 360, null);
+                case "ACDBASSOCNETWORK":
+                    return !PointersAreKept(one, 360, "AcDbAssocNetwork") || !IsKept(one.Owner);
+                case "BLOCKHORIZONTALCONSTRAINTPARAMETER":
+                case "BLOCKVERTICALCONSTRAINTPARAMETER":
+                case "BLOCKRADIALCONSTRAINTPARAMETER":
+                    after = "AcDbBlockConstraintParameter";
+                    break;
+                case "BLOCKUSERPARAMETER":
+                    after = "AcDbBlockUserParameter";
+                    break;
+                case "ACDBASSOCVARIABLE":
+                case "ACDBASSOC2DCONSTRAINTGROUP":
+                case "ACDBASSOCDEPENDENCY":
+                case "ACDBASSOCGEOMDEPENDENCY":
+                case "ACDBASSOCVALUEDEPENDENCY":
+                case "ASSOCDIMDEPENDENCYBODY":
+                case "BLOCKPARAMDEPENDENCYBODY":
+                    return !IsKept(one.Owner);
+                default:
                     return false;
+            }
+
+            // A parameter points, past its marker, to the dependency or variable it leans on.
+            return !PointersAreKept(one, 330, after, true);
+        }
+
+        /// <summary>
+        /// Whether the objects the groups of <paramref name="code"/> name are all read: those past the group that is the marker
+        /// <paramref name="after"/> (none for the whole body), the first only where <paramref name="first"/> is set.
+        /// </summary>
+        private bool PointersAreKept(DwgObject one, int code, string after, bool first = false)
+        {
+            bool past = after == null;
+
+            foreach (DwgGroup group in one.Body)
+            {
+                if (group.Code == 100)
+                {
+                    past |= group.Value is string marker && marker == after;
+                }
+                else if (past && group.Code == code && group.Value is ulong handle)
+                {
+                    if (!IsKept(handle))
+                    {
+                        return false;
+                    }
+
+                    if (first)
+                    {
+                        return true;
+                    }
                 }
             }
 
