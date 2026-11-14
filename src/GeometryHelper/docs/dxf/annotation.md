@@ -25,7 +25,7 @@ the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern mad
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
 R2004, its colours [`DxfGradientColor`](xref:GeometryHelper.Dxf.DxfGradientColor)s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
 AutoCAD 2021's, red, green and blue mixed in proportion with each channel cut down to a whole number: AutoCAD's new gradient, blue to a
-pale yellow, gives (127, 127, 204), and a gradient of one colour runs to the colour's tint in hue, saturation and lightness (red at 0.25 to (128, 0, 0)). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2)s in
+pale yellow, gives (127, 127, 204), and a gradient of one colour runs to the colour's tint in hue, saturation and lightness (red at 0.25 to (128, 0, 0)); the tint counts in whole hundredths, cut down (0.336 acts as 0.33). Setting `ShadeTintValue` on a gradient of two colours in one-colour mode also makes its second colour the tint of the first, as AutoCAD does each time it is set: red and green with the tint set to 0.3 read back as red and (153, 0, 0). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2)s in
 the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
 the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
 file older than R2000 has no HATCH and refuses one.

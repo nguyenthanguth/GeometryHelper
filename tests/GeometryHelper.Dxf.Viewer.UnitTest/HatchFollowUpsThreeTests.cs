@@ -349,7 +349,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadBoundaryLoop loop = Assert.Single(FindWithGap(document, 5.0));
             Assert.Equal(10000.0, loop.Area, 6);
-            Assert.Null(FindWithGap(document, 1.0));
+            // AutoCAD closes a line ending 2 off a bar at a gap of 0.9 in a view 140 high (a pixel of 0.262) and not at 0.85: a way on
+            // reaches twice the gap and a pixel; with no view, twice the gap.
+            Assert.Null(FindWithGap(document, 0.5));
+            Assert.Single(FindWithGap(document, 1.0));
         }
 
         [Fact]

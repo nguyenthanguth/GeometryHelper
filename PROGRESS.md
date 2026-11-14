@@ -164,9 +164,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
-  - [ ] (hatch4, running: all but the dialogs) R2.2 follow-ups 2: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
-        DxfHatch.ShadeTintValue recomputing colour 2; Close with 2 points (AutoCAD makes a degenerate hatch); arc-ended
-        loose ends along their tangent; gap bridging slower with many loose lines (8000: 144 -> 487 ms) (S)
+  - [x] R2.2 follow-ups 2 (hatch4): ShadeTintValue recolours colour 2 (tint cut to hundredths as AutoCAD); draW Close
+        with 2 points; arc loose ends along their circle; HPGAPTOL reach as AutoCAD (2 gap + a pixel of the view, corners
+        gap + pixel/2); AutoCAD's "Unable to fill/hatch the boundary." messages; bridging faster (8000: 145 -> 100 ms)
+  - [ ] R2.2 follow-ups 3: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
+        SetGradientColors refusing one colour or values other than 0/1 (eInvalidInput; ours accepts, files may hold one);
+        draW loop order (AutoCAD keeps drawing order); associative Retain under HPASSOC; an open 2-point shape kept as a
+        NotClosed loop beside a valid one; small circle with a large gap closing through the far crossing (S)
   - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
         Refine (Add, Delete, Elevate order, Move, Weight), Close/Open of control-point splines, met to 1E-5 against AutoCAD;
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
@@ -259,7 +263,7 @@ User note 2026-11-12 evening (note.md 1-14):
       xdata as AutoCAD (upper-case names, R12 layer names, 5-group points); lightweight polyline default widths in the
       header; splines with 32 vertices per control point; tilted pattern lines' normal; whole-circle fills cut as AutoCAD;
       188 of 198 probe cases equal record for record
-- [ ] R12 follow-ups 5: stacks under \L/\O/\K; stacks in TrueType or beside a big font; tilted solid fills; partial arcs,
+- [ ] (r12f, running) R12 follow-ups 5: stacks under \L/\O/\K; stacks in TrueType or beside a big font; tilted solid fills; partial arcs,
       bulges and ellipses in fills (donut 173/290, bulge 9/41); the star notch; multi-line attributes as Tag_001...;
       ANSI37 line order; gradient band meshes; BODY, surfaces, spline-edge solids; annotative decomposition layers (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;

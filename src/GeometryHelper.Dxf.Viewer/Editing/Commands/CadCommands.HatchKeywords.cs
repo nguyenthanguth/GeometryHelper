@@ -35,6 +35,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>Whether the polylines drawn are kept.</summary>
             public bool RetainDrawn;
+
+            /// <summary>Whether a shape drawn closed no area and was left out: said once the hatch is asked for and there is none.</summary>
+            public bool Unfilled;
         }
 
         private static readonly string[] HatchCorners =
@@ -52,6 +55,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// &lt;Accept&gt;:" for another shape. Each shape of three corners or more is a loop of the hatch, one inside another an
         /// island; the shapes are closed across where left open. The hatch is not associative, and AutoCAD leaves the setting
         /// off after it, as the presenter does. Length goes on along the way the last segment left its end (the tangent of an arc).
+        /// Close with two points makes a hatch of the line and back, a loop of no area, as AutoCAD does.
         /// Arc goes on as AutoCAD's "Enter an arc boundary option [Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of
         /// arc] &lt;Endpoint&gt;:", with the options PLINE's arc mode has but widths: an arc leaves along the way the shape came (east
         /// at the first point), CLose closes it with an arc leaving that way, Line goes back to straight segments, and Undo takes
@@ -250,6 +254,12 @@ namespace GeometryHelper.Dxf.Viewer
                             bulges.Add(0.0);
                             tangents.Add(along);
                         }
+                        else if (points.Count == 2)
+                        {
+                            // Close after a line of no length ends the shape and makes no loop, as AutoCAD does.
+                            closed = true;
+                            break;
+                        }
 
                         continue;
                     }
@@ -275,8 +285,25 @@ namespace GeometryHelper.Dxf.Viewer
                     tangents.Add(leaving);
                 }
 
-                // A shape of two points is a loop only where an arc gives it an area: a line and the arc leaving it.
-                if (points.Count >= 3 || (points.Count == 2 && (bulges[0] != 0.0 || bulges[1] != 0.0)))
+                // One point and Enter leaves draW boundary for the main prompt, keeping the shapes drawn, as AutoCAD does.
+                if (points.Count == 1 && !closed)
+                {
+                    break;
+                }
+
+                // A shape of two points is a loop where an arc gives it an area (a line and the arc leaving it), or where Close
+                // closed it: a line and back, a hatch of no area, as AutoCAD makes it, unless the two points are one.
+                if (
+                    points.Count >= 3
+                    || (
+                        points.Count == 2
+                        && (
+                            bulges[0] != 0.0
+                            || bulges[1] != 0.0
+                            || (closed && (points[1] - points[0]).Length > c.Session.Tolerance.EqualPoint)
+                        )
+                    )
+                )
                 {
                     CadBoundaryLoop loop = DrawnLoop(points, bulges);
                     loops.Add(loop);
@@ -288,7 +315,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    c.Write("A boundary needs three corners at least.");
+                    run.Unfilled = true;
                 }
 
                 yield return CadPrompt.ForPoint("Specify start point for new boundary or <Accept>");

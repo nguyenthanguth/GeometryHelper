@@ -94,6 +94,25 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayBox? within = null,
             IReadOnlyCollection<string> candidates = null,
             double gap = 0.0
+        ) => Find(document, space, point, tolerance, within, candidates, gap, 0.0);
+
+        /// <summary>
+        /// As <see cref="Find(CadDocument, CadSpace, GeoPoint2, Tolerance, DisplayBox?, IReadOnlyCollection{string}, double)"/>
+        /// with the size of a pixel of the view the gap is closed in, as AutoCAD 2021 closes it: a loose end goes on along its
+        /// own way and meets a piece or the way of another end where the two reach no further than twice the gap and a pixel,
+        /// the one that goes the shorter way no further than the gap and half a pixel; two ends facing each other are joined
+        /// where they stand no further apart than that. (A line ending 3 off a bar closes at a gap of 1.4 and not 1.35 in a
+        /// view 140 high on a screen 534 pixels high, where a pixel is 0.262.)
+        /// </summary>
+        internal static IReadOnlyList<CadBoundaryLoop> Find(
+            CadDocument document,
+            CadSpace space,
+            GeoPoint2 point,
+            Tolerance tolerance,
+            DisplayBox? within,
+            IReadOnlyCollection<string> candidates,
+            double gap,
+            double pixel
         )
         {
             if (document == null)
@@ -109,7 +128,7 @@ namespace GeometryHelper.Dxf.Viewer
             double tol = Math.Max(tolerance.EqualPoint, 1E-9);
             List<Raw> raws = Gather(document, space, within, tol, candidates);
             var graph = new Graph(tol);
-            graph.Build(raws, gap);
+            graph.Build(raws, gap, pixel);
             List<Cycle> cycles = graph.Trace();
             Cycle outer = null;
 
@@ -773,7 +792,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _tol = tol;
             }
 
-            public void Build(List<Raw> raws, double gap)
+            public void Build(List<Raw> raws, double gap, double pixel)
             {
                 Cut(raws);
                 var seen = new Dictionary<(int, int), List<Piece>>();
@@ -826,7 +845,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (gap > _tol)
                 {
-                    Bridge(gap);
+                    Bridge(gap, pixel);
                 }
 
                 Prune();
@@ -841,8 +860,12 @@ namespace GeometryHelper.Dxf.Viewer
             /// bridge is made first and each end serves once. The ends are swept along the axis they spread over more, the fewer
             /// pairs.
             /// </summary>
-            private void Bridge(double gap)
+            private void Bridge(double gap, double pixel)
             {
+                // How far a way on may go to meet a piece, or the other way on: twice the gap and a pixel; the shorter of two ways
+                // that meet, and two ends facing each other, a gap and half a pixel.
+                double reachMax = 2.0 * gap + pixel;
+                double joinMax = gap + pixel / 2.0;
                 var degree = new int[_nodes.Count];
 
                 foreach (Piece piece in _pieces)
@@ -874,11 +897,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int i = 0; i < ends.Count; i++)
                 {
-                    for (int j = i + 1; j < ends.Count && along(ends[j]) - along(ends[i]) <= gap; j++)
+                    for (int j = i + 1; j < ends.Count && along(ends[j]) - along(ends[i]) <= joinMax; j++)
                     {
                         double distance = _nodes[ends[i]].DistanceTo(_nodes[ends[j]]);
 
-                        if (distance <= gap)
+                        if (distance <= joinMax)
                         {
                             bridges.Add(
                                 (Round(distance), 0, Math.Min(ends[i], ends[j]), Math.Max(ends[i], ends[j]), default)
@@ -887,45 +910,13 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                Dictionary<int, GeoEdge2> rays = Rays(new HashSet<int>(ends), gap);
+                Dictionary<int, GeoEdge2> rays = Rays(new HashSet<int>(ends), reachMax);
                 var tolerance = new Tolerance(_tol, 1E-9);
 
-                // The pieces a way on may reach, their boxes made once. The short ones are sorted along the axis, so that only a
-                // window of them is looked at for each end; the few long ones (a side of a box) are looked at every time.
+                // The pieces a way on may reach, their boxes made once.
                 Piece[] pieces = _pieces.ToArray();
-                var minX = new double[pieces.Length];
-                var maxX = new double[pieces.Length];
-                var minY = new double[pieces.Length];
-                var maxY = new double[pieces.Length];
-                double longer = Math.Max(8.0 * gap, 8.0 * _tol);
-                var shorts = new List<int>();
-                var longs = new List<int>();
-                double widest = 0.0;
-
-                for (int p = 0; p < pieces.Length; p++)
-                {
-                    Piece piece = pieces[p];
-                    double bow = piece.Bulge == 0.0 ? 0.0 : Math.Abs(piece.Bulge) * piece.P0.DistanceTo(piece.P1) / 2.0;
-                    minX[p] = Math.Min(piece.P0.X, piece.P1.X) - bow;
-                    maxX[p] = Math.Max(piece.P0.X, piece.P1.X) + bow;
-                    minY[p] = Math.Min(piece.P0.Y, piece.P1.Y) - bow;
-                    maxY[p] = Math.Max(piece.P0.Y, piece.P1.Y) + bow;
-                    double extent = alongX ? maxX[p] - minX[p] : maxY[p] - minY[p];
-
-                    if (extent > longer)
-                    {
-                        longs.Add(p);
-                    }
-                    else
-                    {
-                        shorts.Add(p);
-                        widest = Math.Max(widest, extent);
-                    }
-                }
-
-                double[] lows = alongX ? minX : minY;
-                shorts.Sort((a, b) => lows[a] != lows[b] ? lows[a].CompareTo(lows[b]) : a.CompareTo(b));
-                var shortLows = shorts.Select(p => lows[p]).ToArray();
+                var boxes = new PieceBoxes(pieces, alongX, Math.Max(8.0 * reachMax, 8.0 * _tol));
+                var found = new List<int>();
 
                 foreach (int end in ends)
                 {
@@ -934,27 +925,24 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    double rayMinX = Math.Min(ray.StartPoint.X, ray.EndPoint.X) - _tol;
-                    double rayMaxX = Math.Max(ray.StartPoint.X, ray.EndPoint.X) + _tol;
-                    double rayMinY = Math.Min(ray.StartPoint.Y, ray.EndPoint.Y) - _tol;
-                    double rayMaxY = Math.Max(ray.StartPoint.Y, ray.EndPoint.Y) + _tol;
-                    double rayLow = alongX ? rayMinX : rayMinY;
-                    double rayHigh = alongX ? rayMaxX : rayMaxY;
+                    PieceBoxes.BoxOf(
+                        ray.StartPoint,
+                        ray.EndPoint,
+                        ray.Bulge,
+                        out double rayMinX,
+                        out double rayMaxX,
+                        out double rayMinY,
+                        out double rayMaxY
+                    );
+                    boxes.Near(rayMinX - _tol, rayMaxX + _tol, rayMinY - _tol, rayMaxY + _tol, found);
 
-                    void Reach(int p)
+                    foreach (int p in found)
                     {
                         Piece body = pieces[p];
 
-                        if (
-                            body.A == end
-                            || body.B == end
-                            || maxX[p] < rayMinX
-                            || minX[p] > rayMaxX
-                            || maxY[p] < rayMinY
-                            || minY[p] > rayMaxY
-                        )
+                        if (body.A == end || body.B == end)
                         {
-                            return;
+                            continue;
                         }
 
                         foreach (
@@ -963,30 +951,11 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             double reach = _nodes[end].DistanceTo(hit);
 
-                            if (reach > _tol && reach <= gap)
+                            if (reach > _tol && reach <= reachMax && !FacesAnEnd(rays, body, hit, ray))
                             {
                                 bridges.Add((Round(reach), 1, end, body.A, hit));
                             }
                         }
-                    }
-
-                    // The first short piece that can reach as far back as the ray starts, then on while they start before it ends.
-                    int at = Array.BinarySearch(shortLows, rayLow - widest);
-                    at = at < 0 ? ~at : at;
-
-                    while (at > 0 && shortLows[at - 1] >= rayLow - widest)
-                    {
-                        at--;
-                    }
-
-                    for (; at < shorts.Count && shortLows[at] <= rayHigh; at++)
-                    {
-                        Reach(shorts[at]);
-                    }
-
-                    foreach (int p in longs)
-                    {
-                        Reach(p);
                     }
                 }
 
@@ -999,11 +968,11 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    for (int j = i + 1; j < ends.Count && along(ends[j]) - along(ends[i]) <= 2.0 * gap + _tol; j++)
+                    for (int j = i + 1; j < ends.Count && along(ends[j]) - along(ends[i]) <= 2.0 * reachMax + _tol; j++)
                     {
                         if (
                             !rays.TryGetValue(ends[j], out GeoEdge2 onward)
-                            || _nodes[ends[i]].DistanceTo(_nodes[ends[j]]) > 2.0 * gap + _tol
+                            || _nodes[ends[i]].DistanceTo(_nodes[ends[j]]) > 2.0 * reachMax + _tol
                         )
                         {
                             continue;
@@ -1017,7 +986,7 @@ namespace GeometryHelper.Dxf.Viewer
                             double near = _nodes[ends[i]].DistanceTo(hit);
                             double far = _nodes[ends[j]].DistanceTo(hit);
 
-                            if (near > _tol && far > _tol)
+                            if (near > _tol && far > _tol && Math.Min(near, far) <= joinMax)
                             {
                                 bridges.Add((Round(Math.Max(near, far)), 2, first, second, hit));
                             }
@@ -1059,7 +1028,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (bridge.Kind == 1)
                     {
-                        int meet = Meeting(bridge.Point);
+                        int meet = Meeting(bridge.Point, boxes, pieces.Length, found);
 
                         if (meet < 0 || meet == bridge.A || joined.Contains(meet))
                         {
@@ -1071,7 +1040,16 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             joined.Add(meet);
                         }
-                        _pieces.Add(new Piece(bridge.A, meet, _nodes[bridge.A], _nodes[meet], 0.0, string.Empty));
+                        _pieces.Add(
+                            new Piece(
+                                bridge.A,
+                                meet,
+                                _nodes[bridge.A],
+                                _nodes[meet],
+                                BulgeTo(rays[bridge.A], _nodes[meet]),
+                                string.Empty
+                            )
+                        );
                     }
                     else
                     {
@@ -1083,18 +1061,97 @@ namespace GeometryHelper.Dxf.Viewer
                         int corner = Node(bridge.Point);
                         joined.Add(bridge.A);
                         joined.Add(bridge.B);
-                        _pieces.Add(new Piece(bridge.A, corner, _nodes[bridge.A], _nodes[corner], 0.0, string.Empty));
-                        _pieces.Add(new Piece(bridge.B, corner, _nodes[bridge.B], _nodes[corner], 0.0, string.Empty));
+                        _pieces.Add(
+                            new Piece(
+                                bridge.A,
+                                corner,
+                                _nodes[bridge.A],
+                                _nodes[corner],
+                                BulgeTo(rays[bridge.A], _nodes[corner]),
+                                string.Empty
+                            )
+                        );
+                        _pieces.Add(
+                            new Piece(
+                                bridge.B,
+                                corner,
+                                _nodes[bridge.B],
+                                _nodes[corner],
+                                BulgeTo(rays[bridge.B], _nodes[corner]),
+                                string.Empty
+                            )
+                        );
                     }
                 }
+            }
+
+            /// <summary>The bulge of the piece that runs from the start of a way on to a point on it: nought for a straight way, else the arc of its circle that far.</summary>
+            private static double BulgeTo(GeoEdge2 way, GeoPoint2 point)
+            {
+                if (
+                    way.Bulge == 0.0
+                    || !Arc(
+                        way.StartPoint,
+                        way.EndPoint,
+                        way.Bulge,
+                        out GeoPoint2 centre,
+                        out _,
+                        out double from,
+                        out double sweep
+                    )
+                )
+                {
+                    return 0.0;
+                }
+
+                double turn = (sweep > 0.0 ? 1.0 : -1.0) * (Math.Atan2(point.Y - centre.Y, point.X - centre.X) - from);
+                turn %= 2.0 * Math.PI;
+                turn = turn < 0.0 ? turn + 2.0 * Math.PI : turn;
+                return Math.Tan((sweep > 0.0 ? 1.0 : -1.0) * Math.Min(turn, Math.Abs(sweep)) / 4.0);
+            }
+
+            /// <summary>
+            /// Whether a straight way on meets, at the loose end of a piece, the straight way on of that end head on, on the same
+            /// line: the two ends face each other, and AutoCAD joins them as two ends (no further apart than the gap and half a
+            /// pixel: two collinear lines 4 apart close at a gap of 3.9 and not 3), not by the longer reach a way on has to a piece.
+            /// </summary>
+            private bool FacesAnEnd(Dictionary<int, GeoEdge2> rays, Piece body, GeoPoint2 hit, GeoEdge2 ray)
+            {
+                foreach (int node in new[] { body.A, body.B })
+                {
+                    if (
+                        ray.Bulge != 0.0
+                        || !rays.TryGetValue(node, out GeoEdge2 other)
+                        || other.Bulge != 0.0
+                        || _nodes[node].DistanceTo(hit) > _tol
+                    )
+                    {
+                        continue;
+                    }
+
+                    double ax = ray.EndPoint.X - ray.StartPoint.X;
+                    double ay = ray.EndPoint.Y - ray.StartPoint.Y;
+                    double bx = other.EndPoint.X - other.StartPoint.X;
+                    double by = other.EndPoint.Y - other.StartPoint.Y;
+                    double lengths = Math.Sqrt(ax * ax + ay * ay) * Math.Sqrt(bx * bx + by * by);
+
+                    if (lengths > 0.0 && Math.Abs(ax * by - ay * bx) <= 1E-6 * lengths && ax * bx + ay * by < 0.0)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             /// <summary>A cost to a ten-millionth, so that two bridges as long as each other tie whatever the last bits say.</summary>
             private static long Round(double cost) => (long)Math.Round(cost * 1E7);
 
             /// <summary>
-            /// The way each loose end of a straight piece goes on: a segment as long as the gap from the end along the piece's own
-            /// direction. A loose end of an arc has none and is joined to another end only.
+            /// The way each loose end of a piece goes on: a segment as long as the reach given (twice the gap and a pixel) from the end
+            /// along the piece's own direction; for an arc, the arc of its own circle as long (a half turn at most) on past the end, as
+            /// AutoCAD 2021 closes an arc whose end stands off a line (the circle of radius 50 about (50, 50) ending at
+            /// (96.9846, 67.1010) meets a line at y 64 at (98, 64), where the tangent would have met it at (98.113, 64)).
             /// </summary>
             private Dictionary<int, GeoEdge2> Rays(HashSet<int> ends, double gap)
             {
@@ -1104,6 +1161,40 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (piece.Bulge != 0.0)
                     {
+                        if (
+                            !Arc(
+                                piece.P0,
+                                piece.P1,
+                                piece.Bulge,
+                                out GeoPoint2 centre,
+                                out double radius,
+                                out _,
+                                out double sweep
+                            )
+                        )
+                        {
+                            continue;
+                        }
+
+                        foreach (int end in new[] { piece.A, piece.B })
+                        {
+                            if (ends.Contains(end))
+                            {
+                                // Past the end of the piece it goes on the way it turns, past its start the way back.
+                                GeoPoint2 start = _nodes[end];
+                                double turn =
+                                    Math.Min(gap / radius, Math.PI)
+                                    * (sweep > 0.0 ? 1.0 : -1.0)
+                                    * (end == piece.B ? 1.0 : -1.0);
+                                double angle = Math.Atan2(start.Y - centre.Y, start.X - centre.X) + turn;
+                                var onward = new GeoPoint2(
+                                    centre.X + radius * Math.Cos(angle),
+                                    centre.Y + radius * Math.Sin(angle)
+                                );
+                                rays[end] = new GeoEdge2(start, onward, Math.Tan(turn / 4.0));
+                            }
+                        }
+
                         continue;
                     }
 
@@ -1136,11 +1227,34 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>
             /// The corner at a point on a piece: the piece's own end where the point is within the tolerance of it, else the piece
-            /// cut in two there and the new corner; -1 where no piece lies on the point.
+            /// cut in two there and the new corner; -1 where no piece lies on the point. The first piece in the list that lies on
+            /// it is the one. Only the pieces whose boxes reach the point are tried: those the boxes were made of (the first
+            /// <paramref name="made"/> of the list, each still within its box when it was cut in two since) and those added
+            /// after.
             /// </summary>
-            private int Meeting(GeoPoint2 point)
+            private int Meeting(GeoPoint2 point, PieceBoxes boxes, int made, List<int> near)
             {
-                for (int p = 0; p < _pieces.Count; p++)
+                double reach = _tol + 1E-9;
+                boxes.Near(point.X - reach, point.X + reach, point.Y - reach, point.Y + reach, near);
+
+                for (int p = made; p < _pieces.Count; p++)
+                {
+                    PieceBoxes.BoxOf(_pieces[p], out double lowX, out double highX, out double lowY, out double highY);
+
+                    if (
+                        highX >= point.X - reach
+                        && lowX <= point.X + reach
+                        && highY >= point.Y - reach
+                        && lowY <= point.Y + reach
+                    )
+                    {
+                        near.Add(p);
+                    }
+                }
+
+                near.Sort();
+
+                foreach (int p in near)
                 {
                     Piece piece = _pieces[p];
                     var raw = new Raw(piece.P0, piece.P1, piece.Bulge, piece.Source);
@@ -1475,6 +1589,117 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 return Enumerable.Range(0, _nodes.Count).Select(Root).ToArray();
+            }
+        }
+
+        /// <summary>
+        /// The boxes of a list of pieces, made once, so that those near a given box are found without a pass over all of them:
+        /// the short pieces are sorted along an axis and only a window of them is looked at; the few long ones (a side of a box)
+        /// are looked at every time.
+        /// </summary>
+        private sealed class PieceBoxes
+        {
+            private readonly bool _alongX;
+            private readonly double[] _minX;
+            private readonly double[] _maxX;
+            private readonly double[] _minY;
+            private readonly double[] _maxY;
+            private readonly int[] _shorts;
+            private readonly double[] _shortLows;
+            private readonly int[] _longs;
+            private readonly double _widest;
+
+            /// <param name="pieces">The pieces; a piece cut in two later stays inside the box it had.</param>
+            /// <param name="alongX">Whether the short pieces are sorted along x, else along y.</param>
+            /// <param name="longer">The extent along the axis past which a piece is long.</param>
+            public PieceBoxes(Piece[] pieces, bool alongX, double longer)
+            {
+                _alongX = alongX;
+                _minX = new double[pieces.Length];
+                _maxX = new double[pieces.Length];
+                _minY = new double[pieces.Length];
+                _maxY = new double[pieces.Length];
+                var shorts = new List<int>();
+                var longs = new List<int>();
+
+                for (int p = 0; p < pieces.Length; p++)
+                {
+                    BoxOf(pieces[p], out _minX[p], out _maxX[p], out _minY[p], out _maxY[p]);
+                    double extent = alongX ? _maxX[p] - _minX[p] : _maxY[p] - _minY[p];
+
+                    if (extent > longer)
+                    {
+                        longs.Add(p);
+                    }
+                    else
+                    {
+                        shorts.Add(p);
+                        _widest = Math.Max(_widest, extent);
+                    }
+                }
+
+                double[] lows = alongX ? _minX : _minY;
+                shorts.Sort((a, b) => lows[a] != lows[b] ? lows[a].CompareTo(lows[b]) : a.CompareTo(b));
+                _shorts = shorts.ToArray();
+                _shortLows = shorts.Select(p => lows[p]).ToArray();
+                _longs = longs.ToArray();
+            }
+
+            /// <summary>The box of a piece, widened by how far an arc bows: enough to find what lies on it.</summary>
+            public static void BoxOf(Piece piece, out double minX, out double maxX, out double minY, out double maxY) =>
+                BoxOf(piece.P0, piece.P1, piece.Bulge, out minX, out maxX, out minY, out maxY);
+
+            /// <summary>The box of an edge from one point to another of a bulge, widened by how far it bows.</summary>
+            public static void BoxOf(
+                GeoPoint2 a,
+                GeoPoint2 b,
+                double bulge,
+                out double minX,
+                out double maxX,
+                out double minY,
+                out double maxY
+            )
+            {
+                double bow = bulge == 0.0 ? 0.0 : Math.Abs(bulge) * a.DistanceTo(b) / 2.0;
+                minX = Math.Min(a.X, b.X) - bow;
+                maxX = Math.Max(a.X, b.X) + bow;
+                minY = Math.Min(a.Y, b.Y) - bow;
+                maxY = Math.Max(a.Y, b.Y) + bow;
+            }
+
+            /// <summary>Puts into a list, in no order, the pieces whose boxes meet a box (touching counts).</summary>
+            public void Near(double minX, double maxX, double minY, double maxY, List<int> into)
+            {
+                into.Clear();
+                double low = _alongX ? minX : minY;
+                double high = _alongX ? maxX : maxY;
+
+                // The first short piece that can reach as far back as the box starts, then on while they start before it ends.
+                int at = Array.BinarySearch(_shortLows, low - _widest);
+                at = at < 0 ? ~at : at;
+
+                while (at > 0 && _shortLows[at - 1] >= low - _widest)
+                {
+                    at--;
+                }
+
+                for (; at < _shorts.Length && _shortLows[at] <= high; at++)
+                {
+                    int p = _shorts[at];
+
+                    if (_maxX[p] >= minX && _minX[p] <= maxX && _maxY[p] >= minY && _minY[p] <= maxY)
+                    {
+                        into.Add(p);
+                    }
+                }
+
+                foreach (int p in _longs)
+                {
+                    if (_maxX[p] >= minX && _minX[p] <= maxX && _maxY[p] >= minY && _minY[p] <= maxY)
+                    {
+                        into.Add(p);
+                    }
+                }
             }
         }
 

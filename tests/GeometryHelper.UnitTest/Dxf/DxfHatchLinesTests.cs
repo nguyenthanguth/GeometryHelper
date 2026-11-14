@@ -358,6 +358,8 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0xFF4040, hatch.EvaluateGradientColorAt(0.5f).ColorValue);
             Assert.Equal(0xFF0000, hatch.EvaluateGradientColorAt(1f).ColorValue);
 
+            // The tint is set first: set in one-colour mode it would make the second colour the tint of the first, as AutoCAD does.
+            hatch.ShadeTintValue = 1f;
             hatch.SetGradientColors(
                 new[]
                 {
@@ -365,7 +367,6 @@ namespace GeometryHelper.UnitTest.Dxf
                     new DxfGradientColor(DxfColor.FromRgb(0, 0, 255), 1f),
                 }
             );
-            hatch.ShadeTintValue = 1f;
             Assert.Equal(0x0000FF, hatch.EvaluateGradientColorAt(1f).ColorValue);
         }
 

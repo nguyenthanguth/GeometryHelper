@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** `DxfHatch.ShadeTintValue` on a gradient of two colours in one-colour mode makes the second colour the tint of the first, as
+AutoCAD 2021 does each time it is set (the same value again too): red at 0 and green at 1, the tint set to 0.3, read back as red and
+(153, 0, 0), a true colour at the value the second colour had; a first colour of the index is tinted from its palette colour (index 7, 0.3,
+gives (77, 77, 77)). A gradient of two colours in two-colour mode, and one of one colour only, keep their colours, as before, and setting the
+colours or turning one-colour mode on changes nothing until the tint is set. The tint counts in whole hundredths, cut down, in single
+precision, for this colour and for what `EvaluateGradientColorAt` gives of a gradient of one colour: (100, 150, 50) at 0.336 and at 0.333333
+ends in (84, 126, 42), that of 0.33, and at 0.994 in (252, 254, 251), that of 0.99 (48 tints of 3 colours read from AutoCAD; it was the
+colour of the exact tint, (85, 127, 42)). A gradient of two colours in one-colour mode that is then given a tint now runs to the tint, where
+it kept its second colour.
+**NEW.** -HATCH's draW boundary closed with Close after two points makes a hatch of the line and back, a loop of no area, as AutoCAD 2021
+does (`(0, 0)`, `(100, 0)`, Close gives one External loop whose edges run (0, 0) to (100, 0) and back; retained, the closed polyline of
+two vertices; inside a square an island of no area, outside it a loop of its own); two points of one place make none, and two points left
+open make none as before. AutoCAD 2021 reads the DXF of such a hatch.
+**NEW.** Gap tolerance (HPGAPTOL) takes a loose end of an arc on along its circle, as AutoCAD 2021 does, where it had none: the arc of
+radius 50 about (50, 50) from 20 to 90 degrees ends at (96.9846, 67.1010), a line lies at y 64, and the hatch closes at (98, 64), where the
+circle meets the line (the tangent would meet it at 98.113), 3 072.7528 square units as AutoCAD hatched; an arc ending straight above or
+below a line closes at 99.9099 (4 763.4054), at either of its ends; and the way on of an arc and of a line leaning in meet at the corner
+(99.9251, 47.2638) (7 407.87).
+**CHANGED.** The gap tolerance (HPGAPTOL) closes loose ends as far as AutoCAD 2021 does, which is further than it did: a loose end that goes
+on and meets a line or an arc closes where it reaches no further than twice the gap and a pixel of the view (it was the gap); where it
+meets the way another loose end goes on, the shorter way may be no longer than the gap and half a pixel and the longer no longer than
+twice the gap and a pixel (it was the gap for each); and two ends facing each other, on one line or not met so, are joined where they stand
+no further apart than the gap and half a pixel. AutoCAD's pixel is the height of its view over the 534 pixels of the console's screen (a
+view 140 high, 0.262; 280 high, 0.524), the extents of the drawing having none of it (probed: a far line changed nothing); the presenter
+takes the pixel of its own view and none where it has no view, as in a test. Read from AutoCAD 2021 at views 140 and 280 high: a line
+ending 3 off a bar closes at a gap of 1.4 and not 1.35, 6 off at 2.9 and not 2.7, 20 off at 9.9 and not 9.85 (9.75 and not 9.7 in the view
+280 high), 2 off at 0.9 and not 0.85 (the square with the gap of 2 closed at 1 where the guide said not); ends 5 and 5 across a corner
+at 4.9 and not 4.8, 3 and 3 at 2.9 and not 2.8, 2 and 8 at 4.4 and not 3.5; two lines 4 apart on one line at 3.9 and not 3; the arc that
+stands off a line, reaching 3.263 along its circle, at 1.55 and not 1.5. `CadBoundaryFinder.Find` takes the pixel in an internal overload;
+the public one has none.
+**NEW.** -HATCH's draW boundary says what AutoCAD 2021's console says of a shape that closes no area: nothing as it ends, and where no hatch
+is made `Unable to fill the boundary with solid.` (solid or gradient) or `Unable to hatch the boundary.` (a pattern) as the hatch is asked
+for, where it said `A boundary needs three corners at least.` as the shape ended; one point and Enter goes back to the main prompt, as
+it does in AutoCAD, keeping the shapes drawn, where it asked for another start point; Close after a line of no length ends the shape.
+**CHANGED.** Gap bridging with many loose lines is quicker, with the loops the same bit for bit: the piece a bridge lands on is found
+among the pieces near it, not by a pass over all of them that built an arc for each. 8 000 loose lines, each 10 long, scattered over
+3 000 by 3 000 with a gap of 5 took 145 ms to find the area round a point (37 ms with no gap) and took 70 ms with the change (100 ms once the wider reach of the entries above is in); 2 000 lines over 1 500 by 1 500 took 21 ms and
+took 13.5 ms with it (16 ms with the wider reach) (.NET Framework 4.8, best of 5-7). The loops of the six inputs timed, every cycle, vertex, bulge and
+source, are the same bit for bit before and after this change taken alone (.NET Framework 4.8 and .NET 10); the arcs of the previous entry change those of the two inputs that hold arcs.
 **NEW.** CAL's `getvar`, `w2u`, `u2w`, `rot`, `xof`, `yof`, `zof`, `xyof`, `rxof`, `ryof` and `rzof` in the presenter, with the values and
 the words of AutoCAD 2021's accoreconsole: `getvar(textsize)` reads a system variable of the drawing (an angle in radians,
 `getvar(snapang)` 0.523598776 for 30 degrees; a switch 0 or 1; a point as `x,y,z`), `getvar(nosuchvar)` says `Unknown AutoCAD

@@ -462,8 +462,8 @@ came (east at the first point, or the way the last line was drawn), or by an inc
 Second pt; Line goes back to straight segments, CLose closes the shape with an arc leaving the way it came, Undo takes the last
 segment off and goes on in line mode (`All segments already undone.` at the first point), an end that makes no arc says
 `*Invalid*`, and Enter ends the shape. A line from (0, 0) to (100, 0), an arc to (100, 50) and a line to (0, 50) closed is
-5 981.75 square units, the half circle of radius 25 on the right included. A shape of two points is a loop only when an arc gives
-it an area. remove Boundaries asks `Select objects or [Add
+5 981.75 square units, the half circle of radius 25 on the right included. A shape of two points is a loop when an arc gives
+it an area, and when Close closed it: a line and back, a hatch of no area, as AutoCAD makes it (two points of one place make none). A shape that closes no area says nothing as it ends and, where no hatch is made, `Unable to fill the boundary with solid.` (a solid or gradient) or `Unable to hatch the boundary.` as the hatch is asked for; one point and Enter goes back to the main prompt, keeping the shapes drawn. remove Boundaries asks `Select objects or [Add
 boundaries]:` and takes out the loops the objects selected make (an island by its circle, say; the outer loop going takes the
 area with it), asks `Select objects or [Add boundaries/Undo]:` again, Undo bringing the last removal back and Add boundaries
 going back to the point prompt. Origin asks `[Use current origin/Set new origin/Default to boundary extents] <Use current
@@ -488,11 +488,16 @@ boundary not found.` and the search goes on among every object, as AutoCAD 2021'
 in another hatches that square all the same), Everything all the objects of the space again; Retain boundary keeps polylines of the loops as well
 (those of an ellipse or spline have no corners and are left out), Style is `[Ignore/Outer/Normal]`, Gap tolerance asks `Specify
 a boundary gap tolerance value <0>:` from 0 to 5000 (`Value must be between 0 and 5000.` outside), says `HPGAPTOL set to 3` and
-closes loose ends no further than that as AutoCAD does: a line is taken on along its own direction and closes where that reaches
-another line or arc (a line ending 2 off the middle of another is joined to it at the foot of its direction), or where it meets the
-way another loose end goes on (two lines whose ends are 3 apart across a corner meet at the corner), or the other end itself, and
-two ends that are not so met are joined by a straight edge of no object; a square 100 by 100 with a gap of 2 in one side is
-hatched at 3 and not at 1 (HATCH takes the same value),
+closes loose ends as AutoCAD 2021 does, by how far they have to go on: a loose end is taken on along its own way (a line along its
+direction, an arc along its own circle, not its tangent: the arc of radius 50 ending at (96.9846, 67.1010) above a line at y 64 closes at
+(98, 64), where the tangent would meet it at 98.113) and closes where that reaches a line or arc no further than twice the gap and a
+pixel of the view (a line ending 3 off the middle of another, in a view 140 high on a screen 534 pixels high, where a pixel is 0.262,
+closes at a gap of 1.4 and not at 1.35; 2 off, at 0.9 and not at 0.85), or where it meets the way another loose end goes on, the
+shorter of the two ways no further than the gap and half a pixel (two lines whose ends are 5 and 5 apart across a corner close at 4.9
+and not 4.8), and the longer no further than twice the gap and a pixel; two ends facing each other on one line, or not met so, are joined
+by a straight edge of no object where they stand no further apart than the gap and half a pixel (two lines 4 apart close at 3.9 and not
+3). A drawing with no view, as a test, has no pixel. A square 100 by 100 with a gap of 2 in one side is hatched at a gap of 1 where there
+is no pixel (HATCH takes the same value),
 and separate Hatches makes one hatch of each pick. DRaw order asks `Enter draw order [do Not assign/send to Back/bring to
 Front/send beHind boundary/bring in front of bounDary] <send beHind boundary>:`, as AutoCAD starts (HPDRAWORDER 3): the hatch
 is put under the lowest object of its boundary, and -HATCH and HATCH share the choice. HATCH draws the hatch behind its
