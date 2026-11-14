@@ -48,6 +48,11 @@ back, and the box that holds them all. Each item carries the handle of the entit
 items of a drawing share the strings of its layer names and give back the room the list made by doubling left empty: a
 drawing of 100 000 entities (178 000 items, one in five a text) keeps 35.5 MB of display list where it kept 41.1 MB.
 
+The entities the list is made from keep what they have read, and that is small too: a DXF of 1 000 000 entities (77 MB), once
+displayed, holds 364 MB in the objects of its database, 73 MB of them its bytes, where it held 737 MB. The entities of a drawing
+share the object of each look, a polyline asked for its width keeps none of its vertices, and an entity as it was read from the file
+takes 104 bytes. Opened, displayed and its pick index made, the drawing grows the heap by 747 MB (the display list 340 MB of it).
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

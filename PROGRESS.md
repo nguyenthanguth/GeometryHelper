@@ -630,9 +630,12 @@ the ones wanted.
 - [x] Speed follow-ups 2 (speed3): Stop/Esc while a drawing opens stops inside the record walk, the handle scan and the
       entity listings (worst 0.74 s -> 59 ms at 1M); display list 41.1 -> 35.5 MB at 100k (shared layer names, trimmed
       lists), pixels identical; 1M memory breakdown in the merge (entity caches ~470 MB per displayed drawing)
-- [ ] (speed4, running) Speed follow-ups 3: slimmer core entity objects and their cached reads (~470 MB per displayed drawing at 1M; the
-      read-ahead kept, DECIDED 2026-11-12); a stoppable walk for dropped read-aheads (DxfDatabase.Open(bytes, len)); a
-      DWG read stopped mid-way (S)
+- [x] Speed follow-ups 3 (speed4): core objects of a displayed 1M drawing 737 -> 364 MB (polyline vertex cache not kept by
+      HasWidth, shared looks, rare DxfItem fields in Extras, one-shape lists); heap growth 1 119 -> 747 MB, display 4.0 ->
+      3.0 s, results bit-identical; a dropped read-ahead stops inside its walk
+- [ ] Speed follow-ups 4: the display list (340 MB at 1M: DisplayArc2 128 B, DisplayPolyline2 + double[] 116 MB,
+      DisplayText2 192 B) with pixels identical; dropping shapes after the display (128 MB at 1M, layer-on 70 -> 170 ms at
+      100k: declined for now); read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

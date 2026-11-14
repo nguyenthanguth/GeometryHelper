@@ -491,13 +491,14 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets whether the polyline has a width other than nought anywhere, as AutoCAD's <c>HasWidth</c>: a vertex's, or the constant width.</summary>
+        /// <summary>Gets whether the polyline has a width other than nought anywhere, as AutoCAD's <c>HasWidth</c>: a vertex's, or the constant width. Asked of a polyline whose vertices are not read, it keeps none of them.</summary>
         public bool HasWidth
         {
             get
             {
                 double constant = GetDouble(43, 0.0);
-                List<List<KeyValuePair<int, string>>> vertices = Read();
+                DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+                List<List<KeyValuePair<int, string>>> vertices = Kept(record) ?? Parse(record, false);
 
                 if (vertices.Count == 0)
                 {
@@ -1608,17 +1609,25 @@ namespace GeometryHelper.Dxf
         private List<List<KeyValuePair<int, string>>> Read()
         {
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+            return Kept(record) ?? Parse(record, true);
+        }
 
-            if (
-                _read != null
-                && ReferenceEquals(record.Bytes, _readBytes)
-                && record.Start == _readStart
-                && record.End == _readEnd
-            )
-            {
-                return _read;
-            }
+        /// <summary>The vertices <see cref="Read"/> kept, while the record is the one they were read from; null where none are.</summary>
+        private List<List<KeyValuePair<int, string>>> Kept(DxfFile.Rec record) =>
+            _read != null
+            && ReferenceEquals(record.Bytes, _readBytes)
+            && record.Start == _readStart
+            && record.End == _readEnd
+                ? _read
+                : null;
 
+        /// <summary>
+        /// Reads the vertices from the record; kept, with where they begin, where they are counted and the count, for the next
+        /// <see cref="Read"/> where <paramref name="keep"/> is set, else only given: a look that asks a question of them and
+        /// goes on, as every polyline of a drawing asked for its width as it is drawn, leaves nothing of them in memory.
+        /// </summary>
+        private List<List<KeyValuePair<int, string>>> Parse(DxfFile.Rec record, bool keep)
+        {
             var vertices = new List<List<KeyValuePair<int, string>>>();
             var starts = new List<int>();
             List<KeyValuePair<int, string>> current = null;
@@ -1630,6 +1639,7 @@ namespace GeometryHelper.Dxf
             int stray = 0;
             int counts = 0;
             int countAt = -1;
+            int count = _count;
             bool joined = true;
 
             for (int i = 0; i < groups.Count; i++)
@@ -1661,7 +1671,7 @@ namespace GeometryHelper.Dxf
                 {
                     counts++;
                     countAt = first < 0 ? i : -1;
-                    _count = int.TryParse(
+                    count = int.TryParse(
                         group.Value?.Trim(),
                         NumberStyles.Integer,
                         CultureInfo.InvariantCulture,
@@ -1671,6 +1681,13 @@ namespace GeometryHelper.Dxf
                         : 0;
                 }
             }
+
+            if (!keep)
+            {
+                return vertices;
+            }
+
+            _count = count;
 
             // The vertices are spliced in place only where their groups are one run of bytes, none of their codes stands
             // outside it, and one count stands before it; any other record is written whole, as the reader would read it.

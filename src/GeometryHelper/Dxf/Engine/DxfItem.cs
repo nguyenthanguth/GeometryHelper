@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -38,8 +40,10 @@ namespace GeometryHelper.Dxf
         private string _block;
         private object _wrapper;
         private bool _removed;
+        private string _handle;
         private DxfFile.Look _look;
         private IReadOnlyList<object> _shapes;
+        private Extras _extras;
 
         internal DxfItem(DxfFile file, int first, int count, string type, string block)
         {
@@ -84,16 +88,46 @@ namespace GeometryHelper.Dxf
         /// The entity whose record this is, for a record that follows one; null otherwise. The entity's item once it is added to
         /// a file, as the followers of an entity made in code go with it.
         /// </summary>
-        internal DxfItem Parent { get; set; }
+        internal DxfItem Parent
+        {
+            get => _extras == null ? null : _extras.Parent;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().Parent = value;
+                }
+            }
+        }
 
         /// <summary>Which record of <see cref="Parent"/> this is: 1 for the first that follows it; kept as followers are put in or taken out before it.</summary>
-        internal int Index { get; set; }
+        internal int Index
+        {
+            get => _extras == null ? 0 : _extras.Index;
+            set
+            {
+                if (value != 0 || _extras != null)
+                {
+                    Extra().Index = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The items of the records that follow the entity, by the index of the record (none at 0), each made the first time it is
         /// asked for by <see cref="DxfFile.FollowerOf"/>; null until one is.
         /// </summary>
-        internal List<DxfItem> Followers { get; set; }
+        internal List<DxfItem> Followers
+        {
+            get => _extras == null ? null : _extras.Followers;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().Followers = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the type of the entity as the file names it, such as <c>LINE</c>, <c>LWPOLYLINE</c>, <c>HATCH</c> or
@@ -106,7 +140,24 @@ namespace GeometryHelper.Dxf
         /// Gets the handle of the entity (group 5), as the file writes it in hexadecimal, the spaces around it taken off; null
         /// where it has none, as in a file of R12. A new shape keeps it.
         /// </summary>
-        public string Handle => Look.Handle;
+        public string Handle
+        {
+            get
+            {
+                if (Parent != null)
+                {
+                    _file.LookOf(this, out string handle);
+                    return handle;
+                }
+
+                if (Volatile.Read(ref _look) == null)
+                {
+                    ReadLook();
+                }
+
+                return _handle;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the layer of the entity (group 8) as its record writes it, any space around the name and any escape in
@@ -234,13 +285,13 @@ namespace GeometryHelper.Dxf
                 if (Parent != null)
                 {
                     List<object> now = _file.ShapesOf(this);
-                    return now.Count == 0 ? NoShapes : now.AsReadOnly();
+                    return Listed(now);
                 }
 
                 if (shapes == null)
                 {
                     List<object> read = _file.ShapesOf(this);
-                    Interlocked.CompareExchange(ref _shapes, read.Count == 0 ? NoShapes : read.AsReadOnly(), null);
+                    Interlocked.CompareExchange(ref _shapes, Listed(read), null);
                     shapes = Volatile.Read(ref _shapes);
                 }
 
@@ -287,6 +338,12 @@ namespace GeometryHelper.Dxf
             set => _file.SetShape(this, value);
         }
 
+        /// <summary>The shapes read as the read-only list the entity keeps: the shared empty one for none, a list of its own for one, which most entities have.</summary>
+        private static IReadOnlyList<object> Listed(List<object> read) =>
+            read.Count == 0 ? NoShapes
+            : read.Count == 1 ? new OneShape(read[0])
+            : read.AsReadOnly();
+
         /// <summary>The index of the entity's first record in the file; -1 for an entity added, whose records are its own.</summary>
         internal int First => _first;
 
@@ -304,7 +361,17 @@ namespace GeometryHelper.Dxf
         internal DxfFile File => _file;
 
         /// <summary>The list of pieces the records of an entity added are in, to be taken out of when it is removed; null for one as the file was read.</summary>
-        internal List<DxfFile.Piece> Home { get; set; }
+        internal List<DxfFile.Piece> Home
+        {
+            get => _extras == null ? null : _extras.Home;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().Home = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The object of the editing model that stands for the record, a <see cref="DxfEntity"/> or a table's record, made the
@@ -324,23 +391,63 @@ namespace GeometryHelper.Dxf
         /// the entity's own) and that record's type, as an entity moved has the world points of its extended data, and of its
         /// vertices' and attributes', moved in the same writing of its records; null where there is none to give.
         /// </summary>
-        internal List<PendingData> PendingRecords { get; set; }
+        internal List<PendingData> PendingRecords
+        {
+            get => _extras == null ? null : _extras.PendingRecords;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().PendingRecords = value;
+                }
+            }
+        }
 
         /// <summary>Whether the entity is being moved with the records that follow it, whose extended data it moves itself: a record that follows it, moved by it, moves none of its own.</summary>
-        internal bool CarryingFollowers { get; set; }
+        internal bool CarryingFollowers
+        {
+            get => _extras == null ? false : _extras.CarryingFollowers;
+            set
+            {
+                if (value || _extras != null)
+                {
+                    Extra().CarryingFollowers = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The block of the drawing a copy of an INSERT in no file was copied from, which it places whatever it is renamed: its
         /// name is read as the block's; null for any other item, and once the copy's name is set.
         /// </summary>
-        internal DxfFileBlock OriginBlock { get; set; }
+        internal DxfFileBlock OriginBlock
+        {
+            get => _extras == null ? null : _extras.OriginBlock;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().OriginBlock = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The contexts of the scales a copy in no file carries of its original, each the name of its entry and a copy of its
         /// record held in no file, in the order of the original's dictionary, until the copy is added to a drawing; null for an
         /// item that carries none.
         /// </summary>
-        internal List<KeyValuePair<string, DxfItem>> CopiedContexts { get; set; }
+        internal List<KeyValuePair<string, DxfItem>> CopiedContexts
+        {
+            get => _extras == null ? null : _extras.CopiedContexts;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().CopiedContexts = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The handle of the IMAGEDEF of the drawing a copy of an IMAGE in no file is to go into, which
@@ -349,10 +456,30 @@ namespace GeometryHelper.Dxf
         /// <c>DxfBlockTableRecord.AppendEntity</c> brings such a copy in: the copies <c>DxfDatabase.Insert</c> and
         /// <c>WblockCloneObjects</c> make, and those of the entities of a block copied, are the library's own and given none.
         /// </summary>
-        internal string KeptImageDef { get; set; }
+        internal string KeptImageDef
+        {
+            get => _extras == null ? null : _extras.KeptImageDef;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().KeptImageDef = value;
+                }
+            }
+        }
 
         /// <summary>The records the entity's own, once it is changed or added; null for an entity as the file was read.</summary>
-        internal DxfFile.Piece Piece { get; set; }
+        internal DxfFile.Piece Piece
+        {
+            get => _extras == null ? null : _extras.Piece;
+            set
+            {
+                if (value != null || _extras != null)
+                {
+                    Extra().Piece = value;
+                }
+            }
+        }
 
         /// <summary>The space of the drawing the entity is in, to be removed from; null for one of paper space or a block.</summary>
         internal DxfSpace Space { get; set; }
@@ -383,18 +510,27 @@ namespace GeometryHelper.Dxf
 
                 if (Parent != null)
                 {
-                    return _file.LookOf(this);
+                    return _file.LookOf(this, out _);
                 }
 
-                if (look == null)
-                {
-                    look = _file.LookOf(this);
-                    Interlocked.CompareExchange(ref _look, look, null);
-                }
-
-                return look;
+                return look ?? ReadLook();
             }
         }
+
+        /// <summary>
+        /// Reads the look and the handle from the record and keeps them, the look as the file shares it with the entities of the
+        /// same look, the handle written first so that whoever sees the look sees it; the look kept, whichever thread read first.
+        /// </summary>
+        private DxfFile.Look ReadLook()
+        {
+            DxfFile.Look look = _file.Shared(_file.LookOf(this, out string handle));
+            _handle = handle;
+            return Interlocked.CompareExchange(ref _look, look, null) ?? look;
+        }
+
+        /// <summary>The state few entities have, made when one is first set.</summary>
+        private Extras Extra() =>
+            Volatile.Read(ref _extras) ?? Interlocked.CompareExchange(ref _extras, new Extras(), null) ?? _extras;
 
         /// <summary>
         /// Gives the entity as a line for debugging: its type, its handle and its layer.
@@ -402,6 +538,60 @@ namespace GeometryHelper.Dxf
         /// <returns>The entity as a line, such as <c>LINE 2F on steel</c>.</returns>
         public override string ToString() =>
             Type + (Handle != null ? " " + Handle : string.Empty) + " on " + (Layer ?? "0");
+
+        /// <summary>
+        /// What few entities have, kept apart so that the many which have none do not carry it: a million entities of a drawing
+        /// as it was read hold one reference to it each, where its ten fields took 80 bytes of every one.
+        /// </summary>
+        private sealed class Extras
+        {
+            internal DxfItem Parent;
+            internal int Index;
+            internal List<DxfItem> Followers;
+            internal List<DxfFile.Piece> Home;
+            internal List<PendingData> PendingRecords;
+            internal bool CarryingFollowers;
+            internal DxfFileBlock OriginBlock;
+            internal List<KeyValuePair<string, DxfItem>> CopiedContexts;
+            internal string KeptImageDef;
+            internal DxfFile.Piece Piece;
+        }
+
+        /// <summary>
+        /// The one shape of an entity as a read-only list: 24 bytes, where a list of one in a read-only wrapper takes 88, which
+        /// a million entities of one shape each keep.
+        /// </summary>
+        private sealed class OneShape : IReadOnlyList<object>
+        {
+            private readonly object _shape;
+
+            internal OneShape(object shape)
+            {
+                _shape = shape;
+            }
+
+            public int Count => 1;
+
+            public object this[int index]
+            {
+                get
+                {
+                    if (index != 0)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+
+                    return _shape;
+                }
+            }
+
+            public IEnumerator<object> GetEnumerator()
+            {
+                yield return _shape;
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
 
         /// <summary>Extended data a record of an entity is to be given: the index of the record, its type, and the groups.</summary>
         internal sealed class PendingData

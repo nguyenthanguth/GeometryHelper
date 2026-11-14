@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -182,7 +183,19 @@ namespace GeometryHelper.Dxf
         /// <param name="bytes">The bytes, not to be changed after.</param>
         /// <param name="length">How many of them the file has.</param>
         /// <returns>The file.</returns>
-        internal static DxfFile Open(byte[] bytes, int length) => new DxfFile(bytes, length, "a stream");
+        internal static DxfFile Open(byte[] bytes, int length) => Open(bytes, length, CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DXF file from bytes as <see cref="Open(byte[], int)"/> does, the walk over its records looking at a token every
+        /// 4 096 records and giving the file up when it is stopped.
+        /// </summary>
+        /// <param name="bytes">The bytes, not to be changed after.</param>
+        /// <param name="length">How many of them the file has.</param>
+        /// <param name="stop">What stops the opening.</param>
+        /// <returns>The file.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the walk is done.</exception>
+        internal static DxfFile Open(byte[] bytes, int length, CancellationToken stop) =>
+            new DxfFile(bytes, length, "a stream", null, stop);
 
         /// <summary>
         /// Opens a DXF file from its text.
@@ -581,11 +594,12 @@ namespace GeometryHelper.Dxf
             return record;
         }
 
-        /// <summary>The look of an entity as its record writes it, each group the first of its code.</summary>
-        internal sealed class Look
+        /// <summary>
+        /// The look of an entity as its record writes it, each group the first of its code, bar its handle, which every entity
+        /// has of its own: the entities of a drawing have a few looks between them, and share the object of each.
+        /// </summary>
+        internal sealed class Look : IEquatable<Look>
         {
-            internal string Handle { get; set; }
-
             internal string Layer { get; set; }
 
             internal int? Colour { get; set; }
@@ -597,9 +611,49 @@ namespace GeometryHelper.Dxf
             internal int? Lineweight { get; set; }
 
             internal double Thickness { get; set; }
+
+            public bool Equals(Look other) =>
+                other != null
+                && string.Equals(Layer, other.Layer, StringComparison.Ordinal)
+                && Colour == other.Colour
+                && TrueColour == other.TrueColour
+                && string.Equals(Linetype, other.Linetype, StringComparison.Ordinal)
+                && Lineweight == other.Lineweight
+                && BitConverter.DoubleToInt64Bits(Thickness) == BitConverter.DoubleToInt64Bits(other.Thickness);
+
+            public override bool Equals(object obj) => Equals(obj as Look);
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    int hash = Layer == null ? 0 : StringComparer.Ordinal.GetHashCode(Layer);
+                    hash = hash * 31 + Colour.GetHashCode();
+                    hash = hash * 31 + TrueColour.GetHashCode();
+                    hash = hash * 31 + (Linetype == null ? 0 : StringComparer.Ordinal.GetHashCode(Linetype));
+                    hash = hash * 31 + Lineweight.GetHashCode();
+                    return hash * 31 + Thickness.GetHashCode();
+                }
+            }
         }
 
-        internal Look LookOf(DxfItem item)
+        /// <summary>The most looks the file shares; a look beyond them is the entity's own, so that a drawing whose every entity has a look of its own costs no table.</summary>
+        private const int MostSharedLooks = 4096;
+
+        private readonly ConcurrentDictionary<Look, Look> _looks = new ConcurrentDictionary<Look, Look>();
+
+        /// <summary>The look the file shares for this one: the same object for every entity of the same look, as long as the file has room for another.</summary>
+        internal Look Shared(Look look)
+        {
+            if (_looks.TryGetValue(look, out Look shared))
+            {
+                return shared;
+            }
+
+            return _looks.Count >= MostSharedLooks ? look : _looks.GetOrAdd(look, look);
+        }
+
+        internal Look LookOf(DxfItem item, out string handle)
         {
             var values = new Dictionary<int, string>();
             Rec record = HeadOf(item);
@@ -633,7 +687,8 @@ namespace GeometryHelper.Dxf
                     : (int?)null;
 
             // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
-            string handle = (record.Type == "DIMSTYLE" ? Value(105) : Value(5))?.Trim();
+            string text = (record.Type == "DIMSTYLE" ? Value(105) : Value(5))?.Trim();
+            handle = string.IsNullOrEmpty(text) ? null : text;
             double thickness =
                 values.TryGetValue(39, out string raised)
                 && Numbers.TryRead(raised, out double read)
@@ -643,7 +698,6 @@ namespace GeometryHelper.Dxf
 
             return new Look
             {
-                Handle = string.IsNullOrEmpty(handle) ? null : handle,
                 Layer = Value(8),
                 Colour = Whole(62),
                 TrueColour = Whole(420),
