@@ -145,9 +145,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// The words a date shows in a format, as AutoCAD 2021 shows them in the culture given: the date for none or
         /// <c>%x</c>, the time for <c>%X</c>, both for <c>%c</c>, the letters of a C library's <c>strftime</c> after a percent
-        /// (<c>%A %a %B %b %d %e %H %I %M %m %p %S %w %Y %y %D %R %T</c>, as <c>%d/%m/%Y</c> 07/03/2020 for the 7th of March
-        /// 2020), the figures d, M and y of a format with no percent (M/d/yyyy), the rest as it is; the date for a format
-        /// the library does not write.
+        /// (<c>%A %a %B %b %h %C %d %e %H %I %M %m %p %S %u %w %Y %y %D %F %R %r %T %z %Z</c>, as <c>%d/%m/%Y</c> 07/03/2020 for
+        /// the 7th of March 2020; <c>%u</c> counts the week from 1 on a Monday to 7 on a Sunday, <c>%r</c> is the time as
+        /// <c>%X</c> shows it, and <c>%z</c> and <c>%Z</c> are the machine's zone, +0700 and its daylight name, as AutoCAD
+        /// shows them), the figures d, M and y of a format with no percent (M/d/yyyy), the rest as it is; the date for a format
+        /// the library does not write, those whose words AutoCAD gets wrong among them (<c>%j</c> is 001 for every date it
+        /// reads, <c>%U</c> and <c>%W</c> are 01 on a Sunday or a Monday and 00 on any other day).
         /// </summary>
         internal static string Text(DateTime value, string format, CultureInfo culture)
         {
@@ -203,6 +206,29 @@ namespace GeometryHelper.Dxf
                         break;
                     case 'c':
                         part = value.ToString("G", culture);
+                        break;
+                    case 'C':
+                        part = (value.Year / 100).ToString("00", CultureInfo.InvariantCulture);
+                        break;
+                    case 'h':
+                        part = names.AbbreviatedMonthNames[value.Month - 1];
+                        break;
+                    case 'F':
+                        part = value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        break;
+                    case 'r':
+                        part = value.ToString("T", culture);
+                        break;
+                    case 'u':
+                        part = (value.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)value.DayOfWeek).ToString(
+                            CultureInfo.InvariantCulture
+                        );
+                        break;
+                    case 'z':
+                        part = Offset(TimeZoneInfo.Local.GetUtcOffset(value));
+                        break;
+                    case 'Z':
+                        part = TimeZoneInfo.Local.DaylightName;
                         break;
                     case 'd':
                         part = value.Day.ToString("00", CultureInfo.InvariantCulture);
@@ -267,6 +293,12 @@ namespace GeometryHelper.Dxf
 
             return text.ToString();
         }
+
+        /// <summary>A zone's offset from UTC as <c>%z</c> shows it: a sign, then hours and minutes of two figures each (+0700).</summary>
+        private static string Offset(TimeSpan offset) =>
+            (offset < TimeSpan.Zero ? "-" : "+")
+            + Math.Abs(offset.Hours).ToString("00", CultureInfo.InvariantCulture)
+            + Math.Abs(offset.Minutes).ToString("00", CultureInfo.InvariantCulture);
 
         /// <summary>
         /// The words a cell of a date opens as in AutoCAD 2021's editor, <c>GetTextString(FormatOption.ForEditing)</c>, whatever

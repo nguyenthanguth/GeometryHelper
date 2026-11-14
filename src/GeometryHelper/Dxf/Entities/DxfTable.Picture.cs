@@ -459,7 +459,7 @@ namespace GeometryHelper.Dxf
                         // The block's extents, not its insertion point, are aligned in the cell, in from its sides by the
                         // margins; a block fitted to its cell takes the scale that fits the box they fill, turned, in the cell
                         // less its margins.
-                        if (TryBlockBox(block, out double[] box))
+                        if (TryBlockBox(block, r0, c0, out double[] box))
                         {
                             if (cell.Whole(174, 0) != 0)
                             {
@@ -570,25 +570,30 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// The box the entities of a block fill in its own system, from its base point, as AutoCAD lays a block cell out by:
-        /// the least x and y and the greatest x and y of the extents of its entities, an attribute definition left out. False
-        /// where it holds no entity with extents.
+        /// the least x and y and the greatest x and y of the extents of its entities, an attribute definition among them as
+        /// the cell shows it (<see cref="AttributeExtents"/>). False where it holds no entity with extents.
         /// </summary>
-        private static bool TryBlockBox(DxfBlockTableRecord block, out double[] box)
+        private bool TryBlockBox(DxfBlockTableRecord block, int row, int column, out double[] box)
         {
             box = null;
 
             foreach (DxfEntity entity in block)
             {
-                if (entity is DxfAttributeDefinition)
-                {
-                    continue;
-                }
-
                 GeoAabb3 extents;
 
                 try
                 {
-                    extents = entity.GeometricExtents;
+                    if (entity is DxfAttributeDefinition definition)
+                    {
+                        if (!AttributeExtents(definition, row, column, out extents))
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        extents = entity.GeometricExtents;
+                    }
                 }
                 catch (InvalidOperationException)
                 {
@@ -617,6 +622,37 @@ namespace GeometryHelper.Dxf
             box[1] -= origin.Y;
             box[2] -= origin.X;
             box[3] -= origin.Y;
+            return true;
+        }
+
+        /// <summary>
+        /// The box an attribute definition of a block cell's block fills, as AutoCAD 2021 counts it in the block's extents
+        /// (probed in its console with margins 1.5): the box of the words the cell shows for it, those the cell gives it
+        /// (<see cref="GetBlockAttributeValue"/>) or, where it gives none, the definition's own, measured as
+        /// <see cref="DxfDBText.GeometricExtents"/> measures a text in the fonts of the drawing. A definition drawn from the
+        /// block's own words (a constant one) counts them; one that is invisible, and one whose words are empty, count nothing.
+        /// False for those, and where the words cannot be measured (no font found, or lines of an MTEXT), as before.
+        /// </summary>
+        private bool AttributeExtents(DxfAttributeDefinition definition, int row, int column, out GeoAabb3 extents)
+        {
+            extents = default(GeoAabb3);
+
+            if (definition.Invisible)
+            {
+                return false;
+            }
+
+            string words = definition.Constant ? null : GetBlockAttributeValue(row, column, definition);
+            words = words ?? definition.TextString;
+
+            if (words.Length == 0)
+            {
+                return false;
+            }
+
+            var shown = (DxfAttributeDefinition)definition.Clone();
+            shown.TextString = words;
+            extents = shown.GeometricExtents;
             return true;
         }
 
@@ -701,7 +737,7 @@ namespace GeometryHelper.Dxf
 
             DxfBlockTableRecord block = GetBlockTableRecord(row, column);
 
-            if (block == null || !TryBlockBox(block, out double[] box))
+            if (block == null || !TryBlockBox(block, row, column, out double[] box))
             {
                 return false;
             }

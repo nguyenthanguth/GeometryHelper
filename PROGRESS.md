@@ -533,7 +533,7 @@ the ones wanted.
 - [x] Dynamic block follow-ups 5 (dynblock5): GRIPLOC for point, rotation and XY corner grips (MoveEndPoint takes point
       and rotation parameters; public MoveCornerPoint); the history walked once per set (6% at 15 edits); 18 unchanged
       paths and 300 random sequences byte-identical; five outputs AUDIT 0
-- [ ] Dynamic block follow-ups 6: ATTSYNC on a moved INSERT (not in the console or acdbmgd); a value-set tie AutoCAD breaks
+- [ ] (attsync, running) Dynamic block follow-ups 6: ATTSYNC on a moved INSERT (not in the console or acdbmgd); a value-set tie AutoCAD breaks
       by float noise; Block.Of cached per dynamic block (0.14 ms a set); the block-table grip menu and glyph (GUI); the
       Design artifact's grip colour #19B5F0 to #00BFFF (S)
 
@@ -656,7 +656,7 @@ the ones wanted.
 - [x] LIST/blocks follow-ups 2a (fu-misc2): LUNITS 1-3 past 12 characters in scientific form (1.000500E+03); a linetype
       override naming no linetype as AutoCAD lists it; dimension setters writing overrides equal to the style, as AutoCAD;
       ATTRIBs of locked action-held ATTDEFs rebuilt under UpdateAnonymousBlocks
-- [ ] LIST/blocks follow-ups 2b: ATTSYNC placement for *U (not in the console or the 2021 API); parameters added or removed
+- [ ] (attsync, running) LIST/blocks follow-ups 2b: ATTSYNC placement for *U (not in the console or the 2021 API); parameters added or removed
       in the Block Editor (GUI); UpdateAnonymousBlocks probed for actions other than stretch; whether Properties skips a
       typed value equal to the one shown (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
@@ -712,10 +712,15 @@ the ones wanted.
 - [x] Tables follow-ups 2 (tables6): block cells placed by their extents, fitted at AutoCAD's scale, rows and columns
       grown for unfitted blocks (10x40 block: row 43); borders set on a merged anchor copied along its range; a row's
       height is the first cell's line floor or the tallest words
-- [ ] (tables7, running) Tables follow-ups 3: dates in autofill (AutoCAD's GenerateSeries is erratic: UTC shift, weeks hold still);
-      DxfTable.Value of a date and SetValue(DateTime); ATTDEF text in block extents (probe vs the BOLT table);
-      MinimumColumnWidth with block widths; a block cell in column 0; SetGridLineWeight quadratic (25 ms a call on 2000
-      cells); %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only filter (GUI) (S)
+- [x] Tables follow-ups 3 (tables7): grid setters splice only the cells they change (2 000 calls 12.7 -> 0.69 s, bytes
+      identical); MinimumColumnWidth counts block cells as AutoCAD; the 4/3 floor for a first-column block cell; ATTDEF
+      text counted in block extents as AutoCAD; date letters %C %h %F %r %u %z %Z (AutoCAD's broken %j %U %W keep the
+      date)
+- [ ] Tables follow-ups 4: ATTRIB text drawn in a table block cell; AutoCAD measures non-constant attribute words in
+      Arial metrics (about 1 mm off with SHX); the fit scale of a fitted block with a definition (1.44061 vs ~1.388);
+      the other per-cell setters (SetAlignment, SetTextHeight, SetBackgroundColor) still quadratic; dates in autofill;
+      DxfTable.Value of a date and SetValue(DateTime); band and size-field sides of up-flowing tables and the drag-only
+      filter (GUI) (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
@@ -741,7 +746,7 @@ the ones wanted.
       145 -> 33 ns; DxfReader.Read of 100k 17-digit entities 414 -> 314 ms), TEXT/MTEXT shapes from bytes (1.67 -> 0.17
       us), the first INSERT's layer scan from bytes (40 -> 6 ms), exact power-of-ten ties; 167 samples and 28 million
       numbers bit-identical. The cold display is unchanged (its time is not in the reader)
-- [ ] Speed follow-ups 8: the display's own costs (LWPOLYLINE 4 us, 60 % the GeoPolygonArc3; INSERT 14.5 us; TEXT read
+- [ ] (speed9, running) Speed follow-ups 8: the display's own costs (LWPOLYLINE 4 us, 60 % the GeoPolygonArc3; INSERT 14.5 us; TEXT read
       property by property: read once and cache until an edit, in DxfDBText); dropping the LINE/ARC/CIRCLE shape cache;
       TryChain garbage; the 48-byte "no contexts" tuple; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra;
       DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)

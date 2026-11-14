@@ -638,7 +638,9 @@ namespace GeometryHelper.Dxf
                 );
             }
 
-            Layout layout = ReadToWrite();
+            // A record this method wrote last is read as it stands and changed in the bytes of its cells alone (SpliceLines).
+            bool written = _mergedAsLoaded && IsWritten(Item.File.RecordAt(Item, 0));
+            Layout layout = written ? Read() : ReadToWrite();
             CheckRange(range, layout, rangeParameter);
 
             if ((long)range.BottomRow * layout.Columns + range.RightColumn >= layout.CellStart.Count)
@@ -749,8 +751,154 @@ namespace GeometryHelper.Dxf
             if (any)
             {
                 CheckEditable();
-                Splice(layout, made);
+
+                if (!written || !SpliceLines(layout, made))
+                {
+                    // The record written whole, every group as the file writes one; the cells' own bytes alone from then on.
+                    if (Splice(written ? new Layout(Own()) : layout, made))
+                    {
+                        DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+                        _writtenBytes = record.Bytes;
+                        _writtenStart = record.Start;
+                        _writtenEnd = record.End;
+                        _writtenPlaces = null;
+                    }
+                }
             }
+        }
+
+        /// <summary>Whether a record is the one <see cref="SetLines"/> wrote last, in its very bytes.</summary>
+        private bool IsWritten(DxfFile.Rec record) =>
+            _writtenBytes != null
+            && ReferenceEquals(_writtenBytes, record.Bytes)
+            && _writtenStart == record.Start
+            && _writtenEnd == record.End;
+
+        /// <summary>
+        /// Where each own group of the record stands in its bytes, two places to a group (<see cref="_writtenPlaces"/>); an
+        /// empty array where the record holds, among its own groups, bytes that are none of theirs (a group of an application,
+        /// a comment), which a writing of every group would have moved.
+        /// </summary>
+        private List<int> PlacesOf(Layout layout)
+        {
+            var places = new List<int>();
+            Item.File.OwnGroupsOf(Item, 0, places);
+            int first = layout.Groups.Marked ? 1 : 0;
+            int count = layout.Groups.List.Count + first;
+
+            if (places.Count != 2 * count)
+            {
+                return new List<int>();
+            }
+
+            for (int i = first; i + 1 < count; i++)
+            {
+                if (places[2 * i + 1] != places[2 * i + 2])
+                {
+                    return new List<int>();
+                }
+            }
+
+            return places;
+        }
+
+        /// <summary>
+        /// Writes the cells <see cref="SetLines"/> changed into a record it wrote whole before, in the place of the bytes of the
+        /// cells from the first changed to the last, the rest of the record copied as it is, and keeps the layout and the places
+        /// of the groups for the record it makes: the lines of the cells of a table of 1 000 rows set one by one cost a copy
+        /// of its bytes each, not a reading and a writing of every group of it. The bytes are those a writing of every group
+        /// would give, as the groups left as they are stand as the file writes them. False, nothing written, where the places
+        /// of the groups are not known.
+        /// </summary>
+        private bool SpliceLines(Layout layout, List<KeyValuePair<int, string>>[] made)
+        {
+            List<int> places = _writtenPlaces ?? (_writtenPlaces = PlacesOf(layout));
+
+            if (places.Count == 0)
+            {
+                return false;
+            }
+
+            DxfDimGroups g = layout.Groups;
+            List<KeyValuePair<int, string>> was = g.List;
+            int first = g.Marked ? 1 : 0;
+            int count = layout.CellStart.Count;
+            int firstCell = -1;
+            int lastCell = -1;
+
+            for (int k = 0; k < count; k++)
+            {
+                if (made[k] != null)
+                {
+                    firstCell = firstCell < 0 ? k : firstCell;
+                    lastCell = k;
+                }
+            }
+
+            int groupFrom = layout.CellStart[firstCell];
+            int groupTo = lastCell + 1 < count ? layout.CellStart[lastCell + 1] : layout.CellsEnd;
+            var middle = new List<KeyValuePair<int, string>>(groupTo - groupFrom + 32);
+
+            for (int k = firstCell; k <= lastCell; k++)
+            {
+                if (made[k] != null)
+                {
+                    middle.AddRange(made[k]);
+                    continue;
+                }
+
+                int end = k + 1 < count ? layout.CellStart[k + 1] : layout.CellsEnd;
+
+                for (int i = layout.CellStart[k]; i < end; i++)
+                {
+                    middle.Add(was[i]);
+                }
+            }
+
+            DxfFile file = Item.File;
+            int byteFrom = places[2 * (groupFrom + first)];
+            int byteTo = places[2 * (groupTo - 1 + first) + 1];
+            int bytes = file.SpliceRecord(Item, 0, byteFrom, byteTo, middle, false);
+
+            // The groups and their places as the new record has them: the cells' put in the place of the old ones, the groups
+            // after them moved on, in a list of their own, as the layout read before is still held by whoever read it.
+            int removed = groupTo - groupFrom;
+            var groups = new List<KeyValuePair<int, string>>(Math.Max(was.Count, was.Count - removed + middle.Count));
+            groups.AddRange(was);
+            groups.RemoveRange(groupFrom, removed);
+            groups.InsertRange(groupFrom, middle);
+
+            var placed = new int[2 * middle.Count];
+            int at = byteFrom;
+
+            for (int i = 0; i < middle.Count; i++)
+            {
+                placed[2 * i] = at;
+                at += file.GroupLength(middle[i].Key, middle[i].Value);
+                placed[2 * i + 1] = at;
+            }
+
+            int shift = at - byteTo;
+            places.RemoveRange(2 * (groupFrom + first), 2 * removed);
+            places.InsertRange(2 * (groupFrom + first), placed);
+
+            for (int i = 2 * (groupFrom + first + middle.Count); shift != 0 && i < places.Count; i++)
+            {
+                places[i] += shift;
+            }
+
+            DxfFile.Rec record = file.RecordAt(Item, 0);
+            _layout = new Layout(new DxfDimGroups(g, groups));
+            _layoutBytes = record.Bytes;
+            _layoutStart = record.Start;
+            _layoutEnd = record.End;
+            _writtenBytes = record.Bytes;
+            _writtenStart = record.Start;
+            _writtenEnd = record.End;
+
+            // Places that do not add up to the bytes written are read again from the record at the next change.
+            _writtenPlaces = at - byteFrom == bytes ? places : null;
+            return true;
         }
 
         /// <summary>
@@ -910,8 +1058,8 @@ namespace GeometryHelper.Dxf
             && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int b)
             && a == b;
 
-        /// <summary>Writes the record with the cells given in the place of theirs, the others as they stand, in one writing.</summary>
-        private void Splice(Layout layout, IList<List<KeyValuePair<int, string>>> cells)
+        /// <summary>Writes the record with the cells given in the place of theirs, the others as they stand, in one writing; whether it wrote.</summary>
+        private bool Splice(Layout layout, IList<List<KeyValuePair<int, string>>> cells)
         {
             DxfDimGroups g = layout.Groups;
             var list = new List<KeyValuePair<int, string>>(g.List.Count + 64);
@@ -945,7 +1093,7 @@ namespace GeometryHelper.Dxf
 
             g.List.Clear();
             g.List.AddRange(list);
-            g.Write(Order);
+            return g.Write(Order);
         }
 
         /// <summary>The text of the table's own group of a line of the rows of a kind: its colour (0), lineweight (1) or showing (2); null where it has none.</summary>

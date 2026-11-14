@@ -33,6 +33,39 @@ other set of probes (angles of three points, radius, diameter, linear and DIMARC
 0.0003 in a text's place for the DIMJUST ones. The text of an arc length at a tie of the fifth decimal (an arc of 10 through 0.048005
 radians, 0.48005) is rounded either way by AutoCAD from the angles' last digits; the probes that showed it fed the presenter angles
 rounded to six decimals where AutoCAD had ten, so there was nothing to fix there.
+**FIXED.** The lines of a table's cells set one cell at a time (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility` and
+`SetGridProperty` of a cell) read and wrote every group of the table for each call, so that a loop over a table took time that grew
+with its square. After the first call, which writes the record whole so that its groups stand as the library writes them, each call
+copies the bytes of the cells it changes into a record of its own and keeps the layout and the places of the groups for the next.
+The four settings of each cell of a table of 200 rows by 10 columns (8 000 calls) took 141 s on .NET 10 (17.7 ms a call, 0.9 ms
+now) and take 6.9 s; 100 by 10 (4 000 calls) 40.2 s and 2.2 s; 50 by 10 (2 000 calls) 11.9 s and 0.8 s on .NET Framework 4.8. The
+drawing is the same to the byte: the text of 40 drawings of random settings, merges and texts over a plain, a CRLF, an unpadded, a
+reloaded and a unicode file, and of the four table sizes, hash equal before and after. `SetGridProperty` over a range was one
+writing already and is as fast as it was.
+**FIXED.** The least a column may be dragged or set to (`CadTableEditor.MinimumColumnWidth`, the drag of a column's line,
+`SetColumnWidths`) ignored the blocks of block cells. As AutoCAD 2021's `MinimumColumnWidth` gave it in its console (margins 1.5, text
+of 6 and 4.5), a block cell not fitted to its cell asks the width its block's extents fill at the cell's scale and turn, and the two
+margins, where that is more than the 9 of the margins and the title's text: a block 30 wide 33, at scale 2 63, turned 45 degrees
+31.28427 and turned 90 13 (for a block 30 by 10); a block 2 wide 9; a fitted block 9; a block merged across two columns asks the column
+it starts in alone (33 and 9).
+**FIXED.** A block cell in the first column left its row to its block (a block 2 by 2 in rows of 3 made them 5, a fitted one left them
+at 3) where AutoCAD 2021 lays every row out by the one line, 4/3 of the text height and the margins, of its first cell, whatever it
+holds: 9 in both, and 13 for a block 10 high (9 tables of 4 rows of AutoCAD's console).
+**CHANGED.** An attribute definition of a block cell's block is counted in the block's extents, as AutoCAD 2021 counts it (it was left
+out): the words the cell gives it, else its own, measured in the fonts of the drawing, or of the document where the drawing names none
+(`CadTableEditor` looks in the document's folders and the system's for the length of the measure only); none where the words are empty
+or the definition is invisible, and a constant definition its own words whatever the cell gives. A block 20 wide with a definition at x
+22 of words 31.7 wide (CONSTANT TEXT at 2.5 high) asks a column 56.67 wide (22 + 31.67 and the margins, as AutoCAD gave), an invisible
+one or one of no words 23, a definition inside the block's box none. The column is the width of the words in the drawing's font: AutoCAD
+measures the words of a definition that is not constant in a TrueType font (4.66, 6.79 and 15.91 wide for AB, M12 and DEFAULT at 2.5,
+where txt.shx makes 4.17, 5.83 and 16.67), a difference of a millimetre or less that is parked, with the width AutoCAD fits a block
+with a definition to (a block fitted to a cell 40 by 30 with AB took the scale 1.44061, the column first widened to 41.40525).
+**NEW.** The date formats of a table's cell show `%C`, `%h`, `%F`, `%r` (as `%X`), `%u` (1 on a Monday to 7 on a Sunday), `%z` and
+`%Z` as AutoCAD 2021 shows them (probed in its console in en-US from a DXF whose dates carry their day of the week): 20, Mar,
+2020-03-07, 3:04:05 PM, 6, and the zone of the machine, +0700 and its daylight name, "SE Asia Daylight Time", for every date. `%j`,
+`%U`, `%W`, `%V`, `%G` and `%g` still show the date: AutoCAD gives `%j` 001 for every date it reads, `%U` 01 on a Sunday and 00 on any
+other day, and `%W` 01 on a Monday and 00 on any other, the day of the year never being worked out for a date it reads, which is
+plainly wrong.
 
 **CHANGED.** MLEDIT's tees (CT, OT, MT) work on the pair of segments AutoCAD 2021 takes, as the crosses do, and not on the ones the picks
 lie on: the stem is run on past the free end of its first or last segment, the second is met on one of its segments (the end of its

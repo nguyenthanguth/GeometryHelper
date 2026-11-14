@@ -327,6 +327,14 @@ namespace GeometryHelper.Dxf
             return Encoding.ASCII.GetBytes(escaped.ToString());
         }
 
+        /// <summary>How many bytes <see cref="Builder.Group"/> writes a group in: its code padded as the file pads one, its value, and the two line ends.</summary>
+        internal int GroupLength(int code, string value)
+        {
+            Writing style = Style;
+            int number = code.ToString(CultureInfo.InvariantCulture).Length;
+            return (style.Padded ? Math.Max(3, number) : number) + 2 * style.LineEnd.Length + Encoded(value).Length;
+        }
+
         /// <summary>The bytes of a record written anew, in the file's own line end, padding and code page.</summary>
         internal sealed class Builder
         {

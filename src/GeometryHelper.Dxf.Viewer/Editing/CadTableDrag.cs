@@ -127,7 +127,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int c = 0; c < _widths.Length; c++)
                 {
-                    _least[c] = CadTableEditor.MinimumColumnWidth(table, c);
+                    _least[c] = CadTableEditor.LeastWidthIn(document, table, c);
                 }
             }
 
