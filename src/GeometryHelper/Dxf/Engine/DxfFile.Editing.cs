@@ -2086,6 +2086,47 @@ namespace GeometryHelper.Dxf
         #region Handles and tables
 
         /// <summary>
+        /// The handles of the records of the kinds given that were written in this session, added or changed, in the order of the
+        /// file; none where nothing was written. A record of the file as read, whose bytes are the file's own, is not one of them.
+        /// </summary>
+        /// <param name="first">The first kind, such as ACAD_TABLE.</param>
+        /// <param name="second">The second kind, such as TABLESTYLE.</param>
+        internal List<string> WrittenHandles(string first, string second)
+        {
+            var handles = new List<string>();
+
+            if (_slots == null)
+            {
+                return handles;
+            }
+
+            foreach (List<Piece> slot in _slots)
+            {
+                if (slot == null)
+                {
+                    continue;
+                }
+
+                foreach (Piece piece in slot)
+                {
+                    foreach (Rec record in piece.Records)
+                    {
+                        if (
+                            !ReferenceEquals(record.Bytes, _bytes)
+                            && (record.Type == first || record.Type == second)
+                            && HandleOf(record, out ulong handle)
+                        )
+                        {
+                            handles.Add(handle.ToString("X", CultureInfo.InvariantCulture));
+                        }
+                    }
+                }
+            }
+
+            return handles;
+        }
+
+        /// <summary>
         /// The handle of a record: its first group 5, or 105 for a DIMSTYLE, whose 5 is the name of its arrow block in a file of
         /// R12, read as hexadecimal; false where it has none.
         /// </summary>

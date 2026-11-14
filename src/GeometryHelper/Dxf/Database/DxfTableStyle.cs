@@ -29,7 +29,7 @@ namespace GeometryHelper.Dxf
     /// with no map of cell styles: the title, the header and the data are its three cell styles.
     /// </para>
     /// </remarks>
-    public sealed class DxfTableStyle : DxfDBObject
+    public sealed partial class DxfTableStyle : DxfDBObject
     {
         // The groups of a kind of cell, in the order AutoCAD writes them: its text, then its six lines.
         private static readonly int[] CellCodes = { 7, 140, 170, 62, 63, 283, 90, 91, 1 };

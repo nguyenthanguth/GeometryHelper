@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A table made in code and the table styles of a drawing are saved with what AutoCAD 2021 builds of them when it reads the file
+(`Save(path)`, `Save(stream)` and the forms with a version, R2007 to R2018 and going down to R2000 and R2004; `ToText()` and the drawing
+itself are left as they are): for each table of a drawing of R2007 or later that has none, the extension dictionary with the XRECORD of
+`ACAD_ROUNDTRIP_2008_TABLE_ENTITY`, the TABLECONTENT (each column's width, each row's kind and height, each cell's checksum, value and
+content format, its alignment and fill, the lines it sets, the merged blocks) and the TABLEGEOMETRY; for each style that has none the
+CELLSTYLEMAP of its title, header and data; the table and style listed in `ACDB_RECOMPOSE_DATA` and the three classes made and counted.
+AutoCAD 2021 (DxfIn and DxfOut in its console) was given 6 tables (plain, merged, with borders, in no style named, with the title
+left out, with looks of their cells) and 8 table styles (looks, colours and fills, lines, margins, title or header left out, a text
+style) made by the library with none of these, and its own TABLECONTENT, TABLEGEOMETRY and CELLSTYLEMAP equal the library's group
+for group in R2007, R2010, R2013 and R2018 (the 8 styles' maps in all four, 0 differences in 6 tables of 4 or 5 rows), and after
+going down to R2000 and R2004 equal but for the heights of the rows and the geometry AutoCAD lays out; a further table of 48 cells
+of 12 looks, 8 tables of lines (a bottom and a top set on one line, a hidden line, a line under a title, on the rim of the table, in
+a merged block) and 8 tables of the line between a title, a header and the data are equal in their TABLECONTENT and their records
+(but for the hidden line below); `AUDIT` finds 0 errors in the 25 files. The lines of
+a table's cells are written as AutoCAD writes them when it has read them: the bottom or right of a cell as the top or left of the
+cell below or beside it, a line of defaults none, the title's bottom as the header's top where the header's is a default, a cell that
+gives a background colour filled (`283 0`). Left as they are, for AutoCAD to build: a table of a drawing of R2000 or R2004, with a block
+cell, a field, a link, or lines of its own for a kind of rows (`SetGridColor(color, borders, rows)`). AutoCAD lays a table with a
+TABLECONTENT out anew when it reads it (its TABLEGEOMETRY is zeros here, as it builds it, and the library measures no text): a title
+of 6 high in a row of 9 becomes 11, and the cells gain the margins and lines of the format it writes then. A line written hidden stays
+0, as AutoCAD reads it, where AutoCAD writes 1. Saving is slower in proportion to what is written: 5 tables of 100 rows by 20 columns,
+1.3 MB before and 11.3 MB now, take 470 ms in place of 1 ms as R2018 and 915 ms in place of 63 as R2013 on .NET Framework 4.8
+(308, 608 and 0, 30 ms on .NET 10).
+**FIXED.** A table made in code in a drawing of R2000 to R2007 had the version number `280 0` of R2010 and later in its record, which
+AutoCAD leaves out of those versions. An empty value in the TABLECONTENT of a table going from R2007 or later to R2004 or R2000 is
+written `90 0` and `91 0` as AutoCAD writes it (the `91` was missing), and read going up: a table saved down and up again with an
+empty cell stays a table (it was written as its block).
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).
 Words next to a ray (DIMJUST 1 and 2) stand a cube of the arrowhead and of the half of their box over 24 radii squared further along,

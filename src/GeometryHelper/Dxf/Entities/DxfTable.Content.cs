@@ -822,9 +822,14 @@ namespace GeometryHelper.Dxf
         /// handles (<c>330 F6</c>, <c>330 127</c>, <c>330 165</c> for two tables of the style 127), made where the drawing has
         /// none; a handle listed already is not listed again.
         /// </summary>
-        private void Recompose(string style)
+        private void Recompose(string style) => ListForRecompose(Item.File, Handle, style != "0" ? style : null);
+
+        /// <summary>
+        /// Lists one or two objects (a table and its style, or a style alone) in the drawing's ACDB_RECOMPOSE_DATA, as
+        /// <see cref="Recompose"/> lists a table.
+        /// </summary>
+        internal static void ListForRecompose(DxfFile file, string first, string second)
         {
-            DxfFile file = Item.File;
             DxfDBDictionary root = file.Database.NamedObjectsDictionary;
 
             if (root == null)
@@ -832,11 +837,11 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            var wanted = new List<string> { Handle };
+            var wanted = new List<string> { first };
 
-            if (style != "0")
+            if (second != null)
             {
-                wanted.Add(style);
+                wanted.Add(second);
             }
 
             DxfDBObject held = root.Contains("ACDB_RECOMPOSE_DATA") ? root.GetAt("ACDB_RECOMPOSE_DATA") : null;

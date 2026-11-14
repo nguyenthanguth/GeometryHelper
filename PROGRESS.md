@@ -180,7 +180,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         line along its normal (tw17 58 -> 6, tw18 186 -> 17); level words fit by their reach and drop the leader at twice
         the rise (tw19 334 -> 64); the doubled line of DIMTMOVE 1; the run-on with a level landing on steep lines (tw21
         80 -> 0); 272/273 after the leaders in MLEADER context data; harness .claude/gk/annot-harness6
-  - [ ] Annotative objects 5d: where AutoCAD goes back from the run-on to the leader (34 of tw22, by slope and length);
+  - [ ] (annot7, running) Annotative objects 5d: where AutoCAD goes back from the run-on to the leader (34 of tw22, by slope and length);
         upright line of 7.2 with words 8 past under DIMTMOVE 1; words near the start of a long line at 135/150/315;
         tw19's 64 (l5 and s30 l9); tw20 slopes 136-146; the ts1 generator (stale reflection) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
@@ -344,9 +344,15 @@ User note 2026-11-12 evening (note.md 1-14):
       (the rest keep the exact volume where AutoCAD writes a 1E-5 approximation), R2010 SAT line for line, AUDIT 0;
       table data going down ~20 % faster, bytes identical. DECIDED: a SAB normal one bit off unit is normalised
       (matches AutoCAD after DxfIn)
-- [ ] (dxfver8, running) DXF versions follow-ups 8: AutoCAD's read-time table building for tables made by our API (CELLSTYLEMAP
-      generator, TABLECONTENT/TABLEGEOMETRY, the empty VALUE 93 7 -> 3; mapping in dxfver7's report and
-      .claude/gk/dxfver7-notes); R2004/R2007 tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
+- [x] DXF versions follow-ups 8 (dxfver8): tables and styles written in the session are saved with the TABLECONTENT,
+      TABLEGEOMETRY, extension dictionary and CELLSTYLEMAP AutoCAD builds (6 tables, 8 styles, 16 border/boundary tables
+      equal group for group in R2007-R2018, AUDIT 0), built on a copy at save time; empty values 90 0 + 91 0 below R2007.
+      DECIDED: accepted the save cost on edited tables (10 000 cells: 1 -> 469 ms at R2018); untouched drawings unchanged
+- [ ] DXF versions follow-ups 9: the table completion's save cost (build only what changed, or keep it in step with the
+      setters); real TABLEGEOMETRY and row heights (needs font metrics; AutoCAD re-lays tables out otherwise); native
+      R2000/R2004 table drawings; block-cell, field and link content; tables with their own row-kind looks or an
+      existing extension dictionary; hidden bottom/left lines in R2000/R2004; R2004/R2007 tolerant sweep_sur;
+      blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip

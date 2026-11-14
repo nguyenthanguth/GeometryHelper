@@ -40,8 +40,8 @@ it also sets): its `Description`, `FlowDirection`, `HorizontalCellMargin` and `V
 set as AutoCAD's `TableStyle` names them. A group the record leaves out reads as AutoCAD's Standard has it, of the
 drawing's units: the title 6 and the header and data 4.5 high, margins of 1.5, in millimetres. `new DxfTableStyle()` is
 that Standard, added by `db.TableStyleDictionary.SetAt("GH_SCHEDULE", style)` with every group AutoCAD writes of a style
-(the data's cell, then the title's and the header's, each its text, fill and six lines); no map of cell styles is
-written, and AutoCAD 2021 audited drawings of R2000, R2013 and R2018 holding them with no error.
+(the data's cell, then the title's and the header's, each its text, fill and six lines); its map of cell styles is made
+when the drawing is saved (see [Saving tables made in code](#saving-tables-made-in-code)).
 
 `new DxfTable(position, rows, columns, rowHeight, columnWidth)` makes a table in no file; appended, it names the drawing's
 current table style, its first row is merged across as AutoCAD's title, and it is drawn in a new anonymous block, `*T1`
@@ -73,6 +73,52 @@ every group of it: the four settings of each of the 2 000 cells of a table of 20
 (17.7 ms a call, growing with the table) and now take 7 s (0.9 ms), the drawing the same to the byte. The record is written
 whole the first time, so that its groups stand as the library writes them; a call that changes nothing writes nothing.
 `SetGridProperty(range, ...)` still sets the lines of a block of cells in one writing.
+
+## Saving tables made in code
+
+A table or a table style written in the session (a table made by `new DxfTable`, a style added by `SetAt`, or one of a read
+drawing that was changed) is saved with what AutoCAD 2021 builds of it when it reads a file, in every version of R2007 and
+later and going down to R2000 and R2004 (`db.Save(path)`, `db.Save(stream)` and the two forms with a version; `ToText()` is
+the drawing as it stands, and the drawing itself is never changed by saving it). AutoCAD gives a table that has no
+TABLECONTENT, in a drawing of R2007 or later, an extension dictionary holding `ACAD_XREC_ROUNDTRIP`, in it the XRECORD of
+`ACAD_ROUNDTRIP_2008_TABLE_ENTITY` (`70 2`, `90 1`, a point of nought, `90 0`, the count of columns, the handle of the
+TABLEGEOMETRY in 361), the TABLECONTENT and the TABLEGEOMETRY; and a table style that has none an extension dictionary with
+`ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP` and a CELLSTYLEMAP. The library writes the same, and lists the table and its
+style in `ACDB_RECOMPOSE_DATA` and the classes TABLECONTENT, TABLEGEOMETRY and CELLSTYLEMAP, counted:
+
+- The TABLECONTENT holds each column's width, each row's kind (1 the title, 2 the header, 3 data) and height, and for each cell
+  the checksum of its text, its value as the table holds it, and its looks as AutoCAD reads them from the cell's groups:
+  the content format (90 the flags of what the cell overrides, 3 for the kind and format of a value, 4 its turn, 32 its text
+  colour, 64 its text style, 128 its height, with the unit, the kind of the value, its format and the turn in radians) and the
+  table format (91 the flags 16 for an alignment and 512 for a fill, with the fill's colour in 62 and 257 for none), and the lines the cell sets,
+  each a GRIDFORMAT of its colour, lineweight and showing; the cells a merged block hides hold no content (`95 0`), and the blocks
+  are listed after the last row. A table of 4 rows and 3 columns, 9 high and 30 wide, its title merged across, is rows `1/9`, `2/9`,
+  `3/9` and `3/9` and the block `0 0 0 2`.
+- The TABLEGEOMETRY holds a cell of no size (`93 0`, `40 0`, `41 0`, `330 0`, `94 0`) for each cell, as AutoCAD builds it
+  before it has laid the table out.
+- The map of cell styles holds, for the title, the header and the data, the fill (62 of the table format, 257 where it is
+  none), the text style (a handle), height, colour and alignment, the margins (the vertical, the horizontal, then 0.18 twice)
+  and the six lines of the style (colour, lineweight, 1 in 93 where a line is hidden).
+- The cells of the table record are left as they were but for the lines. AutoCAD reads a line between two cells as the top or
+  left of the cell below or right of it, and writes it so: the bottom of a cell set with `SetGridColor` is the top of the cell
+  below, the right the left of the cell beside, those of the cells on the table's rim stay, each line with all three properties
+  flagged, its lineweight (279, 275, 276, 278; -2 by block) and its colour (0 by block) written and its showing written (0)
+  where it is hidden, and a line that has only defaults is none. The line between rows of two kinds (the title and the header,
+  the header and the data) is the bottom of the kind above where the style's top of the kind below is a default: a title whose
+  style has a red bottom gives the header's cells a red top; a header whose top is yellow is left as it is. A cell that
+  gives a colour for its background is written filled (`283 0`), as AutoCAD reads it.
+- The values of an empty cell keep their flags `93 7`, which AutoCAD changes to 3 in a table that has no TABLECONTENT and leaves
+  as 7 where it has one.
+
+A table that holds its TABLECONTENT already is not given another, and a drawing nothing was written to is saved as it was read.
+Left as they are, so that AutoCAD builds what it builds: a table of a drawing of R2000 or R2004 (the cells of the form before
+R2007; the TABLEGEOMETRY and the rows' heights of a table going down are AutoCAD's to lay out too), a table with a block cell, a
+field or a link, a table with lines or looks of its own for a kind of rows, and a table whose extension
+dictionary exists already. AutoCAD lays a table with a TABLECONTENT out anew when it reads it unless its TABLEGEOMETRY is the
+laid out one, which needs the metrics of a font: the rows grow to fit their text (the title of a style of 6 high to 11, a
+header to the height of its text) as they do when its cells are edited in AutoCAD, and the cells of the format it writes then
+gain their margins and the six lines; the library does not measure text. A line written hidden is written 0, as AutoCAD reads
+a hidden line, where AutoCAD writes 1 and reads it back as drawn.
 
 ## Values and their kinds
 

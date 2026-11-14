@@ -1005,6 +1005,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 made.AddRange(groups.GetRange(i + 2, end - 3 - (i + 2)));
+
+                // A value of no kind (93 of 7, 90 of 0) is written 90 of 0 and a 91 of 0 in the form before R2007.
+                if (groups[i + 2].Value.Trim() == "0" && groups[end - 3].Code == 94 && end - 3 == i + 3)
+                {
+                    made.Add(Whole(91, 0));
+                }
+
                 i = end;
             }
 
@@ -1045,6 +1052,19 @@ namespace GeometryHelper.Dxf
 
                 string type = groups[i + 1].Value.Trim();
                 bool text = type == "4" && groups[i + 2].Code == 1;
+                bool none = type == "0" && groups[i + 2].Code == 91 && groups[i + 2].Value.Trim() == "0";
+
+                if (none)
+                {
+                    made.Add(Whole(93, 7));
+                    made.Add(groups[i + 1]);
+                    made.Add(Whole(94, 0));
+                    made.Add(new Group(300, string.Empty));
+                    made.Add(new Group(302, string.Empty));
+                    made.Add(new Group(304, ValueEnd));
+                    i += 2;
+                    continue;
+                }
 
                 if (!text && !(type == "2" && groups[i + 2].Code == 140))
                 {
