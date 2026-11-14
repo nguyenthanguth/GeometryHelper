@@ -1645,9 +1645,11 @@ namespace GeometryHelper.Dxf
 
                         if (a[2] != 0.0 && (Closed || i < n - 1))
                         {
-                            for (int k = 1; k < 16; k++)
+                            int steps = asFilled ? BulgeChords(a, b) : 16;
+
+                            for (int k = 1; k < steps; k++)
                             {
-                                points.Add(OnBulge(a, b, k / 16.0));
+                                points.Add(OnBulge(a, b, k / (double)steps));
                             }
                         }
                     }
@@ -1694,6 +1696,15 @@ namespace GeometryHelper.Dxf
 
                 double radius = chord / (2.0 * sine);
                 return 0.5 * radius * radius * (angle - Math.Sin(angle));
+            }
+
+            /// <summary>How many chords a bulge is cut into where a fill is written as R12: those of <see cref="Edge.Chords"/> for its arc.</summary>
+            private static int BulgeChords(double[] a, double[] b)
+            {
+                double angle = 4.0 * Math.Atan(a[2]);
+                double chord = Math.Sqrt(((b[0] - a[0]) * (b[0] - a[0])) + ((b[1] - a[1]) * (b[1] - a[1])));
+                double sine = Math.Sin(angle * 0.5);
+                return chord == 0.0 || sine == 0.0 ? 1 : Edge.Chords(Math.Abs(chord / (2.0 * sine)), angle);
             }
 
             /// <summary>A point of the arc of a bulge, a share of the way along it.</summary>

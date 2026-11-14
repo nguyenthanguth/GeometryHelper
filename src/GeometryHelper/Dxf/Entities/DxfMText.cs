@@ -721,7 +721,7 @@ namespace GeometryHelper.Dxf
         private bool OneColumn() =>
             ColumnType == DxfColumnType.NoColumns || (ColumnType == DxfColumnType.DynamicColumns && ColumnCount <= 1);
 
-        private DxfMTextLayout Layout(bool stacks = false)
+        private DxfMTextLayout Layout(bool stacks = false, bool strikes = false)
         {
             // A copy in no drawing is laid out in the fonts of the drawing it was copied from, as a table's words are when it is exploded.
             DxfFonts fonts = MeasuredIn?.Fonts ?? (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
@@ -754,7 +754,8 @@ namespace GeometryHelper.Dxf
                     Width,
                     LineSpacingFactor,
                     LineSpacingStyle == DxfLineSpacingStyle.Exactly,
-                    stacks
+                    stacks,
+                    strikes
                 );
         }
 
@@ -2269,9 +2270,14 @@ namespace GeometryHelper.Dxf
         /// lines and their runs as <see cref="Explode"/> says (check F4), and a stack as <see cref="DxfStackShape"/> lays it out:
         /// the TEXT of its numerator, its LINE where it has a bar or a slash, the TEXT of its denominator.
         /// </summary>
-        internal List<DxfEntity> R12Texts(DxfFile target)
+        /// <param name="target">The drawing of R12 the TEXTs go to, or none.</param>
+        /// <param name="strikes">
+        /// Not null where the MTEXT is saved as R12: the letters struck through (<c>\K</c>) are then no <c>%%K</c> in the TEXTs, and
+        /// the LINEs AutoCAD 2021 draws through them, which it keeps outside the block of the TEXTs, are added to it.
+        /// </param>
+        internal List<DxfEntity> R12Texts(DxfFile target, List<DxfEntity> strikes = null)
         {
-            DxfMTextLayout layout = Layout(true);
+            DxfMTextLayout layout = Layout(true, strikes != null);
             List<string> lines = layout == null ? Paragraphs() : null;
             int count = layout == null ? lines.Count : layout.Lines.Count;
             double height = TextHeight;
@@ -2393,7 +2399,7 @@ namespace GeometryHelper.Dxf
                         TextAt(
                             WorldToOcs(normal, Along(across + stack.NumeratorX, rise + stack.NumeratorY)),
                             run.Height,
-                            stack.Numerator,
+                            stack.Prefix + stack.Numerator,
                             run.Width,
                             false
                         )
@@ -2420,7 +2426,7 @@ namespace GeometryHelper.Dxf
                         TextAt(
                             WorldToOcs(normal, Along(across + stack.DenominatorX, rise)),
                             run.Height,
-                            stack.Denominator,
+                            stack.Prefix + stack.Denominator,
                             run.Width,
                             false
                         )
@@ -2469,6 +2475,35 @@ namespace GeometryHelper.Dxf
                         column != 0 && layout == null
                     )
                 );
+            }
+
+            // The lines through struck letters, each of the linetype CONTINUOUS, as AutoCAD 2021 draws them; they stand outside
+            // the block of the TEXTs, so they are given apart.
+            if (strikes != null && layout != null)
+            {
+                foreach (DxfMTextLayout.Line placed in layout.Lines)
+                {
+                    foreach (DxfMTextLayout.Strike strike in placed.Strikes)
+                    {
+                        double rise = top + placed.Baseline + strike.Rise;
+                        double across = (-column * placed.Measure.ActualWidth / 2.0) - placed.Start + strike.Pen;
+                        GeoPoint3 from = Along(across, rise);
+                        GeoPoint3 to = Along(across + strike.Length, rise);
+                        var through = new List<KeyValuePair<int, string>>
+                        {
+                            G(100, "AcDbLine"),
+                            G(10, Numbers.Exact(from.X + 0.0)),
+                            G(20, Numbers.Exact(from.Y + 0.0)),
+                            G(30, Numbers.Exact(from.Z + 0.0)),
+                            G(11, Numbers.Exact(to.X + 0.0)),
+                            G(21, Numbers.Exact(to.Y + 0.0)),
+                            G(31, Numbers.Exact(to.Z + 0.0)),
+                        };
+                        DxfEntity line = Of(Item.File.TextOf(Item, through, "LINE"));
+                        line.Linetype = "CONTINUOUS";
+                        strikes.Add(line);
+                    }
+                }
             }
 
             return texts;

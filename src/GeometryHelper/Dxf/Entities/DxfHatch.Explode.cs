@@ -38,7 +38,19 @@ namespace GeometryHelper.Dxf
         /// lines would cross the loops more than 32 000 000 times, which holds what the crossings take to half a gigabyte, the
         /// parts they give aside; or when the loops lie more than 2^52 of the pattern's
         /// spacings, or of the lengths of its dashes, from its base point, where one line or length is not told from the next.</exception>
-        public override IReadOnlyList<DxfEntity> Explode()
+        public override IReadOnlyList<DxfEntity> Explode() => Laid(false);
+
+        /// <summary>
+        /// The LINEs of the pattern as AutoCAD 2021 writes them when it saves R12: those <see cref="Explode"/> gives, but the lines of the
+        /// last pattern line first and those of the first last, and the parts of each line of a pattern from its last to its first
+        /// (ANSI37, two pattern lines, writes the lines at 135 degrees before those at 45; a line broken in two by a hole writes
+        /// its second piece first; probed in its console).
+        /// </summary>
+        /// <exception cref="NotSupportedException">Thrown as <see cref="Explode"/> says.</exception>
+        /// <exception cref="InvalidOperationException">Thrown as <see cref="Explode"/> says.</exception>
+        internal IReadOnlyList<DxfEntity> R12Lines() => Laid(true);
+
+        private IReadOnlyList<DxfEntity> Laid(bool lastFirst)
         {
             if (IsGradient)
             {
@@ -74,6 +86,11 @@ namespace GeometryHelper.Dxf
             double elevation = snapshot.Elevation;
             var parts = new List<DxfEntity>((int)count);
 
+            if (lastFirst)
+            {
+                sets.Reverse();
+            }
+
             foreach (Stretches stretches in sets)
             {
                 stretches.Lay(
@@ -85,7 +102,8 @@ namespace GeometryHelper.Dxf
                         );
                         look.GiveTo(line);
                         parts.Add(line);
-                    }
+                    },
+                    lastFirst
                 );
             }
 
@@ -757,31 +775,72 @@ namespace GeometryHelper.Dxf
                 return count;
             }
 
-            /// <summary>Lays the dashes along each stretch in its order, each from its start to its end in the plane of the HATCH; a dot from a point to itself.</summary>
-            internal void Lay(Action<GeoPoint2, GeoPoint2> part)
+            /// <summary>
+            /// Lays the dashes along each stretch in its order, each from its start to its end in the plane of the HATCH; a dot from
+            /// a point to itself. <paramref name="reversed"/> lays those of each line of the pattern from the last to the first, as
+            /// AutoCAD 2021 writes them as R12, the lines themselves still from the least index.
+            /// </summary>
+            internal void Lay(Action<GeoPoint2, GeoPoint2> part, bool reversed = false)
             {
+                if (!reversed)
+                {
+                    for (int s = 0; s < _from.Count; s++)
+                    {
+                        LayStretch(s, part);
+                    }
+
+                    return;
+                }
+
+                var line = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
+
                 for (int s = 0; s < _from.Count; s++)
                 {
-                    long k = _lines[s];
-                    double ox = _bx + k * _ox;
-                    double oy = _by + k * _oy;
-                    double from = _from[s];
-                    double to = _to[s];
-
-                    GeoPoint2 Along(double t) => new GeoPoint2(ox + _dx * t, oy + _dy * t);
-
-                    if (!(_length > 1E-12))
+                    if (s > 0 && _lines[s] != _lines[s - 1])
                     {
-                        part(Along(from), Along(to));
-                        continue;
+                        EmitBackwards(line, part);
                     }
 
-                    long first = (long)Periods(from, to, out double end);
+                    LayStretch(s, (a, b) => line.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(a, b)));
+                }
 
-                    for (long m = first; m <= (long)end; m++)
-                    {
-                        Period(m, from, to, (a, b) => part(Along(a), Along(b)));
-                    }
+                EmitBackwards(line, part);
+            }
+
+            private static void EmitBackwards(
+                List<KeyValuePair<GeoPoint2, GeoPoint2>> line,
+                Action<GeoPoint2, GeoPoint2> part
+            )
+            {
+                for (int i = line.Count - 1; i >= 0; i--)
+                {
+                    part(line[i].Key, line[i].Value);
+                }
+
+                line.Clear();
+            }
+
+            private void LayStretch(int s, Action<GeoPoint2, GeoPoint2> part)
+            {
+                long k = _lines[s];
+                double ox = _bx + k * _ox;
+                double oy = _by + k * _oy;
+                double from = _from[s];
+                double to = _to[s];
+
+                GeoPoint2 Along(double t) => new GeoPoint2(ox + _dx * t, oy + _dy * t);
+
+                if (!(_length > 1E-12))
+                {
+                    part(Along(from), Along(to));
+                    return;
+                }
+
+                long first = (long)Periods(from, to, out double end);
+
+                for (long m = first; m <= (long)end; m++)
+                {
+                    Period(m, from, to, (a, b) => part(Along(a), Along(b)));
                 }
             }
 

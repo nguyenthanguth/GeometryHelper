@@ -189,9 +189,16 @@ LINEs (32 of 36 probes of polygons, holes and notches equal AutoCAD's own R12 re
 with no lines, in one colour: AutoCAD writes 2 for a LINEAR gradient of a rectangle, as here, but the triangles of its own display
 mesh for the others, 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here. A whole
 circle is cut as AutoCAD cuts it, into the fewest chords that stand 0.1 off it at the most and 33 at the least (36 for a radius of
-25, 76 for 30, 48 for 50, 140 for 100; the 62 circles of 5 to 70 and 200 probed equal AutoCAD's own R12 record for record). The
-strips of a bulge, an arc and an ellipse are cut from the corners the library flattens them to (16 to a half circle), so the
-SOLIDs of those, and of a circle with a hole in it, are not as many as AutoCAD's. The
+25, 76 for 30, 48 for 50, 140 for 100; the 62 circles of 5 to 70 and 200 probed equal AutoCAD's own R12 record for record). A bulge, an arc and an ellipse are cut as a circle is: an arc into the fewest chords that stand 0.1 off it at the most and
+the share of 33 its sweep is of a turn at the least (17 for a bulge of 0.5 over a chord of 100), an ellipse into as many chords as a
+circle of its major radius, at equal steps of its parameter (50 for 50 by 25); 19 probes of arcs, bulges and ellipses alone in a
+fill equal AutoCAD's own R12 record for record. A fill in a plane other than that of the drawing is the SOLIDs and LINEs of the
+strips of its plane, the SOLIDs' corners as the plane of the opposite normal reads the world points of the strips, the LINEs in the
+world with no extrusion (3 of 4 probes equal; a plane of the normal (0, 0, -1) has the extrusion written on its SOLIDs, which
+is not). A round hole in a fill, and a star, are not yet cut as AutoCAD cuts them: a circle of 25 in one of 50 gives 136 SOLIDs and
+132 LINEs where AutoCAD writes 136 and 134, a hole of 10 in a circle of 30 gives 216 and 214 where it writes 142 and 142, a star two
+LINEs short, for AutoCAD joins the pieces beside a hole only where its corners allow and cuts them at the level of the corner next to
+the highest, and draws the sides at the lowest. The
 words of a multileader whose style has a frame are followed by it, a POLYLINE of five corners (the first again) of the colour
 BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, written after the arrowhead; words held at the
 middle or the right with no frame have their dogleg run on to the ink of their first line (words of 8 and 20 held at the middle
@@ -205,13 +212,25 @@ stack has no sign, `\S12;`), each as high as the letters of the stack. The bar i
 are centred on it (a tolerance, `^`, holds both at the left); the pen moves on by the width and a third of the height. The line is as
 high as the stack, 7/3 of its height for a bar (0.42 for letters 0.18 high), and its baseline is that of the denominator, so that
 words held at the top lower their plain letters by 0.24, and a dimension's words, held by `\A1;` at the middle of the line, stand
-0.12 above and below the plain ones. A stack with a line under, over or through it (`\L`), or in a TrueType font or beside a big
-font, is not laid out: it is one TEXT, the stack read as its words. Extended data is written as AutoCAD writes it: the names of its
+0.12 above and below the plain ones. A stack with a line under or over it (`\L`, `\O`) is the same lifted by a fifth of the
+height for each half that has words (each fifth again where both lines are there), each TEXT of a half beginning with `%%O` and
+`%%U`; the letters struck through (`\K`) are no look of their own and have no `%%K`, and the lines AutoCAD draws through them, of the
+linetype CONTINUOUS, are written after the last entity of the space, outside the block of the TEXTs, half the height above the
+baseline (through a stack they are lines of no length, as AutoCAD writes them); 57 of 57 probes of stacks under, over and through
+letters equal AutoCAD's R12. In a TrueType font a stack is as high as the ink of its halves, from the lowest to the highest letter
+(Arial's 1 and 2 reach 1472 units, 6 beyond its A), begins where the ink of the letters before it ends, and what follows it stands as
+far from its ink as the zero has room right of its own (98 of 1466 units in Arial; 13 fonts probed, Palatino's not equal); beside a
+big font it is laid out as beside none (63 of 65 probes in all, a half with a letter of the big font in it not). Extended data is written as AutoCAD writes it: the names of its
 applications in capitals, a layer's (`1003`) as the table writes it, each point of 1011 to 1013 in five groups (`1011` x, `1021`
 and `1031` of 0.0, then `1021` y and `1031` z). The widths of an LWPOLYLINE are the defaults of the polyline's header (`40` and `41`
 of its first vertex, each left out where it is nought), and a vertex holds only the widths that differ from them: constant width 2
 is `40` and `41` of 2 on the polyline and none on its vertices. The lines of a pattern in a plane other than that of the drawing
-carry the extrusion, the hatch's normal. An attribute of version 0 whose position is free has no AcDbAttr.
+carry the extrusion, the hatch's normal; they are written the last pattern line first, and the pieces a hole breaks a line into
+the last first (ANSI37 writes the lines at 135 degrees before those at 45). An attribute of version 0 whose position is free has
+no AcDbAttr. An attribute of several lines (an MTEXT held at its top left) is one attribute for each line, the tag ending in
+`_001`, `_002` and on, the first keeping its place and the others after the other attributes of the block or the INSERT, those of
+an INSERT with `AcDbAttr` of the position locked (`MARK` of `M20\Pgrade 8.8` at (0, -5) is `MARK_001` at (0, -7.5) and `MARK_002` at
+(0, -11.667); 6 of 6 probes equal).
 Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
 extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
 ten drawings of dynamic blocks open with a clean AUDIT.

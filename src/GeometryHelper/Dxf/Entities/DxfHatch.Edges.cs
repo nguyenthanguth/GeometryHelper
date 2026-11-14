@@ -402,16 +402,18 @@ namespace GeometryHelper.Dxf
             private static double Within(double degrees) => Math.Abs(degrees) > 360.0 ? degrees % 360.0 : degrees;
 
             /// <summary>
-            /// How many chords AutoCAD 2021 cuts a circle into where a HATCH filled solid is written as R12 (its console, 62
-            /// circles of 5 to 200 units): the fewest for which a chord stands off the circle by 0.1 at most,
-            /// <c>ceil(pi / acos(1 - 0.1 / r))</c>, and 33 at the least: 33 for a radius up to 22, 36 for one of 25, 71 for one
-            /// of 100.
+            /// How many chords AutoCAD 2021 cuts an arc of a sweep into where a HATCH filled solid is written as R12 (its console,
+            /// 62 circles of 5 to 200 units, and arcs and bulges): the fewest for which a chord stands off the circle by 0.1 at
+            /// most, <c>ceil(sweep / (2 acos(1 - 0.1 / r)))</c>, and the share of 33 that the sweep is of a turn at the least: a
+            /// whole circle 33 for a radius up to 22, 36 for one of 25, 71 for one of 100; a bulge of 0.5 over a chord of 100,
+            /// an arc of 106.26 degrees and a radius of 62.5, 17.
             /// </summary>
-            private static int Chords(double radius)
+            internal static int Chords(double radius, double sweep)
             {
+                sweep = Math.Abs(sweep);
                 double sag = 0.1 / radius;
-                int fine = sag < 2.0 ? (int)Math.Ceiling(Math.PI / Math.Acos(1.0 - sag)) : 0;
-                return Math.Max(33, fine);
+                int fine = sag < 2.0 ? (int)Math.Ceiling(sweep / (2.0 * Math.Acos(1.0 - sag))) : 0;
+                return Math.Max((int)Math.Ceiling(33.0 * sweep / (2.0 * Math.PI) - 1E-9), fine);
             }
 
             /// <summary>
@@ -433,10 +435,9 @@ namespace GeometryHelper.Dxf
                         double cy = this[20];
                         double r = this[40];
                         Run(out double from, out double sweep);
-                        int steps =
-                            asFilled && Math.Abs(Math.Abs(sweep) - (2.0 * Math.PI)) < 1E-9
-                                ? Chords(r)
-                                : Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 16.0)));
+                        int steps = asFilled
+                            ? Chords(r, sweep)
+                            : Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 16.0)));
 
                         for (int i = 0; i < steps; i++)
                         {
@@ -459,7 +460,9 @@ namespace GeometryHelper.Dxf
                             Parameters(start, end, ratio, out from, out to);
                         }
 
-                        int steps = Math.Max(4, (int)Math.Ceiling((to - from) / (Math.PI / 16.0)));
+                        int steps = asFilled
+                            ? Chords(Math.Sqrt((mx * mx) + (my * my)), to - from)
+                            : Math.Max(4, (int)Math.Ceiling((to - from) / (Math.PI / 16.0)));
 
                         for (int i = 0; i < steps; i++)
                         {

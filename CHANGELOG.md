@@ -271,7 +271,7 @@ held at the top left `A\S1/2;B` has its A and its 2 0.42 below the top and the 1
 below. A tolerance (`^`) has both halves at the left and no bar, a slash (`#`) a LINE at 55 degrees twice the height long, a stack with
 no sign (`\S12;`) an empty denominator; a half with no words stands no height for it. `DxfMText.Explode()` gives the same pieces
 (it was the one TEXT of the words with the stack read as `1/2`). A stack with a line under, over or through it, in a TrueType font or
-beside a big font is still one TEXT.
+beside a big font was still one TEXT here (it is laid out now, below).
 **NEW.** Extended data saved as R12 is written as AutoCAD 2021 writes it: the names of its applications in capitals, a layer's (`1003`)
 as the table of layers writes it (`a{b}` is `A_B_`), and each point of 1011 to 1013 in five groups, its x, `1021` and `1031` of 0.0,
 then its y and z (`1011` 4, 5, 6 is `4`, `0.0`, `0.0`, `5`, `6`); a point of 1010 is as it was. 3 of 3 probes are equal to AutoCAD's
@@ -284,11 +284,57 @@ attribute of version 0 whose position is free has no AcDbAttr extended data now,
 128, 6 192, 40 1280; a spline through 5 fit points, whose cubic has 7 control points, 224; 29 probes of control and fit splines of
 degrees 1 to 5, rational and closed ones among them, equal to AutoCAD's record for record). It was 128 vertices for every spline.
 **NEW.** The LINEs of a pattern hatch in a plane other than that of the drawing carry the extrusion of the hatch in the R12 as AutoCAD
-writes them (a hatch on the normal (1, 1, 1) has 210, 220 and 230 of 0.577 on each of its lines; 6 probes in tilted planes equal; a crosshatch such as ANSI37 still differs in the order of its lines).
+writes them (a hatch on the normal (1, 1, 1) has 210, 220 and 230 of 0.577 on each of its lines; 6 probes in tilted planes equal; the order of the lines of a crosshatch such as ANSI37 is below).
 **NEW.** A circle filled solid saved as R12 is cut into the chords AutoCAD cuts it into: the fewest for which a chord stands 0.1 off the
 circle at the most, 33 at the least (36 for a radius of 25, 76 for 30, 48 for 50, 140 for 100; it was 32 for every circle). The 62 circles
-of 5 to 70 and 200 units probed equal AutoCAD's own R12 record for record. A circle with a hole in it, a bulge, an arc and an ellipse are
-still cut from the library's own corners.
+of 5 to 70 and 200 units probed equal AutoCAD's own R12 record for record. A circle with a hole in it, a bulge, an arc and an ellipse were
+still cut from the library's own corners (the last three are cut as AutoCAD cuts them below).
+**NEW.** The stack under, over or through letters of an MTEXT or a dimension's words (`\LA\S1/2;B\l`, `\O`, `\K`), saved as R12, is laid
+out as AutoCAD 2021 lays it out (probed in its console, `Database.DxfIn` of side databases and `DxfOut` at R12: 57 MTEXTs of stacks
+with bars, slashes, tolerances, no sign, empty halves, two lines at once, several heights and holds, all equal its own record for
+record; they were one TEXT). A line under or over lifts the numerator and the bar by a fifth of the height for each half that has
+words (each line again where both are there) and each half's TEXT begins with `%%U` or `%%O` (`%%O%%U` for both): `\LA\S1/2;B\l` of
+letters 2.5 high held at the top left at (10, 10) has A at (10, 3.1667), the numerator `%%U1` at (12.9167, 7), the bar at 6.5833 and
+`%%U2` at (12.5, 3.1667), where the stack alone has A at 4.1667. The letters struck through (`\K`) are no look of their own and have
+no `%%K`: they are one TEXT with the letters about them, and AutoCAD draws the line through them as a LINE of the linetype CONTINUOUS,
+half the height above the baseline from where the strike begins to where it ends, written after the last entity of its space (or
+before the end of its block), outside the block of the TEXTs; through a stack it draws lines of no length (the numerator's of the
+width of its words where the strike begins at the stack). `DxfMText.Explode()` gives the
+stack under a line as pieces too (it was one TEXT), and still the `%%K` of letters struck through.
+**NEW.** A stack in a TrueType font, or beside a big font, saved as R12, is laid out as AutoCAD 2021 lays it out (63 of 65 probes in 13
+fonts, with bars, slashes, tolerances, two lines and several holds; they were one TEXT): in a TrueType font the halves
+are as high as the ink of their letters from the lowest to the highest (Arial's 1 and 2 reach 1472 units, not its A's 1466, and a
+descender counts), the stack begins where the ink of the letters before it ends (Arial's A is inked to 1369 and moves the pen 1366), the
+slash's denominator follows the ink of the numerator by a third of the height, and the letters after it stand as far from the ink of the
+stack as the zero has room right of its own ink (98 of 1466 units in Arial, 73 of 1387 in Times New Roman, 229 of 1170 in Courier New):
+`A\S1/2;B` of Arial 2.5 high has its B at 14.1576 where the SHX letter would stand at 14.5629. Not done: Palatino Linotype, whose halves
+are 0.2 lower than its glyph boxes give, a stack with a letter of the big font in a half, and what follows a stack beside a big font in
+a line of letters of both fonts.
+**NEW.** A solid fill in a plane other than that of the drawing, saved as R12, is the SOLIDs and LINEs of its strips (it was nothing):
+the strips are cut in the plane of the hatch, the SOLIDs stand on the opposite of its normal with their corners as that plane reads
+the world points, the LINEs in the world with no extrusion; a rectangle 100 by 60 on the normal (1, 1, 1) is 2 SOLIDs on the
+extrusion (-0.577, -0.577, -0.577) and two LINEs of 60 from the origin along the plane's y axis. 3 of 4 probes equal AutoCAD's own R12
+(normals (1, 1, 1), (0, 1, 0), (1, 0, 0) at an elevation of 25, a hole in it); the fourth, the normal (0, 0, -1), has its extrusion
+(0, 0, 1) written on the SOLIDs by AutoCAD, as the library cannot write one that is the default.
+**NEW.** The strips of an arc, a bulge and an ellipse in a solid fill saved as R12 are cut as AutoCAD cuts them: an arc or a bulge into
+the fewest chords that stand 0.1 off the circle at the most and the share of 33 its sweep is of a turn at the least (17 chords for a
+bulge of 0.5 over a chord of 100, 6 for 1 radian of a radius of 5), an ellipse into as many chords as a circle of its major radius, at
+equal steps of its parameter (50 for 50 by 25 or 50 by 20 turned 45 degrees); they were 16 to a half circle. 19 probes of pies,
+segments, bulges, half circles and ellipses alone in a fill equal AutoCAD's own R12 record for record. Not done: a round hole in a
+fill (a circle of 25 in one of 50 is 136 SOLIDs and 132 LINEs, AutoCAD's 136 and 134; a hole of 10 in a circle of 30 is 216 and 214
+where AutoCAD writes 142 and 142), a star (2 LINEs short) and the notches of a hole: AutoCAD joins the pieces beside a hole only where
+its corners allow, cuts them at the level of the corner next to the hole's highest, and draws the sides at its lowest, by a rule not
+worked out in 18 probes.
+**NEW.** An attribute of several lines (an MTEXT held at its top left, R2018's multi-line attribute) saved as R12 is one attribute for
+each line, as AutoCAD 2021 writes it (6 of 6 probes equal; it was one ATTDEF or ATTRIB of the lines joined): the tag ends in `_001`,
+`_002` and on, the first keeps its place in the list and the others come after the other attributes of the block or the INSERT, those
+of an INSERT with `AcDbAttr` of version 0 and the position locked, each at the baseline of its line as the MTEXT lays it out: `MARK` of
+`M20\Pgrade 8.8` 2.5 high held at (0, -5) is `MARK_001` `M20` at (0, -7.5) and `MARK_002` `grade 8.8` at (0, -11.667). Left as before:
+an attribute held other than at its top left.
+**NEW.** The LINEs of a pattern hatch saved as R12 are written in AutoCAD's order: the last pattern line first, and of each line
+of the pattern the last piece first (ANSI37, two pattern lines, writes the lines at 135 degrees before those at 45; a line a hole
+breaks in two writes the piece beyond the hole first; a dashed line its dashes from the last). 11 of 14 probes of patterns equal AutoCAD's own R12
+record for record (the others: dots and dashes at 45 and 135 degrees, where AutoCAD writes one dash more at the edge).
 **CHANGED.** The MTEXT that `DxfMLeader.Explode()` gives is laid out in the fonts of the multileader's drawing, so that its
 `ActualWidth` and `ActualHeight` are measured (they were 0).
 **FIXED.** The words and arrowheads of an arc length dimension (DIMARC) and of an angle of three points are laid out as AutoCAD 2021

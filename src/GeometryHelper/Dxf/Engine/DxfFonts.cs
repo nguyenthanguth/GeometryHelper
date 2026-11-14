@@ -534,6 +534,19 @@ namespace GeometryHelper.Dxf
 
             while (k < numbers.Count)
             {
+                // A stack is laid out by its own shape, from the font alone.
+                if (drawn != null && drawn[k].Stack != null)
+                {
+                    if (!line.AddStack(drawn[k]))
+                    {
+                        return false;
+                    }
+
+                    afterBig = false;
+                    k++;
+                    continue;
+                }
+
                 // An MTEXT's ideographic space is a space of its own (check F3: txt and extfont.shx U+3000 and 中 4 high 8.267
                 // wide, from the start of the line), which is not measured.
                 if (
@@ -657,7 +670,7 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            if (bytes.Length == 1 && bigFont.Opens(bytes[0]) && k + 1 < numbers.Count)
+            if (bytes.Length == 1 && bigFont.Opens(bytes[0]) && k + 1 < numbers.Count && numbers[k + 1] >= 0)
             {
                 byte[] next = BytesOf(big.Page, numbers[k + 1]);
 
@@ -704,6 +717,28 @@ namespace GeometryHelper.Dxf
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Whether the letter at a place of an MTEXT's letters is drawn from the big font beside the font, as <see cref="Pick"/>
+        /// says (a letter beyond ASCII of a big font that is read); false where there is no big font or the letter is the
+        /// font's.
+        /// </summary>
+        internal static bool IsBigLetter(DxfFont font, Big big, List<Letter> letters, int at)
+        {
+            if (big?.Font == null || letters[at].Number < 0)
+            {
+                return false;
+            }
+
+            var numbers = new List<int>(letters.Count - at);
+
+            for (int k = at; k < letters.Count; k++)
+            {
+                numbers.Add(letters[k].Number);
+            }
+
+            return Pick(font, big, numbers, 0, out DxfFont from, out _, out _) && from == big.Font;
         }
 
         /// <summary>The bytes of a letter in a code page, an ASCII letter its own; none where the page has it not, and null where it is no letter.</summary>
@@ -905,8 +940,8 @@ namespace GeometryHelper.Dxf
         /// three lines more, 45 wide, 27.758 wide, not the 27.900 of letters slanted as a TEXT's), a font switch (<c>\f</c>,
         /// <c>\F</c>), a stack (<c>\S</c>) unless <paramref name="stacks"/> asks for it, a paragraph's indents and tabs
         /// (<c>\p</c>), a column break (<c>\N</c>) and any other code. Asked for, a stack is one letter of
-        /// <see cref="Stacked"/> that <see cref="DxfStackShape"/> lays out as AutoCAD 2021 explodes it, in a font of letters
-        /// (not a TrueType font, nor one beside a big font) and no line under, over or through it.
+        /// <see cref="Stacked"/> that <see cref="DxfStackShape"/> lays out as AutoCAD 2021 explodes it, in any font measured,
+        /// beside a big font or not, lined under, over or through or not.
         /// </summary>
         internal static List<Letter> MTextLetters(
             DxfFont font,
@@ -1004,6 +1039,7 @@ namespace GeometryHelper.Dxf
                     else if (code == 'P')
                     {
                         number = Paragraph;
+                        marks = (marks & 4) != 0 ? marks | 8 : marks;
                         i += 2;
                     }
                     else if (code == '~')
@@ -1082,11 +1118,11 @@ namespace GeometryHelper.Dxf
                             code == 'L' || code == 'l' ? 1
                             : code == 'O' || code == 'o' ? 2
                             : 4;
-                        marks = char.IsUpper(code) ? marks | mark : marks & ~mark;
+                        marks = char.IsUpper(code) ? marks | mark : marks & ~(mark == 4 ? 12 : mark);
                         i += 2;
                         continue;
                     }
-                    else if (code == 'S' && stacks && !drawn && marks == 0 && !(font is DxfTrueTypeFont))
+                    else if (code == 'S' && stacks)
                     {
                         StackWords stack = ReadStack(words, i + 2, out int stackEnd);
                         letters.Add(new Letter(Stacked, width, high, track, align, marks, tint, stack));
@@ -1107,6 +1143,7 @@ namespace GeometryHelper.Dxf
                 {
                     // A line feed in the words (^J), as AutoCAD 2021 writes between the paragraphs of some MTEXTs, is a new paragraph.
                     number = Paragraph;
+                    marks = (marks & 4) != 0 ? marks | 8 : marks;
                     i++;
                 }
                 else if (c == '\r')

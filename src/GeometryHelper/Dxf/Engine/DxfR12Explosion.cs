@@ -100,6 +100,12 @@ namespace GeometryHelper.Dxf
             /// <summary>The polylines made of a lightweight one (LWPOLYLINE), by their handles, whose widths AutoCAD writes as the defaults of the polyline's header.</summary>
             internal HashSet<string> Lightweight { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>The LINEs made through letters struck through (<c>K</c>) of an MTEXT, by their handles, which AutoCAD writes after the INSERT of the TEXTs and not in its block.</summary>
+            internal HashSet<string> Outside { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>The attributes and definitions that are a line of one of several lines, by their handles, written as a text left on its baseline.</summary>
+            internal HashSet<string> Lines { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>The 3D polylines made of an ellipse (<c>E</c>) or a spline (<c>S</c>), by their handles, which AutoCAD writes in a form of its own.</summary>
             internal Dictionary<string, char> Sampled { get; } =
                 new Dictionary<string, char>(StringComparer.OrdinalIgnoreCase);
@@ -119,6 +125,7 @@ namespace GeometryHelper.Dxf
         {
             var plan = new Plan();
             var extents = new Extents(database);
+            SplitMTextAttributes(database, plan);
             NameDynamicBlocks(database, plan);
             HashSet<string> angular = AngularBlocks(database);
 
@@ -245,6 +252,10 @@ namespace GeometryHelper.Dxf
                                 {
                                     plan.Lightweight.Add(piece.Handle);
                                 }
+                                else if (kind == 'K')
+                                {
+                                    plan.Outside.Add(piece.Handle);
+                                }
                                 else
                                 {
                                     plan.Sampled[piece.Handle] = kind;
@@ -290,6 +301,126 @@ namespace GeometryHelper.Dxf
             }
 
             return plan;
+        }
+
+        /// <summary>
+        /// An attribute of several lines (an MTEXT embedded in its definition or its ATTRIB, held at its top left) becomes one
+        /// attribute for each line of its words, as AutoCAD 2021 saves one as R12, which has no MTEXT: the first keeps its place
+        /// with the tag and <c>_001</c> after it, the others, <c>_002</c>, <c>_003</c> and on, come after the other attributes of
+        /// the block or the INSERT, those of an INSERT with their place locked, each at the baseline of its line as the MTEXT lays it out. A definition
+        /// <c>MARK</c> of <c>M20\Pgrade 8.8</c> 2.5 high held at (0, -5) is <c>MARK_001</c> <c>M20</c> at (0, -7.5) and
+        /// <c>MARK_002</c> <c>grade 8.8</c> at (0, -11.667).
+        /// </summary>
+        private static void SplitMTextAttributes(DxfDatabase database, Plan plan)
+        {
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                foreach (
+                    DxfAttributeDefinition definition in block
+                        .OfType<DxfAttributeDefinition>()
+                        .Where(d => d.IsMTextAttributeDefinition)
+                        .ToList()
+                )
+                {
+                    List<DxfDBText> lines = LinesOf(definition.MTextAttributeDefinition);
+
+                    if (lines == null)
+                    {
+                        continue;
+                    }
+
+                    string tag = definition.Tag;
+                    string prompt = definition.Prompt;
+                    definition.IsMTextAttributeDefinition = false;
+                    Place(definition, lines[0]);
+                    definition.Tag = tag + "_001";
+                    plan.Lines.Add(definition.Handle);
+
+                    for (int k = 1; k < lines.Count; k++)
+                    {
+                        var more = new DxfAttributeDefinition(
+                            lines[k].Position,
+                            lines[k].TextString,
+                            tag + "_" + (k + 1).ToString("D3", CultureInfo.InvariantCulture),
+                            prompt,
+                            null
+                        );
+                        more.SetPropertiesFrom(definition);
+                        more.Invisible = definition.Invisible;
+                        more.Constant = definition.Constant;
+                        more.Verifiable = definition.Verifiable;
+                        more.Preset = definition.Preset;
+                        more.TextStyleName = definition.TextStyleName;
+                        more.Height = lines[k].Height;
+                        more.Rotation = lines[k].Rotation;
+                        block.AppendEntity(more);
+                        plan.Lines.Add(more.Handle);
+                    }
+                }
+
+                foreach (DxfBlockReference insert in block.OfType<DxfBlockReference>().ToList())
+                {
+                    foreach (
+                        DxfAttributeReference attribute in insert
+                            .AttributeCollection.Where(a => a.IsMTextAttribute)
+                            .ToList()
+                    )
+                    {
+                        List<DxfDBText> lines = LinesOf(attribute.MTextAttribute);
+
+                        if (lines == null)
+                        {
+                            continue;
+                        }
+
+                        string tag = attribute.Tag;
+                        attribute.IsMTextAttribute = false;
+                        Place(attribute, lines[0]);
+                        attribute.Tag = tag + "_001";
+                        plan.Lines.Add(attribute.Handle);
+
+                        for (int k = 1; k < lines.Count; k++)
+                        {
+                            var more = new DxfAttributeReference(
+                                lines[k].Position,
+                                lines[k].TextString,
+                                tag + "_" + (k + 1).ToString("D3", CultureInfo.InvariantCulture),
+                                null
+                            );
+                            more.SetPropertiesFrom(attribute);
+                            more.TextStyleName = attribute.TextStyleName;
+                            more.Height = lines[k].Height;
+                            more.Rotation = lines[k].Rotation;
+                            insert.AttributeCollection.AppendAttribute(more);
+                            more.LockPositionInBlock = true;
+                            plan.Lines.Add(more.Handle);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>The TEXT of each line of the words of an MTEXT held at its top left, laid out as AutoCAD lays them; null for no words, another hold, or words that are not lines of letters alone.</summary>
+        private static List<DxfDBText> LinesOf(DxfMText words)
+        {
+            if (words == null || words.Attachment != DxfAttachmentPoint.TopLeft)
+            {
+                return null;
+            }
+
+            List<DxfEntity> pieces = words.R12Texts(null);
+            List<DxfDBText> lines = pieces.OfType<DxfDBText>().ToList();
+            return lines.Count == 0 || lines.Count != pieces.Count ? null : lines;
+        }
+
+        /// <summary>Sets the place, words and size of a text from the TEXT of its first line.</summary>
+        private static void Place(DxfDBText text, DxfDBText first)
+        {
+            text.VerticalMode = DxfTextVerticalMode.TextBase;
+            text.Position = first.Position;
+            text.TextString = first.TextString;
+            text.Height = first.Height;
+            text.Rotation = first.Rotation;
         }
 
         /// <summary>
@@ -444,9 +575,23 @@ namespace GeometryHelper.Dxf
                     // An MLINE is its lines element by element, as AutoCAD writes them.
                     parts = mline.ExplodeMlineByElement();
                 }
+                else if (entity is DxfMText words)
+                {
+                    // The lines through letters struck through stand outside the block of the TEXTs: 'K' marks them.
+                    var struck = new List<DxfEntity>();
+                    var texts = words.R12Texts(null, struck);
+                    texts.AddRange(struck);
+
+                    foreach (DxfEntity line in struck)
+                    {
+                        sampling[line] = 'K';
+                    }
+
+                    parts = texts;
+                }
                 else
                 {
-                    parts = entity.Explode();
+                    parts = entity is DxfHatch pattern ? pattern.R12Lines() : entity.Explode();
 
                     // The lines of a pattern lie in the plane of the hatch: AutoCAD writes its extrusion on each of them, as it
                     // writes (0, 0, 1) on none.
