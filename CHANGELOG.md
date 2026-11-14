@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The styles a hatch or an MTEXT makes of its own, the lines of a pattern, the middle colour of a gradient and the runs of an
+MTEXT in a colour, are one object for each colour and weight in a display list, as the style of a LINE is, where each hatch and each MTEXT
+made a style of its own with its look (100 bytes). A drawing of 100 000 entities, half of them hatches and half MTEXTs (250 000 texts among
+the items), held 75 000 styles and holds three: the display list is 135.0 MB where it was 142.4, and the heap grows by 343.6 MB once the
+drawing is opened, displayed and its pick index made, where it grew by 351.0 MB (356.7 MB where it was 364.2 under .NET Framework 4.8). A
+drawing of lines, arcs, circles, polylines and texts has none to share, and its 650.9 MB at 1 000 000 entities is the same, as are its
+display, frame, layer-on and layer-off times (medians of five, .NET 8 and .NET Framework 4.8, within the noise of a machine other work was
+running on). The display list of 19 drawings (4 of our own and 15 AutoCAD samples) and the pixels of each at 5 views, plain, selected,
+highlighted and hovered, the saved bytes and the list after a layer off, on and a REGEN are the same bit for bit under both. What else a
+displayed drawing keeps was weighed and stays: the shapes an entity has read (128 MB at 1 000 000 entities) take 2 to 10 µs and 3 to 6 KB
+of garbage to read again, and a layer switched on at 1 000 000 entities took 2.4 s without them where it takes 1.1 s; the strings of a
+hatch's loops, a seventh of the hatch and MTEXT drawing, take 10 µs a hatch to read again, and a layer switched on in it took 20 per cent
+longer without them. The handle strings (31 MB) are the one string each entity, its display items and its run share, and an arc's box
+(25 MB) is asked for at each arc a frame shows as a dot.
+
 **NEW.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input). The
 presenter reads the metafile itself (the placeable header and the records of lines, polylines, polygons, rectangles, ellipses, arcs,
 pens, brushes, fonts and text; bitmaps, regions and clipping are read past) and makes block WMF0 of 2D polylines and TEXT, fitted with

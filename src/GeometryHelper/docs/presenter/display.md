@@ -65,6 +65,21 @@ displayed, holds 364 MB in the objects of its database, 73 MB of them its bytes,
 share the object of each look, a polyline asked for its width keeps none of its vertices, and an entity as it was read from the file
 takes 104 bytes. Opened, displayed and its pick index made, the drawing grows the heap by 650 MB (the display list 237 MB of it).
 
+The styles a hatch or an MTEXT makes of its own, the lines of a pattern, the middle colour of a gradient and the runs of an MTEXT in a
+colour, are one object for each colour and weight, as the style of a LINE is. A drawing of 100 000 entities, half of them hatches (solid, or
+ANSI31 and AR-BRSTD) and half MTEXTs of three to four lines, 250 000 texts among the items, held 75 000 styles with their looks, one for
+each hatch and MTEXT, and holds three: 343.6 MB of heap where it held 351.0.
+
+What else a displayed drawing keeps is kept for the next time it is drawn, and was weighed before it was let go. The shapes an entity has
+read (128 bytes of each of 1 000 000 entities, 128 MB) take 2 to 5 µs and 3 KB of garbage to read again for a LINE, an ARC, a CIRCLE or a
+TEXT, and 10 µs and 6 KB for a polyline. A layer switched on at 1 000 000 entities, which draws its entities again, took 1.1 s with the
+shapes kept, 1.5 s with those of the polylines read afresh (578 MB of heap in place of 651) and 2.4 s with all of them (523 MB). The
+strings of a hatch's loops, 45 MB of the 351 MB of the hatch and MTEXT drawing above (900 bytes of a hatch of four vertices), cost 10 µs a
+hatch to read again: a layer switched on in that drawing took 590 ms with them and 710 ms without (300 MB of heap in place of 351). They
+stay. The handle of an entity is one string, shared by its database item, its display items and its run: 32 bytes of each entity, 31 MB at
+1 000 000. An arc's box is 32 bytes of the 104 of its item, 25 MB at 1 000 000 entities; the frame of a drawing shown whole asks for it at
+each arc it draws as a dot, so it is kept.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
