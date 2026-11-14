@@ -83,8 +83,8 @@ namespace GeometryHelper.Dxf
     /// and upright until it is given others, and is written when it is added to a <see cref="DxfTextStyleTable"/>.
     /// </para>
     /// <para>
-    /// Renamed, the texts, MTEXTs, attributes and tables written in it and the header's <c>$TEXTSTYLE</c> follow; Standard keeps
-    /// its name, as AutoCAD keeps it. Erased, as
+    /// Renamed, the texts, MTEXTs, attributes and tables written in it and the header's <c>$TEXTSTYLE</c> follow; Standard is
+    /// renamed as any other, as AutoCAD 2021's -RENAME renames it. Erased, as
     /// AutoCAD's Text Style dialog deletes one, only where nothing is written in it and it is neither Standard nor current.
     /// </para>
     /// </remarks>
@@ -432,13 +432,6 @@ namespace GeometryHelper.Dxf
         {
             DxfSymbolTable.CheckName(name, "value");
             string old = Name;
-
-            if (string.Equals(old, "Standard", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    "The text style " + old + " is not renamed, as AutoCAD keeps its name."
-                );
-            }
 
             if (IsDependent)
             {

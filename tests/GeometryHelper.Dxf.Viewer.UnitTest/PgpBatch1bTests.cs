@@ -413,8 +413,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             session = Start(document, "-RENAME", "LA", "Steel");
             Assert.Equal("Enter new layer name:", session.PromptText);
             Run(session, "0");
+
+            // AutoCAD 2021 ends the command on a name another layer has, as *Invalid*; the rename is asked again from the start.
             Assert.Contains("A layer named \"0\" already exists.", session.History);
-            Run(session, "Beams");
+            Assert.False(session.IsRunning);
+            session = Start(document, "-RENAME", "LA", "Steel", "Beams");
             Assert.Equal("Beams", Entity<DxfLine>(document, "A1").Layer);
             Assert.True(document.Undo());
             Assert.Equal("Steel", Entity<DxfLine>(document, "A1").Layer);

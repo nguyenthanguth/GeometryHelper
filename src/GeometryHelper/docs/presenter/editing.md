@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 260 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 262 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -211,7 +211,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
@@ -1844,9 +1844,29 @@ DIVIDE asks for 2 to 32767 segments and puts one between each, and on a closed c
 of 50 about (400, 0) divided in 4 has points at (450, 0), (400, 50), (350, 0) and (400, -50); MEASURE steps the length
 given from the end nearest the pick, a closed curve from its start, and says `Object isn't that long.` for a length past
 the curve: a line from (0, 0) to (100, 0) measured by 30 from its far end has points at 70, 40 and 10. DIMCENTER draws
-the centre mark of DIMCEN on a circle or an arc as lines of the current layer: a cross DIMCEN long each way, and below
+the centre mark of DIMCEN on a circle or an arc as lines of the current layer, colour, linetype and lineweight (AutoCAD
+2021 gave its lines those of the drawing, and none of DIMCLRD, DIMLTYPE or DIMLWD): a cross DIMCEN long each way, and below
 nought centre lines from twice DIMCEN out to DIMCEN past the rim, only where the radius is over twice DIMCEN (a circle of
-5.01 under -2.5 has them, one of 5 the cross alone; a radius dimension follows the same rule). COLOR shows the window's
+5.01 under -2.5 has them, one of 5 the cross alone; a radius dimension follows the same rule).
+CENTERMARK asks `Select circle or arc to add center mark:` until Enter and draws the centre mark of each as AutoCAD 2021
+does: an INSERT of an anonymous block (`*U`) at the centre, its cross CENTERCROSSSIZE long (0.1x, a tenth of the diameter:
+4 on a circle of radius 20) in ByBlock colour and Continuous, and four lines in the linetype of CENTERLTYPE (Center2) from
+CENTERCROSSGAP past the cross (0.05x, 2 more) to CENTEREXE (0.12) past the rim, so that a circle of radius 20 has lines
+from 4 to 20.12 either way; a number alone (`6`) is that many drawing units. CENTERMARKEXE 0 hides those four lines (group
+60), CENTERLTSCALE scales them, CENTERLAYER (`.`, the current layer, or a layer's name, made where the drawing has none)
+sets their layer, and the INSERT takes the current colour and lineweight. Each is associative as AutoCAD writes it (an
+`ACDBASSOCACTION` with its `AcDbCenterMarkActionBody`, a dependency on the INSERT and one on the circle, the action
+listed in the network of the space): moving the circle moves the mark, scaling it draws the mark again for the new radius
+with the sizes it was made with; a mark moved on its own is no longer tied (its action is taken out), and erasing it takes
+the action and the networks out. A circle erased leaves its mark. What is no circle or arc says `Object selected is not a
+circle or arc.`. CENTERLINE asks `Select first line:` and `Select second line:` (a line or a straight segment of a
+polyline; `Object selected is not a line.`, and `Invalid. Select another line.` for the same line twice) and draws the
+centre line between them, an INSERT of an anonymous block holding one line in the linetype of CENTERLTYPE: along the
+bisector of their directions, from where it meets the line through their two start points to where it meets the one
+through their two end points, CENTEREXE longer at each end, so that lines of 100 and 120 starting 30 apart give a line of
+110; where the two cross within that, it stops at the crossing. It follows its lines as a mark follows its circle. The
+variables are kept in the drawing, as the library's `CenterExe`, `CenterMarkExe`, `CenterLtype`, `CenterLtScale`,
+`CenterCrossSize`, `CenterCrossGap` and `CenterLayer`; a drawing of R2007 or older gets the picture without the action. COLOR shows the window's
 Select Color dialog for the colour of new objects, and -COLOR asks `Enter default object color [Truecolor/COlorbook]
 <1 (red)>:`; -LWEIGHT asks `Enter default lineweight for new objects or [?]:` and rounds a width to the
 nearest of AutoCAD's, `0.33` to 0.35 mm with a word saying so. LWEIGHT (`LW`, `LINEWEIGHT`) shows the window's Lineweight
@@ -1861,8 +1881,12 @@ with them. LWUNITS (0 inches, 1 millimetres) and LWDEFAULT (a width in hundredth
 session (LWDEFAULT 35 draws a Default line 0.35 mm at once) and the dialog starts from them. With no window LWEIGHT asks
 -LWEIGHT's question. REDRAW and REDRAWALL have nothing left to draw, and
 REGENALL regenerates as REGEN does. ISOLATEOBJECTS hides every other object of the space, HIDEOBJECTS those selected,
-as AutoCAD 2021 hides them (their Visible off) for the session only: a save writes them shown, and UNISOLATEOBJECTS shows
-them again, saying `1 object(s) unisolated.` or `No objects to unisolate.`. Each is one undo step.
+as AutoCAD 2021 hides them (their Visible off). With OBJECTISOLATIONMODE 0, the default, they are hidden for the session
+only: a save writes them shown. With 1 they are saved hidden, each with the extended data AEC_ISOLATEDOBJECTS_XDATA
+(1070 of 100 and 1). Either way the drawing lists them in the record of `AEC_ISOLATED_OBJECTS`, and UNISOLATEOBJECTS shows
+them again from that list (of a drawing reopened too), saying `1 object(s) unisolated.` or `No objects to unisolate.`,
+empties the list and writes the record `ACAD_OBJECTISOLATION` (0 after an isolation, 1 after a hiding). Each is one undo
+step.
 CHANGE (`-CH`) asks `Select objects:` and then `Specify change point or [Properties]:`, as AutoCAD 2021 does. A point moves
 the end of each line nearest it, so a line from (0, 0) to (100, 0) given (110, 5) ends at (110, 5), and with ORTHOMODE on
 keeps the line horizontal or vertical (the other end fixed, along x where the point is further along x than y, else along
@@ -1885,11 +1909,17 @@ Each prompt offers the value the run gave last, else the drawing's current one, 
 are asked and change nothing: the presenter holds no materials and CHANGE leaves annotation to Properties. One undo step.
 -RENAME asks `Enter object type to rename [Block/dEtailviewstyle/Dimstyle/LAyer/LType/Material/multileadeRstyle/seCtionviewstyle/Style/Tablestyle/Ucs/VIew/VPort]:`,
 then `Enter old block name:` and `Enter new block name:` (`dimension style`, `layer`, `linetype`, `multileader style`, `text style`, `table style`, `ucs`, `view` or `viewport configuration` in the
-others' places). An old name with a wildcard says `Invalid block name.` and asks again, as does one nothing has
-(`Cannot find block "Nope".`); a new name that is refused is said and asked again. Every reference follows the new name: the
+others' places). An old name that is empty, has a wildcard or a character no name has says `Invalid block name.` and asks again,
+as does one nothing has (`Cannot find block "Nope".`, with no full stop for a multileader or table style, and `UCS` in
+capitals for a UCS); a new name that is empty or has such a character is said and asked again too. A new name another
+object has says `A block named "Crate" already exists.` and `*Invalid*`, and ends the command; the same name, or the old
+one in other letters, is the rename itself. Every reference follows the new name: the
 INSERTs of a block, the entities, layers, multiline styles and the current linetype of a linetype, the texts, attributes and
-tables of a text style, the dimensions of a dimension style, and the current multileader or table style. Layer 0, Standard
-and the linetypes ByLayer, ByBlock and Continuous keep their names. Material, dEtailviewstyle and seCtionviewstyle say the
+tables of a text style, the dimensions of a dimension style, and the current multileader or table style. Layer 0 and Continuous
+say `Cannot rename layer "0".` and `*Invalid*` and end the command; the Standard multileader and table styles say
+`Cannot rename table style "Standard".` and ask the old name again; ByLayer and ByBlock are no linetype names. The Standard
+text style and the Standard dimension style are renamed as any other, and so is Defpoints, as AutoCAD 2021's -RENAME
+renames them (its Rename dialog lists none of them). Material, dEtailviewstyle and seCtionviewstyle say the
 drawing holds none. One undo step (a UCS rename is made on the UCS manager and is not a step, as the UCS command's are). A viewport
 configuration is renamed on the tiled viewports `CadDocument.TiledViewports` holds, so -VPORTS ? and the Viewports dialog show the new
 name at once and the saved DXF carries the configuration under it, however the rename was made.

@@ -711,6 +711,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["BSAVE"] = "Save the block in the Block Editor",
             ["BSAVEAS"] = "Save the block under another name",
             ["CAL"] = "Evaluate an expression",
+            ["CENTERLINE"] = "Centre line between two lines",
+            ["CENTERMARK"] = "Centre mark on a circle or arc",
             ["CHAMFER"] = "Bevel the corner of two lines",
             ["CHANGE"] = "Change points or properties of objects",
             ["CLASSICGROUP"] = "Object Grouping dialog",

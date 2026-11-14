@@ -135,7 +135,10 @@ The drawing reads and sets the variables AutoCAD keeps out of the header, as DIC
 AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), `Cetransparency` (the number an entity's
 440 holds, as AutoCAD 2021 reads it: the alpha 127 is 33554559, and a per cent written before reads BYLAYER), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
 `MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
-`TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
+`TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame`, `PlineEllipse`, and the variables of CENTERMARK and
+CENTERLINE: `CenterExe` (0.12, how far their lines run past the circle), `CenterMarkExe`, `CenterLtype` (`Center2`), `CenterLtScale`,
+`CenterCrossSize` (`0.1x`, a number of drawing units or times the diameter), `CenterCrossGap` (`0.05x`) and `CenterLayer` (`.`, the
+current layer; a real is written as AutoCAD 2021 writes it, six places: `0.500000`); AutoCAD's default where the
 drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. A drawing whose
 CLASSES section lists no DICTIONARYVAR, as one the library makes new with `new DxfDatabase("AC1027")`, is given the class
 as AutoCAD 2021 lists it when its first variable is set (`AcDbDictionaryVar` of ObjectDBX Classes, proxy flags 0, counted

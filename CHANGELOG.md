@@ -6,6 +6,47 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** CENTERMARK and CENTERLINE in the presenter, as AutoCAD 2021's console ran them (accoreconsole fed through standard
+input, which takes picks after a ZOOM, where a script could not). CENTERMARK asks `Select circle or arc to add center mark:`
+until Enter and draws an INSERT of an anonymous block (`*U`) at the centre: a cross of CENTERCROSSSIZE (0.1x of the diameter,
+4 long on a circle of radius 20) in ByBlock colour and Continuous, and four lines in the linetype of CENTERLTYPE (Center2)
+from CENTERCROSSGAP (0.05x) past the cross to CENTEREXE (0.12) past the rim: from 4 to 20.12 on that circle, from 10 to 50.12
+on one of radius 50. CENTERMARKEXE 0 hides the four lines, CENTERLTSCALE scales them, CENTERLAYER names their layer (made where
+the drawing has none). CENTERLINE asks `Select first line:` and `Select second line:` (a line or a straight segment of a
+polyline) and draws one line between them, along the bisector of their directions, from the line through their two start
+points to the line through their two end points, CENTEREXE longer at each end: two parallel lines of 100 and 120 starting 30
+apart give 110 about the middle of their middles, and lines of 20 and 40 degrees end where they cross. Both are associative as
+AutoCAD 2021 writes them, group for group: an `ACDBASSOCACTION` in the `ACDBASSOCNETWORK` of the space (its extension
+dictionary and a dictionary of the named objects), `AcDbCenterMarkActionBody` or `AcDbCenterLineActionBody` (class of
+`AcDbSmartCenter`), `ACDBASSOCGEOMDEPENDENCY` on each circle, arc or line with its `ACDBASSOCEDGEACTIONPARAM`, and an
+`ACDBASSOCDEPENDENCY` on the INSERT; a DXF the presenter wrote was opened by AutoCAD 2021, audited with no error, and moving
+or scaling the circle (or a line) there redrew the mark as it did here. Moving or scaling the circle moves the mark and draws
+it again for the new radius; a mark moved on its own is no longer tied (AutoCAD 2021 leaves it where it was moved to), and
+erasing it takes its action and networks out. A drawing older than R2010 gets the picture and no action. Registry 262
+commands.
+**NEW.** The variables of CENTERMARK and CENTERLINE: `DxfDatabase.CenterExe`, `CenterMarkExe`, `CenterLtype`, `CenterLtScale`,
+`CenterCrossSize`, `CenterCrossGap` and `CenterLayer`, kept as DICTIONARYVARs as AutoCAD 2021 keeps them (a real as six places,
+`0.500000`; AutoCAD's defaults where the drawing gives none), and the system variables of those names in the presenter: CENTERLTYPE
+takes a linetype of the drawing or of the presenter's own set, CENTERMARKEXE 0 or 1, CENTERLTSCALE a number above nought,
+CENTERCROSSSIZE and CENTERCROSSGAP a number or a number and `x`, each refused as `Cannot set CENTERLTYPE to that value.`.
+**NEW.** OBJECTISOLATIONMODE in the presenter, and what AutoCAD 2021 keeps in the drawing of ISOLATEOBJECTS, HIDEOBJECTS and
+UNISOLATEOBJECTS: the list of the objects hidden (the record of `AEC_ISOLATED_OBJECTS`, their handles in 340), emptied by
+UNISOLATEOBJECTS, and the record `ACAD_OBJECTISOLATION` it writes (0 after an isolation, 1 after a hiding). With
+OBJECTISOLATIONMODE 1 the objects are saved hidden (group 60) with the extended data `AEC_ISOLATEDOBJECTS_XDATA` (1070 of 100
+and 1), and UNISOLATEOBJECTS shows them again in a drawing reopened; with 0, the default, they are hidden for the session and
+saved shown, as before. A DXF the presenter wrote was read by AutoCAD 2021, whose UNISOLATEOBJECTS showed the hidden line and
+wrote its own record.
+**CHANGED.** -RENAME refuses as AutoCAD 2021's console did. Layer 0 and Continuous say `Cannot rename layer "0".` and `*Invalid*`
+and end the command; a new name another object has says `A layer named "B" already exists.` (the name as typed) and `*Invalid*`
+and ends it, where it asked the new name again; an empty name or one with a character no name has (`a,b`) says `Invalid
+layer name.` (`UCS` in capitals for a UCS) and asks again, an empty old name too (Enter took it as the end); the Standard
+multileader and table styles say `Cannot rename multileader style "Standard".` and ask the old name again, and a missing one says
+`Cannot find table style "X"` with no full stop. The Standard text style and the Standard dimension style are renamed as any other
+(the table lists only the new name), and so is Defpoints; `DxfTextStyleTableRecord.Name` of Standard no longer throws. The dialogs
+of the text style and the dimension style manager keep refusing to rename Standard.
+**CHANGED.** DIMCENTER's lines take the current layer, colour, linetype and lineweight, checked in AutoCAD 2021 with DIMCLRD red,
+DIMLTYPE DASHED and DIMLWD 0.5 set (its lines were those of the drawing, none of the dimension style's); the test now says so.
+
 **CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
 console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the
 documentation they were first built from did not give. REFEDIT asks `Select nesting level [Ok/Next] <Next>:` (Enter steps to

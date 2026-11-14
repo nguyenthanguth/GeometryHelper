@@ -247,6 +247,18 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // Whether what ISOLATEOBJECTS and HIDEOBJECTS hide is hidden for the session (0) or saved hidden (1), kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole(
+                    "OBJECTISOLATIONMODE",
+                    false,
+                    0,
+                    1,
+                    s => (int)Kept(s, IsolationModeKey, 0.0),
+                    (c, v) => c.Remember(IsolationModeKey, v)
+                )
+            );
+
             // Whether INSERT asks those values in the Edit Attributes dialog (1) or on the command line (0), kept by the session.
             registry.AddVariable(
                 CadSystemVariable.Whole(

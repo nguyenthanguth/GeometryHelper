@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -464,8 +465,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// ISOLATEOBJECTS and HIDEOBJECTS: the other objects of the space, or those selected, hidden as AutoCAD 2021 hides them
-        /// (their Visible off, group 60) for the session, as its OBJECTISOLATIONMODE 0: the drawing remembers them and writes
-        /// them shown when saved. One undo step.
+        /// (their Visible off, group 60). With OBJECTISOLATIONMODE 0 they are hidden for the session, the drawing remembering
+        /// them and writing them shown when saved; with 1 they are saved hidden, each with its mark in extended data. Either
+        /// way the drawing lists them (AEC_ISOLATED_OBJECTS) for UNISOLATEOBJECTS. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> IsolateOrHide(CadCommandContext c, bool isolate)
         {
@@ -518,12 +520,160 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            SetShown(c, hidden, false);
-
-            foreach (string handle in hidden)
+            bool saved = IsolationSaved(c.Session);
+            c.Remember(IsolationKindKey, isolate ? 0.0 : 1.0);
+            SetShown(c, hidden, false, s =>
             {
-                c.Document.IsolationHidden.Add(handle);
+                var listed = IsolatedList(s.Database);
+
+                foreach (string handle in hidden)
+                {
+                    if (!listed.Contains(handle, StringComparer.OrdinalIgnoreCase))
+                    {
+                        listed.Add(handle);
+                    }
+
+                    if (saved && s.Document.FindEntity(handle) is DxfEntity entity)
+                    {
+                        entity.XData = new[]
+                        {
+                            new DxfTypedValue(1001, IsolationMark),
+                            new DxfTypedValue(1070, "100"),
+                            new DxfTypedValue(1070, "1"),
+                        };
+                    }
+                }
+
+                WriteIsolatedList(s.Database, listed);
+            });
+
+            if (!saved)
+            {
+                foreach (string handle in hidden)
+                {
+                    c.Document.IsolationHidden.Add(handle);
+                }
             }
+        }
+
+        private const string IsolationKindKey = "isolation.kind";
+        private const string IsolationModeKey = "objectisolationmode";
+        private const string IsolationMark = "AEC_ISOLATEDOBJECTS_XDATA";
+        private const string IsolatedKey = "AEC_ISOLATED_OBJECTS";
+        private const string IsolatedRecordKey = "AEC_ISOLATED_OBJECTS_XRECORD";
+        private const string IsolationRecordKey = "ACAD_OBJECTISOLATION";
+
+        /// <summary>Whether what is hidden is saved hidden: OBJECTISOLATIONMODE 1.</summary>
+        private static bool IsolationSaved(CadCommandSession session) => Kept(session, IsolationModeKey, 0.0) == 1.0;
+
+        /// <summary>The handles the drawing lists as hidden by isolation (the 340 of the record of AEC_ISOLATED_OBJECTS), in order.</summary>
+        private static List<string> IsolatedList(DxfDatabase database)
+        {
+            var handles = new List<string>();
+
+            if (
+                database.File.HoldsObjects
+                && database.NamedObjectsDictionary.Contains(IsolatedKey)
+                && database.NamedObjectsDictionary[IsolatedKey] is DxfDBDictionary held
+                && held.Contains(IsolatedRecordKey)
+            )
+            {
+                foreach (DxfTypedValue group in held[IsolatedRecordKey].Item.Groups)
+                {
+                    if (group.TypeCode == 340)
+                    {
+                        handles.Add(group.Value.Trim());
+                    }
+                }
+            }
+
+            return handles;
+        }
+
+        /// <summary>The groups of the record of the list, as AutoCAD 2021 writes it: 280 of 1 and the handles hidden, 340 each, or 70 of -1 where none is.</summary>
+        private static CadCenterMarks.Gs ListGroups(IReadOnlyList<string> handles)
+        {
+            var g = new CadCenterMarks.Gs();
+            g.G(100, "AcDbXrecord");
+            g.G(280, 1);
+
+            foreach (string handle in handles)
+            {
+                g.G(340, handle);
+            }
+
+            if (handles.Count == 0)
+            {
+                g.G(70, -1);
+            }
+
+            return g;
+        }
+
+        /// <summary>Writes the list of the objects hidden into the drawing: the dictionary AEC_ISOLATED_OBJECTS of the named objects and its record, made where there are none.</summary>
+        private static void WriteIsolatedList(DxfDatabase database, IReadOnlyList<string> handles)
+        {
+            if (!database.File.HoldsObjects)
+            {
+                return;
+            }
+
+            DxfDBDictionary root = database.NamedObjectsDictionary;
+
+            if (!root.Contains(IsolatedKey))
+            {
+                root.Add(IsolatedKey, "DICTIONARY", b =>
+                {
+                    b.Group(100, "AcDbDictionary");
+                    b.Group(280, "0");
+                    b.Group(281, "1");
+                });
+            }
+
+            var held = (DxfDBDictionary)root[IsolatedKey];
+            CadCenterMarks.Gs groups = ListGroups(handles);
+
+            if (!held.Contains(IsolatedRecordKey))
+            {
+                held.Add(IsolatedRecordKey, "XRECORD", groups.Emit);
+                return;
+            }
+
+            ReplaceRecord(database, held[IsolatedRecordKey].Item, groups);
+        }
+
+        /// <summary>Writes the record of the last isolation: ACAD_OBJECTISOLATION of the named objects, 280 of 1, 70 of 0 for an isolation or 1 for a hiding, and 70 of -1.</summary>
+        private static void WriteIsolationRecord(DxfDatabase database, int kind)
+        {
+            if (!database.File.HoldsObjects)
+            {
+                return;
+            }
+
+            DxfDBDictionary root = database.NamedObjectsDictionary;
+            var g = new CadCenterMarks.Gs();
+            g.G(100, "AcDbXrecord");
+            g.G(280, 1);
+            g.G(70, kind);
+            g.G(70, -1);
+
+            if (!root.Contains(IsolationRecordKey))
+            {
+                root.Add(IsolationRecordKey, "XRECORD", g.Emit);
+                return;
+            }
+
+            ReplaceRecord(database, root[IsolationRecordKey].Item, g);
+        }
+
+        /// <summary>Gives a record the groups of its own after its marker, the groups before it kept.</summary>
+        private static void ReplaceRecord(DxfDatabase database, DxfItem item, CadCenterMarks.Gs groups)
+        {
+            List<KeyValuePair<int, string>> raw = CadCenterMarks.Raw(item);
+            int marker = raw.FindIndex(g => g.Key == 100 && g.Value.Trim() == "AcDbXrecord");
+            var whole = new List<KeyValuePair<int, string>>(raw.Take(marker < 0 ? raw.Count : marker));
+            whole.AddRange(groups);
+            database.File.ReplaceTail(item, 0, whole);
         }
 
         /// <summary>
@@ -533,8 +683,11 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> Unisolate(CadCommandContext c)
         {
             var shown = new List<string>();
+            List<string> listed = IsolatedList(c.Database);
 
-            foreach (string handle in c.Document.IsolationHidden)
+            foreach (
+                string handle in c.Document.IsolationHidden.Concat(listed).Distinct(StringComparer.OrdinalIgnoreCase)
+            )
             {
                 DxfEntity entity = c.Document.FindEntity(handle);
 
@@ -552,11 +705,32 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            SetShown(c, shown, true);
+            int kind = (int)Kept(c.Session, IsolationKindKey, 0.0);
+            SetShown(c, shown, true, s =>
+            {
+                foreach (string handle in shown)
+                {
+                    if (
+                        s.Document.FindEntity(handle) is DxfEntity entity
+                        && (entity.GetXDataForApplication(IsolationMark)?.Count ?? 0) > 0
+                    )
+                    {
+                        entity.XData = new[] { new DxfTypedValue(1001, IsolationMark) };
+                    }
+                }
+
+                WriteIsolatedList(s.Database, Array.Empty<string>());
+                WriteIsolationRecord(s.Database, kind);
+            });
             c.Write(shown.Count.ToString(CultureInfo.InvariantCulture) + " object(s) unisolated.");
         }
 
-        private static void SetShown(CadCommandContext c, IReadOnlyList<string> handles, bool visible)
+        private static void SetShown(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            bool visible,
+            Action<CadEditScope> also = null
+        )
         {
             if (handles.Count == 0)
             {
@@ -589,6 +763,8 @@ namespace GeometryHelper.Dxf.Viewer
                         entity.Visible = visible;
                     }
                 }
+
+                also?.Invoke(s);
             });
         }
     }
