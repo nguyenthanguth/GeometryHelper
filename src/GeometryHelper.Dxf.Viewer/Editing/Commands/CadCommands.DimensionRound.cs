@@ -1335,9 +1335,29 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (arcLength && !turned.HasValue && before > 0.0)
             {
-                double alongChord = levelInside ? Math.Pow(Math.Abs(Math.Sin(from + sweep / 2.0)), 8.0) : 1.0;
-                bothExtra = 0.8 * height * alongChord * Math.Max(0.0, 1.0 - sweep / (Math.PI / 2.0));
+                double alongChord = levelInside ? LevelAlongChord(from + sweep / 2.0, width + before + 2.0 * gap) : 1.0;
+                bothExtra = 0.85 * height * alongChord * Math.Max(0.0, 1.0 - sweep / (Math.PI / 2.0));
             }
+
+            // From 90 degrees up, the symbol before the words takes more and more room as the sweep widens, by the square of
+            // the words' height and, for level words, the sine of the direction of the arc's middle: probed with arcs of 1 and
+            // 3 from 10 and 55 degrees, sweeps 100 to 165, text 0.18 and 0.36 high (the arcs of 1 put 0.3 to 2.3 out by 0.01),
+            // the distance that first took the words ran 0.01 to 0.03 later than the room gave it for text 0.18, 0.03 to 0.09
+            // for 0.36, the same distance for either radius, and the room it missed, over the square of the height and the sine,
+            // was 0.5 at 100 degrees, 0.7 at 120, 0.95 at 135, 1.3 at 150, 1.75 at 165 (the arc of 1 through 150 degrees put 0.7
+            // out has "2.6180" in, as AutoCAD 2021 does, from 0.68 before).
+            double symbolBend = 0.0;
+
+            if (arcLength && !turned.HasValue && before > 0.0 && sweep >= RadialFrom)
+            {
+                double tallest = before / 1.8;
+                double past = sweep - 100.0 * Math.PI / 180.0;
+                double missed = past >= 0.0 ? 0.5 + 0.3115 * past + 0.696 * past * past : 0.5 + 1.44 * past;
+                double sine = levelInside ? Math.Abs(Math.Sin(from + sweep / 2.0)) : 1.0;
+                symbolBend = Math.Max(0.0, missed) * sine * tallest * tallest;
+            }
+
+            double needFit = needText + symbolBend;
 
             bool textInside;
             bool arrowsInside;
@@ -1354,7 +1374,7 @@ namespace GeometryHelper.Dxf.Viewer
                 arrowsInside = true;
                 arrowsLeftOut = needBoth > room && style.Dimsoxd;
             }
-            else if (needText + bothExtra <= roomBetween)
+            else if (needFit + bothExtra <= roomBetween)
             {
                 textInside = true;
                 arrowsInside = true;
@@ -1368,7 +1388,7 @@ namespace GeometryHelper.Dxf.Viewer
                         arrowsInside = false;
                         break;
                     case 1:
-                        textInside = needText <= room;
+                        textInside = needFit <= room;
                         arrowsInside = false;
                         break;
                     case 2:
@@ -1379,8 +1399,8 @@ namespace GeometryHelper.Dxf.Viewer
                         // Where each fits but not both, AutoCAD 2021 keeps the one that takes more room between the rays:
                         // arcs of 10 put 12 out, DIMASZ 0.5 (1 for two arrowheads) and words 0.79 with their gaps, the arrowheads
                         // from a chord of 1.0 to 1.8 with the words outside, those under DIMASZ 0.36 (0.72) leaving the words in.
-                        bool arrowsFirst = needArrows <= room && needArrows > needText && needText > roomBetween;
-                        textInside = needText <= room && !arrowsFirst;
+                        bool arrowsFirst = needArrows <= room && needArrows > needFit && needFit > roomBetween;
+                        textInside = needFit <= room && !arrowsFirst;
                         arrowsInside = !textInside && needArrows <= room;
                         break;
                 }
@@ -1613,6 +1633,24 @@ namespace GeometryHelper.Dxf.Viewer
                     arcLength ? Math.Min(along / radius, Math.PI)
                     : 2.0 * along <= chord ? ChordTurn(radius, along)
                     : 0.0;
+
+                if (arcLength && side < Math.PI && (style.Dimjust == 1 || style.Dimjust == 2))
+                {
+                    // AutoCAD 2021 lays the arrowhead and the half of the words' box next to it by chords, not arcs, so the words
+                    // stand a cube of each over 24 radii squared further along: the arc of 3 through 40 degrees put 2.4 out, DIMJUST
+                    // 1, aligned words "2.0944" 0.75 wide with the symbol before them and arrowheads 0.18, stand 0.00125 further
+                    // (0.00053 for arrowheads 0.5 less 0.18 cubed over 216), each half of the box 0.63 (the words and the symbol
+                    // over two, and a gap) or, kept level, its half along the arc as it lies there.
+                    double lies = from + sweep / 2.0;
+                    double half =
+                        levelInside && !turned.HasValue
+                            ? (
+                                (width + before + 2.0 * gap) * Math.Abs(Math.Sin(lies))
+                                + (height + over + 2.0 * gap) * Math.Abs(Math.Cos(lies))
+                            ) / 2.0
+                            : (width + before) / 2.0 + gap;
+                    side += (arrow * arrow * arrow + half * half * half) / (24.0 * radius * radius * radius);
+                }
                 double theta =
                     side > 0.0 && style.Dimjust == 1 ? to - side
                     : side > 0.0 && style.Dimjust == 2 ? from + side
@@ -1762,8 +1800,9 @@ namespace GeometryHelper.Dxf.Viewer
                         // An arc length dimension's go by the direction of its first end (the arc's start): to the right where it
                         // points up from the horizontal, to the left where it points down, the other way round past the second
                         // ray (DIMJUST 1); and the room of the arc symbol stands before the words on either side of the landing.
-                        double s = Math.Sin(from);
-                        flat = s > 1E-9 || (s >= -1E-9 && Math.Cos(from) > 0.0) ? 1.0 : -1.0;
+                        double goes = from + sweep / 3.0;
+                        double s = Math.Sin(goes);
+                        flat = s > 1E-9 || (s >= -1E-9 && Math.Cos(goes) > 0.0) ? 1.0 : -1.0;
                         flat = second ? -flat : flat;
                     }
 
@@ -1882,6 +1921,38 @@ namespace GeometryHelper.Dxf.Viewer
             picture.Add(Definition(end2));
             return picture;
         }
+
+        /// <summary>
+        /// Whether level words, the symbol of an arc length dimension before them, lie along the arc's chord as AutoCAD 2021 counts
+        /// it for the room both arrowheads need beside them: 1 for an arc whose middle points within a window about 90 degrees
+        /// (the upper half) or 275 (the lower), 0 elsewhere, falling over 1.5 degrees at either edge. The window is narrower
+        /// for a longer box (<paramref name="box"/>, the words, the symbol and two gaps): 74.6 to 101.6 degrees for 1.26 (and
+        /// 259 to 288), 64 to 114 for 0.58.
+        /// </summary>
+        /// <remarks>
+        /// Probed with arcs of 10 from 64 to 104 and 170 to 345 degrees put 12 out (DIMASZ 0.2 and 0.36, chords 1.5 to 2.7 by
+        /// 0.01): the chord that first took both arrowheads with the words ran 0.12 later than the chord that took them alone
+        /// for arcs from 69 to 95 degrees, and no later for those from 64 to 67 and from 96 on (the middle of an arc of 2.3
+        /// across is 6.6 degrees on from where it starts); in the lower half it came at 255 and went at 285. It was 0.12 at 90
+        /// degrees and none at 60, not a power of the sine. Words of a single digit (box 0.58, arcs of 10 from 0 to 175 degrees)
+        /// had it from 65 to 110: the window's half width is fitted as 4.65 degrees and 11.15 over the box, its middle as 91
+        /// less 2.3 times the box, from those two.
+        /// </remarks>
+        private static double LevelAlongChord(double toward, double box)
+        {
+            double degrees = toward * 180.0 / Math.PI;
+            degrees -= Math.Floor(degrees / 360.0) * 360.0;
+            double half = 4.65 + 11.15 / Math.Max(box, 0.1);
+            double centre = 91.0 - 2.3 * box;
+            return Math.Max(
+                Window(degrees, centre - half, centre + half),
+                Window(degrees, centre + 185.4 - half, centre + 185.4 + half)
+            );
+        }
+
+        /// <summary>1 between two angles, falling to 0 over 1.5 degrees outside them.</summary>
+        private static double Window(double degrees, double low, double high) =>
+            Math.Max(0.0, Math.Min(1.0, Math.Min((degrees - low + 0.75) / 1.5, (high + 0.75 - degrees) / 1.5)));
 
         /// <summary>The angle about the centre of a chord of a length on a circle of a radius: half a turn for a chord past its width.</summary>
         private static double ChordTurn(double radius, double length) =>
