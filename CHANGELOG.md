@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The leader of an angle's words put by DIMTEDIT under DIMTMOVE 1 follows DIMEXE, DIMSCALE and the size of the arrowheads as
+AutoCAD 2021 does. The band round the arc in which such words get no leader was fitted at DIMEXE 1.25 and DIMSCALE 1 and ignored both:
+each unit of DIMEXE past 1.25 (times the scale) moves both edges by 1.0 level with the vertex, 1.3 at 45 degrees from it and 1.7 straight
+above, and the fitted lengths grow with DIMSCALE. DIMEXE 2.5 puts the edges of "60°" 7.75 out and in level with the vertex (6.5 with
+1.25), 6.0 out and 5.0 in at 85 degrees (4.0 and 3.0); at an arc of 30 out in Arial the pictures that differed went from 80 of 582 to 6
+for DIMEXE 2.5, 69 to 25 for DIMSCALE 2 and 37 to 7 for 0.5, and words exactly above or below the vertex from 88 to 30 of 1 552 (the band
+there is 0.48 a unit of half the words and a gap, 1.13 of DIMASZ and DIMEXE together and 0.09 of the height: DIMASZ 4 draws no leader
+7.75 out, where 2.5 stops at 6.0). With DIMEXE 1.25, DIMSCALE 1 and arrowheads of 2.5 the bands at an arc of 30 are what they were.
+**NEW.** The rule behind the band is found, and read on arcs of 8 landings out or more (48 for "60°" of ISO-25's sizes): the words stay
+on the arc, with no leader, where some point of the circle has the sum of its distances to two opposite corners of the box of the
+words and their landing (half the words, a gap and an arrowhead each side of the point, half their height up and down, the diagonal
+running up to the right where the point lies right of and above the arc's middle or left of and below it) within twice that half width
+and DIMEXE. In AutoCAD 2021's pictures of an angle of 60 degrees the leader presence differed in 175 of 6 984 probes at an arc of
+60 out before and 103 now, 212 to 76 at 90, 264 to 30 at 240 (272 to 20 in Arial), and the band along an arc of 240 out at heights
+from -60 to 180 from 34 of 3 492 to none; at 240 out the rule is 142 wrong of 24 056 probes over eight styles of DIMASZ, DIMTXT,
+DIMGAP, DIMADEC, DIMEXE and DIMSCALE. On the nearer arcs it is up to 1.5 off on the side of the arc away from the middle (45 out: 121
+differing by the fit, 138 by the rule; 30 out: 65 of 5 832 by the fit, 234 by the rule), so those keep the fit.
+
 **CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
 console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the
 documentation they were first built from did not give. REFEDIT asks `Select nesting level [Ok/Next] <Next>:` (Enter steps to
