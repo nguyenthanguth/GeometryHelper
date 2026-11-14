@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -716,7 +717,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadEditResult.Refuse("A column's width is above nought.");
                 }
 
-                all[column + k] = Math.Max(widths[k], MinimumColumnWidth(table, column + k));
+                all[column + k] = Math.Max(widths[k], LeastWidthIn(document, table, column + k));
             }
 
             return Resize(document, handle, "Column Width", all, null, default);
@@ -829,28 +830,110 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the least width a column of a table may be dragged to, as AutoCAD 2021's <c>MinimumColumnWidth</c>: its two
-        /// horizontal margins and the tallest text height of its cells. AutoCAD's Standard of margins 1.5 and a title of 6 gives
-        /// 9.
+        /// horizontal margins and the tallest text height of its cells, or where a block cell starts in it that is not fitted
+        /// to its cell, the width its block's extents fill at the cell's scale and turn with the two margins, if that is more.
+        /// AutoCAD's Standard of margins 1.5 and a title of 6 gives 9, and a block 30 wide 33 (63 at scale 2, 31.28427 turned
+        /// 45 degrees); a block merged across columns asks the column it starts in alone. The words of an attribute definition
+        /// in the block are in its extents where the drawing's fonts find them (<see cref="DxfDatabase.FontSearchPath"/>).
         /// </summary>
         /// <param name="table">The table.</param>
         /// <param name="column">The column, from nought.</param>
         /// <returns>The width.</returns>
-        public static double MinimumColumnWidth(DxfTable table, int column)
+        public static double MinimumColumnWidth(DxfTable table, int column) => LeastWidthIn(null, table, column);
+
+        /// <summary>The least width of a column, <see cref="MinimumColumnWidth(DxfTable, int)"/>, an attribute definition measured in the fonts of the document given.</summary>
+        internal static double LeastWidthIn(CadDocument document, DxfTable table, int column)
         {
             if (table == null)
             {
                 throw new ArgumentNullException(nameof(table));
             }
 
-            var style = new Looks(table);
-            double tallest = 0.0;
+            double least = 0.0;
 
-            for (int r = 0; r < table.NumRows; r++)
+            Measured(document, table, () =>
             {
-                tallest = Math.Max(tallest, TextHeightOf(table, style, r, column, table.RowType(r)));
+                var style = new Looks(table);
+                double tallest = 0.0;
+                double hMargin = table.HorizontalCellMargin;
+
+                for (int r = 0; r < table.NumRows; r++)
+                {
+                    tallest = Math.Max(tallest, TextHeightOf(table, style, r, column, table.RowType(r)));
+                    DxfCellRange block = table.GetMergeRange(r, column);
+
+                    if (
+                        block.TopRow == r
+                        && block.LeftColumn == column
+                        && table.CellType(r, column) == DxfTableCellType.BlockCell
+                        && table.TryBlockSize(r, column, out double wide, out _)
+                    )
+                    {
+                        least = Math.Max(least, wide + 2.0 * hMargin);
+                    }
+                }
+
+                least = Math.Max(least, 2.0 * hMargin + tallest);
+            });
+            return least;
+        }
+
+        /// <summary>
+        /// Runs something that measures a table's block cells with the document's fonts at hand: where the table has a block
+        /// cell whose block holds an attribute definition that shows, and the drawing names no fonts to look in, they are
+        /// looked for in the document's folders and the system's, as AutoCAD counts the words of the attribute in the block's
+        /// extents, and the drawing's own (empty) path restored after.
+        /// </summary>
+        private static void Measured(CadDocument document, DxfTable table, Action measure)
+        {
+            DxfDatabase database = document?.Database;
+
+            if (
+                database == null
+                || document.Fonts == null
+                || !string.IsNullOrEmpty(database.FontSearchPath)
+                || !ShowsAttributes(table)
+            )
+            {
+                measure();
+                return;
             }
 
-            return 2.0 * table.HorizontalCellMargin + tallest;
+            string searched = database.FontSearchPath;
+
+            try
+            {
+                database.FontSearchPath = string.Join(
+                    ";",
+                    document.Fonts.Folders.Concat(new[] { Environment.GetFolderPath(Environment.SpecialFolder.Fonts) })
+                );
+                measure();
+            }
+            finally
+            {
+                database.FontSearchPath = searched;
+            }
+        }
+
+        /// <summary>Whether a block cell of the table has a block with an attribute definition that is not invisible.</summary>
+        private static bool ShowsAttributes(DxfTable table)
+        {
+            for (int r = 0; r < table.NumRows; r++)
+            {
+                for (int c = 0; c < table.NumColumns; c++)
+                {
+                    if (
+                        table.CellType(r, c) == DxfTableCellType.BlockCell
+                        && table.GetBlockTableRecord(r, c)?.OfType<DxfAttributeDefinition>().Any(a => !a.Invisible)
+                            == true
+                    )
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -861,14 +944,16 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var needs = new double[table.NumRows];
 
-            foreach (KeyValuePair<DxfCellRange, double> ask in RowAsks(document, table, new Looks(table)))
+            Measured(document, table, () =>
             {
-                if (ask.Key.TopRow == ask.Key.BottomRow)
+                foreach (KeyValuePair<DxfCellRange, double> ask in RowAsks(document, table, new Looks(table)))
                 {
-                    needs[ask.Key.TopRow] = Math.Max(needs[ask.Key.TopRow], ask.Value);
+                    if (ask.Key.TopRow == ask.Key.BottomRow)
+                    {
+                        needs[ask.Key.TopRow] = Math.Max(needs[ask.Key.TopRow], ask.Value);
+                    }
                 }
-            }
-
+            });
             return needs;
         }
 
@@ -929,15 +1014,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                // The first cell of the row, whatever it holds or a block of merged cells hides it, asks for one line of its text
-                // height: the row stands at that least, as AutoCAD lays out a row by its first cell's.
-                if (table.CellType(r, 0) != DxfTableCellType.BlockCell)
-                {
-                    double oneLine = TextHeightOf(table, style, r, 0, table.RowType(r)) * 4.0 / 3.0;
-                    asks.Add(
-                        new KeyValuePair<DxfCellRange, double>(new DxfCellRange(r, 0, r, 0), oneLine + 2.0 * vMargin)
-                    );
-                }
+                // The first cell of the row, whatever it holds, a block of merged cells hides it, or it is a block cell fitted to
+                // its cell or not, asks for one line of its text height: the row stands at that least, as AutoCAD lays out a
+                // row by its first cell's (a block 2 by 2 in the first column of rows of 3 makes them 9, not 5).
+                double oneLine = TextHeightOf(table, style, r, 0, table.RowType(r)) * 4.0 / 3.0;
+                asks.Add(new KeyValuePair<DxfCellRange, double>(new DxfCellRange(r, 0, r, 0), oneLine + 2.0 * vMargin));
             }
 
             return asks;
@@ -1073,12 +1154,15 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static void Redraw(DxfTable table, CadDocument document)
         {
-            if (document != null)
+            Measured(document, table, () =>
             {
-                FitRows(document, table);
-            }
+                if (document != null)
+                {
+                    FitRows(document, table);
+                }
 
-            table.RecomputeTableBlock();
+                table.RecomputeTableBlock();
+            });
         }
 
         /// <summary>

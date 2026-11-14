@@ -53,7 +53,8 @@ table's of its row's kind, else its style's. A table of rows 9 high and columns 
 columns, is drawn with 9 lines; one of 100 rows of 20 columns, every cell written, in about 40 ms on .NET 8. Rows keep
 their heights: a text taller than its row is not made room for. The block of a table is placed at the table's point,
 its entities turned along the table's direction, as `TransformBy` carries them. The block of a block cell is placed by its
-extents (the box its entities fill, an attribute definition left out, from its base point), not by its insertion point: the
+extents (the box its entities fill, an attribute definition among them by the words the cell shows for it where the drawing's
+fonts measure them and none where it is invisible or its words empty, from its base point), not by its insertion point: the
 box, turned by the cell's rotation and scaled, is aligned in the cell by the cell's alignment, the margins in from its sides, so
 that a block 10 by 40 from its base point at scale 1 in a cell of the middle, 30 wide and 8 high at x 40 and y -18, stands with
 its insertion point at (50, -42). A cell whose block is fitted (`SetAutoScale`) is drawn at the scale that fits the turned box in
@@ -65,6 +66,13 @@ Lines set on the top left cell of a block of merged cells (`SetGridColor`, `SetG
 the cells along the block's edges, as AutoCAD 2021 reads them from a file: its top over the cells of its first row, its left down
 those of its first column, its bottom along a block of one row and its right down a block of one column; a line another cell
 holds of its own is kept. On the title merged across 4 columns, a top of lineweight 50 is the top of its four cells.
+
+The lines of a cell set one at a time (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility` and `SetGridProperty` of a cell)
+write the bytes of the cells they change into the record the last of them wrote and copy the rest, where each read and wrote
+every group of it: the four settings of each of the 2 000 cells of a table of 200 rows by 10 columns, 8 000 calls, took 141 s
+(17.7 ms a call, growing with the table) and now take 7 s (0.9 ms), the drawing the same to the byte. The record is written
+whole the first time, so that its groups stand as the library writes them; a call that changes nothing writes nothing.
+`SetGridProperty(range, ...)` still sets the lines of a block of cells in one writing.
 
 ## Values and their kinds
 
@@ -116,7 +124,10 @@ from Sunday, day, hour, minute, second and thousandths, each two bytes with the 
 `E4070100030001000C001E0000000000`. A cell of no kind given the words 1/1/2020, 12:30 or 1/1/2020 12:30 takes the format
 `%x` (a date, or a time of midnight, which is the date 12/30/1899), `%X` (a time) or `%c` (both), the flags 4 and no
 alignment of its own, and shows the words in the machine's culture, as the C library's `strftime` does under a format of
-letters (`%d/%m/%Y`, `%A`, `%B`, `%H:%M`, `%I:%M %p`, M/d/yyyy), the date under none; the editor opens it as the date alone,
+letters (`%d/%m/%Y`, `%A`, `%B`, `%H:%M`, `%I:%M %p`, `%C`, `%h`, `%F`, `%r` as `%X`, `%u` from 1 on a Monday to 7 on a
+Sunday, `%z` and `%Z` the machine's zone as +0700 and its daylight name, M/d/yyyy), the date under none or under a letter AutoCAD
+gets wrong (`%j` is 001 for every date it reads, `%U` and `%W` 01 on a Sunday or a Monday and 00 on any other day, and `%V`, `%G` and
+`%g` follow); the editor opens it as the date alone,
 the time alone or both whatever the format. A text typed over a date is refused (eInvalidInput) unless it is a date or a time,
 which keeps the cell's format. The library reads the words as AutoCAD's OLE parser does in en-US, with the order of the
 culture given (`DxfTableDate.TryRead`): 12:30:45.5, a weekday, a zone, 2/30/2020, 24:00 and a year before 100 stay words, as does 12:30 p, which AutoCAD reads. The look of a cell is set as its own

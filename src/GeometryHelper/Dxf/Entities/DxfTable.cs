@@ -64,6 +64,14 @@ namespace GeometryHelper.Dxf
         private byte[] _layoutBytes;
         private int _layoutStart;
         private int _layoutEnd;
+
+        // The record the table's lines were last written into by SetLines, whose own groups all stand as the file writes a group
+        // (what rewriting every group would leave them as), and where each stands in it: two byte places to a group, its start
+        // and the start of the next, from the record's start. Null once the record is another (WrittenRecord, SpliceLines).
+        private byte[] _writtenBytes;
+        private int _writtenStart;
+        private int _writtenEnd;
+        private List<int> _writtenPlaces;
         private MarginsRead _styleMargins;
 
         // Whether the table's style leaves the title and the header out, kept as the margins are.

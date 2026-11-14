@@ -1466,7 +1466,19 @@ whose block is not fitted to the cell asks the box its extents fill at the cell'
 40 at scale 1 makes its row 43 and, at scale 2, 83; across two merged rows of 8 it makes 21.5 each (41.5 at scale 2), shared as
 the words of a merged block are; one wider than its column widens the column, 100 wide making a column of 30 103, the columns
 laid out before the rows; turned 45 degrees it asks the 38.36 its turned box and the margins make in both. A block fitted to its
-cell asks nothing and is drawn at the scale that fits its box, turned, in the cell less its margins. A cell written in a table of 100 rows of 20 columns
+cell asks nothing and is drawn at the scale that fits its box, turned, in the cell less its margins. The least a column is
+dragged to or set to ([`CadTableEditor.MinimumColumnWidth`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor.MinimumColumnWidth(GeometryHelper.Dxf.DxfTable,System.Int32)))
+is the 9 of two margins and the title's text of 6, or where a block cell not fitted to its cell starts in the column, the
+width its block asks and the margins if that is more: a block 30 wide makes 33, 63 at scale 2 and 31.28 turned 45 degrees,
+and a block across two columns asks the one it starts in alone. A block cell in the first column still stands its row at the one line, 4/3 of
+the text height and the margins, 9, fitted or not (a block 2 by 2 in rows of 3 makes them 9, not 5). The words of an attribute
+definition of the block are in its extents, as AutoCAD 2021 counts them: those the cell gives it, else its own, none where
+they are empty or the definition is invisible, a constant definition its own whatever the cell gives (a block 20 by 4 and a definition at x 22
+of words 15.9 wide makes a column 40.9 wide at 2.5 high, 22 + 15.9 and the margins), measured in the fonts of the drawing, or
+of the document where the drawing names none; a definition whose font is not found is left out, as it was. AutoCAD
+measures the words of a definition that is not constant in a TrueType font (4.66, 6.79 and 15.91 wide for AB, M12 and
+DEFAULT at 2.5, where the txt.shx the table draws them in makes 4.17, 5.83 and 16.67), which the presenter does not: it
+measures them in the drawing's own, so that a column is off by a millimetre or less. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
 
 TABLEEXPORT (Export of a table's right-click menu) asks `Select a table:` (asked again, `Object selected is not a table.`,

@@ -21,11 +21,13 @@ namespace GeometryHelper.Dxf
         private readonly DxfItem _item;
         private readonly HashSet<int> _codes = new HashSet<int>();
         private readonly List<KeyValuePair<int, string>> _was = new List<KeyValuePair<int, string>>();
+        private readonly bool _readOnly;
 
         /// <summary>The own groups of a record of a file, or of an object made in code that holds its record in a file of its own.</summary>
         internal DxfDimGroups(DxfItem item)
         {
             _item = item;
+            List = new List<KeyValuePair<int, string>>();
             IReadOnlyList<DxfTypedValue> own = item.File.OwnGroupsOf(item, 0);
             int first = own.Count > 0 && own[0].TypeCode == 100 ? 1 : 0;
             Marked = first == 1;
@@ -52,13 +54,28 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal DxfDimGroups(IEnumerable<KeyValuePair<int, string>> groups)
         {
-            List.AddRange(groups);
+            List = new List<KeyValuePair<int, string>>(groups);
             _was.AddRange(List);
             Split = -1;
         }
 
+        /// <summary>
+        /// The groups of a record as they stand after a writing that was not made through this list, the list given taken as
+        /// it is, to be read and not written back: the record's subclass markers as those of <paramref name="like"/>, which
+        /// stand before the part that changed. A table given its cells' lines one by one takes the list of the record it
+        /// wrote, not a reading of the record for each.
+        /// </summary>
+        internal DxfDimGroups(DxfDimGroups like, List<KeyValuePair<int, string>> groups)
+        {
+            _item = like._item;
+            Marked = like.Marked;
+            Split = like.Split;
+            _readOnly = true;
+            List = groups;
+        }
+
         /// <summary>The groups, to be changed in place.</summary>
-        internal List<KeyValuePair<int, string>> List { get; } = new List<KeyValuePair<int, string>>();
+        internal List<KeyValuePair<int, string>> List { get; }
 
         /// <summary>Whether the record has subclass markers, from R13 on.</summary>
         internal bool Marked { get; }
@@ -267,6 +284,13 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the record is erased.</exception>
         internal bool Write(IReadOnlyList<int> order)
         {
+            if (_readOnly)
+            {
+                throw new InvalidOperationException(
+                    "These groups were given by a writing already made, and are not written back."
+                );
+            }
+
             if (Same())
             {
                 return false;
