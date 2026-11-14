@@ -343,7 +343,12 @@ User note 2026-11-12 evening (note.md 1-14):
       (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables 4.5 us per cell (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
-- [ ] (xclip3, running) XCLIP follow-ups 2: REFEDIT done (refedit, blocks; xrefs left: see REFEDIT follow-ups); Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
+- [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
+      normal; lines cut at the planes), Clipdepth by a point and equal planes as AutoCAD; a clip tilted out of the plan
+      dragged by its own axes and shown by where its prism meets the block plane
+- [ ] XCLIP follow-ups 3: the flip arrow's click and direction (GUI); arcs, circles and polylines cut at the depth
+      planes (needs heights in display items); depth in external references; generate Polyline on a tilted clip; the
+      block plane at another absolute height; nested INSERTs in the slab (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):
@@ -715,7 +720,7 @@ the ones wanted.
 - [x] Speed follow-ups 5 (speed6): hatches and MTEXTs share their display styles (75 003 styles -> 3 on a 100k
       hatch/MTEXT drawing, display list 142 -> 135 MB); handle strings, shape caches, hatch loop strings and arc boxes
       measured and declined (numbers in display.md); layer-off at 1M re-timed, no regression
-- [ ] Speed follow-ups 6: a fast byte-level read of LINE/ARC/CIRCLE/LWPOLYLINE, bit-exact with fuzz (shape reading is
+- [ ] (speed7, running: the fast shape read) Speed follow-ups 6: a fast byte-level read of LINE/ARC/CIRCLE/LWPOLYLINE, bit-exact with fuzz (shape reading is
       ~40 % of a cold display; would let the shape cache go: 73 MB at 1M); the 48-byte "no contexts" tuple of
       DBText/MText/BlockReference; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; a
       same-build pixel hash that varied once under load (d100k zoomed); read-ahead wrappers; a DWG read stopped mid-way (S)

@@ -6,6 +6,28 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The front and back planes of XCLIP Clipdepth cut what a clipped block shows, as AutoCAD 2021 draws it (PNGOUT of a block
+of five lines at several heights, in plan and in an isometric view): the block is shown from the back plane to the front plane,
+planes included, in the units of the clip system whatever the reference's scale, and from the plane of the boundary, which goes with
+the block (a reference 15 high, clipped in the world's plane with front 20 and back -10, shows a line rising from (0, 0, 0) to
+(100, 0, 100) over its first 5 of x, the same block standing at 0 over its first 20). An entity wholly above the front plane or below the back one is
+left out, a line that crosses a plane is cut at it, and any other entity that crosses one is drawn whole, since the display keeps
+no height to cut it by (parked). A clip that is off shows the whole block, as AutoCAD does. The planes of an external reference are
+written and not applied (parked).
+**FIXED.** Clipdepth answered by a point took 0 whatever the plane: it is the point's distance from the boundary's plane along the
+boundary's normal, the point lying on the plane of the current user coordinate system, so that it is 15 from a boundary made in the
+world's plane when the system stands 15 higher and 0 from one made in that system (AutoCAD 2021 writes 15 and 0). A front plane
+equal to the back plane, or above it by a millionth or less, was taken; AutoCAD refuses it with the same message (front 10 with back
+9.999999 refused, with 9.999998 taken).
+**FIXED.** The clip boundary of a block made in a system tilted out of the plan (AutoCAD writes them; the presenter makes none): a
+vertex dragged is taken to the level plane through its grip and moves by the parts of the offset along the boundary's own X and Y
+axes, as AutoCAD 2021's `MoveGripPointsAt` moves it (corner (10, 10) of a boundary turned 30 degrees about X, dragged by (5, 3, 0),
+goes to (15, 10 + 3 cos 30); a reference scaled by 2, turned, lifted and moved gives the same steps), where it took the foot of the
+point on the block's plane and put the vertex 12.5 off in the example. The block is shown where the boundary's prism, its lines along
+the boundary's normal, cuts the plane of the block, and the frame is drawn where the boundary stands in the plan, as AutoCAD's own
+plan view shows them (a grid shows from y 73.09 to 130.83 for a boundary whose frame runs from y 58.66 to 101.96). A clip
+parallel to the block's plane draws as before.
+
 **NEW.** MLEADERCOLLECT (MLC) in the presenter, as AutoCAD 2021's console runs it (probed through standard input, multileaders made by
 MLEADER in a style of a block), and the Collect button of the Annotate tab's Leaders panel. "Select multileaders:" then "Specify
 collected multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:": the multileaders stay as they are and each block moves, by

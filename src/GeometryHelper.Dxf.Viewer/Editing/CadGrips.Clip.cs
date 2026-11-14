@@ -138,7 +138,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// Moves a corner or vertex of a clip boundary to a point of the drawing, as AutoCAD 2021's <c>MoveGripPointsAt</c> does
         /// (probes GHXE3): a rectangle's corner takes its two sides, the opposite corner staying, and the rectangle is kept in
         /// order where the corner crosses it; a polygon's vertex alone moves. A clip turned inside out stays so, its keyhole
-        /// made anew about the box that holds the reference. A boundary of no area is refused.
+        /// made anew about the box that holds the reference. A boundary of no area is refused. The cursor is taken on the plane
+        /// that is level with the plan through the grip, and the vertex moves by the parts of that offset along the boundary's
+        /// own X and Y axes, as AutoCAD 2021 moves one of a clip made in a system tilted out of the plan (probes GHXC3a): the
+        /// offset (5, 3, 0) of the corner (10, 10) of a boundary tilted 30 degrees about X gives (15, 10 + 3 cos 30).
         /// </summary>
         private static CadEditResult DragClipVertex(
             CadDocument document,
@@ -235,10 +238,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint3[] corners =
                 {
-                    new GeoPoint3(box.Min.X, box.Min.Y, 0.0),
-                    new GeoPoint3(box.Max.X, box.Min.Y, 0.0),
-                    new GeoPoint3(box.Max.X, box.Max.Y, 0.0),
-                    new GeoPoint3(box.Min.X, box.Max.Y, 0.0),
+                    new GeoPoint3(box.Min.X, box.Min.Y, box.Min.Z),
+                    new GeoPoint3(box.Max.X, box.Min.Y, box.Min.Z),
+                    new GeoPoint3(box.Max.X, box.Max.Y, box.Min.Z),
+                    new GeoPoint3(box.Min.X, box.Max.Y, box.Min.Z),
+                    new GeoPoint3(box.Min.X, box.Min.Y, box.Max.Z),
+                    new GeoPoint3(box.Max.X, box.Min.Y, box.Max.Z),
+                    new GeoPoint3(box.Max.X, box.Max.Y, box.Max.Z),
+                    new GeoPoint3(box.Min.X, box.Max.Y, box.Max.Z),
                 };
 
                 foreach (GeoPoint3 corner in corners)

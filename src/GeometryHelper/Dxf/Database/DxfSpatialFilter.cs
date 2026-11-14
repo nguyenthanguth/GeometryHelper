@@ -154,29 +154,31 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// A point of the boundary in the block's own coordinates measured from its origin: the chain of <see cref="GetRing"/> for
-        /// one point, which the presenter's grips on the boundary draw and drag by.
+        /// A point of the boundary in the block's own coordinates measured from its origin, its height kept: the chain of
+        /// <see cref="GetRing"/> for one point, which the presenter's grips on the boundary draw and drag by. The boundary of a
+        /// clip made in a system tilted out of the block's plane stands at a height of its own in the block.
         /// </summary>
-        internal GeoPoint2 ToBlock(GeoPoint2 point)
+        internal GeoPoint3 ToBlock(GeoPoint2 point)
         {
             State state = Read();
 
             if (!TryInvert(state.Clip, out double[] fromClip))
             {
-                return point;
+                return new GeoPoint3(point.X, point.Y, 0.0);
             }
 
             double[] world = Apply(fromClip, point.X, point.Y, 0.0);
             double[] block = Apply(state.Inverse, world[0], world[1], world[2]);
-            return new GeoPoint2(block[0], block[1]);
+            return new GeoPoint3(block[0], block[1], block[2]);
         }
 
         /// <summary>
-        /// The point of the clip coordinate system whose <see cref="ToBlock"/> is a given point of the block's own plane, as far
-        /// as the boundary's plane is the block's: the way back, which a vertex dragged is put by.
+        /// The point of the clip coordinate system whose plane holds the foot of a given point of the block's coordinates, the way
+        /// back from <see cref="ToBlock"/>: the point is carried into the clip coordinate system and its height above the
+        /// boundary's plane left out, as AutoCAD 2021 puts a grip dragged on to the plane (probes of MoveGripPointsAt).
         /// </summary>
         /// <returns>false where the matrices of the filter flatten space.</returns>
-        internal bool TryFromBlock(GeoPoint2 block, out GeoPoint2 clip)
+        internal bool TryFromBlock(GeoPoint3 block, out GeoPoint2 clip)
         {
             State state = Read();
             clip = default;
@@ -186,10 +188,142 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            double[] world = Apply(toWorld, block.X, block.Y, 0.0);
+            double[] world = Apply(toWorld, block.X, block.Y, block.Z);
             double[] inside = Apply(state.Clip, world[0], world[1], world[2]);
             clip = new GeoPoint2(inside[0], inside[1]);
             return true;
+        }
+
+        /// <summary>
+        /// The boundary cut by the plane of the block: where the lines through its points along the clip system's Z axis meet
+        /// the plane of the block at a given height (measured from the block's origin), as AutoCAD 2021 draws a block that its
+        /// tilted clip cuts (a grid of a block at height 0 under a boundary at height 25 to 50 over 30 degrees shows from where
+        /// the prism meets its plane). It differs from <see cref="GetRing"/>, which lets each point fall straight on to the
+        /// plane, only where the two planes are not parallel.
+        /// </summary>
+        /// <param name="blockPlaneZ">The height of the plane of the block, from the block's origin.</param>
+        /// <returns>The ring in the block's coordinates measured from its origin, the last point not repeating the first; null where the
+        /// planes are parallel, or the clip's axis runs along the plane of the block, and <see cref="GetRing"/> is the ring.</returns>
+        internal IReadOnlyList<GeoPoint2> GetSectionRing(double blockPlaneZ)
+        {
+            State state = Read();
+            List<GeoPoint2> points = state.Points;
+
+            if (
+                points.Count < 2
+                || !TryInvert(state.Clip, out double[] fromClip)
+                || !TryInvert(state.Inverse, out double[] toWorld)
+            )
+            {
+                return null;
+            }
+
+            // The clip system's Z axis in the world and in the block's coordinates, a vector long as the scale makes it.
+            double[] axis = Apply(Linear(fromClip), 0.0, 0.0, 1.0);
+            double[] along = Apply(Linear(state.Inverse), axis[0], axis[1], axis[2]);
+            double length = Math.Sqrt(along[0] * along[0] + along[1] * along[1] + along[2] * along[2]);
+
+            if (
+                !(length > 0.0)
+                || Math.Abs(along[2]) <= 1E-9 * length
+                || (Math.Abs(along[0]) <= 1E-9 * length && Math.Abs(along[1]) <= 1E-9 * length)
+            )
+            {
+                return null;
+            }
+
+            if (points.Count == 2)
+            {
+                GeoPoint2 a = points[0];
+                GeoPoint2 b = points[1];
+                points = new List<GeoPoint2>
+                {
+                    new GeoPoint2(a.X, a.Y),
+                    new GeoPoint2(b.X, a.Y),
+                    new GeoPoint2(b.X, b.Y),
+                    new GeoPoint2(a.X, b.Y),
+                };
+            }
+
+            var ring = new List<GeoPoint2>(points.Count);
+
+            foreach (GeoPoint2 point in points)
+            {
+                double[] world = Apply(fromClip, point.X, point.Y, 0.0);
+                double[] block = Apply(state.Inverse, world[0], world[1], world[2]);
+                double shift = (blockPlaneZ - block[2]) / along[2];
+                ring.Add(new GeoPoint2(block[0] + shift * along[0], block[1] + shift * along[1]));
+            }
+
+            return ring.AsReadOnly();
+        }
+
+        /// <summary>The 3 by 3 part of a 3 by 4 matrix with no shift, as a 3 by 4 matrix.</summary>
+        private static double[] Linear(double[] m) =>
+            new[] { m[0], m[1], m[2], 0.0, m[4], m[5], m[6], 0.0, m[8], m[9], m[10], 0.0 };
+
+        /// <summary>
+        /// The clipping planes of the boundary as a function of the block's coordinates: how far a point of the block stands
+        /// above the boundary's plane, as AutoCAD 2021 measures its Clipdepth, in the units of the clip system, along its Z axis.
+        /// The clip is kept against the block, so that the height does not change when the reference is moved.
+        /// </summary>
+        internal sealed class Slab
+        {
+            internal Slab(double x, double y, double z, double offset, double? front, double? back)
+            {
+                X = x;
+                Y = y;
+                Z = z;
+                Offset = offset;
+                Front = front;
+                Back = back;
+            }
+
+            /// <summary>The height's change along the block's x axis.</summary>
+            public double X { get; }
+
+            /// <summary>The height's change along the block's y axis.</summary>
+            public double Y { get; }
+
+            /// <summary>The height's change along the block's z axis.</summary>
+            public double Z { get; }
+
+            /// <summary>The height of the point where every coordinate of a block's entity is nought.</summary>
+            public double Offset { get; }
+
+            /// <summary>The distance of the front plane above the boundary's plane; null where there is none.</summary>
+            public double? Front { get; }
+
+            /// <summary>The distance of the back plane above the boundary's plane; null where there is none.</summary>
+            public double? Back { get; }
+
+            /// <summary>Gets the height above the boundary's plane of a point of the block, its coordinates as its entities have them.</summary>
+            public double HeightAt(double x, double y, double z) => X * x + Y * y + Z * z + Offset;
+        }
+
+        /// <summary>
+        /// The clipping planes of the filter as a <see cref="Slab"/>, null where it has no front plane and no back plane or its
+        /// matrices flatten space.
+        /// </summary>
+        /// <param name="origin">The origin of the block, which its coordinates in the filter are measured from.</param>
+        internal Slab GetSlab(GeoPoint3 origin)
+        {
+            State state = Read();
+
+            if ((!state.Front.HasValue && !state.Back.HasValue) || !TryInvert(state.Inverse, out double[] toWorld))
+            {
+                return null;
+            }
+
+            // The height is the clip matrix's third row of the point the inverse of the block's placing gives.
+            double[] c = state.Clip;
+            double x = c[8] * toWorld[0] + c[9] * toWorld[4] + c[10] * toWorld[8];
+            double y = c[8] * toWorld[1] + c[9] * toWorld[5] + c[10] * toWorld[9];
+            double z = c[8] * toWorld[2] + c[9] * toWorld[6] + c[10] * toWorld[10];
+            double offset = c[8] * toWorld[3] + c[9] * toWorld[7] + c[10] * toWorld[11] + c[11];
+
+            // A point as its entity has it is measured from the block's origin by taking the origin off.
+            return new Slab(x, y, z, offset - (x * origin.X + y * origin.Y + z * origin.Z), state.Front, state.Back);
         }
 
         /// <summary>Writes the points of the boundary, the rest of the filter as it is: how a vertex of the boundary is dragged.</summary>
