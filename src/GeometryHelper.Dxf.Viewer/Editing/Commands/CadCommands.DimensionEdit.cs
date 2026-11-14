@@ -314,7 +314,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                         else
                         {
-                            KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
+                            BreakAtWithin(c, d, null);
                             RedrawAnnotativeBreaks(d);
                         }
                     },
@@ -362,7 +362,7 @@ namespace GeometryHelper.Dxf.Viewer
                     "Auto",
                     d =>
                     {
-                        KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
+                        BreakAtWithin(c, d, null);
                         RedrawAnnotativeBreaks(d);
                     },
                     false
@@ -425,7 +425,7 @@ namespace GeometryHelper.Dxf.Viewer
                     only,
                     "Dimension break",
                     string.Join(",", picked),
-                    d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, picked), null)),
+                    d => BreakAtWithin(c, d, picked),
                     false
                 );
             }
@@ -433,6 +433,15 @@ namespace GeometryHelper.Dxf.Viewer
             if (done != null && done.Succeeded)
             {
                 c.Write(Modified(1));
+            }
+        }
+
+        /// <summary>Breaks a dimension at the objects given (every cutter of the space where none), the words among them measured in the drawing's fonts.</summary>
+        private static void BreakAtWithin(CadCommandContext c, DxfDimension dimension, IReadOnlyList<string> picked)
+        {
+            using (Measuring(c.Document))
+            {
+                KeepObjectBreaks(dimension, BreakAt(dimension, Cutters(c.Document, c.Space, dimension, picked), null));
             }
         }
 
@@ -1128,8 +1137,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The objects that break a dimension, sorted by handle: those picked, or every line, polyline, circle, arc, ellipse,
-        /// spline, xline, ray, TEXT and MTEXT of the space but the dimension itself (AutoCAD 2021 breaks at all of them, probed
-        /// in its console: a TEXT 2.5 high across an extension line breaks it over its box and the break size either side).
+        /// spline, xline, ray, TEXT, MTEXT and block reference of the space but the dimension itself (AutoCAD 2021 breaks at all of them, probed
+        /// in its console: a TEXT 2.5 high across an extension line breaks it over its box and the break size either side, a
+        /// block at the shapes of it; a hatch is none, only its boundary where that is drawn).
         /// </summary>
         private static List<DxfEntity> Cutters(
             CadDocument document,
@@ -1159,6 +1169,7 @@ namespace GeometryHelper.Dxf.Viewer
                         || entity is DxfRay
                         || entity is DxfDBText
                         || entity is DxfMText
+                        || entity is DxfBlockReference
                     )
                 )
                 {
@@ -1237,22 +1248,27 @@ namespace GeometryHelper.Dxf.Viewer
                 return crossed;
             }
 
+            List<KeyValuePair<DxfEntity, DxfEntity>> shapes = CutterShapes(cutters);
+
             foreach (DxfLine line in lines)
             {
                 GeoPoint2 a = P2(line.StartPoint) + shift;
                 GeoPoint2 b = P2(line.EndPoint) + shift;
                 var gaps = new List<KeyValuePair<double, double>>();
 
-                foreach (DxfEntity cutter in cutters)
+                foreach (KeyValuePair<DxfEntity, DxfEntity> shape in shapes)
                 {
+                    DxfEntity owner = shape.Key;
+                    DxfEntity cutter = shape.Value;
+
                     if (cutter is DxfDBText || cutter is DxfMText)
                     {
                         // Words are cut across their whole box, the break size beyond it each side.
                         if (TextSpan(a, b, cutter, out double enter, out double leave))
                         {
-                            if (!crossed.Contains(cutter))
+                            if (!crossed.Contains(owner))
                             {
-                                crossed.Add(cutter);
+                                crossed.Add(owner);
                             }
 
                             gaps.Add(new KeyValuePair<double, double>(enter - size / 2.0, leave + size / 2.0));
@@ -1263,9 +1279,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     List<double> at = Crossings(a, b, new List<DxfEntity> { cutter });
 
-                    if (at.Count > 0 && !crossed.Contains(cutter))
+                    if (at.Count > 0 && !crossed.Contains(owner))
                     {
-                        crossed.Add(cutter);
+                        crossed.Add(owner);
                     }
 
                     foreach (double t in at)
@@ -1335,6 +1351,67 @@ namespace GeometryHelper.Dxf.Viewer
             database?.GetHeader("$MEASUREMENT") != null && database.Measurement == DxfMeasurementValue.Metric
                 ? 3.75
                 : 0.125;
+
+        /// <summary>
+        /// The shapes that break a dimension, each with the cutter it belongs to: a cutter as it is, and of a block reference each
+        /// shape of its block, copied and carried to where the block stands, as AutoCAD 2021 breaks a dimension at the shapes of
+        /// a block in their places and not over its box (probed in its console: a rectangle 6 by 4 breaks a line it crosses at
+        /// both edges). Blocks within blocks are opened the same way; a shape that cannot be carried (a circle scaled one way
+        /// more than the other) is left out.
+        /// </summary>
+        private static List<KeyValuePair<DxfEntity, DxfEntity>> CutterShapes(IEnumerable<DxfEntity> cutters)
+        {
+            var shapes = new List<KeyValuePair<DxfEntity, DxfEntity>>();
+
+            foreach (DxfEntity cutter in cutters)
+            {
+                AddShapes(cutter, cutter, shapes, 0);
+            }
+
+            return shapes;
+        }
+
+        private static void AddShapes(
+            DxfEntity owner,
+            DxfEntity entity,
+            List<KeyValuePair<DxfEntity, DxfEntity>> shapes,
+            int depth
+        )
+        {
+            if (!(entity is DxfBlockReference insert))
+            {
+                shapes.Add(new KeyValuePair<DxfEntity, DxfEntity>(owner, entity));
+                return;
+            }
+
+            DxfBlockTableRecord block = insert.BlockTableRecord;
+
+            if (block == null || depth >= 8)
+            {
+                return;
+            }
+
+            GeoTransform3 placed = insert.BlockTransform;
+
+            foreach (DxfEntity inner in block)
+            {
+                if (inner.IsErased)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    DxfEntity copy = inner.Clone();
+                    copy.TransformBy(placed);
+                    AddShapes(owner, copy, shapes, depth + 1);
+                }
+                catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+                {
+                    // A shape the transformation cannot carry is not a cutter.
+                }
+            }
+        }
 
         /// <summary>Where along a segment, from its start, the objects cross it, in order.</summary>
         private static List<double> Crossings(GeoPoint2 a, GeoPoint2 b, List<DxfEntity> cutters)
@@ -1475,12 +1552,37 @@ namespace GeometryHelper.Dxf.Viewer
             enter = 0.0;
             leave = 0.0;
             GeoAabb3 box;
+            double turn =
+                words is DxfDBText text ? text.Rotation
+                : words is DxfMText mtext ? mtext.Rotation
+                : 0.0;
+            GeoPoint3 pivot = words is DxfDBText placed ? placed.Position : ((DxfMText)words).Location;
 
             try
             {
-                box = words.GeometricExtents;
+                if (Math.Abs(Math.IEEERemainder(turn, 2.0 * Math.PI)) > 1E-9)
+                {
+                    // Turned words are cut across their turned box: the words are turned back upright about the point they are
+                    // held at, and the segment with them, which is measured against the box they fill there.
+                    DxfEntity upright = words.Clone();
+                    upright.TransformBy(GeoTransform3.RotationAxis(pivot, new GeoVector3(0, 0, 1), -turn));
+                    box = upright.GeometricExtents;
+                    double cos = Math.Cos(-turn);
+                    double sin = Math.Sin(-turn);
+                    GeoPoint2 Back(GeoPoint2 p) =>
+                        new GeoPoint2(
+                            pivot.X + (p.X - pivot.X) * cos - (p.Y - pivot.Y) * sin,
+                            pivot.Y + (p.X - pivot.X) * sin + (p.Y - pivot.Y) * cos
+                        );
+                    a = Back(a);
+                    b = Back(b);
+                }
+                else
+                {
+                    box = words.GeometricExtents;
+                }
             }
-            catch (InvalidOperationException)
+            catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentException)
             {
                 return false;
             }

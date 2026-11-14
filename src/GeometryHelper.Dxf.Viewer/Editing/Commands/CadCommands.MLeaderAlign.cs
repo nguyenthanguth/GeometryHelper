@@ -11,19 +11,21 @@ namespace GeometryHelper.Dxf.Viewer
     /// MLEADERALIGN (MLA), as AutoCAD 2021's (its prompts and numbers probed in its console, fed through standard input):
     /// "Select multileaders:", "Current mode: Use current spacing", "Select multileader to align to or [Options]:", then the
     /// direction; the content of each multileader is moved with its landing (<see cref="DxfMoveType.MoveContentAndDoglegPoints"/>,
-    /// the arrowheads staying) onto the line through the landing of the one picked along the direction. Use current spacing
-    /// keeps each content's place along the line; specify Spacing puts the contents a gap apart along it, the one picked staying
-    /// where it is and the others following it in the order they stand along the direction; Distribute spaces them evenly
-    /// between two points, the first one's landing on the first point and the last one's on the second; make leader segments
-    /// Parallel turns each leader about its arrowhead to run the way the one picked runs, its length kept, its content
-    /// moving with it. A content stands in a box of its words' width and height and the landing gap before and after them, and the
-    /// gaps are measured between those boxes: words 1.14 wide in a style of a landing gap of 0.09, a spacing of 20 puts the
-    /// next landing 21.32 beyond the first.
+    /// the arrowheads staying) onto the line through the left middle of the box of the one picked along the direction, each by
+    /// the left middle of its own box. Use current spacing keeps each content's place along the line; specify Spacing puts the
+    /// contents a gap apart along it, the one picked staying where it is and the others following it in the order they stand
+    /// along the direction; Distribute spaces them evenly between two points, the first one's left middle on the first point and
+    /// the last one's on the second; make leader segments Parallel turns each leader about its arrowhead to run the way the one
+    /// picked runs, its length kept, its content moving with it. A content stands in a box of its words' width and height and
+    /// the landing gap before and after them (a block's extents), measured in the drawing's fonts, and the gaps are measured
+    /// between those boxes: words 1.14 wide in a style of a landing gap of 0.09, a spacing of 20 puts the next box 21.32
+    /// beyond the first. A content whose arrowhead stands past the middle of its box once it is moved has its leader turned to
+    /// meet it on the other side, the words or block staying where they are.
     /// </summary>
     /// <remarks>
     /// AutoCAD's console reads a typed point of Distribute or Specify direction shifted by the arrowhead of the first
-    /// multileader selected; the numbers here have the shift taken out. Where a content lands past its arrowhead, AutoCAD turns
-    /// the leader to meet the words on the other side; the presenter keeps the side.
+    /// multileader selected; the numbers here have the shift taken out. The left middle is the point the leader's dogleg
+    /// ends at where the leader is on the left of the words, whatever their side.
     /// </remarks>
     internal static partial class CadCommands
     {
@@ -160,7 +162,15 @@ namespace GeometryHelper.Dxf.Viewer
 
                 reference = c.Document.FindEntity(c.Input.Handles[0]) as DxfMLeader;
 
-                if (reference == null || !TryContentBox(reference, out ContentBox box))
+                ContentBox box = default;
+                bool boxed;
+
+                using (Measuring(c.Document))
+                {
+                    boxed = reference != null && TryContentBox(reference, c.Database, out box);
+                }
+
+                if (!boxed)
                 {
                     c.Write("Object selected is not a multileader with content.");
                     continue;
@@ -171,14 +181,14 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                yield return CadPrompt.ForPoint("Specify direction", box.Landing);
+                yield return CadPrompt.ForPoint("Specify direction", box.Anchor);
 
                 if (!c.Input.IsPoint)
                 {
                     yield break;
                 }
 
-                direction = c.Input.Point - box.Landing;
+                direction = c.Input.Point - box.Anchor;
 
                 if (direction.Length < 1E-9)
                 {
@@ -197,15 +207,24 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            Dictionary<string, GeoVector2> moves = between
-                ? MLeaderDistribute(members, first, second)
-                : MLeaderAlignMoves(
-                    members,
-                    reference,
-                    direction,
-                    chosen == 2 ? c.Remembered("mleaderalign.spacing", 0.0) : (double?)null
-                );
-            MoveContents(c, members, moves);
+            Dictionary<string, GeoVector2> moves;
+            Dictionary<string, KeyValuePair<bool, double>> turns;
+
+            using (Measuring(c.Document))
+            {
+                moves = between
+                    ? MLeaderDistribute(members, c.Database, first, second)
+                    : MLeaderAlignMoves(
+                        members,
+                        c.Database,
+                        reference,
+                        direction,
+                        chosen == 2 ? c.Remembered("mleaderalign.spacing", 0.0) : (double?)null
+                    );
+                turns = MLeaderTurns(members, c.Database, moves, between ? null : reference);
+            }
+
+            MoveContents(c, members, moves, turns);
         }
 
         /// <summary>The point the content of a multileader is held by: its words' attachment point or its block's position; null for a multileader with neither.</summary>
@@ -223,15 +242,16 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Where a content stands, as MLEADERALIGN measures it: the landing (the point its leader's dogleg ends at, the words'
-        /// first line's middle level with it, a landing gap from the words' near edge) and the box of the words widened by the
-        /// landing gap on the side of the landing and past their far edge, the width and height AutoCAD gives the words
-        /// (<see cref="DxfMText.ActualWidth"/>); a block stands at its position in a box of no size.
+        /// Where a content stands, as MLEADERALIGN measures it: the box of the words widened by the landing gap before and after
+        /// them, as wide and high as AutoCAD gives the words (<see cref="DxfMText.ActualWidth"/>), or of a block its extents; and
+        /// the anchor the box is held by, its left edge level with the middle of the words' first line (the block's middle), whichever
+        /// side its leader is on. A direction is taken from the anchor of the multileader picked, and every content is put on the
+        /// line through it by its own.
         /// </summary>
         private struct ContentBox
         {
-            /// <summary>The landing of the content.</summary>
-            public GeoPoint2 Landing;
+            /// <summary>The left middle of the box, the point the content is held by.</summary>
+            public GeoPoint2 Anchor;
 
             /// <summary>The centre of the box.</summary>
             public GeoPoint2 Centre;
@@ -241,9 +261,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             /// <summary>The height of the box, the words' own.</summary>
             public double Height;
+
+            /// <summary>The width of the words' ink alone, nought for a block.</summary>
+            public double Ink;
+
+            /// <summary>Whether the content is a block.</summary>
+            public bool IsBlock;
         }
 
-        private static bool TryContentBox(DxfMLeader mleader, out ContentBox box)
+        private static bool TryContentBox(DxfMLeader mleader, DxfDatabase database, out ContentBox box)
         {
             box = default;
             GeoPoint3? at = ContentPoint(mleader);
@@ -255,40 +281,129 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (mleader.ContentType == DxfContentType.BlockContent)
             {
+                if (TryBlockExtents(mleader, out double blockLeft, out double right, out double low, out double high))
+                {
+                    var middle = new GeoPoint2(blockLeft, (low + high) / 2.0);
+                    box = new ContentBox
+                    {
+                        Anchor = middle,
+                        Centre = new GeoPoint2((blockLeft + right) / 2.0, middle.Y),
+                        Width = right - blockLeft,
+                        Height = high - low,
+                        IsBlock = true,
+                    };
+                    return true;
+                }
+
                 var here = new GeoPoint2(at.Value.X, at.Value.Y);
                 box = new ContentBox
                 {
-                    Landing = here,
+                    Anchor = here,
                     Centre = here,
-                    Width = 0.0,
-                    Height = 0.0,
+                    IsBlock = true,
                 };
                 return true;
             }
 
             DxfMText words = mleader.MText;
-            double gap = mleader.LandingGap * mleader.Scale;
-            double wide = words == null ? 0.0 : words.ActualWidth;
-            double high = words == null ? 0.0 : words.ActualHeight;
-            double line = mleader.TextHeight;
 
-            if (high <= 0.0)
+            if (words != null)
             {
-                high = line;
+                // The words are measured in the drawing's fonts, as AutoCAD measures them.
+                words.MeasuredIn = database;
             }
 
-            bool right = words != null && words.Attachment == DxfAttachmentPoint.TopRight;
-            double side = right ? 1.0 : -1.0;
-            var landing = new GeoPoint2(at.Value.X + side * gap, at.Value.Y - line / 2.0);
+            double gap = mleader.LandingGap * mleader.Scale;
+            double wide = words == null ? 0.0 : words.ActualWidth;
+            double high2 = words == null ? 0.0 : words.ActualHeight;
+            double line = words == null ? mleader.TextHeight * mleader.Scale : words.TextHeight;
+
+            if (high2 <= 0.0)
+            {
+                high2 = line;
+            }
+
+            // The middle of the first line: of words of one line, those of the whole (their ink may reach below the baseline).
+            bool one = words == null || (!words.Contents.Contains("\\P") && !words.Contents.Contains("\n"));
+            double middleDown = (one ? high2 : line) / 2.0;
+            bool onRight = words != null && words.Attachment == DxfAttachmentPoint.TopRight;
+            double left = (onRight ? at.Value.X - wide : at.Value.X) - gap;
             double width = wide + 2.0 * gap;
             box = new ContentBox
             {
-                Landing = landing,
-                Centre = new GeoPoint2(landing.X - side * width / 2.0, at.Value.Y - high / 2.0),
+                Anchor = new GeoPoint2(left, at.Value.Y - middleDown),
+                Centre = new GeoPoint2(left + width / 2.0, at.Value.Y - high2 / 2.0),
                 Width = width,
-                Height = high,
+                Height = high2,
+                Ink = wide,
             };
             return true;
+        }
+
+        /// <summary>
+        /// The extents of a multileader's block as it stands, scaled by the block's scale and the multileader's and turned by its
+        /// rotation (attribute definitions left out): false where the block has no shape the library reads.
+        /// </summary>
+        private static bool TryBlockExtents(
+            DxfMLeader mleader,
+            out double left,
+            out double right,
+            out double low,
+            out double high
+        )
+        {
+            left = right = low = high = 0.0;
+            DxfBlockTableRecord block = mleader.BlockContent;
+
+            if (block == null)
+            {
+                return false;
+            }
+
+            GeoPoint3 position = mleader.BlockPosition;
+            GeoVector3 scale = mleader.BlockScale;
+            double sx = scale.X * mleader.Scale;
+            double sy = scale.Y * mleader.Scale;
+            double cos = Math.Cos(mleader.BlockRotation);
+            double sin = Math.Sin(mleader.BlockRotation);
+            bool boxed = false;
+
+            foreach (DxfEntity entity in block)
+            {
+                if (entity is DxfAttributeDefinition)
+                {
+                    continue;
+                }
+
+                GeoAabb3 own;
+
+                try
+                {
+                    own = entity.GeometricExtents;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
+
+                foreach (double cx in new[] { own.Min.X, own.Max.X })
+                {
+                    foreach (double cy in new[] { own.Min.Y, own.Max.Y })
+                    {
+                        double px = cx * sx;
+                        double py = cy * sy;
+                        double wx = position.X + px * cos - py * sin;
+                        double wy = position.Y + px * sin + py * cos;
+                        left = boxed ? Math.Min(left, wx) : wx;
+                        right = boxed ? Math.Max(right, wx) : wx;
+                        low = boxed ? Math.Min(low, wy) : wy;
+                        high = boxed ? Math.Max(high, wy) : wy;
+                        boxed = true;
+                    }
+                }
+            }
+
+            return boxed;
         }
 
         private static IEnumerable<CadPrompt> MLeaderAlignChooseMode(CadCommandContext c)
@@ -347,6 +462,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static Dictionary<string, GeoVector2> MLeaderAlignMoves(
             IReadOnlyList<DxfMLeader> members,
+            DxfDatabase database,
             DxfMLeader reference,
             GeoVector2 direction,
             double? spacing
@@ -355,9 +471,9 @@ namespace GeometryHelper.Dxf.Viewer
             var moves = new Dictionary<string, GeoVector2>(StringComparer.OrdinalIgnoreCase);
             GeoVector2 along = direction / direction.Length;
             var across = new GeoVector2(-along.Y, along.X);
-            TryContentBox(reference, out ContentBox pivot);
-            double lineAt = Dot(pivot.Landing, across);
-            List<KeyValuePair<DxfMLeader, ContentBox>> items = Boxes(members, along, pivot.Landing);
+            TryContentBox(reference, database, out ContentBox pivot);
+            double lineAt = Dot(pivot.Anchor, across);
+            List<KeyValuePair<DxfMLeader, ContentBox>> items = Boxes(members, database, along, pivot.Anchor);
             var wanted = new double[items.Count];
             int fixedAt = items.FindIndex(i =>
                 string.Equals(i.Key.Handle, reference.Handle, StringComparison.OrdinalIgnoreCase)
@@ -423,6 +539,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static Dictionary<string, GeoVector2> MLeaderDistribute(
             IReadOnlyList<DxfMLeader> members,
+            DxfDatabase database,
             GeoPoint2 first,
             GeoPoint2 second
         )
@@ -439,7 +556,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 along = line / length;
             var across = new GeoVector2(-along.Y, along.X);
             double lineAt = Dot(first, across);
-            List<KeyValuePair<DxfMLeader, ContentBox>> items = Boxes(members, along, first);
+            List<KeyValuePair<DxfMLeader, ContentBox>> items = Boxes(members, database, along, first);
             double total = 0.0;
 
             for (int i = 0; i + 1 < items.Count; i++)
@@ -463,6 +580,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The contents with their boxes, in the order they stand along a direction from a point, the handle breaking a tie.</summary>
         private static List<KeyValuePair<DxfMLeader, ContentBox>> Boxes(
             IReadOnlyList<DxfMLeader> members,
+            DxfDatabase database,
             GeoVector2 along,
             GeoPoint2 origin
         )
@@ -471,14 +589,14 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfMLeader member in members)
             {
-                if (TryContentBox(member, out ContentBox box))
+                if (TryContentBox(member, database, out ContentBox box))
                 {
                     items.Add(new KeyValuePair<DxfMLeader, ContentBox>(member, box));
                 }
             }
 
             return items
-                .OrderBy(i => Dot(i.Value.Landing - origin, along))
+                .OrderBy(i => Dot(i.Value.Anchor - origin, along))
                 .ThenBy(i => i.Key.Handle, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
@@ -500,10 +618,10 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             ContentBox box = item.Value;
-            var offset = new GeoVector2(box.Landing.X - box.Centre.X, box.Landing.Y - box.Centre.Y);
+            var offset = new GeoVector2(box.Anchor.X - box.Centre.X, box.Anchor.Y - box.Centre.Y);
             double alongLanding = centreAt + Dot(offset, along);
             GeoPoint2 target = new GeoPoint2(0.0, 0.0) + along * alongLanding + across * lineAt;
-            var move = new GeoVector2(target.X - box.Landing.X, target.Y - box.Landing.Y);
+            var move = new GeoVector2(target.X - box.Anchor.X, target.Y - box.Anchor.Y);
 
             if (move.Length > 1E-9)
             {
@@ -609,38 +727,132 @@ namespace GeometryHelper.Dxf.Viewer
             return new GeoVector2(end.X - arrow.X, end.Y - arrow.Y);
         }
 
-        /// <summary>Moves the content of each multileader by its own vector, with its landing, as one edit of the command.</summary>
+        /// <summary>
+        /// Which contents have their leader turned to the other side once they are moved, and to which: a content whose
+        /// arrowhead stands past the middle of its box, which is the left of it for a leader on the right, as AutoCAD 2021 turns
+        /// them (the box the one picked stays out of). Only a multileader of one leader line is turned, its words held at their top
+        /// left or top right, or a block.
+        /// </summary>
+        private static Dictionary<string, KeyValuePair<bool, double>> MLeaderTurns(
+            IReadOnlyList<DxfMLeader> members,
+            DxfDatabase database,
+            IReadOnlyDictionary<string, GeoVector2> moves,
+            DxfMLeader reference
+        )
+        {
+            var turns = new Dictionary<string, KeyValuePair<bool, double>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfMLeader member in members)
+            {
+                if (
+                    reference != null
+                    && string.Equals(member.Handle, reference.Handle, StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    continue;
+                }
+
+                IReadOnlyList<int> leaders = member.GetLeaderIndexes();
+
+                if (leaders.Count != 1 || member.GetLeaderLineIndexes(leaders[0]).Count != 1)
+                {
+                    continue;
+                }
+
+                if (!TryContentBox(member, database, out ContentBox box))
+                {
+                    continue;
+                }
+
+                bool onRight;
+
+                if (box.IsBlock)
+                {
+                    double along = member.GetDogleg(leaders[0]).X;
+
+                    if (Math.Abs(along) < 1E-9)
+                    {
+                        continue;
+                    }
+
+                    onRight = along < 0.0;
+                }
+                else
+                {
+                    DxfMText words = member.MText;
+
+                    if (
+                        words == null
+                        || (
+                            words.Attachment != DxfAttachmentPoint.TopLeft
+                            && words.Attachment != DxfAttachmentPoint.TopRight
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    onRight = words.Attachment == DxfAttachmentPoint.TopRight;
+                }
+
+                double centre = box.Centre.X + (moves.TryGetValue(member.Handle, out GeoVector2 move) ? move.X : 0.0);
+                double arrow = member.GetFirstVertex(member.GetLeaderLineIndexes(leaders[0])[0]).X;
+                bool wanted = arrow > centre + 1E-9;
+
+                if (wanted != onRight)
+                {
+                    turns[member.Handle] = new KeyValuePair<bool, double>(wanted, box.Ink);
+                }
+            }
+
+            return turns;
+        }
+
+        /// <summary>Moves the content of each multileader by its own vector, with its landing, and turns the leaders that are to meet their content on the other side, as one edit of the command.</summary>
         private static void MoveContents(
             CadCommandContext c,
             IReadOnlyList<DxfMLeader> members,
-            IReadOnlyDictionary<string, GeoVector2> moves
+            IReadOnlyDictionary<string, GeoVector2> moves,
+            IReadOnlyDictionary<string, KeyValuePair<bool, double>> turns
         )
         {
-            if (moves.Count == 0)
+            if (moves.Count == 0 && turns.Count == 0)
             {
                 return;
             }
 
-            List<string> handles = moves.Keys.OrderBy(h => h, StringComparer.OrdinalIgnoreCase).ToList();
+            List<string> handles = moves
+                .Keys.Union(turns.Keys, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(h => h, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             var planned = handles
                 .Select(h => new CadEditRecord(
                     CadEditRecordKind.PropertyChanged,
                     h,
                     "Content position",
                     null,
-                    Values(moves[h].X, moves[h].Y)
+                    moves.TryGetValue(h, out GeoVector2 by) ? Values(by.X, by.Y) : Values(0.0, 0.0)
                 ))
                 .ToList();
             CadEditResult result = c.Apply(planned, s =>
             {
                 foreach (string handle in handles)
                 {
-                    if (!s.IsHandled(handle))
+                    if (s.IsHandled(handle))
                     {
-                        ((DxfMLeader)s.Document.FindEntity(handle)).MoveMLeader(
-                            new GeoVector3(moves[handle].X, moves[handle].Y, 0.0),
-                            DxfMoveType.MoveContentAndDoglegPoints
-                        );
+                        continue;
+                    }
+
+                    var member = (DxfMLeader)s.Document.FindEntity(handle);
+
+                    if (moves.TryGetValue(handle, out GeoVector2 by))
+                    {
+                        member.MoveMLeader(new GeoVector3(by.X, by.Y, 0.0), DxfMoveType.MoveContentAndDoglegPoints);
+                    }
+
+                    if (turns.TryGetValue(handle, out KeyValuePair<bool, double> turn))
+                    {
+                        member.SwitchSide(turn.Key, turn.Value);
                     }
                 }
             });
@@ -649,6 +861,30 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write(result.Message);
             }
+        }
+
+        /// <summary>
+        /// Lets the drawing's fonts measure words for as long as the scope lives: the folders the presenter looks in and the
+        /// Fonts folder of Windows, as MLEADEREDIT measures them; the drawing's own search path is put back after.
+        /// </summary>
+        private static IDisposable Measuring(CadDocument document) => new MeasuringScope(document);
+
+        private sealed class MeasuringScope : IDisposable
+        {
+            private readonly DxfDatabase _database;
+            private readonly string _searched;
+
+            public MeasuringScope(CadDocument document)
+            {
+                _database = document.Database;
+                _searched = _database.FontSearchPath;
+                _database.FontSearchPath = string.Join(
+                    ";",
+                    document.Fonts.Folders.Concat(new[] { Environment.GetFolderPath(Environment.SpecialFolder.Fonts) })
+                );
+            }
+
+            public void Dispose() => _database.FontSearchPath = _searched;
         }
     }
 }

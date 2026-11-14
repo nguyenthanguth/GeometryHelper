@@ -17,13 +17,42 @@ before and after them (words 1.14, 0.06 and 2.34 wide, a landing gap of 0.09 and
 apart, up the page 0.18 apart for words 0.18 high); Distribute puts the first landing on the first point and the last on the
 second, the gaps between the boxes all the same. The prompts are AutoCAD's: `Specify spacing <0.000000>:`, `Current mode: Spacing:
 20.000000` and `Current mode: Make leader lines parallel`, the default of the options prompt `<make segments Parallel>` or
-`<specify Spacing>`. Where a content lands past its arrowhead AutoCAD turns the leader to meet the words on the other side; the
-presenter keeps the side. MLEADERCOLLECT is still not built.
+`<specify Spacing>`. MLEADERCOLLECT is still not built.
 **CHANGED.** TEXTALIGN in the presenter takes Left and Right along a line of two points to the top left and top right corners of
 each box, as TL and TR, and Center to its middle, as AutoCAD 2021 does (three texts 2.5 high at (10, 10), (60, 25) and (30, 50) on a
 line of slope 1/2 through (30, 50) under Left have their left edges at -45, -15 and 35 where it stands at 12.5, 27.5 and 52.5);
-they stood at the middle of the left and right edges. Set spacing and Distribute along a slanting line put the texts in order along
-the line in AutoCAD, from the top here: not built.
+they stood at the middle of the left and right edges.
+**CHANGED.** MLEADERALIGN in the presenter holds each content by the left middle of its box, as AutoCAD 2021's console does
+(probed through standard input, multileaders made by MLEADER): the box is the words' (measured in the drawing's fonts, which
+the presenter did not use here, so that every box was as wide as its two landing gaps) widened by the landing gap each side, or a
+block's extents, which it took for a point; the point is the middle of the first line of the words, or the middle of the block,
+and the line the contents are put on runs through that of the one picked, from where a direction is taken, whichever side the
+leaders are on (a leader on the right of its words used to be put on the line by the end of its box, a box's width off: ONE
+landing at (90, 10) from (100, 0) has its box from 88.98 to 89.64 and a direction straight up from 88.98 puts the left of every
+other box on that line). The contents stand in the order of their lefts along the line, and Distribute puts the left middle of the
+first on the first point and of the last on the second (words 0.48, 0.84 and 2.01 wide, from (0, 100) to (100, 100): boxes at 0,
+about 50.6 and 100). A content whose arrowhead ends up past the middle of its box has its leader turned to the other side, as AutoCAD
+turns it, the words or block staying where they are: TWO from an arrowhead at (30, 0) aligned to a box from 10.36 to 11.08 is held at
+its top right at 10.99, its dogleg against x ending 0.09 past the words and its landing a dogleg further, at y a right attachment
+(by the style's right side) below their top; one on the left of its words lands on the left of an arrowhead at 9 or before the
+middle (10.72) and is held at its top left. The leader takes the next index (0 becomes 1), as AutoCAD writes it. Only a
+multileader of one leader line is turned.
+**CHANGED.** TEXTALIGN in the presenter sets and distributes along a line of two points as AutoCAD 2021's console does (four TEXT
+2.5 high, A, BBB, CCCCCC and DDDD, from (0, 0), (60, 25), (30, 50) and (45, 40) to the line from (30, 50) to (130, 100)): Set spacing and
+Distribute put the texts in the order their corners stand along the line from its first point, the first corner on it, whatever way the
+line runs (a level or an upright line is not discarded, as Current Vertical discards it); each next corner stands far enough on along
+the line that its box is the spacing from the one before, measured along the line, either across (the width of the box before it,
+or of the one after it under TR and other right-hand alignments, over the cosine of the line's slope, plus the spacing) or up (the
+height over the sine), the less of the two: under TL and a spacing of 3 the corners are 4.863, 8.59 and 8.59 apart along the line,
+in the order A, CCCCCC, DDDD, BBB; Distribute puts the last corner on the second point and gives every two boxes the one gap that
+takes it there (32.92 for the same texts). They were stacked from the top by the height of the boxes, as for a text picked.
+**NEW.** DIMBREAK Auto in the presenter breaks a dimension at the shapes of a block reference in their places, as AutoCAD 2021
+does (a rectangle block 6 by 4 held at (-3, -12) breaks a vertical extension line at x = 0 at -12 and at -8, 0.0625 either side, where
+its whole box would give one gap from -12.0625 to -7.9375; scaled by 2 from (-6, -12) at -12 and -4, turned 30 degrees at -10.2679 and
+-5.6491), and at TEXT and MTEXT turned off the axes over the stretch of the line inside their turned box (words 15.83 by 2.5 turned
+45 degrees at (-3, -21): from -18.0625 to -14.4020), where the box of their extents, which it took for the box they would fill
+upright, gave -21.0625 to -7.9739. A hatch breaks nothing (only a boundary that is drawn does), as AutoCAD. The words are
+measured in the drawing's fonts.
 **NEW.** DIMBREAK Auto in the presenter breaks a dimension at ellipses, splines, xlines and rays, and at TEXT and MTEXT over the whole
 box of the words with the break size beyond it each side, as AutoCAD 2021 breaks it (probed in its console: an xline across the
 extension lines breaks both, an ellipse crossed at 15 and 17 breaks at 15.0001 and 16.9999, a TEXT 2.5 high standing from 1 to 3.5 across
