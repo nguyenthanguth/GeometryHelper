@@ -843,6 +843,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["RENAME"] = "Rename named objects",
             ["RESETBLOCK"] = "Reset dynamic blocks to their defaults",
             ["REVCLOUD"] = "Draw a revision cloud",
+            ["REVCLOUDPROPERTIES"] = "Change the arc length of revision clouds",
             ["RIBBONCLOSE"] = "Hide the ribbon",
             ["SAVE"] = "Save the drawing under a file name",
             ["SAVEAS"] = "Save the drawing under a new name or version",

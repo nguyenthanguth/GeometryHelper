@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 259 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 260 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -206,7 +206,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
-| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
+| modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; Automatic, Prompt, Settings), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
@@ -1177,8 +1177,21 @@ edited alone one, as AutoCAD 2021 does at 0: PLINE from (0, 100) to (100, 100) a
 POLYLINE whose second vertex has widths 2 and 4. RECTANG and REVCLOUD make LWPOLYLINEs whatever it is, as AutoCAD's do.
 JOIN takes a POLYLINE as it takes a LWPOLYLINE, and what it does to one is what AutoCAD 2021's console did: a line joined
 into the POLYLINE PLINE drew at PLINETYPE 0 leaves it a POLYLINE at 0 and makes it a LWPOLYLINE of its handle at 1 and 2,
-and a LWPOLYLINE stays one at 0. The polyline JOIN makes of lines and arcs picked at once, and the one -BOUNDARY makes of
-a loop, are POLYLINEs at 0 as PLINE's are (AutoCAD's console runs neither, so those two follow PLINE).
+and a LWPOLYLINE stays one at 0. Objects picked at once are joined into a LWPOLYLINE at every PLINETYPE, as AutoCAD's console
+made them when it ran interactively (14 November): four lines, a line and an arc, a POLYLINE and a line, two POLYLINEs, and a
+POLYLINE, an arc and a line each gave one, `2 objects converted to 1 polyline` for a POLYLINE and a line. The one -BOUNDARY
+makes of a loop is a POLYLINE at 0 as PLINE's is: AutoCAD's console stops -BOUNDARY with no word, so that one follows PLINE.
+A spline picked is made a polyline of lines within a precision, `Specify a precision <10>:` (0 to 99, the last one used the
+default; `Specify a precision for spline conversion <10>:` in Multiple, asked once where a spline is among the objects), as
+AutoCAD 2021 makes it: the spline through (0, 0), (100, 50), (200, 0) and (300, 80) at 2 is the 8 vertices (0, 0), (44.653,
+34.646), (100, 50), (135.471, 34.364), (200, 0), (222.784, 3.048), (262.139, 33.007) and (300, 80), the knots of a spline of
+fit points, here the fit points, among them. A precision that would give more than 10 000 vertices asks `Using a precision
+value greater than 81 may cause performance problems.  Do you want to continue? [Yes/No]: <N>:`, 81 the largest that gives
+no more, and No asks the precision again with that one as the default. The counts of vertices are those of
+`DxfSpline.ToPolylineWithPrecision`, which AutoCAD's PEDIT gave exactly for every spline of control points probed (48 counts
+of four splines of degree 2 to 5, and the vertices of two of them) and for 96 of 119 counts of seven cubics through fit
+points; in the 23 others the presenter makes 1 to 24 vertices more than AutoCAD, up to 2.4 per cent, at precision 8 and over
+(a tolerance a little looser than the library's, 1 to 4 per cent, that no rule of the splines' bends was found for).
 Both are kept by the session, PEDITACCEPT 0 and PLINETYPE 2 until set. Edit vertex marks the vertex with a cross,
 the first one the view shows (`No visible vertices` where it shows none); Next and Previous stop at the ends, Insert puts a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
@@ -1215,10 +1228,44 @@ length of 5 is the 25 vertices AutoCAD 2021 makes, to 8 places, and the outline 
 the session as REVCLOUDAPPROXARCLEN and not scaled by DIMSCALE, as in 2021, which has no REVCLOUDSCALEMODE. At
 REVCLOUDARCVARIANCE 1, as AutoCAD starts, each arc is drawn between two thirds of it and four thirds, and the first prompt
 says so, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6; at 0 each arc is the length, as the clouds above
-were checked. REVCLOUDCREATEMODE sets the type it starts with. Calligraphy widens each arc from nought to a tenth of the
-longest arc, and Modify redraws the side of a closed cloud picked along a new path. A drawing whose REVCLOUDAPPROXARCLEN
-is nought starts at 15 in millimetres and 0.5 in inches; AutoCAD 2021 sizes its first cloud by a share of the view's
-diagonal that its help does not give, so that start is not AutoCAD's.
+were checked. REVCLOUDARCVARIANCE is an on-off switch, `Enter new value for REVCLOUDARCVARIANCE <ON>:`. REVCLOUDCREATEMODE
+sets the type it starts with. Calligraphy widens each arc from nought to a tenth of the longest arc.
+
+AutoCAD 2021's console, run interactively (14 November, its commands read from standard input; a script file runs the older
+REVCLOUD), fixed these. The line `Minimum arc length: ...   Style: ...   Type: ...` is said when the command starts and when
+the type is changed, not after Arc length or Style. Rectangular's first prompt is `Specify first corner point`, Polygonal's
+`Specify start point` and Freehand's `Specify first point`. Rectangular runs from the first corner along the side of its X
+to the Y of the second, so that the corners (0, 0) and (100, 60) at arcs of 10 give 32 vertices up the left side, along the
+top and down the right, clockwise, the bulge -0.52056705, and (0, 60) and (100, 0) go down the left side, counter-clockwise,
+the bulge positive. Rectangular and Polygonal end with no message; Object and Freehand say `Revision cloud finished.` Every
+cloud carries the data `RevcloudProps`, a 1070 of 0 and a 1040 of its approximate arc length, which REVCLOUDPROPERTIES
+looks for. While REVCLOUDAPPROXARCLEN is nought the first cloud takes a twentieth of the diagonal of the view in the
+drawing's units (a view 100 high and 942 by 534 pixels: 10.1389, AutoCAD's own 10.1277, a tenth of a per cent less for the
+pixels its window leaves out), whatever DIMSCALE and the units are; with no view, as in a test, 15 in millimetres and 0.5 in
+inches. AutoCAD measures a viewport that is not the whole window by a rule that is not found (for a 942 by 534 window, the
+height counted is twice the smaller of the distances of the viewport's top and bottom from the window's middle line, and
+the viewport's width as it is), so a
+layout's viewport worked in does not give AutoCAD's length.
+
+Modify asks `Select polyline to modify:`, `Specify next point or [First point]:` (First point: `Specify a start point:`),
+`Specify next point or [Undo]:` until a point on the cloud, within the pick box, ends the path (Enter ends the command with
+nothing changed), `Pick a side to erase:` and `Reverse direction [Yes/No] <No>:`, and says nothing at the end. The cloud is
+cut where the path starts and ends and the side picked goes; the new arcs are laid from the start of the path, an arc
+length apart, the last one shorter, and the cloud begins at the end of the path, as AutoCAD writes it: with the corners
+(0, 0) and (100, 60) at arcs of 10, the path from (50, 0) down to (50, -23), across to (80, -23) and up to (80, 0), 76 long,
+and the bottom between 50 and 80 picked, the 37 vertices are (80, 0), (80, -6), (80, -16), (77, -23), (67, -23), (57, -23),
+(50, -20), (50, -10), (50, 0), (40, 0) and on round the old cloud to (90, 0). Picked at (45, 0) the path starts on the arc
+there, at (45, -2.6028), and the arcs cut at its ends keep their shape, bulges -0.24469844 and -0.11067678. Every arc of the
+result bulges the way those of the old cloud do, the other way where Reverse direction is Yes, even where that is into the
+shape the cloud now bounds. A cloud a path leaves is changed in place and keeps its handle (AutoCAD gives it another).
+
+REVCLOUDPROPERTIES asks `Select objects:` (only revision clouds, those with the data above, count), `Select property to
+change [Arc length]:` and `Specify approximate length of arc <10.0000>:`, the length the first cloud was drawn with, and sets
+REVCLOUDAPPROXARCLEN to the answer. Each cloud selected is drawn again in place from its first vertex along the polygon of
+its own vertices, with arcs of the new length, bulging the way its own do: a rectangle of arcs 10 long given 20 is the cloud
+REVCLOUD draws with 20, a polygon cloud is drawn along the chords of its arcs, which cut its corners, so that the polygon
+(0, 0), (73, 0), (80, 41), (20, 52) drawn at 10 and given 15 has its sixth vertex at (72.5898, 4.2770) and not (73.3366,
+1.9715), as AutoCAD's console draws it. A cloud that is no cloud (no data) ends the command with nothing changed.
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:

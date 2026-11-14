@@ -49,20 +49,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             );
             Run(session, "P");
             Assert.Equal(
-                "Specify first point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:",
+                "Specify start point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:",
                 session.PromptText
             );
             Run(session, "F");
             Assert.Equal(
-                "Specify start point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:",
+                "Specify first point or [Arc length/Object/Rectangular/Polygonal/Freehand/Style/Modify] <Object>:",
                 session.PromptText
             );
             Assert.EndsWith("Type: Freehand", session.History.Last());
             Run(session, "S");
             Assert.Equal("Select arc style [Normal/Calligraphy] <Normal>:", session.PromptText);
             Run(session, "C");
-            Assert.Contains("Calligraphy", session.History);
-            Assert.EndsWith("Style: Calligraphy   Type: Freehand", session.History.Last());
+            Assert.Equal("Calligraphy", session.History.Last());
         }
 
         [Fact]
@@ -82,9 +81,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Specify approximate length of arc <15.0000>:", session.PromptText);
             Run(session, "0");
             Assert.Contains("Value must be positive and nonzero.", session.History);
-            Run(session, "6");
+            Run(session, "6", "F");
             Assert.Equal(
-                "Minimum arc length: 4.0000   Maximum arc length: 8.0000   Style: Normal   Type: Rectangular",
+                "Minimum arc length: 4.0000   Maximum arc length: 8.0000   Style: Normal   Type: Freehand",
                 session.History.Last()
             );
             Run(session, Esc);
@@ -504,10 +503,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfPolyline rectangle = Cloud(document);
             Assert.Equal(30, rectangle.NumberOfVertices);
             Near(P(0, 0), rectangle.GetPoint2dAt(0));
-            Near(P(10, 0), rectangle.GetPoint2dAt(1));
+            Near(P(0, -10), rectangle.GetPoint2dAt(1));
 
-            // Drawn clockwise: the bulges turn over so that the arcs still bulge out.
-            Assert.Equal(-Bulge, rectangle.GetBulgeAt(0), 8);
+            // AutoCAD goes from the first corner along the side of its X: down, east, up, west, counter-clockwise.
+            Assert.Equal(Bulge, rectangle.GetBulgeAt(0), 8);
 
             Run(session, "REVCLOUD", "P", P(0, 100));
             Assert.Equal("Specify next point:", session.PromptText);
@@ -570,8 +569,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, P(70, -50), P(70, 0));
             Assert.Equal("Pick a side to erase:", session.PromptText);
             Run(session, P(50, 0));
+            Assert.Equal("Reverse direction [Yes/No] <No>:", session.PromptText);
+            Run(session, "N");
 
-            Assert.Contains("Revision cloud finished.", session.History);
             DxfPolyline cloud = Assert.Single(All<DxfPolyline>(document.ModelSpace));
             Assert.Equal(handle, cloud.Handle);
             Assert.True(cloud.Closed);
@@ -661,7 +661,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "REVCLOUDARCVARIANCE", "0", "CIRCLE", P(700, 0), "20", "REVCLOUD", "O", P(720, 0), "Y");
             Run(session, "REVCLOUD", "S", "C", P(800, 0), P(900, 100));
             Run(session, "REVCLOUD", "P", P(800, 200), P(900, 200), P(850, 300), Enter);
-            Run(session, "REVCLOUD", "S", "N", "M", P(845, 0), P(845, -40), P(875, -40), P(875, 0), P(860, 1));
+            Run(session, "REVCLOUD", "S", "N", "M", P(870, 0), P(870, -40), P(840, -40), P(840, 0), P(855, 0), "N");
 
             Assert.False(session.IsRunning);
             var bytes = new MemoryStream();

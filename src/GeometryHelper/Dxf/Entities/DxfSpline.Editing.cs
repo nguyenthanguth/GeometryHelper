@@ -752,7 +752,20 @@ namespace GeometryHelper.Dxf
         /// <returns>The polyline, of the spline's look, in no file.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the precision is outside 0 to 99.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline.</exception>
-        public DxfCurve ToPolylineWithPrecision(int precision, bool bConvertAsArcs, bool bToLWPolyline)
+        public DxfCurve ToPolylineWithPrecision(int precision, bool bConvertAsArcs, bool bToLWPolyline) =>
+            PolylineWithin(precision, bConvertAsArcs, bToLWPolyline, false);
+
+        /// <summary>
+        /// The polyline of lines PEDIT makes of a spline within a precision: as <see cref="ToPolylineWithPrecision(int, bool, bool)"/>,
+        /// but a spline of fit points that is not closed has its knots in the place of the vertices nearest them too, as AutoCAD 2021's
+        /// PEDIT puts them (its console: the spline through (0, 0), (100, 50), (200, 0) and (300, 80) at precision 2 has its
+        /// knots 111.80 and 223.61 in the place of the vertices at 100.48 and 200.95 of the seven even pieces).
+        /// </summary>
+        /// <param name="precision">The precision, from 0 to 99.</param>
+        /// <returns>The polyline, a <see cref="DxfPolyline"/> where the spline is flat, in no file.</returns>
+        internal DxfCurve PeditPolyline(int precision) => PolylineWithin(precision, false, true, true);
+
+        private DxfCurve PolylineWithin(int precision, bool bConvertAsArcs, bool bToLWPolyline, bool openFitKnots)
         {
             if (precision < 0 || precision > 99)
             {
@@ -819,11 +832,13 @@ namespace GeometryHelper.Dxf
                 }
 
                 keepLast = false;
-                placed = even - 2;
+
+                // An open spline keeps its last vertex, so that all of its knots but the ends have vertices to take the place of.
+                placed = (flags & 3) != 0 ? even - 2 : even - 1;
             }
 
             List<double> places =
-                (flags & 3) != 0 && byFitPoints
+                ((flags & 3) != 0 || openFitKnots) && byFitPoints
                     ? PlaceKnots(parameters, data.GetKnots(), nurbs.Start, nurbs.End, placed)
                     : parameters;
 

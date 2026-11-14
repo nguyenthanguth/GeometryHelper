@@ -20,6 +20,60 @@ it now has the 90, 91 and 1 after the fill of each row from that round trip (any
 AutoCAD's own R2007 file), the XRECORD is taken out with its name in the dictionary, and a style going to R2010 or later has the 280 of
 nought AutoCAD writes first in it (a style and a table going to R2010 had none; a table that has a 280 of its own after its flags, which
 AutoCAD writes in R2000 too, was taken for one that had it).
+**FIXED.** REVCLOUD in the presenter is now AutoCAD 2021's, checked in its console run interactively (14 November: the console
+reads its commands from standard input, and then runs the 2021 REVCLOUD with Rectangular, Polygonal, Freehand and Modify; a
+script file, which the earlier checks used, runs the older one). The first prompts are `Specify first corner point`
+(Rectangular), `Specify start point` (Polygonal) and `Specify first point` (Freehand), where Polygonal and Freehand were swapped;
+the `Minimum arc length ...` line is said when the command starts and when the type is changed, not after Arc length or Style.
+Rectangular runs from the first corner along the side of its X to the Y of the second, where it ran along the Y first: the
+corners (0, 0) and (100, 60) at arcs of 10 give 32 vertices up the left side, along the top and down the right, clockwise,
+bulge -0.52056705, and (0, 60) and (100, 0) down the left side, counter-clockwise. Rectangular and Polygonal end with no
+message, as AutoCAD's do; Object and Freehand say `Revision cloud finished.` Every cloud carries the data `RevcloudProps` (a
+1070 of 0, a 1040 of its approximate arc length) as AutoCAD's do. While REVCLOUDAPPROXARCLEN is nought the first cloud takes a
+twentieth of the diagonal of the view in the drawing's units, not 15 or 0.5: a view 100 high, 942 by 534 pixels, gives 10.1389,
+AutoCAD's 10.1277 (a tenth of a per cent less, for the pixels its window leaves out), whatever DIMSCALE and the units are;
+where there is no view, as in a test, 15 and 0.5 as before. AutoCAD measures a viewport that is not the whole window by a rule
+that was only half read (the height counted is twice the smaller of the distances of the viewport's top and bottom from the
+window's middle line), so a layout's viewport worked in does not give its length. REVCLOUDARCVARIANCE is a switch, `Enter new
+value for REVCLOUDARCVARIANCE <ON>:`, as AutoCAD's. A cloud made before this carries no `RevcloudProps` and is no cloud to
+REVCLOUDPROPERTIES.
+
+**FIXED.** REVCLOUD's Modify in the presenter follows AutoCAD 2021's console. After `Pick a side to erase:` it asks `Reverse
+direction [Yes/No] <No>:` and says nothing at the end; Enter at a next point ends it with nothing changed; the new arcs are laid
+from the start of the path, an arc length apart, the last one shorter, and the cloud begins at the end of the path: for the
+corners (0, 0) and (100, 60) at arcs of 10 and the path (50, 0), (50, -23), (80, -23), (80, 0) with the bottom between 50 and 80
+picked, the 37 vertices are (80, 0), (80, -6), (80, -16), (77, -23), (67, -23), (57, -23), (50, -20), (50, -10), (50, 0), (40,
+0) and on round the old cloud to (90, 0). The arcs cut at the ends of the path keep the shape they had (picked at (45, 0): the
+path starts on the arc at (45, -2.6028), bulges -0.24469844 and -0.11067678), and every arc bulges the way the old cloud's do,
+the other way for Yes, where the presenter chose outward by the area and began at the cut, and laid the new arcs from the end
+of the path when the side kept ran the other way.
+
+**NEW.** REVCLOUDPROPERTIES in the presenter, as AutoCAD 2021's: `Select objects:` (only revision clouds count), `Select property
+to change [Arc length]:`, `Specify approximate length of arc <10.0000>:`, the length the first cloud was drawn with. Each cloud
+is drawn again in place from its first vertex along the polygon of its own vertices, with arcs of the new length, and
+REVCLOUDAPPROXARCLEN is set to it: a rectangle of arcs 10 long given 20 is 16 vertices, the cloud REVCLOUD draws with 20, and the
+polygon (0, 0), (73, 0), (80, 41), (20, 52) at 10 given 15 is 15 vertices whose sixth is (72.5898, 4.2770), AutoCAD's, along the
+chords of its arcs, which cut the corners.
+
+**NEW.** PEDIT in the presenter makes a polyline of a spline, alone and in Multiple, as AutoCAD 2021's console does: `Specify a
+precision <10>:` (`Specify a precision for spline conversion <10>:` in Multiple, once), 0 to 99, the last one used the default,
+lines within the precision, the knots of a spline of fit points among the vertices: the spline through (0, 0), (100, 50), (200,
+0) and (300, 80) at 2 is the 8 vertices of AutoCAD's, to 1E-6, at 0 its 4 fit points. A precision that gives more than 10 000
+vertices asks `Using a precision value greater than 81 may cause performance problems.  Do you want to continue? [Yes/No]: <N>:`,
+81 the largest that gives no more (a cubic of seven control points: 9 947 vertices at 81, 10 027 at 82), and No asks again with
+it as the default. PEDITACCEPT 1 leaves out the question of turning it into one, not the precision; PLINETYPE 0 makes an
+old-style POLYLINE of it. The counts of vertices are `DxfSpline.ToPolylineWithPrecision`'s, AutoCAD's exactly for every spline
+of control points probed (48 counts of four splines of degree 2 to 5) and for 96 of 119 counts of seven cubics through fit
+points; in the other 23 the presenter makes 1 to 24 vertices more than AutoCAD (up to 2.4 per cent, at precision 8 and over),
+and the rule that gives AutoCAD's is not found: the precision rule of its fit splines is a halving tolerance 1 to 4 per cent
+looser than the library's, which no function of the spline's bend, length or span fitted. Multiple left splines as they were
+before.
+
+**FIXED.** JOIN of objects picked at once in the presenter makes a LWPOLYLINE at every PLINETYPE, as AutoCAD 2021's console run
+interactively does (four lines, a line and an arc, a POLYLINE and a line, two POLYLINEs, a POLYLINE, an arc and a line; `2
+objects converted to 1 polyline` for a POLYLINE and a line), where it made a POLYLINE at PLINETYPE 0 on a guess. A line joined
+into a POLYLINE picked first still leaves a POLYLINE at 0. BOUNDARY at PLINETYPE 0 is still a guess: AutoCAD's console stops
+-BOUNDARY with no word.
 
 **NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
 a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8

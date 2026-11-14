@@ -1005,8 +1005,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// of its circle, a polyline lines, arcs and polylines end to end); objects picked at once are joined as AutoCAD joins
         /// them: collinear lines into a line, arcs of one circle into an arc, and what meets end to end into a polyline, or into
         /// a spline where a spline or an elliptical arc is among them. A POLYLINE (the old-style one PLINETYPE 0 makes) is taken
-        /// as a LWPOLYLINE is: joined into, it is a LWPOLYLINE again at PLINETYPE 1 and 2 and stays a POLYLINE at 0, as AutoCAD
-        /// 2021 leaves it; the polyline made of lines and arcs is a POLYLINE at 0 as PLINE makes it.
+        /// as a LWPOLYLINE is: joined into a source object it is a LWPOLYLINE again at PLINETYPE 1 and 2 and stays a POLYLINE at
+        /// 0, as AutoCAD 2021 leaves it; joined with objects picked at once, and the polyline made of lines and arcs, it is a
+        /// LWPOLYLINE at every PLINETYPE, as AutoCAD 2021's console made them.
         /// </summary>
         private static IEnumerable<CadPrompt> Join(CadCommandContext c)
         {
@@ -1074,7 +1075,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (source != null)
                     {
                         JoinInto(s, space, alive[0], alive, null, said, joinedAll);
-                        PolylinesLightweight(c, s, space, joinedAll);
+                        PolylinesLightweight(c, s, space, joinedAll, false);
                         return;
                     }
 
@@ -1107,11 +1108,20 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (seed is DxfSpline || seed is DxfPolyline || seed is DxfPolyline2d)
                         {
+                            int told = said.Count;
                             JoinInto(s, space, seed, alive, null, said, joinedAll);
+
+                            // A POLYLINE picked at once is converted: AutoCAD 2021 says "2 objects converted to 1 polyline".
+                            if (seed is DxfPolyline2d && said.Count > told)
+                            {
+                                string last = said[said.Count - 1];
+                                said[said.Count - 1] =
+                                    last.Substring(0, last.IndexOf(' ')) + " objects converted to 1 polyline";
+                            }
                         }
                         else
                         {
-                            DxfCurve made = spline ? seed.Spline : OfPlineType(c, PolylineOf(seed));
+                            DxfCurve made = spline ? seed.Spline : PolylineOf(seed);
 
                             if (made == null)
                             {
@@ -1143,7 +1153,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
                     }
 
-                    PolylinesLightweight(c, s, space, joinedAll);
+                    PolylinesLightweight(c, s, space, joinedAll, true);
                 }
             );
 
@@ -1171,16 +1181,27 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes each POLYLINE joined into a LWPOLYLINE again in its own place at PLINETYPE 1 and 2, as AutoCAD 2021 leaves it;
-        /// at 0, and in a drawing of R12, it stays a POLYLINE.
+        /// at 0 it stays a POLYLINE where a source object took the others in, and becomes one all the same where objects picked
+        /// at once were joined (AutoCAD 2021's console: a POLYLINE and a line, two POLYLINEs, a POLYLINE, an arc and a line,
+        /// and two lines each gave a LWPOLYLINE at 0). In a drawing of R12 it stays a POLYLINE.
         /// </summary>
+        /// <param name="c">The context.</param>
+        /// <param name="s">The edit.</param>
+        /// <param name="space">The space the objects are in.</param>
+        /// <param name="joined">The handles of what was joined.</param>
+        /// <param name="atOnce">Whether the objects were picked at once, not joined into a source object.</param>
         private static void PolylinesLightweight(
             CadCommandContext c,
             CadEditScope s,
             CadSpace space,
-            HashSet<string> joined
+            HashSet<string> joined,
+            bool atOnce
         )
         {
-            if (c.Remembered("plinetype", 2.0) == 0.0 || string.CompareOrdinal(c.Database.Version, "AC1014") < 0)
+            if (
+                (!atOnce && c.Remembered("plinetype", 2.0) == 0.0)
+                || string.CompareOrdinal(c.Database.Version, "AC1014") < 0
+            )
             {
                 return;
             }

@@ -381,9 +381,15 @@ the ones wanted.
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
 - [x] PEDIT/REVCLOUD follow-ups 1 (fu-misc2): PEDIT Multiple with 3D polylines; JOIN with a POLYLINE as AutoCAD (and at
       PLINETYPE 0, inferred for multiple-object JOIN and BOUNDARY)
-- [ ] (pedit3, running) PEDIT/REVCLOUD follow-ups 2: REVCLOUD's first arc length from the view (console gives 0.5 at any view); the spline to
-      polyline precision rule (173/226/452/868/1693 vertices at precision 1/2/5/10/20 for one cubic; no formula fits);
-      JOIN multiple and BOUNDARY under PLINETYPE 0 checked in the GUI; REVCLOUDPROPERTIES and Modify (S)
+- [x] PEDIT/REVCLOUD follow-ups 2 (pedit3): REVCLOUD as the real 2021 command (prompts, rectangle order, messages,
+      RevcloudProps xdata, first arc length 0.05 x the view diagonal), Modify with Reverse direction, REVCLOUDPROPERTIES;
+      PEDIT of splines (precision prompt, the 10 000-vertex question; AutoCAD's counts exact for CV splines); JOIN of
+      objects picked at once gives an LWPOLYLINE under PLINETYPE 0. FOUND: accoreconsole fed by stdin runs commands a
+      .scr runs in their old form (runner in .claude/gk/acon-stdin)
+- [ ] PEDIT/REVCLOUD follow-ups 3: re-probe through stdin every item parked as "console has no command / runs the old
+      one" (REFEDIT, TABLEEXPORT, -BOUNDARY, ...); PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more);
+      REVCLOUD variance-1 sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc
+      length in layout viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)

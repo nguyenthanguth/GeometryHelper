@@ -66,8 +66,9 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly string[] PeditJoinTypes = { "Extend", "Add", "Both" };
 
         /// <summary>
-        /// PEDIT: a polyline picked is edited by the options until eXit or Enter, a line or an arc picked being made one first
-        /// ("Do you want to turn it into one? &lt;Y&gt;"); Multiple edits several at once, lines and arcs among them made polylines,
+        /// PEDIT: a polyline picked is edited by the options until eXit or Enter, a line, an arc or a spline picked being made
+        /// one first ("Do you want to turn it into one? &lt;Y&gt;", a spline then asking a precision); Multiple edits several at
+        /// once, lines, arcs and splines among them made polylines,
         /// and joins them within a fuzz distance. Fit and Spline make a LWPOLYLINE the POLYLINE AutoCAD makes of it, with the
         /// vertices of the curve flagged 1 or 8 and those of the frame 16; a POLYLINE left straight when one is edited alone is
         /// made a LWPOLYLINE again, as AutoCAD's PLINETYPE 2 makes it. Each run is one undo step; Undo takes back the last option.
@@ -106,6 +107,7 @@ namespace GeometryHelper.Dxf.Viewer
                         || entity is DxfPolyline3d
                         || entity is DxfLine
                         || entity is DxfArc
+                        || entity is DxfSpline
                     )
                 )
                 {
@@ -153,7 +155,20 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (yes.Value)
                 {
-                    handle = PeditMakePolylines(c, new[] { picked }).FirstOrDefault();
+                    // A spline is made a polyline of lines within a precision, which is asked for.
+                    var precision = new Ref<int> { Value = 10 };
+
+                    if (entity is DxfSpline spline)
+                    {
+                        foreach (
+                            CadPrompt prompt in PeditPrecision(c, new[] { spline }, "Specify a precision", precision)
+                        )
+                        {
+                            yield return prompt;
+                        }
+                    }
+
+                    handle = PeditMakePolylines(c, new[] { picked }, precision.Value).FirstOrDefault();
                 }
             }
 
@@ -285,12 +300,28 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                // Splines are left as they are: their conversion by a precision is not built.
                 if (yes.Value)
                 {
-                    handles.AddRange(
-                        PeditMakePolylines(c, others.Where(h => !(c.Document.FindEntity(h) is DxfSpline)).ToList())
-                    );
+                    // Splines among them are made polylines of lines within one precision, which is asked for.
+                    var precision = new Ref<int> { Value = 10 };
+                    List<DxfSpline> splines = others.Select(h => c.Document.FindEntity(h)).OfType<DxfSpline>().ToList();
+
+                    if (splines.Count > 0)
+                    {
+                        foreach (
+                            CadPrompt prompt in PeditPrecision(
+                                c,
+                                splines,
+                                "Specify a precision for spline conversion",
+                                precision
+                            )
+                        )
+                        {
+                            yield return prompt;
+                        }
+                    }
+
+                    handles.AddRange(PeditMakePolylines(c, others, precision.Value));
                 }
             }
 
@@ -490,13 +521,33 @@ namespace GeometryHelper.Dxf.Viewer
             : "Extend";
 
         /// <summary>
-        /// Makes lines and arcs polylines of one segment, each a new LWPOLYLINE of the look of the object it replaces, an arc's
-        /// running counter-clockwise from its start as AutoCAD's does; one lying out of the plane is left. Gives the new handles.
+        /// Makes lines, arcs and splines polylines, each a new LWPOLYLINE of the look of the object it replaces: of one segment for
+        /// a line, and for an arc one running counter-clockwise from its start as AutoCAD's does; of lines within a precision for
+        /// a spline, as <see cref="DxfSpline.PeditPolyline"/> makes it. One lying out of the plane is left. Gives the new handles.
         /// </summary>
-        private static List<string> PeditMakePolylines(CadCommandContext c, IReadOnlyList<string> handles)
+        private static List<string> PeditMakePolylines(
+            CadCommandContext c,
+            IReadOnlyList<string> handles,
+            int precision = 10
+        )
         {
             var made = new List<string>();
-            var flat = handles.Where(h => PolylineOf((DxfCurve)c.Document.FindEntity(h)) != null).ToList();
+            var flat = new List<string>();
+            var polylines = new Dictionary<string, DxfPolyline>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string handle in handles)
+            {
+                var curve = (DxfCurve)c.Document.FindEntity(handle);
+                DxfPolyline polyline = curve is DxfSpline spline
+                    ? spline.PeditPolyline(precision) as DxfPolyline
+                    : PolylineOf(curve);
+
+                if (polyline != null)
+                {
+                    flat.Add(handle);
+                    polylines[handle] = polyline;
+                }
+            }
 
             if (flat.Count == 0)
             {
@@ -508,7 +559,7 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (string handle in flat)
                 {
                     var curve = (DxfCurve)s.Document.FindEntity(handle);
-                    DxfPolyline polyline = PolylineOf(curve);
+                    DxfPolyline polyline = polylines[handle];
                     polyline.SetPropertiesFrom(curve);
                     CadSpace space = s.Document.FindSpace(handle);
                     curve.Erase();
@@ -518,6 +569,128 @@ namespace GeometryHelper.Dxf.Viewer
 
             return made;
         }
+
+        /// <summary>
+        /// Asks "Specify a precision &lt;10&gt;:" for the conversion of splines, 0 to 99, the last one used the default, as AutoCAD
+        /// 2021 asks it. Where a spline would give more than 10 000 vertices it says "Using a precision value greater than 81 may
+        /// cause performance problems.  Do you want to continue? [Yes/No]: &lt;N&gt;:", 81 the largest precision that gives no more;
+        /// No asks again with that one as the default.
+        /// </summary>
+        private static IEnumerable<CadPrompt> PeditPrecision(
+            CadCommandContext c,
+            IReadOnlyList<DxfSpline> splines,
+            string message,
+            Ref<int> chosen
+        )
+        {
+            int last = (int)c.Remembered("pedit.precision", 10.0);
+
+            while (true)
+            {
+                yield return CadPrompt.ForInteger(message, null, last.ToString(CultureInfo.InvariantCulture));
+                int precision = last;
+
+                if (c.Input.Kind == CadInputKind.Number)
+                {
+                    precision = (int)c.Input.Number;
+                }
+                else if (!c.Input.IsNone)
+                {
+                    c.Write("Requires an integer between 0 and 99.");
+                    continue;
+                }
+
+                if (precision < 0 || precision > 99)
+                {
+                    c.Write("Requires an integer between 0 and 99.");
+                    continue;
+                }
+
+                int limit = PeditPrecisionLimit(splines, precision);
+
+                if (limit < precision)
+                {
+                    var go = new Ref<bool> { Value = false };
+
+                    while (true)
+                    {
+                        yield return CadPrompt.ForKeywordOrText(
+                            "Using a precision value greater than "
+                                + limit.ToString(CultureInfo.InvariantCulture)
+                                + " may cause performance problems.  Do you want to continue? [Yes/No]:",
+                            Array.Empty<string>(),
+                            "N"
+                        );
+                        string typed = (c.Input.Text ?? string.Empty).Trim();
+
+                        if (
+                            c.Input.IsNone
+                            || (typed.Length > 0 && "NO".StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+                        )
+                        {
+                            break;
+                        }
+
+                        if (typed.Length > 0 && "YES".StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+                        {
+                            go.Value = true;
+                            break;
+                        }
+
+                        c.Write("Yes or No, please.");
+                    }
+
+                    if (!go.Value)
+                    {
+                        last = limit;
+                        continue;
+                    }
+                }
+
+                c.Remember("pedit.precision", precision);
+                chosen.Value = precision;
+                yield break;
+            }
+        }
+
+        /// <summary>The largest precision up to one that gives the splines no more than 10 000 vertices, as AutoCAD 2021 allows without asking.</summary>
+        private static int PeditPrecisionLimit(IReadOnlyList<DxfSpline> splines, int precision)
+        {
+            int limit = precision;
+
+            foreach (DxfSpline spline in splines)
+            {
+                if (PeditVertices(spline, limit) <= 10000)
+                {
+                    continue;
+                }
+
+                // The vertices only grow with the precision: the largest one that gives no more than 10 000, by halving.
+                int low = 0;
+                int high = limit - 1;
+
+                while (low < high)
+                {
+                    int middle = (low + high + 1) / 2;
+
+                    if (PeditVertices(spline, middle) <= 10000)
+                    {
+                        low = middle;
+                    }
+                    else
+                    {
+                        high = middle - 1;
+                    }
+                }
+
+                limit = low;
+            }
+
+            return limit;
+        }
+
+        private static int PeditVertices(DxfSpline spline, int precision) =>
+            spline.PeditPolyline(precision) is DxfPolyline polyline ? polyline.NumberOfVertices : 0;
 
         /// <summary>Makes one change to each of the polylines, one step of the run that Undo takes back.</summary>
         private static bool PeditEach(
