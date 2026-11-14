@@ -50,6 +50,139 @@
     <SolidColorBrush x:Key="GhCloseCross" Color="#F26B3A" />
     <SolidColorBrush x:Key="GhCloseCrossOnSelected" Color="#FF9A6E" />
 
+    <!-- The scroll bar: 12 wide and no arrows, a rounded thumb that is lighter under the mouse and the accent while dragged, on a
+         track left clear so that the box it scrolls shows through. It is the style of every ScrollBar where this dictionary is
+         merged (a list, a tree, a grid, a text box, a drop-down), so no list falls back to the pale bar of the system. -->
+    <SolidColorBrush x:Key="GhScrollThumb" Color="#4A5260" />
+    <SolidColorBrush x:Key="GhScrollThumbHover" Color="#5F6A7A" />
+
+    <Style x:Key="GhScrollPage" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhScrollThumbStyle" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Pill" Background="{StaticResource GhScrollThumb}" CornerRadius="3" Margin="2" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter
+                                TargetName="Pill"
+                                Property="Background"
+                                Value="{StaticResource GhScrollThumbHover}"
+                            />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource GhAccent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GhScrollBar" TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource GhScrollPage}" Command="ScrollBar.PageUpCommand" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton
+                                    Style="{StaticResource GhScrollPage}"
+                                    Command="ScrollBar.PageDownCommand"
+                                />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource GhScrollThumbStyle}" MinHeight="24" />
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Height" Value="12" />
+                <Setter Property="MinHeight" Value="12" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton
+                                            Style="{StaticResource GhScrollPage}"
+                                            Command="ScrollBar.PageLeftCommand"
+                                        />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton
+                                            Style="{StaticResource GhScrollPage}"
+                                            Command="ScrollBar.PageRightCommand"
+                                        />
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource GhScrollThumbStyle}" MinWidth="24" />
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style TargetType="ScrollBar" BasedOn="{StaticResource GhScrollBar}" />
+
+    <!-- A list as the system draws it, except that one switched off is dimmed: the system's template paints a disabled list
+         white, which is a white box in a dark dialog (the additional angles of Drafting Settings before they are ticked). A list
+         that sets a style of its own takes this one with BasedOn. -->
+    <Style x:Key="GhListBox" TargetType="ListBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Border
+                        x:Name="Bd"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        Padding="1"
+                        SnapsToDevicePixels="True"
+                    >
+                        <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </ScrollViewer>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ListBox" BasedOn="{StaticResource GhListBox}" />
+
     <!-- Type: Inter where it is installed, else Segoe UI (shipping Inter with the app is a later item, D11). -->
     <FontFamily x:Key="GhFont">Inter, Segoe UI</FontFamily>
     <FontFamily x:Key="GhMonoFont">JetBrains Mono, Cascadia Mono, Consolas</FontFamily>

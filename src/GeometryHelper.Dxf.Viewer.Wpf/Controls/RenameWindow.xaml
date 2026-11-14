@@ -17,7 +17,7 @@
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <Style x:Key="List" TargetType="ListBox">
+            <Style x:Key="List" TargetType="ListBox" BasedOn="{StaticResource GhListBox}">
                 <Setter Property="Background" Value="{StaticResource GhInput}" />
                 <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
                 <Setter Property="Foreground" Value="{StaticResource GhText}" />

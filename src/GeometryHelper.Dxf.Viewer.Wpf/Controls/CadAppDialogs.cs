@@ -12,7 +12,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Edit Tools, Plot Stamp and its pages, Image Adjust, Attribute Extraction, Xbind, Insert Object, the Drawing Recovery
     /// Manager, Check Spelling and its settings, Annotation Object Scale and Add Scales to Object, Insert Layout(s),
     /// Template Options, EXPORTPDF's three dialogs, Rename, Lineweight Settings, Boundary Creation, Viewports and Object
-    /// Selection Filters. Each is made as its command makes it, over the drawing open, with a sample state: the styles,
+    /// Selection Filters, then Find and Replace, Attach External Reference and New Layer State to Save. Each is made as its command makes it, over the drawing open, with a sample state: the styles,
     /// scales, references and filters a drawing of the kind would hold.
     /// </summary>
     internal static class CadAppDialogs
@@ -49,6 +49,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             "viewports",
             "viewports-named",
             "filter",
+            "find",
+            "attach",
+            "layerstate-new",
         };
 
         /// <summary>Gets whether a <c>--dialog</c> names one of these dialogs.</summary>
@@ -339,6 +342,72 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "viewports":
                 case "viewports-named":
                     (window, root) = Viewports(model, kind);
+                    break;
+                case "find":
+                    FindReplaceViewModel finding = null;
+                    model.ShowFindReplace = dialog => finding = dialog;
+                    model.Execute("FIND");
+                    model.ShowFindReplace = null;
+                    if (!Showed(finding, ref why))
+                    {
+                        break;
+                    }
+
+                    // The word looked for in the notes, so that the results list has its rows.
+                    finding.FindWhat = "plate";
+                    finding.FindNext();
+                    var findWindow = new FindReplaceWindow(finding);
+                    (window, root) = (findWindow, findWindow.Body);
+                    break;
+                case "attach":
+                    AttachReferenceViewModel attaching = null;
+                    model.ShowAttachReference = dialog =>
+                    {
+                        attaching = dialog;
+                        return false;
+                    };
+                    model.Execute("XATTACH");
+                    model.ShowAttachReference = null;
+                    if (!Showed(attaching, ref why))
+                    {
+                        break;
+                    }
+
+                    // The file the Windows dialog would have chosen: grid.dxf beside the drawing, else the drawing itself.
+                    string beside = Path.Combine(Path.GetDirectoryName(document.FileName) ?? string.Empty, "grid.dxf");
+                    attaching.FileName = File.Exists(beside) ? beside : document.FileName;
+                    var attachWindow = new AttachReferenceWindow(attaching);
+                    (window, root) = (attachWindow, attachWindow.Body);
+                    break;
+                case "layerstate-new":
+                    LayerStatesViewModel states = null;
+                    model.ShowLayerStates = dialog =>
+                    {
+                        states = dialog;
+                        return false;
+                    };
+                    model.Execute("LAYERSTATE");
+                    model.ShowLayerStates = null;
+                    if (!Showed(states, ref why))
+                    {
+                        break;
+                    }
+
+                    NewLayerStateViewModel naming = null;
+                    states.AskNewState = dialog =>
+                    {
+                        naming = dialog;
+                        dialog.Description = "Layers on for the plot of the ground floor";
+                        return false;
+                    };
+                    states.New();
+                    if (!Showed(naming, ref why))
+                    {
+                        break;
+                    }
+
+                    var newStateWindow = new NewLayerStateWindow(naming);
+                    (window, root) = (newStateWindow, newStateWindow.Body);
                     break;
                 default:
                     // A layer and a kind of object in the list, and the Layer line being made for the next one.

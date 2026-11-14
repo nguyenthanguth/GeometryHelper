@@ -936,7 +936,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 root = (FrameworkElement)window.Content;
             }
 
-            window.Content = null;
+            TakeOut(window, root);
             object context =
                 layers ? (object)((LayerManagerWindow)window).Model
                 : dialogName != null ? window.DataContext
@@ -1894,6 +1894,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             root.Measure(new Size(width, double.PositiveInfinity));
             Dispatcher.CurrentDispatcher.Invoke(new Action(() => { }), DispatcherPriority.Background);
             return MeasuredHeight(root, width);
+        }
+
+        /// <summary>
+        /// Takes the content out of the window it was made in, to be laid out and drawn alone, and gives it the window's resources:
+        /// the styles a window sets for a kind of control (the dark scroll bar of the theme, a row's look) reach nothing of a
+        /// content that has no window above it, so a picture drawn from it showed the controls of the system in their place.
+        /// </summary>
+        /// <param name="window">The window.</param>
+        /// <param name="root">Its content.</param>
+        internal static void TakeOut(Window window, FrameworkElement root)
+        {
+            window.Content = null;
+            root.Resources.MergedDictionaries.Add(window.Resources);
         }
 
         /// <summary>The height a dialog sized to its content takes at a width.</summary>

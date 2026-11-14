@@ -6,7 +6,9 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -169,7 +171,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(model.Open(Sample(folder)), name);
             Assert.True(CadAppDialogs.Knows(name), name);
             Assert.True(CadAppDialogs.TryCreate(model, name, ref run, out window, out FrameworkElement root), name);
-            window.Content = null;
+            return LaidOut(window, root, out needed);
+        }
+
+        /// <summary>Takes the content of a dialog's window out as the screenshot mode does, and lays it out at the window's size.</summary>
+        private static FrameworkElement LaidOut(Window window, FrameworkElement root, out double needed)
+        {
+            CadAppHost.TakeOut(window, root);
             root.DataContext = window.DataContext;
 
             // What the content needs of a window as wide as this one, with all the height it asks for.
@@ -231,39 +239,275 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     foreach (string name in CadAppDialogs.Names)
                     {
                         FrameworkElement root = Made(folder, name, RunFor(name, folder), out Window window, out _);
+                        empty.AddRange(Emptied(name, root));
+                        empty.AddRange(WhiteLists(name, root));
+                        window.Close();
+                    }
+                });
 
-                        foreach (DependencyObject child in Descendants(root))
+                Assert.Empty(empty);
+            }
+        }
+
+        /// <summary>What a laid out dialog shows empty: a check box with no words, an editable box with no place to type, an icon cut.</summary>
+        private static List<string> Emptied(string name, FrameworkElement root)
+        {
+            var empty = new List<string>();
+
+            foreach (DependencyObject child in Descendants(root))
+            {
+                if (child is CheckBox box && box.Content != null && box.ActualWidth > 0)
+                {
+                    ContentPresenter words = Descendants(box).OfType<ContentPresenter>().FirstOrDefault();
+
+                    if (words == null || words.ActualWidth < 2)
+                    {
+                        empty.Add(name + ": the check box " + box.Content + " shows no words");
+                    }
+                }
+                else if (child is ComboBox combo && combo.IsEditable && combo.ActualWidth > 0)
+                {
+                    var typed = combo.Template.FindName("PART_EditableTextBox", combo) as TextBox;
+
+                    if (typed == null || typed.Visibility != Visibility.Visible)
+                    {
+                        empty.Add(name + ": the editable box " + combo.Text + " has no place to type in");
+                    }
+                    else if (typed.Text != combo.Text)
+                    {
+                        empty.Add(name + ": the editable box shows " + typed.Text + " for " + combo.Text);
+                    }
+                }
+                else if (child is IconView icon && icon.ActualWidth > 0 && icon.ActualWidth < icon.Size - 0.5)
+                {
+                    empty.Add(name + ": an icon " + icon.Size + " wide is given " + icon.ActualWidth);
+                }
+            }
+
+            return empty;
+        }
+
+        /// <summary>
+        /// The lists of a laid out dialog that are drawn white at their middle: a disabled list of the system is white, so a
+        /// list that is off in a dark dialog shows as a white box.
+        /// </summary>
+        private static List<string> WhiteLists(string name, FrameworkElement root)
+        {
+            var white = new List<string>();
+            List<ListBox> lists = Descendants(root)
+                .OfType<ListBox>()
+                .Where(l => l.ActualWidth > 8 && l.ActualHeight > 8)
+                .ToList();
+
+            if (lists.Count == 0)
+            {
+                return white;
+            }
+
+            int width = (int)Math.Ceiling(root.ActualWidth);
+            int height = (int)Math.Ceiling(root.ActualHeight);
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(root);
+
+            foreach (ListBox list in lists)
+            {
+                Rect box = list.TransformToAncestor(root)
+                    .TransformBounds(new Rect(0, 0, list.ActualWidth, list.ActualHeight));
+                var pixel = new byte[4];
+                bitmap.CopyPixels(
+                    new Int32Rect((int)(box.Left + box.Width / 2), (int)(box.Top + box.Height / 2), 1, 1),
+                    pixel,
+                    4,
+                    0
+                );
+
+                if (Math.Min(pixel[0], Math.Min(pixel[1], pixel[2])) > 200)
+                {
+                    white.Add(
+                        name
+                            + ": the list "
+                            + System.Windows.Automation.AutomationProperties.GetName(list)
+                            + " is white"
+                    );
+                }
+            }
+
+            return white;
+        }
+
+        /// <summary>
+        /// What a laid out dialog draws with the pale scroll bar of the system: the pixels of each scroll bar showing that are
+        /// nearly white, which the dark bar of the theme has none of.
+        /// </summary>
+        private static List<string> PaleScrollBars(string name, FrameworkElement root, ref int seen)
+        {
+            var pale = new List<string>();
+            List<ScrollBar> bars = Descendants(root)
+                .OfType<ScrollBar>()
+                .Where(b => b.ActualWidth > 0 && b.ActualHeight > 0)
+                .ToList();
+
+            if (bars.Count == 0)
+            {
+                return pale;
+            }
+
+            int width = (int)Math.Ceiling(root.ActualWidth);
+            int height = (int)Math.Ceiling(root.ActualHeight);
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(root);
+            var pixels = new byte[width * height * 4];
+            bitmap.CopyPixels(pixels, width * 4, 0);
+
+            foreach (ScrollBar bar in bars)
+            {
+                seen++;
+                Rect box = bar.TransformToAncestor(root)
+                    .TransformBounds(new Rect(0, 0, bar.ActualWidth, bar.ActualHeight));
+                int count = 0;
+
+                for (int y = (int)box.Top; y < Math.Min(height, (int)Math.Ceiling(box.Bottom)); y++)
+                {
+                    for (int x = (int)box.Left; x < Math.Min(width, (int)Math.Ceiling(box.Right)); x++)
+                    {
+                        int i = (y * width + x) * 4;
+
+                        if (Math.Min(pixels[i], Math.Min(pixels[i + 1], pixels[i + 2])) > 200)
                         {
-                            if (child is CheckBox box && box.Content != null && box.ActualWidth > 0)
-                            {
-                                ContentPresenter words = Descendants(box).OfType<ContentPresenter>().FirstOrDefault();
+                            count++;
+                        }
+                    }
+                }
 
-                                if (words == null || words.ActualWidth < 2)
-                                {
-                                    empty.Add(name + ": the check box " + box.Content + " shows no words");
-                                }
-                            }
-                            else if (child is ComboBox combo && combo.IsEditable && combo.ActualWidth > 0)
-                            {
-                                var typed = combo.Template.FindName("PART_EditableTextBox", combo) as TextBox;
+                if (count > 0)
+                {
+                    pale.Add(
+                        name
+                            + ": a scroll bar "
+                            + (int)box.Width
+                            + " by "
+                            + (int)box.Height
+                            + " has "
+                            + count
+                            + " pale pixels"
+                    );
+                }
+            }
 
-                                if (typed == null || typed.Visibility != Visibility.Visible)
-                                {
-                                    empty.Add(name + ": the editable box " + combo.Text + " has no place to type in");
-                                }
-                                else if (typed.Text != combo.Text)
-                                {
-                                    empty.Add(name + ": the editable box shows " + typed.Text + " for " + combo.Text);
-                                }
-                            }
-                            else if (
-                                child is IconView icon
-                                && icon.ActualWidth > 0
-                                && icon.ActualWidth < icon.Size - 0.5
-                            )
-                            {
-                                empty.Add(name + ": an icon " + icon.Size + " wide is given " + icon.ActualWidth);
-                            }
+            return pale;
+        }
+
+        [Fact]
+        public void TheListsOfTheDialogs_ScrollWithTheDarkBarOfTheTheme_NotThePaleOneOfTheSystem()
+        {
+            using (var folder = new TestFolder())
+            {
+                var pale = new List<string>();
+                var withBars = new List<string>();
+                OnSta(() =>
+                {
+                    foreach (string name in CadAppDialogs.Names)
+                    {
+                        FrameworkElement root = Made(folder, name, RunFor(name, folder), out Window window, out _);
+                        int seen = 0;
+                        pale.AddRange(PaleScrollBars(name, root, ref seen));
+
+                        if (seen > 0)
+                        {
+                            withBars.Add(name);
+                        }
+
+                        window.Close();
+                    }
+                });
+
+                // Rename's list of kinds and Lineweight Settings' list of weights are longer than their boxes.
+                Assert.Contains("rename", withBars);
+                Assert.Contains("lweight", withBars);
+                Assert.Empty(pale);
+            }
+        }
+
+        [Fact]
+        public void TheOldDialogs_FindAttachAndNewLayerState_AreMadeWithTheirRowsFilled()
+        {
+            using (var folder = new TestFolder())
+            {
+                OnSta(() =>
+                {
+                    FrameworkElement findRoot = Made(folder, "find", null, out Window findWindow, out _);
+                    var finding = (FindReplaceViewModel)findWindow.DataContext;
+                    Assert.Equal("plate", finding.FindWhat);
+                    Assert.Single(finding.Results);
+
+                    // The results list is on the dark of the theme, its header and its row picked, not the white of the system.
+                    ListView results = Descendants(findRoot).OfType<ListView>().First();
+                    Rect over = results.TransformToAncestor(findRoot).TransformBounds(new Rect(0, 0, 4, 4));
+                    var bitmap = new RenderTargetBitmap(
+                        (int)findRoot.ActualWidth,
+                        (int)findRoot.ActualHeight,
+                        96,
+                        96,
+                        PixelFormats.Pbgra32
+                    );
+                    bitmap.Render(findRoot);
+                    var header = new byte[4];
+                    bitmap.CopyPixels(new Int32Rect((int)over.Left + 1, (int)over.Top + 1, 1, 1), header, 4, 0);
+                    Assert.True(
+                        header[0] < 100 && header[1] < 100 && header[2] < 100,
+                        "The header of the results is " + header[2] + "," + header[1] + "," + header[0] + "."
+                    );
+                    var row = new byte[4];
+                    bitmap.CopyPixels(new Int32Rect((int)over.Left + 1, (int)over.Top + 30, 1, 1), row, 4, 0);
+                    Assert.True(
+                        row[0] < 160 && row[1] < 160 && row[2] < 160,
+                        "The row picked is " + row[2] + "," + row[1] + "," + row[0] + "."
+                    );
+
+                    Made(folder, "attach", null, out Window attachWindow, out _);
+                    var attaching = (AttachReferenceViewModel)attachWindow.DataContext;
+                    Assert.Equal("grid", attaching.Name);
+                    Assert.True(attaching.CanOk);
+
+                    FrameworkElement stateRoot = Made(folder, "layerstate-new", null, out Window stateWindow, out _);
+                    var naming = (NewLayerStateViewModel)stateWindow.DataContext;
+                    Assert.Equal("Layer state 1", naming.Name);
+                    Assert.NotEmpty(naming.Description);
+
+                    // The description has the room left under its label, not the one line of its words.
+                    TextBox description = Descendants(stateRoot)
+                        .OfType<TextBox>()
+                        .First(t => System.Windows.Automation.AutomationProperties.GetName(t) == "Description");
+                    Assert.True(
+                        description.ActualHeight > 60,
+                        "The description is " + description.ActualHeight + " high."
+                    );
+                });
+            }
+        }
+
+        [Fact]
+        public void DraftingSettings_OnEachOfItsTabs_ShowsTheWordsOfItsCheckBoxes_ItsEditableBoxesAndItsIcons()
+        {
+            using (var folder = new TestFolder())
+            {
+                var empty = new List<string>();
+                var clipped = new List<string>();
+                OnSta(() =>
+                {
+                    var model = new MainViewModel();
+                    Assert.True(model.Open(Sample(folder)));
+
+                    foreach (string tab in model.CreateDraftingSettings().Tabs)
+                    {
+                        var window = new DraftingSettingsWindow(model.CreateDraftingSettings(tab));
+                        FrameworkElement root = LaidOut(window, window.Body, out double needed);
+                        empty.AddRange(Emptied("dsettings:" + tab, root));
+                        empty.AddRange(WhiteLists("dsettings:" + tab, root));
+
+                        if (needed > window.Height + 0.5)
+                        {
+                            clipped.Add(tab + " needs " + Math.Ceiling(needed) + " of " + window.Height);
                         }
 
                         window.Close();
@@ -271,6 +515,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 });
 
                 Assert.Empty(empty);
+                Assert.Empty(clipped);
+            }
+        }
+
+        [Fact]
+        public void NamedViewports_RenameBox_ShowsASixteenCharacterNameInFull()
+        {
+            using (var folder = new TestFolder())
+            {
+                double extent = 0;
+                double room = 0;
+                string text = null;
+                OnSta(() =>
+                {
+                    FrameworkElement root = Made(folder, "viewports-named", null, out Window window, out _);
+                    TextBox box = Descendants(root)
+                        .OfType<TextBox>()
+                        .First(t =>
+                            System.Windows.Automation.AutomationProperties.GetName(t) == "Name" && t.ActualWidth > 0
+                        );
+                    text = box.Text;
+                    var host = (ScrollViewer)box.Template.FindName("PART_ContentHost", box);
+                    extent = host.ExtentWidth;
+                    room = host.ViewportWidth;
+                    window.Close();
+                });
+
+                Assert.Equal("Plan and section", text);
+                Assert.True(extent <= room + 0.5, "The name is " + extent + " wide in a box with " + room + ".");
             }
         }
 
