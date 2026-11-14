@@ -131,9 +131,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 2 (mline3): OT, MT and CT on a self-intersecting tee as AutoCAD (message, partial edit); trims
         across a corner cut each element at its own hit (open MLINEs); WA deletes cut entries between the picks as
         AutoCAD (inside-out partial welds matched); closed MLINE grips; start trims keep the last vertex tail
-  - [ ] (mline4, running) MLINE follow-ups 3: MoveVertexAt on cut MLINEs (9 probes M0-M3, N1-N5 in agent notes: raw turned tails, a 0 put
-        in front after a moved vertex); cross-segment trims on a closed MLINE; CC, OC, MC near corners and CJ near the
-        open end (self-intersecting refusals?)
+  - [x] MLINE follow-ups 3 (mline4): cross-segment trims on a closed MLINE (1091 of 1111 probes equal, 20 float ties);
+        CC/OC/MC run on only past open ends and refuse self-intersecting cases whole; MoveVertexAt on cut open MLINEs as
+        AutoCAD (224 probed moves)
+  - [ ] MLINE follow-ups 4: AutoCAD's inverted record where a cut starts exactly at a later segment's start (CA/CS,
+        crosses at y=20, {20}{20} at y=120); CJ refusals past a vertex (L vs U differ); the "L second" cross split (x<=35
+        vs >=40, data in .claude/gk/mline4-notes); closed-trim end stop ties on non-right corners; MoveVertexAt on closed cut
+        MLINEs (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary

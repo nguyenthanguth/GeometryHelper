@@ -201,7 +201,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (option == "CC" || option == "OC" || option == "MC")
             {
-                ok = CadMlineEdit.Cross(a, segmentA, b, segmentB, joint);
+                ok = CadMlineEdit.Cross(a, segmentA, b, segmentB, joint, out selfIntersecting);
                 changesSecond = joint != CadMlineEdit.Joint.Closed;
             }
             else if (option == "CJ")
@@ -217,6 +217,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (!ok)
             {
                 return false;
+            }
+
+            if (selfIntersecting && option != "CT" && option != "OT" && option != "MT")
+            {
+                // AutoCAD 2021 refuses a cross whose break runs past a corner and changes neither multiline.
+                c.Write("Invalid operation on a self intersecting multiline.");
+                return true;
             }
 
             var after = new List<KeyValuePair<string, DxfMlineBuilder>>

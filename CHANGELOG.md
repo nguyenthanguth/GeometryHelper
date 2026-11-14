@@ -45,6 +45,22 @@ among the pieces near it, not by a pass over all of them that built an arc for e
 3 000 by 3 000 with a gap of 5 took 145 ms to find the area round a point (37 ms with no gap) and took 70 ms with the change (100 ms once the wider reach of the entries above is in); 2 000 lines over 1 500 by 1 500 took 21 ms and
 took 13.5 ms with it (16 ms with the wider reach) (.NET Framework 4.8, best of 5-7). The loops of the six inputs timed, every cycle, vertex, bulge and
 source, are the same bit for bit before and after this change taken alone (.NET Framework 4.8 and .NET 10); the arcs of the previous entry change those of the two inputs that hold arcs.
+**CHANGED.** TRIM of a closed multiline takes each element between its own two cuts where an edge meets the elements on different
+segments near a corner, as AutoCAD 2021 does (1 111 cases probed, 1 091 equal, the 20 left are float-noise ties of the end stop on
+corners that are not right angles): the element nearest the pick says which two cuts the pick lies between, and the piece goes round the
+first vertex where the end lies before the start. The square of 100 cut by the edge (120, -30)-(95, 20) and the line x = 50, picked at
+(75, 0), leaves the top element from (100, 10) round to (50, 0) and the bottom one from (115, -20) round to (50, -20); a piece that goes
+round the first vertex and ends on its first or second segment leaves an element that reaches the new end without a stop.
+**CHANGED.** MLEDIT's crosses CC, OC and MC run a segment on past the start of an open multiline's first segment and the end of its last,
+and say `Invalid operation on a self intersecting multiline.` changing neither multiline where an element would be broken past the end of
+an element another segment goes on from (the L (0, 0)-(100, 0)-(100, 100) at scale 20 crossed by a vertical at x = 85, 95 or 100, or by a
+horizontal at y = 5, 10 or 15 across its second segment), as AutoCAD 2021 does. A cut that reaches the end of an element leaves no
+stretch after it and, on the last segment, nothing past the last vertex.
+**CHANGED.** A grip or STRETCH that moves a vertex of a multiline cut across a vertex reads the cut as AutoCAD 2021 does: a segment whose
+list is empty or starts after nought goes on from the segment before, so that where the move makes that one whole the list gains a nought
+in front (the L of 100 by 100 cut from (50, 0) to (100, 50), its vertex (100, 0) moved to (100, -10), holds 0 and 60 there), shifted by the
+way the vertex moved, with nothing left past the last vertex; a segment that turns keeps such a list as it was, no stretch goes below
+nought, and a stretch that moves to nought is kept as nought (cut 10 to 50, the start moved 10 on: 0, 0, 40). 224 moves probed, all equal.
 **NEW.** CAL's `getvar`, `w2u`, `u2w`, `rot`, `xof`, `yof`, `zof`, `xyof`, `rxof`, `ryof` and `rzof` in the presenter, with the values and
 the words of AutoCAD 2021's accoreconsole: `getvar(textsize)` reads a system variable of the drawing (an angle in radians,
 `getvar(snapang)` 0.523598776 for 30 degrees; a switch 0 or 1; a point as `x,y,z`), `getvar(nosuchvar)` says `Unknown AutoCAD
