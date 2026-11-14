@@ -9,8 +9,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     /// <summary>
     /// JOIN and BOUNDARY under PLINETYPE. AutoCAD 2021's console (13 November) joined a line into the POLYLINE PLINE drew at
-    /// PLINETYPE 0 and left it a POLYLINE at 0, made it a LWPOLYLINE at 1 and 2; a LWPOLYLINE stayed one at 0. Its console runs
-    /// neither the multiple-object JOIN nor BOUNDARY, so what they make at 0 follows what PLINE, POLYGON and PEDIT make.
+    /// PLINETYPE 0 and left it a POLYLINE at 0, made it a LWPOLYLINE at 1 and 2; a LWPOLYLINE stayed one at 0. Run interactively
+    /// (14 November) it joined objects picked at once into a LWPOLYLINE at every PLINETYPE. Its console stops -BOUNDARY with no
+    /// word, so what BOUNDARY makes at 0 follows what PLINE, POLYGON and PEDIT make.
     /// </summary>
     public class PlineTypeJoinBoundaryTests
     {
@@ -81,9 +82,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
         [Theory]
         [InlineData(0)]
+        [InlineData(1)]
         [InlineData(2)]
-        public void JoinAtOnceOfTwoLines_MakesAPolylineOfTheKindPlineTypeAsks(int plineType)
+        public void JoinAtOnceOfTwoLines_MakesALwpolyline_AtEveryPlineType_AsAutoCad2021(int plineType)
         {
+            // AutoCAD 2021's console, run interactively (14 November): 4 lines, a line and an arc, and 2 lines joined at once at
+            // PLINETYPE 0 each gave a LWPOLYLINE, "4 objects converted to 1 polyline".
             CadDocument document = Blank();
             CadCommandSession session = Session(document);
             DxfLine first = new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0));
@@ -94,8 +98,23 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "PLINETYPE", plineType.ToString(), "JOIN", new[] { first.Handle, second.Handle }, Enter);
 
             Assert.Contains("2 objects converted to 1 polyline", session.History);
-            Assert.Equal(plineType == 0 ? 1 : 0, All<DxfPolyline2d>(document.ModelSpace).Count);
-            Assert.Equal(plineType == 0 ? 0 : 1, All<DxfPolyline>(document.ModelSpace).Count);
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+            Assert.Equal(3, Assert.Single(All<DxfPolyline>(document.ModelSpace)).NumberOfVertices);
+        }
+
+        [Fact]
+        public void JoinAtOnceOfAPolylineMadeAtNoughtAndALine_MakesALwpolyline_AsAutoCad2021()
+        {
+            // AutoCAD 2021's console at PLINETYPE 0: a POLYLINE and a line, two POLYLINEs, and a POLYLINE, an arc and a line
+            // picked at once each gave a LWPOLYLINE, "2 objects converted to 1 polyline".
+            CadDocument document = Drawn(0, out CadCommandSession session, out string line);
+            DxfPolyline2d heavy = Assert.Single(All<DxfPolyline2d>(document.ModelSpace));
+
+            Run(session, "JOIN", new[] { heavy.Handle, line }, Enter);
+
+            Assert.Contains("2 objects converted to 1 polyline", session.History);
+            Assert.Empty(All<DxfPolyline2d>(document.ModelSpace));
+            Assert.Equal(4, Assert.Single(All<DxfPolyline>(document.ModelSpace)).NumberOfVertices);
         }
 
         [Theory]

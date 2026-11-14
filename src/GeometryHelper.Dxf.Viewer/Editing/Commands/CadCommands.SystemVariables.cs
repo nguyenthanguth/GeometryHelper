@@ -383,13 +383,12 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
             registry.AddVariable(
-                CadSystemVariable.Whole(
+                CadSystemVariable.Switch(
                     "REVCLOUDARCVARIANCE",
                     false,
-                    0,
-                    1,
-                    s => (int)Kept(s, "revcloud.variance", 1.0),
-                    (c, v) => c.Remember("revcloud.variance", v)
+                    s => Kept(s, "revcloud.variance", 1.0) != 0.0,
+                    (c, v) => c.Remember("revcloud.variance", v ? 1.0 : 0.0),
+                    null
                 )
             );
             registry.AddVariable(

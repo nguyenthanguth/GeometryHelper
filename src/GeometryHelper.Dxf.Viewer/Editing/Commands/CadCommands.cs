@@ -147,6 +147,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("LENGTHEN", Lengthen));
             registry.Add(new CadCommand("PEDIT", Pedit));
             registry.Add(new CadCommand("REVCLOUD", RevCloud));
+            registry.Add(new CadCommand("REVCLOUDPROPERTIES", RevCloudProperties));
             AddBlocksTo(registry);
             AddBlockEditorTo(registry);
             AddRefEditTo(registry);
