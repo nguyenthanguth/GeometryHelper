@@ -974,7 +974,22 @@ words against the arc, the rays or the arrowheads follows both edges (an ellipse
 of 11 400 probes, a box 590). The band jumps where the point crosses the height of the arc's middle (15 for an arc of 30 at 30
 degrees: probed every 0.1 either side of it, the leader came and went at exactly 15), and between the height of the vertex and that
 height it narrows as the point rises: out by 0.18 landings, in on the left of the vertex by 0.23 and on the right wider by 0.18. Not
-followed: words straight above or below the vertex get a landing under them.
+followed: words straight above or below the vertex get a landing under them. The fit is of DIMEXE 1.25 and DIMSCALE 1, and the
+band follows both: its lengths grow with DIMSCALE, and each unit of DIMEXE past 1.25 (times the scale) moves both edges by 1.0 level
+with the vertex, 1.3 at 45 degrees from it and 1.7 straight above it (a little less on the left of the vertex): DIMEXE 2.5 puts the
+edges of "60°" 7.75 out and 7.75 in level with the vertex, 6.0 out and 5.0 in at 85 degrees, where 1.25 gives 6.5, 4.0 and 3.0 (6 984
+probes of Arial at the arc of 30: 80 differing of 582 with DIMEXE 2.5 before, 6 now; DIMSCALE 2 69 to 25 and 0.5 37 to 7). Words exactly above or below the vertex have their band from the room of the words and a gap (0.48 a unit), of
+DIMASZ and DIMEXE together (1.13 a unit) and of their height (0.09), in place of one landing: DIMASZ 4 puts its outer edge 7.75
+out (6.0 with 2.5), DIMEXE 2.5 7.5 (88 of 1 552 probes differing before, 30 now). What the rule is, found on arcs of 240 out
+where the curve is nearly straight: the words stay on the arc where some point of the circle has the sum of its distances to two
+opposite corners of the box of the words and their landing (half the words, a gap and an arrowhead each side of the point, half
+their height up and down; the diagonal that rises to the right where the point lies right of and above the arc's middle, or left
+of and below it, else the one that falls) no more than twice that half width and DIMEXE. It reads arcs of 8 landings out or more (48
+for "60°" of 2.5-high Arial with a gap of 0.625 and arrowheads of 2.5): 175 of 6 984 probes differing at an arc of 60 out by the
+fit and 103 by the rule, 212 and 76 at 90, 264 and 30 at 240 (Arial: 272 and 20), the band along an arc of 240 at heights from -60
+to 180 3 492 probes and none wrong; over the eight styles at 240 out 142 of 24 056. On the nearer arcs the rule is up to 1.5 off
+on the side of the arc away from the middle, as much as 1 over the arc's radius times the landing squared (45 out: 121 by the fit
+and 138 by the rule; 30: 65 of 5 832 and 234), so those keep the fit, as do the words of an arc length dimension.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,

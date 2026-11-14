@@ -1002,9 +1002,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The outer edge of the leader band of an angle's words, off the arc, for a point in the direction whose cosine from the
         /// vertex's level is <paramref name="leans"/> and a landing <paramref name="landing"/> long, both tables read between
-        /// their knots.
+        /// their knots; the table's lengths are those of DIMSCALE 1, <paramref name="unit"/> times them at another.
         /// </summary>
-        private static double BandOuterEdge(double leans, double landing)
+        private static double BandOuterEdge(double leans, double landing, double unit)
         {
             int i = 1;
 
@@ -1019,7 +1019,128 @@ namespace GeometryHelper.Dxf.Viewer
             );
             double length = BandOuterLengths[i - 1] + (BandOuterLengths[i] - BandOuterLengths[i - 1]) * t;
             double landings = BandOuterLandings[i - 1] + (BandOuterLandings[i] - BandOuterLandings[i - 1]) * t;
-            return length + landing * landings;
+            return length * unit + landing * landings;
+        }
+
+        // How far the band's edges move for each unit of DIMEXE past the 1.25 the band was fitted with, by the cosine of the direction
+        // from the vertex's level: 1.0 beside the vertex, 1.7 above it, and less on the left of the vertex in between (probed with
+        // DIMEXE 1.25 and 2.5, at 240 and 30 out: the edges moved 1.25 beside the vertex and 2.0 above it for the 1.25 more).
+        private static readonly double[] ExeCosines = { 0.0, 0.174, 0.342, 0.5, 0.643, 0.766, 0.94, 1.0 };
+        private static readonly double[] ExeReachRight = { 1.70, 1.692, 1.648, 1.566, 1.424, 1.255, 1.134, 1.0 };
+        private static readonly double[] ExeReachLeft = { 1.65, 1.594, 1.429, 1.295, 1.149, 1.098, 1.134, 1.0 };
+
+        // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit.
+        private const double BigArc = 8.0;
+
+        /// <summary>
+        /// Whether the words of an angle put at <paramref name="at"/> get no leader on a large arc: AutoCAD 2021 keeps them on it
+        /// where some point of the circle (<paramref name="radius"/> about <paramref name="vertex"/>) has the sum of its distances to
+        /// two opposite corners of the box the words and their landing take no more than twice that box's half width
+        /// <paramref name="room"/> (half the words, a gap and an arrowhead) and DIMEXE (<paramref name="beyond"/>). The box is
+        /// <paramref name="room"/> either side of the point and half <paramref name="height"/> up and down, and the diagonal runs
+        /// up to the right where the point lies right of and above the arc's middle (<paramref name="middle"/>), or left of and
+        /// below it, else down to the right.
+        /// </summary>
+        /// <remarks>
+        /// Probed with "60°" put every 0.25 round an angle of 60 degrees at 240 out (24 056 probes of eight styles): 142 wrong,
+        /// where the fit of the nearer arcs was 3.8 per cent off.
+        /// </remarks>
+        private static bool WordsStayOnTheArc(
+            GeoPoint2 vertex,
+            double radius,
+            GeoPoint2 middle,
+            GeoPoint2 at,
+            double room,
+            double height,
+            double beyond
+        )
+        {
+            double lift = ((at.X > middle.X) == (at.Y > middle.Y) ? 1.0 : -1.0) * height / 2.0;
+            double Sum(double angle)
+            {
+                double x = vertex.X + radius * Math.Cos(angle);
+                double y = vertex.Y + radius * Math.Sin(angle);
+                double a = x - (at.X - room);
+                double b = y - (at.Y - lift);
+                double c = x - (at.X + room);
+                double d = y - (at.Y + lift);
+                return Math.Sqrt(a * a + b * b) + Math.Sqrt(c * c + d * d);
+            }
+
+            // Only the circle within twice the ellipse's half length and the height of the point can reach it: sampled there.
+            const int Samples = 800;
+            double foot = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X);
+            double reach = Math.Min(Math.PI, 1.2 * (2.0 * (room + beyond) + height) / radius);
+            double step = 2.0 * reach / Samples;
+            double best = double.MaxValue;
+            double at0 = foot;
+
+            for (int i = 0; i <= Samples; i++)
+            {
+                double angle = foot - reach + i * step;
+                double s = Sum(angle);
+
+                if (s < best)
+                {
+                    best = s;
+                    at0 = angle;
+                }
+            }
+
+            double low = at0 - step;
+            double high = at0 + step;
+
+            for (int i = 0; i < 40; i++)
+            {
+                double one = low + (high - low) / 3.0;
+                double two = high - (high - low) / 3.0;
+
+                if (Sum(one) < Sum(two))
+                {
+                    high = two;
+                }
+                else
+                {
+                    low = one;
+                }
+            }
+
+            return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) + 1E-9;
+        }
+
+        /// <summary>
+        /// The edge of the leader band for words exactly above or below the vertex: <paramref name="reference"/> for the words
+        /// "60°" (5.42 wide, 2.5 high) with DIMGAP 0.625, DIMASZ 2.5 and DIMEXE 1.25 at DIMSCALE 1, and from it
+        /// <paramref name="halfWords"/> a unit of the words' half width and a gap, 1.13 a unit of DIMASZ and DIMEXE together, and
+        /// 0.09 a unit of their height (probed over eight styles, arcs of 240 out: the edges ran within 0.15 of that line).
+        /// </summary>
+        private static double StraightEdge(
+            double reference,
+            double halfWords,
+            double scale,
+            double width,
+            double gap,
+            double arrow,
+            double beyond,
+            double height
+        ) =>
+            reference * scale
+            + halfWords * (width / 2.0 + gap - 3.3333 * scale)
+            + 1.13 * (arrow + beyond - 3.75 * scale)
+            + 0.09 * (height - 2.5 * scale);
+
+        private static double ExeReach(double leans, bool left)
+        {
+            double[] reach = left ? ExeReachLeft : ExeReachRight;
+            int i = 1;
+
+            while (i < ExeCosines.Length - 1 && leans > ExeCosines[i])
+            {
+                i++;
+            }
+
+            double t = Math.Min(Math.Max((leans - ExeCosines[i - 1]) / (ExeCosines[i] - ExeCosines[i - 1]), 0.0), 1.0);
+            return reach[i - 1] + (reach[i] - reach[i - 1]) * t;
         }
 
         /// <summary>
@@ -1363,11 +1484,13 @@ namespace GeometryHelper.Dxf.Viewer
                     // band narrows as the point rises: outside by 0.18 landings, inside on the left of the vertex by 0.23 and on
                     // the right wider by 0.18. Refitted over 30 000 probes; it is a fit, not a rule (no box of the words against
                     // the arc, rays or arrowheads followed both edges): a5 49 differing of 2 938 to 33, a7 101 of 5 832 to 71, and
-                    // the styles above by a quarter.
+                    // the styles above by a quarter. Probed at arcs of 240 out, where the circle is nearly straight, the rule
+                    // is the sum of a circle point's distances to two opposite corners of the words' box grown by the landing
+                    // staying within twice that half width and DIMEXE (WordsStayOnTheArc, read from 8 landings out); nearer it
+                    // differs by up to 1.5 on the side away from the arc's middle, so those arcs keep the fit.
                     double distance = (at - vertex).Length;
                     double offArc = distance - radius;
                     double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
-                    double basicOff = 1.405 + 0.137 * height;
                     double landingLen = width / 2.0 + gap + arrow;
                     double middleRise = start.Y - vertex.Y;
                     double rise = at.Y - vertex.Y;
@@ -1377,25 +1500,36 @@ namespace GeometryHelper.Dxf.Viewer
                         !below ? 0.0
                         : at.X < vertex.X ? -0.233 * lower
                         : 0.18;
+                    // The fit is of DIMSCALE 1 and DIMEXE 1.25: its lengths grow with the scale, and each unit of DIMEXE past it
+                    // moves both edges by ExeReach units.
+                    double exeMore = ExeReach(leans, at.X < vertex.X) * (beyond - 1.25 * scale);
                     double outerEdge =
-                        BandOuterEdge(leans, landingLen) - 0.182 * landingLen * lower + 0.024 * (height - 2.5);
+                        BandOuterEdge(leans, landingLen, scale)
+                        - 0.182 * landingLen * lower
+                        + 0.024 * (height - 2.5 * scale)
+                        + exeMore;
                     double innerEdge =
-                        0.94
-                        - 0.207 * (height - 2.5)
-                        + 1.997 * Math.Pow(Math.Max(0.0, 1.0 - leans), 2.145)
-                        + landingLen * (leans + innerShift);
+                        0.94 * scale
+                        - 0.207 * (height - 2.5 * scale)
+                        + 1.997 * scale * Math.Pow(Math.Max(0.0, 1.0 - leans), 2.145)
+                        + landingLen * (leans + innerShift)
+                        + exeMore;
 
                     // Words exactly above or below the vertex, under DIMTAD 1 and 4, are the one direction AutoCAD 2021 draws another
                     // leader for: its landing runs under (over) the words, from a gap past them on the side the leader comes from to
-                    // their far end, and the band is as wide as it is a little off level (0.79 landings out, 0.7 in).
+                    // their far end, and the band is as wide as it is a little off level (StraightEdge: 6.36 out and 5.83 in for
+                    // "60°", moving with the words, DIMASZ, DIMEXE and DIMSCALE).
                     bool straight = Math.Abs(at.X - vertex.X) < 1E-9 && (style.Dimtad == 1 || style.Dimtad == 4);
 
                     if (
                         (at - start).Length > gap + height / 2.0
                         && (
                             straight
-                                ? offArc > basicOff + landingLen * 0.79 || offArc < -(basicOff + landingLen * 0.7)
-                                : offArc > outerEdge || offArc < -innerEdge
+                                ? offArc > StraightEdge(6.356, 0.48, scale, width, gap, arrow, beyond, height)
+                                    || offArc < -StraightEdge(5.831, 0.456, scale, width, gap, arrow, beyond, height)
+                            : !arcLength && radius >= BigArc * landingLen
+                                ? !WordsStayOnTheArc(vertex, radius, start, at, landingLen, height, beyond)
+                            : offArc > outerEdge || offArc < -innerEdge
                         )
                     )
                     {

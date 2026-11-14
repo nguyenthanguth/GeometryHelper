@@ -246,7 +246,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLEADERCOLLECT (mlcollect): block multileaders stay separate, their blocks laid Horizontal/Vertical/Wrap from the
         point in pick order, the last one's leaders kept on the first or last block as AutoCAD; Collect on the Leaders
         panel (MLC); AutoCAD audits and reads our result
-  - [ ] R3.1 follow-ups 2: the Collect button into the Design artifact (added in XAML without a design pass); blocks
+  - [ ] R3.1 follow-ups 2: the Collect button in Design v150 sits below Align (the artboard lists small items vertically; the XAML has them side by side); blocks
         joined at the base point; several leaders on one side; a middle multileader's leaders; annotative contexts;
         per-line overrides lost on collect; multileaders with several leader lines turned by MLEADERALIGN; MLD's left
         landing by Below(right attachment); TEXTALIGNMODE's factory default (the console profile holds 8); breaks kept by
@@ -414,9 +414,12 @@ the ones wanted.
 - [x] Dimension follow-ups 13 (dims13): words of a radius or diameter put out stay on the landing by DIMATFIT 3's fit as
       AutoCAD (td2 163 -> 0, d2 153 -> 8 ties, t6 15 -> 1, ~26 000 probes); 15-degree cases were harness rounding
       (GH_ROUND6); harness dims-harness17
-- [ ] (dims14, running) Dimension follow-ups 14: the angle band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe
-      (band knot at cos 0.87); ties at two arrowheads (t9 34); points exactly on an aligned extension line (19 of 972 in
-      m/m2, side not by the signed distance); t6's diameter turned 6.9 degrees; d2's SHX R6/R7 ties (S)
+- [x] Dimension follow-ups 14 (dims14): the angle leader band by AutoCAD's rule on arcs 8 landings out or more (no
+      leader where the arc's circle meets the ellipse of foci at the words' box corners, sum 2(K + DIMEXE)); DIMEXE and
+      DIMSCALE now move the band (240 out: 264 -> 30, 90 out: 212 -> 76, DIMEXE 2.5: 80 -> 6); harness dims-harness18
+- [ ] Dimension follow-ups 15: the 1/R term on arcs near 30 out (the rule is up to 1.5 off there; dims12's table kept);
+      a2's one SHX probe (band knot at cos 0.87); t9/t10/t11 short vs wide landing inside a circle (no clean law);
+      d2's SHX R6/R7 ties; t6's diameter turned 6.9 degrees; words on an aligned extension line (15 of 972) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
@@ -482,7 +485,7 @@ the ones wanted.
       radial extension lines within 1E-6 rad of 90 degrees; level words off the arc (DIMTAD 2/3) by their box against
       the measured chord; the arc point after a scale from the new radius (tar14 38 -> 1, tar15 100 -> 4, tar18 216 -> 13,
       tar28b 60 -> 0, tar31s 30 -> 0); harness .claude/gk/assoc-harness7
-- [ ] Associative dimensions follow-ups 8: DIMARCSYM 0 radial words 1-5 steps later than AutoCAD at 100-165 degrees;
+- [ ] (assoc8, running) Associative dimensions follow-ups 8: DIMARCSYM 0 radial words 1-5 steps later than AutoCAD at 100-165 degrees;
       the real bothExtra rule (0 at DIMASZ 0.09, 0.15 from 0.3 up); tar13 k0.8 rows (0.0004 rad text turn); exact
       180-degree sweeps' sign; arc-length text rounding in the fourth decimal (tar29s/30s/32s) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
