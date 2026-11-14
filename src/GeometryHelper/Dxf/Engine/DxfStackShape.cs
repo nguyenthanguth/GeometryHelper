@@ -76,11 +76,11 @@ namespace GeometryHelper.Dxf
         /// The shape of a stack in a font: the halves measured at the stack's own width factor, height and spread; null where a
         /// letter of them is not measured.
         /// </summary>
-        internal static DxfStackShape Of(DxfFont font, DxfFonts.Letter letter)
+        internal static DxfStackShape Of(DxfFont font, DxfFonts.Letter letter, DxfFonts.Big big = null)
         {
             DxfFonts.StackWords words = letter.Stack;
-            DxfTextLine up = DxfFonts.StackLine(font, words.Numerator, letter);
-            DxfTextLine down = DxfFonts.StackLine(font, words.Denominator, letter);
+            DxfTextLine up = DxfFonts.StackLine(font, words.Numerator, letter, big);
+            DxfTextLine down = DxfFonts.StackLine(font, words.Denominator, letter, big);
 
             if (up == null || down == null)
             {
@@ -91,16 +91,18 @@ namespace GeometryHelper.Dxf
             bool noUp = words.Numerator.Length == 0;
             bool noDown = words.Denominator.Length == 0;
             bool trueType = font is DxfTrueTypeFont;
+            bool bigUp = DxfFonts.HasBigLetter(font, big, words.Numerator);
+            bool bigDown = DxfFonts.HasBigLetter(font, big, words.Denominator);
 
-            // The halves are as high as the letters are (a TrueType font's ink from the lowest to the highest, a descender counted),
-            // an SHX font's as the height of the letters, whatever they are.
+            // The halves are as high as the letters are (a TrueType font's ink from the lowest to the highest, a descender counted;
+            // so a half with a letter of a big font), an SHX font's as the height of the letters, whatever they are.
             double highUp =
                 noUp ? 0.0
-                : trueType ? up.InkTop - up.InkBottom
+                : trueType || bigUp ? up.InkTop - up.InkBottom
                 : h;
             double highDown =
                 noDown ? 0.0
-                : trueType ? down.InkTop - down.InkBottom
+                : trueType || bigDown ? down.InkTop - down.InkBottom
                 : h;
 
             // Where the ink of a half begins from its pen: of a TrueType font its own, even where it is left of it.
@@ -122,7 +124,7 @@ namespace GeometryHelper.Dxf
                 // is none.
                 double pen =
                     noUp ? h / 3.0
-                    : trueType ? wideUp + (h / 3.0)
+                    : trueType || bigUp ? wideUp + (h / 3.0)
                     : up.Advance;
                 shape.NumeratorX = -leftUp;
                 shape.NumeratorY = highDown;

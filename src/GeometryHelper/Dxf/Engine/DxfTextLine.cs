@@ -200,9 +200,9 @@ namespace GeometryHelper.Dxf
         /// width of its ink and from the baseline to <see cref="DxfStackShape.Top"/>, the pen moved by its width and a third
         /// of its height. False where a letter of its halves is not measured.
         /// </summary>
-        internal bool AddStack(DxfFonts.Letter letter)
+        internal bool AddStack(DxfFonts.Letter letter, DxfFonts.Big big = null)
         {
-            DxfStackShape shape = DxfStackShape.Of(_font, letter);
+            DxfStackShape shape = DxfStackShape.Of(_font, letter, big);
 
             if (shape == null)
             {

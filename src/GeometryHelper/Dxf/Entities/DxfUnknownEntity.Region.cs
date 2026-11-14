@@ -224,23 +224,44 @@ namespace GeometryHelper.Dxf
             + (Handle ?? string.Empty)
             + " is not flat faces of lines and arcs of ellipses, which are all the library reads: explode it in AutoCAD, whose solid modeler breaks it.";
 
+        /// <summary>Whether a DXF name is that of an entity that holds an ACIS body: a REGION, a 3DSOLID, a BODY or a surface.</summary>
+        internal static bool IsAcisBody(string dxfName)
+        {
+            switch (dxfName)
+            {
+                case "REGION":
+                case "3DSOLID":
+                case "BODY":
+                case "SURFACE":
+                case "PLANESURFACE":
+                case "EXTRUDEDSURFACE":
+                case "LOFTEDSURFACE":
+                case "REVOLVEDSURFACE":
+                case "SWEPTSURFACE":
+                case "NURBSURFACE":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>The body of the ACIS data of the entity, null where it holds none that is readable.</summary>
         private AcisBody ReadBody() => ReadAcis(AcisReader.FromSab, AcisReader.FromSat);
 
         /// <summary>
-        /// The lines, arcs and points AutoCAD writes for a REGION or a 3DSOLID saved as R12, read from the ACIS data of the entity:
+        /// The lines, arcs and points AutoCAD writes for a REGION, a 3DSOLID, a BODY or a surface saved as R12, read from the ACIS data of the entity:
         /// every use of an edge by a face, face by face and loop by loop, each a new entity with the entity's look. A straight
         /// edge is a LINE from its start to its end, carrying the normal of its face where the face is flat; a circle or an arc a
         /// CIRCLE or an ARC about the normal of a flat face, else about its own; an ellipse an ELLIPSE (which the saving breaks
         /// into a 3D polyline); an edge of no curve, as the apex of a cone, a POINT. An edge that is a spline is left out.
         /// </summary>
         /// <param name="skipped">How many uses of an edge were left out as splines or other curves.</param>
-        /// <returns>The entities, in no file; null for an entity that is neither a REGION nor a 3DSOLID or whose data is not read.</returns>
+        /// <returns>The entities, in no file; null for an entity that holds no ACIS body (<see cref="IsAcisBody"/>) or whose data is not read.</returns>
         internal IReadOnlyList<DxfEntity> WireParts(out int skipped)
         {
             skipped = 0;
 
-            if (DxfName != "REGION" && DxfName != "3DSOLID")
+            if (!IsAcisBody(DxfName))
             {
                 return null;
             }

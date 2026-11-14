@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf
     /// Breaks what R12 cannot hold into what it can, in a drawing of a later version, before it is written as R12, as AutoCAD
     /// 2021 does when it saves one as R12: an LWPOLYLINE is a POLYLINE, an ellipse or a spline the 3D POLYLINE of 128 segments,
     /// a ray or an infinite line a LINE to the extents of the drawing (of no length at its base point in a block), an MTEXT, a pattern HATCH, a LEADER,
-    /// a MULTILEADER, an MLINE, a MESH and a table the lines, texts and polylines they break into, a 3DSOLID and a REGION the
+    /// a MULTILEADER, an MLINE, a MESH and a table the lines, texts and polylines they break into, a 3DSOLID, a REGION, a BODY and a surface the
     /// lines, circles, arcs, points and 3D polylines of the edges of their faces; a space or a block gets an INSERT of a block of
     /// those pieces where the entity stood, but for the curves that are one polyline or line, which keep their place and handle. A
     /// dynamic block is given the anonymous name AutoCAD writes for it. What breaks into nothing is left out.
@@ -185,7 +185,7 @@ namespace GeometryHelper.Dxf
                     var sampling = new Dictionary<DxfEntity, char>();
                     bool wireBody = false;
 
-                    if (entity is DxfUnknownEntity solid && (type == "REGION" || type == "3DSOLID"))
+                    if (entity is DxfUnknownEntity solid && DxfUnknownEntity.IsAcisBody(type))
                     {
                         // The edges of its faces as lines, arcs and 3D polylines, as AutoCAD writes them: none for a solid with
                         // no edges (a sphere) still gives its block, empty.
@@ -311,7 +311,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// An attribute of several lines (an MTEXT embedded in its definition or its ATTRIB, held at its top left) becomes one
+        /// An attribute of several lines (an MTEXT embedded in its definition or its ATTRIB, held at its top left, or elsewhere where fonts measure it) becomes one
         /// attribute for each line of its words, as AutoCAD 2021 saves one as R12, which has no MTEXT: the first keeps its place
         /// with the tag and <c>_001</c> after it, the others, <c>_002</c>, <c>_003</c> and on, come after the other attributes of
         /// the block or the INSERT, those of an INSERT with their place locked, each at the baseline of its line as the MTEXT lays it out. A definition
@@ -329,7 +329,7 @@ namespace GeometryHelper.Dxf
                         .ToList()
                 )
                 {
-                    List<DxfDBText> lines = LinesOf(definition.MTextAttributeDefinition);
+                    List<DxfDBText> lines = LinesOf(definition.MTextAttributeDefinition, database);
 
                     if (lines == null)
                     {
@@ -373,7 +373,7 @@ namespace GeometryHelper.Dxf
                             .ToList()
                     )
                     {
-                        List<DxfDBText> lines = LinesOf(attribute.MTextAttribute);
+                        List<DxfDBText> lines = LinesOf(attribute.MTextAttribute, database);
 
                         if (lines == null)
                         {
@@ -407,10 +407,19 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>The TEXT of each line of the words of an MTEXT held at its top left, laid out as AutoCAD lays them; null for no words, another hold, or words that are not lines of letters alone.</summary>
-        private static List<DxfDBText> LinesOf(DxfMText words)
+        /// <summary>The TEXT of each line of the words of an MTEXT, laid out as AutoCAD lays them (held elsewhere than at the top left only where fonts measure them); null for no words, or words that are not lines of letters alone.</summary>
+        private static List<DxfDBText> LinesOf(DxfMText words, DxfDatabase database)
         {
-            if (words == null || words.Attachment != DxfAttachmentPoint.TopLeft)
+            if (words == null)
+            {
+                return null;
+            }
+
+            // The words are measured in the fonts of the drawing, whatever hold they have.
+            words.MeasuredIn = database;
+
+            // Words held anywhere but at the top left are placed by the fonts that measure them: with none the MTEXT stays one attribute.
+            if (words.Attachment != DxfAttachmentPoint.TopLeft && words.InkFrame(0.0) == null)
             {
                 return null;
             }
@@ -423,6 +432,7 @@ namespace GeometryHelper.Dxf
         /// <summary>Sets the place, words and size of a text from the TEXT of its first line.</summary>
         private static void Place(DxfDBText text, DxfDBText first)
         {
+            text.HorizontalMode = DxfTextHorizontalMode.TextLeft;
             text.VerticalMode = DxfTextVerticalMode.TextBase;
             text.Position = first.Position;
             text.TextString = first.TextString;

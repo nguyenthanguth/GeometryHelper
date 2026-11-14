@@ -261,6 +261,7 @@ namespace GeometryHelper.Dxf
         )
         {
             int n = loop.Count;
+            var notches = new List<(int Index, bool Down, List<Edge> Pair)>();
 
             for (int i = 0; i < n; i++)
             {
@@ -299,24 +300,42 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                if (pair.Count != 2)
+                if (pair.Count == 2)
                 {
-                    continue;
+                    notches.Add((i, down, pair));
                 }
+            }
 
+            foreach ((int index, bool down, List<Edge> pair) in notches)
+            {
+                GeoPoint2 before = loop[(index + n - 1) % n];
+                GeoPoint2 corner = loop[index];
                 double reach0 = down ? pair[0].Bottom.Y : pair[0].Top.Y;
                 double reach1 = down ? pair[1].Bottom.Y : pair[1].Top.Y;
                 bool even = Math.Abs(reach0 - reach1) <= eps;
 
-                // Of two edges that reach as far, the corner of an outer loop is pointed. Of two that do not, or of a hole's, it
-                // depends on where the loop is walked from: if the edge on the right of the corner comes before the one on its left,
-                // the corner is pointed and, where the edges reach differently far, the level at which the shorter ends cuts the area
-                // beyond the longer one as well; if after, nothing is cut and both sides are drawn.
+                // Of two edges that reach as far, the corner of an outer loop with several such corners is pointed. Of two that do
+                // not, or of a hole's, it depends on where the loop is walked from: if the edge on the right of the corner comes before
+                // the one on its left, the corner is pointed and, where the edges reach differently far, the level at which the shorter
+                // ends cuts the area beyond the longer one as well; if after, nothing is cut and both sides are drawn.
                 double far = down ? Math.Max(reach0, reach1) : Math.Min(reach0, reach1);
                 Edge left = pair[0].XAt(far) <= pair[1].XAt(far) ? pair[0] : pair[1];
                 Edge right = left == pair[0] ? pair[1] : pair[0];
 
-                if ((!even || hole) && right.Id > left.Id)
+                if (!hole && notches.Count == 1 && EndsAtExtremes(loop, corner, pair, down, eps))
+                {
+                    // The one corner of an outer loop: as above, except that where the loop's first side (one that rises or falls)
+                    // is one of the corner's two, the order is the other way: pointed if the side that comes in is on the left.
+                    Edge incoming =
+                        (down ? Near(pair[0].Bottom, before, eps) : Near(pair[0].Top, before, eps)) ? pair[0] : pair[1];
+                    bool first = made.Count > 0 && (pair[0] == made[0] || pair[1] == made[0]);
+
+                    if ((incoming == right) == first)
+                    {
+                        continue;
+                    }
+                }
+                else if ((!even || hole) && right.Id > left.Id)
                 {
                     continue;
                 }
@@ -339,6 +358,41 @@ namespace GeometryHelper.Dxf
                     breaks.Add(new KeyValuePair<Edge, double>(longer, far));
                 }
             }
+        }
+
+        /// <summary>Whether neither side of a corner runs on past its far end the way it runs from the corner: each ends at a corner of the loop that is a highest or lowest one.</summary>
+        private static bool EndsAtExtremes(
+            IReadOnlyList<GeoPoint2> loop,
+            GeoPoint2 corner,
+            List<Edge> pair,
+            bool down,
+            double eps
+        )
+        {
+            foreach (Edge side in pair)
+            {
+                GeoPoint2 far = down ? side.Bottom : side.Top;
+
+                for (int j = 0; j < loop.Count; j++)
+                {
+                    if (!Near(loop[j], far, eps))
+                    {
+                        continue;
+                    }
+
+                    foreach (
+                        GeoPoint2 next in new[] { loop[(j + loop.Count - 1) % loop.Count], loop[(j + 1) % loop.Count] }
+                    )
+                    {
+                        if (!Near(next, corner, eps) && (down ? next.Y < far.Y - eps : next.Y > far.Y + eps))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
         }
 
         private static bool Near(GeoPoint2 a, GeoPoint2 b, double eps) =>

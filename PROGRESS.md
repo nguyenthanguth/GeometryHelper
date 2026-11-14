@@ -315,10 +315,13 @@ User note 2026-11-12 evening (note.md 1-14):
       hole's left and right edges; donut 10 in 30 216+214 -> 142+142, 25 in 50 equal), fills on normal -Z keep their
       SOLID extrusion, DOTS at a stretch's far end left out, MTEXT \C/\c colour runs on the R12 TEXTs; harness 328 of 398
       cases equal (was 270)
-- [ ] R12 follow-ups 7: gradient band meshes (adaptive triangulation on a 24x24-thirds grid; criterion and order not
-      found); star and W notch sides at some loop starts (~70 of 398 cases); dashes ending exactly on an edge at 45/135
-      degrees (AutoCAD's float noise); Palatino stack 0.2 off; big-font letters in a stack half; multi-line attributes
-      not held top-left; BODY, surfaces, spline-edge solids, annotative decomposition layers (S)
+- [x] R12 follow-ups 7 (r12h): the lone-notch rule for fills (arches, V cuts, stars); stacks with big-font letters laid
+      out; multi-line attributes held away from the top left split per line; BODY and SURFACE written as their face
+      edges; harness 350 of the 398 equal (was 328), 514 of 683 with the new probes
+- [ ] R12 follow-ups 8: gradient band meshes (a hierarchy on a 72x72 grid, depth by shape; counts in the harness
+      `gmesh`); W, M and comb notches by loop start (72 of 80 combs differ); spline edges of solids (32 vertices per
+      control point; needs the ACIS spline reader); annotative decomposition layers; Palatino stack (AutoCAD's digit
+      heights 1.04 x the ink); dashes at 45/135; fl-dshape; the harness README and path constants (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids

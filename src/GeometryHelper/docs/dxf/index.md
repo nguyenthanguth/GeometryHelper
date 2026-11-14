@@ -168,11 +168,11 @@ its edges (lines, arcs and ellipses as their numbers, splines as their knots and
 bulges), the pattern's lines, and its seed points. The objects a pattern hatch follows carry `ACAD ASC_BOUNDS` with the handle of
 the hatch, and the INSERT of a multileader says `ACAD_MLEADERVER` 2, an application the table of applications holds. The lines
 of an MLINE are written element by element, and no entity of R12 names the linetype or the colour BYLAYER or has the flag, turn or
-extrusion that is the default (a flag 0 on a polyline or a vertex, a text turned 0, the normal (0, 0, 1)). A 3DSOLID and a REGION are the edges of their faces, face by face and loop by
+extrusion that is the default (a flag 0 on a polyline or a vertex, a text turned 0, the normal (0, 0, 1)). A 3DSOLID, a REGION, a BODY and a SURFACE are the edges of their faces, face by face and loop by
 loop, as AutoCAD writes them: a box 40 by 30 by 20 is 24 LINEs, four to each face, each carrying the normal of its face
 ((0, 0, 1) left out); a cylinder is four CIRCLEs, those of the flat ends about their normal and those of the curved face about
 their own; the apex of a cone is a POINT, a sphere an empty block, an ellipse a 3D polyline of 129 vertices; an edge that is a
-spline is left out, and said. The ACIS reader behind it gives the edges of a face on any surface, not only the planes that a
+spline is left out, and said (AutoCAD writes it as a 3D polyline of 32 vertices to each control point, as a SPLINE, which is not read from ACIS here). The ACIS reader behind it gives the edges of a face on any surface, not only the planes that a
 region has. The words of an MTEXT are laid out in the fonts of the drawing (`FontSearchPath`) as AutoCAD wraps them, so that the
 long MTEXT of AutoCAD's sample is the 123 TEXTs of AutoCAD's own R12. A dynamic block, which R12 has not, is written as the
 anonymous block AutoCAD gives it: `*U` and the first number above that of the anonymous block before it in the table
@@ -205,9 +205,11 @@ at other heights, cut the piece on their side and not the other: a circle of 25 
 pieces are cut by across the hole, and whether the two sides that meet at its highest or lowest corner are drawn, depend, as AutoCAD
 writes it, on where the loop is walked from: where the side on the right of such a corner comes before the one on its left, the
 sides are left out and the level at which the shorter ends cuts the piece beyond the longer, where after, both are drawn and nothing
-is cut (the eight ways round a quadrilateral hole of 50, 35, 30 and 10 gave 12, 12, 14, 14, 14, 14, 16 and 16 SOLIDs, each equal). Two sides that meet at a corner of an outline, not of a hole, and reach as far
-are left out as before, though AutoCAD draws them from some starts of the loop (a star's notch, a W): 328 of 398 probes of fills, patterns and MTEXT runs
-equal AutoCAD's own R12 record for record. The
+is cut (the eight ways round a quadrilateral hole of 50, 35, 30 and 10 gave 12, 12, 14, 14, 14, 14, 16 and 16 SOLIDs, each equal). The one corner of an outline where the area is pointed inwards (a star's notch, the top of an arch, a V cut from the top) follows the
+same order, turned about where the first side that rises or falls is one of its two: from the side on the left, pointed when that
+walk reaches the corner by the side on its left. A fill with several such corners (a W, an M) leaves their sides out, as AutoCAD does
+from some starts of the loop and not from others, which no rule of one corner each gives (a start where it draws them stays open):
+350 of the first 398 probes of fills, patterns and MTEXT runs equal AutoCAD's own R12 record for record. The
 words of a multileader whose style has a frame are followed by it, a POLYLINE of five corners (the first again) of the colour
 BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, written after the arrowhead; words held at the
 middle or the right with no frame have their dogleg run on to the ink of their first line (words of 8 and 20 held at the middle
@@ -229,17 +231,20 @@ baseline (through a stack they are lines of no length, as AutoCAD writes them); 
 letters equal AutoCAD's R12. In a TrueType font a stack is as high as the ink of its halves, from the lowest to the highest letter
 (Arial's 1 and 2 reach 1472 units, 6 beyond its A), begins where the ink of the letters before it ends, and what follows it stands as
 far from its ink as the zero has room right of its own (98 of 1466 units in Arial; 13 fonts probed, Palatino's not equal); beside a
-big font it is laid out as beside none (63 of 65 probes in all, a half with a letter of the big font in it not). Extended data is written as AutoCAD writes it: the names of its
+big font it is laid out as beside none, and a half with a letter of the big font in it is as high as its ink (2.454 of 2.5 for ä¸­ in
+gbcbig.shx) and, with a slash, followed by the next half a third of the height beyond that ink (14 of 15 probes of stacks with big letters
+equal, one under a line not). Extended data is written as AutoCAD writes it: the names of its
 applications in capitals, a layer's (`1003`) as the table writes it, each point of 1011 to 1013 in five groups (`1011` x, `1021`
 and `1031` of 0.0, then `1021` y and `1031` z). The widths of an LWPOLYLINE are the defaults of the polyline's header (`40` and `41`
 of its first vertex, each left out where it is nought), and a vertex holds only the widths that differ from them: constant width 2
 is `40` and `41` of 2 on the polyline and none on its vertices. The lines of a pattern in a plane other than that of the drawing
 carry the extrusion, the hatch's normal; they are written the last pattern line first, and the pieces a hole breaks a line into
 the last first (ANSI37 writes the lines at 135 degrees before those at 45). An attribute of version 0 whose position is free has
-no AcDbAttr. An attribute of several lines (an MTEXT held at its top left) is one attribute for each line, the tag ending in
+no AcDbAttr. An attribute of several lines (an MTEXT held at its top left or, where the fonts measure its words, elsewhere) is one attribute for each line, the tag ending in
 `_001`, `_002` and on, the first keeping its place and the others after the other attributes of the block or the INSERT, those of
 an INSERT with `AcDbAttr` of the position locked (`MARK` of `M20\Pgrade 8.8` at (0, -5) is `MARK_001` at (0, -7.5) and `MARK_002` at
-(0, -11.667); 6 of 6 probes equal).
+(0, -11.667); 6 of 6 probes equal; held at the middle, bottom or other point, each line is left-aligned at the left of its ink: 16 of
+16 probes equal; AutoCAD leaves out the first line whose baseline stands at y = 0 of its block exactly, which is not copied).
 Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
 extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
 ten drawings of dynamic blocks open with a clean AUDIT.

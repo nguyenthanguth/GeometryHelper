@@ -460,7 +460,7 @@ namespace GeometryHelper.Dxf
                 }
                 stacked |= look.Stack != null;
 
-                DxfStackShape stack = look.Stack == null ? null : DxfStackShape.Of(font, look);
+                DxfStackShape stack = look.Stack == null ? null : DxfStackShape.Of(font, look, big);
 
                 // Letters after a stack begin where the stack ends and the gap after it, as far from the pen as their own ink
                 // stands from it: romans 2.5 high "A\S1/2;B" has the B 0.476 before the end of the gap, where its ink begins.
@@ -597,7 +597,7 @@ namespace GeometryHelper.Dxf
                     }
 
                     DxfFonts.Letter letter = letters[k];
-                    DxfStackShape shape = DxfStackShape.Of(font, letter);
+                    DxfStackShape shape = DxfStackShape.Of(font, letter, big);
                     DxfTextLine start = DxfFonts.Measure(font, big, letters, from, k, height);
 
                     if (shape == null || start == null)
