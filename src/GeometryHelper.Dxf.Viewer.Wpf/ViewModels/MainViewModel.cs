@@ -1846,10 +1846,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "EXPORT":
                 case "-EXPORT":
-                case "EXPORTPDF":
                 case "IMPORT":
                 case "DXFOUT":
                     OnExportFileRequested(e);
+                    break;
+                case "EXPORTPDF":
+                    OnExportPdfRequested(e);
+                    break;
+                case "OPENINVIEWER":
+                    OnOpenInViewerRequested(e);
                     break;
                 case "INSERTOBJ":
                     OnInsertObjectRequested(e);

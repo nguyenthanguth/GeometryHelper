@@ -174,9 +174,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         menu's Import and AutoCAD's Export list (PDF runs EXPORTPDF); plot stamps on PNG/JPG and turned with an upside-down
         plot; one PDF of all layouts; LWDEFAULT's refusal in AutoCAD's words; fixed: the template description of R2010-R2018
         DWGs read as bytes (MEASUREMENT 256)
-  - [ ] Dialogs 8 follow-ups: EXPORTPDF's own Save As PDF dialog with Current layout / All layouts (design first); .pss
-        location codes 1-3 (need a .pss AutoCAD wrote); Collect in the Leaders panel (after MLEADERCOLLECT); WMF import;
-        multi-line stamp and "." clearing in the GUI; look at the new windows in the running app (S)
+  - [x] Dialogs 9 (dialogs9, design v147-v148): EXPORTPDF's Save As PDF dialog (export area, page setup override, Export to
+        PDF Options, open in viewer, plot stamp), PDF hyperlinks (CadPlotSettings.PdfHyperlinks); the dialogs of rounds 5-9
+        drawn to PNG and checked (no layout faults)
+  - [ ] Dialogs 9 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); links
+        on objects seen through viewports; the round 5-9 dialogs in --dialog screenshot mode; .pss location codes 1-3; Collect
+        in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
@@ -231,7 +234,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] R12 follow-ups 3 (r12d): solid fills as AutoCAD's horizontal strips plus side LINEs (32 of 36 shapes equal record
       for record), multileader frames and measured left-aligned TEXTs (15 of 15 equal), angular dimension words kept as
       one TEXT of AutoCAD's form (no extra *U block); R12 Save of round fills slower as AutoCAD writes 3x the records
-- [ ] R12 follow-ups 4: round fills' corner count (circle r 25 -> 36 corners, 30 -> 76, ...); the star notch's inner
+- [ ] (r12e, running) R12 follow-ups 4: round fills' corner count (circle r 25 -> 36 corners, 30 -> 76, ...); the star notch's inner
       sides; stacked \S words of linear dimensions (3 TEXTs and a bar); xdata normalisation (upper-case names, 5-group
       points); polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions; gradient band meshes;
       BODY, surfaces and spline-edge solids; annotative decomposition layers (S)
@@ -313,7 +316,7 @@ the ones wanted.
       21), DIMTMOVE 2 free radial words breaking where the line crosses their box (r6 8 to 0, d3 176 to 7), jogged words on
       the rim counted inside (j2 16 to 0), the near-level tie; harness .claude/gk/dims-harness14 (set a: 4 changed cases
       without AutoCAD pictures)
-- [ ] Dimension follow-ups 12: the angle band's shape (a5 49, a7 101; the cos fit is empirical); diameters put out (d2 156
+- [ ] (dims12, running) Dimension follow-ups 12: the angle band's shape (a5 49, a7 101; the cos fit is empirical); diameters put out (d2 156
       of 924; t6's D4-D12 windows); the remaining td3 cases (R20 box corner); exact ties at two arrowheads (float noise?);
       AutoCAD pictures for set a's 6-degree cases; points exactly on an aligned extension line; lines at exactly 15 degrees (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
@@ -440,7 +443,7 @@ the ones wanted.
         lookup and alignment parameters and polar stretch, move, scale, rotate, flip, array and lookup actions read and
         written from R2007: 72 of the 90 graphs of AutoCAD's samples go through (12 before), 1 492 objects equal AutoCAD's
         DXF; fixed: the unset value 1.797693134862314E+99 written as AutoCAD's double.MaxValue
-  - [ ] DWG follow-ups 7: the other 18 graphs (constraint parameters on ACDBASSOC*, user parameters, properties tables,
+  - [ ] (dwg13, running) DWG follow-ups 7: the other 18 graphs (constraint parameters on ACDBASSOC*, user parameters, properties tables,
         proxy nodes, BLOCKPARAMDEPENDENCYBODY); the order of a stretch action's entity list (15 of 111 differ); dynamic data
         below R2007; sweep, revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies;
         surfaces; tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)

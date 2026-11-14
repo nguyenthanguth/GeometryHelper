@@ -342,14 +342,36 @@ the drawing's name, `C:\Plans\plan-level2.pdf`. A drawing of Layout1 on ISO A3 a
 
 ## EXPORTPDF, EXPORTDWF and EXPORTDWFX
 
-EXPORTPDF (`EPDF`) asks for the file in the window's Save As PDF dialog, offered as `plan-level2-Model.pdf`, then writes
-the current layout, or the display of model space, as a PDF of the space's page setup, by the writer of -PLOT. The dialog
-is a plain Save dialog: AutoCAD's Export list (Current layout, All layouts), Page Setup box and Options are not in it, so
-All layouts is reached by the typed questions. With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command line, which are the way
-to choose the area (`Enter plot area [Display/Extents/Window] <Display>:`, or `[Current layout/All layouts]` on a layout) and
-to override the page setup (`Detailed plot configuration? [Yes/No] <No>:`), then `Enter file name <file>:`. AutoCAD 2021's
-console asks nothing of EXPORTPDF, which is a dialog there, so the typed form is -EXPORT's with its first question
-answered Pdf.
+EXPORTPDF (`EPDF`) shows the window's Save As PDF dialog, as AutoCAD 2021's: the file, offered as
+`plan-level2-Model.pdf` in model space, with Browse… for the Save dialog of PDF (*.pdf), and beside it the Output Controls.
+
+- **Open in viewer when done** opens the PDF in the program Windows gives PDF files once it is written. It is on to start
+  with, as AutoCAD's, and what it was left at is kept for the next EXPORTPDF until the app closes.
+- **Include plot stamp** stamps the PDF; Plot Stamp… shows the Plot Stamp dialog over the stamp. The stamp and whether it is
+  on become the session's when the PDF is exported, as PLOT's Plot stamp on does.
+- **Export** lists Current layout and All layouts in a layout, Display, Extents and Window in model space. All layouts
+  writes one PDF of a page for each layout in the order of the tabs. Window < closes the dialog; `Specify first corner:` and
+  `Specify opposite corner:` are then asked and the window is written.
+- **Page setup** Current writes each space by its own page setup. Override writes it by the one Page Setup Override… sets:
+  the paper size (the sheets of the PDF plotter, ISO A0 to A4 and ANSI A to E), the plot style table (None,
+  monochrome.ctb, grayscale.ctb), portrait or landscape, Fit to paper or a scale of millimetres to drawing units, and Scale
+  lineweights. A scale not above nought is refused with `Enter a scale above nought.`; Override and its settings are kept
+  for the next EXPORTPDF until the app closes. All layouts on ISO A1 portrait is a PDF whose pages are each 594 by 841 mm.
+- **Options…** shows Export to PDF Options. Include hyperlinks, on to start with, makes the first hyperlink of each object
+  plotted a link of the page over the box of the object, a file's address as a file URI; objects seen through a layout's
+  viewports carry none. The other rows are greyed, as the writer always or never does them: lines are exact vectors, raster
+  images keep their own resolution, TrueType fonts are embedded, and layers, bookmarks and text turned to geometry are not
+  written.
+
+Save writes the PDF by the writer of -PLOT; Cancel writes nothing. A window that shows no Save As PDF (a host that has not
+set `MainViewModel.ShowSaveAsPdf`) shows the Save dialog alone and writes the current layout, or the display of model
+space, by its page setup, as before. The command hangs the dialog's choices on its file request as
+[`CadExportJob.PdfOptions`](xref:GeometryHelper.Dxf.Viewer.CadExportJob), and asks the window to open the PDF by the request
+OPENINVIEWER, the file its payload. With FILEDIA 0, or with no window, EXPORTPDF asks -EXPORT's questions on the command
+line, which are the way to choose the area (`Enter plot area [Display/Extents/Window] <Display>:`, or `[Current layout/All
+layouts]` on a layout) and to override the page setup (`Detailed plot configuration? [Yes/No] <No>:`), then `Enter file
+name <file>:`. AutoCAD 2021's console asks nothing of EXPORTPDF, which is a dialog there, so the typed form is -EXPORT's
+with its first question answered Pdf.
 
 EXPORTDWF (`EDWF`) and EXPORTDWFX (`EDWFX`) are in the registry for the aliases of acad.pgp. The presenter has no DWF
 writer, so each says `DWF files have no writer in the presenter: nothing was exported. EXPORTPDF writes a PDF.` and writes

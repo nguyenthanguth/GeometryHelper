@@ -307,10 +307,16 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The PDF of every layout handed to the window's writer as one file (<see cref="CadPlotBook"/>), a page each in the
-        /// order of the tabs, each plotted by its page setup or by <paramref name="detailed"/> where it is given; a layout whose
-        /// sheet is empty is passed over.
+        /// order of the tabs, each plotted by its page setup or by <paramref name="detailed"/> where it is given, and given its
+        /// output options by <paramref name="output"/> (the plot stamp and PDFSHX alone where it is null); a layout whose sheet
+        /// is empty is passed over. Gives the file written, null where none was.
         /// </summary>
-        private static void ExportedPdfOfLayouts(CadCommandContext c, CadPlotSettings detailed, string file)
+        private static string ExportedPdfOfLayouts(
+            CadCommandContext c,
+            CadPlotSettings detailed,
+            string file,
+            Action<CadPlotSettings> output = null
+        )
         {
             if (!file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
@@ -324,7 +330,15 @@ namespace GeometryHelper.Dxf.Viewer
                 CadPlotSettings settings = detailed?.Clone() ?? CadPlotSettings.Read(c.Document, layout);
                 settings.UseDevice(CadPlotSettings.PdfDevice);
                 settings.Area = CadPlotArea.Layout;
-                WithOutputOptions(c, settings);
+
+                if (output == null)
+                {
+                    WithOutputOptions(c, settings);
+                }
+                else
+                {
+                    output(settings);
+                }
 
                 if (!CadPlotPage.Compute(c.Document, layout, settings, DisplayBox.Empty).IsEmpty)
                 {
@@ -335,20 +349,24 @@ namespace GeometryHelper.Dxf.Viewer
             if (pages.Count == 0)
             {
                 c.Write("Nothing to export: the plot area is empty.");
-                return;
+                return null;
             }
 
             if (!c.Session.Request("-PLOT", c.Document, new CadPlotBook(pages, file)))
             {
                 c.Write("Exporting a PDF needs the window's PDF writer: nothing was written.");
-                return;
+                return null;
             }
 
             c.Write("Plot written to " + file + ".");
+            return file;
         }
 
-        /// <summary>The PDF of a plot handed to the window's writer, and what became of it said on the command line.</summary>
-        private static void ExportedPdf(CadCommandContext c, CadSpace space, CadPlotSettings settings, string file)
+        /// <summary>
+        /// The PDF of a plot handed to the window's writer, and what became of it said on the command line. Gives the file
+        /// written, null where none was.
+        /// </summary>
+        private static string ExportedPdf(CadCommandContext c, CadSpace space, CadPlotSettings settings, string file)
         {
             if (!file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
@@ -361,16 +379,17 @@ namespace GeometryHelper.Dxf.Viewer
             if (page.IsEmpty)
             {
                 c.Write("Nothing to export: the plot area is empty.");
-                return;
+                return null;
             }
 
             if (!c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, settings, display, file)))
             {
                 c.Write("Exporting a PDF needs the window's PDF writer: nothing was written.");
-                return;
+                return null;
             }
 
             c.Write("Plot written to " + file + ".");
+            return file;
         }
     }
 }
