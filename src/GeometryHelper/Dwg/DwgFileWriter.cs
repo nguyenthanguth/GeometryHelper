@@ -174,6 +174,7 @@ namespace GeometryHelper.Dwg
         );
         private DwgObjectWriter _objects;
         private ulong _handseed;
+        private int _maintenance;
 
         private DwgFileWriter(DwgDrawing drawing, string version)
         {
@@ -400,7 +401,12 @@ namespace GeometryHelper.Dwg
             ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
             _handseed = Math.Max(_handseed + 1, seed);
             int codePage = CodePageNumber(_drawing.HeaderText("DWGCODEPAGE", "ANSI_1252").Trim());
-            int maintenance = _number >= 1032 ? 174 : 0;
+            // The maintenance release AutoCAD 2021 names in a file of R2013 and R2018; a file of R2010 is written with none, which it opens.
+            int maintenance =
+                _number >= 1032 ? 174
+                : _number == 1027 ? 125
+                : 0;
+            _maintenance = maintenance;
             var container = new DwgContainerWriter(_version, maintenance, codePage);
             byte[] objectBytes = objects.ToArray();
             byte[] store = DwgDataStoreWriter.Write(
@@ -496,7 +502,7 @@ namespace GeometryHelper.Dwg
             var sized = new MemoryStream();
             Long(sized, data.Length);
 
-            if (_number >= 1032)
+            if (_number >= 1032 || _maintenance > 3)
             {
                 Long(sized, 0);
             }

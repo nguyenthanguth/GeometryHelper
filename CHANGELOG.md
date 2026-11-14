@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The DWG writer gave a TEXT, ATTRIB or ATTDEF whose alignment point is (0, 0) the point as two bit doubles, where
+AutoCAD's own DWG has none (bit 0x02 of the data flags set; the reader gives (0, 0) back): 40 TEXT and ATTDEF objects of the 13
+`Dynamic Blocks` drawings of AutoCAD 2021 came back one bit off its bytes, 132 bits longer, and are its bytes now. The 63 ARC
+objects that remain one bit off are radians no double of degrees divides to (8.9 percent of random radians; none is reached from a
+neighbouring double of degrees), which a DXF in degrees cannot carry; AutoCAD itself copies the radians of a DWG it saves as a DWG.
+**FIXED.** The `RTMaterial` extended data of a DWG of AutoCAD 2000 or 2004 (the material of an entity, which those formats have no
+place for) was passed on to the R2018 file as extended data and the entity left at the material ByLayer. AutoCAD takes it into
+the entity's material when it reads the file and writes no extended data: the LINE of the `matvis` drawing with material 78, and the
+BLOCK and ENDBLK entities of `xclip` with material 0 (none), are AutoCAD's own bytes now, and AutoCAD's DXF of the rewrite has the
+material (347) and no `RTMaterial`. A DWG of R2000 or R2004 rewritten has `AUDIT` as before.
+**FIXED.** A dynamic block with a lookup table (`BLOCKLOOKUPACTION`) in a DWG of AutoCAD 2000 or 2004 was left out as broken, and with
+it the lookup parameter and grip, the linear parameter, the stretch and the evaluation graph that lean on it: the reader looked for the
+table's texts in a string stream that those versions do not have. The 26 R2000 and R2004 files AutoCAD 2021 saves of the 13
+`Dynamic Blocks` drawings now read as many objects of each type as AutoCAD's DXF of them (Architectural - Metric had 21 of 391 left out, a panel
+made in code with one lookup 14 of its objects).
+**FIXED.** The internal writer of R2013 (AC1027; `DwgWriter` writes R2018 alone) made files AutoCAD 2021 refused with `ErrorStatus` 53,
+even a drawing of a few lines. AutoCAD's own R2013 file has a long of 0 after the size of its header and of its classes and names the
+maintenance release 125; the writer gave neither. With them the 36 drawings of the tests and the samples, written as R2013, open with
+`AUDIT` finding 0 errors in 29 and, in the others, the 24, 24, 2, 2, 32, 32 and 10 of their originals. R2010 and R2018 files are unchanged.
 **NEW.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input). The
 presenter reads the metafile itself (the placeable header and the records of lines, polylines, polygons, rectangles, ellipses, arcs,
 pens, brushes, fonts and text; bitmaps, regions and clipping are read past) and makes block WMF0 of 2D polylines and TEXT, fitted with
