@@ -97,6 +97,9 @@ namespace GeometryHelper.Dxf
             internal Dictionary<string, string> Renamed { get; } =
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>The polylines made of a lightweight one (LWPOLYLINE), by their handles, whose widths AutoCAD writes as the defaults of the polyline's header.</summary>
+            internal HashSet<string> Lightweight { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>The 3D polylines made of an ellipse (<c>E</c>) or a spline (<c>S</c>), by their handles, which AutoCAD writes in a form of its own.</summary>
             internal Dictionary<string, char> Sampled { get; } =
                 new Dictionary<string, char>(StringComparer.OrdinalIgnoreCase);
@@ -149,7 +152,9 @@ namespace GeometryHelper.Dxf
                     {
                         try
                         {
+                            string kept = entity.Handle;
                             DxfPolylineConvert.Out((DxfPolyline)entity, true);
+                            plan.Lightweight.Add(kept);
                         }
                         catch (Exception exception)
                             when (exception is ArgumentException
@@ -236,7 +241,14 @@ namespace GeometryHelper.Dxf
 
                             if (sampling.TryGetValue(piece, out char kind) && piece.Handle != null)
                             {
-                                plan.Sampled[piece.Handle] = kind;
+                                if (kind == 'L')
+                                {
+                                    plan.Lightweight.Add(piece.Handle);
+                                }
+                                else
+                                {
+                                    plan.Sampled[piece.Handle] = kind;
+                                }
                             }
                         }
                         catch (Exception exception)
@@ -385,11 +397,19 @@ namespace GeometryHelper.Dxf
             switch (type)
             {
                 case "LWPOLYLINE":
-                    pieces.Add(DxfPolylineConvert.Out((DxfPolyline)entity, false));
+                    DxfEntity flat = DxfPolylineConvert.Out((DxfPolyline)entity, false);
+                    sampling[flat] = 'L';
+                    pieces.Add(flat);
                     return;
                 case "ELLIPSE":
                 case "SPLINE":
-                    DxfEntity sampled = Sampled((DxfCurve)entity, type == "ELLIPSE" ? 128 : 127);
+                    DxfEntity sampled = Sampled(
+                        (DxfCurve)entity,
+                        type == "ELLIPSE" ? 128
+                            : entity is DxfSpline spline && spline.NumControlPoints > 0
+                                ? (32 * spline.NumControlPoints) - 1
+                            : 127
+                    );
                     sampling[sampled] = type == "ELLIPSE" ? 'E' : 'S';
                     pieces.Add(sampled);
                     return;
@@ -427,6 +447,24 @@ namespace GeometryHelper.Dxf
                 else
                 {
                     parts = entity.Explode();
+
+                    // The lines of a pattern lie in the plane of the hatch: AutoCAD writes its extrusion on each of them, as it
+                    // writes (0, 0, 1) on none.
+                    if (entity is DxfHatch tilted)
+                    {
+                        GeoVector3 normal = tilted.Normal;
+
+                        if (Math.Abs(normal.X) > 1E-9 || Math.Abs(normal.Y) > 1E-9 || normal.Z < 0.0)
+                        {
+                            foreach (DxfEntity part in parts)
+                            {
+                                if (part is DxfLine edge)
+                                {
+                                    edge.Normal = normal;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception exception)
@@ -576,8 +614,9 @@ namespace GeometryHelper.Dxf
             + Math.Round(point.Z, 6).ToString("R", CultureInfo.InvariantCulture);
 
         /// <summary>
-        /// The 3D polyline AutoCAD writes for an ellipse or a spline: 129 vertices for an ellipse, 128 for a spline, spread
-        /// evenly in the parameter from its start to its end.
+        /// The 3D polyline AutoCAD writes for an ellipse or a spline: 129 vertices for an ellipse, 32 for each control point of a
+        /// spline (128 for a spline of four, 224 for one of fit points through five, whose cubic has seven), spread evenly in
+        /// the parameter from its start to its end.
         /// </summary>
         private static DxfEntity Sampled(DxfCurve curve, int segments)
         {

@@ -1629,7 +1629,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>Points the loop is drawn through, in its plane, to tell what lies within it.</summary>
-            internal List<GeoPoint2> Outline()
+            internal List<GeoPoint2> Outline(bool asFilled = false)
             {
                 var points = new List<GeoPoint2>();
 
@@ -1657,7 +1657,7 @@ namespace GeometryHelper.Dxf
 
                 foreach (Edge edge in Edges)
                 {
-                    edge.Sample(points);
+                    edge.Sample(points, asFilled);
                 }
 
                 return points;

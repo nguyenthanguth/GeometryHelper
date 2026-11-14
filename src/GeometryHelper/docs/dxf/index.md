@@ -134,7 +134,7 @@ of the blocks; the blocks `$MODEL_SPACE` and `$PAPER_SPACE` with the one paper s
 with the groups R12 has (no subclass markers, owners, reactors, lineweight, true colour or transparency), a dimension's
 bit 32 of its flags gone, an attribute's two flags as the extended data of AcDbAttr, a viewport's view as the extended data of
 ACAD MVIEW. What R12 does not hold is broken into what it does, and said: an LWPOLYLINE is a POLYLINE with its handle, an
-ellipse a 3D POLYLINE of 129 vertices and a spline one of 128, a ray and an infinite line a LINE to the extents of the
+ellipse a 3D POLYLINE of 129 vertices and a spline one of 32 vertices for each of its control points (128 for four, 224 for a spline through five fit points, whose cubic has seven), a ray and an infinite line a LINE to the extents of the
 drawing (in a block a LINE of no length at its base point, as AutoCAD cuts it), all with their handles; the polyline of an ellipse is written as
 AutoCAD writes it, its first vertex as its own place (`10`, `20`, `30`) and every vertex with six figures as C's `%#.6g` gives
 them (`40.0000`, `1.53457e+06`), the polyline of a spline with its place the zeros `0.00000`; an MTEXT, a pattern HATCH, a LEADER, a MULTILEADER, an MLINE, a table, a MESH (a 3D
@@ -178,17 +178,31 @@ ends in a corner the area wraps round, the point of a V notch cut down from the 
 rectangle 100 by 60 is 2 SOLIDs and 2 LINEs, with a hole 40 by 20 in it 8 and 8, a triangle 100 wide and 80 high one SOLID and 2
 LINEs (32 of 36 probes of polygons, holes and notches equal AutoCAD's own R12 record for record). A gradient is the same SOLIDs
 with no lines, in one colour: AutoCAD writes 2 for a LINEAR gradient of a rectangle, as here, but the triangles of its own display
-mesh for the others, 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here. The
-strips of a curve are cut from the corners the library flattens it to (16 to a half circle); AutoCAD's number of corners changes
-with the radius (36 for a circle of 25, 76 for 30, 48 for 50), so the SOLIDs of a round fill are not as many as AutoCAD's. The
+mesh for the others, 152 for a CYLINDER, 332 for a SPHERICAL one on a rectangle 100 by 60, which are not worked out here. A whole
+circle is cut as AutoCAD cuts it, into the fewest chords that stand 0.1 off it at the most and 33 at the least (36 for a radius of
+25, 76 for 30, 48 for 50, 140 for 100; the 62 circles of 5 to 70 and 200 probed equal AutoCAD's own R12 record for record). The
+strips of a bulge, an arc and an ellipse are cut from the corners the library flattens them to (16 to a half circle), so the
+SOLIDs of those, and of a circle with a hole in it, are not as many as AutoCAD's. The
 words of a multileader whose style has a frame are followed by it, a POLYLINE of five corners (the first again) of the colour
 BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, written after the arrowhead; words held at the
 middle or the right with no frame have their dogleg run on to the ink of their first line (words of 8 and 20 held at the middle
 from a landing at (30, 20) end it at (47.03, 20) instead of (30.36, 20)); and the words of an angular dimension are one TEXT of
 AutoCAD's own form in the dimension's block, not an INSERT of a block of pieces (so it takes no block number): `72` and `71` of
 nought, the place 2 heights before and 1.77 heights below where the MTEXT was held, six figures, a degree sign written `%%d`
-(`90%%d` of 0.18 high at (29.64, 29.6814)). A stack in a linear dimension's words (`\S1/2;`, a tolerance `\S+0.1^-0.1;`) is
-three TEXTs and a LINE in AutoCAD's block and one TEXT here.
+(`90%%d` of 0.18 high at (29.64, 29.6814)). The words of an MTEXT or a dimension with a stack in them (`\S1/2;`, a tolerance `\S+0.1^-0.1;`) are laid out as AutoCAD lays them
+out (69 of 70 probes equal its own R12 record for record, one of them in romans.shx): the TEXT of the numerator, a LINE for a bar
+(`/`) or a slash (`#`, 55 degrees, twice the height long), the TEXT of the denominator (written where it is empty too, and where the
+stack has no sign, `\S12;`), each as high as the letters of the stack. The bar is as wide as the ink of the wider half and the halves
+are centred on it (a tolerance, `^`, holds both at the left); the pen moves on by the width and a third of the height. The line is as
+high as the stack, 7/3 of its height for a bar (0.42 for letters 0.18 high), and its baseline is that of the denominator, so that
+words held at the top lower their plain letters by 0.24, and a dimension's words, held by `\A1;` at the middle of the line, stand
+0.12 above and below the plain ones. A stack with a line under, over or through it (`\L`), or in a TrueType font or beside a big
+font, is not laid out: it is one TEXT, the stack read as its words. Extended data is written as AutoCAD writes it: the names of its
+applications in capitals, a layer's (`1003`) as the table writes it, each point of 1011 to 1013 in five groups (`1011` x, `1021`
+and `1031` of 0.0, then `1021` y and `1031` z). The widths of an LWPOLYLINE are the defaults of the polyline's header (`40` and `41`
+of its first vertex, each left out where it is nought), and a vertex holds only the widths that differ from them: constant width 2
+is `40` and `41` of 2 on the polyline and none on its vertices. The lines of a pattern in a plane other than that of the drawing
+carry the extrusion, the hatch's normal. An attribute of version 0 whose position is free has no AcDbAttr.
 Checked in AutoCAD 2021: the drawing above saved as R12 opens, AUDIT finds the one fault AutoCAD's own R12 of it has (a text's
 extended data naming a handle that is not there), and selects 159 entities of model space, as AutoCAD's own R12 does; the
 ten drawings of dynamic blocks open with a clean AUDIT.

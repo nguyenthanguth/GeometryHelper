@@ -212,9 +212,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// A TEXT made of an MTEXT of this file, not in a file, as the MTEXT's copies are held: the MTEXT's common groups, its
         /// layer, linetype, colour and the rest of its look, as it has them, but its handle, owner, groups of the applications,
-        /// space and layout; then the TEXT's own groups given, which begin with its subclass marker. No extended data.
+        /// space and layout; then the TEXT's own groups given, which begin with its subclass marker. No extended data. A LINE
+        /// of the stack of an MTEXT's words is made as a TEXT is, of the type given.
         /// </summary>
-        internal DxfItem TextOf(DxfItem mtext, IEnumerable<KeyValuePair<int, string>> own)
+        internal DxfItem TextOf(DxfItem mtext, IEnumerable<KeyValuePair<int, string>> own, string type = "TEXT")
         {
             DxfFile file = Holder();
             Rec head = HeadOf(mtext);
@@ -222,7 +223,7 @@ namespace GeometryHelper.Dxf
             int data = DataAt(head, pairs);
             int body = BodyAt(head, pairs, data);
             var b = new Builder(file);
-            b.Group(0, "TEXT");
+            b.Group(0, type);
             bool braced = false;
 
             for (int i = 1; i < (body >= 0 ? body : data); i++)
@@ -246,7 +247,7 @@ namespace GeometryHelper.Dxf
                 b.Group(group.Key, group.Value);
             }
 
-            return file.Hold(new List<Rec> { b.Done("TEXT") }, "TEXT");
+            return file.Hold(new List<Rec> { b.Done(type) }, type);
         }
 
         /// <summary>The block of a name as an INSERT writes it, letters of either case the same; null where the file has none.</summary>

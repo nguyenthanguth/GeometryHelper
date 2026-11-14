@@ -234,10 +234,13 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] R12 follow-ups 3 (r12d): solid fills as AutoCAD's horizontal strips plus side LINEs (32 of 36 shapes equal record
       for record), multileader frames and measured left-aligned TEXTs (15 of 15 equal), angular dimension words kept as
       one TEXT of AutoCAD's form (no extra *U block); R12 Save of round fills slower as AutoCAD writes 3x the records
-- [ ] (r12e, running) R12 follow-ups 4: round fills' corner count (circle r 25 -> 36 corners, 30 -> 76, ...); the star notch's inner
-      sides; stacked \S words of linear dimensions (3 TEXTs and a bar); xdata normalisation (upper-case names, 5-group
-      points); polyline default widths; fit-point SPLINE 255 vertices; tilted-hatch LINE extrusions; gradient band meshes;
-      BODY, surfaces and spline-edge solids; annotative decomposition layers (S)
+- [x] R12 follow-ups 4 (r12e): stacked \S words as numerator, bar and denominator (69 of 70 cases equal AutoCAD's R12);
+      xdata as AutoCAD (upper-case names, R12 layer names, 5-group points); lightweight polyline default widths in the
+      header; splines with 32 vertices per control point; tilted pattern lines' normal; whole-circle fills cut as AutoCAD;
+      188 of 198 probe cases equal record for record
+- [ ] R12 follow-ups 5: stacks under \L/\O/\K; stacks in TrueType or beside a big font; tilted solid fills; partial arcs,
+      bulges and ellipses in fills (donut 173/290, bulge 9/41); the star notch; multi-line attributes as Tag_001...;
+      ANSI37 line order; gradient band meshes; BODY, surfaces, spline-edge solids; annotative decomposition layers (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
@@ -246,7 +249,7 @@ User note 2026-11-12 evening (note.md 1-14):
       AutoCAD's SAT digit for digit, up 130 equal and 40 within 1E-12, all 910 files open with AutoCAD's volume and area);
       R2000 solids and regions now written into DWG; visual styles' round-trip records written going down and read going
       up (the three styles' 176 flags); fixed: a turned solid (transform rotate) refused; BODY probed
-- [ ] DXF versions follow-ups 4: ACIS 4.00 splines (sweep along a spline, loft of different circles, extruded closed
+- [ ] (dxfver4, running) DXF versions follow-ups 4: ACIS 4.00 splines (sweep along a spline, loft of different circles, extruded closed
       spline: tolerant records and curve parameters, 3 attempts used); the table round trip going down
       (ACAD_ROUNDTRIP_2008_TABLE_ENTITY); R2000 MTEXTBEGIN xdata of leader MTEXT; reflect and shear transform words (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)

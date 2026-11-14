@@ -288,7 +288,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 3
             );
 
-            // The splines of the drawing: each a polyline of 128 vertices.
+            // The splines of the drawing: each a polyline of 32 vertices for each of its control points (AutoCAD 2021, as probed).
             DxfSpline[] splines = database.ModelSpace.OfType<DxfSpline>().ToArray();
             Assert.Equal(2, splines.Length);
 
@@ -297,7 +297,10 @@ namespace GeometryHelper.UnitTest.Dxf
                 int place = entities.FindIndex(r => r.Type == "POLYLINE" && r.First(5) == spline.Handle);
                 Assert.True(place >= 0);
                 Assert.Equal("8", entities[place].First(70).Trim());
-                Assert.Equal(128, entities.Skip(place + 1).TakeWhile(r => r.Type == "VERTEX").Count());
+                Assert.Equal(
+                    32 * spline.NumControlPoints,
+                    entities.Skip(place + 1).TakeWhile(r => r.Type == "VERTEX").Count()
+                );
             }
         }
 

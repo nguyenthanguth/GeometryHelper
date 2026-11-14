@@ -45,8 +45,7 @@ area is cut at the height of each corner into trapezoids, each two triangles in 
 height negated), the strips from the top down, then the LINEs of the sides that are not horizontal, those that end in the point of a
 V notch or of a bite left out. A rectangle 100 by 60 is 2 SOLIDs and 2 LINEs (it was 2 SOLIDs), with a hole 40 by 20 in it 8 and 8; 32
 of the 36 shapes are equal to AutoCAD's own R12 record for record. A gradient is the same SOLIDs with no lines (2 for a LINEAR one of a
-rectangle, as AutoCAD). Not done: AutoCAD's own counts for a round fill (its number of corners changes with the radius: 36 for a circle
-of 25, 76 for 30), the star-shaped notch AutoCAD draws the sides of, and the display meshes of the other gradients (152 for a CYLINDER,
+rectangle, as AutoCAD). Not done: the star-shaped notch AutoCAD draws the sides of, and the display meshes of the other gradients (152 for a CYLINDER,
 332 for a SPHERICAL one on a rectangle 100 by 60).
 **NEW.** A multileader saved as R12 is written as AutoCAD writes it (15 probes of one and two lines of words, frames, held at the left,
 the middle and the right, four attachments): the frame round the words where the style has one, a POLYLINE of five corners (the first
@@ -57,8 +56,34 @@ them. All 15 are equal to AutoCAD's own R12 record for record.
 **NEW.** The words of an angular dimension saved as R12 are one TEXT of AutoCAD's own form in the dimension's block (its groups in
 AutoCAD's order, the place of six figures 2 heights before and 1.77 heights below where the MTEXT was held, a degree sign written
 `%%d`), not an INSERT of a block of pieces, so that the blocks after it are numbered as AutoCAD numbers them (they were numbered one
-higher for each angular dimension). 6 of 7 angular probes equal AutoCAD's (the seventh has a stack in its words, which AutoCAD flattens with one more space). A stack in the words of a linear dimension is still one TEXT where
-AutoCAD writes three and a LINE.
+higher for each angular dimension). 6 of 7 angular probes equal AutoCAD's (the seventh has a stack in its words, which AutoCAD flattens with one more space).
+**NEW.** The stack in an MTEXT or in the words of a dimension (`\S1/2;`, a tolerance `\S+0.1^-0.1;`) saved as R12 is the TEXT of its
+numerator, a LINE for a bar or a slash, and the TEXT of its denominator, laid out as AutoCAD 2021 lays them (probed in its console,
+70 MTEXTs and linear, aligned, rotated and radial dimensions made in side databases and written with `DxfOut` at R12; 69 are equal to
+its own record for record, one of them in romans.shx). Letters 0.18 high: `1\S1/2;` in a dimension is the whole 1, the 1 0.12 above
+the line of words and the 2 0.12 below it with the bar 0.09 above it from x 50.0 to 50.12; the line holding a stack is 0.42 high, so that
+held at the top left `A\S1/2;B` has its A and its 2 0.42 below the top and the 1 0.24 above them, and the line after it stands 0.24
+below. A tolerance (`^`) has both halves at the left and no bar, a slash (`#`) a LINE at 55 degrees twice the height long, a stack with
+no sign (`\S12;`) an empty denominator; a half with no words stands no height for it. `DxfMText.Explode()` gives the same pieces
+(it was the one TEXT of the words with the stack read as `1/2`). A stack with a line under, over or through it, in a TrueType font or
+beside a big font is still one TEXT.
+**NEW.** Extended data saved as R12 is written as AutoCAD 2021 writes it: the names of its applications in capitals, a layer's (`1003`)
+as the table of layers writes it (`a{b}` is `A_B_`), and each point of 1011 to 1013 in five groups, its x, `1021` and `1031` of 0.0,
+then its y and z (`1011` 4, 5, 6 is `4`, `0.0`, `0.0`, `5`, `6`); a point of 1010 is as it was. 3 of 3 probes are equal to AutoCAD's
+own R12.
+**NEW.** The widths of an LWPOLYLINE saved as R12 are the defaults of the POLYLINE as AutoCAD writes them (12 probes, all equal): the
+header's `40` and `41` are those of the first vertex (each left out where it is nought) and a vertex holds a width only where it
+differs, so that a polyline of constant width 2 is `40` and `41` of 2 and no width on its vertices (each vertex held both). An
+attribute of version 0 whose position is free has no AcDbAttr extended data now, as in AutoCAD's own R12; a locked one has it.
+**NEW.** A SPLINE saved as R12 is a 3D POLYLINE of 32 vertices for each of its control points, as AutoCAD writes it (4 control points
+128, 6 192, 40 1280; a spline through 5 fit points, whose cubic has 7 control points, 224; 29 probes of control and fit splines of
+degrees 1 to 5, rational and closed ones among them, equal to AutoCAD's record for record). It was 128 vertices for every spline.
+**NEW.** The LINEs of a pattern hatch in a plane other than that of the drawing carry the extrusion of the hatch in the R12 as AutoCAD
+writes them (a hatch on the normal (1, 1, 1) has 210, 220 and 230 of 0.577 on each of its lines; 6 probes in tilted planes equal; a crosshatch such as ANSI37 still differs in the order of its lines).
+**NEW.** A circle filled solid saved as R12 is cut into the chords AutoCAD cuts it into: the fewest for which a chord stands 0.1 off the
+circle at the most, 33 at the least (36 for a radius of 25, 76 for 30, 48 for 50, 140 for 100; it was 32 for every circle). The 62 circles
+of 5 to 70 and 200 units probed equal AutoCAD's own R12 record for record. A circle with a hole in it, a bulge, an arc and an ellipse are
+still cut from the library's own corners.
 **CHANGED.** The MTEXT that `DxfMLeader.Explode()` gives is laid out in the fonts of the multileader's drawing, so that its
 `ActualWidth` and `ActualHeight` are measured (they were 0).
 **FIXED.** The words and arrowheads of an arc length dimension (DIMARC) and of an angle of three points are laid out as AutoCAD 2021

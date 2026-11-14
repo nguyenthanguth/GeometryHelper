@@ -33,9 +33,14 @@ namespace GeometryHelper.Dxf
             double tolerance = Tolerance.Default.EqualPoint;
             var depths = new int[count];
 
+            var outlines = new IReadOnlyList<GeoPoint2>[count];
+
             for (int i = 0; i < count; i++)
             {
                 depths[i] = Depth(snapshot, i, tolerance);
+
+                // A whole circle is cut as AutoCAD cuts it for a fill: into the chords of its radius.
+                outlines[i] = LoopData.Read(snapshot.Loops[i]).Outline(true);
             }
 
             DxfHatchStyle style = HatchStyle;
@@ -52,7 +57,7 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                var region = new List<IReadOnlyList<GeoPoint2>> { snapshot.Outlines[i].Points };
+                var region = new List<IReadOnlyList<GeoPoint2>> { outlines[i] };
 
                 for (int j = 0; j < count; j++)
                 {
@@ -62,7 +67,7 @@ namespace GeometryHelper.Dxf
                         && Within(snapshot.Outlines[j], snapshot.Outlines[i], tolerance)
                     )
                     {
-                        region.Add(snapshot.Outlines[j].Points);
+                        region.Add(outlines[j]);
                     }
                 }
 
