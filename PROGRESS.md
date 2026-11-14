@@ -287,9 +287,16 @@ User note 2026-11-12 evening (note.md 1-14):
       blocks stay tables (AutoCAD reads our downgrades with the same tables and links, AUDIT 0 on 16 files); fixed: an R2018
       table taken to R2000 gave a file AutoCAD refused; R2000 MTEXTBEGIN xdata on every MTEXT; reflect and shear transform
       words; cylsur/cyl_spl_sur (an extruded closed spline) converted, so it is no longer left out of R2013+
-- [ ] (dxfver5, running) DXF versions follow-ups 5: the PRE2007_TABLE and DATATABLE round trip going down (column 1 override mask not decoded);
-      empty cell borders to R2000; sweeps along splines and lofts of circles (tolerant records); oblique extrusions
-      (sumsur); R2010's sweep intcurve form; MTEXT background xdata of R2000 (M)
+- [x] DXF versions follow-ups 5 (dxfver5): ACAD_ROUNDTRIP_PRE2007_TABLE and its data table going down (42 of 42 equal
+      AutoCAD's, override mask decoded), cell flags and long texts both ways; MTEXT background xdata of R2000 (18 of 18);
+      lofts to R2004/R2007 through R2010 text (volume kept). DECIDED: transparency kept going up (AutoCAD drops it);
+      the R2010 SAT fallback widened to every version below R2010; MTEXTBEGIN/BBRT stripped going up as before
+- [ ] DXF versions follow-ups 6: ACAD_ROUNDTRIP_PRE2007_TABLESTYLE in each table style going down; invisible-only
+      borders dropped to R2000 as AutoCAD (the dxfver4 test expects them kept: match AutoCAD); merged cells' borders
+      copied into continuation cells; auto-scaled block cells (3.94 vs 1.0); TABLE_ENTITY for a table without
+      TABLECONTENT; sweeps along splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007);
+      oblique extrusions (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables cost
+      4.5 us per cell going down (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT done (refedit, blocks; xrefs left: see REFEDIT follow-ups); Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
@@ -371,7 +378,7 @@ the ones wanted.
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
 - [x] PEDIT/REVCLOUD follow-ups 1 (fu-misc2): PEDIT Multiple with 3D polylines; JOIN with a POLYLINE as AutoCAD (and at
       PLINETYPE 0, inferred for multiple-object JOIN and BOUNDARY)
-- [ ] PEDIT/REVCLOUD follow-ups 2: REVCLOUD's first arc length from the view (console gives 0.5 at any view); the spline to
+- [ ] (pedit3, running) PEDIT/REVCLOUD follow-ups 2: REVCLOUD's first arc length from the view (console gives 0.5 at any view); the spline to
       polyline precision rule (173/226/452/868/1693 vertices at precision 1/2/5/10/20 for one cubic; no formula fits);
       JOIN multiple and BOUNDARY under PLINETYPE 0 checked in the GUI; REVCLOUDPROPERTIES and Modify (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);

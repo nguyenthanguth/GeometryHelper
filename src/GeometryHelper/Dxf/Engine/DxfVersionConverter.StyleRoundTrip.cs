@@ -300,10 +300,14 @@ namespace GeometryHelper.Dxf
             return tail;
         }
 
+        // The record of the header that holds the seed, found once: the cells of a table going down take a handle each.
+        private Record _seed;
+
         /// <summary>The next handle of the drawing (<c>$HANDSEED</c>, which moves on); null where the header has none.</summary>
         private string NewHandle()
         {
-            Record seed = Find("HEADER")?.Records.Find(r => r.Groups[0].Value == "$HANDSEED" && r.Groups.Count > 1);
+            Record seed = _seed
+                ?? (_seed = Find("HEADER")?.Records.Find(r => r.Groups[0].Value == "$HANDSEED" && r.Groups.Count > 1));
 
             if (
                 seed == null

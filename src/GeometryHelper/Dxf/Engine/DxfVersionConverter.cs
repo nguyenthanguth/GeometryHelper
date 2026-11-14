@@ -876,6 +876,27 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            // The data tables made for the cells of a table going to R2000 or R2004 need their class.
+            string dataTable = _target < 1018 ? "ACDBDATATABLE" : "DATATABLE";
+
+            if (
+                counts.ContainsKey(dataTable)
+                && !classes.Records.Exists(r =>
+                    r.Groups.Exists(g => g.Code == 1 && (g.Value == "ACDBDATATABLE" || g.Value == "DATATABLE"))
+                )
+            )
+            {
+                var made = new Record();
+                made.Groups.Add(new Group(0, "CLASS"));
+                made.Groups.Add(new Group(1, dataTable));
+                made.Groups.Add(new Group(2, "AcDbDataTable"));
+                made.Groups.Add(new Group(3, "ObjectDBX Classes"));
+                made.Groups.Add(Whole(90, 0));
+                made.Groups.Add(Whole(280, 0));
+                made.Groups.Add(Whole(281, 0));
+                classes.Records.Add(made);
+            }
+
             foreach (Record record in classes.Records)
             {
                 if (record.Dropped)
