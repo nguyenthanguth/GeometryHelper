@@ -817,20 +817,22 @@ inside held back from the rim as they are put there (15 out stands 11.25 out), g
 A radius made under 1 or 2 keeps its line through the point the circle was picked at. Words of an angle moved under
 DIMTMOVE 1 or 2 onto the arc break it about them, as words in the middle of it do, and under 0 send the arrowheads outside
 with the arc drawn whole where they cut into an arrowhead's room ("60°" put 6 degrees from the first ray of an angle of
-60 at 35 out); under 1 their leader is drawn only past a distance from the arc, 6.6 with arrowheads and words 2.5 high of Arial and a gap of
-0.625 (6.85 in an SHX font with "60°" 5.42 wide): the end of the landing, half the words, the gap and an arrowhead
-before the point, has to be 1.405 and 0.137 heights of the words off the arc plus the landing's length times 0.866 plus
-0.6 for each unit the cosine of the point's direction from the vertex differs from that of 30 degrees (out), or times 0.065
-plus 0.8 of the cosine (in): the band is wider out than in, and widest level, at 6.8 out and 6.2 in at 30 degrees with
-those sizes, 3.8 out and 2.1 in straight above the vertex. Fitted
-to what AutoCAD 2021 draws over 11 000 probes of "60°" put at every 5 degrees round an angle of 60 degrees at the origin,
-its arc 30 out, and on a grid (98 of 100 right), and to 0.05 of a unit over 26 styles of arrowheads, words and gap at 30
-degrees ("60.00°" draws its leader from 8.8 off the arc in Arial). The band jumps where the point crosses the height of
-the arc's middle (15 for an arc of 30 at 30 degrees: probed every 0.1 either side of it, the leader came and went at exactly
-15), and between the height of the vertex and that height it narrows as the point rises: out by 0.2 landings, in on the left
-of the vertex by 0.28 and on the right wider by 0.1 (a7 of 5 832 probes: 159 differing down to 101, a6 29 down to 21, a4
-15 to 13); the rest of the band's shape is still only fitted (a5 49 differ). Not followed: words straight above or below
-the vertex get a landing under them.
+60 at 35 out); under 1 their leader is drawn only past a band round the arc, whose two edges follow the direction the point lies in
+from the vertex (c is the cosine of that direction: 1 level with the vertex, 0 straight above or below it) and the landing (half the
+words, the gap and an arrowhead): out, the edge is a length of 1.0 to 1.3 plus 0.53 landings (c 0) rising to 1.07 (c 0.95) and 0.98
+(c 1); in, it is 0.94 plus up to 2.0 more as c falls (2.0 times (1 - c) to the power 2.1) plus the landing times c. Words 2.5 high of
+Arial with a gap of 0.625 ("60°" 4.92 wide, a landing of 5.58) have their edges 6.7 out and 6.5 in level with the vertex, 4.2 out and
+2.9 in just off straight above it, and 6.5 out and 5.8 in at 30 degrees (the leader appears from 6.6 there); a longer landing moves
+the outside edge a unit for a unit level with the vertex and half a unit above it (DIMASZ 4 puts it 8.2 out beside the vertex), and
+the inside edge above it not at all; taller words narrow the inside by 0.2 a unit of height. Fitted to what AutoCAD 2021 draws over
+30 000 probes of "60°" put every 0.25 to 0.5 round an angle of 60 degrees at the origin, its arc 30 out, at 20 directions or 72, in SHX
+and Arial with DIMASZ 1.5 to 4, DIMTXT 1.8 to 4, DIMGAP 0.3 to 1.5 and DIMADEC 0 and 4 (a7 of 5 832 probes 101 differing down to 71,
+a6 21 to 11, a5 49 to 33, a4 13 to 4; the probes of other sizes about a quarter fewer). It is a fit, not a rule: no box of the
+words against the arc, the rays or the arrowheads follows both edges (an ellipse about the point, grown to the landing, differed 420
+of 11 400 probes, a box 590). The band jumps where the point crosses the height of the arc's middle (15 for an arc of 30 at 30
+degrees: probed every 0.1 either side of it, the leader came and went at exactly 15), and between the height of the vertex and that
+height it narrows as the point rises: out by 0.18 landings, in on the left of the vertex by 0.23 and on the right wider by 0.18. Not
+followed: words straight above or below the vertex get a landing under them.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,
@@ -842,9 +844,12 @@ wherever it runs through that box, further off it than half their height, and th
 the line takes of the box, not on the foot of their middle: "%%c40" of Arial put at (-1.5, 2.598), 3 off a diameter picked
 at 30 degrees through the centre, breaks it from -2 to 5.88 along it (middle 1.94), and the same put 4 off leaves it
 whole. Words behind the centre of a radius leave the arrowhead inside and the line whole unless their box takes the line
-from a quarter of a unit behind the centre to an arrowhead and a half past it: "R8" put at (-3.531, -0.884) of a circle
-picked at 30 degrees (3.5 behind the centre along the line, 1 off it) stays inside, put 2 behind and 1 off it pushes the
-arrowhead out (r6 8 differing down to 0; the box limits are fitted over 340 probes, 6 differing). Words outside kept level on a line
+to the centre or past it and the stretch it takes starts within an arrowhead and a half of the centre, or the point of the words
+is within two arrowheads of the centre (the box taking the line to the centre at least): "R8" put at (-3.531, -0.884) of a circle picked at 30 degrees (3.5 behind the centre along the line, 1 off it) stays
+inside, put 2 behind and 1 off it pushes the arrowhead out; "R20" put 4 behind it on its line (the box takes the line to 0.25 short
+of the centre) stays inside, put 2.5 behind and 3 across it (0.066 short) too, and put 4 along and 3 across it (5.0 from the centre,
+the box taking the line from 5.4) pushes it out, which put 5 along and 3 across (5.83) does not (r6 8 differing down to 0, d3 7
+and td3 6 of 760 down to 0). Words outside kept level on a line
 within 15 degrees of level stand on no landing of their own, a gap past the end of the line, as on a linear dimension.
 Level words under DIMTAD 1 and 4 put past the rim but within the room of the arrowhead stand on their landing of an arrowhead,
 the words on it, as they do under DIMTAD 0, unless the line runs within 15 degrees of upright (where they stand above it) or

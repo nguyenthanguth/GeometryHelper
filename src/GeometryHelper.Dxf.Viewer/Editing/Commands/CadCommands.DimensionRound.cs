@@ -512,10 +512,26 @@ namespace GeometryHelper.Dxf.Viewer
             // centre by half their width, the gap and an arrowhead, level or not (AutoCAD 2021 pushes "R25" put 6 out under
             // DIMASZ 2.5, not 7), but not once they stand behind it: where their box takes the line from a quarter of a unit
             // behind the centre to an arrowhead and a half past it ("R8" and "R20" put every 0.5 along and across the line,
-            // level and turned, 6 differing of 340; before, words 6 behind the centre pushed the arrowhead out too).
+            // level and turned, 6 differing of 340; before, words 6 behind the centre pushed the arrowhead out too). Behind the
+            // centre means behind it by any length: a radius of 20 with "R20" level put 4 behind it and on its line, whose box
+            // takes the line to 0.25 short of the centre, keeps the arrowhead in, and one whose box reaches 0.011 past it pushes
+            // it out (0.066 short keeps it; td3: 6 differing of 760 down to 0). Words whose point is within two arrowheads of the
+            // centre push it out as well, where the box takes the line further out than an arrowhead and a half: "R20" put 4
+            // along and 3 across (5.0 from the centre) pushes the arrowhead out, put 5 along (5.83) or 2 across and 5 along (5.39)
+            // does not.
             bool overRim = along - half <= reach && along + half >= (diameter ? reach - trim : reach);
             bool overFarRim = diameter && along + half >= -reach && along - half <= -(reach - farTrim);
-            bool pushed = onLine && (overRim || overFarRim || (!diameter && enters <= 1.5 * trim && leaves >= -0.25));
+            bool pushed =
+                onLine
+                && (
+                    overRim
+                    || overFarRim
+                    || (
+                        !diameter
+                        && leaves >= -1E-9
+                        && (enters <= 1.5 * trim || (location - center).Length <= 2.0 * trim + 1E-9)
+                    )
+                );
 
             if (pushed)
             {
@@ -944,6 +960,36 @@ namespace GeometryHelper.Dxf.Viewer
                 out _
             );
 
+        // The outer edge of the band round an angle's arc in which words put under DIMTMOVE 1 get no leader is a length plus a
+        // multiple of the landing, both read from these tables where the point lies in a direction whose cosine from the vertex's
+        // level is 0, 0.35, 0.7, 0.87, 0.95 and 1 (fitted to AutoCAD 2021's pictures; see AngularLaidOut).
+        private static readonly double[] BandCosines = { 0.0, 0.35, 0.7, 0.87, 0.95, 1.0 };
+        private static readonly double[] BandOuterLengths = { 1.219, 1.19, 1.0, 0.979, 0.959, 1.271 };
+        private static readonly double[] BandOuterLandings = { 0.527, 0.601, 0.868, 0.993, 1.072, 0.978 };
+
+        /// <summary>
+        /// The outer edge of the leader band of an angle's words, off the arc, for a point in the direction whose cosine from the
+        /// vertex's level is <paramref name="leans"/> and a landing <paramref name="landing"/> long, both tables read between
+        /// their knots.
+        /// </summary>
+        private static double BandOuterEdge(double leans, double landing)
+        {
+            int i = 1;
+
+            while (i < BandCosines.Length - 1 && leans > BandCosines[i])
+            {
+                i++;
+            }
+
+            double t = Math.Min(
+                Math.Max((leans - BandCosines[i - 1]) / (BandCosines[i] - BandCosines[i - 1]), 0.0),
+                1.0
+            );
+            double length = BandOuterLengths[i - 1] + (BandOuterLengths[i] - BandOuterLengths[i - 1]) * t;
+            double landings = BandOuterLandings[i - 1] + (BandOuterLandings[i] - BandOuterLandings[i - 1]) * t;
+            return length + landing * landings;
+        }
+
         /// <summary>
         /// What level words of an angle or an arc length dimension, standing on its arc, take of the arc, as AutoCAD 2021 counts it: their
         /// width (the symbol before them counted) times the sine of the direction <paramref name="toward"/> of the arc's middle,
@@ -1265,17 +1311,24 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // Words put near the arc have no leader, as AutoCAD 2021 draws them: probed with words every 0.05 off an arc of 30
                     // in 26 styles (DIMASZ 1.5, 2.5 and 4, DIMTXT 2.5 and 4, DIMGAP 0.3, 0.625 and 1.5, "60%%d" with 0 to 6 decimals),
-                    // the leader appears once the end of its landing, a landing's length (half the words, the gap and an arrowhead)
-                    // before the point, is 1.405 and 0.137 heights of the words off the arc as the landing leans: 6.85 off for 2.5, 2.5
-                    // and 0.625, and 12.3 for "60.00%%d" of 4. The fit holds to 0.05 for words as "60%%d", to 0.1 for wider.
+                    // the leader appears once the point is far enough off the arc, as far as the landing (half the words, the gap
+                    // and an arrowhead) leans: it counts in full for words level with the vertex and by half for words above or
+                    // below it.
                     // The band follows the direction the point lies in from the vertex, and is not the same either side of the arc:
-                    // refitted over 11 000 probes of "60%%d" put at every 5 degrees (and on a grid) about an angle of 60 degrees,
-                    // outside it is what it was at 30 degrees (0.866 landings) and 0.6 landings more per unit of cosine of the
-                    // direction, inside it 0.065 landings and 0.8 per unit (98 of 100 right). The band jumps where the point crosses
-                    // the height of the arc's middle: probed every 0.1 across it at five distances either side of the arc of 30
-                    // (an angle of 60 degrees) the leader came and went at exactly that height, and between the height of the
-                    // vertex and it the band narrows as the point rises: outside by 0.2 landings, inside on the left of the vertex
-                    // by 0.28 and on the right wider by 0.1 (a7 of 5 832 probes, 159 differing down to 101).
+                    // probed with "60%%d" put every 0.25 to 0.5 round an angle of 60 degrees at 20 directions or 72 (SHX and Arial,
+                    // DIMASZ 1.5 to 4, DIMTXT 1.8 to 4, DIMGAP 0.3 to 1.5, DIMADEC 0 and 4), the outside edge is a length (1.0 to
+                    // 1.3) plus 0.53 to 1.07 landings by the cosine of the direction (tables), the inside edge 0.94 plus up to 2.0
+                    // more as the cosine falls, plus the landing times the cosine, and the inside edge above or below the vertex
+                    // is 2.9 whatever the words. Arial words 2.5 high with a landing of 5.58 have their edges 6.7 out and 6.5 in
+                    // beside the vertex, 4.2 out and 2.9 in above it, 6.5 out at 30 degrees (the leader appears from 6.6 there); a
+                    // longer landing moves the outside edge a unit for a unit beside the vertex and half a unit above it, and taller
+                    // words narrow the inside by 0.2 a unit of height. The band jumps where the point crosses the height of the
+                    // arc's middle: probed every 0.1 across it at five distances either side of the arc of 30 (an angle of 60
+                    // degrees) the leader came and went at exactly that height, and between the height of the vertex and it the
+                    // band narrows as the point rises: outside by 0.18 landings, inside on the left of the vertex by 0.23 and on
+                    // the right wider by 0.18. Refitted over 30 000 probes; it is a fit, not a rule (no box of the words against
+                    // the arc, rays or arrowheads followed both edges): a5 49 differing of 2 938 to 33, a7 101 of 5 832 to 71, and
+                    // the styles above by a quarter.
                     double distance = (at - vertex).Length;
                     double offArc = distance - radius;
                     double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
@@ -1287,8 +1340,15 @@ namespace GeometryHelper.Dxf.Viewer
                     double lower = below ? rise / middleRise : 0.0;
                     double innerShift =
                         !below ? 0.0
-                        : at.X < vertex.X ? -0.28 * lower
-                        : 0.1;
+                        : at.X < vertex.X ? -0.233 * lower
+                        : 0.18;
+                    double outerEdge =
+                        BandOuterEdge(leans, landingLen) - 0.182 * landingLen * lower + 0.024 * (height - 2.5);
+                    double innerEdge =
+                        0.94
+                        - 0.207 * (height - 2.5)
+                        + 1.997 * Math.Pow(Math.Max(0.0, 1.0 - leans), 2.145)
+                        + landingLen * (leans + innerShift);
 
                     // Words exactly above or below the vertex, under DIMTAD 1 and 4, are the one direction AutoCAD 2021 draws another
                     // leader for: its landing runs under (over) the words, from a gap past them on the side the leader comes from to
@@ -1300,15 +1360,7 @@ namespace GeometryHelper.Dxf.Viewer
                         && (
                             straight
                                 ? offArc > basicOff + landingLen * 0.79 || offArc < -(basicOff + landingLen * 0.7)
-                                : offArc
-                                    > basicOff
-                                        + landingLen
-                                            * (
-                                                Math.Cos(Math.PI / 6.0)
-                                                + 0.6 * (leans - Math.Cos(Math.PI / 6.0))
-                                                - 0.2 * lower
-                                            )
-                                    || offArc < -(basicOff + landingLen * (0.065 + 0.8 * leans + innerShift))
+                                : offArc > outerEdge || offArc < -innerEdge
                         )
                     )
                     {

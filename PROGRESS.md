@@ -158,14 +158,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         put beyond a slanting line's end (tw17 58); exact ties; MLEADEREDIT's far-side arrow making its own leader (needs
         measured fonts); words' y offset by the ink depth; context group differences (90, 172, 91, 141, 295, record 45);
         the text width gap 177.4 vs 177.47 (maybe AutoCAD's live picture against its redraw, as found here) (S)
-  - [ ] R2.2 follow-ups: draW boundary
+  - [ ] (hatch3, running) R2.2 follow-ups: draW boundary
         Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
         gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
         console showed it (S)
   - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
         Refine (Add, Delete, Elevate order, Move, Weight), Close/Open of control-point splines, met to 1E-5 against AutoCAD;
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
-  - [ ] R2.3 follow-ups: toLerance refitting near the points as AutoCAD (tolerance 0.5 numbers in the merge); Elevate order
+  - [ ] (hatch3, running) R2.3 follow-ups: toLerance refitting near the points as AutoCAD (tolerance 0.5 numbers in the merge); Elevate order
         past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
@@ -326,9 +326,13 @@ the ones wanted.
       21), DIMTMOVE 2 free radial words breaking where the line crosses their box (r6 8 to 0, d3 176 to 7), jogged words on
       the rim counted inside (j2 16 to 0), the near-level tie; harness .claude/gk/dims-harness14 (set a: 4 changed cases
       without AutoCAD pictures)
-- [ ] (dims12, running) Dimension follow-ups 12: the angle band's shape (a5 49, a7 101; the cos fit is empirical); diameters put out (d2 156
-      of 924; t6's D4-D12 windows); the remaining td3 cases (R20 box corner); exact ties at two arrowheads (float noise?);
-      AutoCAD pictures for set a's 6-degree cases; points exactly on an aligned extension line; lines at exactly 15 degrees (S)
+- [x] Dimension follow-ups 12 (dims12): the angle leader band refitted as tables by the cosine (a7 101 -> 71, a5 49 -> 33,
+      a4 13 -> 4, aq 194 -> 137); DIMTMOVE 2 radius arrowheads put out as AutoCAD (d3 and td3 to 0); AutoCAD pictures of
+      set a (6-degree cases agree); harness dims-harness16
+- [ ] Dimension follow-ups 13: diameters put out (d2 156 of 924: lower bound = box reach along the line, no upper rule
+      found); the band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe (DIMASZ 4, DIMGAP 1.5, 30
+      degrees); t6's D4-D12 windows; ties at two arrowheads; points exactly on an aligned extension line; lines at exactly
+      15 degrees (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
