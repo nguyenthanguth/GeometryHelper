@@ -176,7 +176,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 follow-ups 2 (hatch4): ShadeTintValue recolours colour 2 (tint cut to hundredths as AutoCAD); draW Close
         with 2 points; arc loose ends along their circle; HPGAPTOL reach as AutoCAD (2 gap + a pixel of the view, corners
         gap + pixel/2); AutoCAD's "Unable to fill/hatch the boundary." messages; bridging faster (8000: 145 -> 100 ms)
-  - [ ] R2.2 follow-ups 3: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
+  - [ ] (hatch5, running: all but the dialogs and SetGradientColors) R2.2 follow-ups 3: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
         SetGradientColors refusing one colour or values other than 0/1 (eInvalidInput; ours accepts, files may hold one);
         draW loop order (AutoCAD keeps drawing order); associative Retain under HPASSOC; an open 2-point shape kept as a
         NotClosed loop beside a valid one; small circle with a large gap closing through the far crossing (S)
@@ -659,10 +659,13 @@ the ones wanted.
       record, %x/%X/%c, refusals over a date cell; 76 of 165 probed texts, culture of the machine); units formats under
       LUNITS 1-5 with %prN/%zs (3690 texts); a merged block shares its need among its rows by their heights; the table's
       own per-kind text looks in the row layout
-- [ ] (tables6, running) Tables follow-ups 2: block cells not fitted grow their rows (10x40 block: row 43); DxfTable.Value as DateTime and
-      SetValue(DateTime); a row mixing a cell's own text height with the table's own looks (AutoCAD takes the first);
-      dates in autofill; %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only perpendicular
-      filter (GUI) (S)
+- [x] Tables follow-ups 2 (tables6): block cells placed by their extents, fitted at AutoCAD's scale, rows and columns
+      grown for unfitted blocks (10x40 block: row 43); borders set on a merged anchor copied along its range; a row's
+      height is the first cell's line floor or the tallest words
+- [ ] Tables follow-ups 3: dates in autofill (AutoCAD's GenerateSeries is erratic: UTC shift, weeks hold still);
+      DxfTable.Value of a date and SetValue(DateTime); ATTDEF text in block extents (probe vs the BOLT table);
+      MinimumColumnWidth with block widths; a block cell in column 0; SetGridLineWeight quadratic (25 ms a call on 2000
+      cells); %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only filter (GUI) (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

@@ -1340,8 +1340,10 @@ empty words still clear the cell. In a cell that holds no number, b1 and 12mm st
 hold text. Drawn anew,
 each row grows to
 hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's width less its margins, as an MTEXT of that
-width, and need their actual height and the margins above and below, one line of four thirds of the text height at
-least; a row is as high as its tallest cell needs and is never made lower. In AutoCAD's Standard, "HEA300 S355 with end
+width, and need their actual height and the margins above and below; a row is as high as its tallest cell needs and is never
+made lower, and never lower than one line, four thirds of the text height, of its first cell: in a table whose data is 8 high a
+first cell given a height of 6 makes its row 11, not the 13.67 the cells beside it at 8 would (a second cell of 12 holding one
+word makes 15, its word and the margins, and an empty cell beside the first adds nothing). In AutoCAD's Standard, "HEA300 S355 with end
 plates both sides" in ghsimplex in a column 30 wide takes six lines and makes its row 45.43 high, as AutoCAD 2021 laid it
 out, and the row keeps 45.43 when the words are made short again. Cells merged across rows grow the rows they span
 together: the rows are first as high as their own cells need, then each block, taken in the order of its top left cell,
@@ -1349,7 +1351,12 @@ row by row, shares its need among its rows in proportion to the heights they sta
 did (12 lines in two rows of 9 need 90.43 and make 45.21 each, not 9 and 81.43; in rows of 12 and 20 they make 33.91 and
 56.51; a block over rows that already hold its words changes none). A row is laid out by the text height and the text style
 of the cell's own, else those its table keeps of its own for the kind of row, else its table style's: a table of its own
-data height of 8 makes an empty data row 13.67 high (8 times 4/3 and two margins of 1.5), where its style's 4.5 made it 9. A cell written in a table of 100 rows of 20 columns
+data height of 8 makes an empty data row 13.67 high (8 times 4/3 and two margins of 1.5), where its style's 4.5 made it 9. A block cell
+whose block is not fitted to the cell asks the box its extents fill at the cell's scale and turn, and the margins: a block 10 by
+40 at scale 1 makes its row 43 and, at scale 2, 83; across two merged rows of 8 it makes 21.5 each (41.5 at scale 2), shared as
+the words of a merged block are; one wider than its column widens the column, 100 wide making a column of 30 103, the columns
+laid out before the rows; turned 45 degrees it asks the 38.36 its turned box and the margins make in both. A block fitted to its
+cell asks nothing and is drawn at the scale that fits its box, turned, in the cell less its margins. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
 
 TABLEEXPORT (Export of a table's right-click menu) asks `Select a table:` (asked again, `Object selected is not a table.`,

@@ -52,7 +52,19 @@ alignment, as wide as the cell less its margins, and an INSERT for each block ce
 table's of its row's kind, else its style's. A table of rows 9 high and columns 30 wide, its title merged across three
 columns, is drawn with 9 lines; one of 100 rows of 20 columns, every cell written, in about 40 ms on .NET 8. Rows keep
 their heights: a text taller than its row is not made room for. The block of a table is placed at the table's point,
-its entities turned along the table's direction, as `TransformBy` carries them.
+its entities turned along the table's direction, as `TransformBy` carries them. The block of a block cell is placed by its
+extents (the box its entities fill, an attribute definition left out, from its base point), not by its insertion point: the
+box, turned by the cell's rotation and scaled, is aligned in the cell by the cell's alignment, the margins in from its sides, so
+that a block 10 by 40 from its base point at scale 1 in a cell of the middle, 30 wide and 8 high at x 40 and y -18, stands with
+its insertion point at (50, -42). A cell whose block is fitted (`SetAutoScale`) is drawn at the scale that fits the turned box in
+the cell less its margins, 0.125 for that block (5 high within the margins over 40), and the 144 of the cell is left as it is.
+A block turned by exactly 90, 180 or 270 degrees stands where AutoCAD 2021 puts it, off the aligned box by the block's own
+width and height (0 and minus the width at 90).
+
+Lines set on the top left cell of a block of merged cells (`SetGridColor`, `SetGridLineWeight`, `SetGridVisibility`) are given to
+the cells along the block's edges, as AutoCAD 2021 reads them from a file: its top over the cells of its first row, its left down
+those of its first column, its bottom along a block of one row and its right down a block of one column; a line another cell
+holds of its own is kept. On the title merged across 4 columns, a top of lineweight 50 is the top of its four cells.
 
 ## Values and their kinds
 

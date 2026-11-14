@@ -173,7 +173,10 @@ namespace GeometryHelper.Dxf
         /// where it holds the line (<see cref="GetGridColor(int, int, DxfGridLineType)"/>): the bottom or right of a cell set is
         /// set on that cell too where it holds the line, so that the bottom of (1, 1) set red reads red beside a top of (2, 1)
         /// green; and a top or left the cell does not hold takes first the properties of the line the cell above or left of it
-        /// holds, so that it keeps those not set. The block AutoCAD drew the table with is not drawn anew.
+        /// holds, so that it keeps those not set. Set on the top left cell of a block of merged cells, a line is given to the cells
+        /// along the block as AutoCAD reads a block from a file: the top (and the left) along its first row (column), the bottom
+        /// along a block of one row and the right along one of one column, a line another cell holds of its own kept: the top of
+        /// (1, 1) merged with (1, 2) set 50 reads 50 at (1, 2) too. The block AutoCAD drew the table with is not drawn anew.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="column">The column, from nought.</param>
@@ -719,7 +722,14 @@ namespace GeometryHelper.Dxf
                             );
                         }
 
+                        string[] was =
+                        {
+                            Now(layout, made, r, c).EdgeText(edge, 0),
+                            Now(layout, made, r, c).EdgeText(edge, 1),
+                            Now(layout, made, r, c).EdgeText(edge, 2),
+                        };
                         any |= PutEdge(layout, made, r, c, edge, texts, flagsCode);
+                        any |= GiveAlongBlock(layout, made, r, c, edge, texts, was, flagsCode);
                     }
                 }
             }
@@ -741,6 +751,90 @@ namespace GeometryHelper.Dxf
                 CheckEditable();
                 Splice(layout, made);
             }
+        }
+
+        /// <summary>
+        /// Gives the cells along an edge of a block of merged cells the properties set on the edge of its top left cell, as
+        /// AutoCAD 2021 reads a block from a file: the block's top (its top left cell's) over the cells of its first row, its
+        /// left down the cells of its first column, its bottom along a block of one row and its right down a block of one
+        /// column (the right and bottom of a block of more are the lines inside it, read as the left and top of the next
+        /// cell). Each property is given to a cell that holds none of its own, or one equal to the value the top left cell
+        /// had before, so that a line another cell holds of its own is kept whatever the order they were set in. Whether any
+        /// cell changed.
+        /// </summary>
+        private static bool GiveAlongBlock(
+            Layout layout,
+            List<KeyValuePair<int, string>>[] made,
+            int row,
+            int column,
+            int edge,
+            string[] texts,
+            string[] was,
+            int flagsCode
+        )
+        {
+            if ((long)row * layout.Columns + column >= layout.CellStart.Count)
+            {
+                return false;
+            }
+
+            layout.CellAt(row, column).Spans(out int wide, out int high);
+            int across = Math.Max(1, wide);
+            int down = Math.Max(1, high);
+            int stepRow = 0;
+            int stepColumn = 0;
+            int count = 0;
+
+            if ((edge == 0 && across > 1) || (edge == 2 && down == 1 && across > 1))
+            {
+                stepColumn = 1;
+                count = across - 1;
+            }
+            else if ((edge == 3 && down > 1) || (edge == 1 && across == 1 && down > 1))
+            {
+                stepRow = 1;
+                count = down - 1;
+            }
+
+            bool any = false;
+
+            for (int k = 1; k <= count; k++)
+            {
+                int r = row + stepRow * k;
+                int c = column + stepColumn * k;
+
+                if (r >= layout.Rows || c >= layout.Columns || (long)r * layout.Columns + c >= layout.CellStart.Count)
+                {
+                    break;
+                }
+
+                CellView target = Now(layout, made, r, c);
+                var give = new string[3];
+                bool given = false;
+
+                for (int kind = 0; kind < 3; kind++)
+                {
+                    if (texts[kind] == null)
+                    {
+                        continue;
+                    }
+
+                    string own = target.HoldsEdge(edge) ? target.EdgeText(edge, kind) : null;
+
+                    if (own == null || (was[kind] != null && SameWhole(own, was[kind])))
+                    {
+                        give[kind] = texts[kind];
+                        given = true;
+                    }
+                }
+
+                if (given)
+                {
+                    any |= PutEdge(layout, made, r, c, edge, give, flagsCode);
+                }
+            }
+
+            return any;
         }
 
         /// <summary>A cell as it stands in the edit: its groups changed so far, else the record's.</summary>

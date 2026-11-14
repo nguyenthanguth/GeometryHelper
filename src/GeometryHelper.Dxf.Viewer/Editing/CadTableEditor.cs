@@ -859,10 +859,95 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static double[] RowNeeds(CadDocument document, DxfTable table)
         {
-            var style = new Looks(table);
+            var needs = new double[table.NumRows];
+
+            foreach (KeyValuePair<DxfCellRange, double> ask in RowAsks(document, table, new Looks(table)))
+            {
+                if (ask.Key.TopRow == ask.Key.BottomRow)
+                {
+                    needs[ask.Key.TopRow] = Math.Max(needs[ask.Key.TopRow], ask.Value);
+                }
+            }
+
+            return needs;
+        }
+
+        /// <summary>
+        /// What each block of merged cells (a cell alone is a block of one) asks of the rows it spans, in the order of its top left
+        /// cell, row by row: its words as <see cref="CellNeeds"/> measures them, or a block cell's block as it stands (a block
+        /// fitted to its cell asks nothing), the margins above and below in; a cell with no words asks nothing. The first cell of
+        /// each row also asks, for its row alone, for one line of its text height, as AutoCAD 2021 lays a row out by the one line
+        /// of its first cell (a first cell of 6 in a table whose data is 8 high makes its row 11, not the 13.66667 the cells
+        /// beside it at 8 would, and a second cell of 12 holding one word makes it 15, its word and the margins).
+        /// </summary>
+        private static List<KeyValuePair<DxfCellRange, double>> RowAsks(
+            CadDocument document,
+            DxfTable table,
+            Looks style
+        )
+        {
             double hMargin = table.HorizontalCellMargin;
             double vMargin = table.VerticalCellMargin;
-            var needs = new double[table.NumRows];
+            var asks = new List<KeyValuePair<DxfCellRange, double>>();
+
+            for (int r = 0; r < table.NumRows; r++)
+            {
+                for (int c = 0; c < table.NumColumns; c++)
+                {
+                    DxfCellRange block = table.GetMergeRange(r, c);
+
+                    if (block.TopRow != r || block.LeftColumn != c)
+                    {
+                        continue;
+                    }
+
+                    if (table.CellType(r, c) == DxfTableCellType.BlockCell)
+                    {
+                        if (table.TryBlockSize(r, c, out _, out double high))
+                        {
+                            asks.Add(new KeyValuePair<DxfCellRange, double>(block, high + 2.0 * vMargin));
+                        }
+
+                        continue;
+                    }
+
+                    double need = CellNeeds(
+                        document,
+                        table,
+                        style,
+                        r,
+                        c,
+                        block,
+                        hMargin,
+                        table.TextString(r, c),
+                        false
+                    );
+
+                    if (need > 0.0)
+                    {
+                        asks.Add(new KeyValuePair<DxfCellRange, double>(block, need + 2.0 * vMargin));
+                    }
+                }
+
+                // The first cell of the row, whatever it holds or a block of merged cells hides it, asks for one line of its text
+                // height: the row stands at that least, as AutoCAD lays out a row by its first cell's.
+                if (table.CellType(r, 0) != DxfTableCellType.BlockCell)
+                {
+                    double oneLine = TextHeightOf(table, style, r, 0, table.RowType(r)) * 4.0 / 3.0;
+                    asks.Add(
+                        new KeyValuePair<DxfCellRange, double>(new DxfCellRange(r, 0, r, 0), oneLine + 2.0 * vMargin)
+                    );
+                }
+            }
+
+            return asks;
+        }
+
+        /// <summary>What each block cell's block asks of the columns it spans: its width as it stands, the margins either side in, as <see cref="RowAsks"/> counts a height; the ranges turned, a row for a column, as <see cref="Wanted"/> takes them.</summary>
+        private static List<KeyValuePair<DxfCellRange, double>> ColumnAsks(DxfTable table)
+        {
+            double hMargin = table.HorizontalCellMargin;
+            var asks = new List<KeyValuePair<DxfCellRange, double>>();
 
             for (int r = 0; r < table.NumRows; r++)
             {
@@ -871,23 +956,23 @@ namespace GeometryHelper.Dxf.Viewer
                     DxfCellRange block = table.GetMergeRange(r, c);
 
                     if (
-                        block.TopRow != r
-                        || block.BottomRow != r
-                        || block.LeftColumn != c
-                        || table.CellType(r, c) == DxfTableCellType.BlockCell
+                        block.TopRow == r
+                        && block.LeftColumn == c
+                        && table.CellType(r, c) == DxfTableCellType.BlockCell
+                        && table.TryBlockSize(r, c, out double wide, out _)
                     )
                     {
-                        continue;
+                        asks.Add(
+                            new KeyValuePair<DxfCellRange, double>(
+                                new DxfCellRange(block.LeftColumn, block.TopRow, block.RightColumn, block.BottomRow),
+                                wide + 2.0 * hMargin
+                            )
+                        );
                     }
-
-                    needs[r] = Math.Max(
-                        needs[r],
-                        CellNeeds(document, table, style, r, c, block, hMargin, table.TextString(r, c)) + 2.0 * vMargin
-                    );
                 }
             }
 
-            return needs;
+            return asks;
         }
 
         /// <summary>
@@ -999,19 +1084,39 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Grows each row of a table to hold its cells, as AutoCAD 2021's table lays itself out: a cell's text wraps at the
         /// cell's width less its margins, as an MTEXT of that width (<see cref="CadMTextLayout"/>), and needs its actual
-        /// height, at least four thirds of its text height (one line), and the margin above and below; a row is as high as the
+        /// height and the margin above and below, a row never lower than one line, four thirds of the text height, of its first
+        /// cell; a row is as high as the
         /// most any of its cells needs, and never lower than it was. A block of merged cells across rows grows the rows it spans
         /// in proportion to their heights until they hold it (<see cref="Wanted"/>). In AutoCAD's Standard (text 4.5, margins 1.5) a row of nothing but one-line words is 9 high, and
         /// "HEA300 S355 with end plates both sides" in a column 30 wide, wrapped to five lines of ghsimplex, makes its row
-        /// 45.42857, as AutoCAD 2021 laid them out. Block cells are left as they are.
+        /// 45.42857, as AutoCAD 2021 laid them out. A block cell not fitted to its cell asks the box its block's extents fill at the
+        /// cell's scale and turn, 43 high for a block 10 by 40 at scale 1, and widens its columns first where it is wider
+        /// (<see cref="ColumnAsks"/>); a fitted one asks nothing.
         /// </summary>
         internal static void FitRows(CadDocument document, DxfTable table)
         {
             int rows = table.NumRows;
             int columns = table.NumColumns;
-            var style = new Looks(table);
-            double hMargin = table.HorizontalCellMargin;
-            double vMargin = table.VerticalCellMargin;
+
+            // The columns first, for a block cell's block wider than its column, as AutoCAD lays them out: the words of the other
+            // cells then wrap at the widths they come to.
+            var widths = new double[columns];
+
+            for (int c = 0; c < columns; c++)
+            {
+                widths[c] = table.ColumnWidth(c);
+            }
+
+            double[] wider = Wanted(widths, ColumnAsks(table));
+
+            for (int c = 0; c < columns; c++)
+            {
+                if (wider[c] > widths[c])
+                {
+                    table.SetColumnWidth(c, wider[c]);
+                }
+            }
+
             var heights = new double[rows];
 
             for (int r = 0; r < rows; r++)
@@ -1019,34 +1124,7 @@ namespace GeometryHelper.Dxf.Viewer
                 heights[r] = table.RowHeight(r);
             }
 
-            var needs = new List<KeyValuePair<DxfCellRange, double>>();
-
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 0; c < columns; c++)
-                {
-                    DxfCellRange block = table.GetMergeRange(r, c);
-
-                    if (
-                        block.TopRow != r
-                        || block.LeftColumn != c
-                        || table.CellType(r, c) == DxfTableCellType.BlockCell
-                    )
-                    {
-                        continue;
-                    }
-
-                    needs.Add(
-                        new KeyValuePair<DxfCellRange, double>(
-                            block,
-                            CellNeeds(document, table, style, r, c, block, hMargin, table.TextString(r, c))
-                                + 2.0 * vMargin
-                        )
-                    );
-                }
-            }
-
-            double[] wanted = Wanted(heights, needs);
+            double[] wanted = Wanted(heights, RowAsks(document, table, new Looks(table)));
 
             for (int r = 0; r < rows; r++)
             {
@@ -1069,17 +1147,18 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return CellNeeds(
-                    document,
-                    table,
-                    new Looks(table),
-                    row,
-                    column,
-                    table.GetMergeRange(row, column),
-                    table.HorizontalCellMargin,
-                    words
-                )
-                + 2.0 * table.VerticalCellMargin;
+            double need = CellNeeds(
+                document,
+                table,
+                new Looks(table),
+                row,
+                column,
+                table.GetMergeRange(row, column),
+                table.HorizontalCellMargin,
+                words,
+                column == 0
+            );
+            return need > 0.0 ? need + 2.0 * table.VerticalCellMargin : 0.0;
         }
 
         /// <summary>
@@ -1131,7 +1210,11 @@ namespace GeometryHelper.Dxf.Viewer
             return wanted;
         }
 
-        /// <summary>The height a cell's words need, margins left out: laid out as an MTEXT as wide as the cell less its margins, one line of the cell's text height at least.</summary>
+        /// <summary>
+        /// The height a cell's words need, margins left out: laid out as an MTEXT as wide as the cell less its margins. A cell of
+        /// the first column (<paramref name="first"/>) needs one line of its text height at least, four thirds of it, even with no
+        /// words, as AutoCAD 2021 lays a row out by its first cell; any other cell needs what its words fill, and nothing with none.
+        /// </summary>
         private static double CellNeeds(
             CadDocument document,
             DxfTable table,
@@ -1140,12 +1223,13 @@ namespace GeometryHelper.Dxf.Viewer
             int column,
             DxfCellRange block,
             double hMargin,
-            string words
+            string words,
+            bool first
         )
         {
             DxfRowType kind = table.RowType(row);
             double height = TextHeightOf(table, style, row, column, kind);
-            double oneLine = height * 4.0 / 3.0;
+            double oneLine = first ? height * 4.0 / 3.0 : 0.0;
 
             if (words.Length == 0)
             {
