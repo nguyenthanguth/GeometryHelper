@@ -273,6 +273,14 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            // The edit of a reference in place refuses what opens another or saves the drawing with it open.
+            if (Document.RefEdit != null && CadCommands.LeavesRefEdit(command.Name))
+            {
+                Write(CadRefEdit.NotAllowed);
+                Changed();
+                return false;
+            }
+
             var preSelected = new List<string>();
 
             // With PICKFIRST 0 a command asks for its objects whatever was selected before it, as AutoCAD's.

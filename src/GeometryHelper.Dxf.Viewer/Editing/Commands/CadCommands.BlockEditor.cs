@@ -18,6 +18,10 @@ namespace GeometryHelper.Dxf.Viewer
         {
             "BEDIT",
             "-BEDIT",
+            "REFEDIT",
+            "-REFEDIT",
+            "REFSET",
+            "REFCLOSE",
             "XREF",
             "-XREF",
             "XATTACH",

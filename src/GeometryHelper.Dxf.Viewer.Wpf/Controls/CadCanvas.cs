@@ -1255,6 +1255,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
             IReadOnlyList<string> faded = Faded();
+
+            // The objects outside the working set of a reference edited in place stay faded, as AutoCAD fades them by XFADECTL.
+            IReadOnlyList<string> locked =
+                document.RefEdit != null && Space == document.ModelSpace
+                    ? document.RefEditLockedHandles()
+                    : Array.Empty<string>();
             CadTableLive live = Through == null && IsRunning ? session.Prompt?.InPlace?.TableLive : null;
             IReadOnlyList<DisplayItem2> typed = live != null ? live.Items : Array.Empty<DisplayItem2>();
             string marking = string.Join(
@@ -1266,6 +1272,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 document.Selection.Count,
                 session?.Gathering.Count ?? 0,
                 faded.Count,
+                locked.Count,
+                document.XFadeControl,
                 typed.Count > 0 ? live.Version : -1
             );
 
@@ -1307,6 +1315,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 using (SKPixmap pixels = _marked.PeekPixels())
                 {
                     Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
+                    Fade(surface.Canvas, document, locked, LockedShare(document));
                     _renderer.RenderFaded(surface.Canvas, document, Space, View, Options, new[] { live.Handle }, 0.0);
                     _renderer.RenderItems(surface.Canvas, document, Space, View, Options, typed);
                     Highlight(surface.Canvas, document, highlighted, false, pixels);
@@ -1321,12 +1330,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 using (SKPixmap pixels = _marked.PeekPixels())
                 {
                     Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
+                    Fade(surface.Canvas, document, locked, LockedShare(document));
                     Fade(surface.Canvas, document, faded);
                     Highlight(surface.Canvas, document, highlighted, false, pixels);
                     surface.Canvas.Flush();
                 }
             }
-            else if (highlighted.Count == 0)
+            else if (highlighted.Count == 0 && locked.Count == 0)
             {
                 _marked?.Dispose();
                 _marked = null;
@@ -1339,7 +1349,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 using (SKPixmap pixels = _marked.PeekPixels())
                 {
                     Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
-                    Highlight(surface.Canvas, document, highlighted, false, pixels);
+                    Fade(surface.Canvas, document, locked, LockedShare(document));
+
+                    if (highlighted.Count > 0)
+                    {
+                        Highlight(surface.Canvas, document, highlighted, false, pixels);
+                    }
+
                     surface.Canvas.Flush();
                 }
             }
@@ -4250,21 +4266,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Draws entities faded over the canvas, as <see cref="Highlight"/> draws them highlighted; through a viewport, within its frame.</summary>
-        private void Fade(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles)
+        private void Fade(
+            SKCanvas canvas,
+            CadDocument document,
+            IReadOnlyCollection<string> handles,
+            double share = FadedShare
+        )
         {
             DxfViewport through = Through;
 
             if (through == null)
             {
-                _renderer.RenderFaded(canvas, document, Space, View, Options, handles, FadedShare);
+                _renderer.RenderFaded(canvas, document, Space, View, Options, handles, share);
                 return;
             }
 
             canvas.Save();
             ClipToFrame(canvas, through);
-            _renderer.RenderFaded(canvas, document, document.ModelSpace, WorkView, Options, handles, FadedShare);
+            _renderer.RenderFaded(canvas, document, document.ModelSpace, WorkView, Options, handles, share);
             canvas.Restore();
         }
+
+        /// <summary>
+        /// The share of their own colour the objects outside the working set of a reference edited in place keep: what XFADECTL
+        /// leaves, 30 per cent at AutoCAD's 70.
+        /// </summary>
+        private static double LockedShare(CadDocument document) =>
+            1.0 - Math.Max(0, Math.Min(90, document.XFadeControl)) / 100.0;
 
         /// <summary>
         /// The objects the prompt waiting is about to move away from where they stand, drawn faded there while their copy

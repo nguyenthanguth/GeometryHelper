@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter edits a block reference in place, as AutoCAD 2021's REFEDIT: REFEDIT and -REFEDIT ask `Select reference:` (a
+reference selected before is taken), the nested reference to edit where the point picked reaches one (`Reference: A > B`, `Ok`/`Next`) and
+the objects to take (`Automatic`, `Prompt` for points, `Settings` for the attribute definitions and the lock), and copy the objects of the
+block into the drawing where the reference draws them, the working set: BOX, a line from (0, 0) to (100, 0) and a circle of 10 about
+(50, 30), placed at (1 000, 0), gives a line from (1 000, 0) to (1 100, 0) and a circle about (1 050, 30), and its references draw the block
+without them. Every command works on them; the objects outside the set are locked (a selection leaves them out, any other change says `The
+line 2F is not in the working set.`) and drawn faded by XFADECTL (0 to 90, 70 as AutoCAD 2021 has it; `CadDocument.XFadeControl`).
+REFSET Add puts objects drawn in the drawing into the set and Remove takes them out, to stay in the drawing; REFCLOSE Save writes each object
+back into the block as a new object put through the reference's placing the other way and erases the one it came from, every reference of
+the block drawn anew (the circle moved 50 up and saved is the circle about (50, 80) in the block), and Discard erases the copies. The
+attribute definitions of the block stay in it unless the setting brings them in, and the attributes of the references are not touched. Undo
+stops where the edit opened and one undo takes the whole session back after REFCLOSE; a drawing saved in the middle of an edit opens with it
+still open (the XRECORD `GH_REFEDIT` of the named object dictionary). REFEDITNAME holds the block's name. An external reference, a block
+array and an anonymous block are refused; the Reference Edit dialog, the Refedit toolbar and writing an xref's file back are not built. The
+object menu of a block reference starts REFEDIT as Edit Block In-place. The registry has 255 commands.
 **CHANGED.** `DxfHatch.ShadeTintValue` on a gradient of two colours in one-colour mode makes the second colour the tint of the first, as
 AutoCAD 2021 does each time it is set (the same value again too): red at 0 and green at 1, the tint set to 0.3, read back as red and
 (153, 0, 0), a true colour at the value the second colour had; a first colour of the index is tinted from its palette colour (index 7, 0.3,

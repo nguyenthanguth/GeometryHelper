@@ -287,7 +287,7 @@ User note 2026-11-12 evening (note.md 1-14):
       (sumsur); R2010's sweep intcurve form; MTEXT background xdata of R2000 (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
-- [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
+- [ ] XCLIP follow-ups 2: REFEDIT done (refedit, blocks; xrefs left: see REFEDIT follow-ups); Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):
@@ -541,9 +541,16 @@ the ones wanted.
 - [x] Canvas menu follow-ups 2a (fu-misc): Remove Style Overrides (DIMOVERRIDE Clear), the spline items, Viewport Clip and
       Image Adjust wired; Recent Input in the drawing's units and "Selection set (N items)"; transparent 'SETVAR, 'OSNAP,
       'ORTHO, 'POLAR, 'GRID, 'SNAP
-- [ ] Canvas menu follow-ups 2b: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, REFEDIT, VPMAX items (commands not built);
+- [ ] (cmds6, running: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, VPMAX; REFEDIT done by refedit) Canvas menu follow-ups 2b: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, REFEDIT, VPMAX items (commands not built);
       the right-click customization dialog and the Command/Edit menu boards (design first); Recent Input format checked in
       the GUI (S)
+- [x] REFEDIT (refedit): REFEDIT/-REFEDIT with nested choice, Automatic/Prompt/Settings, REFSET Add/Remove, REFCLOSE
+      Save/Discard, lock and XFADECTL fade, REFEDITNAME; the edit kept in a GH_REFEDIT XRECORD (undo, reopen); one undo
+      step at close (accoreconsole lacks REFEDIT: prompts and messages from the documentation, not probed)
+- [ ] REFEDIT follow-ups: check prompts, messages and kept/new handles against the AutoCAD GUI; xrefs in place (write the
+      file back), Edit Xref In-place; MINSERT and anonymous blocks refused; the Refedit panel, Reference Edit dialog and
+      working-set menu items (design first); nested levels from the right-click menu; the window's Save button while an
+      edit is open; a true distance pick and Window/Crossing in Prompt mode (S)
 - [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
       ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
 - [x] Managers follow-ups 3: ANGBASE/ANGDIR in the dimension and ellipse rows, DIMEDIT oblique, MEASUREGEOM, the <a angle override; ATTSYNC refusing a block with no definitions; dialog buttons dimmed once
@@ -614,7 +621,7 @@ the ones wanted.
 - [x] Speed follow-ups 2 (speed3): Stop/Esc while a drawing opens stops inside the record walk, the handle scan and the
       entity listings (worst 0.74 s -> 59 ms at 1M); display list 41.1 -> 35.5 MB at 100k (shared layer names, trimmed
       lists), pixels identical; 1M memory breakdown in the merge (entity caches ~470 MB per displayed drawing)
-- [ ] Speed follow-ups 3: slimmer core entity objects and their cached reads (~470 MB per displayed drawing at 1M; the
+- [ ] (speed4, running) Speed follow-ups 3: slimmer core entity objects and their cached reads (~470 MB per displayed drawing at 1M; the
       read-ahead kept, DECIDED 2026-11-12); a stoppable walk for dropped read-aheads (DxfDatabase.Open(bytes, len)); a
       DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel

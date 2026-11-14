@@ -280,6 +280,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             ModelSpace = model;
             CurrentSpace = model;
+
+            // A drawing saved in the middle of an in-place edit opens with the edit still open.
+            _refEdit = ResumeRefEdit();
         }
 
         /// <summary>The layouts of a drawing other than model space, in the order of their tabs, a tie by name.</summary>

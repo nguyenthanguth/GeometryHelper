@@ -193,6 +193,9 @@ namespace GeometryHelper.Dxf.Viewer
             planned = planned ?? Array.Empty<CadEditRecord>();
             EnsureStart();
 
+            // While a reference is edited in place the objects outside its working set are locked, as AutoCAD's REFEDIT locks them.
+            Func<string, bool> locked = RefEditLockTest();
+
             foreach (CadEditRecord record in planned)
             {
                 if (record == null)
@@ -213,6 +216,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 record.Space = FindSpace(record.Handle)?.Name;
+
+                if (locked != null && locked(record.Handle))
+                {
+                    return CadEditResult.Refuse(
+                        "The " + KindName(entity) + " " + record.Handle + " is not in the working set."
+                    );
+                }
 
                 if (!EditGate.Allows(this, entity, record, out string reason))
                 {
