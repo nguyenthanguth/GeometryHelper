@@ -887,10 +887,18 @@ of the centre) stays inside, put 2.5 behind and 3 across it (0.066 short) too, a
 the box taking the line from 5.4) pushes it out, which put 5 along and 3 across (5.83) does not (r6 8 differing down to 0, d3 7
 and td3 6 of 760 down to 0). Words outside kept level on a line
 within 15 degrees of level stand on no landing of their own, a gap past the end of the line, as on a linear dimension.
-Level words under DIMTAD 1 and 4 put past the rim but within the room of the arrowhead stand on their landing of an arrowhead,
-the words on it, as they do under DIMTAD 0, unless the line runs within 15 degrees of upright (where they stand above it) or
-the circle is too tight for them ("R8" put 10.4 out at 30 degrees under DIMATFIT 3 stands on a landing from 13 out,
-16.402 along); a radius picked at 30 degrees under DIMTMOVE 1 with level words, the point put 150 degrees round, has its line
+Level words under DIMTAD 1 and 4 put past the rim stand on their landing of an arrowhead, the words on it, as they do under
+DIMTAD 0, or above a landing of their own, by how they fit the line (the radius, or the diameter) as DIMATFIT 3 fits them: they
+stand on the landing where the line is longer than the room their box reaches along it, but the arrowheads do not take their
+place (the line is not longer than an arrowhead and two gaps for a radius, two arrowheads and two gaps for a diameter) and the
+words and the arrowheads do not both fit (the line is not longer than the chord through the box and those); where the arrowheads
+fit and are the larger of the two, a tie going to them, the words stand above their own landing, as they do where both fit. A line
+within 15 degrees of upright is no exception, and a diameter is decided like a radius: "R8" put 10.4 out at 30 degrees under
+DIMATFIT 3 stands on a landing from 13 out, 16.402 along; with Arial 2.5 high, DIMASZ 2.5 and DIMGAP 0.625 "R8" at 60 degrees
+stands on its landing and "R10" at 45 above one 6.59 long, "R5" at 85 on its landing, "%%c6" at 90 on it and "%%c7" above one
+4.98 long, "%%c10" at 45 on it and "%%c12" above one 6.9 long (of these sizes a diameter of 14 or more never stands on it; td2, 924
+diameters and radii by 21 angles, 166 differing down to 8, and 0 with the points rounded to six decimals as AutoCAD was given
+them; with the SHX font 156 down to 12 and 8, the ties of "R6" and "R7" straight up falling either way); a radius picked at 30 degrees under DIMTMOVE 1 with level words, the point put 150 degrees round, has its line
 run on through the centre to the height of the point and the words stand level there, group 11 the end of the line.
 Level words under DIMTAD 1 and 4 put inside a radius or a diameter under DIMATFIT 3 keep to the line, level with a landing an
 arrowhead long, only where it has the room: two arrowheads (and the height of the words on a line that runs down) and, as

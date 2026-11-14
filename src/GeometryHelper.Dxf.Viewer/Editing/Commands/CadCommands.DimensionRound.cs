@@ -227,7 +227,21 @@ namespace GeometryHelper.Dxf.Viewer
                 farArrow = diameter && style.Dimtofl;
                 farOut = true;
                 atPoint = (placed || !style.Dimtix) && at <= along + 1E-9;
-                pushedOut = !placed && !atPoint && !diameter && radius > reachAlong + 1E-9;
+                pushedOut =
+                    !placed
+                    && !atPoint
+                    && WordsStayWithTheLine(
+                        diameter ? 2.0 * radius : radius,
+                        reachAlong,
+                        chordAlong,
+                        diameter
+                            ? (
+                                CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName)
+                                    ? 0.0
+                                    : 2.0 * arrow + 2.0 * gap
+                            )
+                            : trim + 2.0 * gap
+                    );
             }
             else if (!placed && style.Dimtix && !fitted)
             {
@@ -446,6 +460,27 @@ namespace GeometryHelper.Dxf.Viewer
             picture.Add(Definition(diameter ? far : center));
             picture.Add(Definition(chord));
             return picture;
+        }
+
+        /// <summary>
+        /// Whether the words of a radius or a diameter put out past the rim stand with the line, on its landing (they fit the
+        /// line and the arrowheads do not take their place), rather than above a landing of their own. AutoCAD 2021 fits the
+        /// words and the arrowheads to the line (<paramref name="line"/>, the radius or the diameter) the way it does for
+        /// DIMATFIT 3: the words fit where the line is longer than the room they reach along it
+        /// (<paramref name="reach"/>), the arrowheads where it is longer than <paramref name="arrows"/>, both where it is
+        /// longer than the arrowheads and the chord of the line through the words' box (<paramref name="chord"/>). Where both
+        /// fit, or the arrowheads fit and are the larger of the two (a tie goes to them), the words stand above their own
+        /// landing: with Arial 2.5 high and DIMASZ 2.5, "R8" at 60 degrees stands on the landing and "R10" at 45 above one,
+        /// "%%c6" straight up on it and "%%c7" above one.
+        /// </summary>
+        private static bool WordsStayWithTheLine(double line, double reach, double chord, double arrows)
+        {
+            if (!(line > reach + 1E-9) || line > chord + arrows + 1E-9)
+            {
+                return false;
+            }
+
+            return !(line > arrows + 1E-9 && arrows >= reach - 1E-9);
         }
 
         /// <summary>
@@ -768,11 +803,8 @@ namespace GeometryHelper.Dxf.Viewer
                 bool leftTheLine = false
             )
             {
-                // Level words pushed out past the rim by the room next to it stand on their landing under DIMTAD 1 and 4 as under 0,
-                // unless the line runs within 15 degrees of upright, where they stand above it.
-                bool on =
-                    On(level && !outside)
-                    || (pushed && level && (_tad == 1 || _tad == 4) && Math.Abs(way.X) >= Math.Sin(Math.PI / 12.0));
+                // Level words pushed out past the rim by the room next to it stand on their landing under DIMTAD 1 and 4 as under 0.
+                bool on = On(level && !outside) || (pushed && level && (_tad == 1 || _tad == 4));
                 bool nearly = Math.Abs(way.Y) < Math.Sin(Math.PI / 12.0) - 1E-9;
                 bool inside =
                     level
