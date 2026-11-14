@@ -284,19 +284,30 @@ namespace GeometryHelper.Dxf
                 // A record that follows an entity can be written through the entity as well: it is read each time.
                 if (Parent != null)
                 {
-                    List<object> now = _file.ShapesOf(this);
-                    return Listed(now);
+                    return ReadShapes();
                 }
 
                 if (shapes == null)
                 {
-                    List<object> read = _file.ShapesOf(this);
-                    Interlocked.CompareExchange(ref _shapes, Listed(read), null);
+                    Interlocked.CompareExchange(ref _shapes, ReadShapes(), null);
                     shapes = Volatile.Read(ref _shapes);
                 }
 
                 return shapes;
             }
+        }
+
+        /// <summary>The shapes read from the record now: a LINE, ARC, CIRCLE or LWPOLYLINE read from its bytes into the list of one with no list made first, any other the reader's.</summary>
+        private IReadOnlyList<object> ReadShapes()
+        {
+            if (Type == "INSERT")
+            {
+                return Listed(_file.ShapesOf(this));
+            }
+
+            return _file.TryFastShape(this, out object shape)
+                ? new OneShape(shape)
+                : Listed(_file.ShapesReadLong(this));
         }
 
         /// <summary>

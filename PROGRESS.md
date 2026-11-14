@@ -143,7 +143,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 4 (mline5): CC/OC/MC/CJ scan every segment pair and cross the usable one nearest the picks
         (refusals by the end-segment rule; explains the CJ refusals and the "L second" split); MoveVertexAt on closed cut
         MLINEs; AutoCAD's inverted break records not copied (its own Explode draws them wrong)
-  - [ ] MLINE follow-ups 5: tees CT/OT/MT with the pair scan; 25 staircase breaks within 20 of a corner; the triangle's
+  - [ ] (mline6, running) MLINE follow-ups 5: tees CT/OT/MT with the pair scan; 25 staircase breaks within 20 of a corner; the triangle's
         no-nought moves (20) and the six-sided staircase's (10); four closed-square refusals; two joinable corners
         half-edited by AutoCAD; CJ picks on the meeting point; closed-trim end-stop ties (harness lost, re-probe) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -336,7 +336,7 @@ User note 2026-11-12 evening (note.md 1-14):
       formats restored going up, 280 of styles and tables going to R2010+. Invisible borders, merged-cell borders,
       block auto-scale and TABLE_ENTITY are fixes AutoCAD makes when it READS a table, in every version, not Save As
       rules: DECIDED (reversing the earlier line on evidence) to keep borders as AutoCAD's in-memory Save As does
-- [ ] DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
+- [ ] (dxfver7, running) DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
       along a merged range, auto-fit block scale min((W-2hm)/bw, (H-2vm)/bh)); TABLEGEOMETRY 93 = 3 vs 7 in one case;
       table styles without an extension dictionary; tables without a style (342) given a TABLECONTENT; sweeps along
       splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007); oblique extrusions
@@ -724,10 +724,14 @@ the ones wanted.
 - [x] Speed follow-ups 5 (speed6): hatches and MTEXTs share their display styles (75 003 styles -> 3 on a 100k
       hatch/MTEXT drawing, display list 142 -> 135 MB); handle strings, shape caches, hatch loop strings and arc boxes
       measured and declined (numbers in display.md); layer-off at 1M re-timed, no regression
-- [ ] (speed7, running: the fast shape read) Speed follow-ups 6: a fast byte-level read of LINE/ARC/CIRCLE/LWPOLYLINE, bit-exact with fuzz (shape reading is
-      ~40 % of a cold display; would let the shape cache go: 73 MB at 1M); the 48-byte "no contexts" tuple of
-      DBText/MText/BlockReference; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; a
-      same-build pixel hash that varied once under load (d100k zoomed); read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 6 (speed7): LINE/ARC/CIRCLE/LWPOLYLINE shapes read straight from their record bytes,
+      bit-identical (200 000-record fuzz per type, 121 792 AutoCAD corpus records, 27 million numbers), with a 128-bit
+      number path; shapes of 78 000 in 100k entities 170 -> 86 ms (net8), cold display 10-15 % faster; shape cache kept
+- [ ] Speed follow-ups 7: TEXT/MTEXT and block entities through the fast read; DxfFastNumber.Wide inside
+      Numbers.TryRead for every record read; TryChain garbage; dropping the LINE/ARC/CIRCLE shape cache (55 MB at 1M,
+      needs the same-object contract relaxed); exact power-of-ten ties; the 48-byte "no contexts" tuple; DxfPolyline's 8
+      cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped
+      mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
