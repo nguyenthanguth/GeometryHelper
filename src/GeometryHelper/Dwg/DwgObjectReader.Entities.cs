@@ -951,9 +951,11 @@ namespace GeometryHelper.Dwg
                 bulges[i] = _data.BitDouble();
             }
 
+            var ids = new int[idCount];
+
             for (int i = 0; i < idCount; i++)
             {
-                _data.BitLong();
+                ids[i] = _data.BitLong();
             }
 
             var widths = new double[widthCount][];
@@ -979,6 +981,11 @@ namespace GeometryHelper.Dwg
             for (int i = 0; i < count; i++)
             {
                 _object.AddPoint(10, points[i]);
+
+                if (i < idCount)
+                {
+                    _object.Add(91, ids[i]);
+                }
 
                 if (i < widthCount)
                 {
@@ -2365,10 +2372,23 @@ namespace GeometryHelper.Dwg
                 _object.Add(280, version);
             }
 
-            _object.Add(2, new DwgName(block));
+            // A dimensional constraint of a dynamic block has no block of its picture (bit 2 of its flags is clear), and AutoCAD's
+            // DXF gives it with no block (2) and a type (70) without the bit 32, left out where it is 0.
+            bool constraint = block == 0 && (flags & 2) == 0;
+            int dimensionType = kind | ((flags & 1) == 0 ? 128 : 0) | extra | (constraint ? 0 : 32);
+
+            if (!constraint)
+            {
+                _object.Add(2, new DwgName(block));
+            }
+
             _object.AddPoint(10, points[10]);
             _object.AddPoint(11, new[] { middle[0], middle[1], elevation });
-            _object.Add(70, kind | 32 | ((flags & 1) == 0 ? 128 : 0) | extra);
+
+            if (!constraint || dimensionType != 0)
+            {
+                _object.Add(70, dimensionType);
+            }
 
             if (text.Length > 0)
             {

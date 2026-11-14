@@ -107,7 +107,7 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Batch 4a/4b follow-ups 3a (fu-small): HATCHEDIT's Click to set new origin; -RENAME VPort through the tiled viewports
       (both renames agree and are saved); -OSNAP's rarer names as AutoCAD prints them (Near, Gcen, App Int); CAL rad of a
       polyline arc segment
-- [ ] Batch 4a/4b follow-ups 3b: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
+- [ ] (b4c, running) Batch 4a/4b follow-ups 3b: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
       surface kinds; CAL getvar and transformations; QuickCalc Units Conversion and Variables; QP CUI lists and QPLOCATION;
       dimension styles of a block bound by XBIND; whether HIDEPALETTES hides the command line; visual styles drawn; spelling
       of dimension text and xrefs; the hidden internal visual style names and Check Spelling's punctuation default checked
@@ -467,11 +467,14 @@ the ones wanted.
         written they stay left out whole, as their constraint group's R2018 layout is not decoded; a fixpoint rule leaves out
         a graph or network missing any part (no rewrite refused); 135 of 142 AutoCAD files rewrite at AUDIT 0 (7 carry their
         originals' errors)
-  - [ ] (dwg14, running: the constraint group) DWG follow-ups 8: the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP (header, class table and node directory decoded;
-        node bodies not: the oracle is DxfIn of a modified DXF, SaveAs R2018, bit-diff), which unlocks the 18 graphs;
-        version-2 actions in R2013; the stretch entity order (3 of 115); dynamic data below R2007; sweep, revolve and
-        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom parity;
-        TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
+  - [x] DWG follow-ups 8 (dwg14): the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP read and written (34 groups to AutoCAD's
+        bits; all 90 evaluation graphs written, 18 newly); R2013 edge names; LWPOLYLINE vertex ids (group 91) kept;
+        dimensional constraints without a block flag; 167 DWGs to R2018, AUDIT 160 at 0 (originals 156), none refused
+  - [ ] DWG follow-ups 9: the order of a group's actions (AutoCAD's hash order); 236 ARC objects one bit off in objcmp;
+        network, variable and dependency actions from R2010 text written at version 1; whether the AC1027 writer is worth
+        fixing (AutoCAD refuses it, ErrorStatus 53); the stretch entity order (3 of 115); dynamic data below R2007; sweep,
+        revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
+        parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
