@@ -171,8 +171,8 @@ namespace GeometryHelper.Dxf.Viewer
             Found,
 
             /// <summary>
-            /// No such pair, but the lines of one meet past a vertex of a multiline's first or last segment (any segment of a
-            /// closed one) while the other runs on past its free end: AutoCAD 2021 refuses it without saying the lines miss.
+            /// No such pair, but the lines of one meet past a vertex of a multiline's first or last segment while the
+            /// other runs on past its free end: AutoCAD 2021 refuses it without saying the lines miss.
             /// </summary>
             Refused,
 
@@ -182,10 +182,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Finds the pair of segments two multilines are crossed or joined at, as AutoCAD 2021 does: not the segments the picks lie
-        /// on, but of every pair of segments whose lines meet on both (or past the start of an open multiline's first segment or
-        /// the end of its last) the one whose meeting is nearest the two picks along the multilines, the distance along the first
-        /// from its pick and along the second from its pick added (a tie goes to the later pair). Two segments in a pair whose
-        /// lines run parallel are not a pair.
+        /// on, but of every pair of segments whose lines meet on both (or past the start of a multiline's first segment or
+        /// the end of its last: a closed multiline is taken as the run of its segments from the first to the last, as an open one
+        /// is) the one whose meeting is nearest the two picks along the multilines, the distance along the first from its pick and
+        /// along the second from its pick added (a tie goes to the later pair). Two segments in a pair whose lines run parallel are
+        /// not a pair.
         /// </summary>
         /// <param name="first">The first multiline.</param>
         /// <param name="firstPick">Where the first was picked.</param>
@@ -228,8 +229,8 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    bool firstOn = OnSegmentOrItsOpenEnd(first, i, onFirst);
-                    bool secondOn = OnSegmentOrItsOpenEnd(second, j, onSecond);
+                    bool firstOn = OnRun(first, i, onFirst);
+                    bool secondOn = OnRun(second, j, onSecond);
 
                     if (firstOn && secondOn)
                     {
@@ -249,8 +250,8 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         // One line meets the other past a vertex of its segment while the other segment is run on past a free end.
                         refused |= secondOn
-                            ? EndLike(first, i) && Beyond(second, j, onSecond)
-                            : EndLike(second, j) && Beyond(first, i, onFirst);
+                            ? EndOfRun(first, i) && Beyond(second, j, onSecond)
+                            : EndOfRun(second, j) && Beyond(first, i, onFirst);
                     }
                 }
             }
@@ -261,13 +262,17 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Finds the pair of segments a tee is made at, as AutoCAD 2021 does: of every pair of segments whose lines meet (not
-        /// the ones the picks lie on) the one whose meeting is nearest the picks along the multilines, the distance along the
-        /// stem from its pick and along the second from its pick added, the later pair where two are as near; that pair alone
-        /// says what follows. The stem may be run on past the free end of its first or last segment, the second must be met on
-        /// one of its segments. The pair is <see cref="PairKind.Found"/> where both are, <see cref="PairKind.Refused"/> where
-        /// the stem is run on past its free end to a second that is met past a vertex of its own, or the stem is met past a
-        /// vertex of its own and the second past its free end, and <see cref="PairKind.NoMeeting"/> for every other.
+        /// Finds the pair of segments a tee is made at, as AutoCAD 2021 does (not the ones the picks lie on): of every pair of
+        /// segments whose lines meet, with the stem met on a segment or run on past the free end of its first or last, and the
+        /// second met on a segment or run on past its own free end, the one whose meeting is nearest the picks along the
+        /// multilines, the distance along the stem from its pick and along the second from its pick added. Of two pairs as
+        /// near, where one meets the second on a segment and the other past its free end the one on the earlier segment of
+        /// the second wins, else the one whose stem segment is farther from the stem's pick, then the one nearer along the
+        /// stem, then the earlier (356 ties probed, 334 so). That pair alone says whether the tee is made: it is <see cref="PairKind.Found"/> where the
+        /// second is met on a segment (the end of its last is not on it) and <see cref="PairKind.NoMeeting"/> where it is met
+        /// past its free end. Where there is no such pair, the tee is <see cref="PairKind.Refused"/> if any pair has the stem
+        /// run on past its free end to a second met past a vertex of its own, on its first or last segment, or has the stem
+        /// met past a vertex of its own and the second past its free end, and <see cref="PairKind.NoMeeting"/> otherwise.
         /// </summary>
         /// <param name="first">The stem.</param>
         /// <param name="firstPick">Where the stem was picked.</param>
@@ -288,11 +293,12 @@ namespace GeometryHelper.Dxf.Viewer
             secondSegment = 0;
             double firstArc = ArcAt(first, firstPick);
             double secondArc = ArcAt(second, secondPick);
-            PairKind kind = PairKind.NoMeeting;
             bool found = false;
-            bool any = false;
-            double bestFound = 0.0;
-            double bestAny = 0.0;
+            bool refused = false;
+            bool bestOn = false;
+            double best = 0.0;
+            double bestGap = 0.0;
+            double bestAlong = 0.0;
 
             for (int i = 0; i < first.SegmentCount; i++)
             {
@@ -312,9 +318,6 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    double score =
-                        Math.Abs(firstArc - (ArcStart(first, i) + onFirst)) * 1E6
-                        + Math.Abs(secondArc - (ArcStart(second, j) + onSecond));
                     bool firstOn = OnSegmentOrItsOpenEnd(first, i, onFirst);
                     // The end of a free end's segment is not on it; the end that another segment goes on from is.
                     bool secondOn =
@@ -326,32 +329,58 @@ namespace GeometryHelper.Dxf.Viewer
                             )
                         );
 
-                    if (firstOn && secondOn)
+                    bool secondFree = !secondOn && !EndPast(second, j, onSecond);
+
+                    if (firstOn && (secondOn || secondFree))
                     {
-                        if (!found || score <= bestFound + Tiny)
+                        double alongStem = Math.Abs(firstArc - (ArcStart(first, i) + onFirst));
+                        double score = alongStem + Math.Abs(secondArc - (ArcStart(second, j) + onSecond));
+                        double pickGap = DistanceToSegment(firstPick, first.Points[i], first.Points[Next(first, i)]);
+
+                        // Two pairs as near as each other: where one meets the second on a segment and the other past its free
+                        // end, the one on the earlier segment of the second; else the one whose stem segment is farther from
+                        // the stem's pick, then the nearer along the stem, then the earlier.
+                        bool better =
+                            !found
+                            || score < best - Tiny
+                            || (
+                                score <= best + Tiny
+                                && (
+                                    secondOn != bestOn ? j < secondSegment
+                                    : Math.Abs(pickGap - bestGap) > Tiny ? pickGap > bestGap
+                                    : alongStem < bestAlong - Tiny
+                                )
+                            );
+
+                        if (better)
                         {
                             found = true;
-                            bestFound = score;
+                            best = score;
+                            bestOn = secondOn;
+                            bestGap = pickGap;
+                            bestAlong = alongStem;
                             firstSegment = i;
                             secondSegment = j;
                         }
                     }
-                    else if (!found && (!any || score <= bestAny + Tiny))
+                    else
                     {
-                        any = true;
-                        bestAny = score;
                         bool firstExt = firstOn && Beyond(first, i, onFirst);
-                        bool secondFree = !secondOn && !EndPast(second, j, onSecond);
-                        kind =
+                        refused |=
                             (firstExt && !secondOn && !secondFree && EndLike(second, j))
-                            || (!firstOn && secondFree && EndLike(first, i))
-                                ? PairKind.Refused
-                                : PairKind.NoMeeting;
+                            || (
+                                !firstOn
+                                && secondFree
+                                && (onSecond < -Tiny || onSecond > Length(second, j) + Tiny)
+                                && EndLike(first, i)
+                            );
                     }
                 }
             }
 
-            return found ? PairKind.Found : kind;
+            return found ? (bestOn ? PairKind.Found : PairKind.NoMeeting)
+                : refused ? PairKind.Refused
+                : PairKind.NoMeeting;
         }
 
         /// <summary>Whether a point along a segment's line is past a vertex that another segment of the multiline goes on from (not past a free end).</summary>
@@ -475,6 +504,19 @@ namespace GeometryHelper.Dxf.Viewer
                 );
             }
         }
+
+        /// <summary>
+        /// Whether the meeting of the lines of two segments is on a segment of a multiline taken as a run of segments from the
+        /// first to the last (a closed multiline too: AutoCAD 2021 runs its first segment on past its start and its last past its
+        /// end, and not the others): from its start to its end, or past the start of the first segment or the end of the last.
+        /// </summary>
+        private static bool OnRun(DxfMlineBuilder mline, int segment, double along) =>
+            (along >= -Tiny || segment == 0)
+            && (along <= Length(mline, segment) + Tiny || segment == mline.SegmentCount - 1);
+
+        /// <summary>Whether a segment is the first or the last of a multiline, closed or not.</summary>
+        private static bool EndOfRun(DxfMlineBuilder mline, int segment) =>
+            segment == 0 || segment == mline.SegmentCount - 1;
 
         /// <summary>
         /// Whether the meeting of the lines of two segments is on a segment of a multiline: from its start to its end, or past
@@ -921,15 +963,15 @@ namespace GeometryHelper.Dxf.Viewer
                         second.ElementPoint(secondSegment, target),
                         secondWay,
                         out double along,
-                        out double onTarget
+                        out double _
                     )
                 )
                 {
                     return false;
                 }
 
+                passes[e] = ElementHit(first, firstSegment, e, second, secondSegment, target, ref along);
                 stops[e] = first.ElementPoint(firstSegment, e).Add(firstWay.Multiply(along));
-                passes[e] = Within(second, secondSegment, target, onTarget);
                 selfIntersecting |= !passes[e];
             }
 
@@ -988,6 +1030,57 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Where an element of a stem meets an element of the second multiline, as AutoCAD 2021 stops it: not only on the
+        /// segment of the pair, but on whichever piece of the second's element (the mitred path it is drawn along) the stem's
+        /// element line meets, the piece nearest the pair's segment where it meets more than one.
+        /// </summary>
+        /// <param name="first">The stem.</param>
+        /// <param name="segment">The stem's segment of the pair.</param>
+        /// <param name="element">The stem's element.</param>
+        /// <param name="second">The multiline met.</param>
+        /// <param name="pairSegment">The second's segment of the pair.</param>
+        /// <param name="target">The second's element the stem's element stops at.</param>
+        /// <param name="along">The distance along the stem's element from its point on the segment to where it meets the
+        /// target on the segment of the pair; set to where it meets the nearest piece.</param>
+        /// <returns>False where the stem's element meets no piece of the target.</returns>
+        private static bool ElementHit(
+            DxfMlineBuilder first,
+            int segment,
+            int element,
+            DxfMlineBuilder second,
+            int pairSegment,
+            int target,
+            ref double along
+        )
+        {
+            GeoPoint3 start = first.ElementPoint(segment, element);
+            GeoVector3 way = first.SegmentDirection(segment);
+            int best = -1;
+            double bestAlong = along;
+
+            for (int k = 0; k < second.SegmentCount; k++)
+            {
+                GeoPoint3 from = second.ElementPoint(k, target);
+                GeoVector3 across = second.SegmentDirection(k);
+                double length = from.GetVectorTo(second.ElementPoint(Next(second, k), target)).DotProduct(across);
+
+                if (
+                    Meet(start, way, from, across, out double hit, out double onPiece)
+                    && (onPiece >= -Tiny || (!second.IsClosed && k == 0))
+                    && (onPiece <= length + Tiny || (!second.IsClosed && k == second.SegmentCount - 1))
+                    && (best < 0 || Math.Abs(k - pairSegment) < Math.Abs(best - pairSegment))
+                )
+                {
+                    best = k;
+                    bestAlong = hit;
+                }
+            }
+
+            along = bestAlong;
+            return best >= 0;
         }
 
         /// <summary>
@@ -1401,8 +1494,10 @@ namespace GeometryHelper.Dxf.Viewer
                             sequence.Count > 2 && k > 0 && k < sequence.Count - 1
                         );
                     }
-                    else
+                    else if (from < length - Tiny)
                     {
+                        // A cut that starts at or past the end of the element (the picks lie beyond the end of a mitred
+                        // element's stretch, as at a concave corner) takes nothing out of it.
                         List<DxfMlineBuilder.Run> left = Without(mline.RunsOf(s, e), from, to);
 
                         // A stretch that would start at the end of the element is nothing to draw, as AutoCAD writes it.
