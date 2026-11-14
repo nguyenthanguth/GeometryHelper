@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A table going across R2007 (`Save(path, "AC1018")` and back) stays a table where its cells carry more than plain text:
+alignment, text height, text style, colours, background, borders of every side, and a block cell. It was the INSERT of its block before.
+The cells are AutoCAD's group for group: of 4 tables of AutoCAD 2021 (one with a title, a cell 4 high, one aligned bottom left, red
+text and a green background; one of 16 cells with a border of each side, kind and visibility; a linked one) the R2000 and R2004 forms
+made from R2018 and the R2018 form made from R2004 are what AutoCAD writes of them (the flags of a border cell, 0x8880, are 297 088 in
+R2007 and later and -30 592 in R2004 and before). A cell with a field or a link, or a group the old form has no rule for, still makes
+the table its block.
+**FIXED.** A table that keeps a TABLECONTENT (a link to a spreadsheet, merged cells in a table of AutoCAD 2021) lost it going up from
+R2000 or R2004 (its extension dictionary went, the data link with it), and going down to R2000 or R2004 it was written with the values
+of R2007, which AutoCAD discards the drawing for (error 53 reading the file). Its round trip (`ACAD_ROUNDTRIP_2008_TABLE_ENTITY`, its
+TABLECONTENT and TABLEGEOMETRY) now goes both ways as AutoCAD writes it: a linked table saved as R2004 and read by AutoCAD 2021 is
+linked at the same cell (1, 0), its `AUDIT` finds 0 errors, and the TABLECONTENT of a table of merged cells is AutoCAD's in all 9
+directions among R2000, R2004, R2007 and R2018. The data table AutoCAD adds to a table going to R2000 or R2004
+(`ACAD_ROUNDTRIP_PRE2007_TABLE`) is taken out going up and not made going down: AutoCAD reads the table, its link and its text height
+without it.
+**FIXED.** An MTEXT saved as R2000 carries the extended data AutoCAD writes of every one there (ACAD, `MTEXTBEGIN`, its line spacing style
+(73) and factor (44) again, a 74 of nought, `MTEXTEND`): the note of a leader and the 6 MTEXTs of a table are AutoCAD's own groups of R2000,
+and the data goes when the drawing goes to R2004 or later.
+**NEW.** The transform of a solid or surface body may say `reflect` and `shear` (ACIS `transform`, `no_reflect no_shear` until now the
+only words): AutoCAD reads both from a file (a box 30 by 20 by 10 with `shear` is 30 by 35 by 10, one with another word a modeling error) and
+writes neither (it bakes a mirror into the solid and refuses an uneven scale), and the SAT and the SAB of R2013 and later each keep them.
+**NEW.** The extrusion of a closed spline square to its plane (`cylsur` of R2004, `cyl_spl_sur` of R2007 and later) goes between R2004, R2007,
+R2010, R2013 and R2018: 6 conversions among the three SAT forms are AutoCAD's records one for one, and the R2007, R2010, R2013 and R2018
+files open in AutoCAD 2021 with its volume (2 279.094) and 0 errors in `AUDIT`. The vertex where the closed edge of such a profile meets
+the seam is numbered 2 from R2007 (a closed edge alone 0, as before). A solid made by a sweep along a spline, a loft of different circles
+and an extrusion at a slant (tolerant edges, a B-spline surface in R2004 that R2000 lacks) are still left as they are.
+
 **NEW.** EXPORTPDF shows Save As PDF as AutoCAD 2021's (designed first): the file with Browse…, Open in viewer when done, Include
 plot stamp with its Plot Stamp dialog, Export (Current layout and All layouts in a layout, Display, Extents and Window in model
 space, a window's corners asked once the dialog closes), Page Setup Current or Override with Page Setup Override (paper size, plot

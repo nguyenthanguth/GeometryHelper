@@ -797,7 +797,22 @@ namespace GeometryHelper.UnitTest.Dxf
                         "1040=8",
                         "1040=9",
                         "1000=ACAD_MTEXT_COLUMN_INFO_END",
-                    },
+                    }.Concat(
+                        // R2000 writes the data of every MTEXT after it (AutoCAD 2021's R2000 file of a box of two columns).
+                        version != "AC1015"
+                            ? new string[0]
+                            : new[]
+                            {
+                                "1000=MTEXTBEGIN",
+                                "1070=73",
+                                "1070=1",
+                                "1070=44",
+                                "1040=1",
+                                "1070=74",
+                                "1070=0",
+                                "1000=MTEXTEND",
+                            }
+                    ),
                     data
                 );
             }
@@ -1396,30 +1411,13 @@ namespace GeometryHelper.UnitTest.Dxf
         #region Tables
 
         [Fact]
-        public void ATableOfTheDrawing_IsTheBlockItIsDrawnWithBeforeR2007AndATableFromThen()
+        public void ATableOfTheDrawing_IsATableInEveryVersion_ItsCellsHavingAFormInEach()
         {
             DxfDatabase source = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
             DxfTable table = source.ModelSpace.OfType<DxfTable>().Single();
             Assert.Equal("F6", table.Handle);
 
-            foreach (string version in new[] { "AC1015", "AC1018" })
-            {
-                using (var stream = new MemoryStream())
-                {
-                    IReadOnlyList<string> said = source.Save(stream, version);
-                    DxfDatabase saved = Opened(stream.ToArray());
-
-                    Assert.Empty(saved.ModelSpace.OfType<DxfTable>());
-                    DxfBlockReference reference = saved
-                        .ModelSpace.OfType<DxfBlockReference>()
-                        .Single(r => r.Handle == "F6");
-                    Assert.Equal("*T12", reference.BlockTableRecord.Name);
-                    Assert.Equal(Bits(table.Position), Bits(reference.Position));
-                    Assert.Contains(said, s => s.Contains("ACAD_TABLE 1"));
-                }
-            }
-
-            foreach (string version in new[] { "AC1021", "AC1024", "AC1027" })
+            foreach (string version in new[] { "AC1015", "AC1018", "AC1021", "AC1024", "AC1027" })
             {
                 using (var stream = new MemoryStream())
                 {
@@ -1435,11 +1433,18 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheBlockOfATableThatIsOneNoMoreAndTheObjectsItOwned_AreLeftWhereTheyWere()
         {
-            DxfDatabase source = DxfDatabase.Parse(DxfDimensionDrawings.R2018);
+            // A table with a field in a cell is none of the tables the old form is made of: it is the block it is drawn with.
+            DxfDatabase source = DxfDatabase.Parse(
+                DxfDimensionDrawings.R2018.Replace(
+                    "145\n0.0\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n",
+                    "145\n0.0\n344\nAB\n 92\n0\n301\nCELL_VALUE\n 93\n6\n 90\n4\n  1\nMark\n"
+                )
+            );
 
             using (var stream = new MemoryStream())
             {
                 source.Save(stream, "AC1015");
+                Assert.Empty(Opened(stream.ToArray()).ModelSpace.OfType<DxfTable>());
                 DxfDatabase saved = Opened(stream.ToArray());
 
                 Assert.NotNull(saved.BlockTable["*T12"]);

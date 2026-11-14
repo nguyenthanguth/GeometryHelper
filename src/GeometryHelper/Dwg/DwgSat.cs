@@ -37,7 +37,7 @@ namespace GeometryHelper.Dwg
             ["tcoedge-coedge"] = "* b(forward,reversed) *",
             ["edge"] = "* b(forward,!) *",
             ["tedge-edge"] = "* b(forward,!) *",
-            ["transform"] = "* b(no_rotate,rotate) b(no_reflect,!) b(no_shear,!)",
+            ["transform"] = "* b(no_rotate,rotate) b(no_reflect,reflect) b(no_shear,shear)",
             ["plane-surface"] = "r i r P U V b(forward_v,reverse_v) I I I I",
             ["sphere-surface"] = "* b(forward_v,reverse_v) I I I I",
             ["torus-surface"] = "r i r P U d d V b(forward_v,reverse_v) I I I I",
@@ -66,7 +66,7 @@ namespace GeometryHelper.Dwg
 
         /// <summary>The surface of a cylinder swept along a curve the two names of its subtype share.</summary>
         private const string CylinderSurface =
-            "/ CURVE / V / P / e(2=none) I I I I e(2=PERIODIC) e(0=OPEN) e(0=NON_SINGULAR) e(0=NON_SINGULAR) "
+            "/ CURVE / V / P / e(2=none) I I I I e(1=CLOSED,2=PERIODIC) e(0=OPEN) e(0=NON_SINGULAR) e(0=NON_SINGULAR) "
             + "/ A / A / A / A / A / A / o(F,T)";
 
         /// <summary>The subtypes a spline curve or surface holds between braces, each by its name: AutoCAD's names of R2004 and those of R2007 on.</summary>

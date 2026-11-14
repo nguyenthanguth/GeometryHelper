@@ -249,9 +249,13 @@ User note 2026-11-12 evening (note.md 1-14):
       AutoCAD's SAT digit for digit, up 130 equal and 40 within 1E-12, all 910 files open with AutoCAD's volume and area);
       R2000 solids and regions now written into DWG; visual styles' round-trip records written going down and read going
       up (the three styles' 176 flags); fixed: a turned solid (transform rotate) refused; BODY probed
-- [ ] (dxfver4, running) DXF versions follow-ups 4: ACIS 4.00 splines (sweep along a spline, loft of different circles, extruded closed
-      spline: tolerant records and curve parameters, 3 attempts used); the table round trip going down
-      (ACAD_ROUNDTRIP_2008_TABLE_ENTITY); R2000 MTEXTBEGIN xdata of leader MTEXT; reflect and shear transform words (M)
+- [x] DXF versions follow-ups 4 (dxfver4): tables keep their TABLECONTENT round trip both ways and cells with overrides or
+      blocks stay tables (AutoCAD reads our downgrades with the same tables and links, AUDIT 0 on 16 files); fixed: an R2018
+      table taken to R2000 gave a file AutoCAD refused; R2000 MTEXTBEGIN xdata on every MTEXT; reflect and shear transform
+      words; cylsur/cyl_spl_sur (an extruded closed spline) converted, so it is no longer left out of R2013+
+- [ ] DXF versions follow-ups 5: the PRE2007_TABLE and DATATABLE round trip going down (column 1 override mask not decoded);
+      empty cell borders to R2000; sweeps along splines and lofts of circles (tolerant records); oblique extrusions
+      (sumsur); R2010's sweep intcurve form; MTEXT background xdata of R2000 (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT; Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
@@ -451,7 +455,7 @@ the ones wanted.
         written they stay left out whole, as their constraint group's R2018 layout is not decoded; a fixpoint rule leaves out
         a graph or network missing any part (no rewrite refused); 135 of 142 AutoCAD files rewrite at AUDIT 0 (7 carry their
         originals' errors)
-  - [ ] DWG follow-ups 8: the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP (header, class table and node directory decoded;
+  - [ ] (dwg14, running: the constraint group) DWG follow-ups 8: the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP (header, class table and node directory decoded;
         node bodies not: the oracle is DxfIn of a modified DXF, SaveAs R2018, bit-diff), which unlocks the 18 graphs;
         version-2 actions in R2013; the stretch entity order (3 of 115); dynamic data below R2007; sweep, revolve and
         drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom parity;
