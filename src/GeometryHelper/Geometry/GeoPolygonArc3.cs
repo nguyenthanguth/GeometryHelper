@@ -101,15 +101,22 @@ namespace GeometryHelper.Geometry
             if (vertices == null)
                 throw new ArgumentNullException(nameof(vertices));
 
-            var kept = new List<GeoPoint3>();
-            var keptBulges = new List<double>();
-            var keptNormals = new List<GeoVector3>();
-
-            var givenBulges = bulges == null ? new List<double>() : new List<double>(bulges);
+            // What is given is read where it stands when it can be, a list or an array, and copied only when it is a sequence.
+            IReadOnlyList<double> givenBulges =
+                bulges == null ? Array.Empty<double>() : bulges as IReadOnlyList<double> ?? new List<double>(bulges);
 
             Guard.Argument(Guard.AreFinite(givenBulges), nameof(bulges), "A bulge has to be a finite number.");
-            var givenNormals = normals == null ? new List<GeoVector3>() : new List<GeoVector3>(normals);
+            IReadOnlyList<GeoVector3> givenNormals =
+                normals == null
+                    ? Array.Empty<GeoVector3>()
+                    : normals as IReadOnlyList<GeoVector3> ?? new List<GeoVector3>(normals);
 
+            // The vertices kept, in arrays that grow only where the vertices are a sequence of no known length.
+            int room = vertices is ICollection<GeoPoint3> sized ? sized.Count : 8;
+            var kept = new GeoPoint3[room];
+            var keptBulges = new double[room];
+            var keptNormals = new GeoVector3[room];
+            int count = 0;
             int index = 0;
 
             foreach (GeoPoint3 vertex in vertices)
@@ -120,33 +127,52 @@ namespace GeometryHelper.Geometry
 
                 // The edge between two vertices in the same place has no length and goes with the later vertex;
                 // the vertex kept takes the bulge and the plane of the edge running on from the one dropped.
-                if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(vertex, tolerance))
+                if (count > 0 && kept[count - 1].IsEqualTo(vertex, tolerance))
                 {
-                    keptBulges[keptBulges.Count - 1] = bulge;
-                    keptNormals[keptNormals.Count - 1] = normal;
+                    keptBulges[count - 1] = bulge;
+                    keptNormals[count - 1] = normal;
                     continue;
                 }
 
-                kept.Add(vertex);
-                keptBulges.Add(bulge);
-                keptNormals.Add(normal);
+                if (count == kept.Length)
+                {
+                    Array.Resize(ref kept, Math.Max(4, 2 * count));
+                    Array.Resize(ref keptBulges, kept.Length);
+                    Array.Resize(ref keptNormals, kept.Length);
+                }
+
+                kept[count] = vertex;
+                keptBulges[count] = bulge;
+                keptNormals[count] = normal;
+                count++;
             }
 
             // The loop closes on itself, so a last vertex sitting on the first is the same repeat.
-            while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
+            while (count > 1 && kept[count - 1].IsEqualTo(kept[0], tolerance))
             {
-                kept.RemoveAt(kept.Count - 1);
-                keptBulges.RemoveAt(keptBulges.Count - 1);
-                keptNormals.RemoveAt(keptNormals.Count - 1);
+                count--;
             }
 
-            if (kept.Count < 3)
+            if (count < 3)
             {
                 throw new ArgumentException("A loop needs at least 3 distinct vertices.", nameof(vertices));
             }
 
-            // A loop that does not lie flat encloses nothing, so it is refused where it is built.
-            if (!new GeoPolyline3(kept).TryGetPlane(out GeoPlane3 plane, tolerance))
+            if (count != kept.Length)
+            {
+                Array.Resize(ref kept, count);
+                Array.Resize(ref keptBulges, count);
+                Array.Resize(ref keptNormals, count);
+            }
+
+            // A loop that does not lie flat encloses nothing, so it is refused where it is built. The plane is read from the
+            // vertices as a chain of them reads it, which drops a vertex within the global tolerance of the one before it.
+            GeoPlane3 plane;
+            bool flat = ApartWithin(kept, Tolerance.Global)
+                ? GeoPolyline3.TryGetPlane(kept, out plane, tolerance)
+                : new GeoPolyline3(kept).TryGetPlane(out plane, tolerance);
+
+            if (!flat)
             {
                 throw new ArgumentException(
                     "A closed loop of arcs has to lie in one plane; a bar bent out of one belongs in a GeoPolylineArc3.",
@@ -154,9 +180,9 @@ namespace GeometryHelper.Geometry
                 );
             }
 
-            _vertices = kept.ToArray();
-            _bulges = keptBulges.ToArray();
-            _normals = keptNormals.ToArray();
+            _vertices = kept;
+            _bulges = keptBulges;
+            _normals = keptNormals;
             _planeNormal = plane.Normal;
 
             for (int i = 0; i < EdgeCount; i++)
@@ -183,6 +209,20 @@ namespace GeometryHelper.Geometry
                 _bulges[i] = edge.Bulge;
                 _normals[i] = edge.Normal;
             }
+        }
+
+        /// <summary>Whether no vertex of a chain stands within a tolerance of the one before it, so that the chain keeps every one.</summary>
+        private static bool ApartWithin(GeoPoint3[] vertices, Tolerance tolerance)
+        {
+            for (int i = 1; i < vertices.Length; i++)
+            {
+                if (vertices[i - 1].IsEqualTo(vertices[i], tolerance))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -316,23 +356,23 @@ namespace GeometryHelper.Geometry
         /// </summary>
         private GeoPolygonArc2 LayOut(GeoCoordinateSystem3 frame, Tolerance tolerance)
         {
-            var vertices = new List<GeoPoint2>(EdgeCount);
-            var bulges = new List<double>(EdgeCount);
+            var vertices = new GeoPoint2[EdgeCount];
+            var bulges = new double[EdgeCount];
 
             for (int i = 0; i < EdgeCount; i++)
             {
                 GeoEdge3 edge = GetEdgeAt(i);
 
-                vertices.Add(PlanarMap.ProjectToPoint2(frame, edge.StartPoint));
+                vertices[i] = PlanarMap.ProjectToPoint2(frame, edge.StartPoint);
 
                 // An arc whose normal runs against the frame is the same arc seen from behind, so its
                 // bulge turns over on the way down.
                 bool facingAway = edge.IsArc && edge.Normal.DotProduct(frame.ZAxis) < 0.0;
 
-                bulges.Add(facingAway ? -edge.Bulge : edge.Bulge);
+                bulges[i] = facingAway ? -edge.Bulge : edge.Bulge;
             }
 
-            return GeoPolygonArc2.FromEdges(vertices, bulges, tolerance);
+            return GeoPolygonArc2.FromEdgesOf(vertices, bulges, tolerance);
         }
 
         /// <summary>

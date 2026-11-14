@@ -130,6 +130,36 @@ saves are those they were: 167 samples of AutoCAD and five generated drawings gi
 pixels in three views, plain, selected, highlighted and with a hover, as they did (under .NET 8 the pixels of eight of the 172 drawings differ
 between two runs of the unchanged code, and are judged by the lists alone).
 
+What is left in a sampled profile of an INSERT's own part, after the above, was the INSERT itself and the loop of a closed polyline. An INSERT
+was asked for its block (`BlockTableRecord`), its point (`Position`) and its placing (`BlockTransform`) one after another, each finding the
+normal, the scale factors and the angle again among the groups of its record, and the placing making two matrices of sixteen numbers: 1.7 µs
+and 2.5 KB of garbage an INSERT, 16 % of a drawing of INSERTs alone. They are now read in one pass over the bytes
+(`DxfBlockReference.TryReadForDisplay`), 0.6 µs, for an INSERT whose record holds no extension dictionary: such an INSERT has no annotative
+context and no clip, so neither is looked for (the dictionary of a record, its handle, and a clip's boundary in it, were each a walk over its
+groups). An INSERT with a dictionary, a copy that carries contexts or one in no drawing, and one given its block by code, are read property by
+property as before. The arithmetic is that of the properties, step for step, and a test holds the point, the entries of the matrix and the block
+the same to the bit over generated records. Whether an INSERT is an array (a MINSERT, told when its object is made, for every INSERT of a
+drawing) is found by a walk of the bytes, as is a polyline's width, where it was told from the list of all its groups. An INSERT that
+no ATTRIB follows no longer makes the frame its attributes are drawn in. The block a run of INSERTs places and the layer a run of entities
+are on are found again by the very object asked for last, where a dictionary was asked each time. The loop of a closed polyline with a bulge
+(`GeoPolygonArc3`, and its area, which the display asks for to tell a loop from a line) was made of three lists, copies of the lists
+given, a chain of its vertices to find the plane and an edge for each side, then laid out through four more lists: it is built in the
+arrays it keeps, with the same plane and the same edges, and laid out into the arrays of the loop it makes, 0.61 µs and 2.2 KB for the loop
+and its area where it is 0.37 µs and 0.6 KB (.NET 8; every vertex, bulge, normal, plane and area is the same to the bit, as are the words of
+every exception, over 300 000 generated loops). The end of a line of a record is looked for in its first 24 bytes by a plain loop, before
+the vectorised search of the rest, which a line of three bytes pays more to start than to finish.
+
+The cold display of the drawing of 100 000 entities (open not counted) takes 217 ms under .NET 8 where it took 247, and 345 ms under .NET
+Framework 4.8 where it took 449 (medians of three alternated rounds of seven), with 121 MB of garbage where there were 155; a layer
+switched on takes 45 ms where it took 52 and 78 where 89, and a REGEN 109 ms where 124 and 173 where 221. 100 000 INSERTs of a block of 20
+entities take 858 ms where they took 1 115 (.NET 8), and 1 494 where 2 057 (.NET Framework), with 424 MB of garbage in place of 640, and a
+layer switched on in them 316 ms where 441 and 550 where 758. The drawing of 1 000 000 entities displays in 2.1 s where it took 2.3
+(.NET 8) and in 3.8 s where it took 4.4 (.NET Framework), with 1 155 MB of garbage in place of 1 492 and a REGEN 1.2 s where 1.3 and 1.8 where 2.2; a MOVE
+and its display at 1 000 000 entities, 250 to 300 ms, is as it was within the noise of the machine. The display lists, the bytes a drawing
+saves and the pixels are those they were: 167 samples of AutoCAD and nine generated drawings (INSERTs plain, scaled alike and unalike, mirrored,
+with a normal, in arrays and with attributes) give the same list, item for item and field for field, and the same bytes saved, under
+.NET 8 and .NET Framework 4.8, and 171 of them the same pixels in three views, plain, selected, highlighted and with a hover.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

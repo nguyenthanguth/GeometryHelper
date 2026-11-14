@@ -359,7 +359,7 @@ User note 2026-11-12 evening (note.md 1-14):
       blocks; 10 000 cells save in 127 ms as R2018 (was 462), 295 as R2013 (918), 330 as R2000 (940) on net48; the
       version converter reads and writes faster for every drawing (10.5 MB to R2013: 957 -> 556 ms); a weak cache of the
       completed copy until the next edit; saved bytes identical (17 400 fuzz saves per runtime); 30 new tests
-- [ ] DXF versions follow-ups 10: Objects() index cleared on every OBJECTS write (O(tables x objects)); SetExtensionDictionary
+- [ ] (dxfver10, running: Objects index, extension dictionary, converter bytes) DXF versions follow-ups 10: Objects() index cleared on every OBJECTS write (O(tables x objects)); SetExtensionDictionary
       rewriting the whole record; the converter's Write building a 22 MB string (write bytes straight); real
       TABLEGEOMETRY and row heights (needs font metrics); native R2000/R2004 table drawings; block-cell, field and link
       content; tables with their own row-kind looks or an existing extension dictionary; hidden bottom/left lines in
@@ -771,10 +771,15 @@ the ones wanted.
       the display, handle-less blocks listed once: cold display of 100k mixed 330 -> 255 ms (net8) / 519 -> 431 (net48),
       1M 3.36 -> 2.79 s, INSERT-heavy 1591 -> 1175 ms, garbage 277 -> 154 MB at 100k; display lists and pixels identical
       on 172 drawings. DECIDED: no TEXT cache (the one-pass read is cheap; an edit is always seen)
-- [ ] (speed10, running) Speed follow-ups 9: GeoPolygonArc3 construction (1.7 us, 2.9 KB per polyline); INSERT BlockTransform/Position in
-      one pass; the remaining ParsedOf users; dropping the LINE/ARC/CIRCLE shape cache (same-object contract); TryChain
-      garbage; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a
-      DWG read stopped mid-way (S)
+- [x] Speed follow-ups 9 (speed10): INSERTs read for the display in one byte pass, the array test a byte walk,
+      GeoPolygonArc3 built in arrays (0.61 -> 0.37 us, 2 168 -> 624 B), small per-build caches: 100k INSERTs 1 115 -> 858
+      ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
+      lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
+- [ ] Speed follow-ups 10: MOVE + display at 1M possibly a few % slower after speed10 (recheck on a quiet machine);
+      BlockTableRecord.Origin cached by EditCount; LookOf (11 %) and IsHidden allocating strings; KnowHandles/PairsOf in
+      the open; unlike-scale INSERTs making arcs into ellipses (15x per INSERT); AddInsertionPoint and PlainStyleOf
+      lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
+      two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

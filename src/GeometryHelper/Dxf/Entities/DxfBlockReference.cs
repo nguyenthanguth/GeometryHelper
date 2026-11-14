@@ -588,6 +588,96 @@ namespace GeometryHelper.Dxf
             }
         }
 
+        /// <summary>What a drawing is made of an INSERT from: the block it places, where, and the part of its <see cref="BlockTransform"/> the plane takes.</summary>
+        internal struct DisplayRead
+        {
+            /// <summary>The <see cref="BlockTableRecord"/>; null where the drawing has no block of the INSERT's name.</summary>
+            internal DxfBlockTableRecord Block;
+
+            /// <summary>The <see cref="Position"/>.</summary>
+            internal GeoPoint3 Position;
+
+            /// <summary>The entries <c>[0, 0]</c>, <c>[1, 0]</c>, <c>[0, 1]</c>, <c>[1, 1]</c>, <c>[0, 3]</c> and <c>[1, 3]</c> of the <see cref="BlockTransform"/>.</summary>
+            internal double A,
+                B,
+                C,
+                D,
+                Tx,
+                Ty;
+        }
+
+        /// <summary>
+        /// Reads what the display draws an INSERT by, as <see cref="BlockTableRecord"/>, <see cref="Position"/> and
+        /// <see cref="BlockTransform"/> give it, to the bit: of an INSERT that has no contexts, from one pass over the groups of
+        /// its record, where the three each read the normal, the scale factors and the angle again. False, with nothing read, for
+        /// an INSERT whose record holds an extension dictionary (which may hold annotative contexts and a clip), a copy that
+        /// carries contexts or a block of its own, one in no drawing, and one given its block by code; those read each property.
+        /// A true answer says that the INSERT has no contexts and no clip, so that nothing of either is looked for. Nothing is
+        /// kept: the pass is made afresh each time, so that an edit of the INSERT is seen by the next one.
+        /// </summary>
+        internal bool TryReadForDisplay(out DisplayRead read)
+        {
+            read = default(DisplayRead);
+
+            if (_record != null || !Item.File.TryInsertGroups(Item, out DxfFile.InsertGroups g))
+            {
+                return false;
+            }
+
+            int have = g.Have;
+            GeoVector3 normal = UnitNormal(
+                (
+                    have
+                    & (
+                        DxfFile.InsertGroups.HasNormalX
+                        | DxfFile.InsertGroups.HasNormalY
+                        | DxfFile.InsertGroups.HasNormalZ
+                    )
+                ) != 0,
+                g.NormalX,
+                g.NormalY,
+                g.NormalZ
+            );
+            GeoPoint3 point =
+                (have & (DxfFile.InsertGroups.HasX | DxfFile.InsertGroups.HasY | DxfFile.InsertGroups.HasZ)) == 0
+                    ? Origin
+                    : new GeoPoint3(g.X, g.Y, g.Z);
+            GeoPoint3 at = OcsToWorld(normal, point);
+            read.Position = at;
+            read.Block = Resolve(Item.File, DxfReader.NameOf(g.Name ?? string.Empty));
+
+            if (read.Block == null)
+            {
+                return true;
+            }
+
+            GeoPoint3 origin = read.Block.Origin;
+            OcsAxes(normal, out GeoVector3 u, out GeoVector3 v);
+            double sx = (have & DxfFile.InsertGroups.HasScaleX) != 0 ? g.ScaleX : 1.0;
+            double sy = (have & DxfFile.InsertGroups.HasScaleY) != 0 ? g.ScaleY : 1.0;
+            double sz = (have & DxfFile.InsertGroups.HasScaleZ) != 0 ? g.ScaleZ : 1.0;
+            double angle = ((have & DxfFile.InsertGroups.HasDegrees) != 0 ? g.Degrees : 0.0) * (Math.PI / 180.0);
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+            GeoVector3 x = u.Multiply(cos).Add(v.Multiply(sin)).Multiply(sx);
+            GeoVector3 y = v.Multiply(cos).Subtract(u.Multiply(sin)).Multiply(sy);
+            GeoVector3 z = normal.Multiply(sz);
+
+            // The origin of the block taken through the axes, as Transform of a vector takes it.
+            double shiftX = x.X * origin.X + y.X * origin.Y + z.X * origin.Z;
+            double shiftY = x.Y * origin.X + y.Y * origin.Y + z.Y * origin.Z;
+            read.A = x.X;
+            read.B = x.Y;
+            read.C = y.X;
+            read.D = y.Y;
+            read.Tx = at.X - shiftX;
+            read.Ty = at.Y - shiftY;
+            return true;
+        }
+
+        /// <summary>Whether the INSERT may have ATTRIBs: its record is followed by others, as an INSERT with attributes is by them and a SEQEND.</summary>
+        internal bool HasFollowers => RecordCount > 1;
+
         /// <summary>
         /// Gets the ATTRIBs of the INSERT, as AutoCAD's <c>AttributeCollection</c>: the values it gives its block's attributes,
         /// in the order of the file, read as they stand; empty where it has none. Each ATTRIB is the same object while its

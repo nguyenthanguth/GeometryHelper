@@ -28,6 +28,13 @@ namespace GeometryHelper.Dxf.Viewer
             StringComparer.OrdinalIgnoreCase
         );
 
+        // The layer name <see cref="LayerNamed"/> and <see cref="LayerOf"/> answered last, with the answer, found again by the
+        // very string: the entities that follow one another on a layer share one, and each is asked for in turn. Cleared with a build.
+        private string _lastNamed;
+        private LayerState _lastState;
+        private string _lastLayerName;
+        private string _lastLayerShared;
+
         // A layer of a drawing referenced as drawn: what the drawing showing it changed, the rest its own; made once, looked up only.
         private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(
             StringComparer.OrdinalIgnoreCase
@@ -47,6 +54,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The patterns of the hatches met in the <see cref="Build"/> running, null for one drawn by its boundary; looked up only, never listed.</summary>
         private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
         private DisplayList2 _modelCache;
+
+        /// <summary>The block <see cref="ContentOf"/> answered last, kept with its content (null for a block that cannot be listed whole) for the INSERT after one of the same block, which a drawing of 100 000 of them asks for in turn; cleared with <see cref="_orders"/>.</summary>
+        private DxfBlockTableRecord _lastBlock;
+        private BlockContent _lastContent;
 
         /// <summary>The entities of each block met in the <see cref="Build"/> running in the order they are drawn, by handle; looked up only, never listed.</summary>
         private readonly Dictionary<string, BlockContent> _orders = new Dictionary<string, BlockContent>(
@@ -197,6 +208,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// rest read from the file: GRID|WALLS made red in the drawing is drawn red, and left as it was, as the file has it.
         /// </summary>
         private LayerState LayerNamed(string name)
+        {
+            if (ReferenceEquals(name, _lastNamed))
+            {
+                return _lastState;
+            }
+
+            LayerState found = FindLayer(name);
+            _lastNamed = name;
+            _lastState = found;
+            return found;
+        }
+
+        private LayerState FindLayer(string name)
         {
             if (_host != null)
             {
@@ -454,6 +478,12 @@ namespace GeometryHelper.Dxf.Viewer
             // The patterns are kept for this build only: an edit between two builds may have changed a hatch.
             _patterns.Clear();
             _orders.Clear();
+            _lastBlock = null;
+            _lastContent = null;
+            _lastNamed = null;
+            _lastState = null;
+            _lastLayerName = null;
+            _lastLayerShared = null;
             _building = list;
             IReadOnlyList<DisplayRun> runs = older?.Runs;
             Dictionary<string, int> byHandle = null;
@@ -685,12 +715,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private BlockContent ContentOf(DxfBlockTableRecord block)
         {
+            if (ReferenceEquals(block, _lastBlock))
+            {
+                return _lastContent;
+            }
+
             // A block of a file with no table of block records, one of R12 or written by hand, has no handle: it is kept by its
             // name, which no other block of a drawing has, and not listed again for each INSERT of it.
             string handle = block.Handle ?? NameKeyOf(block);
 
             if (handle != null && _orders.TryGetValue(handle, out BlockContent known))
             {
+                _lastBlock = block;
+                _lastContent = known;
                 return known;
             }
 
@@ -740,6 +777,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (handle != null)
             {
                 _orders[handle] = content;
+                _lastBlock = block;
+                _lastContent = content;
             }
 
             return content;
@@ -901,6 +940,12 @@ namespace GeometryHelper.Dxf.Viewer
             string layer = entity.Layer ?? "0";
             string name = layer == "0" && frame.BlockLayer != null ? frame.BlockLayer : Prefixed(layer);
 
+            // The very string asked for last, as the entities that follow one another on a layer share one, is answered as it was.
+            if (ReferenceEquals(name, _lastLayerName))
+            {
+                return _lastLayerShared;
+            }
+
             // Read from the entity's groups, the name is a new string each time: kept once for each name, the items of a
             // drawing of 100 000 entities share four strings and not 100 000 (3.2 MB).
             if (!_layerNames.TryGetValue(name, out string shared))
@@ -909,6 +954,8 @@ namespace GeometryHelper.Dxf.Viewer
                 _layerNames.Add(name, name);
             }
 
+            _lastLayerName = name;
+            _lastLayerShared = shared;
             return shared;
         }
 
@@ -1244,14 +1291,17 @@ namespace GeometryHelper.Dxf.Viewer
                     return;
                 }
                 case DxfBlockReference reference:
+                    // An INSERT with no contexts and no clip is read from its record in one pass.
+                    bool read = reference.TryReadForDisplay(out DxfBlockReference.DisplayRead placing);
+
                     // The snap Insertion takes the point of an INSERT of the space itself, not of one nested in a block.
                     if (frame.RootHandle == null && forcedHandle == null)
                     {
-                        GeoPoint3 at = reference.Position;
+                        GeoPoint3 at = read ? placing.Position : reference.Position;
                         list.AddInsertionPoint(handle, frame.Matrix.X(at.X, at.Y), frame.Matrix.Y(at.X, at.Y));
                     }
 
-                    DrawInsert(reference, frame, list, handle, layerName, style);
+                    DrawInsert(reference, read, placing, frame, list, handle, layerName, style);
                     return;
                 case DxfAttributeDefinition definition when frame.RootHandle != null && !definition.Constant:
                     // An INSERT shows the values of its ATTRIBs, not the definitions of its block, as AutoCAD shows it; a constant
@@ -1505,6 +1555,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         private void DrawInsert(
             DxfBlockReference reference,
+            bool read,
+            DxfBlockReference.DisplayRead placing,
             Frame frame,
             DisplayList2 list,
             string handle,
@@ -1512,22 +1564,31 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayStyle style
         )
         {
-            DxfBlockTableRecord block = reference.BlockTableRecord;
+            DxfBlockTableRecord block = read ? placing.Block : reference.BlockTableRecord;
 
             if (block == null)
             {
                 return;
             }
 
-            GeoTransform3 transform = reference.BlockTransform;
-            Affine2 own = new Affine2(
-                transform[0, 0],
-                transform[1, 0],
-                transform[0, 1],
-                transform[1, 1],
-                transform[0, 3],
-                transform[1, 3]
-            );
+            Affine2 own;
+
+            if (read)
+            {
+                own = new Affine2(placing.A, placing.B, placing.C, placing.D, placing.Tx, placing.Ty);
+            }
+            else
+            {
+                GeoTransform3 transform = reference.BlockTransform;
+                own = new Affine2(
+                    transform[0, 0],
+                    transform[1, 0],
+                    transform[0, 1],
+                    transform[1, 1],
+                    transform[0, 3],
+                    transform[1, 3]
+                );
+            }
 
             if (block.IsFromExternalReference)
             {
@@ -1539,7 +1600,7 @@ namespace GeometryHelper.Dxf.Viewer
             // attributes out from its point, multiplied by the default's scale over that one.
             double scaled = 1.0;
 
-            if (_annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
+            if (!read && _annotationScale != null && frame.Depth == 0 && frame.RootHandle == null)
             {
                 _sawAnnotative |= reference.Item.File.ExtensionDictionaryOf(reference.Item) != null;
 
@@ -1570,7 +1631,7 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = own.Rotation;
             double cos = Math.Cos(rotation);
             double sin = Math.Sin(rotation);
-            IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+            IReadOnlyList<GeoPoint2> clip = read ? null : ClipOf(reference);
             IReadOnlyList<GeoPoint2> section = clip;
             DxfSpatialFilter.Slab slab = null;
 
@@ -1629,6 +1690,11 @@ namespace GeometryHelper.Dxf.Viewer
                     list.PopClip(before);
                 }
 
+                return;
+            }
+
+            if (read && !reference.HasFollowers)
+            {
                 return;
             }
 

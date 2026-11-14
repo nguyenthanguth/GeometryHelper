@@ -1723,6 +1723,12 @@ namespace GeometryHelper.Dxf
         private protected GeoVector3 GetNormal()
         {
             bool any = TryNumber(210, out double x) | TryNumber(220, out double y) | TryNumber(230, out double z);
+            return UnitNormal(any, x, y, z);
+        }
+
+        /// <summary>The extrusion of the numbers of the groups 210, 220 and 230 (nought where there is none), as <see cref="GetNormal"/> makes it: (0, 0, 1) where there is none of them or they have no length.</summary>
+        private protected static GeoVector3 UnitNormal(bool any, double x, double y, double z)
+        {
             double length = Math.Sqrt(x * x + y * y + z * z);
 
             if (!any || !(length > 0.0) || double.IsInfinity(length))
