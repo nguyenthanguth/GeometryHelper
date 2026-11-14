@@ -213,7 +213,12 @@ namespace GeometryHelper.Dxf
         /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
         public void Save(string path)
         {
-            File.Save(path);
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            (Completed() ?? File).Save(path);
             _filename = Path.GetFullPath(path);
         }
 
@@ -222,7 +227,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <param name="stream">The stream; it is written to and left open.</param>
         /// <exception cref="ArgumentNullException">Thrown when the stream is null.</exception>
-        public void Save(Stream stream) => File.Save(stream);
+        public void Save(Stream stream)
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            (Completed() ?? File).Save(stream);
+        }
 
         /// <summary>
         /// Saves the drawing to a path in a version of AutoCAD, as AutoCAD's <c>SaveAs(path, version)</c> does, replacing whatever
@@ -288,7 +301,8 @@ namespace GeometryHelper.Dxf
 
             if (converted == null)
             {
-                Save(path);
+                File.Save(path);
+                _filename = Path.GetFullPath(path);
             }
             else
             {
@@ -341,14 +355,15 @@ namespace GeometryHelper.Dxf
             }
 
             said = Array.Empty<string>();
+            DxfFile completed = target == DxfVersions.R12 ? null : Completed();
 
             if (DxfVersions.Number(File.Version) == target)
             {
-                return null;
+                return completed;
             }
 
             var told = new List<string>();
-            string text = DxfVersionConverter.Convert(File.ToText(), target, told, FontSearchPath);
+            string text = DxfVersionConverter.Convert((completed ?? File).ToText(), target, told, FontSearchPath);
             said = told.AsReadOnly();
             GeometryHelperLog.Info(
                 "DxfDatabase: saved as "

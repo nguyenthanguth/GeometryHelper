@@ -144,6 +144,63 @@ namespace GeometryHelper.Dxf
             Edited();
         }
 
+        /// <summary>
+        /// Counts more objects of a class of the CLASSES section (its 91 made that many higher), from R2004 on, as AutoCAD counts
+        /// the objects of each class it lists. Nothing where the class is not listed, has no count, or the file is older than R2004.
+        /// </summary>
+        internal void CountClassBy(string dxfName, int more)
+        {
+            if (!Supports(1018))
+            {
+                return;
+            }
+
+            foreach (Section section in _sections)
+            {
+                if (section.Name != "CLASSES")
+                {
+                    continue;
+                }
+
+                VisitInside(section, (Rec record, out Rec? now) =>
+                {
+                    now = null;
+                    var read = Record(record);
+
+                    if (
+                        record.Type != "CLASS"
+                        || !string.Equals(
+                            (read.Text(1) ?? string.Empty).Trim(),
+                            dxfName,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        || !int.TryParse(
+                            (read.Text(91) ?? string.Empty).Trim(),
+                            NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out int count
+                        )
+                        || !WithGroup(
+                            record,
+                            91,
+                            (count + more).ToString(CultureInfo.InvariantCulture),
+                            false,
+                            out Rec counted
+                        )
+                    )
+                    {
+                        now = record;
+                        return false;
+                    }
+
+                    now = counted;
+                    return true;
+                });
+            }
+
+            Edited();
+        }
+
         #endregion
     }
 }

@@ -133,8 +133,9 @@ to R2007 and R2004, whose style says nothing of how a property is set, also the 
 give the edges no colour, no jitter and no overhang (every property the parent's but their edge modifiers) come back as they
 were; a style of R2010 going to R2007 is given the flags, a style of R2007 going to R2010 loses them. The 24 visual styles of a
 drawing AutoCAD wrote come out of every version in the others as AutoCAD writes them, group for group and with their round trip
-(8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. The round trip
-of a table that holds no TABLECONTENT is not made going down: AutoCAD reads the table of the older form as the table it holds.
+(8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. A table or a style written in the session is given the round trip AutoCAD builds of it when it saves, the TABLECONTENT, the
+TABLEGEOMETRY and the map of cell styles, before it goes down or stays (see [tables](tables.md#saving-tables-made-in-code)); the round trip of a table read
+from a file and not written to is not made going down: AutoCAD reads the table of the older form as the table it holds.
 
 R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
 version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no

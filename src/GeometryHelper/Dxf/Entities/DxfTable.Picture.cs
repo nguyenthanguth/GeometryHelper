@@ -116,6 +116,14 @@ namespace GeometryHelper.Dxf
 
             g.Set(343, picture.Handle, g.Sub, Order);
 
+            // The version number of the table's record (280) is AutoCAD's from R2010: a table made for an older drawing has none.
+            int version = file.Supports(1024) ? -1 : g.Find(280, g.Sub);
+
+            if (version >= 0)
+            {
+                g.List.RemoveAt(version);
+            }
+
             if (!file.Supports(1021))
             {
                 // Before R2007 a cell holds its text alone, in 1.

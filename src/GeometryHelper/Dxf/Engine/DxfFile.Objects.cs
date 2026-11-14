@@ -202,9 +202,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives a record its extension dictionary, the group <c>{ACAD_XDICTIONARY</c> with the 360 of its handle, where AutoCAD
         /// writes it: after the handle and the groups of the applications that follow it, as its reactors, before the owner; or
-        /// takes the group out, the handle being null. Nothing is written where the record is so already.
+        /// takes the group out, the handle being null. Nothing is written where the record is so already. Where <paramref name="beforeReactors"/>
+        /// is set the group goes straight after the handle, before the reactors, as AutoCAD writes it in a table style.
         /// </summary>
-        internal void SetExtensionDictionary(DxfItem item, string dictionary)
+        internal void SetExtensionDictionary(DxfItem item, string dictionary, bool beforeReactors = false)
         {
             Editable(item);
             List<Rec> records = RecordsOf(item);
@@ -262,9 +263,11 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                // The groups of the applications after the handle, as its reactors, stay before it.
+                // The groups of the applications after the handle, as its reactors, stay before it, but where the list goes
+                // first, as AutoCAD writes it in a table style.
                 while (
-                    put < data
+                    !beforeReactors
+                    && put < data
                     && pairs[put].Code == 102
                     && Text(head, pairs[put]).Trim().StartsWith("{", StringComparison.Ordinal)
                 )
