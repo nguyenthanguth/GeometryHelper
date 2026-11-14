@@ -6,6 +6,20 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** EXPORTPDF's Include hyperlinks through a layout's viewports took the box of the model-space object turned as a box, and
+the box of the clip as the place the object shows. A viewport twisted 30 degrees showed a line (1 800, 1 200) to (2 200, 1 800) at 1:20 a
+link 32.3 wide where the line is drawn 2.3 wide, and a circle of radius 300 one 41 wide where it is 30; the link is now over the box of
+what the viewport draws (the points of the line, polyline, arc or fill taken through the viewport's transformation; the turned box
+of an item with no such points, text or an image). An object in the notch of an L-shaped clip (the box of the clip holds it, the clip
+does not) had a link over nothing, and has none; one across the notch keeps its box cut to the clip's box. A quarter turn and a
+rectangular clip were already exact (tests added with the rectangles in points).
+**FIXED.** Find and Replace said `1 matches in 1 objects`; it says `1 match in 1 object`, `2 matches in 1 object` and `0 matches in 0 objects`,
+the singular of AutoCAD's own strings (`%d match found`, `%d matches found`; read from its text-find resource DLL).
+**FIXED.** The Enhanced Attribute Editor's list cut a long value at the scrollbar with no sign (`Riverside bloc`) and gave the prompt
+column 336 of 566 pixels for 10 characters; the Value column is 180 wide, the text ends in an ellipsis before the scrollbar and so does
+a long prompt. Drawn with the screenshot mode on a block of ten attributes (`--dialog eattedit`, `battman`, `battman-edit` with its
+three tabs, `battman-settings`, `attdia`) with no other fault found: the controls are all there and none overlaps.
+
 **CHANGED.** -HATCH's draW boundary keeps the loops in the order the shapes were drawn and as they were drawn, and flags them as
 AutoCAD 2021 does (probed in its console): an island drawn first is loop 0 (the square (10, 10) to (20, 20) and then (0, 0) to
 (50, 50) give loops flagged 16 and 1, where the outer came first, flagged 1 and 16), a shape drawn clockwise stays clockwise in the

@@ -219,10 +219,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         Replace no longer crashes on open (StyleGroup on a GroupBox); Find's list, New Layer State's description and a
         disabled list (Drafting Settings Polar Tracking) drawn dark; find, attach, layerstate-new in --dialog; all 103
         dialogs redrawn and diffed
-  - [ ] (dlg11, running: PDF links through clipped/twisted viewports, Find plural, attribute dialog shots, WMF import) Dialogs 11 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
-        .pss location codes 1-3 (needs the GUI's Save As); Collect in the Leaders panel; WMF import; multi-line stamp and
-        "." clearing in the GUI; PDF links through VPCLIP-clipped and twisted viewports (untested); Find's "1 matches"
-        plural; shots of the attribute dialogs (eattedit, battman, attdia) with a sample block (S)
+  - [x] Dialogs 11 (dlg11): PDF links through twisted and VPCLIP-clipped viewports by the drawn points; Find's singular
+        as AutoCAD ("1 match in 1 object"); attribute dialogs drawn in --dialog and the Enhanced Attribute Editor's Value
+        column fixed
+  - [ ] Dialogs 12 follow-ups: WMFIN (AutoCAD makes block WMF0 at scale 25.4 fitted into half the view; polylines with
+        pen widths, TEXT in WMF-Arial0; findings in .claude/gk/wmf-notes); raster image quality, PDF layer information
+        and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3 (GUI Save As); Collect in the Leaders panel
+        (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI; "match(es) replaced" wording (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [x] R3.1 (r31): MLEADERALIGN Parallel, Use current spacing, Spacing and Distribute as AutoCAD (content boxes, the
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by

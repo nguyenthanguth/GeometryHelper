@@ -165,6 +165,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
         }
 
+        [Theory]
+        [InlineData("Bolts", "1 match in 1 object · double-click a row to zoom to it")]
+        [InlineData("M20", "2 matches in 2 objects · double-click a row to zoom to it")]
+        [InlineData("zzz", "0 matches in 0 objects · double-click a row to zoom to it")]
+        public void FindSummary_UsesTheSingularOfAutoCad_ForOneMatchAndOneObject(string text, string summary)
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Open(folder);
+                string seen = null;
+                model.ShowFindReplace = dialog =>
+                {
+                    dialog.FindWhat = text;
+                    dialog.FindNext();
+                    seen = dialog.Summary;
+                };
+
+                model.Execute("FIND");
+
+                Assert.Equal(summary, seen);
+            }
+        }
+
         [Fact]
         public void CtrlShiftA_SwitchesGroupPicking_AndSelectionCyclingIsSwitchedOff()
         {

@@ -334,7 +334,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// EXPORTPDF's Include hyperlinks: the first hyperlink of each object plotted, with an address, made a link of the page
         /// over the box of what is drawn of the object, within the printable area. An object of the space itself has one link;
         /// an object of model space seen through a layout's viewport has one in each viewport that shows it, over its box on the
-        /// paper cut to the viewport's frame (or to the box of its clipped outline), and none where its layer is frozen in the
+        /// paper (the box of what the viewport draws of it, twist and all) cut to the viewport's frame (or to the box of its
+        /// clipped outline, and none where the object lies outside the outline), and none where its layer is frozen in the
         /// viewport. A file's address is written as a file URI (D:\Docs\B-12.pdf as file:///D:/Docs/B-12.pdf), any other as it
         /// is.
         /// </summary>
@@ -410,6 +411,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Affine2 toPaper = viewport.ModelToPaper;
+            DisplayClipRegion outline = viewport.Clip == null ? null : new DisplayClipRegion(viewport.Clip, null);
             var boxes = new Dictionary<string, DisplayBox>(StringComparer.OrdinalIgnoreCase);
             var order = new List<string>();
 
@@ -420,21 +422,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     || item.IsNotPlotted
                     || item.Bounds.IsEmpty
                     || viewport.FrozenLayers.Contains(item.Layer ?? string.Empty)
+                    || AddressOf(document, item.Handle, addresses) == null
                 )
                 {
                     continue;
                 }
 
-                DisplayBox onPaper = DisplayBox.Empty;
+                DisplayBox shown = Cut(PaperBox(item, toPaper), window);
 
-                foreach (double[] corner in Corners(item.Bounds))
-                {
-                    onPaper = onPaper.Add(toPaper.X(corner[0], corner[1]), toPaper.Y(corner[0], corner[1]));
-                }
-
-                DisplayBox shown = Cut(onPaper, window);
-
-                if (shown.IsEmpty || AddressOf(document, item.Handle, addresses) == null)
+                // Where the viewport is clipped, an object inside the box of the outline but outside the outline is not seen.
+                if (shown.IsEmpty || (outline != null && !outline.Meets(shown)))
                 {
                     continue;
                 }
@@ -455,6 +452,52 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawLink(canvas, page, boxes[handle], addresses[handle]);
                 }
             }
+        }
+
+        /// <summary>
+        /// The box on the paper of what a viewport draws of an item of model space: the points of the item taken through the
+        /// viewport's transformation, so that a view twisted 30 degrees gives a line from (-200, -300) to (200, 300) at 1:20 a
+        /// box 2.3 wide and not the 32.3 wide box of its turned box. An arc is taken as the chain of points that stays within
+        /// a hundred-thousandth of its radius; an item of no such points (text, an image, a ray) by the turned corners of its box.
+        /// </summary>
+        private static DisplayBox PaperBox(DisplayItem2 item, Affine2 toPaper)
+        {
+            DisplayBox box = DisplayBox.Empty;
+
+            switch (item)
+            {
+                case DisplayPolyline2 polyline:
+                    return Through(box, polyline.Xy, toPaper);
+                case DisplaySegments2 segments:
+                    return Through(box, segments.Xy, toPaper);
+                case DisplayArc2 arc:
+                    return Through(box, arc.Flatten(Math.Max(arc.Radius * 1E-5, 1E-9)), toPaper);
+                case DisplayFill2 fill:
+                    foreach (double[] ring in fill.Rings)
+                    {
+                        box = Through(box, ring, toPaper);
+                    }
+
+                    return box;
+                default:
+                    foreach (double[] corner in Corners(item.Bounds))
+                    {
+                        box = box.Add(toPaper.X(corner[0], corner[1]), toPaper.Y(corner[0], corner[1]));
+                    }
+
+                    return box;
+            }
+        }
+
+        /// <summary>A box widened to take points given as X and Y in turn, each through a transformation.</summary>
+        private static DisplayBox Through(DisplayBox box, IReadOnlyList<double> xy, Affine2 transformation)
+        {
+            for (int i = 0; i + 1 < xy.Count; i += 2)
+            {
+                box = box.Add(transformation.X(xy[i], xy[i + 1]), transformation.Y(xy[i], xy[i + 1]));
+            }
+
+            return box;
         }
 
         /// <summary>The address of the first hyperlink of an object that has one, as a PDF link takes it; null for none. Kept once for each object.</summary>

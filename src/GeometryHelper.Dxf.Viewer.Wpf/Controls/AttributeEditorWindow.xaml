@@ -211,7 +211,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="180" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock
                                     Text="Tag"
@@ -252,7 +252,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="110" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="180" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock
                                                 Text="{Binding Tag}"
@@ -264,12 +264,14 @@
                                                 Grid.Column="1"
                                                 Text="{Binding Prompt}"
                                                 Padding="10,5"
+                                                TextTrimming="CharacterEllipsis"
                                                 Foreground="{StaticResource GhText}"
                                             />
                                             <TextBlock
                                                 Grid.Column="2"
                                                 Text="{Binding Value}"
-                                                Padding="10,5"
+                                                Padding="10,5,24,5"
+                                                TextTrimming="CharacterEllipsis"
                                                 FontFamily="{StaticResource GhMonoFont}"
                                                 Foreground="{StaticResource GhText}"
                                             />

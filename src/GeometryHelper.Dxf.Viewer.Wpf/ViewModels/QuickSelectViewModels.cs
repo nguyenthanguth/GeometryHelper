@@ -461,7 +461,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _current, value);
         }
 
-        /// <summary>Gets the line under the results: "6 matches in 6 objects · double-click a row to zoom to it".</summary>
+        /// <summary>Gets the line under the results: "6 matches in 6 objects · double-click a row to zoom to it", with the singular of AutoCAD's own strings ("1 match in 1 object").</summary>
         public string Summary
         {
             get => _summary;
@@ -569,9 +569,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int matches = Results.Sum(r => r.Result.Count);
             Summary =
                 matches.ToString(CultureInfo.InvariantCulture)
-                + " matches in "
+                + (matches == 1 ? " match in " : " matches in ")
                 + objects.ToString(CultureInfo.InvariantCulture)
-                + " objects · double-click a row to zoom to it";
+                + (objects == 1 ? " object" : " objects")
+                + " · double-click a row to zoom to it";
             _searched = _findWhat;
         }
 

@@ -359,8 +359,11 @@ EXPORTPDF (`EPDF`) shows the window's Save As PDF dialog, as AutoCAD 2021's: the
   for the next EXPORTPDF until the app closes. All layouts on ISO A1 portrait is a PDF whose pages are each 594 by 841 mm.
 - **Options…** shows Export to PDF Options. Include hyperlinks, on to start with, makes the first hyperlink of each object
   plotted a link of the page over the box of the object, a file's address as a file URI. An object of model space seen
-  through a layout's viewport has a link in each viewport that shows it, over its box on the paper cut to the frame of the
-  viewport (to the box of the outline where the viewport is clipped); an object on a layer frozen in the viewport has none.
+  through a layout's viewport has a link in each viewport that shows it, over the box of what the viewport draws of it on
+  the paper (a view twisted 30 degrees gives a line from (1 800, 1 200) to (2 200, 1 800) a box 2.3 wide, not the 32.3 wide
+  box of its turned box) cut to the frame of the viewport (to the box of the outline where the viewport is clipped, and
+  none where the object lies in the box of the outline but outside the outline: in the notch of an L-shaped clip); an
+  object on a layer frozen in the viewport has none.
   A line from (1 800, 1 200) to (2 200, 1 800) in a viewport 200 by 150 at 1:20 about (2 000, 1 500) is a link over
   (140, 85) to (160, 115) of the sheet, the box of the same line drawn there; one running past the frame is cut at it. The other rows are greyed, as the writer always or never does them: lines are exact vectors, raster
   images keep their own resolution, TrueType fonts are embedded, and layers, bookmarks and text turned to geometry are not

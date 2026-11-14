@@ -1567,7 +1567,7 @@ while `Select objects:` asks on the command line; the objects picked become the 
 Apply to: Current selection, its types those of the objects picked, so a line of DOORS and a text picked offer Multiple,
 Line and Text. The button is greyed while Exclude or Append to current selection set is chosen. FIND searches TEXT, MTEXT by its words, attribute values, dimension text,
 multileader text and table cells, and replaces in MTEXT its words alone: `{\fArial|b1;Bolts M20}` with M20 replaced by
-M24 is `{\fArial|b1;Bolts M24}`. Replace and Replace All are one undo step each. Over 100 000 objects Quick Select by
+M24 is `{\fArial|b1;Bolts M24}`. Replace and Replace All are one undo step each. Find says what it found under its list in the singular of AutoCAD's own strings: `1 match in 1 object`, `2 matches in 1 object`, `6 matches in 6 objects`. Over 100 000 objects Quick Select by
 layer takes 0.25 s and FIND 0.04 s.
 
 DRAWORDER and TEXTTOFRONT write the sort table AutoCAD writes, a SORTENTSTABLE under ACAD_SORTENTS in the extension
