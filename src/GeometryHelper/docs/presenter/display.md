@@ -244,7 +244,10 @@ plot and the images written clip every item to its region. The frame of the boun
 (`IsClipFrame`, left out of a plot where XCLIPFRAME is 2, `IsNotPlotted`) that no clip touches. A [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex)
 finds a clipped item only where its region does, a window takes the reference by the box of what is shown, and a crossing and
 the aperture of a snap meet only the part inside. Each cell of a MINSERT is clipped by its own place, and a clip that is
-switched off draws the block whole.
+switched off draws the block whole. A clip made in a system tilted out of the plan has the region where its prism cuts the plane
+of the block, and the frame where its boundary stands in the plan. The front and back planes of Clipdepth leave out the items
+of the block that lie wholly outside them, in height, and cut a line that crosses one; the display keeps no height, so any other
+entity that crosses a plane is drawn whole.
 
 ### Keeping the lists
 

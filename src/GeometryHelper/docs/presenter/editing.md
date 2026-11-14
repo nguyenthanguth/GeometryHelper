@@ -2752,9 +2752,18 @@ generate Polyline/New boundary] <New>:`. ON and OFF switch the clip of each refe
 along it; each says `No clip boundary found.` and asks again where none of the references has a clip. Clipdepth, with no
 clip, says `Xref must contain a clip boundary before specifying a clipdepth.`; else it asks `Specify front clip point or
 [Distance/Remove]:` and `Specify back clip point or [Distance/Remove]:`, a distance from the boundary (a point on the
-screen is on the boundary's plane, 0) or Remove, Enter keeping the plane, and a front plane behind the back one says `Front
-clipping plane behind back clipping plane.  Clipdepth not applied.`. The planes are written and kept, and the flat display
-leaves them out: a clip is drawn as its boundary alone.
+screen is on the plane of the current user coordinate system, so that it is 0 from a boundary made in that system and 15 from
+one made in the world's when the system stands 15 higher) or Remove, Enter keeping the plane, and a front plane that is not
+above the back one by more than a millionth (equal planes included) says `Front clipping plane behind back clipping plane.
+Clipdepth not applied.`, as AutoCAD 2021 does (front 10 with back 9.999999 refused, with 9.999998 taken). The planes are
+written and kept, and they cut what the block holds in height, in the units of the clip system whatever the reference's scale:
+the block is shown from the back plane to the front plane, planes included, and an entity that lies wholly above or below
+is left out. A block of a line rising from (0, 0, 0) to (100, 0, 100) and flat lines at heights -30, 10 and 30, with front 20
+and back -10, shows the rising line from x 0 to 20 and the flat line at 10 (AutoCAD 2021's PNGOUT of it draws the same). A
+line that crosses a plane is cut at it; any other entity that crosses one is drawn whole, since the display keeps no height to
+cut it by. The planes are measured from the plane of the boundary, which goes with the block as the boundary does: the same
+block standing 15 high when it is clipped in the world's plane shows the rising line from x 0 to 5. A clip that is off shows
+the whole block. The planes of an external reference are written and not applied.
 
 New boundary asks `Delete old boundary(s)? [Yes/No] <Yes>:` where a reference has a boundary (No ends the command and
 changes nothing), writes `Outside mode - Objects outside boundary will be hidden.`, and asks `Specify clipping boundary or
@@ -2779,8 +2788,12 @@ in, and the canvas clips to it. Of a clipped reference a pick, a window and a cr
 line of the block outside the boundary picks nothing, and a window round the boundary alone takes the reference. Each cell of
 a MINSERT is clipped by its own place, and the attributes of the reference are clipped too. The frame of the boundary is drawn
 over the reference in its colour while XCLIPFRAME (kept in the drawing, 0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0; at 2 it
-is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. A tilted
-UCS's boundary is drawn as its projection on the plane of the drawing.
+is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. The
+boundary of a clip made in a system tilted out of the plan (the presenter makes none, AutoCAD does) is drawn as its projection
+on the plan, where it stands in AutoCAD's own plan view, while the block is shown where the boundary's prism, its lines along
+the boundary's normal, cuts the plane of the block: a block at height 0 clipped to the rectangle (10, 10) to (90, 60) of a
+system at (100, 50, 20) turned 30 degrees about X shows from y 73.09 to 130.83 (AutoCAD 2021's PNGOUT of a grid of it), the
+frame from y 58.66 to 101.96. A clip whose plane is parallel to the block's is shown as before, however far apart the two are.
 
 EXPLODE of a clipped reference breaks the whole block, as AutoCAD 2021's does (probed on a rectangle, a polygon, a clip
 turned inside out and a clip switched off): a block of a square 100 by 100 and a circle, clipped to a rectangle 40 by 50, gives
@@ -2793,13 +2806,21 @@ order. A corner dragged takes the two sides it is on and keeps the opposite corn
 corner (1020, 520) of the rectangle (1020, 520) to (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); one
 dragged past the opposite corner leaves the rectangle in order; one dragged onto a side of it, "Boundaries with zero area are
 not acceptable."); a vertex of a polygon moves alone. The grip's point is put into the boundary's own system through the
-matrices the clip keeps, so that a reference moved, turned or scaled after the clip is dragged where the cursor is. A clip
+matrices the clip keeps, so that a reference moved, turned or scaled after the clip is dragged where the cursor is. In a clip
+made in a system tilted out of the plan the cursor is taken on the level plane through the grip, and the vertex moves by the
+parts of that offset along the boundary's own X and Y axes, as AutoCAD 2021's `MoveGripPointsAt` moves it (the corner (10, 10)
+of such a boundary dragged by (5, 3, 0) is (15, 10 + 3 cos 30); a reference scaled by 2, turned 30 degrees, lifted and then
+moved gives the same steps). A clip
 turned inside out is dragged the same way, its keyhole made anew about the box that holds the reference. Each drag is one
 undo step, GRIP, and any of the grip modes works on a corner. The arrow, a blue triangle across the first side, points to
 what the clip hides (down on the bottom side of a rectangle in Outside mode, up in Inside mode); a click on it turns the clip
 inside out, or back, at once, one undo step, with no grip edit started: a rectangle of two corners becomes the eleven points
 of its keyhole and returns to two corners. [`CadGrips.ClickClipFlip`](xref:GeometryHelper.Dxf.Viewer.CadGrips) does it, and
-the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind).
+the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind). What
+the console shows of AutoCAD's own arrow (a plugin on `GetGripPoints`): the one grip of a clip with its gizmos off, no trigger
+grip, no tooltip, and `MoveGripPointsAt` on it, by 0 or by 15 across the side, changes nothing, so that the flip is made by the
+click and by nothing the console can send; how the click and the arrow look on screen is the one thing not checked in AutoCAD's
+window.
 
 ### Grip modes
 

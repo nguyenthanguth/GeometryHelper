@@ -1547,6 +1547,13 @@ namespace GeometryHelper.Dxf.Viewer
             double cos = Math.Cos(rotation);
             double sin = Math.Sin(rotation);
             IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+            IReadOnlyList<GeoPoint2> section = clip;
+            DxfSpatialFilter.Slab slab = null;
+
+            if (clip != null)
+            {
+                reference.GetClipView(reference.DrawnFilter, clip, out section, out slab);
+            }
 
             for (int r = 0; r < rows; r++)
             {
@@ -1556,9 +1563,14 @@ namespace GeometryHelper.Dxf.Viewer
                     double dy = r * rowSpacing;
                     Affine2 placed = own.Then(Affine2.Translation(dx * cos - dy * sin, dx * sin + dy * cos));
 
-                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it.
+                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it. A clip
+                    // tilted out of the block's plane shows the block where its prism cuts the plane, and the frame stands over
+                    // the boundary itself.
                     DisplayClipRegion before = null;
-                    DisplayClip2 ring = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+                    DisplayClip2 frameRing = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+                    DisplayClip2 ring = ReferenceEquals(section, clip)
+                        ? frameRing
+                        : WorldRing(section, placed.Then(frame.Matrix));
 
                     if (ring != null)
                     {
@@ -1567,14 +1579,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style);
+                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style, slab);
                     }
                     finally
                     {
                         if (ring != null)
                         {
                             list.PopClip(before);
-                            DrawClipFrame(ring, list, handle, layerName, style);
+                            DrawClipFrame(frameRing, list, handle, layerName, style);
                         }
                     }
                 }
@@ -1582,7 +1594,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (clip != null)
             {
-                DisplayClipRegion before = list.PushClip(WorldRing(clip, own.Then(frame.Matrix)));
+                DisplayClipRegion before = list.PushClip(WorldRing(section, own.Then(frame.Matrix)));
 
                 try
                 {
@@ -2039,7 +2051,8 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayList2 list,
             string handle,
             string layerName,
-            DisplayStyle style
+            DisplayStyle style,
+            DxfSpatialFilter.Slab slab = null
         )
         {
             if (block == null)
@@ -2074,7 +2087,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        Draw(entity, inner, list, null);
+                        DxfEntity drawn = entity;
+
+                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        {
+                            Draw(drawn, inner, list, null);
+                        }
                     }
                     catch (Exception)
                     {
@@ -2107,7 +2125,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (shown[i] >= 0)
                     {
-                        Draw(entity, inner, list, null, shown[i] > 0);
+                        DxfEntity drawn = entity;
+
+                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        {
+                            Draw(drawn, inner, list, null, shown[i] > 0);
+                        }
                     }
                 }
                 catch (Exception)

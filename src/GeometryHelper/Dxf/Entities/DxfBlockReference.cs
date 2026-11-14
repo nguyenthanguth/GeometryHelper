@@ -1475,12 +1475,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal GeoPoint3 ClipPointInWorld(DxfSpatialFilter filter, GeoPoint2 clipPoint)
         {
-            GeoPoint2 block = filter.ToBlock(clipPoint);
+            GeoPoint3 block = filter.ToBlock(clipPoint);
             GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
-            return BlockTransform.Transform(new GeoPoint3(block.X + origin.X, block.Y + origin.Y, 0.0));
+            return BlockTransform.Transform(new GeoPoint3(block.X + origin.X, block.Y + origin.Y, block.Z + origin.Z));
         }
 
-        /// <summary>The way back from <see cref="ClipPointInWorld"/>: the point of the clip coordinate system that stands at a point of the world.</summary>
+        /// <summary>
+        /// The way back from <see cref="ClipPointInWorld"/>: the point of the clip coordinate system that stands at a point of
+        /// the world, its height above the boundary's plane left out.
+        /// </summary>
         /// <returns>false where the reference or the filter flattens space.</returns>
         internal bool TryClipPointOfWorld(DxfSpatialFilter filter, GeoPoint3 world, out GeoPoint2 clipPoint)
         {
@@ -1493,7 +1496,44 @@ namespace GeometryHelper.Dxf
 
             GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
             GeoPoint3 block = unplaced.Transform(world);
-            return filter.TryFromBlock(new GeoPoint2(block.X - origin.X, block.Y - origin.Y), out clipPoint);
+            return filter.TryFromBlock(
+                new GeoPoint3(block.X - origin.X, block.Y - origin.Y, block.Z - origin.Z),
+                out clipPoint
+            );
+        }
+
+        /// <summary>
+        /// What the display draws a clipped reference by besides <see cref="ClipOutline"/>: the ring the clip cuts the block's plane
+        /// in (the outline itself where the boundary's plane is the block's or parallel to it, which is every clip the presenter
+        /// makes), and the clipping planes of Clipdepth, null where it has none.
+        /// </summary>
+        /// <param name="filter">The filter of the reference.</param>
+        /// <param name="outline">The <see cref="ClipOutline"/>.</param>
+        /// <param name="section">The ring the block is shown in, in the same coordinates as the outline.</param>
+        /// <param name="slab">The planes.</param>
+        internal void GetClipView(
+            DxfSpatialFilter filter,
+            IReadOnlyList<GeoPoint2> outline,
+            out IReadOnlyList<GeoPoint2> section,
+            out DxfSpatialFilter.Slab slab
+        )
+        {
+            GeoPoint3 origin = BlockTableRecord?.Origin ?? Origin;
+            IReadOnlyList<GeoPoint2> cut = filter.GetSectionRing(-origin.Z);
+            slab = filter.GetSlab(origin);
+            section = outline;
+
+            if (cut != null && cut.Count == outline.Count)
+            {
+                var placed = new List<GeoPoint2>(cut.Count);
+
+                foreach (GeoPoint2 point in cut)
+                {
+                    placed.Add(new GeoPoint2(point.X + origin.X, point.Y + origin.Y));
+                }
+
+                section = placed.AsReadOnly();
+            }
         }
 
         /// <summary>
