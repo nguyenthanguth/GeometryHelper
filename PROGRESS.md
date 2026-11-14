@@ -117,7 +117,7 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
       the hidden internal visual style names (S)
 - [x] (done by dialogs5, dialogs7, dialogs8; the rest in "Dialogs 8 follow-ups") Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
-- [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
+- [ ] (b1c, running) Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
 
 Lead's plan after batches 4 and 5 (2026-11-13; up to 4 agents at once, basics first, each round merged and verified before
 the next takes its place; the lead pauses only at session 95 % or week 98 % and resumes by itself after the reset):
@@ -215,9 +215,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         "." clearing in the GUI; PDF links through VPCLIP-clipped and twisted viewports (untested); Find's "1 matches"
         plural; shots of the attribute dialogs (eattedit, battman, attdia) with a sample block (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
-  - [ ] (r31, running: MLEADERALIGN, TEXTALIGN, DIMBREAK Auto via stdin) R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
-        (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
-        splinedit2 merge) (S)
+  - [x] R3.1 (r31): MLEADERALIGN Parallel, Use current spacing, Spacing and Distribute as AutoCAD (content boxes, the
+        reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by
+        ellipses, splines, xlines, rays, TEXT and MTEXT (probed through stdin; typed points there are shifted by the first
+        object, a console quirk)
+  - [ ] R3.1 follow-ups: MLEADERCOLLECT (needs a core composite-block builder); MLEADERALIGN's side flip when content
+        lands past its arrowhead (171 = 3, leader on the right); TEXTALIGN Set spacing/Distribute on an oblique line (order
+        by x, gap rule unknown); DIMBREAK TEXT/MTEXT cutters tested, blocks and hatches as cutters; block content and
+        multi-line words in MLEADERALIGN; TEXTALIGNMODE's factory default (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
         ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
   - [x] OLE frames drawn (fu-ole): the picture of a bmp/png OLE frame on the canvas and in plots (Monochrome by luminance),
@@ -381,7 +386,7 @@ the ones wanted.
 - [x] Dimension follow-ups 13 (dims13): words of a radius or diameter put out stay on the landing by DIMATFIT 3's fit as
       AutoCAD (td2 163 -> 0, d2 153 -> 8 ties, t6 15 -> 1, ~26 000 probes); 15-degree cases were harness rounding
       (GH_ROUND6); harness dims-harness17
-- [ ] Dimension follow-ups 14: the angle band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe
+- [ ] (dims14, running) Dimension follow-ups 14: the angle band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe
       (band knot at cos 0.87); ties at two arrowheads (t9 34); points exactly on an aligned extension line (19 of 972 in
       m/m2, side not by the signed distance); t6's diameter turned 6.9 degrees; d2's SHX R6/R7 ties (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc

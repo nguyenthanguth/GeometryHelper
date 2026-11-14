@@ -1060,7 +1060,10 @@ an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCA
 ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object that crosses the dimension, naming
 it (the object naming the BREAKDATA among its reactors), Manual the two points picked and the line they break (0 and 1
 the extension lines, 3 the dimension line); Remove takes it out. Where the style keeps no break size, a break is 0.125
-wide, or 3.75 in a drawing of MEASUREMENT 1, times DIMSCALE, as AutoCAD 2021 breaks it. A dimension drawn anew, by DIMEDIT, a change of its
+wide, or 3.75 in a drawing of MEASUREMENT 1, times DIMSCALE (0.25 at a scale of 2, 0.0625 at 0.5), as AutoCAD 2021 breaks it.
+Auto breaks at lines, polylines, circles, arcs, ellipses, splines, xlines and rays, the lines followed as straight pieces where
+they are curves, and at TEXT and MTEXT over the whole box the words are drawn in, the break size beyond it each side; a line
+that only touches a dimension line with its end breaks it as well, and one lying along it does not. A dimension drawn anew, by DIMEDIT, a change of its
 style or a grip, is broken again where it keeps breaks, whether DIMBREAK here or AutoCAD broke it, and AutoCAD 2021 opening
 the drawing breaks it again from what the presenter kept: a dimension broken here by hand from (20, -130) to (30, -130),
 given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
@@ -1941,7 +1944,11 @@ between the top one and the bottom one. A line within a degree of the way the te
 Vertical) says `The base line is near horizontal or vertical, aligned texts may be out of available area, alignment is
 discarded.` and moves nothing. Three texts 5 high at (0, 0), (10, 20) and (30, 50) lined up on the left edge of the first have
 that edge in common. The settings stay for the next run in the same window; the Left, Center and Right alignments stand at
-the middle of the box when the texts move up or down.
+the middle of the box when the texts move up or down. Along a line of two points (Point), AutoCAD 2021 puts Left on the top
+left corner of each box and Right on its top right corner, as TL and TR, and Center on its middle, as MC: three texts 2.5
+high at (10, 10), (60, 25) and (30, 50) taken to a line of slope 1/2 through (30, 50) under Left have their left edges at
+-45, -15 and 35, where it stands at 12.5, 27.5 and 52.5. Set spacing and Distribute along a line that is neither level nor
+upright put the texts in order along the line, not from the top, and are not built as AutoCAD does them.
 
 MLEADEREDIT (MLE) takes "Select a multileader:", then "Specify leader arrowhead location or [Remove leaders]:": each point
 adds a leader line whose arrowhead stands there (`DxfMLeader.AddLeaderLine`), Enter ends; under Remove leaders "Select leader to
@@ -1953,14 +1960,23 @@ meet them on their left) makes a leader of its own, measured in the fonts the pr
 gap past the right end of their ink, the landing a dogleg further on, 234.6589 at 1:50 and 319.3179 at 1:100 for "HELLO" of arial.ttf
 0.18 high with a landing of 150 (the words 0.79318 wide for 0.18); where the font is not read the line goes to the first leader.
 MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
-"Select multileader to align to or [Options]:" and "Specify direction:": the content of each (its words' attachment point, or
-its block's position) moves with its landing onto the line through the content of the one picked along the direction, the
-arrowheads staying. Options asks "Enter an option [Distribute/make leader segments Parallel/specify Spacing/Use current
-spacing] <Use current spacing>:": Use current spacing keeps each content's place along the line, specify Spacing ("Specify
-spacing <0.0000>:") puts them that far apart along it in the order they stand, the one picked staying, and Distribute asks two
-points ("Specify first point or [Options]:", "Specify second point:") and spaces the contents evenly between them. The gaps are
-measured between the content points, not their extents; make leader segments Parallel says `Make leader segments parallel is
-not built here: the mode stays as it was.` MLEADERCOLLECT, which joins block multileaders into one, is not built.
+"Select multileader to align to or [Options]:" and "Specify direction:": the content of each moves with its landing (the
+point its dogleg ends at, the first line of its words level with it) onto the line through the landing of the one picked
+along the direction, the arrowheads staying. Options asks "Enter an option [Distribute/make leader segments Parallel/specify
+Spacing/Use current spacing] <Use current spacing>:" (the default shows as `make segments Parallel` or `specify Spacing`
+once chosen); the mode is kept for the next run and written as `Current mode: Distribute`, `Make leader lines parallel`,
+`Spacing: 20.000000` or `Use current spacing`. Use current spacing keeps each content's place along the line. specify Spacing
+("Specify spacing <0.000000>:") puts the contents a gap apart along it: the one picked stays, the others follow it in the
+order they stand along the direction, and the gap is measured between their boxes, each the width and height of the words
+with the landing gap before and after them: words 1.14, 0.06 and 2.34 wide with a landing gap of 0.09 and a spacing of 20 put
+the landings 21.32 and 20.24 apart, up the page 0.18 and 0.18 for words 0.18 high. Distribute asks two points ("Specify
+first point or [Options]:", "Specify second point:") and puts the first content's landing on the first point and the last
+one's on the second, the gaps between the boxes in between all the same. make leader segments Parallel asks only for the
+multileader to align to and turns each other multileader's first leader line about its arrowhead to run the way that one
+runs, its length kept, the content and landing moving with its end (arrowheads at (70, 30) and (130, 10), leaders of 58.31 and
+31.62, follow a leader at 45 degrees to (111.2311, 71.2311) and (152.3607, 32.3607)). Where a content ends up past its
+arrowhead AutoCAD turns the leader to meet the words on the other side; the presenter keeps the side. MLEADERCOLLECT, which
+joins block multileaders into one, is not built.
 
 ATTIPEDIT (ATI) asks "Select an attribute:" and edits the one clicked (that of the block drawn nearest the click, as -ATTEDIT
 takes it; the first of a block given by its handle) in place, in the box over it on the canvas, writing its value as one undo

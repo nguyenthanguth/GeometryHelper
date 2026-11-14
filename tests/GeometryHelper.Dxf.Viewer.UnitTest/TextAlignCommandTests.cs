@@ -197,8 +197,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void APointLine_TakesTheLeftMiddlesOfTheTextsOntoIt_KeepingTheirHeights()
+        public void APointLine_TakesTheTopLeftCornersOfTheTextsOntoIt_KeepingTheirHeights()
         {
+            // AutoCAD 2021 (probed in its console, three TEXT 2.5 high at (10, 10), (60, 25) and (30, 50), the line through
+            // (0, 0) and (100, 50) given as the points of Point): under Align = Left the top left corner of each box is on
+            // the line, as under TL (the left edge of AAA at -45 where the line is at 12.5), not its middle.
             CadDocument document = Texts();
             double y3 = Box(document, "B3").MinY;
 
@@ -208,12 +211,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             foreach (string handle in All3)
             {
                 DisplayBox box = Box(document, handle);
-                double y = (box.MinY + box.MaxY) / 2.0;
-                Assert.Equal(y - 100.0, box.MinX, 6);
+                Assert.Equal(box.MaxY - 100.0, box.MinX, 6);
             }
 
             Assert.Equal(y3, Box(document, "B3").MinY, 6);
             Assert.Equal("TEXTALIGN", document.NextUndo.Name);
+        }
+
+        [Fact]
+        public void APointLine_UnderRight_TakesTheTopRightCorners_AndUnderCenter_TheMiddles()
+        {
+            // AutoCAD 2021, the same texts and a line of slope 1/2 through (30, 50): Right puts the top right corner of AAA at
+            // (-45, 12.5), on the line, the middles of Center are on it, as MC.
+            CadDocument document = Texts();
+            Run(Session(document), "TA", "I", "Right", All3, Enter, "P", P(0, 100), P(50, 150));
+
+            foreach (string handle in All3)
+            {
+                DisplayBox box = Box(document, handle);
+                Assert.Equal(box.MaxY - 100.0, box.MaxX, 6);
+            }
+
+            Assert.True(document.Undo());
+            Run(Session(document), "TA", "I", "Center", All3, Enter, "P", P(0, 100), P(50, 150));
+
+            foreach (string handle in All3)
+            {
+                DisplayBox box = Box(document, handle);
+                Assert.Equal((box.MinY + box.MaxY) / 2.0 - 100.0, (box.MinX + box.MaxX) / 2.0, 6);
+            }
         }
 
         [Fact]

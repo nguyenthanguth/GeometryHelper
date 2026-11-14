@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** MLEADERALIGN in the presenter follows AutoCAD 2021's console run through standard input, which runs the real
+current command where a script did not. Make leader segments Parallel is built: each other multileader's first leader line turns
+about its arrowhead to run the way the one picked runs, its length kept, the content and landing moving with its end (arrowheads
+at (70, 30) and (130, 10) with leaders of 58.31 and 31.62 follow a leader at 45 degrees to (111.2311, 71.2311) and (152.3607,
+32.3607)). The line of Use current spacing runs through the landing of the one picked (the point its dogleg ends at), the
+direction taken from there; specify Spacing puts the one picked first and the others after it in the order they stand along the
+direction, and measures the gap between the boxes of the contents, each the width and height of the words with the landing gap
+before and after them (words 1.14, 0.06 and 2.34 wide, a landing gap of 0.09 and a spacing of 20 put the landings 21.32 and 20.24
+apart, up the page 0.18 apart for words 0.18 high); Distribute puts the first landing on the first point and the last on the
+second, the gaps between the boxes all the same. The prompts are AutoCAD's: `Specify spacing <0.000000>:`, `Current mode: Spacing:
+20.000000` and `Current mode: Make leader lines parallel`, the default of the options prompt `<make segments Parallel>` or
+`<specify Spacing>`. Where a content lands past its arrowhead AutoCAD turns the leader to meet the words on the other side; the
+presenter keeps the side. MLEADERCOLLECT is still not built.
+**CHANGED.** TEXTALIGN in the presenter takes Left and Right along a line of two points to the top left and top right corners of
+each box, as TL and TR, and Center to its middle, as AutoCAD 2021 does (three texts 2.5 high at (10, 10), (60, 25) and (30, 50) on a
+line of slope 1/2 through (30, 50) under Left have their left edges at -45, -15 and 35 where it stands at 12.5, 27.5 and 52.5);
+they stood at the middle of the left and right edges. Set spacing and Distribute along a slanting line put the texts in order along
+the line in AutoCAD, from the top here: not built.
+**NEW.** DIMBREAK Auto in the presenter breaks a dimension at ellipses, splines, xlines and rays, and at TEXT and MTEXT over the whole
+box of the words with the break size beyond it each side, as AutoCAD 2021 breaks it (probed in its console: an xline across the
+extension lines breaks both, an ellipse crossed at 15 and 17 breaks at 15.0001 and 16.9999, a TEXT 2.5 high standing from 1 to 3.5 across
+one breaks it from 0.9375 to 3.5625); it broke at lines, polylines, circles and arcs only. The break size is 0.125 times DIMSCALE (0.25 at a
+scale of 2, 0.0625 at 0.5), as before.
+
 **CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
 console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the
 documentation they were first built from did not give. REFEDIT asks `Select nesting level [Ok/Next] <Next>:` (Enter steps to

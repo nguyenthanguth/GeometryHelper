@@ -397,6 +397,14 @@ namespace GeometryHelper.Dxf.Viewer
             discarded = false;
             var moves = new Dictionary<string, GeoVector2>(StringComparer.OrdinalIgnoreCase);
             TextAlignParts(align, out int across, out int up);
+
+            // Along a line of two points AutoCAD 2021 (probed in its console) lays Left and Right on the top corner of each box
+            // and Center on its middle, as TL, TR and MC.
+            if (first.HasValue && align < 3 && align != 1)
+            {
+                up = 0;
+            }
+
             double lineDx = 0.0;
             double lineDy = 0.0;
 
