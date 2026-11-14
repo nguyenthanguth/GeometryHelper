@@ -134,11 +134,19 @@ namespace GeometryHelper.UnitTest.Dwg
 
         /// <summary>A network owned by the dictionary, whose actions are the handles given as hard owned pointers.</summary>
         private static string Network(string handle, string dictionary, params string[] actions) =>
+            NetworkOf("1", handle, dictionary, actions);
+
+        /// <summary>A network whose action is of <paramref name="version"/> (the version 2 holds four numbers more).</summary>
+        private static string NetworkOf(string version, string handle, string dictionary, params string[] actions) =>
             Object(
                 "ACDBASSOCNETWORK",
                 handle,
                 dictionary,
-                "100=AcDbAssocAction|90=1|90=0|330=0|360=0|90=1|90=0|90=0|100=AcDbAssocNetwork|90=0|90=12|90="
+                "100=AcDbAssocAction|90="
+                    + version
+                    + "|90=0|330=0|360=0|90=1|90=0|90=0"
+                    + (version == "2" ? "|90=0|90=0|90=0|90=0" : string.Empty)
+                    + "|100=AcDbAssocNetwork|90=0|90=12|90="
                     + actions.Length.ToString(CultureInfo.InvariantCulture)
                     + string.Concat(actions.Select(a => "|360=" + a))
                     + "|90=0"
@@ -185,7 +193,14 @@ namespace GeometryHelper.UnitTest.Dwg
             );
 
         /// <summary>The records of the handles in the text, each found again in the DXF the DWG reads back as, group for group (the owners apart); how many.</summary>
-        private static int Kept(string text, byte[] back, params string[] handles)
+        private static int Kept(string text, byte[] back, params string[] handles) => Kept(1032, text, back, handles);
+
+        /// <summary>
+        /// <see cref="Kept(string, byte[], string[])"/> for a DWG of <paramref name="target"/> (1024 for R2010, 1027 for R2013,
+        /// 1032 for R2018): AutoCAD holds a network and a variable at the version 2 of an action, with four numbers more, from
+        /// R2013, and at the version 1 before, whichever version the text gives.
+        /// </summary>
+        private static int Kept(int target, string text, byte[] back, params string[] handles)
         {
             List<DwgAnswerKey.Record> before = Records(text);
             List<DwgAnswerKey.Record> after = DwgAnswerKey.Parse(back);
@@ -196,6 +211,28 @@ namespace GeometryHelper.UnitTest.Dwg
                 DwgAnswerKey.Record got = after.SingleOrDefault(r => Handle(r) == handle);
                 Assert.True(got != null, sent.Type + " " + handle + " did not come back.");
                 List<KeyValuePair<int, string>> a = sent.Groups.Where(g => g.Key != 102 && g.Key != 330).ToList();
+
+                if (sent.Type == "ACDBASSOCNETWORK" || sent.Type == "ACDBASSOCVARIABLE")
+                {
+                    // After the 100 come the version, the status, the body, then three numbers; the version 2 has four more.
+                    string version = target >= 1027 ? "2" : "1";
+                    int start = a.FindIndex(g => g.Key == 100) + 1;
+
+                    if (a[start].Value.Trim() != version)
+                    {
+                        a[start] = new KeyValuePair<int, string>(90, version);
+
+                        if (version == "2")
+                        {
+                            a.InsertRange(start + 6, Enumerable.Repeat(new KeyValuePair<int, string>(90, "0"), 4));
+                        }
+                        else
+                        {
+                            a.RemoveRange(start + 6, 4);
+                        }
+                    }
+                }
+
                 List<KeyValuePair<int, string>> b = got.Groups.Where(g => g.Key != 102 && g.Key != 330).ToList();
 
                 Assert.Equal(sent.Type, got.Type);
@@ -316,6 +353,49 @@ namespace GeometryHelper.UnitTest.Dwg
             )
             + Variable("F203", "F200", "1", "40=2.5", "90=2|360=F201|90=0|360=F202|90=1")
             + Network("F200", dictionary, "F203");
+
+        /// <summary>The number that opens the action of the object of <paramref name="handle"/> in the DXF a DWG reads back as.</summary>
+        private static string ActionVersion(byte[] back, string handle) =>
+            DwgAnswerKey.Parse(back).Single(r => Handle(r) == handle).Groups.First(g => g.Key == 90).Value.Trim();
+
+        [Fact]
+        public void AVariableAndANetworkOfR2010_AreWrittenToR2018AsTheSecondVersion_AsAutoCADBringsThemUp()
+        {
+            // The network and the variable of a block saved by AutoCAD 2010 hold the version 1 of an action; AutoCAD 2021 saving
+            // the drawing as R2013 or R2018 writes the version 2 (four numbers more), as it does a constraint group.
+            string text = Drawing(Edges, out _);
+            byte[] back = DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032"));
+
+            Assert.Equal(
+                "1",
+                Records(text).Single(r => Handle(r) == "F203").Groups.First(g => g.Key == 90).Value.Trim()
+            );
+            Assert.Equal("2", ActionVersion(back, "F200"));
+            Assert.Equal("2", ActionVersion(back, "F203"));
+            Assert.Equal(5, Kept(text, back, "F200", "F201", "F202", "F203", "F204"));
+        }
+
+        [Fact]
+        public void AVariableAndANetworkOfR2018_AreWrittenToR2010AsTheFirstVersion_AsAutoCADTakesThemDown()
+        {
+            // AutoCAD 2021 saving a drawing of dynamic blocks as R2010 or R2007 writes the version 1 of both, without the four
+            // numbers, and as R2013 the version 2.
+            string text = Drawing(
+                dictionary =>
+                    Variable("F104", "F103", "2", "90=4", "90=0") + NetworkOf("2", "F103", dictionary, "F104"),
+                out _
+            );
+            DwgDrawing drawing = DwgDrawing.Parse(text, null);
+            byte[] to2010 = DwgReader.ToDxf(DwgFileWriter.Write(drawing, "AC1024", out _));
+            byte[] to2013 = DwgReader.ToDxf(DwgFileWriter.Write(drawing, "AC1027", out _));
+
+            Assert.Equal("1", ActionVersion(to2010, "F103"));
+            Assert.Equal("1", ActionVersion(to2010, "F104"));
+            Assert.Equal("2", ActionVersion(to2013, "F103"));
+            Assert.Equal("2", ActionVersion(to2013, "F104"));
+            Assert.Equal(2, Kept(1024, text, to2010, "F103", "F104"));
+            Assert.Equal(2, Kept(1027, text, to2013, "F103", "F104"));
+        }
 
         [Fact]
         public void ADependencyOnAnEdge_IsKeptWhicheverWayItNamesTheEdge()
@@ -497,7 +577,7 @@ namespace GeometryHelper.UnitTest.Dwg
             byte[] back = DwgReader.ToDxf(dwg);
 
             Assert.DoesNotContain("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
-            Assert.Equal(4, Kept(text, back, "F300", "F301", "F302", "F303"));
+            Assert.Equal(4, Kept(1024, text, back, "F300", "F301", "F302", "F303"));
             Assert.Equal(
                 new[]
                 {

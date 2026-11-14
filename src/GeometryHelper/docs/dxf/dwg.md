@@ -162,7 +162,11 @@ gives it after an empty text as AutoCAD's DXF does (1, 70 and 140 or 70). The ve
 binds stand by their handles; AutoCAD's DXF has them in the order of its memory, which is the order of the handles in all
 but 3 of the 115 stretch actions of the samples (one lists two entities as `F3`, `E9`, AutoCAD's DXF too; two list a run of
 handles from the middle, which its DXF gives by handle); no rule of the handles gives the order, and the DXF is in handle order
-for 114 of the 115. In AutoCAD 2021's 120 sample drawings 72 of the 90 evaluation graphs
+for 114 of the 115. The DWG's own order of 13 of them (in the sample drawings of Architectural - Metric and Mechanical -
+Imperial) is a turn of the handle order, a run from the middle first and then the handles before it: `4FB8 4FB9 4FBB 4FAA
+4FB0 4FB7` for the handles `4FAA` to `4FBB`, the same wherever the entities recur. That is the order of a hash table by the
+handle modulo a prime (2551 gives the four actions of that block, 857 or 858 the eight of another), whose size the file does
+not give; the writer keeps the handle order, which AutoCAD opens as it does the others. In AutoCAD 2021's 120 sample drawings 72 of the 90 evaluation graphs
 are read, as AutoCAD's DXF of each drawing has them, group for group (12 of a linear parameter with a stretch action
 alone, the nine sheets `A-01` to `S-04` among them; counting a graph under each kind it holds, 41 have a visibility
 parameter, 40 a linear one, 18 a point parameter, 16 a base point parameter, 14 a flip, 12 a rotation, 10 a lookup, 6 an
@@ -192,8 +196,11 @@ the indexes of the dependencies gives it), and every one is written again from i
 (its class number apart). A group of version 1, which a DWG of AutoCAD 2010 gives, is brought up to the version 2 when it is
 written to R2018, as AutoCAD does when it saves one: the action of version 2 with its four numbers 0, the nodes by
 identifier, the table and the directory, and a 0 for the fourth real of a circle or an arc. A group of the version 2 is not
-written to a DWG of R2010 or earlier (its network goes with it). The
-largest real number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is
+written to a DWG of R2010 or earlier (its network goes with it). The network and the variable are of the version 2 of an
+action (the four numbers more) in a DWG of R2013 and later, and of the version 1 before, whichever version the groups give,
+as AutoCAD 2021 writes them: its own R2018, R2013, R2010 and R2007 files of Architectural - Metric hold them at 2, 2, 1 and
+1, and the 6 networks and 35 variables of a drawing saved by AutoCAD 2010 and written to R2018 are the bits of AutoCAD's own.
+The largest real number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is
 read: its digits as the runtime writes them rounded past the largest number and could not be read back, which stopped the
 whole DWG from being read.
 
@@ -301,8 +308,13 @@ call.
   `ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP`, with the next handles of the drawing.
 - A true colour does not exist in the format of AutoCAD 2000. AutoCAD keeps one as round-trip data: extended data of
   the application `ACAD` that starts with `RTT` on an entity, and an extension dictionary holding `ACAD_XREC_ROUNDTRIP`
-  on a layer. That data is passed on as the file has it; it is not turned into the entity's true colour, so the entity
-  shows the indexed colour AutoCAD chose as the nearest. In the same way an AutoCAD 2004 file keeps the material of an
+  on a layer, and `DBColXD` on the DBCOLOR of a colour of a book. Read, that data is passed on as the file has it; it is
+  not turned into the entity's true colour, so the entity shows the indexed colour AutoCAD chose as the nearest. Written to
+  R2018 it is turned into the colour, as AutoCAD does when it saves such a drawing as R2004 or later: the entity's true
+  colour and the name of its book colour (62, 420, 430), the layer's own colour with its extension dictionary and the
+  record in it left out, the DBCOLOR's index, colour and names. AutoCAD 2021 opens a drawing of 4 layers and 9 entities in
+  true colours and a colour of the book DIC, saved by it as R2000 and written to R2018 by the library, with `AUDIT` 0 and
+  the 37 true colours and 3 names of its own R2018. A transparency is not in the round-trip data of R2000. In the same way an AutoCAD 2004 file keeps the material of an
   entity, which its format has no place for, as extended data of `ACAD` starting with `RTMaterial` and the handle of
   the material; it is passed on as the file has it.
 - `$TDCREATE` and `$TDUPDATE` are not given: the file holds the two times as universal time, and they are given as
@@ -373,6 +385,16 @@ The drawing is written as its DXF, and each record of that DXF is put into the o
 with the handles of the drawing: the header variables, the classes, the tables, the blocks, the entities and the
 objects, in the container of pages a DWG of AutoCAD 2004 and later has, compressed, with every check sum. The same
 drawing gives the same bytes every time.
+
+A DWG keeps an angle in radians and a DXF in degrees, so the writer turns one into the other, and the reader back. AutoCAD
+2021 makes the radians of a degree text as the degrees divided by 57.29577951308232: of 1 400 angles typed into a DXF of ARC
+arcs it gives the bits of that division for 1 207 (86 of 100), against 993 for `degrees * pi / 180`; the TEXT rotations
+agree (545 of 600, against 451). The writer divides so, and the reader multiplies by 57.29577951308232, so that the radians
+AutoCAD wrote come back as they were: of 470 angles in AutoCAD's own R2018 drawings that came back a bit off 422 now do, and
+of the 236 ARC objects that were a bit off 63 still are. Those are radians that no double of degrees divides to, as a degree
+is the coarser step there; they are one bit off in the last place, about 1E-16 radians. A degree text that AutoCAD turns
+into another bit than its quotient (28 of 300 whole degrees, 195 among them) cannot be reproduced by any plain formula
+tried (the product with `pi / 180`, a long double, the correctly rounded value).
 
 | Part | Written |
 |---|---|

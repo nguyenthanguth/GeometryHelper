@@ -716,6 +716,21 @@ namespace GeometryHelper.Dwg
         private void WriteExtendedData()
         {
             List<KeyValuePair<int, string>> groups = _record.XData;
+            RoundTripColour kept = R2004Plus ? RoundTripColourOf(_record) : null;
+
+            if (kept != null)
+            {
+                // The colour went into the record's own, as AutoCAD does when it saves such a drawing as R2004 or later; the
+                // application ACAD goes if nothing else is left of its data.
+                groups = new List<KeyValuePair<int, string>>(groups);
+                groups.RemoveRange(kept.At, kept.Count);
+
+                if (kept.At + 1 >= groups.Count || groups[kept.At].Key == 1001)
+                {
+                    groups.RemoveAt(kept.At - 1);
+                }
+            }
+
             int i = 0;
 
             while (i < groups.Count)
@@ -1035,9 +1050,11 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
-            bool rgb = all.Has(420);
+            RoundTripColour kept = all.Has(420) ? null : RoundTripColourOf(_record);
+            bool rgb = all.Has(420) || kept != null;
             bool transparency = all.Has(440);
-            ulong book = all.Has(430) ? BookColourOf(all.Text(430)) : 0;
+            string bookName = all.Has(430) ? all.Text(430) : kept?.Name;
+            ulong book = bookName != null ? BookColourOf(bookName) : 0;
 
             if (book != 0)
             {
@@ -1058,7 +1075,7 @@ namespace GeometryHelper.Dwg
 
             if (rgb)
             {
-                _data.BitLong(unchecked((int)0xC2000000) | (all.Int(420) & 0xFFFFFF));
+                _data.BitLong(unchecked((int)0xC2000000) | ((kept?.Rgb ?? all.Int(420)) & 0xFFFFFF));
             }
 
             if (transparency)
@@ -1112,6 +1129,14 @@ namespace GeometryHelper.Dwg
                 return;
             }
 
+            RoundTripColour kept = colour.Has(420) ? null : RoundTripColourOf(_record);
+
+            if (kept != null)
+            {
+                WriteColour(kept.Index, kept.Rgb, kept.Name);
+                return;
+            }
+
             WriteColour(colour.Int(62), colour.Has(420) ? colour.Int(420) : -1, colour.Text(430));
         }
 
@@ -1121,12 +1146,171 @@ namespace GeometryHelper.Dwg
             DwgRecord found = _drawing.Objects.Find(record =>
                 record.Type == "DBCOLOR"
                 && _written.Contains(record.Handle)
-                && string.Equals(record.Of("AcDbColor").Text(430).Trim(), name.Trim(), StringComparison.Ordinal)
+                && string.Equals(
+                    record.Of("AcDbColor").Has(430)
+                        ? record.Of("AcDbColor").Text(430).Trim()
+                        : RoundTripColourOf(record)?.Name?.Trim(),
+                    name.Trim(),
+                    StringComparison.Ordinal
+                )
             );
             return found?.Handle ?? 0;
         }
 
-        private static double Radians(double degrees) => degrees * Math.PI / 180.0;
+        /// <summary>
+        /// A colour AutoCAD keeps as round-trip data in a DWG of R2000, which has no true colour: its index, its true colour and
+        /// the name of a colour of a book.
+        /// </summary>
+        private sealed class RoundTripColour
+        {
+            /// <summary>The index, the nearest one the file shows.</summary>
+            public int Index;
+
+            /// <summary>The red, green and blue as one number.</summary>
+            public int Rgb;
+
+            /// <summary>The name of a colour of a book (<c>book$colour</c>); null for none.</summary>
+            public string Name;
+
+            /// <summary>Where the round-trip groups of the extended data start and how many, 0 for none (a layer's are in a record).</summary>
+            public int At;
+
+            public int Count;
+        }
+
+        /// <summary>
+        /// The colour a record keeps for AutoCAD as extended data of ACAD, for a release that has no true colour: an entity
+        /// has <c>RTTcAl</c>, the flags and index of its colour as a short (0x8000 for a true colour, 0x4000 for a book), the
+        /// colour as a long (0xC2 and the red, green and blue) and the name of its book colour or <c>$$NoName$$</c>; a DBCOLOR
+        /// has <c>DBColXD</c>, the index, the colour and the name. Null where the record has none.
+        /// </summary>
+        private static RoundTripColour RoundTripColourOf(DwgRecord record)
+        {
+            List<KeyValuePair<int, string>> groups = record.XData;
+
+            for (int i = 0; i + 4 < groups.Count; i++)
+            {
+                string tag = groups[i + 1].Value.Trim();
+
+                if (
+                    groups[i].Key != 1001
+                    || groups[i].Value.Trim() != "ACAD"
+                    || groups[i + 1].Key != 1000
+                    || !(tag == "DBColXD" || tag.StartsWith("RTTc", StringComparison.Ordinal))
+                    || groups[i + 2].Key != 1070
+                    || groups[i + 3].Key != 1071
+                    || groups[i + 4].Key != 1000
+                )
+                {
+                    continue;
+                }
+
+                int colour = DwgRecord.Int(groups[i + 3].Value);
+
+                if ((colour >> 24 & 0xFF) != 0xC2)
+                {
+                    return null;
+                }
+
+                string name = groups[i + 4].Value;
+                return new RoundTripColour
+                {
+                    Index = DwgRecord.Int(groups[i + 2].Value) & 0x1FF,
+                    Rgb = colour & 0xFFFFFF,
+                    Name = name.Trim() == "$$NoName$$" || name.Length == 0 ? null : name,
+                    At = i + 1,
+                    Count = 4,
+                };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The colour of a layer in the record AutoCAD keeps it in for a release that has no true colour: the extension
+        /// dictionary holding <c>ACAD_XREC_ROUNDTRIP</c> alone, whose XRECORD is <c>COLORACI</c> and an index, <c>COLORTRUE</c>
+        /// and the colour and, for a colour of a book, <c>COLORNAME</c> and its name. Null for a layer with none.
+        /// </summary>
+        private RoundTripColour RoundTripColourOfLayer(DwgRecord layer)
+        {
+            if (layer.Type != "LAYER" || layer.XDictionary == 0)
+            {
+                return null;
+            }
+
+            DwgRecord dictionary = _drawing.Find(layer.XDictionary);
+
+            if (dictionary == null || dictionary.Type != "DICTIONARY")
+            {
+                return null;
+            }
+
+            DwgGroups entries = dictionary.Of("AcDbDictionary");
+            List<string> names = entries.Each(3);
+            List<string> handles = entries.Each(360);
+            DwgRecord record =
+                names.Count == 1 && handles.Count == 1 && names[0].Trim() == "ACAD_XREC_ROUNDTRIP"
+                    ? _drawing.Find(DwgRecord.Hex(handles[0]))
+                    : null;
+
+            if (record == null || record.Type != "XRECORD")
+            {
+                return null;
+            }
+
+            var found = new RoundTripColour { Index = -1, Rgb = -1 };
+            var groups = new List<KeyValuePair<int, string>>(record.Of("AcDbXrecord").All);
+
+            for (int i = 0; i + 1 < groups.Count; i++)
+            {
+                if (groups[i].Key != 102)
+                {
+                    continue;
+                }
+
+                switch (groups[i].Value.Trim())
+                {
+                    case "COLORACI" when groups[i + 1].Key == 70:
+                        found.Index = DwgRecord.Int(groups[i + 1].Value);
+                        break;
+                    case "COLORTRUE" when groups[i + 1].Key == 90:
+                        found.Rgb = DwgRecord.Int(groups[i + 1].Value) & 0xFFFFFF;
+                        break;
+                    case "COLORNAME" when groups[i + 1].Key == 1:
+                        found.Name = groups[i + 1].Value;
+                        break;
+                    case "{ACAD_REACTORS":
+                    case "}":
+                        break;
+                    default:
+                        return null;
+                }
+            }
+
+            return found.Index >= 0 && found.Rgb >= 0 ? found : null;
+        }
+
+        /// <summary>
+        /// Whether a record is the round-trip data of a layer's colour that is written into the layer's own colour from R2004:
+        /// its extension dictionary and the XRECORD in it.
+        /// </summary>
+        public bool IsRoundTripOfLayerColour(DwgRecord record)
+        {
+            DwgRecord owner = _drawing.Find(record.Owner);
+
+            if (record.Type == "XRECORD")
+            {
+                return owner != null && IsRoundTripOfLayerColour(owner);
+            }
+
+            return record.Type == "DICTIONARY"
+                && owner != null
+                && owner.XDictionary == record.Handle
+                && RoundTripColourOfLayer(owner) != null;
+        }
+
+        /// <summary>The radians AutoCAD 2021 makes of <paramref name="degrees"/> (see <c>DwgObjectReader.Degrees</c>).</summary>
+        internal static double Radians(double degrees) => degrees / (180.0 / Math.PI);
 
         private static bool IsDefaultExtrusion(double[] extrusion) =>
             extrusion[0] == 0.0 && extrusion[1] == 0.0 && extrusion[2] == 1.0;

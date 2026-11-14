@@ -316,6 +316,7 @@ namespace GeometryHelper.Dwg
                     || record.Type == "ENDTAB"
                     || (_number >= 1024 && DwgObjectWriter.IsOfDxfAlone(record))
                     || (_number >= 1027 && _objects.IsRoundTripOfVisualStyle(record))
+                    || (_number >= 1018 && _objects.IsRoundTripOfLayerColour(record))
                 )
                 {
                     continue;

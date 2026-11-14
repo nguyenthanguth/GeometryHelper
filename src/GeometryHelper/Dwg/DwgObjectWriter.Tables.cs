@@ -249,7 +249,12 @@ namespace GeometryHelper.Dwg
                 | (layer.Int(290, 1) != 0 ? 16 : 0)
                 | (LineWeightIndex(layer.Int(370, -3)) << 5);
             _data.BitShort(values);
-            WriteColour(Math.Abs(colour), layer.Has(420) ? layer.Int(420) : -1);
+            RoundTripColour kept = layer.Has(420) || !R2004Plus ? null : RoundTripColourOfLayer(_record);
+            WriteColour(
+                Math.Abs(colour),
+                layer.Has(420) ? layer.Int(420) : kept?.Rgb ?? -1,
+                layer.Has(430) ? layer.Text(430) : kept?.Name
+            );
             H(5, 0);
             H(5, layer.Handle(390));
 

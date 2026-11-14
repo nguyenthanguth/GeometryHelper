@@ -481,11 +481,14 @@ the ones wanted.
   - [x] DWG follow-ups 8 (dwg14): the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP read and written (34 groups to AutoCAD's
         bits; all 90 evaluation graphs written, 18 newly); R2013 edge names; LWPOLYLINE vertex ids (group 91) kept;
         dimensional constraints without a block flag; 167 DWGs to R2018, AUDIT 160 at 0 (originals 156), none refused
-  - [ ] (dwg15, running: ARC bit, actions v2, stretch order, R2000 colours) DWG follow-ups 9: the order of a group's actions (AutoCAD's hash order); 236 ARC objects one bit off in objcmp;
-        network, variable and dependency actions from R2010 text written at version 1; whether the AC1027 writer is worth
-        fixing (AutoCAD refuses it, ErrorStatus 53); the stretch entity order (3 of 115); dynamic data below R2007; sweep,
+  - [x] DWG follow-ups 9 (dwg15): angles converted as AutoCAD (d / (180/pi); ARCs one bit off 236 -> 63); network and
+        variable actions at version 2 from R2013; R2000 round-trip true colours and book names taken into the colours on
+        R2004+ (layer XRECORD dropped as AutoCAD); 167 DWGs AUDIT unchanged (160 at 0), none refused
+  - [ ] DWG follow-ups 10: 63 ARCs and 40 TEXT/ATTDEF one bit off (28 of 300 whole degrees off AutoCAD's own quotient);
+        RTMaterial xdata from R2000/R2004 (AutoCAD drops it); the stretch and group action hash order (table size not in
+        the file; parked); whether the AC1027 writer is worth fixing (ErrorStatus 53); dynamic data below R2007; sweep,
         revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
-        parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
+        parity; TABLEGEOMETRY head bit; a rendered thumbnail (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
