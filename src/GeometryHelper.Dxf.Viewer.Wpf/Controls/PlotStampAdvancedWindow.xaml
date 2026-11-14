@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Advanced Options"
     Width="540"
-    Height="480"
+    Height="510"
     WindowStyle="None"
     ResizeMode="NoResize"
     ShowInTaskbar="False"

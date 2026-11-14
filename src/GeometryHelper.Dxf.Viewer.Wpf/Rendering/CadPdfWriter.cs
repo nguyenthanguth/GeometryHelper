@@ -331,17 +331,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// EXPORTPDF's Include hyperlinks: the first hyperlink of each object plotted of the space itself, with an address, made
-        /// a link of the page over the box of what is drawn of the object, within the printable area. A file's address is
-        /// written as a file URI (D:\Docs\B-12.pdf as file:///D:/Docs/B-12.pdf), any other as it is. Objects seen through a
-        /// layout's viewports carry no link.
+        /// EXPORTPDF's Include hyperlinks: the first hyperlink of each object plotted, with an address, made a link of the page
+        /// over the box of what is drawn of the object, within the printable area. An object of the space itself has one link;
+        /// an object of model space seen through a layout's viewport has one in each viewport that shows it, over its box on the
+        /// paper cut to the viewport's frame (or to the box of its clipped outline), and none where its layer is frozen in the
+        /// viewport. A file's address is written as a file URI (D:\Docs\B-12.pdf as file:///D:/Docs/B-12.pdf), any other as it
+        /// is.
         /// </summary>
         private static void DrawHyperlinks(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page)
         {
             var boxes = new Dictionary<string, DisplayBox>(StringComparer.OrdinalIgnoreCase);
             var order = new List<string>();
+            var addresses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            IReadOnlyList<DisplayItem2> items = document.GetDisplay(space).Items;
 
-            foreach (DisplayItem2 item in document.GetDisplay(space).Items)
+            foreach (DisplayItem2 item in items)
             {
                 if (
                     item.Handle == null
@@ -362,57 +366,172 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 boxes[item.Handle] = box.Union(item.Bounds);
             }
 
-            DisplayBox printable = page.Printable;
+            foreach (string handle in order)
+            {
+                string url = AddressOf(document, handle, addresses);
+
+                if (url != null)
+                {
+                    DrawLink(canvas, page, boxes[handle], url);
+                }
+            }
+
+            foreach (DisplayItem2 item in items)
+            {
+                if (item is DisplayViewport2 viewport && !viewport.IsNotPlotted)
+                {
+                    DrawViewportLinks(canvas, document, page, viewport, addresses);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The links of the objects of model space one viewport shows: each with an address over its box on the paper, cut to
+        /// the frame of the viewport and, where it is clipped, to the box of the outline, in the order the objects are listed.
+        /// </summary>
+        private static void DrawViewportLinks(
+            SKCanvas canvas,
+            CadDocument document,
+            CadPlotPage page,
+            DisplayViewport2 viewport,
+            Dictionary<string, string> addresses
+        )
+        {
+            DisplayBox window = viewport.Bounds;
+
+            if (viewport.Clip != null)
+            {
+                window = Cut(window, ClipBox(viewport.Clip));
+            }
+
+            if (window.IsEmpty || !window.Intersects(page.Area))
+            {
+                return;
+            }
+
+            Affine2 toPaper = viewport.ModelToPaper;
+            var boxes = new Dictionary<string, DisplayBox>(StringComparer.OrdinalIgnoreCase);
+            var order = new List<string>();
+
+            foreach (DisplayItem2 item in viewport.Model.Items)
+            {
+                if (
+                    item.Handle == null
+                    || item.IsNotPlotted
+                    || item.Bounds.IsEmpty
+                    || viewport.FrozenLayers.Contains(item.Layer ?? string.Empty)
+                )
+                {
+                    continue;
+                }
+
+                DisplayBox onPaper = DisplayBox.Empty;
+
+                foreach (double[] corner in Corners(item.Bounds))
+                {
+                    onPaper = onPaper.Add(toPaper.X(corner[0], corner[1]), toPaper.Y(corner[0], corner[1]));
+                }
+
+                DisplayBox shown = Cut(onPaper, window);
+
+                if (shown.IsEmpty || AddressOf(document, item.Handle, addresses) == null)
+                {
+                    continue;
+                }
+
+                if (!boxes.TryGetValue(item.Handle, out DisplayBox box))
+                {
+                    order.Add(item.Handle);
+                    box = DisplayBox.Empty;
+                }
+
+                boxes[item.Handle] = box.Union(shown);
+            }
 
             foreach (string handle in order)
             {
-                DxfEntity entity = document.FindEntity(handle);
-                string url = null;
-
-                for (int i = 0; entity != null && i < entity.Hyperlinks.Count && url == null; i++)
+                if (boxes[handle].Intersects(page.Area))
                 {
-                    string name = entity.Hyperlinks[i].Name.Trim();
-                    url = name.Length == 0 ? null : Address(name);
+                    DrawLink(canvas, page, boxes[handle], addresses[handle]);
                 }
+            }
+        }
 
-                if (url == null)
-                {
-                    continue;
-                }
+        /// <summary>The address of the first hyperlink of an object that has one, as a PDF link takes it; null for none. Kept once for each object.</summary>
+        private static string AddressOf(CadDocument document, string handle, Dictionary<string, string> kept)
+        {
+            if (kept.TryGetValue(handle, out string known))
+            {
+                return known;
+            }
 
-                DisplayBox box = boxes[handle];
-                DisplayBox sheet = DisplayBox.Empty;
+            DxfEntity entity = document.FindEntity(handle);
+            string url = null;
 
-                foreach (double[] corner in Corners(box))
-                {
-                    sheet = sheet.Add(
-                        page.DrawingToSheet.X(corner[0], corner[1]),
-                        page.DrawingToSheet.Y(corner[0], corner[1])
-                    );
-                }
+            for (int i = 0; entity != null && i < entity.Hyperlinks.Count && url == null; i++)
+            {
+                string name = entity.Hyperlinks[i].Name.Trim();
+                url = name.Length == 0 ? null : Address(name);
+            }
 
-                var shown = new DisplayBox(
-                    Math.Max(sheet.MinX, printable.MinX),
-                    Math.Max(sheet.MinY, printable.MinY),
-                    Math.Min(sheet.MaxX, printable.MaxX),
-                    Math.Min(sheet.MaxY, printable.MaxY)
-                );
+            kept[handle] = url;
+            return url;
+        }
 
-                if (shown.IsEmpty)
-                {
-                    continue;
-                }
+        /// <summary>A link of the page over a box of the space, within the printable area; none where the box lies outside it.</summary>
+        private static void DrawLink(SKCanvas canvas, CadPlotPage page, DisplayBox box, string url)
+        {
+            DisplayBox sheet = DisplayBox.Empty;
 
-                Affine2 toPoints = SheetToPoints(page);
-                float x0 = (float)toPoints.X(shown.MinX, shown.MinY);
-                float y0 = (float)toPoints.Y(shown.MinX, shown.MinY);
-                float x1 = (float)toPoints.X(shown.MaxX, shown.MaxY);
-                float y1 = (float)toPoints.Y(shown.MaxX, shown.MaxY);
-                canvas.DrawUrlAnnotation(
-                    new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)),
-                    url
+            foreach (double[] corner in Corners(box))
+            {
+                sheet = sheet.Add(
+                    page.DrawingToSheet.X(corner[0], corner[1]),
+                    page.DrawingToSheet.Y(corner[0], corner[1])
                 );
             }
+
+            DisplayBox shown = Cut(sheet, page.Printable);
+
+            if (shown.IsEmpty)
+            {
+                return;
+            }
+
+            Affine2 toPoints = SheetToPoints(page);
+            float x0 = (float)toPoints.X(shown.MinX, shown.MinY);
+            float y0 = (float)toPoints.Y(shown.MinX, shown.MinY);
+            float x1 = (float)toPoints.X(shown.MaxX, shown.MaxY);
+            float y1 = (float)toPoints.Y(shown.MaxX, shown.MaxY);
+            canvas.DrawUrlAnnotation(
+                new SKRect(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1)),
+                url
+            );
+        }
+
+        /// <summary>The part of a box inside another; an empty box where they share nothing.</summary>
+        private static DisplayBox Cut(DisplayBox box, DisplayBox within) =>
+            new DisplayBox(
+                Math.Max(box.MinX, within.MinX),
+                Math.Max(box.MinY, within.MinY),
+                Math.Min(box.MaxX, within.MaxX),
+                Math.Min(box.MaxY, within.MaxY)
+            );
+
+        /// <summary>The box of the outline of a clipped viewport, its arcs kept to a hundredth of a paper unit.</summary>
+        private static DisplayBox ClipBox(DisplayClip2 clip)
+        {
+            DisplayBox box = DisplayBox.Empty;
+
+            foreach (double[] ring in clip.FlattenAll(0.01))
+            {
+                for (int i = 0; i + 1 < ring.Length; i += 2)
+                {
+                    box = box.Add(ring[i], ring[i + 1]);
+                }
+            }
+
+            return box;
         }
 
         /// <summary>The four corners of a box, as pairs of X and Y.</summary>

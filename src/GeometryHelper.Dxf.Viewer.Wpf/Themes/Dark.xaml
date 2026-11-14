@@ -439,40 +439,51 @@
         </Setter>
     </Style>
 
-    <!-- A check box: a small box on the input colour, filled with the accent and ticked when checked. -->
+    <!-- A check box: a small box on the input colour, filled with the accent and ticked when checked, its content as words
+         after it, grey with the box faded when disabled. -->
     <Style x:Key="GhCheckBox" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Cursor" Value="Arrow" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Border
-                        x:Name="Box"
-                        Width="13"
-                        Height="13"
-                        CornerRadius="2"
-                        Background="{StaticResource GhInput}"
-                        BorderBrush="{StaticResource GhTextMuted}"
-                        BorderThickness="1"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                    >
-                        <Path
-                            x:Name="Tick"
-                            Data="M2.5 6.5 5 9 10 3.5"
-                            Stroke="White"
-                            StrokeThickness="1.6"
-                            StrokeStartLineCap="Round"
-                            StrokeEndLineCap="Round"
-                            StrokeLineJoin="Round"
-                            Visibility="Collapsed"
-                        />
-                    </Border>
+                    <StackPanel Orientation="Horizontal" Background="Transparent" HorizontalAlignment="Left">
+                        <Border
+                            x:Name="Box"
+                            Width="13"
+                            Height="13"
+                            CornerRadius="2"
+                            Background="{StaticResource GhInput}"
+                            BorderBrush="{StaticResource GhTextMuted}"
+                            BorderThickness="1"
+                            VerticalAlignment="Center"
+                        >
+                            <Path
+                                x:Name="Tick"
+                                Data="M2.5 6.5 5 9 10 3.5"
+                                Stroke="White"
+                                StrokeThickness="1.6"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Visibility="Collapsed"
+                            />
+                        </Border>
+                        <ContentPresenter x:Name="Words" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{StaticResource GhAccent}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhAccent}" />
                             <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Words" Property="Margin" Value="0" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                            <Setter TargetName="Box" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -571,15 +582,43 @@
                                         <ScaleTransform ScaleX="0.8333" ScaleY="0.8333" />
                                     </Path.RenderTransform>
                                 </Path>
-                                <ContentPresenter
-                                    Content="{TemplateBinding SelectionBoxItem}"
-                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                    VerticalAlignment="Center"
-                                    IsHitTestVisible="False"
-                                />
+                                <Grid>
+                                    <ContentPresenter
+                                        x:Name="Shown"
+                                        Content="{TemplateBinding SelectionBoxItem}"
+                                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                        VerticalAlignment="Center"
+                                        IsHitTestVisible="False"
+                                    />
+                                    <TextBox
+                                        x:Name="PART_EditableTextBox"
+                                        Visibility="Collapsed"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        Foreground="{TemplateBinding Foreground}"
+                                        CaretBrush="{TemplateBinding Foreground}"
+                                        SelectionBrush="{StaticResource GhAccent}"
+                                        VerticalAlignment="Center"
+                                        FocusVisualStyle="{x:Null}"
+                                        IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"
+                                    >
+                                        <TextBox.Template>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <ScrollViewer
+                                                    x:Name="PART_ContentHost"
+                                                    Focusable="False"
+                                                    HorizontalScrollBarVisibility="Hidden"
+                                                    VerticalScrollBarVisibility="Hidden"
+                                                />
+                                            </ControlTemplate>
+                                        </TextBox.Template>
+                                    </TextBox>
+                                </Grid>
                             </DockPanel>
                         </Border>
                         <ToggleButton
+                            x:Name="Drop"
                             Style="{StaticResource GhComboBoxToggle}"
                             IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                         />
@@ -605,6 +644,13 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <!-- Editable: the words typed in a box of their own, and the drop-down on the arrow alone. -->
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Shown" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Drop" Property="Width" Value="22" />
+                            <Setter TargetName="Drop" Property="HorizontalAlignment" Value="Right" />
+                        </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="IsMouseOver" Value="True" />

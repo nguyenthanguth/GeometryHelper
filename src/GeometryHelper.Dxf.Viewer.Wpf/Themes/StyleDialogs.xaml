@@ -44,7 +44,7 @@
                     >
                         <ScrollViewer
                             x:Name="PART_ContentHost"
-                            VerticalAlignment="Center"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                             Focusable="False"
                             HorizontalScrollBarVisibility="Hidden"
                             VerticalScrollBarVisibility="Hidden"

@@ -54,7 +54,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>wblock</c>, <c>attdef</c>, <c>eattedit[:Tab]</c>, <c>style</c>, <c>style-new</c>, <c>dimstyle</c>,
     /// <c>dimstyle-new</c>, <c>dimstyle-modify[:Tab]</c>, <c>dimstyle-override[:Tab]</c>, <c>dimstyle-compare[:Other]</c>,
     /// <c>mleaderstyle</c>, <c>mleaderstyle-modify[:Tab]</c>, <c>matchprop</c> (of the first object selected, else the first
-    /// of the space shown), <c>pastespec</c>, <c>app-menu[:new|open|saveas|export|print|close]</c> (the application menu, on Recent Documents or the
+    /// of the space shown), the dialogs of rounds 5 to 9 (<c>mlstyle</c> to <c>filter</c>: Multiline Style,
+    /// Plot Stamp, Image Adjust, Xbind, Check Spelling, Save As PDF, Rename, Viewports and the rest of rounds 5 to 9, each
+    /// over the drawing open), <c>pastespec</c>, <c>app-menu[:new|open|saveas|export|print|close]</c> (the application menu, on Recent Documents or the
     /// list of an item), <c>cmdline-menu</c>, <c>input-settings-menu</c> and <c>recent-commands-menu</c> (the command line's
     /// right-click menu and its two submenus) and <c>autocomplete:LA</c> (the AutoComplete list for what is typed), the lines of
     /// <c>--run</c> typed first where the dialog needs them. <c>--recent "D:\a.dxf|*D:\b.dxf"</c> fills Recent Documents, the
@@ -103,7 +105,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected virtual string Usage =>
             "Usage: "
             + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app")
-            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+            + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Home|Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|mtext-unsaved|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|canvas-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|scalelist|qleader|qleader-line|qleader-attach|selectarrow|tolerance|tolerance-filled|tolerance-full|gdtsymbol|gdtmaterial|inputsearch|view|newview|units|units-direction|xref|xref-tree|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|mlstyle|mlstyle-new|mlstyle-new-page|mlstyle-modify|mlstyle-load|mledit|plotstamp|plotstamp-advanced|plotstamp-fields|imageadjust|attext|xbind|insertobject|recovery|spell|spell-settings|objectscale|objectscale-add|insertlayout|templateoptions|saveaspdf|pdf-override|pdf-options|rename|lweight|boundary|viewports|viewports-named|filter|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -798,6 +800,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else if (model.Document != null && StyleDialog(model, dialogName, ref run, out window, out root))
             {
                 // The Text Style dialog, the Dimension Style Manager and its dialogs, after the lines of --run.
+                width = (int)window.Width;
+                height = double.IsNaN(window.Height) ? MeasuredHeight(root, width) : (int)window.Height;
+            }
+            else if (CadAppDialogs.Knows(dialogName))
+            {
+                // The dialogs of rounds 5 to 9 (Multiline Style to Object Selection Filters), after the lines of --run.
+                if (model.Document == null)
+                {
+                    Console.Error.WriteLine("--dialog " + dialogName + ": needs a drawing.");
+                    return 2;
+                }
+
+                if (!CadAppDialogs.TryCreate(model, dialogName, ref run, out window, out root))
+                {
+                    return 2;
+                }
+
                 width = (int)window.Width;
                 height = double.IsNaN(window.Height) ? MeasuredHeight(root, width) : (int)window.Height;
             }

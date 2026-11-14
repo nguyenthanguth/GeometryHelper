@@ -180,9 +180,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 9 (dialogs9, design v147-v148): EXPORTPDF's Save As PDF dialog (export area, page setup override, Export to
         PDF Options, open in viewer, plot stamp), PDF hyperlinks (CadPlotSettings.PdfHyperlinks); the dialogs of rounds 5-9
         drawn to PNG and checked (no layout faults)
-  - [ ] (shots, running: screenshot mode and links) Dialogs 9 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot); links
-        on objects seen through viewports; the round 5-9 dialogs in --dialog screenshot mode; .pss location codes 1-3; Collect
-        in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI (S)
+  - [x] Dialogs 9 follow-ups (shots): 29 dialogs of rounds 5-9 in the --dialog screenshot mode; PDF links on objects
+        seen through viewports; theme fixes (GhCheckBox labels, editable GhComboBox, top-aligned multi-line boxes, two
+        window heights)
+  - [ ] Dialogs 10 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
+        .pss location codes 1-3; Collect in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI;
+        PDF links through VPCLIP-clipped and twisted viewports (untested); pale default scrollbars in the Rename and
+        Lineweight lists; Named Viewports' Rename box clips 16 characters; screenshots of Find, Drafting Settings,
+        Attach Reference and New Layer State after the theme fix (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
@@ -577,7 +582,7 @@ the ones wanted.
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [x] Speed: undo without reloading the whole drawing at 1 000 000 entities: read-ahead of the next undo and redo drawings (0.4 s where 2.2 s, once read ahead), states packed in 4 MB pieces; no core fork
 - [x] Speed follow-ups: edits stop read-aheads, the drawing left reused (1M: 47 to 35 GB allocated, redo 1.6 s to 0.3 s), first undo after BSAVE/discard read ahead, marker bytes compared
-- [ ] Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit; DECIDED by recommendation 2026-11-12: keep the read-ahead, slim the core entity objects later as its own task); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
+- [ ] (speed3, running) Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit; DECIDED by recommendation 2026-11-12: keep the read-ahead, slim the core entity objects later as its own task); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
