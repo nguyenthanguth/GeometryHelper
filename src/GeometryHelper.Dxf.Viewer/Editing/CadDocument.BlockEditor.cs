@@ -81,7 +81,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (_refEdit != null)
             {
-                return CadEditResult.Refuse(CadRefEdit.NotAllowed);
+                return CadEditResult.Refuse(_refEdit.NotAllowedFor("BEDIT"));
             }
 
             if (_groupDepth > 0)

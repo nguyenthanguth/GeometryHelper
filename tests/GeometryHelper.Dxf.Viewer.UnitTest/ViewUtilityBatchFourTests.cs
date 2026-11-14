@@ -146,7 +146,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Plan();
             CadCommandSession session = Start(document, "-VPORTS", "4", "-VPORTS", "SI");
             Assert.Single(document.TiledViewports.Tiles);
-            Rect(document.TiledViewports.Current, 2, 0, 0, 1, 1);
+
+            // AutoCAD 2021's console: four tiles with 2 current, then SIngle, leaves the one numbered 3 (CVPORT 3).
+            Rect(document.TiledViewports.Current, 3, 0, 0, 1, 1);
 
             int lines = session.History.Count;
             Run(session, "-VPORTS", "SI");
@@ -237,7 +239,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Start(document, "-VPORTS", "T");
             Assert.Equal(4, document.TiledViewports.Tiles.Count);
-            Rect(document.TiledViewports.Current, 2, 0.5, 0.0, 1.0, 0.5);
+
+            // The first tile takes the number of the one that was alone (3 after four tiles with 2 current), the others the free ones.
+            Rect(document.TiledViewports.Current, 3, 0.5, 0.0, 1.0, 0.5);
         }
 
         [Fact]

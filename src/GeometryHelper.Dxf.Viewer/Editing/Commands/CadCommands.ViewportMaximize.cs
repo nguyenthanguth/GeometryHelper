@@ -104,14 +104,21 @@ namespace GeometryHelper.Dxf.Viewer
             document.WorkThrough(null, "VPMIN");
         }
 
-        /// <summary>-VPORTS Toggle, which VPMAX and VPMIN are on the Model tab: the current tile alone, or the tiles back.</summary>
+        /// <summary>
+        /// -VPORTS Toggle, which VPMAX and VPMIN are on the Model tab: the current tile alone, or the tiles back, or from one tile
+        /// with none kept the four AutoCAD 2021 makes (four "Regenerating model." lines, where the others say it once).
+        /// </summary>
         private static void ToggleTiles(CadCommandContext c)
         {
             c.OpenUndoStep();
+            int regenerations = c.Document.TiledViewports.ToggleMakesFour ? 4 : 1;
 
             if (c.Document.TiledViewports.Toggle())
             {
-                c.Write("Regenerating model.");
+                for (int i = 0; i < regenerations; i++)
+                {
+                    c.Write("Regenerating model.");
+                }
             }
         }
 

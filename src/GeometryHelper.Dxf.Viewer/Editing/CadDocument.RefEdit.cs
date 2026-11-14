@@ -240,7 +240,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (_refEdit != null)
             {
-                return CadEditResult.Refuse(CadRefEdit.NotAllowed);
+                return CadEditResult.Refuse(_refEdit.NotAllowedFor("REFEDIT"));
             }
 
             if (_groupDepth > 0)
@@ -259,7 +259,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (host == null || host.IsBlockEditor)
             {
-                return CadEditResult.Refuse("Selected object is not a reference.");
+                return CadEditResult.Refuse(CadRefEdit.NotAValidReference);
             }
 
             if (inserts.Exists(i => i is DxfMInsertBlock))
@@ -274,7 +274,17 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (inserts.Exists(i => i.BlockTableRecord.IsAnonymous))
             {
-                return CadEditResult.Refuse("The block " + block.Name + " cannot be edited in place: it is anonymous.");
+                return CadEditResult.Refuse(
+                    block.Name.StartsWith("*D", StringComparison.OrdinalIgnoreCase)
+                    || block.Name.StartsWith("*T", StringComparison.OrdinalIgnoreCase)
+                        ? CadRefEdit.DimensionOrTable
+                        : CadRefEdit.Anonymous
+                );
+            }
+
+            if (inserts.Exists(i => !IsUniform(i.ScaleFactors)))
+            {
+                return CadEditResult.Refuse(CadRefEdit.NonUniform);
             }
 
             if (Database.NamedObjectsDictionary == null)
@@ -299,7 +309,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (taken.Count == 0)
             {
-                return CadEditResult.Refuse("The reference has no objects to edit.");
+                return CadEditResult.Refuse(CadRefEdit.NoObjects);
             }
 
             EnsureStart();
@@ -346,7 +356,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (pairs.Count == 0)
                     {
-                        throw new InvalidOperationException("The reference has no objects to edit.");
+                        throw new InvalidOperationException(CadRefEdit.NoObjects);
                     }
 
                     WriteRefEdit(s.Database, header, pairs);
@@ -506,6 +516,65 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
+        /// <summary>Whether the scale factors of a reference are equal in size, as REFEDIT asks; a factor below nought only mirrors.</summary>
+        private static bool IsUniform(GeoVector3 scale)
+        {
+            double x = Math.Abs(scale.X);
+            double y = Math.Abs(scale.Y);
+            double z = Math.Abs(scale.Z);
+            double most = Math.Max(x, Math.Max(y, z));
+            return Math.Abs(x - y) <= 1E-9 * most && Math.Abs(x - z) <= 1E-9 * most;
+        }
+
+        /// <summary>Whether the block of the reference a chain ends in holds attribute definitions, which REFEDIT asks about.</summary>
+        internal bool RefEditBlockHasAttributeDefinitions(IReadOnlyList<string> chain) =>
+            ResolveChain(chain, out List<DxfBlockReference> inserts, out _)
+            && inserts[inserts.Count - 1].BlockTableRecord.OfType<DxfAttributeDefinition>().Any(e => !e.IsErased);
+
+        /// <summary>
+        /// What REFCLOSE Save will write into the block, for the lines AutoCAD says after it: the objects of the working set that
+        /// came from the drawing (added), the objects of the block erased or taken out of the set (removed), and the references of
+        /// the block drawn anew (updated).
+        /// </summary>
+        internal void RefEditSaveCounts(out int added, out int removed, out int updated)
+        {
+            added = 0;
+            removed = 0;
+            updated = 0;
+
+            if (_refEdit == null || !ResolveChain(_refEdit.Header.Chain, out List<DxfBlockReference> inserts, out _))
+            {
+                return;
+            }
+
+            DxfBlockTableRecord block = inserts[inserts.Count - 1].BlockTableRecord;
+            var originals = new HashSet<string>(
+                block.Where(e => !e.IsErased && e.Handle != null).Select(e => e.Handle),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            foreach (RefEditPair pair in ReadRefEditPairs(Database, out _))
+            {
+                bool there = !pair.Released && FindEntity(pair.Host) != null;
+
+                if (pair.Original == RefEditPair.None)
+                {
+                    added += there ? 1 : 0;
+                }
+                else if (!there && originals.Contains(pair.Original))
+                {
+                    removed++;
+                }
+            }
+
+            foreach (DxfBlockTableRecord record in Database.BlockTable)
+            {
+                updated += record
+                    .OfType<DxfBlockReference>()
+                    .Count(r => !r.IsErased && ReferenceEquals(r.BlockTableRecord, block));
+            }
+        }
+
         /// <summary>Why the working set cannot be changed now; null where it can.</summary>
         private string RefEditRefused(IReadOnlyList<string> handles)
         {
@@ -624,7 +693,7 @@ namespace GeometryHelper.Dxf.Viewer
         private bool ResolveChain(IReadOnlyList<string> chain, out List<DxfBlockReference> inserts, out string refusal)
         {
             inserts = new List<DxfBlockReference>();
-            refusal = "Selected object is not a reference.";
+            refusal = CadRefEdit.NotAValidReference;
 
             if (chain == null || chain.Count == 0 || !(FindEntity(chain[0]) is DxfBlockReference top))
             {
@@ -961,11 +1030,15 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     public sealed class CadRefEdit
     {
-        /// <summary>What a command that cannot run while a reference is edited says.</summary>
-        public const string NotAllowed = "Not allowed while a reference is being edited.";
+        /// <summary>What REFSET and REFCLOSE say where no reference is being edited, in AutoCAD 2021's words.</summary>
+        public const string NotEditing =
+            "** Command not allowed unless a reference is checked out with REFEDIT command **";
 
-        /// <summary>What REFSET and REFCLOSE say where no reference is being edited.</summary>
-        public const string NotEditing = "No reference is being edited.";
+        internal const string NotAValidReference = "Object is not a valid reference";
+        internal const string NoObjects = "** At least one object must be selected to edit a reference **";
+        internal const string Anonymous = "** Cannot REFEDIT anonymous block **";
+        internal const string DimensionOrTable = "** Cannot REFEDIT dimension or table blocks **";
+        internal const string NonUniform = "** Cannot REFEDIT a non-uniformly scaled block **";
 
         private readonly CadDocument _document;
 
@@ -990,6 +1063,26 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the name of the block being edited: REFEDITNAME.</summary>
         public string Name => Header.Name;
+
+        /// <summary>
+        /// What a command that cannot run while a reference is edited says, in AutoCAD 2021's words: a second REFEDIT names the
+        /// block checked out, QSAVE and SAVEAS say the drawing cannot be saved, any other (BEDIT) is named.
+        /// </summary>
+        /// <param name="command">The command, "-" of its typed form left off if given.</param>
+        /// <returns>The line.</returns>
+        public string NotAllowedFor(string command)
+        {
+            string name = (command ?? string.Empty).TrimStart('-').ToUpperInvariant();
+
+            if (name == "REFEDIT")
+            {
+                return "** Command not allowed, " + Name + " already checked out for editing **";
+            }
+
+            return name == "QSAVE" || name == "SAVEAS"
+                ? "** Drawing save not allowed during reference editing **"
+                : "** " + name + " command not allowed during reference editing **";
+        }
 
         /// <summary>Gets the handles of the references that lead to the block, the one in a space first; one for a reference of a space, two for a reference nested in it.</summary>
         public IReadOnlyList<string> Chain => Header.Chain;

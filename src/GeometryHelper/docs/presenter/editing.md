@@ -207,7 +207,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SAVE, SETVAR (?), COLOR, -COLOR (Truecolor, COlorbook), LWEIGHT, -LWEIGHT (?), QUICKCALC, CAL, QUICKPROPERTIES |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; Automatic, Prompt, Settings), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
@@ -469,7 +469,8 @@ taken, anything else picked is left out, and a hatch on a locked layer is passed
 no origin of its own: it is in the base points of its pattern lines, so the command moves each line's base point by what
 the origin moves, found from the pattern the presenter holds (ANSI32 at 30 degrees and scale 2 set to (10, 5) and then to
 (20, 20) has its first line based at (20, 20), not at (30, 25)). A pattern the presenter does not have is taken to have been
-laid from (0, 0). A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
+laid from (0, 0). The console takes no hatch selected before the command (it asks `Select hatch objects:` as ERASE asks `Select
+objects:` there), so that way in is not probed. A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
 hatch's spacing alone in the library, so a user-defined hatch is left as it is too, where AutoCAD moves its base point.
 
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
@@ -1337,7 +1338,9 @@ no window, `Enter file name <file>:`, and writes the table as comma separated va
 carriage return and a line feed, a field for each column holding the text of the cell as it shows, its formatting codes
 taken off (`{\fArial|b1;Bold} plain` is `Bold plain`, `\S1/2;` is `1/2`), the fields of a block of merged cells but the
 first empty, a field with a comma, a double quote or a line break put in double quotes and its quotes doubled. A table of
-two rows holding `Name`, `Qty`, `Nut, M8` and `12` gives `Name,Qty` and `"Nut, M8",12`. The file is written in the
+two rows holding `Name`, `Qty`, `Nut, M8` and `12` gives `Name,Qty` and `"Nut, M8",12`. AutoCAD 2021's console says `Select a table:` and
+`Object selected is not a table.` just so, but ends the command after the pick with no file question (FILEDIA 0 too) and writes
+nothing, so the layout of its file is still the documentation's. The file is written in the
 system's code page, `.csv` added to a name with none; a file that cannot be written says `Can't  open file.` (two spaces,
 as AutoCAD 2021 spells it), and nothing is said when it is written. The drawing is not changed, so there is no undo step.
 The table menu's Table Style items stay grey: Save as New Table Style and Set As Table in Current Table Style keep a
@@ -1762,42 +1765,54 @@ one undo step, and says `2 blocks reset.`, counting every block reference select
 REFEDIT edits a block reference in place, as AutoCAD 2021's: the objects of the reference's block are copied into the
 drawing where the reference draws them (the working set), every command works on them, and REFCLOSE writes them back into
 the block or throws them away. REFEDIT and -REFEDIT ask alike, on the command line: `Select reference:` (a reference selected
-before the command is taken instead), and where the point picked reaches a block nested in the reference, `Reference: A` and
-`Enter nested reference choice [Ok/Next] <Ok>:`, Next stepping from `A` to `A > B` and round again; then `Enter object
-selection method [Automatic/Prompt/Settings] <Automatic>:`. Automatic takes every object of the block; Prompt asks `Select
-nested objects or [All]:` for points, one object a point (the smallest whose box, put where the reference draws it, holds
-the point), `1 found` or `0 found` each; Settings asks `Display attribute definitions for editing? [Yes/No] <No>:` and
-`Lock objects not in working set? [Yes/No] <Yes>:` (the Reference Edit dialog's two boxes that matter for a block, kept by
-[`CadDocument.RefEditAttributeDefinitions`](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditAttributeDefinitions) and
-`RefEditLocksObjects`). A block BOX of a line from (0, 0) to (100, 0) and a circle of 10 about (50, 30), placed at (1 000, 0),
-opens as `2 objects added to the working set.` with the line at (1 000, 0)-(1 100, 0) and the circle about (1 050, 30); the
+before the command is taken instead; anything that is not a reference says Object is not a valid reference), and where the
+point picked reaches a block nested in the reference, Reference: A and Select nesting level [Ok/Next] <Next>:, Next (or
+Enter) stepping from A to A > B and round again; then Enter object selection method [All/Nested] <All>:. All takes
+every object of the block; Nested asks Select nested objects or [All]: for points, one object a point (the smallest whose
+box, put where the reference draws it, holds the point), 1 found or   found each, and ** At least one object must be
+selected to edit a reference ** for none. A block that holds attribute definitions asks Display attribute definitions
+[Yes/No] <No>: after it, the answer kept by
+[CadDocument.RefEditAttributeDefinitions](xref:GeometryHelper.Dxf.Viewer.CadDocument.RefEditAttributeDefinitions); whether
+the objects outside the working set are locked is RefEditLocksObjects (the Reference Edit dialog's box, which has no
+question on the command line). A block BOX of a line from (0, 0) to (100, 0) and a circle of 10 about (50, 30), placed at
+(1 000, 0), opens as 2 Added to working set with the line at (1 000, 0)-(1 100, 0) and the circle about (1 050, 30); the
 references of the block draw it without those two objects while the edit lasts. The attribute definitions of the block stay in
-it unless the setting brings them in, and the attributes of the references are never touched (no ATTSYNC is run). An object
-the reference's placing cannot hold, a circle under a scale unlike along its axes, stays in the block, and the command says
-`1 object cannot be edited in place and stay in the block.`.
+it unless they are displayed, and the attributes of the references are never touched (no ATTSYNC is run). A block placed
+with scale factors that differ in size (2, 3, 1) is refused, ** Cannot REFEDIT a non-uniformly scaled block **, as AutoCAD
+does (a mirror, -2, 2, 2, is not a difference); an anonymous block says ** Cannot REFEDIT anonymous block **, and a
+dimension's or a table's ** Cannot REFEDIT dimension or table blocks **.
 
 While the edit lasts the objects of the drawing that are not in the working set are locked: a command's selection leaves them
 out and any other change of one is refused with `The line 2F is not in the working set.`; the window draws them faded, as
 XFADECTL says (0 to 90 per cent, 70 as AutoCAD 2021 gives it, `Requires an integer between 0 and 90.` for 95). Objects drawn
-after the edit opened are not locked, and are not in the working set either until REFSET adds them. REFSET asks `Enter an
-option [Add/Remove] <Add>:` and `Select objects:` (the lock does not keep the selection from objects it holds): Add puts objects
-of the reference's space into the set and takes back those Remove took out; Remove leaves them in the drawing as its own
-objects, and the objects of the block they came from leave the block when the edit is saved and come back if it is discarded.
-REFCLOSE asks `Enter option [Save/Discard] <Save>:`. Save writes each object of the working set into the block as a new object
-(with a handle of its own), put through the reference's placing the other way, and erases the one it came from, so that an
-object erased in the drawing leaves the block; every reference of the block is drawn anew. The circle of the example moved 50 up
-in the drawing and saved is the circle about (50, 80) in the block. Discard erases the copies and leaves the block as it was. What
-was drawn in the drawing and never added stays in it either way. REFEDITNAME holds the name of the block (`""` with no edit,
-read only).
-
+after the edit opened are not locked, and are not in the working set either until REFSET adds them. REFSET says Transfer
+objects between the RefEdit working set and host drawing..., asks Enter an option [Add/Remove] <Add>: and Select
+objects: (the lock does not keep the selection from objects it holds): Add puts objects of the reference's space into the
+set and takes back those Remove took out; Remove leaves them in the drawing as its own objects, and the objects of the block
+they came from leave the block when the edit is saved and come back if it is discarded. It says 3 Added to working set (or
+1 Removed from working set) for the objects it moved and ** 2 selected objects are already in the working set ** (or
+** 1 selected object is not in the working set **) for those it had nothing to do with. REFCLOSE asks Enter option
+[Save/Discard reference changes] <Save>:. Save writes each object of the working set into the block as a new object (with
+a handle of its own), put through the reference's placing the other way, and erases the one it came from, so that an object
+erased in the drawing leaves the block; every reference of the block is drawn anew. It says 1 object added to BOX for the
+objects that came from the drawing, 1 object removed from BOX for the objects of the block that left it (each line only
+where there is one) and 2 block instances updated for the references drawn anew. The circle of the example moved 50 up
+in the drawing and saved is the circle about (50, 80) in the block. Discard erases the copies, says nothing and leaves the
+block as it was. What was drawn in the drawing and never added stays in it either way. REFEDITNAME holds the name of the
+block ("" with no edit, read only).
 Undo steps through the commands of the session and stops where it opened; once REFCLOSE has run the whole session is one undo
-step, `REFEDIT`, which one undo takes back. BEDIT, REFEDIT again, QSAVE and SAVEAS say `Not allowed while a reference is being
-edited.`, and these commands say `Not allowed in the Block Editor.` inside it. An edit is kept in the drawing, in the XRECORD
+step, `REFEDIT`, which one undo takes back. BEDIT says `** BEDIT command not allowed during reference editing **`, REFEDIT
+again `** Command not allowed, BOX already checked out for editing **`, QSAVE and SAVEAS `** Drawing save not allowed during
+reference editing **`, REFSET and REFCLOSE with no edit open `** Command not allowed unless a reference is checked out with
+REFEDIT command **`, and these commands say `Not allowed in the Block Editor.` inside it. An edit is kept in the drawing, in the XRECORD
 `GH_REFEDIT` of the named object dictionary, so that a drawing saved in the middle of one opens with the edit still open. The
 Reference Edit dialog and the Refedit toolbar are not built; an external reference is refused with `External references cannot
-be edited in place in this version.` (writing its file back is left for later), as are a block array and an anonymous block. The
+be edited in place in this version.` (writing its file back is left for later), as is a block array. The
 object menu of a block reference starts REFEDIT as Edit Block In-place. AutoCAD 2021's accoreconsole has no REFEDIT, REFSET or
-REFCLOSE, so their words are the presenter's own; XFADECTL and REFEDITNAME were probed there.
+REFCLOSE, fed by a script or by standard input (`Unknown command`; ARXLOAD of AcRefEd.arx fails there, and a long transaction,
+which REFEDIT is made on, returns no transaction), so the prompts and messages are read from the string table of AcRefEdRes.dll,
+AutoCAD 2021's own resource file for it, and the order they come in is the presenter's guess; XFADECTL and REFEDITNAME were probed
+in the console.
 
 DIVIDE and MEASURE put points, or a block with Block (turned along the curve unless `Align block with object? [Yes/No]
 <Y>:` is answered No), at equal lengths along a line, arc, circle, ellipse, polyline or spline, as AutoCAD 2021 does:
@@ -2457,7 +2472,12 @@ that area; the other viewports of the layout that were on go off, and model spac
 and PAN change the view of the maximized one. A viewport 200 by 100 at 1:10 over a sheet shown 400 by 240 becomes about 392
 by 232 at 1:10. A viewport whose display is locked is maximized too. VPMIN puts the viewport back as it was, its frame and
 its view (a zoom or a pan made while it was maximized is given up, as in AutoCAD), turns the others on and goes back to the
-paper; with none maximized it says `No viewport is currently maximized.`. On the Model tab both are `-VPORTS Toggle`.
+paper; with none maximized it says `No viewport is currently maximized.`. On the Model tab both are `-VPORTS Toggle`: with
+several tiles it keeps the current one alone and the tiles as `*Multiple`; with one tile and none kept it makes four equal tiles
+(numbered 2 to 5 from the lower right, going up and then left; the current tile keeps its number) and keeps them as `*Multiple`,
+saying `Regenerating model.` four times where the others say it once; with one tile and some kept it brings them back, the first
+under the number of the tile that was alone. The tile left alone is numbered 3 where the current one was 2 and 2 where it was any
+other (CVPORT), as AutoCAD 2021's console numbers it.
 Each is one undo step, and an undo of VPMAX puts the viewport back (`CadDocument.IsViewportMaximized` and
 `MaximizedViewportHandle` say whether one is maximized). The sheet's other objects stay drawn behind the viewport, and a
 drawing saved while a viewport is maximized is saved so; AutoCAD takes the maximizing back when the layout is changed,

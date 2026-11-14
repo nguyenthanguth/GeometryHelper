@@ -233,9 +233,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     break;
                 case "Toggle":
+                    int regenerations = tiles.ToggleMakesFour ? 4 : 1;
+
                     if (tiles.Toggle())
                     {
-                        c.Write("Regenerating model.");
+                        for (int i = 0; i < regenerations; i++)
+                        {
+                            c.Write("Regenerating model.");
+                        }
                     }
 
                     break;

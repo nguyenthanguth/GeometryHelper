@@ -276,7 +276,7 @@ namespace GeometryHelper.Dxf.Viewer
             // The edit of a reference in place refuses what opens another or saves the drawing with it open.
             if (Document.RefEdit != null && CadCommands.LeavesRefEdit(command.Name))
             {
-                Write(CadRefEdit.NotAllowed);
+                Write(Document.RefEdit.NotAllowedFor(command.Name));
                 Changed();
                 return false;
             }

@@ -166,5 +166,65 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "VPMIN");
             Assert.True(document.TiledViewports.IsTiled);
         }
+
+        private static string Tiles(CadDocument document) =>
+            string.Join(" ", document.TiledViewports.Tiles.Select(t => t.Id + ":" + Corners(t)));
+
+        private static string Corners(CadTiledViewport t) =>
+            Number(t.Left) + "," + Number(t.Bottom) + "-" + Number(t.Right) + "," + Number(t.Top);
+
+        private static string Number(double value) =>
+            value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
+        [Fact]
+        public void OnTheModelTabWithOneViewportAndNoneKept_VpmaxMakesFourTiles_AsAutoCADsToggleDoes()
+        {
+            // Probed in AutoCAD 2021's console, fed by standard input: a drawing with one viewport (id 2), VPMAX gives these four,
+            // the current one (id 2) the first, and keeps them as *Multiple.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Assert.False(document.TiledViewports.IsTiled);
+
+            Run(session, "VPMAX");
+
+            Assert.Equal("2:0.5,0-1,0.5 3:0.5,0.5-1,1 4:0,0.5-0.5,1 5:0,0-0.5,0.5", Tiles(document));
+            Assert.Equal(4, document.TiledViewports.Saved("*Multiple").Count);
+            Assert.Equal(2, document.TiledViewports.Current.Id);
+        }
+
+        [Fact]
+        public void TheFirstToggleFromOneViewport_SaysTheRegenerationOncePerTile()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            Run(session, "VPMAX");
+            Assert.Equal(4, session.History.Count(line => line == "Regenerating model."));
+
+            Run(session, "VPMAX");
+            Assert.Equal(5, session.History.Count(line => line == "Regenerating model."));
+        }
+
+        [Fact]
+        public void TheViewportLeftAlone_TakesTheOtherOfNumbers2And3_AndIsCurrentWithThatNumber()
+        {
+            // AutoCAD 2021: from four tiles with 2 current, VPMAX and -VPORTS SIngle leave the one with number 3; with 3 current, number 2.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "VPMAX");
+            Assert.Equal(2, document.TiledViewports.Current.Id);
+
+            Run(session, "VPMAX");
+            Assert.Equal("3:0,0-1,1", Tiles(document));
+            Assert.Equal(3, document.TiledViewports.Current.Id);
+
+            // Brought back, the tile that was current takes the number of the one alone and the others the free numbers in order.
+            Run(session, "VPMIN");
+            Assert.Equal("3:0.5,0-1,0.5 2:0.5,0.5-1,1 4:0,0.5-0.5,1 5:0,0-0.5,0.5", Tiles(document));
+            Assert.True(document.TiledViewports.MakeCurrent(3));
+
+            Run(session, "-VPORTS", "SI");
+            Assert.Equal("2:0,0-1,1", Tiles(document));
+        }
     }
 }
