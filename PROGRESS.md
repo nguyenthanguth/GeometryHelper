@@ -173,7 +173,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         is twice the rise (tw9 58 -> 0, tw10 78 -> 0, tw11 162 -> 0); MLEADER words held by half their ink height and
         depth; MLEADER context and record groups as the command writes them; MLEADEREDIT's far-side arrow makes its own
         leader with measured fonts; 177.47 confirmed; harness .claude/gk/annot-harness5
-  - [ ] Annotative objects 5c: words put beyond a slanting line's end under DIMTMOVE 0 (tw17 58: AutoCAD moves the
+  - [ ] (annot6, running) Annotative objects 5c: words put beyond a slanting line's end under DIMTMOVE 0 (tw17 58: AutoCAD moves the
         dimension line out along its normal, no model yet); AutoCAD's doubled dimension line in 7 DIMTMOVE 1 cases;
         272/273 order in MLEADER context data; the turned-words rule for unturned DIMTOH words (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
@@ -222,7 +222,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 11 (dlg11): PDF links through twisted and VPCLIP-clipped viewports by the drawn points; Find's singular
         as AutoCAD ("1 match in 1 object"); attribute dialogs drawn in --dialog and the Enhanced Attribute Editor's Value
         column fixed
-  - [ ] Dialogs 12 follow-ups: WMFIN (AutoCAD makes block WMF0 at scale 25.4 fitted into half the view; polylines with
+  - [ ] (wmf1, running: WMFIN) Dialogs 12 follow-ups: WMFIN (AutoCAD makes block WMF0 at scale 25.4 fitted into half the view; polylines with
         pen widths, TEXT in WMF-Arial0; findings in .claude/gk/wmf-notes); raster image quality, PDF layer information
         and bookmarks (the SkiaSharp writer cannot); .pss location codes 1-3 (GUI Save As); Collect in the Leaders panel
         (after MLEADERCOLLECT); multi-line stamp and "." clearing in the GUI; "match(es) replaced" wording (S)
@@ -231,10 +231,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         reference's landing, prompts and modes); TEXTALIGN Left/Right on a line by the top corners; DIMBREAK Auto cut by
         ellipses, splines, xlines, rays, TEXT and MTEXT (probed through stdin; typed points there are shifted by the first
         object, a console quirk)
-  - [ ] (r31b, running) R3.1 follow-ups: MLEADERCOLLECT (needs a core composite-block builder); MLEADERALIGN's side flip when content
-        lands past its arrowhead (171 = 3, leader on the right); TEXTALIGN Set spacing/Distribute on an oblique line (order
-        by x, gap rule unknown); DIMBREAK TEXT/MTEXT cutters tested, blocks and hatches as cutters; block content and
-        multi-line words in MLEADERALIGN; TEXTALIGNMODE's factory default (S)
+  - [x] R3.1 follow-ups (r31b): MLEADERALIGN's side flip (by the arrowhead against the moved box's centre), contents
+        held by their box's left middle, block extents, multi-line words; TEXTALIGN Set spacing and Distribute along a
+        line (advance = min of across and up); DIMBREAK cut by turned words' chords and by block references' shapes
+        (hatches are no cutters)
+  - [ ] R3.1 follow-ups 2: MLEADERCOLLECT (Select multileaders / Vertical/Horizontal/Wrap; blocks side by side, tops
+        level, one leader kept; needs a composite anonymous block in the core); multileaders with several leader lines
+        turned; MLD's left landing by Below(right attachment); TEXTALIGNMODE's factory default (the console profile holds
+        8); breaks kept by object for ellipses, texts and blocks (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
         ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
   - [x] OLE frames drawn (fu-ole): the picture of a bmp/png OLE frame on the canvas and in plots (Monochrome by luminance),

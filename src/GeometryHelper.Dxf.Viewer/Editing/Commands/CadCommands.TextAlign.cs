@@ -12,7 +12,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// so that an edge, a middle or a corner of the box each is drawn in (the alignment) lies on that of the text picked, or on
     /// a line of two points, the way the spacing mode says: Current Vertical keeps each text's height and moves it across,
     /// Current Horizontal keeps its place along and moves it up or down, Set spacing stacks the texts a gap apart above and
-    /// below the one picked, Distribute spaces them evenly between the top and the bottom one. The alignment and the spacing
+    /// below the one picked, Distribute spaces them evenly between the top and the bottom one; along a line of two points the
+    /// last two put the texts in a row along the line itself (<see cref="TextAlignAlongLine"/>). The alignment and the spacing
     /// mode are kept for the next run, as AutoCAD keeps them in TEXTALIGNMODE, TEXTALIGNSPACING and TEXTALIGNSPACINGVALUE.
     /// </summary>
     internal static partial class CadCommands
@@ -415,10 +416,24 @@ namespace GeometryHelper.Dxf.Viewer
                 double length = Math.Sqrt(lineDx * lineDx + lineDy * lineDy);
                 double flat = mode == 3 ? Math.Abs(lineDx) : Math.Abs(lineDy);
 
-                if (length < 1E-9 || flat <= length * 0.0175)
+                if (length < 1E-9 || (mode >= 2 && flat <= length * 0.0175))
                 {
                     discarded = true;
                     return moves;
+                }
+
+                // Set spacing and Distribute put the texts along the line itself, whatever way it runs.
+                if (mode <= 1)
+                {
+                    return TextAlignAlongLine(
+                        handles,
+                        boxes,
+                        first.Value,
+                        second.Value,
+                        across,
+                        up,
+                        mode == 1 ? spacing : (double?)null
+                    );
                 }
             }
 
@@ -521,6 +536,97 @@ namespace GeometryHelper.Dxf.Viewer
                 if (Math.Abs(across2) > 1E-9 || Math.Abs(shift) > 1E-9)
                 {
                     moves[handles[i]] = new GeoVector2(across2, shift);
+                }
+            }
+
+            return moves;
+        }
+
+        /// <summary>
+        /// How far each text moves under Set spacing (a spacing given) or Distribute (none) along a line of two points, as
+        /// AutoCAD 2021's console puts them (the corner each alignment holds a box by, probed over TL, TR, BR and MC on lines
+        /// of slope 1/2, 2, -1/2, level, upright and running left): in the order their corners stand along the line from its
+        /// first point, the first corner on that point; each next one stands along the line far enough on that its box is the
+        /// spacing from the one before it measured along the line, across (the width the two boxes share the corner of, over
+        /// the line's cosine) or up (their height over its sine), whichever is the less. Texts 2.5 high, AA, CCCCCC, DDDD and
+        /// BBB, 1.67, 14.17, 9.17 and 6.67 wide, along the line from (30, 50) to (130, 100) under TL and a spacing of 3, have
+        /// their corners 4.863, 8.59 and 8.59 apart. Distribute puts the last corner on the second point and solves the one gap
+        /// all the boxes share.
+        /// </summary>
+        private static Dictionary<string, GeoVector2> TextAlignAlongLine(
+            IReadOnlyList<string> handles,
+            IReadOnlyDictionary<string, DisplayBox> boxes,
+            GeoPoint2 first,
+            GeoPoint2 second,
+            int across,
+            int up,
+            double? spacing
+        )
+        {
+            var moves = new Dictionary<string, GeoVector2>(StringComparer.OrdinalIgnoreCase);
+            double length = (second - first).Length;
+            double ux = (second.X - first.X) / length;
+            double uy = (second.Y - first.Y) / length;
+            double a = across / 2.0;
+            double v = up / 2.0;
+            double Along(string h) =>
+                (AnchorX(boxes[h], across) - first.X) * ux + (AnchorY(boxes[h], up) - first.Y) * uy;
+            List<string> order = handles.OrderBy(Along).ThenBy(h => h, StringComparer.OrdinalIgnoreCase).ToList();
+            var advance = new double[order.Count];
+
+            for (int k = 1; k < order.Count; k++)
+            {
+                DisplayBox previous = boxes[order[k - 1]];
+                DisplayBox next = boxes[order[k]];
+                double widthPrevious = previous.MaxX - previous.MinX;
+                double widthNext = next.MaxX - next.MinX;
+                double heightPrevious = previous.MaxY - previous.MinY;
+                double heightNext = next.MaxY - next.MinY;
+                double x = double.PositiveInfinity;
+                double y = double.PositiveInfinity;
+
+                if (Math.Abs(ux) > 1E-12)
+                {
+                    x =
+                        (
+                            ux > 0.0
+                                ? (1.0 - a) * widthPrevious + a * widthNext
+                                : a * widthPrevious + (1.0 - a) * widthNext
+                        ) / Math.Abs(ux);
+                }
+
+                if (Math.Abs(uy) > 1E-12)
+                {
+                    y =
+                        (
+                            uy > 0.0
+                                ? (1.0 - v) * heightNext + v * heightPrevious
+                                : (1.0 - v) * heightPrevious + v * heightNext
+                        ) / Math.Abs(uy);
+                }
+
+                advance[k] = Math.Min(x, y);
+            }
+
+            double gap = spacing ?? (order.Count > 1 ? (length - advance.Sum()) / (order.Count - 1) : 0.0);
+            double along = 0.0;
+
+            for (int k = 0; k < order.Count; k++)
+            {
+                if (k > 0)
+                {
+                    along += advance[k] + gap;
+                }
+
+                DisplayBox box = boxes[order[k]];
+                var move = new GeoVector2(
+                    first.X + ux * along - AnchorX(box, across),
+                    first.Y + uy * along - AnchorY(box, up)
+                );
+
+                if (Math.Abs(move.X) > 1E-9 || Math.Abs(move.Y) > 1E-9)
+                {
+                    moves[order[k]] = move;
                 }
             }
 
