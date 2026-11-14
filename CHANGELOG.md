@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A drawing of the presenter holds a third less memory once displayed: the objects of its entities and what they have read take half of what they took. A DXF of
+1 000 000 entities (77 MB: lines, arcs, circles, polylines with a bulge and texts, one in fifty an INSERT) held 737 MB in the objects of
+its database once displayed, the 73 MB of its bytes among them, and holds 364 MB; opened, displayed and its pick index made, the heap
+grows by 747 MB where it grew by 1 119 MB (756 MB where it was 1 169 MB under .NET Framework 4.8); a drawing of 100 000 entities
+75.7 MB where it was 113.0 MB. Four things, each the same drawing as before: a polyline asked `HasWidth`, as every polyline is when the
+display is made, kept the groups of each of its vertices as strings, some 850 bytes of a polyline of four vertices, which it now reads,
+asks and lets go of; the entities of a file share one object for each look (layer, colour, true colour, linetype, lineweight and
+thickness) where each held one of 72 bytes and a string of its layer, and keep their handles; the fields few entities use (those of a
+record that follows another, of an entity made in code, of one changed) are held apart, so that an entity read from a file takes
+104 bytes where it took 152; and the shapes of an entity that has one are kept in a list of 24 bytes where a list of one in a
+read-only wrapper took 88. Open 0.61 s and display 4.0 s fall to 0.61 s and 3.0 s at 1 000 000 entities (.NET 8; 6.7 s to 5.6 s
+under .NET Framework 4.8), a MOVE with its display 0.88 s to 0.38 s, undo and redo with their display (read ahead) 0.25 and 0.21 s to
+0.21 s both, and a layer switched on at 100 000 entities stays 70 ms. The display list of 3 drawings at 3 views, plain, selected and
+with a highlight, the saved bytes of 12 drawings and of each after a MOVE, its undo and its redo are the same bit for bit.
+**CHANGED.** A drawing read ahead for undo or redo that an edit lets go of while its file is being walked stops there, within
+4 096 records, and no longer keeps the worker busy to the end of the walk (170 ms at 1 000 000 entities) before the next reading.
+
 **CHANGED.** `DxfHatch.ShadeTintValue` on a gradient of two colours in one-colour mode makes the second colour the tint of the first, as
 AutoCAD 2021 does each time it is set (the same value again too): red at 0 and green at 1, the tint set to 0.3, read back as red and
 (153, 0, 0), a true colour at the value the second colour had; a first colour of the index is tinted from its palette colour (index 7, 0.3,

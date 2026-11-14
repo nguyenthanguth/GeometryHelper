@@ -109,5 +109,17 @@ namespace GeometryHelper.UnitTest.Dxf
                 File.Delete(path);
             }
         }
+
+        [Fact]
+        public void TheBytesOfAReadAhead_OpenedWithAStoppedToken_AreGivenUpInTheWalkOverTheirRecords()
+        {
+            byte[] bytes = Lines(20000);
+
+            using (var stopped = new CancellationTokenSource())
+            {
+                stopped.Cancel();
+                Assert.Throws<OperationCanceledException>(() => DxfDatabase.Open(bytes, bytes.Length, stopped.Token));
+            }
+        }
     }
 }

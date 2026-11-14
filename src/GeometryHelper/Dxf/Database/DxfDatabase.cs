@@ -169,7 +169,20 @@ namespace GeometryHelper.Dxf
         /// stream of them: for bytes made for the drawing alone, as the presenter unpacks a drawing kept for undo, so that a
         /// drawing of 73 MB is not held twice while it is read. The bytes are not to be changed after.
         /// </summary>
-        internal static DxfDatabase Open(byte[] bytes, int length) => new DxfDatabase(DxfFile.Open(bytes, length));
+        internal static DxfDatabase Open(byte[] bytes, int length) => Open(bytes, length, CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DXF file from bytes as <see cref="Open(byte[], int)"/> does, giving it up when a token says so, as
+        /// <see cref="Open(string, CancellationToken)"/> does: for a drawing read ahead on a worker thread, which an edit lets go
+        /// of while its record walk, 170 ms at a million entities, is on, so that the next reading is not kept waiting.
+        /// </summary>
+        /// <param name="bytes">The bytes, not to be changed after.</param>
+        /// <param name="length">How many of them the drawing has.</param>
+        /// <param name="stop">What stops the opening.</param>
+        /// <returns>The drawing, as <see cref="Open(byte[], int)"/> gives it.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the walk is done.</exception>
+        internal static DxfDatabase Open(byte[] bytes, int length, CancellationToken stop) =>
+            new DxfDatabase(DxfFile.Open(bytes, length, stop));
 
         /// <summary>
         /// Opens a DXF file from its text, as <see cref="ToText"/> or <see cref="DxfWriter.ToString"/> gives it.

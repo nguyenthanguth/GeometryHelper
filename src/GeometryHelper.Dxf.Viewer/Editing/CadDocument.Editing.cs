@@ -1380,6 +1380,7 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
             private volatile bool _dropped;
             private volatile bool _begun;
+            private readonly CancellationTokenSource _stop = new CancellationTokenSource();
 
             // The index of the drawing shown when the reading was asked, its tables sized so.
             private readonly int _size;
@@ -1431,7 +1432,9 @@ namespace GeometryHelper.Dxf.Viewer
                         return;
                     }
 
-                    DxfDatabase database = SavesAs(left, bytes) ? left : DxfDatabase.Open(bytes, bytes.Length);
+                    DxfDatabase database = SavesAs(left, bytes)
+                        ? left
+                        : DxfDatabase.Open(bytes, bytes.Length, _stop.Token);
                     left = null;
 
                     if (_dropped)
@@ -1466,6 +1469,7 @@ namespace GeometryHelper.Dxf.Viewer
                         BlockByHandle = blockByHandle;
                     }
                 }
+                catch (OperationCanceledException) when (_dropped) { }
                 catch (Exception exception)
                 {
                     GeometryHelperLog.Debug(
@@ -1483,6 +1487,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 _dropped = true;
                 _left = null;
+                _stop.Cancel();
             }
 
             /// <summary>Whether a drawing saves to the very bytes given, length and every byte; false for none.</summary>
