@@ -164,7 +164,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// <c>ilp</c>, <c>vec</c>, <c>vec1</c>, <c>nor</c>, <c>dpl</c>, <c>dpp</c>, <c>plt</c>, <c>pld</c>, the conversion
     /// <c>cvunit(value,from,to)</c>, and what is picked in the drawing: <c>cur</c> a point, <c>rad</c> the radius of a circle or an
     /// arc, the snaps <c>end ins int mid cen nea nod qua per tan</c> the point of an object picked, and <c>mee</c>, <c>vee</c>,
-    /// <c>vee1</c>, <c>dee</c> and <c>ille</c>, which pick the ends of lines (<see cref="Inputs"/>).
+    /// <c>vee1</c>, <c>dee</c> and <c>ille</c>, which pick the ends of lines (<see cref="Inputs"/>), and in a drawing (the overload with a
+    /// session) <c>getvar(name)</c>, the number or point of a system variable, <c>w2u</c> and <c>u2w</c>, between the world and the
+    /// user coordinate system, <c>rot</c>, and <c>xof</c>, <c>yof</c>, <c>zof</c>, <c>xyof</c>, <c>rxof</c>, <c>ryof</c> and <c>rzof</c>.
     /// </summary>
     /// <remarks>
     /// <c>1+2*3</c> is 7, <c>sqrt(16)+2</c> 6, <c>dist([0,0],[300,400])</c> 500, <c>ang([0,0],[300,400])</c> 53.1301024 and
@@ -226,6 +228,38 @@ namespace GeometryHelper.Dxf.Viewer
             "CVUNIT",
         };
 
+        // The names of the functions and constants that take the place of a variable's name, which getvar refuses: getvar(pi) is
+        // asked for a name, as getvar(1) is.
+        private static readonly HashSet<string> KnownNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "PI",
+            "CUR",
+            "RAD",
+            "MEE",
+            "VEE",
+            "VEE1",
+            "DEE",
+            "ILLE",
+            "GETVAR",
+            "ROT",
+        };
+
+        // w2u, u2w and the functions that take a vector apart, each as AutoCAD spells it in its messages.
+        private static readonly Dictionary<string, string> VectorFunctions = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase
+        )
+        {
+            { "W2U", "W2U" },
+            { "U2W", "U2W" },
+            { "XOF", "Xof" },
+            { "YOF", "Yof" },
+            { "ZOF", "Zof" },
+            { "XYOF", "XYof" },
+            { "RXOF", "rXof" },
+            { "RYOF", "rYof" },
+            { "RZOF", "rZof" },
+        };
+
         // The units cvunit knows: length in metres, angles in degrees. A small part of AutoCAD's acad.unt.
         private static readonly Dictionary<string, KeyValuePair<char, double>> Units = MakeUnits();
 
@@ -260,7 +294,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             try
             {
-                var parser = new Parser(expression ?? string.Empty, null, record);
+                var parser = new Parser(expression ?? string.Empty, null, record, null);
                 parser.Expression();
             }
             catch (CadCalcException)
@@ -296,9 +330,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="answers">What <see cref="Inputs"/> lists, in that order: a vector for a point or an object snap, a number for a radius.</param>
         /// <returns>The value.</returns>
         /// <exception cref="CadCalcException">Thrown when the expression is wrong, in AutoCAD's words.</exception>
-        public static CadCalcValue Evaluate(string expression, IReadOnlyList<CadCalcValue> answers)
+        public static CadCalcValue Evaluate(string expression, IReadOnlyList<CadCalcValue> answers) =>
+            Evaluate(expression, answers, null);
+
+        /// <summary>
+        /// Evaluates an expression whose inputs are given, in a drawing: <c>getvar</c> reads the system variables the session
+        /// knows, and <c>w2u</c> and <c>u2w</c> change points between the world coordinate system and the session's current
+        /// user coordinate system.
+        /// </summary>
+        /// <param name="expression">The expression.</param>
+        /// <param name="answers">What <see cref="Inputs"/> lists, in that order: a vector for a point or an object snap, a number for a radius.</param>
+        /// <param name="session">The command line of the drawing; null for none, as the other overload: no variable is known and the user system is the world one.</param>
+        /// <returns>The value.</returns>
+        /// <exception cref="CadCalcException">Thrown when the expression is wrong, in AutoCAD's words.</exception>
+        public static CadCalcValue Evaluate(
+            string expression,
+            IReadOnlyList<CadCalcValue> answers,
+            CadCommandSession session
+        )
         {
-            var parser = new Parser(expression ?? string.Empty, answers, null);
+            var parser = new Parser(expression ?? string.Empty, answers, null, session);
             CadCalcValue value = parser.Expression();
             parser.SkipSpaces();
 
@@ -353,16 +404,25 @@ namespace GeometryHelper.Dxf.Viewer
         private sealed class Parser
         {
             private const string Short = "Use ";
+            private const string GetVarForm = "GETVAR(AutoCAD_system_variable)";
+            private const string RotForm = "ROT(p,origin,angle) or ROT(p,p1ax,p2ax,angle)";
 
             private readonly string _text;
             private readonly IReadOnlyList<CadCalcValue> _answers;
             private readonly List<CadCalcInput> _record;
+            private readonly CadCommandSession _session;
             private int _at;
             private int _next;
 
-            public Parser(string text, IReadOnlyList<CadCalcValue> answers, List<CadCalcInput> record)
+            public Parser(
+                string text,
+                IReadOnlyList<CadCalcValue> answers,
+                List<CadCalcInput> record,
+                CadCommandSession session
+            )
             {
                 _text = text;
+                _session = session;
                 _answers = answers;
                 _record = record;
             }
@@ -649,6 +709,11 @@ namespace GeometryHelper.Dxf.Viewer
                     return Bare(name, upper);
                 }
 
+                if (upper == "GETVAR")
+                {
+                    return GetVar();
+                }
+
                 if (SnapNames.Contains(upper))
                 {
                     throw new CadCalcException("Function _" + upper + " takes no arguments");
@@ -679,7 +744,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                return IsListing ? CadCalcValue.Real(1.0) : Call(upper, args);
+                if (IsListing)
+                {
+                    return CadCalcValue.Real(1.0);
+                }
+
+                return upper == "ROT" || VectorFunctions.ContainsKey(upper)
+                    ? Transform(upper, args)
+                    : Call(upper, args);
             }
 
             private static bool IsPairFunction(string name) =>
@@ -727,12 +799,185 @@ namespace GeometryHelper.Dxf.Viewer
                             return Pick(new CadCalcInput(CadCalcInputKind.Snap, upper));
                         }
 
+                        if (upper == "GETVAR")
+                        {
+                            throw new CadCalcException(Short + GetVarForm);
+                        }
+
+                        if (upper == "ROT")
+                        {
+                            throw new CadCalcException(Short + RotForm);
+                        }
+
+                        if (VectorFunctions.TryGetValue(upper, out string spelled))
+                        {
+                            throw new CadCalcException("Function " + spelled + " requires one argument");
+                        }
+
                         throw new CadCalcException(
                             RealFunctions.Contains(upper) || PointFunctions.Contains(upper)
                                 ? "Function " + upper + " requires one argument"
                                 : "AutoLISP variable " + name + " has no value"
                         );
                 }
+            }
+
+            // getvar(name): the name is read as it stands, not worked out, up to the bracket that ends it; a number or a point of
+            // the session's variables, as AutoCAD's CAL takes one.
+            private CadCalcValue GetVar()
+            {
+                SkipSpaces();
+                int start = _at;
+
+                while (!AtEnd && Current != ')' && Current != ',' && Current != '(' && !char.IsWhiteSpace(Current))
+                {
+                    _at++;
+                }
+
+                string token = _text.Substring(start, _at - start);
+                string upper = token.ToUpperInvariant();
+
+                if (
+                    token.Length == 0
+                    || !(char.IsLetter(token[0]) || token[0] == '"' || token[0] == '_')
+                    || RealFunctions.Contains(upper)
+                    || PointFunctions.Contains(upper)
+                    || SnapNames.Contains(upper)
+                    || KnownNames.Contains(upper)
+                    || VectorFunctions.ContainsKey(upper)
+                )
+                {
+                    throw new CadCalcException(Short + GetVarForm);
+                }
+
+                if (!Take(')'))
+                {
+                    throw new CadCalcException("Right parenthesis ')' missing");
+                }
+
+                if (IsListing)
+                {
+                    return CadCalcValue.Real(1.0);
+                }
+
+                CadSystemVariable variable = _session?.Registry.FindVariable(token);
+
+                if (variable == null)
+                {
+                    throw new CadCalcException("Unknown AutoCAD system variable " + upper);
+                }
+
+                double[] numbers = variable.GetNumbers(_session);
+
+                if (numbers == null)
+                {
+                    throw new CadCalcException("Only real, integer or point AutoCAD system variables accepted");
+                }
+
+                return variable.Kind == CadVariableKind.Point ? CadCalcValue.Vector(numbers[0], numbers[1], numbers[2])
+                    : variable.Kind == CadVariableKind.Integer ? CadCalcValue.Integer((long)numbers[0])
+                    : Checked(numbers[0]);
+            }
+
+            // w2u, u2w, rot and the functions that take a vector apart.
+            private CadCalcValue Transform(string name, List<CadCalcValue> args)
+            {
+                if (name == "ROT")
+                {
+                    return Rotate(args);
+                }
+
+                string spelled = VectorFunctions[name];
+
+                if (args.Count != 1)
+                {
+                    throw new CadCalcException("Function " + spelled + " requires one argument");
+                }
+
+                CadCalcValue arg = args[0];
+                bool alone = name == "XOF" || name == "YOF" || name == "ZOF";
+
+                if (!arg.IsVector && !alone)
+                {
+                    throw new CadCalcException("Function " + spelled + " requires vector argument");
+                }
+
+                switch (name)
+                {
+                    case "W2U":
+                    case "U2W":
+                        if (_session == null || _session.Ucs.IsWorld)
+                        {
+                            return arg;
+                        }
+
+                        GeoPoint3 point =
+                            name == "W2U" ? _session.Ucs.ToUcs(arg.Point) : _session.Ucs.ToWorld(arg.Point);
+                        return CadCalcValue.Vector(point.X, point.Y, point.Z);
+                    case "XOF":
+                        return CadCalcValue.Vector(arg.X, 0.0, 0.0);
+                    case "YOF":
+                        return CadCalcValue.Vector(0.0, arg.IsVector ? arg.Y : arg.X, 0.0);
+                    case "ZOF":
+                        return CadCalcValue.Vector(0.0, 0.0, arg.IsVector ? arg.Z : arg.X);
+                    case "XYOF":
+                        return CadCalcValue.Vector(arg.X, arg.Y, 0.0);
+                    case "RXOF":
+                        return CadCalcValue.Real(arg.X);
+                    case "RYOF":
+                        return CadCalcValue.Real(arg.Y);
+                    default:
+                        return CadCalcValue.Real(arg.Z);
+                }
+            }
+
+            // rot(p,origin,angle) turns a point about the line through the origin parallel to the Z axis; rot(p,p1ax,p2ax,angle)
+            // about the line through two points; the angle in degrees, anticlockwise looking from the end of the axis.
+            private static CadCalcValue Rotate(List<CadCalcValue> args)
+            {
+                bool three = args.Count == 3;
+                Wrong(
+                    (!three && args.Count != 4)
+                        || args.GetRange(0, args.Count - 1).Exists(a => !a.IsVector)
+                        || args[args.Count - 1].IsVector,
+                    RotForm
+                );
+                CadCalcValue p = args[0];
+                CadCalcValue origin = args[1];
+                CadCalcValue axis = three ? CadCalcValue.Vector(0.0, 0.0, 1.0) : Between(origin, args[2]);
+                double length = Length(axis);
+
+                if (length < 1E-12)
+                {
+                    throw new CadCalcException("The points 'p1ax' and 'p2ax' in ROT(p,p1ax,p2ax,angle) coincide");
+                }
+
+                CadCalcValue k = CadCalcValue.Vector(axis.X / length, axis.Y / length, axis.Z / length);
+                CadCalcValue v = Between(origin, p);
+
+                if (Length(Cross(k, v)) < 1E-12 * Math.Max(1.0, Length(v)))
+                {
+                    throw new CadCalcException("The point to be rotated lies on the axis of rotation");
+                }
+
+                double angle = args[args.Count - 1].Number * Math.PI / 180.0;
+                double cos = Math.Cos(angle);
+                double sin = Math.Sin(angle);
+                CadCalcValue turned = Cross(k, v);
+                double along = Dot(k, v) * (1.0 - cos);
+                return Checked3(
+                    origin.X + v.X * cos + turned.X * sin + k.X * along,
+                    origin.Y + v.Y * cos + turned.Y * sin + k.Y * along,
+                    origin.Z + v.Z * cos + turned.Z * sin + k.Z * along
+                );
+            }
+
+            private static CadCalcValue Checked3(double x, double y, double z)
+            {
+                Checked(x);
+                Checked(y);
+                Checked(z);
+                return CadCalcValue.Vector(x, y, z);
             }
 
             // The answer to the next input; while listing, the input is noted and a stand-in given.

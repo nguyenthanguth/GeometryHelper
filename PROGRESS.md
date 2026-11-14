@@ -107,11 +107,14 @@ Plan: acad.pgp commands the presenter lacks, 2D first (2026-11-13; the exact gap
 - [x] Batch 4a/4b follow-ups 3a (fu-small): HATCHEDIT's Click to set new origin; -RENAME VPort through the tiled viewports
       (both renames agree and are saved); -OSNAP's rarer names as AutoCAD prints them (Near, Gcen, App Int); CAL rad of a
       polyline arc segment
-- [ ] (b4c, running) Batch 4a/4b follow-ups 3b: filter.nfl checked against a 2021 file; FILTER's Transparency, MultiLine Style, Shape and
-      surface kinds; CAL getvar and transformations; QuickCalc Units Conversion and Variables; QP CUI lists and QPLOCATION;
-      dimension styles of a block bound by XBIND; whether HIDEPALETTES hides the command line; visual styles drawn; spelling
-      of dimension text and xrefs; the hidden internal visual style names and Check Spelling's punctuation default checked
-      in AutoCAD; CAL rad's straight-segment message (S)
+- [x] Batch 4a/4b follow-ups 3b (b4c): CAL getvar, w2u/u2w, rot, xof..rzof with AutoCAD's numbers and messages; rad's
+      straight-segment message; FILTER's MultiLine Style, Shape, Transparency lines and Material/Marker/Surface kinds in
+      acfilterres order; XBIND's bound dimension styles (grid$0$MYDIM with its text style); QPLOCATION
+- [ ] Batch 4a/4b follow-ups 3c: filter.nfl against a 2021 file and FILTER's surface kinds (GUI); spelling of dimension
+      text and xrefs, Check Spelling's punctuation default (GUI); -XBIND D/S listing a reference's styles (dependent
+      records for dimension and text styles on attach); -XBIND ending after one binding as the console does; QuickCalc
+      Units Conversion and Variables (design first); QP CUI lists; HIDEPALETTES and the command line; visual styles drawn;
+      the hidden internal visual style names (S)
 - [x] (done by dialogs5, dialogs7, dialogs8; the rest in "Dialogs 8 follow-ups") Batch 5b (left from pgp-cmds5; the Plot Stamp dialog and "Plot stamp on" done by dialogs5): the stamp on PNG/JPG plots and turned with an upside-down plot; .pss stamp files; multi-line stamp layout and "." clearing checked in the AutoCAD GUI; PDF of all layouts; app menu Export > PDF running EXPORTPDF and an Import entry (design first); WMF import; ribbon buttons (M)
 - [x] Batch 1b first part (pgp-cmds1b): CHANGE (-CH, change point and Properties as AutoCAD 2021 asks), -RENAME (-REN) and RENAME (REN, typed until its dialog is designed), with rename of blocks, linetypes (core), viewport configurations (core), multileader and table styles
 - [ ] Batch 1b leftovers: CENTERMARK and CENTERLINE (variables probed: CENTEREXE 0.12, CENTERMARKEXE 1, CENTERLTYPE Center2, CENTERCROSSSIZE 0.1x, CENTERCROSSGAP 0.05x; geometry and DXF form need a pick in the AutoCAD GUI); DIMCENTER line colour and linetype; ACAD_OBJECTISOLATION record; -RENAME refusals of a new name, layer 0/Standard/Continuous and *Active checked against AutoCAD (S)
@@ -169,7 +172,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
   - [x] R2.3 follow-ups (hatch3): core ElevateDegree up to 25 (AutoCAD's control points to 1E-7 at 11, 12, 15, 25); a
         DxfJoinTests case for the line knots
-  - [ ] R2.3 follow-ups 2: toLerance refitting (moved inner points found, their direction and cap not; data in
+  - [ ] (spl11, running: degree past 10) R2.3 follow-ups 2: toLerance refitting (moved inner points found, their direction and cap not; data in
         .claude/gk/hatch3-notes); drawing splines past degree 10 (NurbsCurve.Check / Bernstein.Multiply index fault) so the
         presenter can elevate past order 11 (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check

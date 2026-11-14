@@ -12,6 +12,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static class CadCalcSnap
     {
+        /// <summary>What AutoCAD says of an object that has no point or radius of the kind asked.</summary>
+        internal const string ImproperType = "Improper type of object picked.";
+
+        /// <summary>What AutoCAD says of a straight segment of a polyline where the radius of an arc segment is asked.</summary>
+        internal const string StraightSegment = "Polyline arc segment must be picked.";
+
         /// <summary>The snap an object snap function of CAL makes, as the snaps of the cursor name it.</summary>
         private static CadSnapKind KindOf(string mode)
         {
@@ -138,10 +144,13 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The radius of a circle or an arc, for CAL's <c>rad</c>, or of the segment of a polyline nearest the pick where that is
-        /// an arc (a half circle from (100, 0) to (100, 100) gives 50); null for any other object, and for a straight segment.
+        /// an arc (a half circle from (100, 0) to (100, 100) gives 50); null for any other object, which AutoCAD answers "Improper type
+        /// of object picked.", and for a straight segment, "Polyline arc segment must be picked."; the words are given in
+        /// <paramref name="refusal"/>.
         /// </summary>
-        internal static double? Radius(CadCommandSession session, string handle, GeoPoint2 pick)
+        internal static double? Radius(CadCommandSession session, string handle, GeoPoint2 pick, out string refusal)
         {
+            refusal = ImproperType;
             DxfEntity entity = session.Document.FindEntity(handle);
 
             if (entity is DxfCircle circle)
@@ -188,7 +197,13 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return nearest.HasValue && nearest.Value.IsArc ? nearest.Value.ToArc().Radius : (double?)null;
+            if (nearest.HasValue && nearest.Value.IsArc)
+            {
+                return nearest.Value.ToArc().Radius;
+            }
+
+            refusal = StraightSegment;
+            return null;
         }
     }
 }

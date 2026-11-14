@@ -33,6 +33,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Func<CadCommandSession, string> _show;
         private Func<CadCommandContext, IEnumerable<CadPrompt>> _ask;
         private CadEditRecordKind _recordKind = CadEditRecordKind.SettingChanged;
+        private Func<CadCommandSession, double[]> _numbers;
 
         private CadSystemVariable(
             string name,
@@ -156,6 +157,7 @@ namespace GeometryHelper.Dxf.Viewer
             Action<double> write = set ?? throw new ArgumentNullException(nameof(set));
             var variable = new CadSystemVariable(name, CadVariableKind.Real, false, s => ShowAngle(s, read()));
             variable._ask = c => AskAngle(c, variable, read, write);
+            variable._numbers = s => new[] { read() };
             return variable;
         }
 
@@ -197,6 +199,7 @@ namespace GeometryHelper.Dxf.Viewer
             Func<GeoPoint2, bool> write = take ?? throw new ArgumentNullException(nameof(take));
             var variable = new CadSystemVariable(name, CadVariableKind.Point, false, s => Show(P3(read()), false));
             variable._ask = c => AskPointTaken(c, variable, read, write);
+            variable._numbers = s => new[] { read().X, read().Y, 0.0 };
             return variable;
         }
 
@@ -251,6 +254,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Integer, inDrawing, s => get(s) ? "ON" : "OFF");
             variable._ask = c => AskSwitch(c, variable, get, set, record);
+            variable._numbers = s => new[] { get(s) ? 1.0 : 0.0 };
             return variable;
         }
 
@@ -285,6 +289,7 @@ namespace GeometryHelper.Dxf.Viewer
                 get(s).ToString(CultureInfo.InvariantCulture)
             );
             variable._ask = c => AskWhole(c, variable, least, most, get, set, record, check);
+            variable._numbers = s => new double[] { get(s) };
             return variable;
         }
 
@@ -306,6 +311,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => Show(get(s), plain));
             variable._ask = c => AskReal(c, variable, bound, plain, most, get, set, record, check);
+            variable._numbers = s => new[] { get(s) };
             return variable;
         }
 
@@ -343,15 +349,28 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Point, inDrawing, s => Show(get(s), withZ));
             variable._ask = c => AskPoint(c, variable, withZ, get, set, record);
+            variable._numbers = s =>
+            {
+                GeoPoint3 point = get(s);
+                return new[] { point.X, point.Y, withZ ? point.Z : 0.0 };
+            };
             return variable;
         }
 
-        /// <summary>A variable that can only be read.</summary>
+        /// <summary>A variable that can only be read; its numbers are those CAL's getvar gives, where it has any.</summary>
         internal static CadSystemVariable ReadOnly(
             string name,
             CadVariableKind kind,
-            Func<CadCommandSession, string> show
-        ) => new CadSystemVariable(name, kind, false, show);
+            Func<CadCommandSession, string> show,
+            Func<CadCommandSession, double[]> numbers = null
+        ) => new CadSystemVariable(name, kind, false, show) { _numbers = numbers };
+
+        /// <summary>
+        /// The number or the point the variable holds, as CAL's <c>getvar</c> takes it: one value for a whole or real number
+        /// (an angle in radians, a switch 0 or 1), three for a point (Z nought where the variable has two coordinates); null
+        /// for a text, which <c>getvar</c> refuses.
+        /// </summary>
+        internal double[] GetNumbers(CadCommandSession session) => _numbers?.Invoke(session);
 
         /// <summary>
         /// Gives a variable of the drawing the kind its change is recorded as: a setting changed until set; a table changed for

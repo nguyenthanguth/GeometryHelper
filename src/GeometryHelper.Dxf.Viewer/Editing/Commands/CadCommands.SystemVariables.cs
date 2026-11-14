@@ -524,13 +524,19 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
             registry.AddVariable(
-                CadSystemVariable.ReadOnly("EXTMIN", CadVariableKind.Point, s =>
-                    CadSystemVariable.Show(s.Document.Database.Extmin, true)
+                CadSystemVariable.ReadOnly(
+                    "EXTMIN",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(s.Document.Database.Extmin, true),
+                    s => CoordinatesOf(s.Document.Database.Extmin)
                 )
             );
             registry.AddVariable(
-                CadSystemVariable.ReadOnly("EXTMAX", CadVariableKind.Point, s =>
-                    CadSystemVariable.Show(s.Document.Database.Extmax, true)
+                CadSystemVariable.ReadOnly(
+                    "EXTMAX",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(s.Document.Database.Extmax, true),
+                    s => CoordinatesOf(s.Document.Database.Extmax)
                 )
             );
 
@@ -541,8 +547,11 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
             registry.AddVariable(
-                CadSystemVariable.ReadOnly("UCSORG", CadVariableKind.Point, s =>
-                    CadSystemVariable.Show(s.Ucs.Origin, true)
+                CadSystemVariable.ReadOnly(
+                    "UCSORG",
+                    CadVariableKind.Point,
+                    s => CadSystemVariable.Show(s.Ucs.Origin, true),
+                    s => CoordinatesOf(s.Ucs.Origin)
                 )
             );
             registry.AddVariable(
@@ -871,6 +880,9 @@ namespace GeometryHelper.Dxf.Viewer
                 ? folder
                 : folder + Path.DirectorySeparatorChar;
         }
+
+        /// <summary>The three coordinates of a point, as CAL's getvar takes them.</summary>
+        private static double[] CoordinatesOf(GeoPoint3 point) => new[] { point.X, point.Y, point.Z };
 
         /// <summary>A time as AutoCAD's DATE gives it: the Julian day and the fraction of it, 2461355.60431713.</summary>
         private static string JulianDate(DateTime time) =>

@@ -589,6 +589,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return db.DimStyleTable.Select(s => s.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
                     case CadFilterProperty.TextStyleName:
                         return db.TextStyleTable.Select(s => s.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+                    case CadFilterProperty.Transparency:
+                        return CadSelectionFilter.TransparenciesIn(_document);
                     default:
                         return Array.Empty<string>();
                 }
@@ -707,7 +709,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ValueZ = Plain(line.Numbers[2]);
                 Value = Plain(line.Numbers[0]);
             }
-            else if (CadFilterLine.TakesOperators(line.Property) && line.Property != CadFilterProperty.Color)
+            else if (
+                CadFilterLine.TakesOperators(line.Property)
+                && line.Property != CadFilterProperty.Color
+                && line.Property != CadFilterProperty.Transparency
+            )
             {
                 Value = Plain(line.Numbers[0]);
             }

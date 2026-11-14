@@ -604,7 +604,11 @@ or `No matching Layer names found.` (a name the drawing made itself is never mat
 the block BLK of the drawing grid references, with a copy of what it draws, from the file the reference names; the layers,
 linetypes and text styles its entities use are bound with it, as AutoCAD 2021 binds them (a line on WALL and a text on DOOR in
 MYSTYLE come as `grid$0$WALL`, `grid$0$DOOR` and `grid$0$MYSTYLE`, the reference's `grid|WALL` gone with them), layer 0 and what
-the block does not use left as they were. The command asks the symbol type again
+the block does not use left as they were. A dimension in the block binds its dimension style the same way, with every setting
+of it and the text style it uses: a dimension in MYDIM (text 5 high, arrows 3, scale 2, text style MYSTYLE) comes in
+`grid$0$MYDIM`, of the same contents, whose text style is `grid$0$MYSTYLE`; one in Standard comes in `grid$0$Standard`, with
+`grid$0$Standard` for its text style, and the drawing's own Standard is not touched. XBIND's Dimstyle and Style kinds list the
+reference's styles only where the drawing holds them as records, which the presenter does not make of a reference's styles. The command asks the symbol type again
 until Enter and is one undo step. In the window XBIND shows the Xbind dialog: the Xrefs on the left, a tree of each reference
 with its Block, Dimstyle, Layer, Linetype and Textstyle definitions (the blocks read from the file it names), closed to start,
 a reference or a kind opened and closed by its ▸ or ▾ or a double-click (a definition's double-click adds it), Definitions to Bind
@@ -684,8 +688,16 @@ lists them; a file that does not read says `Syntax error in Named Filter List fi
 `Select objects:`, says how many `were filtered out`, and keeps what passed as the Previous set, so the next command takes it
 with P, then `Exiting filtered selection.`. A test on a property tests the objects that have it: `Arc Radius` an arc, `Text
 Height` a text or an MTEXT; AutoCAD tests any object that has the same group code, so combine a property with its Object
-line as the help does. Transparency, MultiLine Style, the shapes' properties, the surface kinds Blend, Network, Patch,
-Fillet, Offset and Extend, and the redefine prompt `A Filter with this name already exists.` are not built.
+line as the help does. The list is that of AutoCAD's acfilterres.dll in full: MultiLine Style, Shape Position, Shape Name and
+Transparency are properties too (a name or pattern for the style and the shape's name, X, Y and Z for the position, as the
+others), and Material, Position Marker and the surfaces Blend, Network, Patch, Fillet, Offset and Extend are kinds of object.
+Transparency is a whole number of per cent from 0 to 90, as the Properties palette says it, or ByLayer or ByBlock (below 0 in
+the tests, ByLayer first), tested with `=`, `!=`, `<`, `<=`, `>` or `>=`; anything else says `Invalid Value.`; Select...
+lists ByLayer, ByBlock and the per cents in use. In `filter.nfl` it is `(440 . n)`: 0 for ByLayer, 16777216 for ByBlock, and
+33554432 and the alpha (0 clear, 255 solid) otherwise. The six surfaces AutoCAD makes by an operation are plain SURFACE objects
+in AutoCAD 2021 (probed: `Surface.CreateOffsetSurface` and `CreateFilletSurface` give the DXF name SURFACE), so each of the six
+kinds matches every plain SURFACE and none is told from another; Material and Position Marker match nothing the presenter
+holds. The redefine prompt `A Filter with this name already exists.` is not built.
 
 QUICKCALC (`QC`) shows the QuickCalc palette, which stays open while commands run: the input, evaluated by Enter or =, the
 history (a line double-clicked comes back), the number pad with its memory (MC, MR, MS, M+, M-), Scientific (sin, cos, tan
@@ -702,7 +714,8 @@ the snap functions `end`, `ins`, `int`, `mid`, `cen`, `nea`, `nod`, `qua`, `per`
 the nearest quadrant; `per` and `tan` from the last point, the foot or touching point nearest the pick; `int` needs the
 pick at a crossing; an object with no such point says `Improper type of object picked.`, a pick on nothing `No object
 picked.`, and the prompt comes again); `rad` `>> Select circle, arc or polyline segment for RAD function:` (a circle, an
-arc, or the arc segment of a polyline nearest the pick, whose radius it gives; a straight segment is `Improper type of object picked.`); and `mee`, `vee`, `vee1`, `dee` and `ille`, which pick two or four ends. `dist(end,end)`
+arc, or the arc segment of a polyline nearest the pick, whose radius it gives; a straight segment of a polyline is `Polyline arc
+segment must be picked.`, any other object `Improper type of object picked.`); and `mee`, `vee`, `vee1`, `dee` and `ille`, which pick two or four ends. `dist(end,end)`
 picks two ends. The vector functions are `vec(p1,p2)`, `vec1`, `nor(v)`, `nor(p1,p2)`, `nor(p1,p2,p3)`, `dpl(p,p1,p2)`,
 `dpp(p,p1,p2,p3)`, `plt(p1,p2,t)`, `pld(p1,p2,dist)`, `ilp`, `ang(apex,p1,p2)` and `ang(apex,p1,p2,normal)`, `abs` of a
 point is its length, and `cvunit(value,from,to)` converts the common units of length (mm, cm, m, km, inch, ft, yd, mile,
@@ -712,14 +725,24 @@ operands of the same type`, `Division by 0`) and asks again. Typed as `'CAL` at 
 angle, CAL runs inside the command: its prompts are written after `>>`, so `>>>> Expression:`, nothing is written for the
 value, and once `Resuming LINE command.` is written the value is typed at the prompt that was waiting, the point as
 `11,21,0` or the distance as `7`; Esc ends both. The calculator is
-[`CadCalculator`](xref:GeometryHelper.Dxf.Viewer.CadCalculator); Units Conversion, Variables, feet and inches, `getvar`,
-and the transformations (`rot`, `rotx`) are not built.
+[`CadCalculator`](xref:GeometryHelper.Dxf.Viewer.CadCalculator). `getvar(name)` reads a system variable of the drawing, the name as it
+stands, not worked out: `getvar(textsize)` 3.5, an angle in radians (`getvar(snapang)` 0.523598776 for 30 degrees), a switch 0 or 1,
+a point as `x,y,z` (a point of two coordinates with 0 for the third); `getvar(nosuchvar)` says `Unknown AutoCAD system variable
+NOSUCHVAR`, a text variable `Only real, integer or point AutoCAD system variables accepted`, and anything but a name
+`Use GETVAR(AutoCAD_system_variable)`. `w2u(p)` and `u2w(p)` change a point between the world and the current user coordinate
+system (with UCS Origin 10,20,0, `w2u([1,2,3])` is -9,-18,3 and `u2w([1,2,3])` 11,22,3; with UCS Z 90 `w2u([1,0,0])` is 0,-1,0).
+`rot(p,origin,angle)` turns a point about the line through the origin parallel to Z and `rot(p,p1ax,p2ax,angle)` about the line
+through two points, the angle in degrees (`rot([1,0,0],[0,0,0],[0,1,0],90)` is 0,0,-1; a point on the axis says `The point to be
+rotated lies on the axis of rotation`). `xof`, `yof` and `zof` keep one coordinate of a vector or number (`xof([1,2,3])` 1,0,0),
+`xyof` two, and `rxof`, `ryof` and `rzof` give one as a real number; each says `Function Xof requires one argument` or
+`requires vector argument` as AutoCAD's does. Units Conversion, Variables and feet and inches are not built.
 
 QUICKPROPERTIES (`QP`) shows the Quick Properties panel near the cursor over the objects selected (asking `Select objects:`
 where none are): the kind and count, then Color, Layer and Linetype, edited as in Properties, one undo step each. QPMODE starts
 at -1, as AutoCAD 2021's does; above nought the panel comes up whenever objects are picked with no command running, and
-Ctrl+Shift+P switches its sign, saying `<Quick Properties panel on>` or `<Quick Properties panel off>`. The panel's
-customization (the CUI's lists by object kind) and QPLOCATION are not built; QPMODE lasts for the session.
+Ctrl+Shift+P switches its sign, saying `<Quick Properties panel on>` or `<Quick Properties panel off>`. QPLOCATION starts at 0 and takes 0 or 1 (`Requires 0 or 1 only.` for the rest) as AutoCAD 2021's does, but is only kept: the panel is always
+placed by the cursor. The panel's customization (the CUI's lists by object kind) is not built; QPMODE and QPLOCATION last for the
+session.
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
 is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away from the points measured (2) or below it

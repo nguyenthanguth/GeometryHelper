@@ -109,6 +109,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, Autosnap, SetAutosnap));
             registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
             registry.AddVariable(QuickPropertiesVariable());
+            registry.AddVariable(QuickPropertiesLocationVariable());
             registry.AddVariable(
                 CadSystemVariable.Integer(
                     "PICKBOX",

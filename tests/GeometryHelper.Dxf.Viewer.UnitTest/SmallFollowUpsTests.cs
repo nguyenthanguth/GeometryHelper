@@ -103,7 +103,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(">> Select circle, arc or polyline segment for RAD function:", session.PromptText);
 
             Run(session, P(50, 0));
-            Assert.Equal("Improper type of object picked.", session.History.Last());
+            Assert.Equal("Polyline arc segment must be picked.", session.History.Last());
 
             Run(session, P(150, 50));
             Assert.Equal("50", session.History.Last());

@@ -236,6 +236,45 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Gets the transparencies Select... lists for a Transparency line: ByLayer, ByBlock, then the per cents the objects of the
+        /// drawing have, least first.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <returns>The values.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the document is null.</exception>
+        public static IReadOnlyList<string> TransparenciesIn(CadDocument document)
+        {
+            if (document == null)
+            {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            var used = new SortedSet<int>();
+
+            foreach (CadSpace space in document.Spaces)
+            {
+                foreach (DxfEntity entity in space.Block)
+                {
+                    int rank = CadFilterLine.TransparencyRankOf(entity.Transparency);
+
+                    if (rank >= 0)
+                    {
+                        used.Add(rank);
+                    }
+                }
+            }
+
+            var values = new List<string> { "ByLayer", "ByBlock" };
+
+            foreach (int percent in used)
+            {
+                values.Add(percent.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return values;
+        }
+
+        /// <summary>
         /// Gets the lines Add Selected Object adds for an entity, as AutoCAD's: its kind, layer, colour and linetype, then what
         /// belongs to its kind, as an arc's centre and radius or a text's position, words, style, height and rotation.
         /// </summary>
@@ -256,7 +295,7 @@ namespace GeometryHelper.Dxf.Viewer
                 : color.ColorIndex;
             var lines = new List<CadFilterLine>
             {
-                new CadFilterLine(CadFilterProperty.Object, CadProperties.KindOf(entity)),
+                new CadFilterLine(CadFilterProperty.Object, CadFilterEntities.KindName(entity)),
                 new CadFilterLine(CadFilterProperty.Layer, entity.Layer ?? "0"),
                 new CadFilterLine(CadFilterProperty.Color, index.ToString(CultureInfo.InvariantCulture)),
                 new CadFilterLine(CadFilterProperty.Linetype, entity.Linetype ?? "ByLayer"),
@@ -348,6 +387,10 @@ namespace GeometryHelper.Dxf.Viewer
                     return new[] { CadFilterProperty.ImagePosition };
                 case DxfViewport _:
                     return new[] { CadFilterProperty.ViewportCenter };
+                case DxfUnknownEntity mline when mline.DxfName == "MLINE":
+                    return new[] { CadFilterProperty.MultilineStyle };
+                case DxfUnknownEntity shape when shape.DxfName == "SHAPE":
+                    return new[] { CadFilterProperty.ShapeName, CadFilterProperty.ShapePosition };
                 default:
                     return Array.Empty<CadFilterProperty>();
             }
@@ -545,6 +588,7 @@ namespace GeometryHelper.Dxf.Viewer
             Property(CadFilterProperty.Linetype);
             Property(CadFilterProperty.LinetypeScale);
             Kind("MultiLine");
+            Property(CadFilterProperty.MultilineStyle);
             Property(CadFilterProperty.NormalVector);
             Kind("Point");
             Property(CadFilterProperty.PointPosition);
@@ -552,6 +596,8 @@ namespace GeometryHelper.Dxf.Viewer
             Kind("Ray");
             Kind("Region");
             Kind("Shape");
+            Property(CadFilterProperty.ShapePosition);
+            Property(CadFilterProperty.ShapeName);
             Kind("Solid");
             Kind("Solid Body");
             Kind("Spline");
@@ -567,6 +613,7 @@ namespace GeometryHelper.Dxf.Viewer
             Kind("DWF Underlay");
             Kind("Camera");
             Kind("Light");
+            Kind("Material");
             Kind("Surface(Planar)");
             Kind("Surface(Sweep)");
             Kind("Surface(Loft)");
@@ -575,8 +622,16 @@ namespace GeometryHelper.Dxf.Viewer
             Kind("Multileader");
             Kind("Mesh");
             Kind("Surface(Nurbs)");
+            Kind("Surface(Blend)");
             Kind("Helix");
             Kind("Section Plane");
+            Kind("Surface(Network)");
+            Kind("Surface(Patch)");
+            Kind("Surface(Fillet)");
+            Kind("Surface(Offset)");
+            Kind("Surface(Extend)");
+            Property(CadFilterProperty.Transparency);
+            Kind("Position Marker");
             Property(CadFilterProperty.Thickness);
             Kind("Tolerance");
             Kind("Viewport");
