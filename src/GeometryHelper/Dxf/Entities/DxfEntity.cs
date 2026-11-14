@@ -299,16 +299,7 @@ namespace GeometryHelper.Dxf
         /// of R12, which writes none: R13 (AC1012) brought it.</exception>
         public bool Visible
         {
-            get =>
-                !(
-                    int.TryParse(
-                        Item.File.CommonValueOf(Item, 60)?.Trim(),
-                        NumberStyles.Integer,
-                        CultureInfo.InvariantCulture,
-                        out int hidden
-                    )
-                    && hidden == 1
-                );
+            get => !Item.File.IsHidden(Item);
             set
             {
                 if (value != Visible)

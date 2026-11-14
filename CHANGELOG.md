@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A large drawing displays faster, in its own costs, with the display lists, the saved bytes and the pixels as they were
+(167 AutoCAD samples and five generated drawings, item for item and field for field). A profile of the drawing of 100 000 entities
+(lines, arcs, circles, polylines with a bulge, texts and an INSERT in fifty) found the time not in the shapes but in what is asked of an
+entity first: a polyline asked whether it has a width (`DxfPolyline.HasWidth`) made the typed value of every group it holds, 31 % of the
+cold display and 58 % of that of polylines alone; whether an entity is visible (`DxfEntity.Visible`) made the list of all its groups to
+read one, and the look of an entity a dictionary for each. Each now walks the bytes of its record where the groups stand (a polyline's
+width 0.21 µs and 24 bytes where it took 0.74 and 2.4 KB, visibility 0.07 to 0.09 µs and 24 bytes where it took 0.34 to 0.39 and 0.5 to
+1.1 KB), a TEXT is drawn from one pass over its groups where its twelve properties found theirs one by one (an attribute, a text with an
+extension dictionary and a copy that carries contexts read as before), and a block with no handle, as in R12, is listed once a build and
+not for each INSERT of it. Nothing is kept: a text or a polyline edited after it was drawn is read afresh. Cold display of the drawing of
+100 000 entities 255 ms where it took 330 under .NET 8, 431 where 519 under .NET Framework 4.8, a layer switched on 75 ms where 123, with 154
+MB of garbage where there were 277; texts alone 245 ms where 360, 100 000 INSERTs of a block of 20 entities 1 175 ms where 1 591, and the
+drawing of 1 000 000 entities 2.8 s where 3.4 (.NET 8) and 4.3 where 5.0 (.NET Framework). The shapes an entity keeps stay: the same
+objects each time they are asked for. No public signature changed.
+
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).
 Words next to a ray (DIMJUST 1 and 2) stand a cube of the arrowhead and of the half of their box over 24 radii squared further along,

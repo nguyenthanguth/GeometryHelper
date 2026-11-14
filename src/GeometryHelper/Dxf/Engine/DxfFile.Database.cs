@@ -5188,6 +5188,456 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Whether an entity is hidden: its group 60 is 1, as <see cref="CommonValueOf(DxfItem, int)"/> reads the first group of
+        /// that code in the part all entities have (from the group after the first, outside the groups of the applications,
+        /// before the first subclass marker other than AcDbEntity and the extended data), walked in the bytes to the group or to
+        /// the end of that part, where the groups of the record were found, a list of them made, to read this one.
+        /// </summary>
+        internal bool IsHidden(DxfItem item)
+        {
+            Rec record = RecordAt(item, 0);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+            bool braced = false;
+            bool opened = false;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
+
+                // The group 0 that names the record is the first.
+                if (!opened)
+                {
+                    opened = true;
+                    continue;
+                }
+
+                if (code == 1001)
+                {
+                    return false;
+                }
+
+                if (code == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                if (code == 100 && !ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbEntity"))
+                {
+                    return false;
+                }
+
+                if (code == 60)
+                {
+                    return (
+                            DxfFastNumber.TryWhole(bytes, valueStart, valueEnd, out int hidden)
+                            || int.TryParse(
+                                Text(record, valueStart, valueEnd).Trim(),
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out hidden
+                            )
+                        )
+                        && hidden == 1;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a LWPOLYLINE has a width other than nought anywhere, as <see cref="DxfPolyline.HasWidth"/> reads it from the
+        /// vertices of <see cref="OwnGroupsOf(DxfItem, int, List{int})"/>: a vertex (each group 10 begins one) whose last 40 or last 41
+        /// is a finite number other than nought, a vertex with none taking the constant width (the first 43), which is the answer
+        /// for a polyline with no vertex. Walked in the bytes of the record, from the first subclass marker other than AcDbEntity
+        /// (from the group after the first where it has none) to its extended data, with no list of its groups made and no group
+        /// made a string but the widths themselves, where the typed values of every coordinate were made and dropped by the
+        /// question asked of every polyline a drawing draws.
+        /// </summary>
+        internal bool HasWidthOf(DxfItem item)
+        {
+            Rec record = RecordAt(item, 0);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+            bool braced = false;
+            bool opened = false;
+
+            // Where the own part begins is known where its marker comes: what was met before it is forgotten.
+            double constant = 0.0;
+            bool constantRead = false;
+            bool bodyFound = false;
+            int vertices = 0;
+            bool explicitWidth = false;
+            bool constantUsed = false;
+            double start = 0.0;
+            double finish = 0.0;
+            bool startRead = false;
+            bool finishRead = false;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int raw);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
+
+                // The group 0 that names the record is the first.
+                if (!opened)
+                {
+                    opened = true;
+                    continue;
+                }
+
+                if (raw == 1001)
+                {
+                    break;
+                }
+
+                if (raw == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                if (
+                    !bodyFound
+                    && raw == 100
+                    && !ValueIs(record, new Pair(raw, 0, valueStart, valueEnd, next), "AcDbEntity")
+                )
+                {
+                    bodyFound = true;
+                    constant = 0.0;
+                    constantRead = false;
+                    vertices = 0;
+                    explicitWidth = false;
+                    constantUsed = false;
+                    continue;
+                }
+
+                // The first 43 of the own part: a number, or none at all where it is not one.
+                if (raw == 43 && !constantRead)
+                {
+                    constantRead = true;
+                    constant = ReadReal(record, valueStart, valueEnd, out double width) ? width : 0.0;
+                }
+
+                if (raw == 999)
+                {
+                    continue;
+                }
+
+                // A group's code is a short in the typed value the vertices are read from.
+                short code = (short)raw;
+
+                if (code == 10)
+                {
+                    if (vertices > 0)
+                    {
+                        explicitWidth |= (startRead && start != 0.0) || (finishRead && finish != 0.0);
+                        constantUsed |= !startRead || !finishRead;
+                    }
+
+                    vertices++;
+                    startRead = false;
+                    finishRead = false;
+                }
+                else if (vertices > 0 && (code == 40 || code == 41))
+                {
+                    bool read = ReadReal(record, valueStart, valueEnd, out double width);
+
+                    if (code == 40)
+                    {
+                        startRead = read;
+                        start = width;
+                    }
+                    else
+                    {
+                        finishRead = read;
+                        finish = width;
+                    }
+                }
+            }
+
+            if (vertices == 0)
+            {
+                return constant != 0.0;
+            }
+
+            explicitWidth |= (startRead && start != 0.0) || (finishRead && finish != 0.0);
+            constantUsed |= !startRead || !finishRead;
+            return explicitWidth || (constantUsed && constant != 0.0);
+        }
+
+        /// <summary>The number of a group's value as <c>Numbers.TryRead</c> reads its text, taken from the bytes where <see cref="DxfFastNumber"/> is sure of it; false for one that is not a finite number, the number nought.</summary>
+        private bool ReadReal(Rec record, int valueStart, int valueEnd, out double value)
+        {
+            if (
+                (
+                    DxfFastNumber.TryReal(record.Bytes, valueStart, valueEnd, out value)
+                    || Numbers.TryRead(Text(record, valueStart, valueEnd), out value)
+                ) && Guard.IsFinite(value)
+            )
+            {
+                return true;
+            }
+
+            value = 0.0;
+            return false;
+        }
+
+        /// <summary>
+        /// The groups of a TEXT a drawing is made from, each the first of its code in the own part of the record, as
+        /// <see cref="ValueOf(DxfItem, int)"/> finds it and the properties of <see cref="DxfDBText"/> read it: numbers as
+        /// <c>TryNumber</c> reads them (<see cref="Have"/> says which were read, one that is not a finite number being none),
+        /// whole numbers as <c>TextInt</c> does, nought where there is none, and the words and the style as written.
+        /// </summary>
+        internal struct TextGroups
+        {
+            internal const int HasX = 1;
+            internal const int HasY = 2;
+            internal const int HasZ = 4;
+            internal const int HasAlignedX = 8;
+            internal const int HasAlignedY = 16;
+            internal const int HasAlignedZ = 32;
+            internal const int HasHeight = 64;
+            internal const int HasFactor = 128;
+            internal const int HasDegrees = 256;
+            internal const int HasOblique = 512;
+            internal const int HasNormalX = 1024;
+            internal const int HasNormalY = 2048;
+            internal const int HasNormalZ = 4096;
+
+            internal int Have;
+            internal double X,
+                Y,
+                Z,
+                AlignedX,
+                AlignedY,
+                AlignedZ,
+                Height,
+                Factor,
+                Degrees,
+                Oblique,
+                NormalX,
+                NormalY,
+                NormalZ;
+            internal int Mirror,
+                Horizontal,
+                Vertical;
+            internal string Words,
+                Style;
+        }
+
+        /// <summary>
+        /// Reads the groups a TEXT is drawn from (<see cref="TextGroups"/>) in one pass over the bytes of the record, where nothing
+        /// of the record reaches beyond them: false, with none read, for an entity that has an extension dictionary, which may
+        /// hold annotative contexts that put the text elsewhere, or a copy that carries contexts of its own, which the properties
+        /// of the text read with their own care. The own part is walked from its first subclass marker other than AcDbEntity
+        /// (from the group after the first where it has none) to the extended data, as <see cref="ValueOf(DxfItem, int)"/> finds
+        /// the first group of a code in it; no list of the groups is made and no group a string but the words and the style,
+        /// where each property read alone found its own among the groups again.
+        /// </summary>
+        internal bool TryTextGroups(DxfItem item, out TextGroups groups)
+        {
+            groups = default(TextGroups);
+
+            if (item.CopiedContexts != null)
+            {
+                return false;
+            }
+
+            Rec record = RecordAt(item, 0);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+
+            // Where the first group of each code stands, its value start and end, or -1: what was met before the marker of the
+            // own part is forgotten where the marker comes.
+            int[] slots = _textSlots ?? (_textSlots = new int[2 * TextCodes.Length]);
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                slots[i] = -1;
+            }
+
+            bool braced = false;
+            bool opened = false;
+            bool bodyFound = false;
+            bool inData = false;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
+
+                // The group 0 that names the record is the first.
+                if (!opened)
+                {
+                    opened = true;
+                    continue;
+                }
+
+                // An extension dictionary stands in the groups of an application, anywhere in the record.
+                if (code == 102 && ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "{ACAD_XDICTIONARY"))
+                {
+                    return false;
+                }
+
+                if (inData)
+                {
+                    continue;
+                }
+
+                if (code == 1001)
+                {
+                    inData = true;
+                    continue;
+                }
+
+                if (code == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                if (
+                    !bodyFound
+                    && code == 100
+                    && !ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbEntity")
+                )
+                {
+                    bodyFound = true;
+
+                    for (int i = 0; i < slots.Length; i++)
+                    {
+                        slots[i] = -1;
+                    }
+
+                    continue;
+                }
+
+                int slot = Array.IndexOf(TextCodes, code);
+
+                if (slot >= 0 && slots[2 * slot] < 0)
+                {
+                    slots[2 * slot] = valueStart;
+                    slots[2 * slot + 1] = valueEnd;
+                }
+            }
+
+            TextGroups read = default(TextGroups);
+            read.Words = slots[0] < 0 ? null : Text(record, slots[0], slots[1]);
+            read.Style = slots[2] < 0 ? null : Text(record, slots[2], slots[3]);
+            NumberAt(record, slots, 2, TextGroups.HasX, ref read.Have, ref read.X);
+            NumberAt(record, slots, 3, TextGroups.HasY, ref read.Have, ref read.Y);
+            NumberAt(record, slots, 4, TextGroups.HasZ, ref read.Have, ref read.Z);
+            NumberAt(record, slots, 5, TextGroups.HasAlignedX, ref read.Have, ref read.AlignedX);
+            NumberAt(record, slots, 6, TextGroups.HasAlignedY, ref read.Have, ref read.AlignedY);
+            NumberAt(record, slots, 7, TextGroups.HasAlignedZ, ref read.Have, ref read.AlignedZ);
+            NumberAt(record, slots, 8, TextGroups.HasHeight, ref read.Have, ref read.Height);
+            NumberAt(record, slots, 9, TextGroups.HasFactor, ref read.Have, ref read.Factor);
+            NumberAt(record, slots, 10, TextGroups.HasDegrees, ref read.Have, ref read.Degrees);
+            NumberAt(record, slots, 11, TextGroups.HasOblique, ref read.Have, ref read.Oblique);
+            NumberAt(record, slots, 12, TextGroups.HasNormalX, ref read.Have, ref read.NormalX);
+            NumberAt(record, slots, 13, TextGroups.HasNormalY, ref read.Have, ref read.NormalY);
+            NumberAt(record, slots, 14, TextGroups.HasNormalZ, ref read.Have, ref read.NormalZ);
+            read.Mirror = WholeAt(record, slots, 15);
+            read.Horizontal = WholeAt(record, slots, 16);
+            read.Vertical = WholeAt(record, slots, 17);
+            groups = read;
+            return true;
+        }
+
+        /// <summary>The codes <see cref="TryTextGroups"/> reads, in the order of its slots: the words, the style, the points, the sizes, the angles, the normal and the modes.</summary>
+        private static readonly int[] TextCodes =
+        {
+            1,
+            7,
+            10,
+            20,
+            30,
+            11,
+            21,
+            31,
+            40,
+            41,
+            50,
+            51,
+            210,
+            220,
+            230,
+            71,
+            72,
+            73,
+        };
+
+        [ThreadStatic]
+        private static int[] _textSlots;
+
+        /// <summary>
+        /// The number of the group in a slot as <c>Numbers.TryRead</c> reads its text, taken from the bytes where
+        /// <see cref="DxfFastNumber"/> is sure of it; <paramref name="have"/> gains <paramref name="bit"/>, and the number is
+        /// set, where the group stands and is a finite number.
+        /// </summary>
+        private void NumberAt(Rec record, int[] slots, int slot, int bit, ref int have, ref double number)
+        {
+            if (slots[2 * slot] >= 0 && ReadReal(record, slots[2 * slot], slots[2 * slot + 1], out double value))
+            {
+                have |= bit;
+                number = value;
+            }
+        }
+
+        /// <summary>The whole number of the group in a slot as <c>int.TryParse</c> reads its trimmed text; nought where there is none or it is not one.</summary>
+        private int WholeAt(Rec record, int[] slots, int slot)
+        {
+            int start = slots[2 * slot];
+            int end = slots[2 * slot + 1];
+
+            if (start < 0)
+            {
+                return 0;
+            }
+
+            if (DxfFastNumber.TryWhole(record.Bytes, start, end, out int whole))
+            {
+                return whole;
+            }
+
+            return int.TryParse(
+                Text(record, start, end).Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out whole
+            )
+                ? whole
+                : 0;
+        }
+
+        /// <summary>
         /// Replaces every group of some codes in the own part of one record of an entity by the groups given, put where the
         /// first of those was, or where the order puts the first given where there was none; nothing is written where the
         /// groups given are those taken, code for code and text for text. For the runs of a record, as the vertices of a

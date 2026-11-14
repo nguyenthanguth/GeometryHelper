@@ -102,6 +102,34 @@ drawing is the same within the noise of a machine other processes take cores of 
 318 ms where it took 296, 321 and 311 under .NET 8; 510, 496 and 506 where 506, 509 and 495 under .NET Framework 4.8), and so is that of
 the same drawing with 17 digits in every coordinate (about 350 ms under .NET 8, 560 under .NET Framework 4.8, both ways).
 
+What the display itself reads of an entity was found in a sampled profile of that drawing before anything in it was changed, and it was
+not the shapes. A LWPOLYLINE asked whether it has a width (`HasWidth`, asked of every polyline before it is drawn) made the typed value
+of every group of its record, a string for each coordinate, to look at the widths among them: 31 % of the cold display of the drawing
+and 58 % of one of polylines alone, 0.74 µs and 2.4 KB of garbage a polyline. Whether an entity is visible made the list of every group
+of its record to read the one (60), 0.34 to 0.39 µs and 0.5 to 1.1 KB, and the look of an entity (layer, colour, line weight, linetype,
+thickness and handle) a dictionary for each entity to hold the first group of eight codes, 0.44 µs and 344 bytes. Each now walks the
+bytes of the record where its groups stand, with no list, no dictionary and no group made a string but the widths and the words: a
+polyline's width 0.21 µs and 24 bytes, visibility 0.07 to 0.09 µs and 24 bytes, a look 0.28 µs and 128 bytes. A TEXT is drawn from one
+pass over its groups (`DxfDBText.ReadForDisplay`) where each of the twelve properties the display reads, the words, height, place, turn,
+slant, width factor, justification, mirrors and style, found its own among them again (about 2 µs and 2 KB for them); an attribute,
+a text with an extension dictionary, whose contexts may put it elsewhere, and a copy that carries contexts are read property by
+property as before. The pass keeps nothing, for the groups of a record never change once written and a text read afresh each time is
+one an edit cannot leave stale; the 48-byte tuple the properties keep for the contexts of a text that has none is not made for a text the
+display draws, 4.7 MB less heap at 100 000 TEXTs. A block with no handle, as in a file of R12 or one written by hand, was listed anew
+for each INSERT of it (100 000 times in a drawing of INSERTs of one block); it is listed once a build, by its name.
+
+The cold display of the drawing of 100 000 entities (open not counted) takes 255 ms under .NET 8 where it took 330, and 431 ms under
+.NET Framework 4.8 where it took 519, with 154 MB of garbage in place of 277; a layer switched on 75 ms where it took 123 (.NET 8) and
+124 where 175 (.NET Framework), and a REGEN 219 ms where it took 267. The 100 000 texts of the file of texts alone (18 groups each, a
+second point, a turn and a style) take 245 ms where they took 360, the 100 000 polylines 439 where they took 492 (.NET 8: most of what is
+left of a polyline is the loop it is made, 1.7 µs and 2.9 KB, which the shapes of an entity keep, a test holding that they are the same
+objects each time they are asked for), and 100 000 INSERTs of a block of 20 entities 1 175 ms where they took 1 591, with 634 MB of
+garbage in place of 1 619. The drawing of 1 000 000 entities displays in 2.8 s where it took 3.4 (.NET 8) and in 4.3 s where it took 5.0
+(.NET Framework), 1 583 MB of garbage in place of 2 715 and the same 552 MB of heap. The display lists and the bytes a drawing
+saves are those they were: 167 samples of AutoCAD and five generated drawings give the same list, item for item and field for field, and the same
+pixels in three views, plain, selected, highlighted and with a hover, as they did (under .NET 8 the pixels of eight of the 172 drawings differ
+between two runs of the unchanged code, and are judged by the lists alone).
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
