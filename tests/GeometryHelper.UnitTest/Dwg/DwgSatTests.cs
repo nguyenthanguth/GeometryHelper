@@ -185,9 +185,14 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
-        public void ASabOfARecordOrAFlagNotKnown_IsRefused_ForNoSatIsWrittenThatIsNotAutoCads()
+        public void ASabWithAShear_IsWrittenWithTheWordShear()
         {
-            Assert.Null(DwgSat.ToSat(Sab(shear: true)));
+            Assert.Contains(" 1 no_rotate no_reflect shear #\n", DwgSat.ToSat(Sab(shear: true)));
+        }
+
+        [Fact]
+        public void ASabOfARecordNotKnown_IsRefused_ForNoSatIsWrittenThatIsNotAutoCads()
+        {
             Assert.Null(DwgSat.ToSat(Sab(body: "blob")));
             Assert.Null(DwgSat.ToSat(Sab().Take(Sab().Length - 5).ToArray()));
         }

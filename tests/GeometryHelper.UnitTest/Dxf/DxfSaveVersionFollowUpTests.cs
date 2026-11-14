@@ -412,14 +412,20 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ATableGoingToR2007OrLater_LosesTheExtensionDictionaryOfItsRoundTrip()
+        public void ATableGoingToR2007OrLater_LosesTheRoundTripOfItsCells_AndKeepsTheOneOfItsTableContent()
         {
+            // The key holds two tables: the one of plain cells has the round trip of the old form alone, which goes; the one with merged
+            // cells has a TABLECONTENT too, whose round trip AutoCAD keeps in R2007 and later (its table_AC1021) without the data tables.
             byte[] saved = Saved(DwgAnswerKey.Key("table_AC1018"), "AC1021");
+            List<DwgAnswerKey.Record> tables = Of(saved, "ENTITIES", "ACAD_TABLE");
 
-            Assert.All(Of(saved, "ENTITIES", "ACAD_TABLE"), table =>
-                Assert.DoesNotContain(table.Groups, g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY")
-            );
+            Assert.Equal(2, tables.Count);
+            Assert.Single(tables, t => t.Groups.Any(g => g.Key == 102 && g.Value == "{ACAD_XDICTIONARY"));
             Assert.DoesNotContain(DwgAnswerKey.Parse(saved), r => r.Type == "DATATABLE" || r.Type == "ACDBDATATABLE");
+            Assert.Single(DwgAnswerKey.Parse(saved), r => r.Type == "TABLECONTENT");
+            Assert.DoesNotContain(DwgAnswerKey.Parse(saved), r =>
+                r.Type == "XRECORD" && r.Groups.Any(g => g.Key == 102 && g.Value == "ACAD_ROUNDTRIP_PRE2007_TABLE")
+            );
         }
 
         [Fact]
@@ -442,12 +448,13 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ATableWithACellAboutText_StaysTheBlockItIsDrawnWithWhereItsCellsHaveNoForm()
+        public void ATableWithAFieldInACell_StaysTheBlockItIsDrawnWithWhereItsCellsHaveNoForm()
         {
-            // A cell with a height of its own (140) is none of the plain cells: that table is the INSERT it was made, the other stays.
+            // A cell with a field (344) is none of the cells the old form is made of: that table is the INSERT it was made, the
+            // other stays. (A height of its own, 140, is a cell of the old form: its table stays, DxfSaveVersionTableRoundTripTests.)
             string text = Encoding.GetEncoding(28591).GetString(DwgAnswerKey.Key("table_AC1021")).Replace("\r\n", "\n");
             int at = text.IndexOf("\n145\n0.0\n", StringComparison.Ordinal);
-            string changed = text.Insert(at + "\n145\n0.0\n".Length, "140\n2.5\n");
+            string changed = text.Insert(at + "\n145\n0.0\n".Length, "344\n7A\n");
             DxfDatabase database = DxfDatabase.Parse(changed);
 
             using (var stream = new MemoryStream())

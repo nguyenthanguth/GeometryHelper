@@ -67,6 +67,15 @@ namespace GeometryHelper.Dxf
                         Paragraphs(record);
                     }
 
+                    if (_target < 1018)
+                    {
+                        MTextData(record);
+                    }
+                    else if (_source < 1018)
+                    {
+                        NoMTextData(record);
+                    }
+
                     break;
                 case "ATTRIB":
                 case "ATTDEF":
@@ -707,6 +716,98 @@ namespace GeometryHelper.Dxf
                 {
                     groups[i] = new Group(group.Code, group.Value.Replace("^J", "\\P"));
                 }
+            }
+        }
+
+        /// <summary>
+        /// Gives an MTEXT the extended data R2000 writes of every one (application ACAD, <c>MTEXTBEGIN</c> to <c>MTEXTEND</c>): its line
+        /// spacing style (73) and factor (44) again, and a 74 of nought. They stand in the application the MTEXT already has data of, after the data of its columns, or in one made, after the groups of
+        /// the entity and before the data of the other applications.
+        /// </summary>
+        private void MTextData(Record record)
+        {
+            List<Group> groups = record.Groups;
+
+            if (
+                groups.Exists(g => g.Code == 1000 && g.Value == "MTEXTBEGIN")
+                || !Subclass(groups, "AcDbMText", out int start, out int end)
+            )
+            {
+                return;
+            }
+
+            int style = groups.FindIndex(start, end - start, g => g.Code == 73);
+            int factor = groups.FindIndex(start, end - start, g => g.Code == 44);
+            var data = new List<Group>
+            {
+                new Group(1000, "MTEXTBEGIN"),
+                Whole(1070, 73),
+                Whole(
+                    1070,
+                    style >= 0
+                    && int.TryParse(
+                        groups[style].Value.Trim(),
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out int spacing
+                    )
+                        ? spacing
+                        : 1
+                ),
+                Whole(1070, 44),
+                new Group(1040, factor < 0 ? "1.0" : groups[factor].Value.Trim()),
+                Whole(1070, 74),
+                Whole(1070, 0),
+                new Group(1000, "MTEXTEND"),
+            };
+            int app = groups.FindIndex(g => g.Code == 1001 && g.Value == "ACAD");
+
+            if (app >= 0)
+            {
+                // After the data of the columns, which AutoCAD writes before it.
+                int at = app + 1;
+                int stop = groups.FindIndex(app + 1, g => g.Code == 1001);
+
+                for (int i = app + 1; i < (stop < 0 ? groups.Count : stop); i++)
+                {
+                    if (
+                        groups[i].Code == 1000
+                        && (
+                            groups[i].Value == "ACAD_MTEXT_COLUMN_INFO_END"
+                            || groups[i].Value == "ACAD_MTEXT_COLUMNS_END"
+                        )
+                    )
+                    {
+                        at = i + 1;
+                    }
+                }
+
+                groups.InsertRange(at, data);
+                return;
+            }
+
+            data.Insert(0, new Group(1001, "ACAD"));
+            int first = groups.FindIndex(g => g.Code == 1001);
+            groups.InsertRange(first < 0 ? groups.Count : first, data);
+        }
+
+        /// <summary>Takes the extended data of R2000 that repeat the line spacing of an MTEXT (<c>MTEXTBEGIN</c> to <c>MTEXTEND</c>) out, and the application they are the only data of.</summary>
+        private void NoMTextData(Record record)
+        {
+            List<Group> groups = record.Groups;
+            int begin = groups.FindIndex(g => g.Code == 1000 && g.Value == "MTEXTBEGIN");
+            int end = begin < 0 ? -1 : groups.FindIndex(begin, g => g.Code == 1000 && g.Value == "MTEXTEND");
+
+            if (end < 0)
+            {
+                return;
+            }
+
+            groups.RemoveRange(begin, end - begin + 1);
+
+            if (groups[begin - 1].Code == 1001 && (begin == groups.Count || groups[begin].Code == 1001))
+            {
+                groups.RemoveAt(begin - 1);
             }
         }
 

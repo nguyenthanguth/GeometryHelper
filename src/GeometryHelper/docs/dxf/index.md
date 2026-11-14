@@ -61,8 +61,9 @@ classes (which AutoCAD opens no drawing of R2004 or later without) of that versi
 735 are group for group, value for value, what AutoCAD 2021 wrote of the same drawing as R2000, and the others are what
 AutoCAD adds to remember what R2000 cannot hold. A true colour or a transparency, the background of an MTEXT, the gradient of a
 hatch (left filled solid with its first colour before R2004), a viewport's lighting and the other groups a later version brought are left out of an older one; text beyond the code page of a
-version before R2007 is written as `\U+XXXX`. What cannot be given the form of the older version is left out or written
-another way, and the call gives it back as sentences: a table whose cells hold more than their text becomes the INSERT of the block
+version before R2007 is written as `\U+XXXX`. An MTEXT of R2000 carries its line spacing again in extended data of ACAD (`MTEXTBEGIN`, 73, 44 and a 74 of nought, `MTEXTEND`), as AutoCAD writes it (the note of a
+leader, 6 MTEXTs of a table in each of 3 versions); the data goes when the drawing goes to R2004 or later. What cannot be given the form of the older version is left out or written
+another way, and the call gives it back as sentences: a table whose cells hold a field, a link or a value that is not text becomes the INSERT of the block
 it is drawn with; a solid whose ACIS records the library does not place (the splines of an R2000 file, a solid made by a
 sweep, whose surface AutoCAD writes another way in each version) is left out of a file of R2013 or later, whose entity may hold no
 text (AutoCAD reads such a file as no drawing), and out of one of R2010 or before where its data is the binary of R2013.
@@ -95,15 +96,24 @@ and digit for digit; of the 175 going up 130 are AutoCAD's record for record and
 parameter or of a plane's normal (below 1E-12: AutoCAD's own work leaves 3.6E-16 where an angle is 0); the five of a solid
 swept along a spline, whose splines are another curve in ACIS 4.00 than in R2004, are left as they are. AutoCAD opens the 910
 files, 350 of them made by the library, with the volume of each solid and `AUDIT` finding 0 errors; a BODY goes the same way (a
-box and a cone, 20 files). A solid turned about two axes keeps its transform: the word `rotate` is read and written.
+box and a cone, 20 files). A solid turned about two axes keeps its transform: the word `rotate` is read and written, and `reflect` and `shear` (AutoCAD bakes a mirror into the geometry of a solid and
+refuses to scale one unevenly, so it never writes them, but it reads them: a box 30 by 20 by 10 with `shear` has the extents 30 by 35 by 10, and any other word of the flag is a modeling error).
+The extrusion of a closed spline square to its plane (its surface `cylsur` in R2004, `cyl_spl_sur 22600` from R2007, with a flag F before its closing brace from R2010, and the seam where it meets
+the closed edge of its profile numbered 2 on its vertex) goes between R2004, R2007 and R2010 as the SAT AutoCAD 2021 writes (6 conversions record for record), and the files it makes of R2013 and R2018 open in
+AutoCAD with its volume, 2 279.094, and `AUDIT` finds 0 errors; the extrusion at a slant (`sumsur` with a B-spline surface of its own in R2004 and none in R2000), a sweep along a spline and a loft
+of circles, whose edges are tolerant in R2004 and later, are left as they are.
 
-A table whose cells are plain text, written in a form of its own before R2007, comes out in the form of the version: each cell's
-groups 171 to 178 and 145 and its text (1) in R2004 and before, and from R2007 its flags (91, 92) and its value (301 CELL_VALUE to
-304 ACVALUE_END) too, the table of R2010 and later with its data version (280). A table of 4 rows by 3 columns with
+A table whose cells are text or blocks, written in a form of its own before R2007, comes out in the form of the version: each cell's
+groups 171 to 178 and 145, its text (1) and its overrides (alignment 170, style 7, height 140, colours 63, 64, 283, borders 275 to 279) in R2004 and before, and from R2007 its flags (91, 92) and its value (301 CELL_VALUE to
+304 ACVALUE_END) too, the table of R2010 and later with its data version (280); the flags of a cell's overrides are the low 16 bits of its 91, written as a signed number going down
+(a bottom border, 0x8880, is 297 088 in R2007 and -30 592 in R2004) and with the bit for content (0x40000) and for a border on the right, left or top (0x1000, 0x2000, 0x4000 again 4 bits up) in
+R2007. The cells of 4 AutoCAD tables (one with a title, text of its own height, alignment, colours and a background, one with a border of each side and each kind on 16 cells, one with
+links) come out of each version in the others as AutoCAD writes them, group for group. A table of 4 rows by 3 columns with
 merged cells goes between R2000, R2004, R2007, R2010, R2013 and R2018 with the cells AutoCAD 2021 writes in each, 30 conversions, and
 AutoCAD opens them all with the text of each cell; the extension dictionary that keeps the round trip of the later form in R2004
 and before (ACAD_XREC_ROUNDTRIP) is taken out going up and not made going down, so that AutoCAD reads the table of the older form
-as the table it holds. The data table of that round trip is named ACDBDATATABLE in R2000 and DATATABLE from R2004, as the
+as the table it holds, unless the table has a TABLECONTENT (a link to a spreadsheet, formats): that round trip stays both ways. Its TABLECONTENT, whose values AutoCAD writes without their flags (93) and their 94, 300, 302 and ACVALUE_END before R2007, and its TABLEGEOMETRY
+are the ones AutoCAD writes (9 directions between R2000 and R2018 of a table of merged cells; a linked table, links kept at its cell (1, 0) when AutoCAD upgrades the file, `AUDIT` 0). The data table AutoCAD adds to it before R2007 (ACAD_ROUNDTRIP_PRE2007_TABLE) is taken out going up and not made going down: AutoCAD reads the table, its link and its text height with none. The data table of that round trip is named ACDBDATATABLE in R2000 and DATATABLE from R2004, as the
 version names it. The columns of an MTEXT, in its extended data of ACAD (and in the MTEXTs of the later columns it links) up to R2013,
 become the one MTEXT of R2018 with its embedded object: the text of the columns joined as AutoCAD joins it, each column keeping the
 space it ended at, the width (41) that of all the columns (two of 28 with a gutter of 4 are 60).
@@ -121,8 +131,7 @@ give the edges no colour, no jitter and no overhang (every property the parent's
 were; a style of R2010 going to R2007 is given the flags, a style of R2007 going to R2010 loses them. The 24 visual styles of a
 drawing AutoCAD wrote come out of every version in the others as AutoCAD writes them, group for group and with their round trip
 (8 pairs of versions of drawings of 24 and 25 styles), the extension dictionary of a style going to R2013 taken out. The round trip
-of a table going down (`ACAD_ROUNDTRIP_2008_TABLE_ENTITY`, with its TABLECONTENT, TABLEGEOMETRY and data tables) is not made:
-AutoCAD reads the table of the older form as the table it holds.
+of a table that holds no TABLECONTENT is not made going down: AutoCAD reads the table of the older form as the table it holds.
 
 R12 (`db.Save(path, "AC1009")`) is written as AutoCAD 2021 writes the same drawing as R12 (its own DXF of one drawing in each
 version, 1 300 lines, 130 hatches, 2 tables and 15 multileaders, which the rules were read from): four sections only (no

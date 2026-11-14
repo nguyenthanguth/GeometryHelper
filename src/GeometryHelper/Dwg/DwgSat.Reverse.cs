@@ -21,7 +21,7 @@ namespace GeometryHelper.Dwg
             StringComparer.Ordinal
         )
         {
-            ["transform"] = "r i V V V V d b(no_rotate,rotate) b(no_reflect,!) b(no_shear,!)",
+            ["transform"] = "r i V V V V d b(no_rotate,rotate) b(no_reflect,reflect) b(no_shear,shear)",
             ["point"] = "r i r P",
             ["straight-curve"] = "r i r P V I I",
             ["sphere-surface"] = "r i r P d V V b(forward_v,reverse_v) I I I I",
@@ -1040,7 +1040,11 @@ namespace GeometryHelper.Dwg
                     {
                         record.Insert(
                             v + 4,
-                            new Token { Kind = 'i', Whole = fromAcis4 ? 2 : EndOf(records, i, record[v + 3].Whole) }
+                            new Token
+                            {
+                                Kind = 'i',
+                                Whole = fromAcis4 ? 2 : EndOf(records, i, record[v + 3].Whole, name == "vertex"),
+                            }
                         );
                     }
                 }
@@ -1278,10 +1282,23 @@ namespace GeometryHelper.Dwg
                         break;
                     case "exppc":
                         break;
-                    case "surfintcur":
                     case "cylsur":
+                        if (up)
+                        {
+                            record.Insert(i + 2, new Token { Kind = 'i', Whole = 22600 });
+                        }
+                        else if (record[i + 2].Kind != 'i')
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            record.RemoveAt(i + 2);
+                        }
+
+                        break;
+                    case "surfintcur":
                     case "int_int_cur":
-                    case "cyl_spl_sur":
                         return false;
                 }
 
@@ -1304,6 +1321,8 @@ namespace GeometryHelper.Dwg
                     return "par_int_cur";
                 case "exppc":
                     return "exp_par_cur";
+                case "cylsur":
+                    return "cyl_spl_sur";
                 default:
                     return name;
             }
@@ -1322,6 +1341,8 @@ namespace GeometryHelper.Dwg
                     return "parcur";
                 case "exp_par_cur":
                     return "exppc";
+                case "cyl_spl_sur":
+                    return "cylsur";
                 default:
                     return name;
             }
@@ -1342,6 +1363,30 @@ namespace GeometryHelper.Dwg
                 }
 
                 string name = record[i + 1].Text;
+
+                if (name == "cyl_spl_sur")
+                {
+                    // R2010 ends the surface of a cylinder swept along a curve with a flag, F, before its closing brace.
+                    int end = Close(record, i);
+
+                    if (end < 0)
+                    {
+                        return false;
+                    }
+
+                    bool flagged = record[end - 1].Kind == 'b';
+
+                    if (put && !flagged)
+                    {
+                        record.Insert(end, new Token { Kind = 'b', Whole = 0 });
+                    }
+                    else if (!put && flagged)
+                    {
+                        record.RemoveAt(end - 1);
+                    }
+
+                    continue;
+                }
 
                 if (name != "exact_int_cur" && name != "int_int_cur" && name != "par_int_cur")
                 {
@@ -1392,8 +1437,11 @@ namespace GeometryHelper.Dwg
             return true;
         }
 
-        /// <summary>The number of a vertex: 0 where it opens the edge its record names, 1 where it closes it.</summary>
-        private static long EndOf(List<List<Token>> records, int vertex, long edge)
+        /// <summary>
+        /// The number of a vertex: 0 where it opens the edge its record names, 1 where it closes it; where the edge is closed 0, and 2
+        /// where another edge ends there too (the seam of a surface swept along a curve, which the closed edge of its profile meets). Only a plain vertex has it: a tolerant one has 0.
+        /// </summary>
+        private static long EndOf(List<List<Token>> records, int vertex, long edge, bool plain)
         {
             if (edge < 0 || edge >= records.Count)
             {
@@ -1409,7 +1457,35 @@ namespace GeometryHelper.Dwg
                 return 0;
             }
 
+            if (record[v + 3].Whole == vertex && record[v + 5].Whole == vertex)
+            {
+                return plain && MeetsSeam(records, vertex, edge) ? 2 : 0;
+            }
+
             return record[v + 3].Whole != vertex && record[v + 5].Whole == vertex ? 1 : 0;
+        }
+
+        /// <summary>Whether an edge other than <paramref name="edge"/> starts or ends at the vertex.</summary>
+        private static bool MeetsSeam(List<List<Token>> records, int vertex, long edge)
+        {
+            for (int i = 0; i < records.Count; i++)
+            {
+                List<Token> other = records[i];
+                int v = FirstValue(other);
+                string name = NameOf(other);
+
+                if (
+                    i != edge
+                    && (name == "edge" || name == "tedge-edge")
+                    && other.Count > v + 5
+                    && (other[v + 3].Whole == vertex || other[v + 5].Whole == vertex)
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion
