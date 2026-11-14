@@ -136,11 +136,14 @@ namespace GeometryHelper.Dxf.Viewer
             var kept = new List<string>();
             int locked = 0;
 
+            // The objects outside the working set of a reference edited in place cannot be selected, as AutoCAD's REFEDIT locks them.
+            Func<string, bool> held = Document.RefEditLockTest();
+
             foreach (string handle in handles)
             {
                 DxfEntity entity = Document.FindEntity(handle);
 
-                if (entity == null)
+                if (entity == null || (held != null && held(handle)))
                 {
                     continue;
                 }

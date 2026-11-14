@@ -115,7 +115,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "ATTBLOCKREF" when one:
                     items.Add(OnSelection("Reset Block", "RESETBLOCK", 'R'));
                     items.Add(MenuCommand("Block Editor", "BEDIT"));
-                    items.Add(NotBuilt("Edit Block In-place", 'i'));
+                    items.Add(MenuCommand("Edit Block In-place", "REFEDIT", 'i'));
 
                     if (kinds.Min == "ATTBLOCKREF")
                     {

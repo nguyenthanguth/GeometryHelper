@@ -30,7 +30,7 @@ namespace GeometryHelper.Dxf.Viewer
         public CadBlockEditor BlockEditor => _blockEditor;
 
         /// <summary>The step undo stops at: where the Block Editor opened or last saved, else the first.</summary>
-        private int UndoFloor => _blockEditor?.Floor ?? 0;
+        private int UndoFloor => _blockEditor?.Floor ?? _refEdit?.Floor ?? 0;
 
         /// <summary>The number of steps done, which undo takes back one by one.</summary>
         internal int UndoPosition => _position;
@@ -77,6 +77,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (_blockEditor != null)
             {
                 return CadEditResult.Refuse(CadBlockEditor.NotAllowed);
+            }
+
+            if (_refEdit != null)
+            {
+                return CadEditResult.Refuse(CadRefEdit.NotAllowed);
             }
 
             if (_groupDepth > 0)

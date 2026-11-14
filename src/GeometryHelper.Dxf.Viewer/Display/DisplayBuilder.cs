@@ -63,6 +63,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The handles of the anonymous blocks and other entities the entity being drawn has read; null for none yet.</summary>
         private List<string> _runReads;
 
+        /// <summary>The handles of the objects of blocks no INSERT draws while a reference is edited in place, the ones the copies in the drawing stand for; null for none.</summary>
+        private HashSet<string> _refHidden;
+
         /// <summary>One less than how many entities of a space are drawn between two reports of <see cref="Progress"/>, a power of two.</summary>
         private const int ReportEvery = 4095;
 
@@ -462,6 +465,7 @@ namespace GeometryHelper.Dxf.Viewer
             HashSet<string> shown = null,
                 hidden = null;
             _document?.StateSetsOf(space, out shown, out hidden);
+            _refHidden = _document?.RefEditHiddenOriginals();
 
             try
             {
@@ -548,6 +552,7 @@ namespace GeometryHelper.Dxf.Viewer
             finally
             {
                 _building = null;
+                _refHidden = null;
                 _patterns.Clear();
             }
 
@@ -2050,10 +2055,17 @@ namespace GeometryHelper.Dxf.Viewer
                 Read(block.Handle);
             }
 
+            HashSet<string> hide = _refHidden;
+
             if (content == null)
             {
                 foreach (DxfEntity entity in block)
                 {
+                    if (hide != null && hide.Contains(HandleOf(entity) ?? string.Empty))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         Draw(entity, inner, list, null);
@@ -2076,6 +2088,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     // Whether an entity of the block is shown is read once a build, not once an INSERT.
                     DxfEntity entity = entities[i];
+
+                    if (hide != null && hide.Contains(HandleOf(entity) ?? string.Empty))
+                    {
+                        continue;
+                    }
 
                     if (shown[i] == 0 && entity != null)
                     {
