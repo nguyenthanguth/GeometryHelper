@@ -326,6 +326,39 @@ namespace GeometryHelper.Dxf
             return next.ToString("X", CultureInfo.InvariantCulture);
         }
 
+        /// <summary>The next <paramref name="count"/> handles of the drawing, the seed read and written once; null where the header has no seed.</summary>
+        private string[] NewHandles(int count)
+        {
+            Record seed = _seed
+                ?? (_seed = Find("HEADER")?.Records.Find(r => r.Groups[0].Value == "$HANDSEED" && r.Groups.Count > 1));
+
+            if (
+                seed == null
+                || !ulong.TryParse(
+                    seed.Groups[1].Value.Trim(),
+                    NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture,
+                    out ulong next
+                )
+            )
+            {
+                return null;
+            }
+
+            var handles = new string[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                handles[i] = (next + (ulong)i).ToString("X", CultureInfo.InvariantCulture);
+            }
+
+            seed.Groups[1] = new Group(
+                seed.Groups[1].Code,
+                (next + (ulong)count).ToString("X", CultureInfo.InvariantCulture)
+            );
+            return handles;
+        }
+
         #endregion
     }
 }

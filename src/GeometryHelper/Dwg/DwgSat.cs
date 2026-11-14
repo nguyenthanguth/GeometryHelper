@@ -35,8 +35,8 @@ namespace GeometryHelper.Dwg
             ["face"] = "* b(forward,reversed) b(single,double) o(out,in)",
             ["coedge"] = "* b(forward,reversed) *",
             ["tcoedge-coedge"] = "* b(forward,reversed) *",
-            ["edge"] = "* b(forward,!) *",
-            ["tedge-edge"] = "* b(forward,!) *",
+            ["edge"] = "* b(forward,reversed) *",
+            ["tedge-edge"] = "* b(forward,reversed) *",
             ["transform"] = "* b(no_rotate,rotate) b(no_reflect,reflect) b(no_shear,shear)",
             ["plane-surface"] = "r i r P U V b(forward_v,reverse_v) I I I I",
             ["sphere-surface"] = "* b(forward_v,reverse_v) I I I I",
@@ -69,6 +69,9 @@ namespace GeometryHelper.Dwg
             "/ CURVE / V / P / e(2=none) I I I I e(1=CLOSED,2=PERIODIC) e(0=OPEN) e(0=NON_SINGULAR) e(0=NON_SINGULAR) "
             + "/ A / A / A / A / A / A / o(F,T)";
 
+        /// <summary>The exact spline surface that ends the subtypes of a spline swept, extruded or turned along a curve.</summary>
+        private const string ExactTail = "e(0=full) BS3S d / / A / A / A / A / A / A / o(F,T)";
+
         /// <summary>The subtypes a spline curve or surface holds between braces, each by its name: AutoCAD's names of R2004 and those of R2007 on.</summary>
         private static readonly Dictionary<string, string> Subtypes = new Dictionary<string, string>(
             StringComparer.Ordinal
@@ -80,16 +83,20 @@ namespace GeometryHelper.Dwg
             ["surfintcur"] = IntCurve,
             ["int_int_cur"] = "oi " + IntCurve + " / i",
             ["parcur"] = IntCurve + " b(surf2,surf1)",
-            ["par_int_cur"] = "oi " + IntCurve + " / i b(surf2,surf1)",
+            ["par_int_cur"] = "oi " + IntCurve + " / i b(surf2,surf1) ob",
             ["exppc"] = "BS2C d / SURF /",
             ["exp_par_cur"] = "BS2C d / SURF /",
-            ["cylsur"] = CylinderSurface,
-            ["cyl_spl_sur"] = "i " + CylinderSurface,
+            ["cylsur"] = "/ CURVE / V / P / CYLTAIL",
+            ["cyl_spl_sur"] = "i / CURVE / V / P / CYLTAIL",
             ["exactsur"] = "e(0=full) BS3S d / / A / A / A / A / A / A / I I I I",
             ["exact_spl_sur"] = "i e(0=full) BS3S d / / A / A / A / A / A / A / I I I I o(0=UNEXTENDED)",
+            ["sum_spl_sur"] = "i / CURVE / CURVE / P / " + ExactTail,
+            ["sumsur"] = "/ CURVE / CURVE / P / " + ExactTail,
+            ["rot_spl_sur"] = "i / CURVE / P V / " + ExactTail,
+            ["rotsur"] = "/ CURVE / P V / " + ExactTail,
             ["sweep_sur"] =
-                "i b(not_on,on_xy) / i CURVE / I I b(!,is_planar) P V P V V V / i b(has_z,no_z) / CURVE / I I d b(no_scale,!) "
-                + "/ s / i / s / CURVE / d / d / e(0=full) BS3S d / / A / A / A / A / A / A / b(F,T)",
+                "i b(not_on,on_xy) / i1 CURVE / I I b(!,is_planar) P U P V V V / i b(has_z,no_z) / CURVE / I I d b(no_scale,!) "
+                + "/ RAIL / e(0=full) BS3S d / / A / A / A / A / A / A / b(F,T)",
             ["loft_spl_sur"] =
                 "i i / [ d / i i CURVE SURF PCUR b(F,T) i i i d d d d d d b(F,T) CURVE i i / ] i / I I I I b(F,T) "
                 + "b(F,T) b(F,T) b(F,T) i e(0=full) BS3S d / / A / A / A / A / A / A / b(F,T)",
@@ -114,6 +121,7 @@ namespace GeometryHelper.Dwg
         )
         {
             ["null_curve"] = "",
+            ["straight"] = "P V I I",
             ["intcurve"] = "b(forward,reversed) {} I I",
             ["ellipse"] = "P U V d I I",
         };
@@ -925,6 +933,33 @@ namespace GeometryHelper.Dwg
                         return Take(item, out token) && Plain(token);
                     case "i":
                         return Take("i", out token) && Plain(token);
+                    case "ob":
+                        return Next != 'b' || Take("b", out token);
+                    case "i1":
+                        // A whole number of -1 that AutoCAD writes as 1 in the text of R2010 (the first of a swept surface's profile).
+                        if (!Take("i", out token))
+                        {
+                            return false;
+                        }
+
+                        _last = token.Whole;
+                        Emit(token.Whole == -1 ? "1" : token.Whole.ToString(CultureInfo.InvariantCulture));
+                        return true;
+                    case "RAIL":
+                        return Rail();
+                    case "CYLTAIL":
+                    {
+                        // After the curve, the vector and the point of an extruded spline: no surface (none), or its exact one (full).
+                        if (Next != 'e')
+                        {
+                            return false;
+                        }
+
+                        string[] tail = Items(
+                            _tokens[_at].Whole == 0 ? ExactTail : CylinderSurface.Substring("/ CURVE / V / P / ".Length)
+                        );
+                        return Run(tail, 0, tail.Length);
+                    }
                     case "oi":
                         return Next != 'i' || (Take("i", out token) && Plain(token));
                     case "/":
@@ -939,8 +974,9 @@ namespace GeometryHelper.Dwg
                         double[] v = token.Triple;
                         double length = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 
-                        // A normal that is a unit but for rounding (a length of 0.9999999999999999) is written as it is.
-                        if (token.Exact || Math.Abs(length - 1.0) < 1E-12)
+                        // A normal read from SAT is the unit vector SAT writes. One read from SAB is divided by its length even where that is
+                        // 0.9999999999999999, as AutoCAD writes a body it has read from a file (one it made in its memory it writes as it is).
+                        if (token.Exact)
                         {
                             length = 1.0;
                         }
@@ -1030,6 +1066,97 @@ namespace GeometryHelper.Dwg
                 }
 
                 throw new InvalidOperationException("The grammar of SAT names an item that is not known: " + item);
+            }
+
+            /// <summary>
+            /// What a swept surface holds after its profile (<c>no_scale</c> and its flag): either the law of the sweep (a text)
+            /// with the count of its edges, each an edge's name (a text), its curve and its two parameters, then a flag AutoCAD
+            /// leaves out of the text of R2010; or <c>no_rail</c> and the curve the surface follows, its bounds, two whole numbers,
+            /// six reals and three flags of a periodic law (<c>not_periodic yes_x_scaling yes_y_scaling</c> for a surface scaled
+            /// along its path).
+            /// </summary>
+            private bool Rail()
+            {
+                if (Next != 's')
+                {
+                    if (!Worded("!,no_rail", "b") || !Item("CURVE"))
+                    {
+                        return false;
+                    }
+
+                    _text.Append("\n ");
+
+                    if (!Item("I") || !Item("I"))
+                    {
+                        return false;
+                    }
+
+                    for (int n = 0; n < 2; n++)
+                    {
+                        if (!Take("i", out Token whole) || !Plain(whole))
+                        {
+                            return false;
+                        }
+                    }
+
+                    for (int n = 0; n < 6; n++)
+                    {
+                        if (!Take("d", out Token real) || !Plain(real))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return Worded("not_periodic,periodic", "b")
+                        && Worded("no_x_scaling,yes_x_scaling", "b")
+                        && Worded("no_y_scaling,yes_y_scaling", "b");
+                }
+
+                if (!Take("s", out Token law) || !Plain(law))
+                {
+                    return false;
+                }
+
+                _text.Append("\n ");
+
+                if (!Take("i", out Token count) || count.Whole < 0 || count.Whole > _tokens.Count)
+                {
+                    return false;
+                }
+
+                Plain(count);
+                _text.Append("\n ");
+
+                for (long n = 0; n < count.Whole; n++)
+                {
+                    if (!Take("s", out Token edge) || !Plain(edge))
+                    {
+                        return false;
+                    }
+
+                    _text.Append("\n ");
+
+                    if (!Item("CURVE") || !Element())
+                    {
+                        return false;
+                    }
+                }
+
+                return Next != 'b' || Take("b", out Token _);
+            }
+
+            /// <summary>The two parameters that end a curve of a rail, each on its own line.</summary>
+            private bool Element()
+            {
+                _text.Append("\n ");
+
+                if (!Take("d", out Token from) || !Plain(from))
+                {
+                    return false;
+                }
+
+                _text.Append("\n ");
+                return Take("d", out Token to) && Plain(to);
             }
 
             private bool Subtype()
@@ -1174,6 +1301,12 @@ namespace GeometryHelper.Dwg
 
                 Plain(u);
                 Plain(v);
+
+                // A rational surface may name the direction its weights are in (u or v) after the degrees.
+                if (rational && Next == 'N' && (_tokens[_at].Text == "u" || _tokens[_at].Text == "v"))
+                {
+                    Plain(_tokens[_at++]);
+                }
 
                 if (
                     !Worded("0=open,1=closed,2=periodic", "e")

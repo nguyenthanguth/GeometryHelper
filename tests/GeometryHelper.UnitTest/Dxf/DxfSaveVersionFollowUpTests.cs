@@ -349,13 +349,15 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void ANormalOfOneButForTheLastBit_IsWrittenAsItIs_AndOneThatIsLongerIsDivided()
+        public void ANormalOfOneButForTheLastBit_IsDividedByItsLength_AsAutoCadWritesTheBodyItReadFromAFile_AndOneThatIsLongerIsDivided()
         {
-            // The plane of a pyramid's face: its normal is 0.9999999999999999 long, and AutoCAD's SAT holds its three numbers.
+            // The plane of a pyramid's face: its normal is 0.9999999999999999 long. A body AutoCAD 2021 made in its memory writes
+            // the three numbers as they are, but one it read from a SAB (any file) writes the unit vector: 58 bodies of R2018
+            // read by it and written as R2010 hold no other normal.
             string unit = DwgSat.ToSat(PlaneSab(0.7861926661477994, 0.5712024071622966, -0.23585779984433983));
 
             Assert.NotNull(unit);
-            Assert.Contains("0.7861926661477993683 0.5712024071622966437 -0.2358577998443398271", unit);
+            Assert.Contains("0.7861926661477994793 0.5712024071622967547 -0.2358577998443398549", unit);
 
             // A normal of length 2 is divided by it, as the writer always did.
             string two = DwgSat.ToSat(PlaneSab(0.0, 0.0, 2.0));

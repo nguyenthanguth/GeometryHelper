@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A solid or surface made by a sweep along a spline, an extrusion at a slant, a spline turned about an axis, a spline extruded
+with its exact surface kept, and a loft through rectangles, saved as another version (`DxfDatabase.Save(path, version)`), was left out
+of the file going to R2000, R2004, R2007 and R2010 and, from R2010, going to R2013 and R2018. The data of R2010 holds them now, as the
+SAT AutoCAD 2021 writes (probed in its console: 65 bodies of R2018, among them boxes, cylinders, spheres, tori, extrusions, revolutions,
+sweeps, lofts, unions, subtractions, fillets, shells and surfaces, read by it and written as R2004, R2007 and R2010, equal its own text
+line for line, which is 390 conversions): the oblique extrusion (`sum_spl_sur`, `sumsur` in R2004) and the turned spline (`rot_spl_sur`,
+`rotsur`) are written in every version from R2004 on with the numbers and the flag each has, the sweep (`sweep_sur`, the rail with its law and
+edges, or no rail and a scale along the path) in R2010, and an exact surface kept by an extruded spline (`cyl_spl_sur` of `full`) in
+all. A sweep along a spline goes to R2000, R2004 and R2007 as the text of R2010, as a loft does, and AutoCAD reads it there with the volume
+it had (6 by 4 swept along a spline: 2 463.5152, where AutoCAD's own R2004 file holds a spline of its own of 2 463.7445); R2013 and R2018 open
+with the volume and `AUDIT` finds 0 errors in all 96 files probed. Going up, the text of R2010 of these surfaces is read into the data of R2013.
+**FIXED.** An edge AutoCAD writes as reversed (the edges a fillet, a shell or a thickened surface makes) was refused by the SAT and SAB
+converters, and so the body was left out of a file saved as another version: a box with 12 filleted edges, a shell and a thickened
+surface now go to every version, and the curve of intersection of two surfaces (`par_int_cur`) with the flag R2013 holds after it.
+**CHANGED.** A normal that is a unit but for its last bit (a plane whose normal is 0.9999999999999999 long) is written divided by its
+length going from the SAB of R2013 or R2018 to the text of an older version, as AutoCAD writes a body it has read from a file; it
+kept the three numbers as they were, which is what AutoCAD writes of a body it made in its own memory and never read (a pyramid,
+a taper, a slanted extrusion and a sweep read from R2018: 24 lines of 8 of 65 bodies differed in the last digit).
+**CHANGED.** A table going to R2000 or R2004 is saved some 20 percent faster: the data table of its cells takes its handles from the
+seed of the drawing at once and shares the groups every cell holds (5 tables of 100 rows by 20 columns saved from R2018 as R2000 in
+125 ms before and 98 after, and as R2004 in 126 and 100 ms, the bytes of the file unchanged).
 **NEW.** The front and back planes of XCLIP Clipdepth cut what a clipped block shows, as AutoCAD 2021 draws it (PNGOUT of a block
 of five lines at several heights, in plan and in an isometric view): the block is shown from the back plane to the front plane,
 planes included, in the units of the clip system whatever the reference's scale, and from the plane of the boundary, which goes with

@@ -71,13 +71,24 @@ namespace GeometryHelper.Dxf
             }
 
             var made = new List<Group>(groups.GetRange(0, first));
+            made.Capacity = Math.Max(made.Capacity, groups.Count);
             var data = new List<CellData>(starts.Count);
+            var cell = new List<Group>(64);
+            var text = new List<Group>(2);
 
             for (int i = 0; i < starts.Count; i++)
             {
                 int to = i + 1 < starts.Count ? starts[i + 1] : stop;
+                cell.Clear();
 
-                if (!CellDown(groups.GetRange(starts[i], to - starts[i]), i + 1 == starts.Count, made, data))
+                for (int g = starts[i]; g < to; g++)
+                {
+                    cell.Add(groups[g]);
+                }
+
+                text.Clear();
+
+                if (!CellDown(cell, i + 1 == starts.Count, made, data, text))
                 {
                     return false;
                 }
@@ -167,7 +178,7 @@ namespace GeometryHelper.Dxf
         /// the block and its attributes). False where the cell is not made of these: a 92 of a link, a field, a value that is neither
         /// text nor empty, or groups after the value of the last cell, which may be the table's own.
         /// </summary>
-        private bool CellDown(List<Group> cell, bool last, List<Group> made, List<CellData> data)
+        private bool CellDown(List<Group> cell, bool last, List<Group> made, List<CellData> data, List<Group> text)
         {
             if (!Has(cell, NewCellHead))
             {
@@ -192,30 +203,30 @@ namespace GeometryHelper.Dxf
             }
 
             // What the cell holds besides its value: its groups before it but the 92 (a link where it is not nought) and those after.
-            var held = new List<Group>();
-
             for (int i = NewCellHead.Length; i < at; i++)
             {
-                if (cell[i].Code == 92 && cell[i].Value.Trim() != "0")
+                if (cell[i].Code == 92)
+                {
+                    if (cell[i].Value.Trim() != "0")
+                    {
+                        return false;
+                    }
+                }
+                else if (cell[i].Code == 344 || cell[i].Code >= 1000)
                 {
                     return false;
                 }
+            }
 
-                if (cell[i].Code != 92)
+            for (int i = end + 1; i < cell.Count; i++)
+            {
+                if (cell[i].Code == 344 || cell[i].Code >= 1000)
                 {
-                    held.Add(cell[i]);
+                    return false;
                 }
             }
 
-            held.AddRange(cell.GetRange(end + 1, cell.Count - end - 1));
-
-            if (held.Exists(g => g.Code == 344 || g.Code >= 1000))
-            {
-                return false;
-            }
-
             bool block = cell[0].Value.Trim() == "2";
-            var text = new List<Group>();
 
             if (!Value(cell, at + 1, end, out int type, text, out string whole) || (!block && type != 0 && type != 4))
             {
@@ -245,7 +256,19 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            made.AddRange(held);
+            for (int i = NewCellHead.Length; i < at; i++)
+            {
+                if (cell[i].Code != 92)
+                {
+                    made.Add(cell[i]);
+                }
+            }
+
+            for (int i = end + 1; i < cell.Count; i++)
+            {
+                made.Add(cell[i]);
+            }
+
             data.Add(new CellData(flags & 0xFFFF, whole, block, type == 4 || text.Count > 0));
             return true;
         }
@@ -413,13 +436,11 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            var all = new StringBuilder();
             int i = from + 2;
 
             for (; i < end && (cell[i].Code == 1 || cell[i].Code == 2 || cell[i].Code == 3); i++)
             {
                 text.Add(cell[i]);
-                all.Append(cell[i].Value);
             }
 
             if (i + 2 >= end || cell[i].Code != 94 || cell[i + 1].Code != 300)
@@ -434,7 +455,22 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            whole = all.ToString();
+            if (text.Count == 1)
+            {
+                whole = text[0].Value;
+            }
+            else if (text.Count > 1)
+            {
+                var all = new StringBuilder();
+
+                foreach (Group part in text)
+                {
+                    all.Append(part.Value);
+                }
+
+                whole = all.ToString();
+            }
+
             return true;
         }
 
@@ -728,21 +764,15 @@ namespace GeometryHelper.Dxf
         private void AddDataTable(string handle, string owner, List<CellData> cells, int[] masks)
         {
             bool old = _target < 1018;
-            var values = new List<string>(cells.Count);
+            string[] values = NewHandles(cells.Count);
 
-            foreach (CellData cell in cells)
+            if (values == null)
             {
-                string value = NewHandle();
-
-                if (value == null)
-                {
-                    return;
-                }
-
-                values.Add(value);
+                return;
             }
 
             var table = new Record();
+            table.Groups.Capacity = 20 + 4 * cells.Count;
             table.Groups.AddRange(
                 new[]
                 {
@@ -774,17 +804,26 @@ namespace GeometryHelper.Dxf
             table.Groups.Add(Whole(92, 1));
             table.Groups.Add(new Group(2, string.Empty));
 
+            // A few masks stand for all the cells: each is formatted once.
+            var maskGroups = new Dictionary<int, Group>();
+
             foreach (int mask in masks)
             {
-                table.Groups.Add(Whole(93, mask));
+                if (!maskGroups.TryGetValue(mask, out Group group))
+                {
+                    maskGroups.Add(mask, group = Whole(93, mask));
+                }
+
+                table.Groups.Add(group);
             }
 
             table.Groups.Add(Whole(92, 1));
             table.Groups.Add(new Group(2, string.Empty));
+            Group zero = Whole(93, 0);
 
-            foreach (CellData cell in cells)
+            for (int i = 0; i < cells.Count; i++)
             {
-                table.Groups.Add(Whole(93, 0));
+                table.Groups.Add(zero);
             }
 
             table.Groups.Add(Whole(92, 6));
@@ -797,40 +836,47 @@ namespace GeometryHelper.Dxf
 
             _added.Add(table);
 
+            // The groups every cell's XRECORD shares, made once: a block holds no value (93 of 3), a text its whole text (6, and 90
+            // of 4), a cell with none is not set (7).
+            var owned = new Group(330, handle);
+            var marker = new Group(100, "AcDbXrecord");
+            Group version = Whole(280, 1);
+            Group blockFlag = Whole(93, 3);
+            Group textFlag = Whole(93, 6);
+            Group unsetFlag = Whole(93, 7);
+            Group textType = Whole(90, 4);
+            Group noType = Whole(90, 0);
+            Group noUnit = Whole(94, 0);
+            var noFormat = new Group(300, string.Empty);
+            var noText = new Group(302, string.Empty);
+            var recordType = new Group(0, "XRECORD");
+
             for (int i = 0; i < cells.Count; i++)
             {
                 CellData cell = cells[i];
+                bool text = cell.HasText && !cell.Block;
                 var record = new Record();
-                record.Groups.AddRange(
-                    new[]
-                    {
-                        new Group(0, "XRECORD"),
-                        new Group(5, values[i]),
-                        new Group(330, handle),
-                        new Group(100, "AcDbXrecord"),
-                        Whole(280, 1),
-                    }
+                List<Group> groups = record.Groups;
+                groups.Add(recordType);
+                groups.Add(new Group(5, values[i]));
+                groups.Add(owned);
+                groups.Add(marker);
+                groups.Add(version);
+                groups.Add(
+                    cell.Block ? blockFlag
+                    : cell.HasText ? textFlag
+                    : unsetFlag
                 );
+                groups.Add(text ? textType : noType);
 
-                // A block holds no value, a text its whole text (in one group, as the checksum is of it), a cell with none is not set.
-                record.Groups.Add(
-                    Whole(
-                        93,
-                        cell.Block ? 3
-                            : cell.HasText ? 6
-                            : 7
-                    )
-                );
-                record.Groups.Add(Whole(90, cell.HasText && !cell.Block ? 4 : 0));
-
-                if (cell.HasText && !cell.Block)
+                if (text)
                 {
-                    record.Groups.Add(new Group(1, cell.Text));
+                    groups.Add(new Group(1, cell.Text));
                 }
 
-                record.Groups.Add(Whole(94, 0));
-                record.Groups.Add(new Group(300, string.Empty));
-                record.Groups.Add(new Group(302, cell.HasText && !cell.Block ? cell.Text : string.Empty));
+                groups.Add(noUnit);
+                groups.Add(noFormat);
+                groups.Add(text ? new Group(302, cell.Text) : noText);
                 _added.Add(record);
             }
         }

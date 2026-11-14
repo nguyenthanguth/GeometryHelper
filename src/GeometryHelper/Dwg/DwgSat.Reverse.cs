@@ -25,8 +25,8 @@ namespace GeometryHelper.Dwg
             ["point"] = "r i r P",
             ["straight-curve"] = "r i r P V I I",
             ["sphere-surface"] = "r i r P d V V b(forward_v,reverse_v) I I I I",
-            ["edge"] = "r i r r d r d r r b(forward,!) s",
-            ["tedge-edge"] = "r i r r d r d r r b(forward,!) s d",
+            ["edge"] = "r i r r d r d r r b(forward,reversed) s",
+            ["tedge-edge"] = "r i r r d r d r r b(forward,reversed) s d",
             ["tcoedge-coedge"] = "r i r r r r r b(forward,reversed) r oi r d d or",
             ["tvertex-vertex"] = "r i r r oi r d",
             ["pcurve"] = "r i r i or o(forward,reversed) o{} d d",
@@ -627,6 +627,30 @@ namespace GeometryHelper.Dwg
                         return Whole('L');
                     case "oi":
                         return Peek == null || !IsWhole(Peek) || Whole('i');
+                    case "ob":
+                        // A flag the SAB of R2013 and later holds and the text of R2010 does not: nought.
+                        Result.Add(new Token { Kind = 'b', Whole = 0 });
+                        return true;
+                    case "i1":
+                        // The 1 the text of R2010 writes for the -1 of the SAB (the first of a swept surface's profile).
+                        if (Peek == "1")
+                        {
+                            _at++;
+                            _last = -1;
+                            Result.Add(new Token { Kind = 'i', Whole = -1 });
+                            return true;
+                        }
+
+                        return Whole('i');
+                    case "RAIL":
+                        return Rail();
+                    case "CYLTAIL":
+                    {
+                        string[] tail = Items(
+                            Peek == "full" ? ExactTail : CylinderSurface.Substring("/ CURVE / V / P / ".Length)
+                        );
+                        return Run(tail, 0, tail.Length);
+                    }
                     case "or":
                         return Peek == null || !Peek.StartsWith("$", StringComparison.Ordinal) || Pointer();
                     case "/":
@@ -694,6 +718,56 @@ namespace GeometryHelper.Dwg
                 }
 
                 throw new InvalidOperationException("The grammar of SAT names an item that is not known: " + item);
+            }
+
+            /// <summary>
+            /// What a swept surface holds after its profile, as <see cref="Writer"/> writes it: the law of the sweep with its edges
+            /// and the flag the text leaves out, or <c>no_rail</c>, its curve and the law of a surface scaled along its path.
+            /// </summary>
+            private bool Rail()
+            {
+                if (Peek == "no_rail")
+                {
+                    if (!Worded("!,no_rail", 'b', false) || !Item("CURVE") || !Item("I") || !Item("I"))
+                    {
+                        return false;
+                    }
+
+                    return Whole('i')
+                        && Whole('i')
+                        && Number('d')
+                        && Number('d')
+                        && Number('d')
+                        && Number('d')
+                        && Number('d')
+                        && Number('d')
+                        && Worded("not_periodic,periodic", 'b', false)
+                        && Worded("no_x_scaling,yes_x_scaling", 'b', false)
+                        && Worded("no_y_scaling,yes_y_scaling", 'b', false);
+                }
+
+                if (!Text() || !Whole('i'))
+                {
+                    return false;
+                }
+
+                long count = _last;
+
+                if (count < 0 || count > _raw.Count)
+                {
+                    return false;
+                }
+
+                for (long n = 0; n < count; n++)
+                {
+                    if (!Text() || !Item("CURVE") || !Number('d') || !Number('d'))
+                    {
+                        return false;
+                    }
+                }
+
+                Result.Add(new Token { Kind = 'b', Whole = 0 });
+                return true;
             }
 
             private bool Name(out string name)
@@ -862,6 +936,12 @@ namespace GeometryHelper.Dwg
                 }
 
                 long v = _last;
+
+                // A rational surface may name the direction its weights are in (u or v) after the degrees.
+                if (rational && (Peek == "u" || Peek == "v"))
+                {
+                    Name(out string _);
+                }
 
                 if (
                     !Worded("0=open,1=closed,2=periodic", 'e', false)
@@ -1091,6 +1171,14 @@ namespace GeometryHelper.Dwg
                 return false;
             }
 
+            // The surface of a sweep along a spline (sweep_sur) is a procedural one from R2010 too; R2004 and R2007 write it as an
+            // approximating spline of their own (a volume 7 millionths off in AutoCAD 2021's own R2004 file) and read the
+            // procedural one as a solid of no volume (a swept solid turned into R2007 holding it comes out 0).
+            if (from == 2 && to < 2 && record.Exists(t => t.Kind == 'N' && t.Text == "sweep_sur"))
+            {
+                return false;
+            }
+
             for (; from < to; from++)
             {
                 if (from == 0 ? !Step(record, true) : !Numbers(record, true))
@@ -1291,6 +1379,8 @@ namespace GeometryHelper.Dwg
                     case "exppc":
                         break;
                     case "cylsur":
+                    case "sumsur":
+                    case "rotsur":
                         if (up)
                         {
                             record.Insert(i + 2, new Token { Kind = 'i', Whole = 22600 });
@@ -1331,6 +1421,10 @@ namespace GeometryHelper.Dwg
                     return "exp_par_cur";
                 case "cylsur":
                     return "cyl_spl_sur";
+                case "sumsur":
+                    return "sum_spl_sur";
+                case "rotsur":
+                    return "rot_spl_sur";
                 default:
                     return name;
             }
@@ -1351,6 +1445,10 @@ namespace GeometryHelper.Dwg
                     return "exppc";
                 case "cyl_spl_sur":
                     return "cylsur";
+                case "sum_spl_sur":
+                    return "sumsur";
+                case "rot_spl_sur":
+                    return "rotsur";
                 default:
                     return name;
             }
@@ -1372,9 +1470,10 @@ namespace GeometryHelper.Dwg
 
                 string name = record[i + 1].Text;
 
-                if (name == "cyl_spl_sur")
+                if (name == "cyl_spl_sur" || name == "sum_spl_sur" || name == "rot_spl_sur")
                 {
-                    // R2010 ends the surface of a cylinder swept along a curve with a flag, F, before its closing brace.
+                    // R2010 ends the surface of a cylinder swept along a curve, of an oblique extrusion and of a revolved spline with
+                    // a flag, F, before its closing brace.
                     int end = Close(record, i);
 
                     if (end < 0)
