@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** MLEDIT's tees onto a closed multiline: a stem whose element meets the multiline's element before its start or past its
+end, where another segment goes on (a stem 12 from the corner of a square of 200, FOUR at scale 10), says `Invalid operation on a
+self intersecting multiline.` as AutoCAD 2021 does, stopping the elements that do meet it and leaving the rest and the multiline
+whole; OT and MT onto a closed multiline were probed against AutoCAD (open the near element across the stem, run the inner pair on)
+and match.
+**CHANGED.** TRIM of a multiline cuts each element at its own hit where an edge meets them on different segments near a corner
+(the edge (120, -30)-(95, 20) across (0, 0)-(100, 0)-(100, 100) ends it at (100, 10) with the bottom element stopped at 115), and
+leaves it alone where the edge meets one element more often than another. A trim of the start or an extension leaves the last
+vertex's stretches as they were, as AutoCAD writes them.
+**CHANGED.** MLEDIT's weld (WA) takes out every stop and start between the picks one by one, as AutoCAD 2021: a cut the picks
+cover whole is welded, one they cover half is left turned inside out, and round the first vertex of a closed multiline the outer
+element is drawn only to the corner, as AutoCAD leaves it.
+
 **NEW.** EXPORTPDF shows Save As PDF as AutoCAD 2021's (designed first): the file with Browse…, Open in viewer when done, Include
 plot stamp with its Plot Stamp dialog, Export (Current layout and All layouts in a layout, Display, Extents and Window in model
 space, a window's corners asked once the dialog closes), Page Setup Current or Override with Page Setup Override (paper size, plot

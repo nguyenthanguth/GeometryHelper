@@ -14,19 +14,32 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        /// <summary>Where every element of a segment of a multiline meets an edge: along the segment's line, from its first vertex.</summary>
+        /// <summary>
+        /// Where every element of a multiline meets an edge, once each: on a segment of its own, which is the same for all of them
+        /// where the edge crosses one segment, along that segment's line from its first vertex.
+        /// </summary>
         private sealed class MlineCut
         {
             internal MlineCut(int segment, double[] hits, double at)
+                : this(Enumerable.Repeat(segment, hits.Length).ToArray(), hits, at) { }
+
+            internal MlineCut(int[] segments, double[] hits, double at)
             {
-                Segment = segment;
+                Segments = segments;
                 Hits = hits;
                 At = at;
             }
 
-            internal int Segment { get; }
+            /// <summary>For each element, the segment it meets the edge on.</summary>
+            internal int[] Segments { get; }
 
-            /// <summary>For each element, how far along the segment's line from its first vertex the element meets the edge.</summary>
+            /// <summary>The first segment an element meets the edge on: where a multiline cut from here to its end starts.</summary>
+            internal int FirstSegment => Segments.Min();
+
+            /// <summary>The last segment an element meets the edge on: where a multiline cut from its start to here ends.</summary>
+            internal int LastSegment => Segments.Max();
+
+            /// <summary>For each element, how far along its segment's line from the segment's first vertex the element meets the edge.</summary>
             internal double[] Hits { get; }
 
             /// <summary>Where the cut stands along the whole multiline, for ordering it against the pick.</summary>
@@ -224,8 +237,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The cuts the edges make in a multiline: on each segment, for each edge, where it crosses every element as many times;
-        /// an edge that crosses some elements and not the others cuts nothing there, as AutoCAD 2021 leaves it.
+        /// The cuts the edges make in a multiline: for each edge, where it crosses every element as many times, each element at its
+        /// own hits taken in order along it, which may be on different segments near a corner; an edge that crosses some elements
+        /// more often than the others cuts nothing, as AutoCAD 2021 leaves it.
         /// </summary>
         private static List<MlineCut> MlineCuts(
             DxfMlineBuilder builder,
@@ -239,56 +253,81 @@ namespace GeometryHelper.Dxf.Viewer
             int n = builder.Points.Count;
             int count = builder.ElementCount;
 
-            for (int s = 0; s < builder.SegmentCount; s++)
+            foreach (DxfEntity edge in edges)
             {
-                GeoPoint3 vertex = builder.Points[s];
-                GeoVector3 way = builder.SegmentDirection(s);
+                // For each element, its hits along the whole multiline: the segment and the distance along it, in that order.
+                var hits = new List<KeyValuePair<int, double>>[count];
+                var places = new List<GeoPoint3>[count];
 
-                foreach (DxfEntity edge in edges)
+                for (int e = 0; e < count; e++)
                 {
-                    var hits = new List<double>[count];
+                    hits[e] = new List<KeyValuePair<int, double>>();
+                    places[e] = new List<GeoPoint3>();
+                }
+
+                for (int s = 0; s < builder.SegmentCount; s++)
+                {
+                    GeoPoint3 vertex = builder.Points[s];
+                    GeoVector3 way = builder.SegmentDirection(s);
 
                     for (int e = 0; e < count; e++)
                     {
                         GeoPoint3 from = builder.ElementPoint(s, e);
                         GeoPoint3 to = builder.ElementPoint((s + 1) % n, e);
-                        hits[e] = new List<double>();
 
                         if (from.DistanceTo(to) <= eps)
                         {
                             continue;
                         }
 
+                        var along = new List<KeyValuePair<double, GeoPoint3>>();
+
                         foreach (GeoPoint3 point in Meet(new DxfLine(from, to), edge, extendEdges))
                         {
-                            double along = vertex.GetVectorTo(point).DotProduct(way);
+                            along.Add(
+                                new KeyValuePair<double, GeoPoint3>(vertex.GetVectorTo(point).DotProduct(way), point)
+                            );
+                        }
 
-                            if (!hits[e].Exists(h => Math.Abs(h - along) <= eps))
+                        along.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+                        foreach (KeyValuePair<double, GeoPoint3> hit in along)
+                        {
+                            // Where an element runs through a vertex the edge meets it once, not on each segment.
+                            if (!places[e].Exists(p => p.DistanceTo(hit.Value) <= eps))
                             {
-                                hits[e].Add(along);
+                                hits[e].Add(new KeyValuePair<int, double>(s, hit.Key));
+                                places[e].Add(hit.Value);
                             }
                         }
+                    }
+                }
 
-                        hits[e].Sort();
+                int times = hits[0].Count;
+
+                if (times == 0 || Array.Exists(hits, h => h.Count != times))
+                {
+                    continue;
+                }
+
+                for (int k = 0; k < times; k++)
+                {
+                    var segments = new int[count];
+                    var one = new double[count];
+                    double at = 0.0;
+
+                    for (int e = 0; e < count; e++)
+                    {
+                        segments[e] = hits[e][k].Key;
+                        one[e] = hits[e][k].Value;
+                        at += starts[segments[e]] + one[e];
                     }
 
-                    int times = hits[0].Count;
-
-                    if (times == 0 || Array.Exists(hits, h => h.Count != times))
+                    // A closed multiline is cut only where one segment is crossed, as before; the cut across a corner is read from
+                    // AutoCAD's open ones.
+                    if (!builder.IsClosed || segments.All(s => s == segments[0]))
                     {
-                        continue;
-                    }
-
-                    for (int k = 0; k < times; k++)
-                    {
-                        var one = new double[count];
-
-                        for (int e = 0; e < count; e++)
-                        {
-                            one[e] = hits[e][k];
-                        }
-
-                        cuts.Add(new MlineCut(s, one, starts[s] + one.Average()));
+                        cuts.Add(new MlineCut(segments, one, at / count));
                     }
                 }
             }
@@ -384,8 +423,8 @@ namespace GeometryHelper.Dxf.Viewer
             int n = old.Points.Count;
             int segments = old.SegmentCount;
             int count = old.ElementCount;
-            int from = first?.Segment ?? 0;
-            int to = last?.Segment ?? segments - 1;
+            int from = first?.FirstSegment ?? 0;
+            int to = last?.LastSegment ?? segments - 1;
             bool round =
                 old.IsClosed
                 && first != null
@@ -444,6 +483,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int e = 0; e < count; e++)
                 {
+                    // Only the elements that meet the cut on the first segment stand the start there.
+                    if (first.Segments[e] != from)
+                    {
+                        continue;
+                    }
+
                     double offset = piece.Points[0].GetVectorTo(piece.ElementPoint(0, e)).DotProduct(way);
                     startAt = Math.Min(startAt, first.Hits[e] - offset);
                 }
@@ -456,6 +501,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 for (int e = 0; e < count; e++)
                 {
+                    // Only the elements that meet the cut on the last segment stand the end there.
+                    if (last.Segments[e] != to)
+                    {
+                        continue;
+                    }
+
                     double offset = piece
                         .Points[lastIndex]
                         .GetVectorTo(piece.ElementPoint(lastIndex, e))
@@ -485,6 +536,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The stretches of each segment, kept where they were along it, cut where the piece starts and ends.
+            var reaches = new bool[count];
+
             for (int j = 0; j < sequence.Count; j++)
             {
                 int s = sequence[j];
@@ -494,10 +547,23 @@ namespace GeometryHelper.Dxf.Viewer
                 for (int e = 0; e < count; e++)
                 {
                     double oldStart = vertex.GetVectorTo(old.ElementPoint(s, e)).DotProduct(way);
-                    double newStart = vertex.GetVectorTo(piece.ElementPoint(j, e)).DotProduct(way);
+                    // Only the first vertex has moved: a start cut past the second vertex turns the first segment round, which
+                    // AutoCAD 2021 leaves the later stretches of as they were.
+                    double newStart = j == 0 ? vertex.GetVectorTo(piece.ElementPoint(j, e)).DotProduct(way) : oldStart;
                     double shift = newStart - oldStart;
                     bool cutStart = j == 0 && first != null;
+
+                    // Where each element is cut: on a segment of its own where the edge crosses them on different ones, so that
+                    // the segments before an element's first cut and after its last are given up whole.
+                    int startsAt = first == null || old.IsClosed ? 0 : first.Segments[e] - from;
+                    int endsAt = last == null || old.IsClosed ? sequence.Count - 1 : last.Segments[e] - from;
                     var runs = new List<DxfMlineBuilder.Run>();
+
+                    if (j < startsAt || j > endsAt)
+                    {
+                        piece.SetRuns(j, e, runs);
+                        continue;
+                    }
 
                     foreach (DxfMlineBuilder.Run run in old.RunsOf(s, e))
                     {
@@ -506,12 +572,12 @@ namespace GeometryHelper.Dxf.Viewer
                         runs.Add(new DxfMlineBuilder.Run(a, run.To - shift));
                     }
 
-                    if (cutStart)
+                    if (first != null && j == startsAt)
                     {
                         runs = Clip(runs, first.Hits[e] - newStart, double.PositiveInfinity);
                     }
 
-                    if (j == sequence.Count - 1 && last != null)
+                    if (last != null && j == endsAt)
                     {
                         double stop = last.Hits[e] - newStart;
                         double length = piece
@@ -524,6 +590,10 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             runs = Clip(runs, double.NegativeInfinity, stop);
                         }
+                        else if (j == sequence.Count - 1)
+                        {
+                            reaches[e] = true;
+                        }
                     }
 
                     piece.SetRuns(j, e, runs);
@@ -532,7 +602,20 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int e = 0; e < count; e++)
             {
-                piece.SetEndExtension(e, last == null && !old.IsClosed ? old.EndExtension(e) : 0.0);
+                if (last == null && !old.IsClosed)
+                {
+                    // An end that was not cut is as it was, an element that ran to it still running to it.
+                    piece.SetRuns(lastIndex, e, old.RunsOf(n - 1, e));
+                }
+                else if (reaches[e])
+                {
+                    // An element an extension runs exactly to the new end keeps that, where the others, stopped short, have none.
+                    piece.SetRuns(lastIndex, e, new[] { new DxfMlineBuilder.Run(0.0, double.PositiveInfinity) });
+                }
+                else
+                {
+                    piece.SetEndExtension(e, 0.0);
+                }
             }
 
             return piece;

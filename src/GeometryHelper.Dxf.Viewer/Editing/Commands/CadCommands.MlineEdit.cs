@@ -196,6 +196,7 @@ namespace GeometryHelper.Dxf.Viewer
                 : option[0] == 'O' ? CadMlineEdit.Joint.Open
                 : CadMlineEdit.Joint.Merged;
             bool changesSecond = joint != CadMlineEdit.Joint.Closed || option == "CJ";
+            bool selfIntersecting = false;
             bool ok;
 
             if (option == "CC" || option == "OC" || option == "MC")
@@ -209,7 +210,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                ok = CadMlineEdit.Tee(a, segmentA, pickFirst, b, segmentB, joint);
+                ok = CadMlineEdit.Tee(a, segmentA, pickFirst, b, segmentB, joint, out selfIntersecting);
+                changesSecond &= !selfIntersecting;
             }
 
             if (!ok)
@@ -229,6 +231,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             MlineWrite(c, after);
             steps.Add(before.GetRange(0, changesSecond ? 2 : 1));
+
+            if (selfIntersecting)
+            {
+                // AutoCAD 2021 stops the elements that meet in front of a corner and says so, leaving the other multiline whole.
+                c.Write("Invalid operation on a self intersecting multiline.");
+            }
+
             return true;
         }
 

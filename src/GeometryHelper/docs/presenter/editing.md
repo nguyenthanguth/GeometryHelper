@@ -249,21 +249,38 @@ the second stops at 49, 49.5 and the whole. AV puts a vertex on the line at the 
 nearest vertex out, CS cuts the element picked between two picks, CA every element, WA welds what is cut between two picks.
 A pick on nothing asks again without a word, and Enter before the first edit is `2D point or option keyword required.`, as
 AutoCAD's console answers. CJ with a closed multiline, and a tee whose first (the stem) is closed, are `Invalid operation on a
-closed multiline.`; CT onto a closed multiline trims the stem to its near element and leaves the closed one whole. CS, CA and
+closed multiline.`; CT onto a closed multiline trims the stem to its near element and leaves the closed one whole, and OT and
+MT do the same and open the near element across the stem (a stem (100, 100)-(100, -50) onto a square of 200 at scale 20 opens
+its first side from 80 to 100). A stem whose element would meet the closed multiline's element before its start or past its end,
+where another segment goes on (the stem 12 from the corner of that square, whose elements stand at 12, 7, -3 and -8 at scale 10),
+is `Invalid operation on a self intersecting multiline.` in AutoCAD 2021, and the presenter does as it does: the elements that
+meet are stopped, the others left running, the closed multiline left whole. AutoCAD says the same of a tee onto an open
+multiline past a vertex it turns at. CS, CA and
 WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
 segment up to the second pick: CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
 drawn to 50 and the second from 50 (70 for the bottom element, which starts at the outer corner); round the first vertex of a
 closed one AutoCAD starts the cut on the first segment at the vertex, so that a stub of the outer element is left at the
 corner, and the presenter does the same. A merged cross or tee of four elements breaks the elements pair by pair from the
 outside: the outer pair of one across the outer pair of the other, the inner pair across the inner pair (AutoCAD 2021's
-numbers at offsets 1, 0.5, -0.5, -1, scale 10: 90 to 110 and 95 to 105).
+numbers at offsets 1, 0.5, -0.5, -1, scale 10: 90 to 110 and 95 to 105). WA takes out every stop and start that lies between
+the two picks, one by one, as AutoCAD 2021 does, so that a cut the picks cover whole is welded and one they cover half is left
+turned inside out: the bottom element cut from 60 to 120 on (0, 0)-(200, 0), welded between two picks on the top element at 20
+and 90, is left drawn from 0 to 120 and not at all after it. Round the first vertex of a closed multiline the outer element
+keeps the stop at the vertex, which AutoCAD leaves too: the square of 100 cut from (0, 50) to (50, 0) and welded between the same
+picks has its top element whole and its bottom one drawn only from 0 to 20 on the first segment, before the corner. A pick on a
+cut finds nothing there, as nothing is drawn.
 
 **Grips, STRETCH and the modify commands on a multiline.** A multiline has a grip at each vertex of its line, as AutoCAD
 2021's `GetGripPoints`; dragging one moves the vertex as `MoveVertexAt` does: a segment that keeps its way keeps its cuts where
 they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0)-(100, 100), the vertex moved to (100, -10),
 the cut is 40 to 70 from it). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
-inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element of a
-segment (one that misses an element leaves the multiline as it is); the new end stands on the multiline's line where the
+inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
+times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
+near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at
+scale 20 at (100, 10) on its second segment and the bottom one at 115 on its first, so that picked past it the multiline ends at
+(100, 10) with the bottom element stopped at 115 and cut away on the second segment, and picked before it the multiline starts at
+(115, 0) with its top element cut away on the first segment (a first segment that runs back, as AutoCAD writes it); the new end
+stands on the multiline's line where the
 element that runs furthest still reaches the edge, each element stopping where it meets the edge (trimmed by the edge
 (40, -60)-(60, 60) and picked before it, (0, 0)-(100, 0) at scale 20 starts at 46.67, its top element at 50); a piece taken
 out between two edges leaves two multilines, and a closed one opens between the two cuts round the pick. EXTEND runs the
