@@ -260,6 +260,18 @@ probe of DIMASZ 4 and DIMGAP 1.5. Still a fit, not AutoCAD's rule.
 past it, however far behind it they were put, and within two arrowheads of the centre off the line too: "R20" put 4 behind the centre
 on its line keeps the arrowhead in and the line whole (it went out), put 4 along and 3 across it pushes it out (it stayed in). d3 7 and
 td3 6 differing of 760 down to 0.
+**FIXED.** Level words (DIMTAD 1 and 4) of a radius or a diameter put out past the rim under DIMATFIT 3 stand on a landing an arrowhead
+long or above a landing of their own as AutoCAD 2021 fits them to the line: on the landing where the line is longer than the room
+their box reaches along it but the arrowheads do not take their place and the words and arrowheads do not both fit (the line is not
+longer than the chord through the box and an arrowhead and two gaps, two arrowheads and two gaps for a diameter); above a landing of
+their own where the arrowheads fit and are the larger (a tie goes to them) or where both fit. A diameter used to stand its words above
+a landing always, a radius on its landing wherever the line was longer than their reach, and no line within 15 degrees of upright put
+them on it. "%%c6" put out at 90 degrees now stands on the landing and "%%c7" above one, "R5" at 85 degrees on it, "R10" at 45 above
+one (Arial 2.5 high, DIMASZ 2.5, DIMGAP 0.625). Of 924 diameters and radii by 21 angles probed in Arial, 163 differed from
+AutoCAD and none do now (8 where the probe gives the viewer the points exact: AutoCAD was given them rounded to six decimals, which
+moves a line at exactly 15 degrees to either side of the limit of the near-level words); with the SHX font 153 down to 8, the ties of
+"R6" and "R7" straight up falling either way in AutoCAD. t6 15 down to 1 of 1 584; of 91 sets of earlier rounds only r3 (a diameter
+of 6 straight up, no AutoCAD pictures) changes besides, to the picture td2 shows.
 
 **NEW.** The 2D constraint group of AutoCAD 2018 (version 2 of its layout: a table of the classes of its nodes, a directory of
 every node by class and identifier, then the nodes, the circles and arcs with a fourth real) is read from a DWG of R2018 and R2013

@@ -355,10 +355,12 @@ the ones wanted.
 - [x] Dimension follow-ups 12 (dims12): the angle leader band refitted as tables by the cosine (a7 101 -> 71, a5 49 -> 33,
       a4 13 -> 4, aq 194 -> 137); DIMTMOVE 2 radius arrowheads put out as AutoCAD (d3 and td3 to 0); AutoCAD pictures of
       set a (6-degree cases agree); harness dims-harness16
-- [ ] (dims13, running) Dimension follow-ups 13: diameters put out (d2 156 of 924: lower bound = box reach along the line, no upper rule
-      found); the band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe (DIMASZ 4, DIMGAP 1.5, 30
-      degrees); t6's D4-D12 windows; ties at two arrowheads; points exactly on an aligned extension line; lines at exactly
-      15 degrees (S)
+- [x] Dimension follow-ups 13 (dims13): words of a radius or diameter put out stay on the landing by DIMATFIT 3's fit as
+      AutoCAD (td2 163 -> 0, d2 153 -> 8 ties, t6 15 -> 1, ~26 000 probes); 15-degree cases were harness rounding
+      (GH_ROUND6); harness dims-harness17
+- [ ] Dimension follow-ups 14: the angle band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe
+      (band knot at cos 0.87); ties at two arrowheads (t9 34); points exactly on an aligned extension line (19 of 972 in
+      m/m2, side not by the signed distance); t6's diameter turned 6.9 degrees; d2's SHX R6/R7 ties (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
