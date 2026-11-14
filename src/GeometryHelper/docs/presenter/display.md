@@ -92,6 +92,16 @@ entities) and a layer switched on (1.0 s) are as they were, since the shapes are
 notwithstanding: a layer switched on at 1 000 000 entities with the polylines' shapes read afresh took 1.3 to 1.5 s where it takes 1.0 s, for
 578 MB of heap in place of 651, as it did before the faster read, since a polyline's own making is most of its cost.
 
+The shapes of a TEXT and an MTEXT are read from the bytes too, and the number reader every group goes through reads a number of up to 19
+digits from its characters (see "Numbers" in the reader guide), but a cold display is hardly faster for them. A LINE, an ARC, a CIRCLE and
+a polyline are drawn from their shapes, which are 20 % of the 300 ms of the drawing of 100 000 entities (.NET 8) already; a TEXT is drawn
+from the groups of the entity itself, whose numbers are what the faster reader helps: the 20 000 TEXTs of the drawing alone display in
+41 ms where they took 49 (.NET 8); and an INSERT is drawn from the entities of its block, not from the shapes it places, which only what
+picks, snaps and measures from the shapes of the file asks for, with the layers of the entities round it. The cold display of the whole
+drawing is the same within the noise of a machine other processes take cores of (medians of 9 runs, three alternated rounds: 311, 318 and
+318 ms where it took 296, 321 and 311 under .NET 8; 510, 496 and 506 where 506, 509 and 495 under .NET Framework 4.8), and so is that of
+the same drawing with 17 digits in every coordinate (about 350 ms under .NET 8, 560 under .NET Framework 4.8, both ways).
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

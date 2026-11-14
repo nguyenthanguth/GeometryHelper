@@ -6,8 +6,9 @@ using GeometryHelper.Export;
 namespace GeometryHelper.Dxf
 {
     /// <summary>
-    /// The numbers of a record read from its bytes, for the fast read of a LINE, ARC, CIRCLE or LWPOLYLINE: the number
-    /// <see cref="Numbers.TryRead"/> reads from the same text, to the bit, without the text made a string where it need not be.
+    /// The numbers of a record read from its bytes, for the fast read of a LINE, ARC, CIRCLE, LWPOLYLINE, TEXT or MTEXT: the
+    /// number <see cref="Numbers.TryReadLong"/> reads from the same text, to the bit, without the text made a string where it
+    /// need not be; and the same read of a string, the first thing <see cref="Numbers.TryRead"/> does with it.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -17,8 +18,10 @@ namespace GeometryHelper.Dxf
     /// product of its digits and the first 128 bits of the power of ten, 192 bits worked out exactly. The power is cut off
     /// short of its true value by less than one in its last bit, so the true product lies between that product and the same
     /// plus the digits, and the number is the double that both ends round to (the nearest, an exact half going to the even
-    /// one). Where the two ends round to different doubles, which a tie between two doubles does and about one number in
-    /// 10^22 else, and for any other text, <see cref="Numbers.TryRead"/> reads it.
+    /// one). A power of ten up to 1E38 is held whole by the 128 bits, its product is exact and a tie between two doubles,
+    /// 9007199254740993, goes to the even one with no second end to the range. Where the two ends round to different doubles,
+    /// which a tie of a negative power does and about one number in 10^22 else, and for any other text,
+    /// <see cref="Numbers.TryReadLong"/> reads it.
     /// </para>
     /// </remarks>
     internal static class DxfFastNumber
@@ -62,12 +65,16 @@ namespace GeometryHelper.Dxf
         private static readonly ulong[] Low;
         private static readonly int[] Two;
 
+        // Whether the 128 bits are the power of ten whole, as every power up to 1E38 is: the product with it is then exact.
+        private static readonly bool[] Whole;
+
         static DxfFastNumber()
         {
             int count = HighestPower - LowestPower + 1;
             High = new ulong[count];
             Low = new ulong[count];
             Two = new int[count];
+            Whole = new bool[count];
 
             for (int q = LowestPower; q <= HighestPower; q++)
             {
@@ -93,6 +100,7 @@ namespace GeometryHelper.Dxf
                 High[at] = (ulong)(fixedPoint >> 64);
                 Low[at] = (ulong)(fixedPoint & ulong.MaxValue);
                 Two[at] = two;
+                Whole[at] = q >= 0 && two <= 127;
             }
         }
 
@@ -117,32 +125,79 @@ namespace GeometryHelper.Dxf
             return bits;
         }
 
+        /// <summary>The characters of a text a number is scanned from, whether it is held as bytes or as a string.</summary>
+        private interface ISource
+        {
+            /// <summary>The character at an index, as its number.</summary>
+            int At(int index);
+        }
+
+        private struct Bytes : ISource
+        {
+            private readonly byte[] _bytes;
+
+            internal Bytes(byte[] bytes)
+            {
+                _bytes = bytes;
+            }
+
+            public int At(int index) => _bytes[index];
+        }
+
+        private struct Chars : ISource
+        {
+            private readonly string _text;
+
+            internal Chars(string text)
+            {
+                _text = text;
+            }
+
+            public int At(int index) => _text[index];
+        }
+
         /// <summary>
         /// Reads the real of the bytes from <paramref name="at"/> to <paramref name="end"/> as <see cref="Numbers.TryRead"/>
         /// reads the same text, to the bit; false where that does not read it (a word, NaN, an exponent past the largest
         /// double) or the text has a letter beyond ASCII, which the reader may read as another letter.
         /// </summary>
-        internal static bool TryReal(byte[] b, int at, int end, out double value)
+        internal static bool TryReal(byte[] b, int at, int end, out double value) =>
+            Scan(new Bytes(b), at, end, out value) || Long(b, at, end, out value);
+
+        /// <summary>
+        /// Reads the real of a text from <paramref name="at"/> to <paramref name="end"/> as <see cref="Numbers.TryReadLong"/>
+        /// reads it, to the bit, where it is sure to; false where it is not, whether the text is a number or not, which that
+        /// reader then settles.
+        /// </summary>
+        internal static bool TryText(string text, int at, int end, out double value) =>
+            Scan(new Chars(text), at, end, out value);
+
+        /// <summary>
+        /// The number of the characters from <paramref name="at"/> to <paramref name="end"/>, spaces and tabs round it left
+        /// off, where it is sure of the double it is: a sign, up to 19 digits with at most one point and an exponent of at
+        /// most three digits, a nought of any size; false for any other text, and for a number that
+        /// <see cref="Compose"/> is not sure of.
+        /// </summary>
+        private static bool Scan<T>(T s, int at, int end, out double value)
+            where T : struct, ISource
         {
             value = 0.0;
-            int from = at;
-            int to = end;
 
-            while (at < end && (b[at] == (byte)' ' || b[at] == (byte)'\t'))
+            while (at < end && (s.At(at) == ' ' || s.At(at) == '\t'))
             {
                 at++;
             }
 
-            while (end > at && (b[end - 1] == (byte)' ' || b[end - 1] == (byte)'\t'))
+            while (end > at && (s.At(end - 1) == ' ' || s.At(end - 1) == '\t'))
             {
                 end--;
             }
 
             bool negative = false;
 
-            if (at < end && (b[at] == (byte)'-' || b[at] == (byte)'+'))
+            if (at < end && (s.At(at) == '-' || s.At(at) == '+'))
             {
-                negative = b[at] == (byte)'-';
+                negative = s.At(at) == '-';
                 at++;
             }
 
@@ -154,7 +209,8 @@ namespace GeometryHelper.Dxf
 
             for (; at < end; at++)
             {
-                int d = b[at] - '0';
+                int c = s.At(at);
+                int d = c - '0';
 
                 if (d >= 0 && d <= 9)
                 {
@@ -172,12 +228,12 @@ namespace GeometryHelper.Dxf
 
                     if (++digits > 19)
                     {
-                        return Long(b, from, to, out value);
+                        return false;
                     }
 
                     mantissa = mantissa * 10 + (ulong)d;
                 }
-                else if (b[at] == (byte)'.' && !point)
+                else if (c == '.' && !point)
                 {
                     point = true;
                 }
@@ -189,39 +245,41 @@ namespace GeometryHelper.Dxf
 
             if (seen == 0)
             {
-                return Long(b, from, to, out value);
+                return false;
             }
 
             int exponent = 0;
 
             if (at < end)
             {
-                if (b[at] != (byte)'e' && b[at] != (byte)'E')
+                int e = s.At(at);
+
+                if (e != 'e' && e != 'E')
                 {
-                    return Long(b, from, to, out value);
+                    return false;
                 }
 
                 at++;
                 bool down = false;
 
-                if (at < end && (b[at] == (byte)'-' || b[at] == (byte)'+'))
+                if (at < end && (s.At(at) == '-' || s.At(at) == '+'))
                 {
-                    down = b[at] == (byte)'-';
+                    down = s.At(at) == '-';
                     at++;
                 }
 
                 if (at == end)
                 {
-                    return Long(b, from, to, out value);
+                    return false;
                 }
 
                 for (int count = 0; at < end; at++)
                 {
-                    int d = b[at] - '0';
+                    int d = s.At(at) - '0';
 
                     if (d < 0 || d > 9 || ++count > 3)
                     {
-                        return Long(b, from, to, out value);
+                        return false;
                     }
 
                     exponent = exponent * 10 + d;
@@ -236,21 +294,30 @@ namespace GeometryHelper.Dxf
                 return true;
             }
 
-            int ten = exponent - fraction;
-            double magnitude;
-
-            if (mantissa <= (1UL << 53) && ten >= -22 && ten <= 22)
+            if (!Compose(mantissa, exponent - fraction, out double magnitude))
             {
-                double whole = mantissa;
-                magnitude = ten >= 0 ? (double)(whole * Tens[ten]) : (double)(whole / Tens[-ten]);
-            }
-            else if (ten < LowestPower || ten > HighestPower || !Wide(mantissa, ten, out magnitude))
-            {
-                return Long(b, from, to, out value);
+                return false;
             }
 
             value = negative ? -magnitude : magnitude;
             return true;
+        }
+
+        /// <summary>
+        /// The double nearest <paramref name="mantissa"/> times 10^<paramref name="ten"/>, the mantissa of at most 19 digits,
+        /// where it is sure of it: by one multiplication or division (Clinger), else by the 128-bit power of ten.
+        /// </summary>
+        private static bool Compose(ulong mantissa, int ten, out double magnitude)
+        {
+            if (mantissa <= (1UL << 53) && ten >= -22 && ten <= 22)
+            {
+                double whole = mantissa;
+                magnitude = ten >= 0 ? (double)(whole * Tens[ten]) : (double)(whole / Tens[-ten]);
+                return true;
+            }
+
+            magnitude = 0.0;
+            return ten >= LowestPower && ten <= HighestPower && Wide(mantissa, ten, out magnitude);
         }
 
         /// <summary>The text the reader reads, by its own number reader; false for a letter beyond ASCII and for what it cannot read.</summary>
@@ -266,7 +333,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return Numbers.TryRead(Encoding.ASCII.GetString(b, at, end - at), out value);
+            return Numbers.TryReadLong(Encoding.ASCII.GetString(b, at, end - at), out value);
         }
 
         /// <summary>
@@ -288,25 +355,30 @@ namespace GeometryHelper.Dxf
             ulong p1 = xLow + yHigh;
             ulong p2 = xHigh + (p1 < xLow ? 1UL : 0UL);
 
-            ulong u0 = p0 + w;
-            ulong carry = u0 < p0 ? 1UL : 0UL;
-            ulong u1 = p1 + carry;
-            carry = u1 < p1 ? 1UL : 0UL;
-            ulong u2 = p2 + carry;
-
-            if (u2 < p2)
-            {
-                return false;
-            }
-
             int baseTwo = 11 + Two[index] - lead;
 
             Round(p2, p1, p0, baseTwo, out ulong low, out int lowTwo);
-            Round(u2, u1, u0, baseTwo, out ulong up, out int upTwo);
 
-            if (low != up || lowTwo != upTwo)
+            // A power of ten the 128 bits hold whole makes the product exact, so that a tie between two doubles is a tie.
+            if (!Whole[index])
             {
-                return false;
+                ulong u0 = p0 + w;
+                ulong carry = u0 < p0 ? 1UL : 0UL;
+                ulong u1 = p1 + carry;
+                carry = u1 < p1 ? 1UL : 0UL;
+                ulong u2 = p2 + carry;
+
+                if (u2 < p2)
+                {
+                    return false;
+                }
+
+                Round(u2, u1, u0, baseTwo, out ulong up, out int upTwo);
+
+                if (low != up || lowTwo != upTwo)
+                {
+                    return false;
+                }
             }
 
             // The biased exponent of the number: 52 + the power of two of its last bit + 1023, inside the normal doubles.

@@ -729,7 +729,15 @@ namespace GeometryHelper.Dxf
         internal bool TryFastShape(DxfItem item, out object shape)
         {
             Rec own = HeadOf(item);
-            return DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tolerance.Default, out shape);
+            return DxfReader.TryFastShape(
+                own.Bytes,
+                own.Start,
+                own.End,
+                own.Type,
+                Tolerance.Default,
+                _decoding,
+                out shape
+            );
         }
 
         /// <summary>
@@ -832,7 +840,7 @@ namespace GeometryHelper.Dxf
             {
                 if (item.Type != "INSERT" && item.Shapes.Count > 0)
                 {
-                    drawingLayers.Add(DxfReader.LayerOf(Record(HeadOf(item))));
+                    drawingLayers.Add(LayerOf(HeadOf(item)));
                 }
             }
 
@@ -847,6 +855,25 @@ namespace GeometryHelper.Dxf
             }
 
             return new DxfReader.Placer(LayerRecords(), drawingLayers, blocks, Tolerance.Default);
+        }
+
+        /// <summary>
+        /// The layer of an entity as the reader names it, <see cref="DxfReader.LayerOf(DxfReader.Record)"/> of its record, read from
+        /// the first group 8 in the bytes with no record made of the rest.
+        /// </summary>
+        private string LayerOf(Rec head)
+        {
+            var walk = new GroupWalk(head);
+
+            while (walk.Next(out int code, out int start, out int end))
+            {
+                if (code == 8)
+                {
+                    return DxfReader.LayerOf(Text(head, start, end));
+                }
+            }
+
+            return DxfReader.LayerOf((string)null);
         }
 
         private Lazy<IReadOnlyList<DxfLayer>> NewLayers() =>

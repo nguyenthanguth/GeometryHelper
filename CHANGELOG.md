@@ -52,6 +52,39 @@ reader's number reader (random digits, the shortest text of doubles of any bits,
 are still kept: with the faster read, the polylines' shapes read afresh would still make a layer switched on at 1 000 000 entities take
 1.3 to 1.5 s in place of 1.0 s, for 578 MB of heap in place of 651.
 
+**CHANGED.** Every number read from text (the reader's own number reader, `Numbers.TryRead`, which `DxfReader.Read`, the typed values of a
+`DxfFile`, the header, the tables and the DWG reader's text numbers all go through) is read from its digits and the power of ten with no
+array made, as the fast read of the shapes reads a number from bytes, and the double is the same to the bit: one multiplication or division
+where the digits are at most 2^53 and the power is within 1E22, otherwise the 192-bit product of the digits and a 128-bit power of ten, taken
+only where both ends of its range give the same double, and the long way (the digits in an array, a guess moved a step at a time in
+integers) for any other text, for a number of more than 19 digits or of an exponent of more than three, and for a letter beyond ASCII. A
+power of ten up to 1E38 is held whole by the 128 bits, so a tie between two doubles of a whole number of 16 to 19 digits (9007199254740993)
+is settled by the product with no second end to the range. A number of 17 digits, as AutoCAD writes them, takes 0.03 µs where it took 0.15
+and a value such as 1.4210854715202004E-14 0.03 where it took 0.26 (.NET 8; 0.04 where 0.3 and 0.5 under .NET Framework 4.8), a short one
+(`12.5`) 0.011 µs where it took 0.014 (0.014 and 0.025); `DxfReader.Read` of a drawing of 100 000 entities with 17 digits in every
+coordinate (15 MB) takes 314 ms where it took 414 (.NET 8) and 390 where it took 639 (.NET Framework 4.8), the same drawing with short
+numbers (7 MB) 255 and 350 ms as before, and the 167 AutoCAD sample drawings together 628 ms where they took 685 (.NET 8) and 935 where
+1 010 (.NET Framework 4.8). The values are as they were: the 167 AutoCAD sample drawings read by `DxfReader.Read` (shapes, the typed groups
+kept and the text `DxfWriter` writes of them) and by the presenter (the display list) are the same bit for bit before and after under both
+runtimes, and so are the drawings of 100 000 and 1 000 000 entities; every group value of the samples is read the same by the two ways,
+and 27 million texts (random digits, the shortest text of doubles of any bits, the ties between two doubles, powers of ten, texts with
+letters beyond ASCII) against the long way, under both runtimes.
+**CHANGED.** A TEXT and an MTEXT of a `DxfFile` are read from the bytes of their records, as a LINE, an ARC, a CIRCLE and a LWPOLYLINE are:
+the words are cut from the bytes by the file's decoding and go through the reader's own functions for `%%c`, carets, escapes and the
+formatting of an MTEXT, an MTEXT's own groups are those before an object embedded in it (the first 101), and the same shapes come out to
+the bit, however the groups are ordered, repeated, padded or written (a TEXT in 0.17 µs where it took 1.7, 0.33 where 2.7 under .NET
+Framework 4.8). The first INSERT of a `DxfFile` that is asked for the shapes it places learns the layer of every other entity of the
+drawing from the first group 8 of its bytes, where it made a reader record of each (0.8 µs of 98 000 entities in a drawing of 100 000): the
+shapes of the 98 000 entities that are not INSERTs and then of the first INSERT take 63 ms where they took 126 (.NET 8), 113 where 181
+(.NET Framework 4.8). The display of a drawing is not faster for them but for the numbers (the 20 000 TEXTs of the drawing of 100 000
+entities display in 41 ms where they took 49 under .NET 8; its whole cold display is within the noise of the machine, about 310 ms under
+.NET 8 and 500 under .NET Framework 4.8): a TEXT is drawn from the groups of its entity and an INSERT from the entities of its block. The
+entities an INSERT places are not read from bytes: the records of the blocks are read once with their numbers kept, and each placed entity
+takes 0.6 µs, a fifth of it its look. Checked against the long read on 200 000 generated records of each of the six types (the words with
+signs, carets, escapes, letters beyond ASCII and MTEXT formatting, the alignments, extrusions, embedded objects and bad numbers; run under
+both runtimes) and on the 135 987 LINEs, ARCs, CIRCLEs, LWPOLYLINEs, TEXTs and MTEXTs of the 167 AutoCAD sample drawings (135 777 read
+from bytes); a drawing's layer spelling, which the INSERTs it places take, is the same.
+
 **NEW.** MLEADERCOLLECT (MLC) in the presenter, as AutoCAD 2021's console runs it (probed through standard input, multileaders made by
 MLEADER in a style of a block), and the Collect button of the Annotate tab's Leaders panel. "Select multileaders:" then "Specify
 collected multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:": the multileaders stay as they are and each block moves, by

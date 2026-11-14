@@ -55,9 +55,12 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The layer of an entity as the reader names it: its group 8, its escapes read as letters, 0 where it gives none.</summary>
-        internal static string LayerOf(Record record)
+        internal static string LayerOf(Record record) => LayerOf(record.Text(8));
+
+        /// <summary>The layer an entity is on as the reader names it, from its group 8 as the file writes it (null where it has none).</summary>
+        internal static string LayerOf(string written)
         {
-            string layer = Decode((record.Text(8) ?? string.Empty).Trim());
+            string layer = Decode((written ?? string.Empty).Trim());
             return layer.Length == 0 ? "0" : layer;
         }
 

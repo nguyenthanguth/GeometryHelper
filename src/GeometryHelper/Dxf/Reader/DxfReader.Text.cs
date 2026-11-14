@@ -207,10 +207,14 @@ namespace GeometryHelper.Dxf
                 }
 
                 text.Append(r.Text(1) ?? string.Empty);
-                return Signs(PlainMText(Decode(Carets(text.ToString()), true)), true)
+                return MText(text.ToString());
+            }
+
+            /// <summary>The words of an MTEXT from its pieces and its last joined, as <see cref="MText(Record)"/> reads them.</summary>
+            private static string MText(string joined) =>
+                Signs(PlainMText(Decode(Carets(joined), true)), true)
                     .Replace("\r", string.Empty)
                     .Replace("\0", string.Empty);
-            }
 
             #endregion
         }

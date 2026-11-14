@@ -109,19 +109,40 @@ A chain or loop with arcs that lies flat at one height can carry a normal a hair
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
 
-A drawing opened to be edited or shown (`DxfFile`, and the presenter over it) reads a LINE, an ARC, a CIRCLE and a LWPOLYLINE from the
-bytes of its record, with no string made of a group and no reader made for the entity, and gives the shapes `DxfReader` gives, to the
-bit, whatever order the groups come in, however the codes are padded, the lines end and the numbers are written (`+.5`, `1E-3`, `-0`,
-17 digits, a tab round the value); the first group of a code is the one read. A number of up to 19 digits is read from its digits and
-the power of ten: by one multiplication or division where the digits are at most 2^53 and the power is within 1E22, and otherwise (a
-coordinate AutoCAD writes with 17 digits, 1234.5678901234567, or a value such as 1.4210854715202004E-14) by the product of the digits
-and a 128-bit approximation of the power of ten, taken only where both ends of its range, one part in 2^128 wide, give the same
-double, which every number does but the ties between two doubles and about one in 10^22 others; any other number is read by the
-reader's own number reader. A record the fast read is not sure of is left to the reader whole: one with a letter beyond ASCII in a
-number, a group the reader checks for a number or a whole number that is none, a group code that is no number, a record that leaves out
-what places the entity, a LINE of no length, a radius no more than the tolerance, a polyline of fewer than two distinct vertices, and
-any exception. A LINE, an ARC or a CIRCLE is read in 0.2 to 0.5 µs where it took 1.1 to 1.6, a polyline of four vertices with a bulge
-in 2.0 µs where it took 4.0, and a number of 17 digits in 0.04 to 0.13 µs where it took 0.4 to 0.9.
+A drawing opened to be edited or shown (`DxfFile`, and the presenter over it) reads a LINE, an ARC, a CIRCLE, a LWPOLYLINE, a TEXT and an
+MTEXT from the bytes of its record, with no string made of a group (the words of a text apart) and no reader made for the entity, and
+gives the shapes `DxfReader` gives, to the bit, whatever order the groups come in, however the codes are padded, the lines end and the
+numbers are written (`+.5`, `1E-3`, `-0`, 17 digits, a tab round the value); the first group of a code is the one read. The words of a
+TEXT or an MTEXT are cut from the bytes by the decoding of the file, as the reader cuts them from a group, and go through the reader's own
+functions for the signs (`%%c`, `%%d`, `%%p`), the carets, the escapes of a letter and the formatting of an MTEXT; an MTEXT's own groups are
+those before an object embedded in it (the first 101), the groups after it being checked for a number and no more. A number of up to 19
+digits is read from its digits and the power of ten: by one multiplication or division where the digits are at most 2^53 and the power is
+within 1E22, and otherwise (a coordinate AutoCAD writes with 17 digits, 1234.5678901234567, or a value such as 1.4210854715202004E-14) by
+the product of the digits and a 128-bit approximation of the power of ten, taken only where both ends of its range, one part in 2^128 wide,
+give the same double, which every number does but the ties between two doubles of a negative power and about one in 10^22 others; a power
+of ten up to 1E38 is held whole by the 128 bits, its product is exact, and a tie such as 9007199254740993 goes to the even double with no
+second end to settle. Any other number is read the long way (the digits kept in an array, a guess moved a step at a time in integers).
+The reader's own number reader does the same with a string, and every number read from text goes through it (the groups of
+`DxfReader.Read`, the typed values of a `DxfFile`, the header, the tables, the DWG reader's text numbers): the read of the characters
+first, the long way for what that is not sure of. A record the fast read is not sure of is left to the reader whole: one with a letter
+beyond ASCII in a number, a group the reader checks for a number or a whole number that is none, a group code that is no number, a
+record that leaves out what places the entity, a LINE of no length, a radius or a height of nought or no more than the tolerance, a
+polyline of fewer than two distinct vertices, and any exception.
+
+A LINE, an ARC or a CIRCLE is read in 0.2 to 0.5 µs where it took 1.1 to 1.6, a polyline of four vertices with a bulge in 2.0 µs where it
+took 4.0, a TEXT in 0.17 µs where it took 1.7 (0.33 and 2.7 under .NET Framework 4.8), a number of 17 digits in 0.03 to 0.04 µs where it
+took 0.15 to 0.26 (0.04 and 0.3 to 0.5 under .NET Framework) and a short one (`12.5`) in 0.011 µs where it took 0.014 (0.014 and 0.025).
+`DxfReader.Read` of a drawing of 100 000 entities whose numbers have the 17 digits AutoCAD writes (15 MB) takes 314 ms where it took 414
+(.NET 8) and 390 ms where it took 639 (.NET Framework 4.8); of the same drawing written with short numbers 255 and 350 ms, as before; of the
+167 AutoCAD sample drawings together 628 ms where it took 685 (.NET 8) and 935 where 1 010 (.NET Framework 4.8).
+
+The first INSERT a `DxfFile` places learns the layer of every other entity of the drawing, in their order, which decides how the entities
+it places spell a layer. It reads each from the first group 8 of the bytes of the entity, where it made a reader record of it (0.8 µs of
+each of 98 000 entities in a drawing of 100 000), and the shapes of those entities, which a TEXT or an MTEXT now gives from
+its bytes too: the shapes of the 98 000 entities that are not INSERTs and then of the first INSERT take 63 ms where they took 126 (.NET 8)
+and 113 where 181 (.NET Framework 4.8). The entities an INSERT places are not read from bytes: the reader reads the records of the blocks
+once, keeping their numbers, and each placed entity takes 0.6 µs (11 µs for the INSERT of a block of 20), a fifth of it its look,
+and the rest the carrying of its shape by the placement, which a read from bytes would not save.
 
 ### What is not read
 
