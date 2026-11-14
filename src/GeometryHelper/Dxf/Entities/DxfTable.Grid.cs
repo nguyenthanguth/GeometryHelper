@@ -401,9 +401,12 @@ namespace GeometryHelper.Dxf
         /// flag in 172 and one of the edge's overrides at least), else the bottom or right edge of the other where it holds
         /// it, each property of the edge that holds the line, null for one it does not give.
         /// </summary>
-        private string EdgeOverride(int row, int column, int edge, int kind)
+        private string EdgeOverride(int row, int column, int edge, int kind) =>
+            EdgeOverride(Read(), row, column, edge, kind);
+
+        /// <summary>A property of a line of a cell as <see cref="EdgeOverride(int, int, int, int)"/> reads it, from the layout given.</summary>
+        private static string EdgeOverride(Layout layout, int row, int column, int edge, int kind)
         {
-            Layout layout = Read();
             CellView own = layout.CellOf(row, column);
             CellView beside = Beside(layout, row, column, edge);
 

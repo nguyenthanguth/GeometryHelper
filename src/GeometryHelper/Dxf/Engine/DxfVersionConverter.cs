@@ -103,6 +103,12 @@ namespace GeometryHelper.Dxf
         private bool _padded = true;
         private int _source;
 
+        // The short values of the text read, each kept once however often it stands (a file holds "0", "1" and "AcDbEntity" by
+        // the hundred thousand), found by a hash of its letters; and the line of each code as the file is written.
+        private readonly string[] _interned = new string[8192];
+        private string[] _codeLines;
+        private int _length;
+
         private DxfVersionConverter(int target)
         {
             _target = target;
@@ -143,6 +149,7 @@ namespace GeometryHelper.Dxf
         /// <summary>Reads the groups of the text into sections of records: those of the header by their group 9, the others by their 0.</summary>
         private void Read(string text)
         {
+            _length = text.Length;
             int at = 0;
             int lineNumber = 0;
             Section section = null;
@@ -150,29 +157,21 @@ namespace GeometryHelper.Dxf
             bool header = false;
             bool first = true;
 
-            while (true)
+            while (at < text.Length)
             {
-                string codeLine = NextLine(text, ref at);
-
-                if (codeLine == null)
-                {
-                    break;
-                }
-
-                string value = NextLine(text, ref at);
+                int codeStart = at;
+                int codeEnd = EndOfLine(text, ref at);
+                string value = NextValue(text, ref at);
                 lineNumber += 2;
 
                 if (first)
                 {
                     first = false;
                     _lineEnd = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
-                    _padded = codeLine.Length > 0 && codeLine[0] == ' ';
+                    _padded = codeEnd > codeStart && text[codeStart] == ' ';
                 }
 
-                if (
-                    value == null
-                    || !int.TryParse(codeLine.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int code)
-                )
+                if (value == null || !TryCode(text, codeStart, codeEnd, out int code))
                 {
                     throw new FormatException(
                         "Line " + (lineNumber - 1).ToString(CultureInfo.InvariantCulture) + " is not a group code."
@@ -246,10 +245,131 @@ namespace GeometryHelper.Dxf
             return line;
         }
 
+        /// <summary>Where the line at a place ends, a carriage return before its line feed left out, and the place moved to the next line.</summary>
+        private static int EndOfLine(string text, ref int at)
+        {
+            int end = text.IndexOf('\n', at);
+            int next = end < 0 ? text.Length : end + 1;
+
+            if (end < 0)
+            {
+                end = text.Length;
+            }
+
+            int stop = end > at && text[end - 1] == '\r' ? end - 1 : end;
+            at = next;
+            return stop;
+        }
+
+        /// <summary>The next line as a value, as <see cref="NextLine"/> reads it, one read already kept as it was; null at the end of the text.</summary>
+        private string NextValue(string text, ref int at)
+        {
+            if (at >= text.Length)
+            {
+                return null;
+            }
+
+            int start = at;
+            int stop = EndOfLine(text, ref at);
+            int length = stop - start;
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (length > 32)
+            {
+                return text.Substring(start, length);
+            }
+
+            uint hash = 2166136261;
+
+            for (int i = start; i < stop; i++)
+            {
+                hash = unchecked((hash ^ text[i]) * 16777619);
+            }
+
+            int slot = (int)(hash & (uint)(_interned.Length - 1));
+            string held = _interned[slot];
+
+            if (held != null && held.Length == length && string.CompareOrdinal(text, start, held, 0, length) == 0)
+            {
+                return held;
+            }
+
+            held = text.Substring(start, length);
+            _interned[slot] = held;
+            return held;
+        }
+
+        /// <summary>Reads the code of a group from the line between two places, as an integer is read from the line with its white space cut off.</summary>
+        private static bool TryCode(string text, int start, int end, out int code)
+        {
+            code = 0;
+
+            while (start < end && char.IsWhiteSpace(text[start]))
+            {
+                start++;
+            }
+
+            while (end > start && char.IsWhiteSpace(text[end - 1]))
+            {
+                end--;
+            }
+
+            if (start >= end)
+            {
+                return false;
+            }
+
+            bool negative = text[start] == '-';
+
+            if (negative || text[start] == '+')
+            {
+                start++;
+            }
+
+            if (start >= end)
+            {
+                return false;
+            }
+
+            long value = 0;
+
+            for (; start < end; start++)
+            {
+                char c = text[start];
+
+                if (c < '0' || c > '9')
+                {
+                    return false;
+                }
+
+                value = value * 10 + (c - '0');
+
+                if (value > 2147483648L)
+                {
+                    return false;
+                }
+            }
+
+            value = negative ? -value : value;
+
+            if (value > int.MaxValue || value < int.MinValue)
+            {
+                return false;
+            }
+
+            code = (int)value;
+            return true;
+        }
+
         /// <summary>The text of the sections, as AutoCAD lays a file out: each section between its SECTION and ENDSEC, the file closed by EOF.</summary>
         private string Write()
         {
-            var text = new StringBuilder(1 << 16);
+            // About as long as the text read: a file of 11 million letters is not written in thousands of chunks.
+            var text = new StringBuilder(Math.Max(1 << 16, _length + _length / 8));
 
             foreach (Group group in _prefix)
             {
@@ -283,16 +403,27 @@ namespace GeometryHelper.Dxf
 
         private void Append(StringBuilder text, Group group) => Append(text, group.Code, group.Value);
 
-        private void Append(StringBuilder text, int code, string value)
-        {
-            string number = code.ToString(CultureInfo.InvariantCulture);
+        private void Append(StringBuilder text, int code, string value) =>
+            text.Append(CodeLine(code)).Append(value).Append(_lineEnd);
 
-            if (_padded)
+        /// <summary>The line of a code as the file writes it, padded where the file pads, with its line end; kept for the codes the format has.</summary>
+        private string CodeLine(int code)
+        {
+            bool known = code >= 0 && code < 1100;
+            string line = known ? (_codeLines ?? (_codeLines = new string[1100]))[code] : null;
+
+            if (line == null)
             {
-                text.Append(' ', Math.Max(0, 3 - number.Length));
+                string number = code.ToString(CultureInfo.InvariantCulture);
+                line = (_padded ? new string(' ', Math.Max(0, 3 - number.Length)) : string.Empty) + number + _lineEnd;
+
+                if (known)
+                {
+                    _codeLines[code] = line;
+                }
             }
 
-            text.Append(number).Append(_lineEnd).Append(value).Append(_lineEnd);
+            return line;
         }
 
         /// <summary>A whole number given to a group as AutoCAD writes it: the width of its range of codes where the file pads.</summary>

@@ -120,6 +120,13 @@ header to the height of its text) as they do when its cells are edited in AutoCA
 gain their margins and the six lines; the library does not measure text. A line written hidden is written 0, as AutoCAD reads
 a hidden line, where AutoCAD writes 1 and reads it back as drawn.
 
+Saving costs in proportion to what is written. Five tables of 100 rows by 20 columns (10 000 cells, 11.3 MB saved) take 127 ms
+to save as R2018 on .NET Framework 4.8, 295 ms as R2013 and 330 ms as R2000, with 189 MB allocated for the first; 1 000 cells take 11,
+27 and 35 ms, and 100 cells 2, 4 and 4. A drawing of many tables pays for each in its objects: 400 tables of 4 rows and 3 columns among
+5 000 objects take 244 ms as R2018, 0.6 ms a table. The completed copy of a drawing is kept, weakly, until the drawing changes, so that
+saving it again as it stands, in another version for one, makes the content once: a second save of those 10 000 cells as R2018 takes
+6 ms, until a garbage collection drops the copy.
+
 ## Values and their kinds
 
 A cell's value has its kind, `DataType` (`Long`, `Double` or `String`, the value's 90 from R2007 on), what its number

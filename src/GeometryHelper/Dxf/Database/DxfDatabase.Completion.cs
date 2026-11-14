@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace GeometryHelper.Dxf
@@ -18,6 +19,34 @@ namespace GeometryHelper.Dxf
                 return null;
             }
 
+            // A drawing saved again as it stands (to another version, say) is completed once: what was made is kept, weakly, for as
+            // long as the file has had no change since.
+            if (_completedAt == File.EditCount)
+            {
+                if (_completedFile == null)
+                {
+                    return null;
+                }
+
+                if (_completedFile.TryGetTarget(out DxfFile kept))
+                {
+                    return kept;
+                }
+            }
+
+            DxfFile made = Complete();
+            _completedAt = File.EditCount;
+            _completedFile = made == null ? null : new WeakReference<DxfFile>(made);
+            return made;
+        }
+
+        // What Completed made last, and the count of changes of the file once it had.
+        private WeakReference<DxfFile> _completedFile;
+        private int _completedAt = -1;
+
+        /// <summary>The copy of the file with the content of its tables and styles made, as <see cref="Completed"/> describes it; null where there is nothing to make.</summary>
+        private DxfFile Complete()
+        {
             List<string> written = File.WrittenHandles("ACAD_TABLE", "TABLESTYLE");
             bool needed = false;
 
@@ -41,10 +70,13 @@ namespace GeometryHelper.Dxf
 
             foreach (string handle in written)
             {
-                if (copy.TryGetObject(handle, out DxfDBObject found) && found is DxfTable table && table.MakeContent())
+                if (
+                    copy.TryGetObject(handle, out DxfDBObject found)
+                    && found is DxfTable table
+                    && table.MakeContent(out string style)
+                )
                 {
                     made = true;
-                    string style = table.StyleHandleOf();
 
                     if (style != null && !styles.Contains(style))
                     {
