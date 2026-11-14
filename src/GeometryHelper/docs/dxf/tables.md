@@ -71,11 +71,16 @@ into -12, the text 12 into the number 12 shown 12.0000 in the drawing's units un
 flag 2 of its value, `93 6` made 4; a unit of several flags as `Angle | AngleNotTransformed`, 65 538, written as it is; a
 kind other than a text, a whole number and a number refused, the library knowing no groups for it) and
 `ResetValue` write the rest, in the cell's value: none of them sets a flag of the cell's overrides, so `GetOverrides`
-gives what it gave, but for a block cell given a format, which loses its flag 0x40000. `SetFormat` writes a number's text anew by a decimal format (`%lu2%prN`) and by one of feet and
-inches (`%lu4`): 12.5 under `%lu4%pr2` is 1'-0 1/2", to the nearest 1/2^N of an inch (four where no `%prN` is given), a
-half away from nought, -0.25 -0'-0 1/4" and -0.001 0'-0", `%zs1` leaving nought feet out (7 1/4") and `%zs2` nought
-inches (1'), as AutoCAD 2021 wrote them; it leaves the text as it is under one of another unit, and for a number of more
-feet than 32 bits hold, which AutoCAD writes as garbage or in powers of ten. Only a number keeps a format: a whole
+gives what it gave, but for a block cell given a format, which loses its flag 0x40000. `SetFormat` writes a number's text anew by a format of units, `%lu` and its unit
+1 to 6 with `%prN` for its places and `%zs` for its zeros: 12.5 under `%lu4%pr2` is 1'-0 1/2", to the nearest 1/2^N of an
+inch, a half away from nought, -0.25 -0'-0 1/4" and -0.001 0'-0", `%zs1` leaving nought feet out (7 1/4") and `%zs2` nought
+inches (1'), as AutoCAD 2021 wrote them. The unit 6 is the drawing's (LUNITS) and a format with no `%prN` takes the drawing's
+places (LUPREC), as AutoCAD 2021 showed them: 12.3456 under `%lu6%pr2` is 1'-0.35" at LUNITS 3 and 1.23E+01 at LUNITS 1, under
+`%lu3%pr0` 1'-0", under `%lu1%pr0` 1E+01, under `%lu5%pr2` 12 1/4, and under `%lu4` at LUPREC 2 1'-0 1/4"; feet and decimals of
+an inch (`%lu3`) take `%zs1` and `%zs2` as feet and fractions do, -0.5 under `%lu3%pr2%zs1` -0.50" and 11.99999 under `%lu3%zs2` 1';
+it leaves the text as it is under a format of no units, and for a number of more
+feet than 32 bits hold, which AutoCAD writes as garbage or in powers of ten. A date keeps its format and shows in it (see
+the dates below). Only a number or a date keeps a format: a whole
 number, a text or a value of another kind given one is written with none, 7 given `%lu2%pr2` still shown 7; a value of
 none becomes the empty one of no kind (`93 5`, `90 512`), even for an empty format; a block cell keeps none and loses its
 flag 0x40000; and each value given a format loses the flag 2 of its value (`93 6` made 4), as AutoCAD 2021 wrote them.
@@ -91,8 +96,18 @@ library refused it before. From R2007 on, `SetTextString` of an empty text does 
 wrote it: B-12, 1.5 or the empty text of the title's hidden cell given `""` are of no value, where the library wrote an
 empty text. A cell of a file before R2007 holds its
 text alone, so a value set there is written as its text, a number as the invariant culture writes it (12.5, whole), and
-reads back as one, and a kind or a format other than a text and none is refused. A date or a point is refused as a value: the library
-knows no groups for one, as the DXF reference does not describe a cell's value. The look of a cell is set as its own
+reads back as one, and a kind or a format other than a text and none is refused. A date or a point is refused as a value of
+`SetValue`; a date typed in the presenter is written as AutoCAD 2021 wrote one (the dates below).
+A date a cell holds is the kind 8 with `92 16` and a `310` of 16 bytes, a SYSTEMTIME of its year, month, day of the week
+from Sunday, day, hour, minute, second and thousandths, each two bytes with the low first: 1/1/2020 is
+`E4070100030001000000000000000000`, 12:30 (a time on 30 December 1899) `6B070C0006001E000C001E0000000000` and 1/1/2020 12:30
+`E4070100030001000C001E0000000000`. A cell of no kind given the words 1/1/2020, 12:30 or 1/1/2020 12:30 takes the format
+`%x` (a date, or a time of midnight, which is the date 12/30/1899), `%X` (a time) or `%c` (both), the flags 4 and no
+alignment of its own, and shows the words in the machine's culture, as the C library's `strftime` does under a format of
+letters (`%d/%m/%Y`, `%A`, `%B`, `%H:%M`, `%I:%M %p`, M/d/yyyy), the date under none; the editor opens it as the date alone,
+the time alone or both whatever the format. A text typed over a date is refused (eInvalidInput) unless it is a date or a time,
+which keeps the cell's format. The library reads the words as AutoCAD's OLE parser does in en-US, with the order of the
+culture given (`DxfTableDate.TryRead`): 12:30:45.5, a weekday, a zone, 2/30/2020, 24:00 and a year before 100 stay words, as does 12:30 p, which AutoCAD reads. The look of a cell is set as its own
 override with its flag in the cell's 177 (91 from R2007 on), in the order the DXF reference lists them: `SetAlignment`,
 `SetTextHeight`, `SetTextStyle`, `SetContentColor`, `SetBackgroundColor` (a colour of the index, BYLAYER or BYBLOCK; a
 true colour refused) and `SetBackgroundColorNone`, a background filled written `283 0` with a colour of its own (`63 0`,

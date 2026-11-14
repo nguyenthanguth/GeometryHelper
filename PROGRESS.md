@@ -417,7 +417,7 @@ the ones wanted.
       height times the cosine of the arc middle's direction (within 0.001 over 340 rows), DIMJUST 1/2 words beside a ray
       (tar17 262 of 408 to 0, tar20 108 of 144 to 0), the room between the arrowheads on wide sweeps, DIMARCSYM 1's height
       (tar16 4 to 0, tar25 64 to 20); 68 other sets byte-identical; harness .claude/gk/dims-harness15
-- [ ] Associative dimensions follow-ups 7: the group-10 coin flip of words in the middle (about 790 rows of tar24, 380 of
+- [ ] (assoc7, running) Associative dimensions follow-ups 7: the group-10 coin flip of words in the middle (about 790 rows of tar24, 380 of
       tar2); DIMARCSYM 0 radial over 120 degrees; the real rule behind the empirical 0.8-height "bothExtra"; tar13 k0.8 rows
       0.001-0.002 off; level words not on the arc (DIMTAD 2/3) unprobed; AutoCAD's arc-point offset after a scale (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
@@ -618,10 +618,15 @@ the ones wanted.
 - [x] Table editing follow-ups: Resize from the menu, snaps on table drags, row DYN field, up-flowing tables, TABLEINDICATOR on the machine, a typed whole number kept as a number
 - [x] Table editing follow-ups 2: decimals, 1e3, fractions and points typed as AutoCAD stores them, series in each source's format; AutoCAD offers a perpendicular back onto the base point (pinned)
 - [x] Table editing follow-ups 3: the in-place editor opening a value as AutoCAD's ForEditing text; RealText rounding through Fixed; thousands (%th) and feet-inches typed; text typed over a number refused
-- [ ] (tables5, running) Table editing follow-ups 4: dates and times typed (needs a DXF sample with a date cell); RealText under LUNITS 3 %pr; band and size-field sides of up-flowing tables (needs a screenshot of AutoCAD); the table-drag-only perpendicular filter (S)
+- [x] Table editing follow-ups 4 and Tables follow-ups (tables5): dates and times typed as AutoCAD reads them (SYSTEMTIME
+      record, %x/%X/%c, refusals over a date cell; 76 of 165 probed texts, culture of the machine); units formats under
+      LUNITS 1-5 with %prN/%zs (3690 texts); a merged block shares its need among its rows by their heights; the table's
+      own per-kind text looks in the row layout
+- [ ] Tables follow-ups 2: block cells not fitted grow their rows (10x40 block: row 43); DxfTable.Value as DateTime and
+      SetValue(DateTime); a row mixing a cell's own text height with the table's own looks (AutoCAD takes the first);
+      dates in autofill; %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only perpendicular
+      filter (GUI) (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
-- [ ] (tables5, running) Tables follow-ups (the row growing live while a cell is typed: done 2026-11-12):
-      a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
@@ -633,7 +638,7 @@ the ones wanted.
 - [x] Speed follow-ups 3 (speed4): core objects of a displayed 1M drawing 737 -> 364 MB (polyline vertex cache not kept by
       HasWidth, shared looks, rare DxfItem fields in Extras, one-shape lists); heap growth 1 119 -> 747 MB, display 4.0 ->
       3.0 s, results bit-identical; a dropped read-ahead stops inside its walk
-- [ ] Speed follow-ups 4: the display list (340 MB at 1M: DisplayArc2 128 B, DisplayPolyline2 + double[] 116 MB,
+- [ ] (speed5, running: the display list) Speed follow-ups 4: the display list (340 MB at 1M: DisplayArc2 128 B, DisplayPolyline2 + double[] 116 MB,
       DisplayText2 192 B) with pixels identical; dropping shapes after the display (128 MB at 1M, layer-on 70 -> 170 ms at
       100k: declined for now); read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel

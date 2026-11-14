@@ -498,21 +498,30 @@ namespace GeometryHelper.Dxf
         /// Thousands with commas are a number of the format <c>%th[\,]</c> (1,500 the whole number 1500 shown 1,500, 1,500.5 a
         /// number of <c>%lu6%th[\,]</c> shown 1,500.5000; a comma before other than three figures is a point) and a length in
         /// feet and inches a number of inches (12'6" the number 150 of <c>%lu4</c> shown 12'-6", 6.5" one of <c>%lu3</c> shown
-        /// 0'-6.5000", a space before its figures read as nothing) (D40). A cell of a text, a block cell, a date, a whole number
-        /// past 32 bits, and any other text are not read; <see cref="RefusesText(int, int, string)"/> tells a cell of a number
+        /// 0'-6.5000", a space before its figures read as nothing) (D40), and a date or a time a cell of no kind or of a date
+        /// takes (<see cref="SetDateFromText"/>). A cell of a text, a block cell, a whole number past 32 bits, and any other
+        /// text are not read; <see cref="RefusesText(int, int, string)"/> tells a cell of a number
         /// the text is not read for.
         /// </summary>
         internal bool SetValueFromText(int row, int col, string text)
         {
             CellView cell = CellToWrite(row, col);
-            Typing typed = Typing.Read(text);
 
-            if (typed == null || cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
+            if (cell.ValueFrom < 0 || cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
             {
                 return false;
             }
 
             DxfDataType kind = KindOf(cell);
+
+            // A cell of a date reads only a date or a time, a cell of no kind a number before a date (1/2 is a half).
+            Typing typed = kind == DxfDataType.Date ? null : Typing.Read(text);
+
+            if (typed == null)
+            {
+                return SetDateFromText(cell, kind, text);
+            }
+
             bool given = kind == DxfDataType.Unknown || kind == DxfDataType.General;
             DxfDatabase database = IsResident ? Item.File.Database : null;
             int lunits = database?.Lunits ?? 2;
@@ -601,10 +610,52 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Whether a text typed over a cell of a number or a point is one AutoCAD 2021 refuses: its <c>SetValue</c> of the text
-        /// threw eInvalidInput and kept the value (D40) where the text is not read as a value of the cell's kind, a word or a
-        /// date over a number, a number over a point or a point over a number. False for a cell of words or of no value yet,
-        /// a block cell and a cell before R2007, which take any text.
+        /// Writes a text typed in a cell of R2007 as the date or the time it reads as, as AutoCAD 2021's <c>SetValue(row, col,
+        /// text)</c> with <c>ConvertTextToValue</c> wrote it (D41): the kind 8, the 16 bytes of the date (92 and 310), the
+        /// flags 4 where the cell had no kind of value and its own where it had a date, the format <c>%x</c> (a date),
+        /// <c>%X</c> (a time) or <c>%c</c> (both) where the cell had no kind and its own where it had a date, no alignment of
+        /// its own given, and the words the format shows in the culture of the machine. False, and nothing written, where the
+        /// text is not a date or a time (<see cref="DxfTableDate.TryRead"/>) or the cell holds another kind of value, which
+        /// then takes the text.
+        /// </summary>
+        private bool SetDateFromText(CellView cell, DxfDataType kind, string text)
+        {
+            bool given = kind == DxfDataType.Unknown || kind == DxfDataType.General;
+            CultureInfo culture = CultureInfo.CurrentCulture;
+
+            if ((!given && kind != DxfDataType.Date) || !DxfTableDate.TryRead(text, culture, out DateTime date))
+            {
+                return false;
+            }
+
+            string format = given ? DxfTableDate.FormatOf(date) : cell.InValue(300) ?? string.Empty;
+            CheckEditable();
+            string field = cell.Head(344);
+            Typed(cell);
+            cell.WriteValue(
+                ((int)DxfDataType.Date).ToString(CultureInfo.InvariantCulture),
+                new[]
+                {
+                    new KeyValuePair<int, string>(92, "16"),
+                    new KeyValuePair<int, string>(310, DxfTableDate.Bytes(date)),
+                },
+                DxfTableDate.Text(date, format, culture),
+                null,
+                format,
+                true,
+                given ? "4" : null
+            );
+            cell.DropField();
+            cell.Groups.Write(Order);
+            EraseFields(new[] { field });
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a text typed over a cell of a number, a point or a date is one AutoCAD 2021 refuses: its <c>SetValue</c> of
+        /// the text threw eInvalidInput and kept the value (D40, D41) where the text is not read as a value of the cell's
+        /// kind, a word or a date over a number, a number over a point or a point over a number, a word or a number over a
+        /// date. False for a cell of words or of no value yet, a block cell and a cell before R2007, which take any text.
         /// </summary>
         internal bool RefusesText(int row, int col, string text)
         {
@@ -616,6 +667,11 @@ namespace GeometryHelper.Dxf
             }
 
             DxfDataType kind = KindOf(cell);
+
+            if (kind == DxfDataType.Date)
+            {
+                return !DxfTableDate.TryRead(text, CultureInfo.CurrentCulture, out DateTime _);
+            }
 
             if (kind != DxfDataType.Long && kind != DxfDataType.Double && kind != DxfDataType.Point3d)
             {
@@ -660,36 +716,58 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The text of a number in a format, as AutoCAD 2021 showed it: of <see cref="RealText"/> for none, a decimal of its
-        /// places and feet and inches; of the drawing's units and places (LUNITS, LUPREC) for <c>%lu6</c>, and of the units
-        /// named with the drawing's places for <c>%lu1</c> to <c>%lu5</c> (D39a); of six places of decimals for a format the
-        /// library does not write.
+        /// The text of a number in a format, as AutoCAD 2021 showed it: of <see cref="InUnits"/> for a format of units, and
+        /// of six places of decimals for none and for a format the library does not write.
         /// </summary>
         private string Shown(double value, string format)
         {
             // The marks between thousands and before the decimals (%th, %ds) are put in after the digits are written.
             string bare = Marks(format, out char thousands, out char mark);
-            string text = RealText(value, bare);
+            return Marked(InUnits(value, bare, true) ?? RealText(value, null), thousands, mark);
+        }
 
-            if (text != null)
+        /// <summary>The text of a number a format is set on: as <see cref="Shown(double, string)"/>, null where the format is one the library does not write, which keeps the text the cell had.</summary>
+        private string Formatted(double value, string format)
+        {
+            string bare = Marks(format, out char thousands, out char mark);
+            string text = InUnits(value, bare, false) ?? RealText(value, bare);
+            return text == null ? null : Marked(text, thousands, mark);
+        }
+
+        /// <summary>
+        /// The text of a number in a format of units, <c>%lu</c> and its unit 1 to 6, then <c>%pr</c> and its places and
+        /// <c>%zs</c> and its flags: the units named, the drawing's (LUNITS) for 6; its places, the drawing's (LUPREC) where
+        /// the format gives none, as AutoCAD 2021 showed 12.3456 of <c>%lu6%pr2</c> as 1'-0.35" at LUNITS 3 and 1.23E+01 at
+        /// LUNITS 1, and <c>%lu4</c> as 1'-0 1/4" at LUPREC 2. Null where the format is of no units, or the number has more
+        /// feet than 32 bits hold, which AutoCAD writes as garbage (<paramref name="exact"/>: the number as it is, for a format
+        /// of no places or flags).
+        /// </summary>
+        private string InUnits(double value, string bare, bool exact)
+        {
+            Match match = Regex.Match(bare, "^%lu([1-6])(?:%pr([0-9]{1,2}))?(?:%zs([0-9]{1,2}))?$");
+
+            if (!match.Success)
             {
-                return Marked(text, thousands, mark);
-            }
-
-            Match units = Regex.Match(bare, "^%lu([1-6])$");
-
-            if (!units.Success)
-            {
-                return Marked(RealText(value, null), thousands, mark);
+                return null;
             }
 
             DxfDatabase database = IsResident ? Item.File.Database : null;
-            int unit = units.Groups[1].Value[0] - '0';
-            return Marked(
-                UnitsText(value, unit == 6 ? database?.Lunits ?? 2 : unit, database?.Luprec ?? 4),
-                thousands,
-                mark
-            );
+            int unit = match.Groups[1].Value[0] - '0';
+            unit = unit == 6 ? database?.Lunits ?? 2 : unit;
+            bool placed = match.Groups[2].Success;
+            int places = placed
+                ? int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)
+                : database?.Luprec ?? 4;
+            int zeros = match.Groups[3].Success ? int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture) : 0;
+
+            // Decimals of places given keep the sign of a number that rounds to nought, as RealText writes it.
+            if (unit == 2 && placed)
+            {
+                return RealText(value, "%lu2%pr" + places.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return Units(value, unit, places, zeros)
+                ?? (exact && !placed && !match.Groups[3].Success ? Numbers.Exact(value + 0.0) : null);
         }
 
         /// <summary>
@@ -845,9 +923,14 @@ namespace GeometryHelper.Dxf
         /// it, <c>%lu2%pr2</c> for a decimal of two places, the value kept; the text of a number of its kind
         /// <see cref="DxfDataType.Double"/> written as AutoCAD 2021 wrote it, of the places a decimal format gives, 12.500 for
         /// <c>%lu2%pr3</c>, in feet and inches for an architectural format, 1'-0 1/2" for 12.5 in <c>%lu4%pr2</c> (D33 u1 to u8;
-        /// to the nearest 1/2^N of an inch, four where no <c>%prN</c> is given, <c>%zs1</c> and <c>%zs2</c> leaving out nought
-        /// feet and nought inches), and of six where the format is taken away (D28e v11), any other text kept, the library not
-        /// formatting the value of a format of another unit or another kind, nor one of more feet than 32 bits hold. The value
+        /// to the nearest 1/2^N of an inch, <c>%zs1</c> and <c>%zs2</c> leaving out nought feet and nought inches), and in the
+        /// other units as AutoCAD 2021 showed them (T1 to T4): <c>%lu1</c> powers of ten, 1.23E+01 for 12.3456 of
+        /// <c>%lu1%pr2</c>, <c>%lu3</c> feet and decimals of an inch, 1'-0.35" of <c>%lu3%pr2</c> (with <c>%zs1</c> and
+        /// <c>%zs2</c> as for feet and fractions) and <c>%lu5</c> fractions, 12 1/4 of <c>%lu5%pr2</c>; <c>%lu6</c> takes the
+        /// drawing's units (LUNITS), and a format of no <c>%prN</c> the drawing's places (LUPREC); of six places where the
+        /// format is taken away (D28e v11), any other text kept, the library not formatting the value of a format of another
+        /// kind, nor one of more feet than 32 bits hold. A date keeps its format and shows in it, as
+        /// <see cref="DxfTableDate.Text"/> shows it (D41). The value
         /// loses its flag 2 (<c>93 6</c> made 4), as AutoCAD 2021 wrote it. Only a number keeps a format: a whole number, a
         /// text or a value of another kind is written with none and its flag 2 taken away, the 7 given <c>%lu2%pr2</c> still
         /// shown 7; a value of none becomes the empty one of no kind (<c>93 5</c>, <c>90 512</c>), even for an empty format;
@@ -935,9 +1018,13 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            // A number keeps its format; a whole number, a text or a value of another kind keeps none (D33b s01 to s04).
+            // A number keeps its format, and so does a date, shown in it (D41); a whole number, a text or a value of another kind
+            // keeps none (D33b s01 to s04).
             bool real = cell.Value() is double;
-            string written = real ? format : string.Empty;
+            DateTime day = default(DateTime);
+            bool dated =
+                !real && KindOf(cell) == DxfDataType.Date && DxfTableDate.TryFromBytes(cell.InValue(310), out day);
+            string written = real || dated ? format : string.Empty;
 
             if (kept == unflagged && string.Equals(now, written, StringComparison.Ordinal))
             {
@@ -945,7 +1032,10 @@ namespace GeometryHelper.Dxf
             }
 
             CheckEditable();
-            string shown = real ? RealText((double)cell.Value(), format) ?? cell.Text() : cell.Text();
+            string shown =
+                real ? Formatted((double)cell.Value(), format) ?? cell.Text()
+                : dated ? DxfTableDate.Text(day, format, CultureInfo.CurrentCulture)
+                : cell.Text();
             cell.WriteValue(kind, cell.ValueData(), shown, null, written, false, unflagged);
             cell.Groups.Write(Order);
         }
@@ -1355,7 +1445,14 @@ namespace GeometryHelper.Dxf
         /// runtime, architectural as <see cref="Architectural"/>, fractional as <see cref="Fractional"/>, engineering as
         /// <see cref="Engineering"/>; of any other units as the invariant culture writes it.
         /// </summary>
-        private static string UnitsText(double value, int units, int places)
+        private static string UnitsText(double value, int units, int places) =>
+            Units(value, units, places, 0) ?? Numbers.Exact(value + 0.0);
+
+        /// <summary>
+        /// A number shown in units to places, as <see cref="UnitsText"/> shows it, with the flags of <c>%zs</c> that leave out
+        /// nought feet (1) and nought inches (2) of feet and inches; null for a number of more feet than 32 bits hold.
+        /// </summary>
+        private static string Units(double value, int units, int places, int zeros)
         {
             switch (units)
             {
@@ -1367,11 +1464,11 @@ namespace GeometryHelper.Dxf
                 case 2:
                     return Fixed(value, places);
                 case 3:
-                    return Engineering(value, places) ?? Numbers.Exact(value + 0.0);
+                    return Engineering(value, places, zeros);
                 case 4:
-                    return Architectural(value, Math.Min(places, 9), 0) ?? Numbers.Exact(value + 0.0);
+                    return Architectural(value, Math.Min(places, 9), zeros);
                 case 5:
-                    return Fractional(value, Math.Min(places, 9)) ?? Numbers.Exact(value + 0.0);
+                    return Fractional(value, Math.Min(places, 9));
                 default:
                     return Numbers.Exact(value + 0.0);
             }
@@ -1380,10 +1477,12 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// A number of inches in feet and decimals of an inch, as AutoCAD 2021 showed one of <c>%lu3</c> (D40): 75.25 as
         /// 6'-3.2500" at four places, 0.5 as 0'-0.5000", 11.99999 as 1'-0.0000" (the inches rounded to their places carried
-        /// into the feet) and -12.5 as -1'-0.5000", the minus only where the number shown is not nought. Null for a number
-        /// of more feet than 32 bits hold.
+        /// into the feet) and -12.5 as -1'-0.5000", the minus only where the number shown is not nought; with <c>%zs1</c>
+        /// nought feet left out (-0.5 as -0.5000", 0 as 0.0000") and with <c>%zs2</c> nought inches (11.99999 as 1', 0 as
+        /// 0'), the inches kept where the feet are left out, as <see cref="Architectural"/> keeps them. Null for a number of
+        /// more feet than 32 bits hold.
         /// </summary>
-        private static string Engineering(double value, int places)
+        private static string Engineering(double value, int places, int zeros)
         {
             double length = Math.Abs(value);
             double feet = Math.Floor(length / 12.0);
@@ -1401,12 +1500,17 @@ namespace GeometryHelper.Dxf
                 inches = Fixed(0.0, places);
             }
 
-            bool nought = feet == 0.0 && inches.Trim('0', '.').Length == 0;
-            return (value < 0.0 && !nought ? "-" : string.Empty)
-                + feet.ToString("0", CultureInfo.InvariantCulture)
-                + "'-"
-                + inches
-                + "\"";
+            bool noInches = inches.Trim('0', '.').Length == 0;
+            bool nought = feet == 0.0 && noInches;
+            string sign = value < 0.0 && !nought ? "-" : string.Empty;
+            string whole = feet.ToString("0", CultureInfo.InvariantCulture);
+
+            if (feet == 0.0 && (zeros & 1) != 0)
+            {
+                return sign + inches + "\"";
+            }
+
+            return sign + (noInches && (zeros & 2) != 0 ? whole + "'" : whole + "'-" + inches + "\"");
         }
 
         /// <summary>

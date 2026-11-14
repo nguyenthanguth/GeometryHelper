@@ -319,7 +319,9 @@ namespace GeometryHelper.Dxf
         /// 0.333333333333333 for a third, 1.000000000000000E+03 for 1000 in powers of ten, 10923/32768 for a third in fractions,
         /// 1'-0 1/2" for 12.5 in feet and inches and 1, 5, 0 for a point; the format's unit is its <c>%lu</c> (6, the
         /// drawing's, follows LUNITS) and a cell of none is in decimals. The thousands, prefix and suffix of a format are left
-        /// out. Any other cell, a text or a date, a block or one before R2007, gives its <see cref="TextString(int, int)"/>.
+        /// out. A date is the date alone where it has no time, the time alone where it is on the day of a time (30 December
+        /// 1899) and both otherwise, whatever its format: 1/1/2020, 12:30:00 PM, 1/1/2020 12:30:00 PM in the culture of the
+        /// machine. Any other cell, a text, a block or one before R2007, gives its <see cref="TextString(int, int)"/>.
         /// </summary>
         /// <param name="row">The row, from nought.</param>
         /// <param name="col">The column, from nought.</param>
@@ -350,6 +352,10 @@ namespace GeometryHelper.Dxf
                         && Numbers.TryRead(cell.InValue(21), out double y)
                         && Numbers.TryRead(cell.InValue(31), out double z)
                         ? DxfTableEditingText.Point(x, y, z)
+                        : TextString(row, col);
+                case DxfDataType.Date:
+                    return DxfTableDate.TryFromBytes(cell.InValue(310), out DateTime date)
+                        ? DxfTableDate.Editing(date, CultureInfo.CurrentCulture)
                         : TextString(row, col);
                 default:
                     return TextString(row, col);

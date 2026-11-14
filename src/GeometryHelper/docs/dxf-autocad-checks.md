@@ -2631,3 +2631,48 @@ keeps them (points 73 to 78); a table of no TABLECONTENT is given one from R2007
       either, an access violation while regenerating the model (the files kept outside the repository, not to be sent
       again). Now: a copy of such an image is written closed, as `AssociateRasterDef` writes one, and an image made in code
       is closed by `SetClipBoundary`; the copies so closed are among the 15 above.
+
+## Tables: dates typed, formats of units, merged rows
+
+109. **A date or a time typed in a cell, a number in a format of units under each LUNITS, and a block of merged cells across
+    rows, as AutoCAD 2021 lays them out (D41, tables5).**
+    - Try (D41a, console, plugin GT5, a side database): `Table.SetValue(row, col, text, ParseOption)` of 165 texts into
+      fresh cells, then `DxfOut`. AutoCAD 2021: the .NET enum names two of its options, and neither parses; the value of 4
+      (ConvertTextToValue, a cast) makes a date of 1/1/2020 (kind 8, format `%x`, 92 16, a SYSTEMTIME in 310, flags 4, no
+      alignment of its own), a time of 12:30 (format `%X`, on 30 December 1899, 6B070C0006001E000C001E0000000000), both of
+      1/1/2020 12:30 (`%c`), and the date 12/30/1899 of 0:00 (`%x`, a time of midnight); it reads 1/1/49 as 2049 and 1/1/50 as
+      1950, Jan 1 as the present year, 1-2 as the 2nd of January, 12:30 p and 13:30 PM as times, 12-32 as 1 December 2032, and
+      keeps as words 2/30/2020, 13/13/2020, 24:00, 1:60, 12:30:45.5, Sat Jan 4 2020, 3.4.2020, 2020-01-01T12:30:00, 12:30Z,
+      12:30 P.M.; numbers first (1/1 is a half, 3.4 a number, 1,5 a point, 01/2020 and 2020/1 fractions). Over a cell of a
+      date: a date or a time goes in, the format and the flags kept; 5, 1.5, 1,5, abc and 2/30/2020 throw eInvalidInput;
+      the editor's text (ForEditing) is the date alone, the time alone (on 12/30/1899) or both, whatever the format; a
+      format set by `SetDataFormat` is C's `strftime` (`%A %a %B %b %d %e %H %I %M %m %p %S %w %Y %y %D %R %T %%`, `%j` and
+      `%U` wrong for 7 March, `%z` and `%Z` the zone) and a format with no percent a Windows date pattern (M/d/yyyy).
+      Now: `DxfTableDate` reads, writes and shows them in the machine's culture, 76 of the 165 texts as AutoCAD reads
+      them, the others kept as words (12:30 p, a year before 100, 12-32, 13-1 and Jan 1 12:30, which AutoCAD reads, not read).
+    - Try (D41b, console, same plugin, with the working database set to the side one): 42 formats of units by 9 numbers
+      under LUNITS 1 to 5 and LUPREC 0, 2 and 4 (3 690 texts). AutoCAD 2021 shows the drawing's LUNITS and LUPREC from the
+      working database, not the table's: `%lu6` is the drawing's unit, a format with no `%prN` takes LUPREC (12.3456 under
+      `%lu4` at LUPREC 2 is 1'-0 1/4"), `%lu6%pr2` is 1'-0.35" at LUNITS 3 and 1.23E+01 at LUNITS 1, `%lu1%pr0` 1E+01,
+      `%lu5%pr2` 12 1/4, `%lu3` takes `%zs1` and `%zs2` as `%lu4` does (-0.5 under `%lu3%zs1` -0.5000", 0 under `%lu3%zs2` 0'),
+      and a `%zs` under decimals changes nothing. Now: 85 of them in `DxfTableUnitsFormatTests`; the library showed the
+      places of LUPREC 4 whatever LUPREC was for `%lu4`, and six places for `%lu1%prN`, `%lu3%prN`, `%lu5%prN` and
+      `%lu6%prN`.
+    - Try (D41c, console, same plugin, Standard with text 4.5, margins 1.5 and ghsimplex.shx, rows of 9, `GenerateLayout`):
+      12 lines of 4.5 (90.42857 with margins in one row) merged over rows 2 and 3: 45.21429 each, not 9 and 81.42857; over
+      rows 2 to 4 30.14286 each; over rows of 12 and 20 33.91071 and 56.51786 (in proportion to the heights); over rows of 20
+      and 20 45.21429 each though they held 40; with a cell of 6 lines (45) in the second row 15.07143 and 75.35714 (the rows
+      stand at 9 and 45 when the block is laid out, and it shares in proportion to those); two blocks sharing a row share one
+      after the other, the first by its top left cell in the file (a table read from a DXF, row by row; one made in code in
+      the order the merges were made): 45.21429, 75.41671 and 15.01186 for blocks at (2, 1) over rows 2 and 3 and (3, 0) over
+      rows 3 and 4. A block cell (a block 10 by 40, not fitted to the cell, scale 1) makes its row 43 (40 and the margins),
+      two rows 21.5 each merged, scale 2 two rows 41.5 each; fitted to the cell it makes none. Now: the presenter's
+      `CadTableEditor.Wanted` shares a block's need among its rows in proportion to their heights (it gave the last row what
+      the rows lacked: 9 and 81.42857); block cells are still left as they are (parked).
+    - Try (D41d, console, same plugin): `SetTextHeight(8, RowType.DataRow)` on a table, then `GenerateLayout`. AutoCAD 2021:
+      every empty data row is 13.66667 (8 times 4/3 and two margins of 1.5), three lines in one 37.66667, 'aaa bbb ccc ddd
+      eee' in a column of 30 64.33333 (22.5 under the style's 4.5); the same for the header and the title (13.66667 and
+      16.33333 at 10); a cell's own height of 6 in a data row of 8 makes that row 11 whatever the other cells of the row
+      hold, 10 gives 16.33333 and 3 gives 9. Now: `DxfTable.OwnTextLooks` gives the table's own text heights and styles
+      for the kinds of row, and the presenter lays out by them after a cell's own; a row with a cell of its own height
+      takes the tallest of its cells there (AutoCAD's 11 for the cell of 6 is parked).

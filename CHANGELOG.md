@@ -6,6 +6,42 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
+a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8
+and the format `%x`, shown 1/1/2020; 12:30 a time of `%X`, shown 12:30:00 PM (on 30 December 1899, as AutoCAD keeps a time); 1/1/2020
+12:30 both, `%c`; the 16 bytes of the date go in 92 and 310 as AutoCAD writes them (1/1/2020 is `E4070100030001000000000000000000`),
+with the flags 4 and no alignment of its own. A month in words (Jan 1 2020), a year of two figures (1/1/49 is 2049, 1/1/50 1950),
+no year (the present one), 12:30 PM and 1:5 are read; 2/30/2020, 24:00, 12:30:45.5, a weekday, a zone and 3.4.2020 (in en-US)
+stay text, as AutoCAD keeps them. A date typed over a date keeps the cell's format and shows in it (`%d/%m/%Y` shows 3/7/2020 as
+07/03/2020; `%A`, `%B`, `%H:%M`, `%I:%M %p` and the rest of `strftime`'s letters and M/d/yyyy are written), and anything that
+is no date over a cell of a date is refused ("Cell A3 holds a date, and "abc" is not a date.", a number too), as AutoCAD's
+`SetValue` throws eInvalidInput. The editor opens a date as AutoCAD's `GetTextString(FormatOption.ForEditing)` does: 1/1/2020,
+12:30:00 PM or 1/1/2020 12:30:00 PM whatever its format (`DxfTable.TextStringForEditing`), and `SetFormat` on a date keeps the
+format and shows it.
+
+**FIXED.** `DxfTable.SetFormat` and the numbers typed in the presenter showed a number of a format of units as AutoCAD 2021 does
+only for `%lu2%prN` and `%lu4%prN`: the units of `%lu6` are the drawing's (LUNITS) and a format with no `%prN` takes its places
+(LUPREC), where `%lu4` showed four places at any LUPREC and the other units under `%prN` six places of decimals. 12.3456 under
+`%lu6%pr2` is now 1'-0.35" at LUNITS 3 and 1.23E+01 at LUNITS 1, under `%lu3%pr0` 1'-0", under `%lu1%pr0` 1E+01, under `%lu5%pr2`
+12 1/4 and under `%lu4` at LUPREC 2 1'-0 1/4"; `%zs1` and `%zs2` leave out nought feet and nought inches of feet and decimals of
+an inch (-0.5 under `%lu3%pr2%zs1` is -0.50", 11.99999 under `%lu3%zs2` 1'), as they do of feet and fractions (85 texts of a
+probe of 3 690 in AutoCAD 2021's console, under LUNITS 1 to 5).
+
+**FIXED.** The rows of a table the presenter grows for the words in its cells (`CadTableEditor`, the editor of a cell, the least a
+row's line is dragged to) were laid out by the text height and the text style of the table style alone, where a table that keeps
+looks of its own for its title, header or data rows (the 140 and 7 of its head, which it drew its text with already) is laid out
+by those, as AutoCAD 2021's `GenerateLayout` does: with a text height of its own of 8 for its data, an empty data row is 8 times
+4/3 and two margins of 1.5, 13.66667, where the style's 4.5 made it 9, three lines make one 37.66667 and 'aaa bbb ccc ddd eee' in
+a column 30 wide 64.33333. A cell's own height still comes before them. A row that holds a cell of a text height of its own and
+others of the table's own is laid out by the first alone in AutoCAD (a data row of 8 with one cell of 6: 11, not 13.66667); the
+presenter takes the tallest, which is the parked difference.
+
+**FIXED.** Cells merged across rows (`CadTableEditor`, the rows growing for wrapped words and for the cell typed in) gave the last
+row of the block what its rows lacked; AutoCAD 2021's `GenerateLayout` shares the block's need among its rows in proportion to
+the heights they stand at (the heights their own cells need first), each block in the order of its top left cell: 12 lines of 4.5
+merged over two rows of 9 make 45.21 each, not 9 and 81.43, over rows of 12 and 20 they make 33.91 and 56.52, and two blocks
+sharing a row share one after the other (17 layouts in AutoCAD 2021's console).
+
 **NEW.** The presenter edits a block reference in place, as AutoCAD 2021's REFEDIT: REFEDIT and -REFEDIT ask `Select reference:` (a
 reference selected before is taken), the nested reference to edit where the point picked reaches one (`Reference: A > B`, `Ok`/`Next`) and
 the objects to take (`Automatic`, `Prompt` for points, `Settings` for the attribute definitions and the lock), and copy the objects of the

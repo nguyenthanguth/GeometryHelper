@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using GeometryHelper.Dxf;
 using Xunit;
@@ -427,19 +428,53 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void DatesAndTimesTyped_StayWords_TheLibraryWritingNoDate()
+        public void DatesAndTimesTyped_AreDatesOfAutoCadsFormats_OpenAsDates_AndRefuseWordsOverThem()
         {
-            CadDocument document = Metric();
-            string handle = Schedule(document);
+            CultureInfo was = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
 
-            // AutoCAD 2021 makes 1/1/2020 and 12:30 dates of its own formats; the library knows no groups of a date value, so
-            // the words are kept.
-            Type(document, handle, 2, 0, "1/1/2020");
-            Type(document, handle, 2, 1, "12:30");
-            DxfTable table = TableOf(document, handle);
-            Assert.Equal(DxfDataType.String, table.DataType(2, 0));
-            Assert.Equal("1/1/2020", table.TextString(2, 0));
-            Assert.Equal("12:30", table.TextString(2, 1));
+            try
+            {
+                CadDocument document = Metric();
+                string handle = Schedule(document);
+
+                // AutoCAD 2021 makes 1/1/2020 a date of the format %x, 12:30 a time of %X and both a date of %c, shown in the
+                // culture of the machine; each stays where the cell's row put its words.
+                Type(document, handle, 2, 0, "1/1/2020");
+                Type(document, handle, 2, 1, "12:30");
+                Type(document, handle, 2, 2, "1/1/2020 12:30");
+                Type(document, handle, 2, 3, "2/30/2020");
+                DxfTable table = TableOf(document, handle);
+                Assert.Equal(DxfDataType.Date, table.DataType(2, 0));
+                Assert.Equal("%x", table.Format(2, 0));
+                Assert.Equal("1/1/2020", table.TextString(2, 0));
+                Assert.Equal("%X", table.Format(2, 1));
+                Assert.Equal("12:30:00 PM", table.TextString(2, 1));
+                Assert.Equal("%c", table.Format(2, 2));
+                Assert.Equal("1/1/2020 12:30:00 PM", table.TextString(2, 2));
+
+                // A day that does not exist is words, and the editor opens a date as AutoCAD's ForEditing does.
+                Assert.Equal(DxfDataType.String, table.DataType(2, 3));
+                Assert.Equal("2/30/2020", table.TextString(2, 3));
+                Assert.Equal("1/1/2020", table.TextStringForEditing(2, 0));
+                Assert.Equal("12:30:00 PM", table.TextStringForEditing(2, 1));
+                Assert.Equal("1/1/2020 12:30:00 PM", table.TextStringForEditing(2, 2));
+
+                // The words the editor opened with change nothing, other words over a date are refused and keep it, and another
+                // date or time goes in in the cell's own format.
+                Assert.Empty(CadTableEditor.SetText(document, handle, 2, 0, "1/1/2020").Records);
+                CadEditResult refused = CadTableEditor.SetText(document, handle, 2, 0, "abc");
+                Assert.True(refused.Refused);
+                Assert.Equal("Cell A3 holds a date, and \"abc\" is not a date.", refused.Message);
+                Assert.True(CadTableEditor.SetText(document, handle, 2, 0, "5").Refused);
+                Type(document, handle, 2, 0, "12/31/2021");
+                Assert.Equal("12/31/2021", TableOf(document, handle).TextString(2, 0));
+                AssertReopens(document);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = was;
+            }
         }
     }
 }
