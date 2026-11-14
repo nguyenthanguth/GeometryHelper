@@ -120,7 +120,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void AViewportMenusViewportClip_IsEnabled_WhereTheDrawingHasVpclip_AndMaximizeViewportStaysGrey()
+        public void AViewportMenusViewportClipAndMaximizeViewport_AreEnabled_WhereTheDrawingHasVpclipAndVpmax()
         {
             using (var folder = new TestFolder())
             {
@@ -134,7 +134,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 IReadOnlyList<CadMenuItemViewModel> items = model.CanvasMenu();
 
                 Assert.True(Item(items, "Viewport Clip").IsEnabled);
-                Assert.False(Item(items, "Maximize Viewport").IsEnabled);
+                Assert.True(Item(items, "Maximize Viewport").IsEnabled);
 
                 Item(items, "Viewport Clip").Command.Execute(null);
 

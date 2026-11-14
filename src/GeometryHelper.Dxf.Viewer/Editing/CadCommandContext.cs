@@ -86,6 +86,48 @@ namespace GeometryHelper.Dxf.Viewer
             ClearsSelection = true;
         }
 
+        /// <summary>
+        /// Asks for objects of one kind, as <see cref="SelectObjects"/> does with its own words: the objects selected before the
+        /// command started that <paramref name="only"/> accepts, else "Select hatch objects:" (the message given) until Enter,
+        /// whatever else is picked left out. The result is <see cref="Selected"/>, those on a locked layer left out with "1 was on a
+        /// locked layer."
+        /// </summary>
+        /// <param name="message">The message of the prompt.</param>
+        /// <param name="only">Whether an object is of the kind asked for.</param>
+        /// <returns>The prompts to yield.</returns>
+        internal IEnumerable<CadPrompt> SelectObjectsOf(string message, Func<DxfEntity, bool> only)
+        {
+            var handles = new List<string>();
+
+            foreach (string handle in _preSelected)
+            {
+                if (only(Document.FindEntity(handle)))
+                {
+                    handles.Add(handle);
+                }
+            }
+
+            if (handles.Count > 0)
+            {
+                Session.RememberSelection(handles);
+            }
+            else
+            {
+                yield return CadPrompt.ForSelection(message);
+
+                foreach (string handle in Input.Handles ?? Array.Empty<string>())
+                {
+                    if (only(Document.FindEntity(handle)))
+                    {
+                        handles.Add(handle);
+                    }
+                }
+            }
+
+            Selected = Unlocked(handles);
+            ClearsSelection = true;
+        }
+
         /// <summary>Writes a line into the history of the command line.</summary>
         /// <param name="line">The line.</param>
         public void Write(string line) => Session.Write(line);

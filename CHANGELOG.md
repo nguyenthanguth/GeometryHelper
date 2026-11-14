@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** HATCHSETORIGIN, the Set Origin of a hatch's right-click menu, as AutoCAD 2021 runs it: `Select hatch objects:`, then
+`Select new hatch origin:`, and the pattern of each hatch picked laid from the point, one undo step. A hatch keeps its origin in the
+base points of its pattern lines, so each line moves by what the origin moves: ANSI32 at 30 degrees and scale 2 set to (10, 5), then
+(20, 20), then (0, 0) has its first line based at each of them and the second beside it as before. A solid fill, a gradient and a
+user-defined hatch (the library keeps its lines to its spacing, where AutoCAD moves their base point) are left as they are.
+**NEW.** TABLEEXPORT, the Export of a table's right-click menu: `Select a table:`, the Export Data file (`Comma Delimited (*.csv)`, or
+`Enter file name <file>:` with no window), and the table written as comma separated values, a line for each row, the text of each
+cell as it shows with its formatting codes taken off, the fields of a merged block but the first empty, a field with a comma, quote or
+line break put in double quotes; `Can't  open file.` for a file that cannot be written. AutoCAD's own console cannot run the command
+(it needs its file dialog), so the exact layout of its CSV is not probed.
+**NEW.** VPMAX and VPMIN, the Maximize Viewport of a viewport's right-click menu, as AutoCAD 2021's console runs them: VPMAX asks
+`Select a viewport to maximize:` (or takes the viewport worked through), gives the viewport the canvas, ten pixels in, at the scale it
+had, turns the other viewports of the layout off and works through it; VPMIN puts the frame, the view (a zoom made meanwhile is given
+up) and the other viewports back and works on the paper. `A viewport is currently maximized.` and `No viewport is currently
+maximized.` as AutoCAD says them; on the Model tab both are `-VPORTS Toggle`. `CadDocument.IsViewportMaximized` and
+`MaximizedViewportHandle` say whether one is. Each is one undo step. The presenter does not take the maximizing back when the layout is
+changed, as AutoCAD does.
 **CHANGED.** `DxfHatch.ShadeTintValue` on a gradient of two colours in one-colour mode makes the second colour the tint of the first, as
 AutoCAD 2021 does each time it is set (the same value again too): red at 0 and green at 1, the tint set to 0.3, read back as red and
 (153, 0, 0), a true colour at the value the second colour had; a first colour of the index is tinted from its palette colour (index 7, 0.3,

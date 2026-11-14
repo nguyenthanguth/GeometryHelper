@@ -64,6 +64,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public DisplayBox? PendingView { get; set; }
 
+        /// <summary>Gets or sets what VPMAX left of the viewport it maximized in this layout, for VPMIN to put back; null where none is.</summary>
+        internal CadMaximizedViewport Maximized { get; set; }
+
         /// <summary>
         /// Gets or sets the view last recorded for this space as an undo step (<see cref="CadDocument.RecordSpaceView(CadSpace, CadView, DisplayBox, string, bool)"/>): the
         /// one an undo or a redo of a zoom or a pan of the space puts back; null before any was.

@@ -296,8 +296,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
             // SAVEAS (now of the presenter's own set), DXFOUT, LAYERP, LAYERPMODE, the 13, 6, 8, 6, 6, 6 and 3 of the acad.pgp batches
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
-            // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, and OBJECTSCALE.
-            Assert.Equal(251, registry.Commands.Count);
+            // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, and HATCHSETORIGIN, TABLEEXPORT, VPMAX and VPMIN.
+            Assert.Equal(255, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

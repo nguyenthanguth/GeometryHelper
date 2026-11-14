@@ -184,6 +184,9 @@ namespace GeometryHelper.Dxf.Viewer
             AddOutputBatchTo(registry);
             AddPgpBatch1bTo(registry);
             AddPgpR32To(registry);
+            AddHatchOriginTo(registry);
+            AddTableExportTo(registry);
+            AddViewportMaximizeTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

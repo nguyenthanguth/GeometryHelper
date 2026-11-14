@@ -201,7 +201,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Headers(items).Skip(2).Take(8)
             );
             Assert.False(Item(items, "Table Style").IsEnabled);
-            Assert.False(Item(items, "Export...").IsEnabled);
+            Assert.True(Item(items, "Export...").IsEnabled);
 
             Item(items, "Size Columns Equally").Command.Execute(null);
 
