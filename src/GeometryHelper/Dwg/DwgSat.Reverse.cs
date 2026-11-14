@@ -1083,6 +1083,14 @@ namespace GeometryHelper.Dwg
                 return false;
             }
 
+            // The surface of a loft is a procedural one (loft_spl_sur) from R2010; R2004 and R2007 write it as an exact surface of
+            // the nubs with tolerant edges, and read the procedural one as a solid of no volume (a lofted solid of AutoCAD 2021
+            // turned into R2004 holding both comes out with a volume of 0): no grammar of ours gives that form.
+            if (from == 2 && to < 2 && record.Exists(t => t.Kind == 'N' && t.Text == "loft_spl_sur"))
+            {
+                return false;
+            }
+
             for (; from < to; from++)
             {
                 if (from == 0 ? !Step(record, true) : !Numbers(record, true))

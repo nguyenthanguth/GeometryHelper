@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 
 namespace GeometryHelper.Dxf
 {
@@ -15,9 +16,9 @@ namespace GeometryHelper.Dxf
 
         // The flags of 177 are the low 16 bits of 91, written as a signed number (0x8880 is -30592): 0x01 alignment (170), 0x02 and 0x04
         // background colour and fill (63, 283), 0x08 content colour (64), 0x10 text style (7), 0x20 height (140), the others the
-        // borders' (top 0x4440, bottom 0x8880, left 0x2200, right 0x1100 and the cells between). 91 has bits more: the cell has content
-        // (0x40000), and a cell with a border of its own on the right (0x1000), left (0x2000) or top (0x4000) has them again 4 bits up,
-        // as AutoCAD writes it; the bottom's 0x8000 has none.
+        // borders' (top 0x4440 in 279, left 0x2200 in 278, right 0x8880 in 275, bottom 0x1100 in 276). 91 has bits more: the cell
+        // has content (0x40000), and a cell with a border of its own on the bottom (0x1000) or the left (0x2000) has them again 4
+        // bits up, as AutoCAD writes it; the top's 0x4000 four bits up would be the content's, and the right's 0x8000 has none.
         private const int ContentBit = 0x40000;
 
         // The groups that follow the text of a cell of the old form: the overrides (the borders' are 65 to 69 and 275 to 279, 285 to
@@ -70,12 +71,13 @@ namespace GeometryHelper.Dxf
             }
 
             var made = new List<Group>(groups.GetRange(0, first));
+            var data = new List<CellData>(starts.Count);
 
             for (int i = 0; i < starts.Count; i++)
             {
                 int to = i + 1 < starts.Count ? starts[i + 1] : stop;
 
-                if (!CellDown(groups.GetRange(starts[i], to - starts[i]), i + 1 == starts.Count, made))
+                if (!CellDown(groups.GetRange(starts[i], to - starts[i]), i + 1 == starts.Count, made, data))
                 {
                     return false;
                 }
@@ -88,12 +90,20 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
+            int rows = Count(groups, first, 91);
+            int columns = Count(groups, first, 92);
             made.AddRange(groups.GetRange(stop, groups.Count - stop));
             table.Groups = made;
 
             foreach (Action change in changes)
             {
                 change();
+            }
+
+            // AutoCAD keeps the cells of the form before R2007 beside the table, to know a cell the old release changed.
+            if (rows * columns == data.Count)
+            {
+                KeepCells(table, data, rows, columns);
             }
 
             return true;
@@ -157,7 +167,7 @@ namespace GeometryHelper.Dxf
         /// the block and its attributes). False where the cell is not made of these: a 92 of a link, a field, a value that is neither
         /// text nor empty, or groups after the value of the last cell, which may be the table's own.
         /// </summary>
-        private bool CellDown(List<Group> cell, bool last, List<Group> made)
+        private bool CellDown(List<Group> cell, bool last, List<Group> made, List<CellData> data)
         {
             if (!Has(cell, NewCellHead))
             {
@@ -207,7 +217,7 @@ namespace GeometryHelper.Dxf
             bool block = cell[0].Value.Trim() == "2";
             var text = new List<Group>();
 
-            if (!Value(cell, at + 1, end, out int type, text) || (!block && type != 0 && type != 4))
+            if (!Value(cell, at + 1, end, out int type, text, out string whole) || (!block && type != 0 && type != 4))
             {
                 return false;
             }
@@ -223,10 +233,20 @@ namespace GeometryHelper.Dxf
 
             if (!block)
             {
-                made.AddRange(text.Count > 0 ? text : new List<Group> { new Group(1, string.Empty) });
+                // A text cut into chunks of 250 characters is in 2 before its last part from R2007, and in 3 before R2007.
+                foreach (Group part in text)
+                {
+                    made.Add(part.Code == 2 ? new Group(3, part.Value) : part);
+                }
+
+                if (text.Count == 0)
+                {
+                    made.Add(new Group(1, string.Empty));
+                }
             }
 
             made.AddRange(held);
+            data.Add(new CellData(flags & 0xFFFF, whole, block, type == 4 || text.Count > 0));
             return true;
         }
 
@@ -256,13 +276,21 @@ namespace GeometryHelper.Dxf
 
             if (!block)
             {
+                // A text longer than 250 characters is cut into chunks in 3 and a last part in 1.
+                var all = new StringBuilder();
+
+                while (from < cell.Count && cell[from].Code == 3)
+                {
+                    all.Append(cell[from++].Value);
+                }
+
                 if (from >= cell.Count || cell[from].Code != 1)
                 {
                     return false;
                 }
 
-                text = cell[from].Value;
-                from++;
+                all.Append(cell[from++].Value);
+                text = all.ToString();
             }
 
             for (int i = from; i < cell.Count; i++)
@@ -280,8 +308,12 @@ namespace GeometryHelper.Dxf
                 made.Add(cell[g]);
             }
 
+            // The 0x40000 of a cell with text is the cell's content; a block cell has none (AutoCAD 2021 writes 91 as 0 for it, with an
+            // attribute value or without), and a cell with a border of its own on the right has it too, text or none. The top border's
+            // flag has no copy four bits up (that bit is the content's), nor the cell with only a top border: 17 472 stays 17 472.
             flags &= 0xFFFF;
-            made.Add(Whole(91, flags | (has ? ContentBit : 0) | ((flags & 0x7000) << 4)));
+            bool content = (!block && text.Length > 0) || (flags & 0x8800) != 0;
+            made.Add(Whole(91, flags | (content ? ContentBit : 0) | ((flags & 0x3000) << 4)));
             made.Add(cell[7]);
             made.Add(cell[8]);
             made.AddRange(cell.GetRange(from, cell.Count - from));
@@ -299,14 +331,41 @@ namespace GeometryHelper.Dxf
 
             if (!block && has)
             {
-                made.Add(new Group(1, text));
+                foreach (Group part in Chunked(text, 2))
+                {
+                    made.Add(part);
+                }
             }
 
             made.Add(Whole(94, 0));
             made.Add(new Group(300, string.Empty));
-            made.Add(new Group(302, text));
+
+            foreach (Group part in Chunked(text, 303))
+            {
+                made.Add(part);
+            }
+
             made.Add(new Group(304, ValueEnd));
             return true;
+        }
+
+        /// <summary>
+        /// The groups of a text as AutoCAD writes it in a cell of R2007 and later: the chunks of 250 characters of a text that
+        /// is longer in <paramref name="chunk"/> (2, or 303 in the second copy of the value), then its last part in 1 (302 in the
+        /// copy); a short text is that last part alone.
+        /// </summary>
+        private static List<Group> Chunked(string text, int chunk)
+        {
+            var groups = new List<Group>();
+            int at = 0;
+
+            for (; text.Length - at > 250; at += 250)
+            {
+                groups.Add(new Group(chunk, text.Substring(at, 250)));
+            }
+
+            groups.Add(new Group(chunk == 2 ? 1 : 302, text.Substring(at)));
+            return groups;
         }
 
         /// <summary>Whether the groups of a cell begin with the codes of a form's head, in its order.</summary>
@@ -330,20 +389,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Reads the value of a cell, the groups from <paramref name="from"/> up to <paramref name="end"/> (the 304): its flags (93)
-        /// and type (90), the groups of its text (1, and 3 before it) where it has any, then 94, 300 and 302. False where it is of
-        /// another shape.
+        /// and type (90), the groups of its text where it has any (the chunks of 250 characters of a longer one in 2, then the last
+        /// part in 1), then 94, 300, the value again (the chunks in 303, the last part in 302). <paramref name="whole"/> is the
+        /// text in one piece. False where it is of another shape.
         /// </summary>
-        private static bool Value(List<Group> cell, int from, int end, out int type, List<Group> text)
+        private static bool Value(List<Group> cell, int from, int end, out int type, List<Group> text, out string whole)
         {
             type = -1;
+            whole = string.Empty;
 
             if (
                 end - from < 5
                 || cell[from].Code != 93
                 || cell[from + 1].Code != 90
-                || cell[end - 3].Code != 94
-                || cell[end - 2].Code != 300
-                || cell[end - 1].Code != 302
                 || !int.TryParse(
                     cell[from + 1].Value.Trim(),
                     NumberStyles.Integer,
@@ -355,16 +413,28 @@ namespace GeometryHelper.Dxf
                 return false;
             }
 
-            for (int i = from + 2; i < end - 3; i++)
-            {
-                if (cell[i].Code != 1 && cell[i].Code != 3)
-                {
-                    return false;
-                }
+            var all = new StringBuilder();
+            int i = from + 2;
 
+            for (; i < end && (cell[i].Code == 1 || cell[i].Code == 2 || cell[i].Code == 3); i++)
+            {
                 text.Add(cell[i]);
+                all.Append(cell[i].Value);
             }
 
+            if (i + 2 >= end || cell[i].Code != 94 || cell[i + 1].Code != 300)
+            {
+                return false;
+            }
+
+            for (i += 2; i < end && cell[i].Code == 303; i++) { }
+
+            if (i != end - 1 || cell[i].Code != 302)
+            {
+                return false;
+            }
+
+            whole = all.ToString();
             return true;
         }
 
@@ -407,6 +477,362 @@ namespace GeometryHelper.Dxf
             }
 
             return starts.Count > 0;
+        }
+
+        #endregion
+
+        #region The cells of a table, kept for the old releases
+
+        /// <summary>What the data table of a cell keeps: the low 16 bits of its flags, its text, and whether it is a block or has a text.</summary>
+        private sealed class CellData
+        {
+            internal CellData(int flags, string text, bool block, bool hasText)
+            {
+                Flags = flags;
+                Text = text;
+                Block = block;
+                HasText = hasText;
+            }
+
+            internal int Flags { get; }
+
+            internal string Text { get; }
+
+            internal bool Block { get; }
+
+            internal bool HasText { get; }
+        }
+
+        // The sides of a cell in the mask of its data table, as the flags of its borders are in 91 (the groups 279 and 69 are the top
+        // 0x4440, 278 and 68 the left 0x2200 and 0x20000 more, 275 and 65 the right 0x8880, 276 and 66 the bottom 0x1100 and 0x10000
+        // more). The cell across an edge that has an override of its own holds the opposite side.
+        private const int MaskTop = 0x4440;
+        private const int MaskBottom = 0x11100;
+        private const int MaskLeft = 0x22200;
+        private const int MaskRight = 0x8880;
+
+        /// <summary>The number in the group of the code (91 rows, 92 columns) that stands after the table's <c>AcDbTable</c> marker and before its cells; 0 where there is none.</summary>
+        private static int Count(List<Group> groups, int first, int code)
+        {
+            int table = groups.FindIndex(0, first, g => g.Code == 100 && g.Value == "AcDbTable");
+
+            if (table < 0)
+            {
+                return 0;
+            }
+
+            int at = groups.FindIndex(table, first - table, g => g.Code == code);
+
+            return
+                at >= 0
+                && int.TryParse(
+                    groups[at].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int count
+                )
+                && count > 0
+                ? count
+                : 0;
+        }
+
+        /// <summary>
+        /// The mask of what each cell overrides that AutoCAD keeps in its data table: its alignment, background colour and fill (the
+        /// low three flags), the sides that have a border of their own and, on the cell across each such side, the opposite one.
+        /// </summary>
+        private static int[] Masks(List<CellData> cells, int rows, int columns)
+        {
+            var masks = new int[cells.Count];
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                int flags = cells[i].Flags;
+                int row = i / columns;
+                int column = i % columns;
+                masks[i] |= flags & 7;
+
+                if ((flags & 0x4440) != 0)
+                {
+                    masks[i] |= MaskTop;
+
+                    if (row > 0)
+                    {
+                        masks[i - columns] |= MaskBottom;
+                    }
+                }
+
+                if ((flags & 0x1100) != 0)
+                {
+                    masks[i] |= MaskBottom;
+
+                    if (row < rows - 1)
+                    {
+                        masks[i + columns] |= MaskTop;
+                    }
+                }
+
+                if ((flags & 0x2200) != 0)
+                {
+                    masks[i] |= MaskLeft;
+
+                    if (column > 0)
+                    {
+                        masks[i - 1] |= MaskRight;
+                    }
+                }
+
+                if ((flags & 0x8880) != 0)
+                {
+                    masks[i] |= MaskRight;
+
+                    if (column < columns - 1)
+                    {
+                        masks[i + 1] |= MaskLeft;
+                    }
+                }
+            }
+
+            return masks;
+        }
+
+        /// <summary>
+        /// Keeps the cells of a table that went to R2000 or R2004 as AutoCAD does, to give the old releases the cells they know: the
+        /// round trip <c>ACAD_ROUNDTRIP_PRE2007_TABLE</c> (the rows and columns, and a pointer to the data table) in the XRECORD
+        /// <c>ACAD_XREC_ROUNDTRIP</c> of the table's extension dictionary, made where the table has none, and the data table with a row
+        /// for each cell: a checksum of its text (the sum of its characters, each times its place from 1), its mask, 0, and an XRECORD
+        /// that holds its value. Nothing is made where the drawing has no OBJECTS or no handle to give.
+        /// </summary>
+        private void KeepCells(Record table, List<CellData> cells, int rows, int columns)
+        {
+            Section objects = Find("OBJECTS");
+            string owner = HandleOf(table);
+
+            if (objects == null || owner == null || (table.Groups.Count > 1 && table.Groups[1].Code != 5))
+            {
+                return;
+            }
+
+            // Where the round trip goes: the XRECORD the table has under its extension dictionary, one made in a dictionary that has
+            // none, or both made with the dictionary.
+            string xrecord = null;
+            Record keeper = null;
+            Record dictionary = null;
+            int at = table.Groups.FindIndex(g => g.Code == 102 && g.Value == "{ACAD_XDICTIONARY");
+
+            if (at >= 0 && at + 1 < table.Groups.Count && table.Groups[at + 1].Code == 360)
+            {
+                dictionary = ObjectAt(table.Groups[at + 1].Value);
+
+                if (dictionary == null || dictionary.Type != "DICTIONARY")
+                {
+                    return;
+                }
+            }
+
+            if (RoundTrip(table, out Record found, out _))
+            {
+                if (found.Groups.Exists(g => g.Code == 102 && g.Value == "ACAD_ROUNDTRIP_PRE2007_TABLE"))
+                {
+                    return;
+                }
+
+                keeper = found;
+                xrecord = HandleOf(found);
+
+                if (xrecord == null)
+                {
+                    return;
+                }
+            }
+
+            if (keeper == null)
+            {
+                string dictionaryHandle = dictionary == null ? NewHandle() : HandleOf(dictionary);
+                xrecord = NewHandle();
+
+                if (dictionaryHandle == null || xrecord == null)
+                {
+                    return;
+                }
+
+                keeper = new Record();
+                keeper.Groups.AddRange(
+                    new[]
+                    {
+                        new Group(0, "XRECORD"),
+                        new Group(5, xrecord),
+                        new Group(102, "{ACAD_REACTORS"),
+                        new Group(330, dictionaryHandle),
+                        new Group(102, "}"),
+                        new Group(330, dictionaryHandle),
+                        new Group(100, "AcDbXrecord"),
+                        Whole(280, 1),
+                    }
+                );
+                _added.Add(keeper);
+
+                if (dictionary == null)
+                {
+                    var made = new Record();
+                    made.Groups.AddRange(
+                        new[]
+                        {
+                            new Group(0, "DICTIONARY"),
+                            new Group(5, dictionaryHandle),
+                            new Group(330, owner),
+                            new Group(100, "AcDbDictionary"),
+                            Whole(280, 1),
+                            Whole(281, 1),
+                            new Group(3, "ACAD_XREC_ROUNDTRIP"),
+                            new Group(360, xrecord),
+                        }
+                    );
+                    _added.Add(made);
+                    table.Groups.InsertRange(
+                        2,
+                        new[]
+                        {
+                            new Group(102, "{ACAD_XDICTIONARY"),
+                            new Group(360, dictionaryHandle),
+                            new Group(102, "}"),
+                        }
+                    );
+                }
+                else
+                {
+                    dictionary.Groups.Add(new Group(3, "ACAD_XREC_ROUNDTRIP"));
+                    dictionary.Groups.Add(new Group(360, xrecord));
+                }
+            }
+
+            string data = NewHandle();
+
+            if (data == null)
+            {
+                return;
+            }
+
+            keeper.Groups.Add(new Group(102, "ACAD_ROUNDTRIP_PRE2007_TABLE"));
+            keeper.Groups.Add(Whole(90, rows));
+            keeper.Groups.Add(Whole(91, columns));
+            keeper.Groups.Add(new Group(102, "ACAD_ROUNDTRIP_PRE2007_TABLECELL"));
+            keeper.Groups.Add(new Group(360, data));
+            AddDataTable(data, xrecord, cells, Masks(cells, rows, columns));
+        }
+
+        /// <summary>
+        /// The data table of a table's cells and the XRECORDs of their values, put among the objects made: the table is named
+        /// <c>ACDBDATATABLE</c> (in the subclass of the same name) in R2000 and <c>DATATABLE</c> (<c>AcDbDataTable</c>) from R2004,
+        /// and has four columns: a real (the checksum), two whole numbers (the mask, and 0) and a handle (the value).
+        /// </summary>
+        private void AddDataTable(string handle, string owner, List<CellData> cells, int[] masks)
+        {
+            bool old = _target < 1018;
+            var values = new List<string>(cells.Count);
+
+            foreach (CellData cell in cells)
+            {
+                string value = NewHandle();
+
+                if (value == null)
+                {
+                    return;
+                }
+
+                values.Add(value);
+            }
+
+            var table = new Record();
+            table.Groups.AddRange(
+                new[]
+                {
+                    new Group(0, old ? "ACDBDATATABLE" : "DATATABLE"),
+                    new Group(5, handle),
+                    new Group(330, owner),
+                    new Group(100, old ? "ACDBDATATABLE" : "AcDbDataTable"),
+                    Whole(70, 2),
+                    Whole(90, 4),
+                    Whole(91, cells.Count),
+                    new Group(1, string.Empty),
+                    Whole(92, 2),
+                    new Group(2, string.Empty),
+                }
+            );
+
+            foreach (CellData cell in cells)
+            {
+                long sum = 0;
+
+                for (int i = 0; i < cell.Text.Length; i++)
+                {
+                    sum += (i + 1) * (long)cell.Text[i];
+                }
+
+                table.Groups.Add(new Group(40, sum.ToString(CultureInfo.InvariantCulture) + ".0"));
+            }
+
+            table.Groups.Add(Whole(92, 1));
+            table.Groups.Add(new Group(2, string.Empty));
+
+            foreach (int mask in masks)
+            {
+                table.Groups.Add(Whole(93, mask));
+            }
+
+            table.Groups.Add(Whole(92, 1));
+            table.Groups.Add(new Group(2, string.Empty));
+
+            foreach (CellData cell in cells)
+            {
+                table.Groups.Add(Whole(93, 0));
+            }
+
+            table.Groups.Add(Whole(92, 6));
+            table.Groups.Add(new Group(2, string.Empty));
+
+            foreach (string value in values)
+            {
+                table.Groups.Add(new Group(360, value));
+            }
+
+            _added.Add(table);
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                CellData cell = cells[i];
+                var record = new Record();
+                record.Groups.AddRange(
+                    new[]
+                    {
+                        new Group(0, "XRECORD"),
+                        new Group(5, values[i]),
+                        new Group(330, handle),
+                        new Group(100, "AcDbXrecord"),
+                        Whole(280, 1),
+                    }
+                );
+
+                // A block holds no value, a text its whole text (in one group, as the checksum is of it), a cell with none is not set.
+                record.Groups.Add(
+                    Whole(
+                        93,
+                        cell.Block ? 3
+                            : cell.HasText ? 6
+                            : 7
+                    )
+                );
+                record.Groups.Add(Whole(90, cell.HasText && !cell.Block ? 4 : 0));
+
+                if (cell.HasText && !cell.Block)
+                {
+                    record.Groups.Add(new Group(1, cell.Text));
+                }
+
+                record.Groups.Add(Whole(94, 0));
+                record.Groups.Add(new Group(300, string.Empty));
+                record.Groups.Add(new Group(302, cell.HasText && !cell.Block ? cell.Text : string.Empty));
+                _added.Add(record);
+            }
         }
 
         #endregion
@@ -591,21 +1017,37 @@ namespace GeometryHelper.Dxf
 
             changes.Add(() => content.Groups = made);
 
-            int part = xrecord.Groups.FindIndex(g => g.Code == 102 && g.Value == "ACAD_ROUNDTRIP_PRE2007_TABLE");
+            // Every part of the round trip of the form before R2007 goes (a table has one), with the data table it points at.
+            var parts = new List<int>();
 
-            if (
-                part >= 0
-                && part + 4 < xrecord.Groups.Count
-                && xrecord.Groups[part + 3].Code == 102
-                && xrecord.Groups[part + 3].Value == "ACAD_ROUNDTRIP_PRE2007_TABLECELL"
-                && xrecord.Groups[part + 4].Code == 360
+            for (
+                int part = xrecord.Groups.FindIndex(g => g.Code == 102 && g.Value == "ACAD_ROUNDTRIP_PRE2007_TABLE");
+                part >= 0;
+                part = xrecord.Groups.FindIndex(part + 1, g =>
+                        g.Code == 102 && g.Value == "ACAD_ROUNDTRIP_PRE2007_TABLE"
+                    )
             )
             {
-                string data = xrecord.Groups[part + 4].Value.Trim();
+                if (
+                    part + 4 < xrecord.Groups.Count
+                    && xrecord.Groups[part + 3].Code == 102
+                    && xrecord.Groups[part + 3].Value == "ACAD_ROUNDTRIP_PRE2007_TABLECELL"
+                    && xrecord.Groups[part + 4].Code == 360
+                )
+                {
+                    parts.Add(part);
+                }
+            }
+
+            if (parts.Count > 0)
+            {
                 changes.Add(() =>
                 {
-                    xrecord.Groups.RemoveRange(part, 5);
-                    _owning.Add(data);
+                    for (int i = parts.Count - 1; i >= 0; i--)
+                    {
+                        _owning.Add(xrecord.Groups[parts[i] + 4].Value.Trim());
+                        xrecord.Groups.RemoveRange(parts[i], 5);
+                    }
                 });
             }
 

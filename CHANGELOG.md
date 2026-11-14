@@ -6,6 +6,39 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A table saved as R2000 or R2004 from R2007 or later keeps the cells of the older form beside it as AutoCAD 2021 does (the
+round trip `ACAD_ROUNDTRIP_PRE2007_TABLE`, made in the extension dictionary of the table where it has none and in the XRECORD of its
+TABLECONTENT where it has one): a data table with a row for each cell, a checksum of the cell's text (the sum of its characters,
+each times its place from 1: 1 579 for Title), a mask of what the cell overrides (its alignment, its background colour and fill,
+the sides that have a border of their own, and on the cell across such an edge the side that faces it) and an XRECORD that holds the
+value of the cell, with the class `ACDBDATATABLE` in R2000 and `DATATABLE` in R2004. The data table of 21 tables AutoCAD made (plain,
+aligned, with styles and heights, colours, borders on each side and on every edge, a block cell with and without an attribute, merged
+cells, text with an accent, a break, a format and 300 characters) and saved as R2000 and R2004 is the one ours has, column for column
+and value for value, and the two tables of AutoCAD's own drawing as well; AutoCAD reads our R2000 and R2004 files back with their
+cells as it saved them (32 of 36 files equal; in the other 4 a border that is not visible, which AutoCAD itself drops in R2000, and a block cell whose scale AutoCAD fits to the cell, are not kept)
+and `AUDIT` finds 0 errors in them. Going up, AutoCAD makes the cells of its own R2000 and R2004 files in the form of R2018 that ours
+makes (54 of 54).
+**FIXED.** A cell of a table going up from R2000 or R2004 had the flag of content (0x40000 in 91) where AutoCAD gives none (a block
+cell, with an attribute value or without; an empty cell with a border on its top alone, 17 472), and lacked it where AutoCAD sets it
+(an empty cell with a border on its right: 454 336 for the groups 275, 278 and 279); a text of more than 250 characters made the
+table the INSERT of its block both ways (AutoCAD cuts it into chunks of 250 in 3 and 1 in R2004 and before, 2 and 1 with the value
+again in 303 and 302 in R2007 and later). The groups 275 and 276 of a border are the right and the bottom, not the bottom and the
+right as the notes said (the mask of the data table showed it); the flags were right.
+**FIXED.** An MTEXT with a background saved as R2000 lost it. It is kept as AutoCAD keeps it, in the extended data of ACAD after the
+line spacing (`ACAD_MTEXT_BBRT` to `ACAD_MTEXT_BERT`: the flags in 91, the scale in 46, the colour in 64 as one number, 0xC3 and its
+index or 0xC2 and its red, green and blue, empty names in 65 and 66 and the transparency in 442): 18 MTEXTs of 6 kinds (index
+colour, the window's background, a true colour, a scale of 2, a transparency of half, none) in R2000, R2004 and R2007 are AutoCAD's
+group for group. Going up, the groups 90, 63, 421, 45 and 441 are made of it as AutoCAD does, but for the transparency, which
+AutoCAD loses (its 441 is 0 where the data holds 33 554 560) and ours keeps; an MTEXT of R2000 going to R2007 or later also has the
+height of its column (46) after its width, as AutoCAD writes it.
+**FIXED.** A solid lofted through circles of different radii (a surface of `loft_spl_sur`) saved from R2018 as R2004 or R2007 was
+written as the text of R2004 holding the record of R2010, which AutoCAD 2021 opens as a solid of no volume and no area (volume
+7 889.8 and area 2 937.9 came out 0 and 0, with two modeling errors); it now goes as the text of R2010, as the bodies R2000 cannot
+hold do, and AutoCAD opens it with the volume and the area of the original in R2000, R2004, R2007, R2010 and R2013 (`AUDIT` 0).
+Still left out of R2000 to R2010, and written as they are into R2013, a solid swept along a spline (3 574 lines of R2010 with a
+`sweep_sur`, against 689 of R2004 with tolerant edges and vertices: AutoCAD's own volumes of it are 7 869.4368 in R2000, 7 869.4905
+in R2004 and R2007 and 7 869.4621 in the others, so no form of ours can be AutoCAD's digit for digit).
+
 **NEW.** The presenter edits a block reference in place, as AutoCAD 2021's REFEDIT: REFEDIT and -REFEDIT ask `Select reference:` (a
 reference selected before is taken), the nested reference to edit where the point picked reaches one (`Reference: A > B`, `Ok`/`Next`) and
 the objects to take (`Automatic`, `Prompt` for points, `Settings` for the attribute definitions and the lock), and copy the objects of the

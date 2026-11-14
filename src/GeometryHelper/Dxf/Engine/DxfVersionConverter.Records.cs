@@ -53,6 +53,11 @@ namespace GeometryHelper.Dxf
 
                     break;
                 case "MTEXT":
+                    if (_target >= 1021 && _source < 1021)
+                    {
+                        ColumnHeight(record);
+                    }
+
                     if (_target < 1032)
                     {
                         Columns(record);
@@ -760,6 +765,7 @@ namespace GeometryHelper.Dxf
                 Whole(1070, 0),
                 new Group(1000, "MTEXTEND"),
             };
+            data.AddRange(BackgroundData(groups, start, end));
             int app = groups.FindIndex(g => g.Code == 1001 && g.Value == "ACAD");
 
             if (app >= 0)
@@ -791,10 +797,93 @@ namespace GeometryHelper.Dxf
             groups.InsertRange(first < 0 ? groups.Count : first, data);
         }
 
-        /// <summary>Takes the extended data of R2000 that repeat the line spacing of an MTEXT (<c>MTEXTBEGIN</c> to <c>MTEXTEND</c>) out, and the application they are the only data of.</summary>
+        /// <summary>Gives an MTEXT going to R2007 or later the height of its column (46) AutoCAD writes after its width (41), a nought where it has none.</summary>
+        private static void ColumnHeight(Record record)
+        {
+            List<Group> groups = record.Groups;
+
+            if (
+                Subclass(groups, "AcDbMText", out int start, out int end)
+                && !groups.Exists(g => g.Code == 46)
+                && groups.FindIndex(start, end - start, g => g.Code == 41) is int width
+                && width >= 0
+            )
+            {
+                groups.Insert(width + 1, new Group(46, "0.0"));
+            }
+        }
+
+        /// <summary>
+        /// The extended data R2000 keeps of the background of an MTEXT (<c>ACAD_MTEXT_BBRT</c> to <c>ACAD_MTEXT_BERT</c>), where R2004
+        /// and later have the groups 90 (the flags, 91 here), 45 (the scale, 46), 63 and 421 (the colour, 64 as one number: 0xC3 in the
+        /// top byte and the index, or 0xC2 and the red, green and blue), an empty colour name (65) and book name (66), and 441 (the
+        /// transparency, 442). No data where the MTEXT has no background (no 90).
+        /// </summary>
+        private List<Group> BackgroundData(List<Group> groups, int start, int end)
+        {
+            var data = new List<Group>();
+            int flags = groups.FindIndex(start, end - start, g => g.Code == 90);
+
+            if (flags < 0)
+            {
+                return data;
+            }
+
+            int Find(int code) => groups.FindIndex(start, end - start, g => g.Code == code);
+
+            int scale = Find(45);
+            int index = Find(63);
+            int rgb = Find(421);
+            int transparency = Find(441);
+            int.TryParse(
+                index < 0 ? "0" : groups[index].Value.Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out int aci
+            );
+            int colour =
+                rgb >= 0
+                && int.TryParse(
+                    groups[rgb].Value.Trim(),
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int value
+                )
+                    ? unchecked((int)(0xC2000000u | (uint)value))
+                    : unchecked((int)(0xC3000000u | (uint)aci));
+
+            data.Add(new Group(1000, "ACAD_MTEXT_BBRT"));
+            data.Add(Whole(1070, 91));
+            data.Add(Whole(1071, WholeValue(groups[flags].Value)));
+            data.Add(Whole(1070, 46));
+            data.Add(new Group(1040, scale < 0 ? "1.5" : groups[scale].Value.Trim()));
+            data.Add(Whole(1070, 64));
+            data.Add(Whole(1071, colour));
+            data.Add(Whole(1070, 65));
+            data.Add(new Group(1000, string.Empty));
+            data.Add(Whole(1070, 66));
+            data.Add(new Group(1000, string.Empty));
+            data.Add(Whole(1070, 442));
+            data.Add(Whole(1071, transparency < 0 ? 0 : WholeValue(groups[transparency].Value)));
+            data.Add(new Group(1000, "ACAD_MTEXT_BERT"));
+            return data;
+        }
+
+        /// <summary>
+        /// Takes the extended data of R2000 that repeat the line spacing of an MTEXT (<c>MTEXTBEGIN</c> to <c>MTEXTEND</c>) out, and
+        /// the application they are the only data of; the background it keeps in the data <c>ACAD_MTEXT_BBRT</c> comes out as the
+        /// groups of R2004 and later, as <see cref="BackgroundData"/> made it.
+        /// </summary>
         private void NoMTextData(Record record)
         {
             List<Group> groups = record.Groups;
+            int background = groups.FindIndex(g => g.Code == 1000 && g.Value == "ACAD_MTEXT_BBRT");
+
+            if (background >= 0)
+            {
+                BackgroundUp(record, background);
+            }
+
             int begin = groups.FindIndex(g => g.Code == 1000 && g.Value == "MTEXTBEGIN");
             int end = begin < 0 ? -1 : groups.FindIndex(begin, g => g.Code == 1000 && g.Value == "MTEXTEND");
 
@@ -809,6 +898,73 @@ namespace GeometryHelper.Dxf
             {
                 groups.RemoveAt(begin - 1);
             }
+        }
+
+        /// <summary>
+        /// Turns the background an MTEXT of R2000 keeps in extended data into its groups (90, 63, 421 where the colour is a true
+        /// one, 45 and 441, at the end of the MTEXT's own), and takes the data out, the application with it where it holds no more.
+        /// </summary>
+        private void BackgroundUp(Record record, int begin)
+        {
+            List<Group> groups = record.Groups;
+            int end = groups.FindIndex(begin, g => g.Code == 1000 && g.Value == "ACAD_MTEXT_BERT");
+
+            if (end < 0 || !Subclass(groups, "AcDbMText", out _, out int stop))
+            {
+                return;
+            }
+
+            // The values, each after the number (1070) that names it.
+            string Of(int name)
+            {
+                for (int i = begin + 1; i + 1 < end; i++)
+                {
+                    if (groups[i].Code == 1070 && groups[i].Value.Trim() == name.ToString(CultureInfo.InvariantCulture))
+                    {
+                        return groups[i + 1].Value.Trim();
+                    }
+                }
+
+                return null;
+            }
+
+            string flags = Of(91);
+            string colour = Of(64);
+
+            if (
+                flags == null
+                || colour == null
+                || !int.TryParse(colour, NumberStyles.Integer, CultureInfo.InvariantCulture, out int packed)
+            )
+            {
+                return;
+            }
+
+            uint bits = unchecked((uint)packed);
+            var made = new List<Group> { Whole(90, WholeValue(flags)) };
+
+            if ((bits >> 24) == 0xC2)
+            {
+                // A true colour: group 63 holds the index nearest it, as AutoCAD writes it (9 for the grey of the window's
+                // background 0xC8C8C8, 102 for 0x0AC81E).
+                made.Add(Whole(63, DxfColor.FromRgb((byte)(bits >> 16), (byte)(bits >> 8), (byte)bits).ColorIndex));
+                made.Add(Whole(421, (int)(bits & 0xFFFFFF)));
+            }
+            else
+            {
+                made.Add(Whole(63, (int)(bits & 0xFFFF)));
+            }
+
+            made.Add(new Group(45, Of(46) ?? "1.5"));
+            made.Add(Whole(441, WholeValue(Of(442) ?? "0")));
+            groups.RemoveRange(begin, end - begin + 1);
+
+            if (begin > 0 && groups[begin - 1].Code == 1001 && (begin == groups.Count || groups[begin].Code == 1001))
+            {
+                groups.RemoveAt(begin - 1);
+            }
+
+            groups.InsertRange(stop, made);
         }
 
         /// <summary>Takes the group 280 R2010 and later write first in an attribute, before its tag (2), out.</summary>
