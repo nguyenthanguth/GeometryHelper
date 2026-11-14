@@ -451,9 +451,13 @@ the ones wanted.
 - [x] Dimension follow-ups 14 (dims14): the angle leader band by AutoCAD's rule on arcs 8 landings out or more (no
       leader where the arc's circle meets the ellipse of foci at the words' box corners, sum 2(K + DIMEXE)); DIMEXE and
       DIMSCALE now move the band (240 out: 264 -> 30, 90 out: 212 -> 76, DIMEXE 2.5: 80 -> 6); harness dims-harness18
-- [ ] (dims15, running) Dimension follow-ups 15: the 1/R term on arcs near 30 out (the rule is up to 1.5 off there; dims12's table kept);
-      a2's one SHX probe (band knot at cos 0.87); t9/t10/t11 short vs wide landing inside a circle (no clean law);
-      d2's SHX R6/R7 ties; t6's diameter turned 6.9 degrees; words on an aligned extension line (15 of 972) (S)
+- [x] Dimension follow-ups 15 (dims15): the angle band rule measures a box corner's distance from the circle and the
+      chord at the radius (the arc unrolled), with the diagonal 0.7 of a landing's sagitta flatter; used from 5.5
+      landings out (e11 165 -> 92, e12 164 -> 69, te11 162 -> 75, e13 94 -> 66); dims12's table kept nearer; e1 0 -> 2
+      (mirror probes 0.016 off the edge); harness dims-harness19
+- [ ] Dimension follow-ups 16: arcs nearer than 5.5 landings (the rule still worse than the table there); e1's two mirror
+      probes; a2's one SHX probe; t9/t10/t11 short vs wide landing (0.43 rms with nine terms, no clean law); d2 R6/R7
+      ties, t6's diameter turned 6.9 degrees, words on an aligned extension line (noise) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc
       ends in a fuzz join (20 cases to 1E-10) (S)
 - [x] REVCLOUD: the 2021 approximate arc length and REVCLOUDARCVARIANCE (from the help); Freehand preview was already in
