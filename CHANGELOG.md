@@ -275,6 +275,24 @@ and say `Invalid operation on a self intersecting multiline.` changing neither m
 an element another segment goes on from (the L (0, 0)-(100, 0)-(100, 100) at scale 20 crossed by a vertical at x = 85, 95 or 100, or by a
 horizontal at y = 5, 10 or 15 across its second segment), as AutoCAD 2021 does. A cut that reaches the end of an element leaves no
 stretch after it and, on the last segment, nothing past the last vertex.
+**CHANGED.** MLEDIT's crosses (CC, OC, MC) and corner joint (CJ) work on the pair of segments AutoCAD 2021 takes and not on the ones
+the two picks lie on: of every pair of segments whose lines meet on both (or past a free end of an open multiline) the one whose meeting
+is nearest the picks, the distance along each multiline from its pick added, the later pair where two are as near. Where none can be
+made, lines that meet past a vertex of one multiline's first or last segment (any segment of a closed one) while the other runs on past
+its free end are `Invalid operation on a self intersecting multiline.` for a cross and, for CJ, nothing said and the first multiline's
+start caps put off, as AutoCAD does; every other miss says `These multilines do not intersect.`. The L (0, 0)-(100, 0)-(100, 100)
+crossed by the L (30, -60)-(30, -40)-(xe, -40) is refused as self intersecting for xe up to 99.9 and does not meet it from 100. A cross
+that runs the last segment on to a line wholly past its end takes nothing out of it, where AutoCAD writes the break inside out and
+draws a stray piece (not copied). 520 AutoCAD results of CC, OC, MC and CJ with open L, U and staircase multilines, 449 equal; 71 are
+left out, 46 of them that stray piece and 25 breaks within 20 of the corner of a staircase. A random run of 250 crosses and one of 249
+corner joints agree with AutoCAD in 221 and 213 cases (the rest: breaks next to a corner, a pick on the meeting point, two corners that
+can both be joined).
+**CHANGED.** A grip or STRETCH that moves a vertex of a closed multiline cut across a vertex reads the cut as it does for an open one
+(AutoCAD 2021's `MoveVertexAt`, the first segment following the last): the square of 100 closed, cut from (100, 50) to (50, 100) across
+(100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for its first element where it held 50. 687 moves probed
+(a square, a triangle and a six-sided staircase, every vertex, cuts across each vertex and inside each segment), 597 equal; the square
+is equal in all 192. Left out: 20 moves of the triangle's cuts across a vertex, where AutoCAD puts no nought in front of the list, 10
+of the staircase's, and 60 moves of the staircase whose MLEDIT cut the presenter already leaves differently than AutoCAD.
 **CHANGED.** A grip or STRETCH that moves a vertex of a multiline cut across a vertex reads the cut as AutoCAD 2021 does: a segment whose
 list is empty or starts after nought goes on from the segment before, so that where the move makes that one whole the list gains a nought
 in front (the L of 100 by 100 cut from (50, 0) to (100, 50), its vertex (100, 0) moved to (100, -10), holds 0 and 60 there), shifted by the

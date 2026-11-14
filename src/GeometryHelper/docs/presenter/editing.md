@@ -260,7 +260,18 @@ broken past the end of an element that another segment goes on from: the L (0, 0
 the vertical (85, -60)-(85, 60), whose second element stands at 105, is refused (a vertical at 80 is crossed; 85, 95 and 100 are refused), and so is a crossing
 of the second segment at y = 5, 10 or 15, where the break starts before the segment does. A cross meets a segment on its line, run
 on past the first segment's start or the last segment's end of an open multiline (a vertical at x = -10 crosses the L; one at
-x = 105 is `These multilines do not intersect.`). CJ near an open end runs the end on to where the lines meet. CS, CA and
+x = 105 is `These multilines do not intersect.`). CJ near an open end runs the end on to where the lines meet. The crosses and the
+corner joint do not work on the segments the picks lie on: of every pair of segments of the two multilines whose lines meet on
+both (or past a free end, as above) AutoCAD 2021 takes the pair whose meeting is nearest the picks, the distance along the first
+multiline from its pick added to that along the second from its pick, the later pair where two are as near (the L above and
+the Z (50, -30)-(50, 30)-(150, 30), picked at (20, 0) and (130, 30), are crossed at (100, 30), though the first pick is on the L's
+first segment, which meets the Z's first at (50, 0) as well). Where no pair can be made the lines may still meet past a vertex of one multiline's
+first or last segment (any segment of a closed one) while the other runs on past its free end: a cross says `Invalid
+operation on a self intersecting multiline.` and a corner joint says nothing and puts that first multiline's start caps off,
+as AutoCAD does; any other miss is `These multilines do not intersect.` (the L crossed by (30, -60)-(30, -40)-(xe, -40) is
+refused as self intersecting for xe up to 99.9 and does not meet it at 100). A cross whose break lies wholly past the free end
+of the last segment (the L crossed by the horizontal (30, 140)-(110, 140)) takes nothing out of it: AutoCAD writes that break
+inside out and draws a stray piece there, which the presenter does not copy. CS, CA and
 WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
 segment up to the second pick: CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
 drawn to 50 and the second from 50 (70 for the bottom element, which starts at the outer corner); round the first vertex of a
@@ -281,7 +292,9 @@ they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0
 the cut is 40 to 70 from it). Where a cut goes across a vertex (the L of 100 by 100 cut from (50, 0) to (100, 50), whose second segment holds 50 for its first
 element), a move that makes the segment before whole puts a nought in front of the next list (the vertex (100, 0) moved to
 (100, -10) holds 0 and 60) and leaves the end of the multiline with nothing past its last vertex; a segment that turns keeps such a
-list as it was, and no stretch goes below nought. STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+list as it was, and no stretch goes below nought. A closed multiline is moved the same way, its first segment following its last (the
+square of 100 cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for
+its first element where it held 50). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
 inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
 times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
 near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at

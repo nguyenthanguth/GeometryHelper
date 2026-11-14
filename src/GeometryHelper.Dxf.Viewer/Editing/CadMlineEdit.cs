@@ -164,21 +164,144 @@ namespace GeometryHelper.Dxf.Viewer
             return left;
         }
 
+        /// <summary>How the search for the two segments that two multilines are crossed or joined at ended.</summary>
+        internal enum PairKind
+        {
+            /// <summary>A pair of segments whose lines meet on both, or past the free end of an open multiline.</summary>
+            Found,
+
+            /// <summary>
+            /// No such pair, but the lines of one meet past a vertex of a multiline's first or last segment (any segment of a
+            /// closed one) while the other runs on past its free end: AutoCAD 2021 refuses it without saying the lines miss.
+            /// </summary>
+            Refused,
+
+            /// <summary>No pair of segments whose lines meet where both can be run to.</summary>
+            NoMeeting,
+        }
+
         /// <summary>
-        /// Crosses two multilines, each at the segment nearest where it was picked: the lines of the two segments have to meet
-        /// within both. Each element of the target named is broken from where it meets the one outer element of the other
-        /// multiline to where it meets the other, as AutoCAD's closed, open and merged crosses break them.
+        /// Finds the pair of segments two multilines are crossed or joined at, as AutoCAD 2021 does: not the segments the picks lie
+        /// on, but of every pair of segments whose lines meet on both (or past the start of an open multiline's first segment or
+        /// the end of its last) the one whose meeting is nearest the two picks along the multilines, the distance along the first
+        /// from its pick and along the second from its pick added (a tie goes to the later pair). Two segments in a pair whose
+        /// lines run parallel are not a pair.
+        /// </summary>
+        /// <param name="first">The first multiline.</param>
+        /// <param name="firstPick">Where the first was picked.</param>
+        /// <param name="second">The second multiline.</param>
+        /// <param name="secondPick">Where the second was picked.</param>
+        /// <param name="firstSegment">The segment of the first the pair has.</param>
+        /// <param name="secondSegment">The segment of the second the pair has.</param>
+        internal static PairKind FindPair(
+            DxfMlineBuilder first,
+            GeoPoint3 firstPick,
+            DxfMlineBuilder second,
+            GeoPoint3 secondPick,
+            out int firstSegment,
+            out int secondSegment
+        )
+        {
+            firstSegment = 0;
+            secondSegment = 0;
+            double firstArc = ArcAt(first, firstPick);
+            double secondArc = ArcAt(second, secondPick);
+            bool found = false;
+            bool refused = false;
+            double best = 0.0;
+
+            for (int i = 0; i < first.SegmentCount; i++)
+            {
+                for (int j = 0; j < second.SegmentCount; j++)
+                {
+                    if (
+                        !Meet(
+                            first.Points[i],
+                            first.SegmentDirection(i),
+                            second.Points[j],
+                            second.SegmentDirection(j),
+                            out double onFirst,
+                            out double onSecond
+                        )
+                    )
+                    {
+                        continue;
+                    }
+
+                    bool firstOn = OnSegmentOrItsOpenEnd(first, i, onFirst);
+                    bool secondOn = OnSegmentOrItsOpenEnd(second, j, onSecond);
+
+                    if (firstOn && secondOn)
+                    {
+                        double score =
+                            Math.Abs(firstArc - (ArcStart(first, i) + onFirst))
+                            + Math.Abs(secondArc - (ArcStart(second, j) + onSecond));
+
+                        if (!found || score <= best + Tiny)
+                        {
+                            found = true;
+                            best = score;
+                            firstSegment = i;
+                            secondSegment = j;
+                        }
+                    }
+                    else if (firstOn != secondOn)
+                    {
+                        // One line meets the other past a vertex of its segment while the other segment is run on past a free end.
+                        refused |= secondOn
+                            ? EndLike(first, i) && Beyond(second, j, onSecond)
+                            : EndLike(second, j) && Beyond(first, i, onFirst);
+                    }
+                }
+            }
+
+            return found ? PairKind.Found
+                : refused ? PairKind.Refused
+                : PairKind.NoMeeting;
+        }
+
+        /// <summary>Whether a segment is the first or last of an open multiline, or any segment of a closed one.</summary>
+        private static bool EndLike(DxfMlineBuilder mline, int segment) =>
+            mline.IsClosed || segment == 0 || segment == mline.SegmentCount - 1;
+
+        /// <summary>Whether a point along a segment's line is before its start or past its end.</summary>
+        private static bool Beyond(DxfMlineBuilder mline, int segment, double along) =>
+            along < -Tiny || along > Length(mline, segment) + Tiny;
+
+        /// <summary>The distance along a multiline's line from its start to the start of a segment.</summary>
+        private static double ArcStart(DxfMlineBuilder mline, int segment)
+        {
+            double arc = 0.0;
+
+            for (int s = 0; s < segment; s++)
+            {
+                arc += Length(mline, s);
+            }
+
+            return arc;
+        }
+
+        /// <summary>The distance along a multiline's line from its start to the point of the line nearest a pick.</summary>
+        private static double ArcAt(DxfMlineBuilder mline, GeoPoint3 pick)
+        {
+            Nearest(mline, pick, out int segment, out int _);
+            double along = mline.Points[segment].GetVectorTo(pick).DotProduct(mline.SegmentDirection(segment));
+            return ArcStart(mline, segment) + Math.Max(0.0, Math.Min(Length(mline, segment), along));
+        }
+
+        /// <summary>
+        /// Crosses two multilines at a pair of segments <see cref="FindPair"/> found. Each element of the target named is broken
+        /// from where it meets the one outer element of the other multiline to where it meets the other, as AutoCAD's closed,
+        /// open and merged crosses break them.
         /// </summary>
         /// <param name="first">The multiline whose elements are all broken.</param>
-        /// <param name="firstSegment">The segment of the first the pick was on.</param>
+        /// <param name="firstSegment">The segment of the first that is crossed.</param>
         /// <param name="second">The multiline that crosses it.</param>
-        /// <param name="secondSegment">The segment of the second the pick was on.</param>
+        /// <param name="secondSegment">The segment of the second that crosses it.</param>
         /// <param name="joint">Closed, open or merged.</param>
         /// <param name="selfIntersecting">True where an element breaks past the end of an element where another segment goes on,
         /// as AutoCAD 2021 refuses with "Invalid operation on a self intersecting multiline." leaving both multilines as they were.</param>
-        /// <returns>False where the segments' lines do not cross within both, the first or last segment of an open multiline
-        /// being run on past its end.</returns>
-        internal static bool Cross(
+        internal static void Cross(
             DxfMlineBuilder first,
             int firstSegment,
             DxfMlineBuilder second,
@@ -188,25 +311,6 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             selfIntersecting = false;
-            GeoVector3 firstWay = first.SegmentDirection(firstSegment);
-            GeoVector3 secondWay = second.SegmentDirection(secondSegment);
-
-            if (
-                !Meet(
-                    first.Points[firstSegment],
-                    firstWay,
-                    second.Points[secondSegment],
-                    secondWay,
-                    out double onFirst,
-                    out double onSecond
-                )
-                || !OnSegmentOrItsOpenEnd(first, firstSegment, onFirst)
-                || !OnSegmentOrItsOpenEnd(second, secondSegment, onSecond)
-            )
-            {
-                return false;
-            }
-
             Outer(first, out int firstLeast, out int firstMost);
             List<int> secondOuter = Outer(second, out int secondLeast, out int secondMost);
             var all = new List<int>();
@@ -223,7 +327,7 @@ namespace GeometryHelper.Dxf.Viewer
                 // element, or a pair the other has none as deep of, runs through.
                 BreakPairs(first, firstSegment, second, secondSegment, ref selfIntersecting);
                 BreakPairs(second, secondSegment, first, firstSegment, ref selfIntersecting);
-                return true;
+                return;
             }
 
             Break(first, firstSegment, all, second, secondSegment, secondLeast, secondMost, ref selfIntersecting);
@@ -241,8 +345,6 @@ namespace GeometryHelper.Dxf.Viewer
                     ref selfIntersecting
                 );
             }
-
-            return true;
         }
 
         /// <summary>
@@ -328,6 +430,14 @@ namespace GeometryHelper.Dxf.Viewer
                     .DotProduct(way);
                 double from = Math.Min(a, b);
                 double to = Math.Max(a, b);
+
+                // A break wholly past the free end of the last segment (a cross that runs the segment on) takes nothing out of
+                // the element. AutoCAD writes it inside out and draws a stray piece there, which is not copied.
+                if (!target.IsClosed && segment == target.SegmentCount - 1 && from >= lengthOfElement - Tiny)
+                {
+                    continue;
+                }
+
                 List<DxfMlineBuilder.Run> runs = Without(target.RunsOf(segment, e), from, to);
 
                 // A stretch that would start at the end of the element is nothing to draw, as AutoCAD writes it.

@@ -226,7 +226,9 @@ namespace GeometryHelper.Dxf
         /// segment before. Where the segment before is made whole by the move and was not, the list gains a nought in front
         /// (the vertex (100, 0) moved to (100, -10) holds 0 and 60), shifted by the way the vertex moved and not the element's
         /// start, and the end of the multiline is left with nothing past its last vertex; a segment that turns keeps such a
-        /// list as it was.
+        /// list as it was. A closed multiline is moved the same way, its first segment following its last: the square of 100
+        /// closed, cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50
+        /// there for its first element where it held 50.
         /// </summary>
         /// <param name="index">The index of the point, from nought.</param>
         /// <param name="point">Where it goes.</param>
@@ -331,13 +333,14 @@ namespace GeometryHelper.Dxf
                 {
                     List<double> tail = kept[i][e];
 
-                    // An open multiline's stretches follow AutoCAD 2021, which reads a list that is empty or starts after
-                    // nought as going on from the segment before (a cut across the vertex) and not as a stretch of its own. The
-                    // segment before drawn at its end where it was not puts a nought in front of the list (an empty list
-                    // becomes a nought), and the end of the multiline is left with nothing past its last vertex. A segment that
-                    // turns is drawn whole again but for those, which it keeps as they were; one that keeps its way shifts a
-                    // list that goes on by the way the vertex moved, not the element's start, and no stretch goes below nought.
-                    bool goesOn = !IsClosed && i < segments && (tail.Count == 0 || tail[0] > 0.0);
+                    // AutoCAD 2021 reads a list that is empty or starts after nought as going on from the segment before (a
+                    // cut across the vertex) and not as a stretch of its own; the segment before a closed multiline's first
+                    // is its last. The segment before drawn at its end where it was not puts a nought in front of the list (an
+                    // empty list becomes a nought), and the end of an open multiline is left with nothing past its last vertex.
+                    // A segment that turns is drawn whole again but for those, which it keeps as they were; one that keeps its
+                    // way shifts a list that goes on by the way the vertex moved, not the element's start, and no stretch of an
+                    // open multiline goes below nought.
+                    bool goesOn = i < segments && (tail.Count == 0 || tail[0] > 0.0);
 
                     if (turned > Tolerance.Default.EqualVector)
                     {
@@ -370,10 +373,13 @@ namespace GeometryHelper.Dxf
                         if (IsClosed && i < segments)
                         {
                             SetRuns(i, e, RunsOf(i, e));
+                            tail = kept[i][e];
                         }
                     }
 
-                    if (goesOn && i > 0 && nowDrawn[i - 1][e] && !endsDrawn[i - 1][e])
+                    int before = IsClosed ? (i + places - 1) % places : i - 1;
+
+                    if (goesOn && before >= 0 && nowDrawn[before][e] && !endsDrawn[before][e])
                     {
                         tail.Insert(0, 0.0);
                         readAgain[e] = true;
