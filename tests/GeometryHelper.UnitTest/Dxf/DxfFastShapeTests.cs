@@ -108,6 +108,15 @@ namespace GeometryHelper.UnitTest.Dxf
                 ? n
                 : fallback;
 
+        /// <summary>Whether a type is one the file reads from the bytes of its record where it can.</summary>
+        private static bool ReadFast(string type) =>
+            type == "LINE"
+            || type == "ARC"
+            || type == "CIRCLE"
+            || type == "LWPOLYLINE"
+            || type == "TEXT"
+            || type == "MTEXT";
+
         /// <summary>A file of R2000 of these entities, as <see cref="DxfLines.R2000"/> writes one.</summary>
         private static DxfFile FileOf(string entities) => DxfFile.Parse(R2000(entities));
 
@@ -126,16 +135,15 @@ namespace GeometryHelper.UnitTest.Dxf
 
             foreach (DxfItem item in items)
             {
-                if (item.Type != "LINE" && item.Type != "ARC" && item.Type != "CIRCLE" && item.Type != "LWPOLYLINE")
+                if (!ReadFast(item.Type))
                 {
                     continue;
                 }
 
                 string fast = Bits(file.ShapesOf(item));
                 string slow = Bits(file.ShapesReadLong(item));
-                DxfFile.Rec own = file.RecordAt(item, 0);
 
-                if (DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out object made))
+                if (file.TryFastShape(item, out object made))
                 {
                     taken++;
 
@@ -758,6 +766,218 @@ namespace GeometryHelper.UnitTest.Dxf
             return Text(rnd, "LWPOLYLINE", handle, groups);
         }
 
+        /// <summary>
+        /// The words of a text: plain, with the signs %%c, %%d, %%p and %%nnn, carets, escapes of a letter, letters beyond ASCII,
+        /// and for an MTEXT its formatting; a line feed or a carriage return of a TEXT's own comes from its carets.
+        /// </summary>
+        private static string Words(Random rnd, bool multiline)
+        {
+            string[] pieces =
+            {
+                "Beam",
+                "B1",
+                "PL 20x300",
+                " ",
+                "100%%c",
+                "45%%d",
+                "%%p0.5",
+                "%%%",
+                "%%065",
+                "%%x",
+                "50%%",
+                "a^Jb",
+                "a^Mb",
+                "x^Iy",
+                "^ ",
+                "x^@z",
+                "tail^",
+                "\\U+00E9",
+                "\\U+0110",
+                "\\U+005CP",
+                "\\U+0000",
+                "\\U+12",
+                "\\M+1A4A1",
+                "caf\u00e9",
+                "\u0110\u1ea1",
+                "\\P",
+                "\\N",
+                "\\S1/2;",
+                "\\S1^2;",
+                "\\S1#2",
+                "\\fArial|b0|i0;",
+                "{\\C1;red}",
+                "\\L\\l\\O\\o\\K\\k",
+                "\\~",
+                "\\\\",
+                "\\{x\\}",
+                "\\A1;",
+                "\\H2.5x;",
+                "\\Q",
+                "{",
+                "}",
+            };
+
+            var text = new StringBuilder();
+            int n = rnd.Next(12) == 0 ? 0 : rnd.Next(1, multiline ? 6 : 4);
+
+            for (int i = 0; i < n; i++)
+            {
+                text.Append(pieces[rnd.Next(pieces.Length)]);
+
+                if (rnd.Next(3) == 0)
+                {
+                    text.Append(rnd.Next(100));
+                }
+            }
+
+            if (rnd.Next(25) == 0)
+            {
+                text.Append(' ', rnd.Next(1, 4));
+            }
+
+            if (rnd.Next(40) == 0)
+            {
+                text.Insert(0, ' ');
+            }
+
+            return text.ToString();
+        }
+
+        private static string PlainText(Random rnd, int handle)
+        {
+            var groups = new List<KeyValuePair<int, string>>();
+            Maybe(rnd, groups, 10, Coordinate(rnd), 40);
+            Maybe(rnd, groups, 20, Coordinate(rnd), 40);
+            Maybe(rnd, groups, 30, rnd.Next(3) == 0 ? Coordinate(rnd) : 0.0, 4);
+            Maybe(rnd, groups, 40, Size(rnd), 40);
+            groups.Add(new KeyValuePair<int, string>(1, Words(rnd, false)));
+
+            if (rnd.Next(2) == 0)
+            {
+                Maybe(rnd, groups, 50, Angle(rnd), 8);
+            }
+
+            if (rnd.Next(3) == 0)
+            {
+                Maybe(rnd, groups, 41, rnd.Next(5) == 0 ? -1.0 : rnd.NextDouble() * 3.0, 10);
+            }
+
+            if (rnd.Next(4) == 0)
+            {
+                // Aligned or fitted on the baseline start at the first point, any other alignment at the second.
+                groups.Add(new KeyValuePair<int, string>(72, rnd.Next(25) == 0 ? "x" : rnd.Next(0, 6).ToString(Inv)));
+            }
+
+            if (rnd.Next(4) == 0)
+            {
+                groups.Add(new KeyValuePair<int, string>(73, rnd.Next(25) == 0 ? "1.5" : rnd.Next(0, 4).ToString(Inv)));
+            }
+
+            if (rnd.Next(3) == 0)
+            {
+                Maybe(rnd, groups, 11, Coordinate(rnd), 30);
+                Maybe(rnd, groups, 21, Coordinate(rnd), 30);
+                Maybe(rnd, groups, 31, rnd.Next(3) == 0 ? Coordinate(rnd) : 0.0, 4);
+            }
+
+            if (rnd.Next(5) == 0)
+            {
+                groups.Add(new KeyValuePair<int, string>(51, Num(rnd, Angle(rnd) / 10.0)));
+            }
+
+            if (rnd.Next(4) == 0)
+            {
+                groups.Add(new KeyValuePair<int, string>(7, "Standard"));
+            }
+
+            if (rnd.Next(6) == 0)
+            {
+                Extrusion(rnd, groups);
+            }
+
+            Noise(rnd, groups);
+
+            if (rnd.Next(5) == 0)
+            {
+                Shuffle(rnd, groups);
+            }
+
+            return Text(rnd, "TEXT", handle, groups);
+        }
+
+        private static string MultilineText(Random rnd, int handle)
+        {
+            var groups = new List<KeyValuePair<int, string>>();
+            Maybe(rnd, groups, 10, Coordinate(rnd), 40);
+            Maybe(rnd, groups, 20, Coordinate(rnd), 40);
+            Maybe(rnd, groups, 30, rnd.Next(3) == 0 ? Coordinate(rnd) : 0.0, 4);
+            Maybe(rnd, groups, 40, Size(rnd), 40);
+            Maybe(rnd, groups, 41, rnd.Next(4) == 0 ? -5.0 : rnd.NextDouble() * 500.0, 4);
+
+            for (int i = rnd.Next(4) == 0 ? rnd.Next(1, 4) : 0; i > 0; i--)
+            {
+                groups.Add(new KeyValuePair<int, string>(3, Words(rnd, true)));
+            }
+
+            groups.Add(new KeyValuePair<int, string>(1, Words(rnd, true)));
+
+            if (rnd.Next(3) == 0)
+            {
+                Maybe(rnd, groups, 11, rnd.Next(3) == 0 ? 0.0 : Coordinate(rnd), 30);
+                Maybe(rnd, groups, 21, rnd.Next(3) == 0 ? 0.0 : Coordinate(rnd), 30);
+                Maybe(rnd, groups, 31, rnd.Next(3) == 0 ? Coordinate(rnd) : 0.0, 4);
+            }
+
+            if (rnd.Next(2) == 0)
+            {
+                Maybe(rnd, groups, 50, Angle(rnd), 8);
+            }
+
+            if (rnd.Next(3) == 0)
+            {
+                groups.Add(new KeyValuePair<int, string>(71, rnd.Next(25) == 0 ? "x" : rnd.Next(1, 10).ToString(Inv)));
+                groups.Add(new KeyValuePair<int, string>(72, rnd.Next(1, 6).ToString(Inv)));
+            }
+
+            if (rnd.Next(6) == 0)
+            {
+                Extrusion(rnd, groups);
+            }
+
+            Noise(rnd, groups);
+
+            if (rnd.Next(5) == 0)
+            {
+                Shuffle(rnd, groups);
+            }
+
+            // An object embedded of R2018, whose groups 10, 11, 40, 41, 1 and 3 are the columns', not the text's.
+            if (rnd.Next(5) == 0)
+            {
+                int at = rnd.Next(groups.Count + 1);
+                var inner = new List<KeyValuePair<int, string>>
+                {
+                    new KeyValuePair<int, string>(101, "Embedded Object"),
+                    new KeyValuePair<int, string>(10, Num(rnd, Coordinate(rnd))),
+                    new KeyValuePair<int, string>(11, Num(rnd, Coordinate(rnd))),
+                    new KeyValuePair<int, string>(40, Num(rnd, Size(rnd))),
+                    new KeyValuePair<int, string>(41, Num(rnd, Size(rnd))),
+                    new KeyValuePair<int, string>(1, Words(rnd, true)),
+                    new KeyValuePair<int, string>(3, Words(rnd, true)),
+                    new KeyValuePair<int, string>(210, Num(rnd, Coordinate(rnd))),
+                };
+
+                if (rnd.Next(12) == 0)
+                {
+                    inner.Add(new KeyValuePair<int, string>(rnd.Next(2) == 0 ? 42 : 72, "bad"));
+                }
+
+                groups.InsertRange(at, inner);
+            }
+
+            return Text(rnd, "MTEXT", handle, groups);
+        }
+
         private static string Record(Random rnd, string type, int handle)
         {
             switch (type)
@@ -768,6 +988,10 @@ namespace GeometryHelper.UnitTest.Dxf
                     return Round(rnd, handle, false);
                 case "ARC":
                     return Round(rnd, handle, true);
+                case "TEXT":
+                    return PlainText(rnd, handle);
+                case "MTEXT":
+                    return MultilineText(rnd, handle);
                 default:
                     return Lightweight(rnd, handle);
             }
@@ -815,6 +1039,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("CIRCLE", 12)]
         [InlineData("ARC", 13)]
         [InlineData("LWPOLYLINE", 14)]
+        [InlineData("TEXT", 15)]
+        [InlineData("MTEXT", 16)]
         public void RecordsOfEveryOrderAndNumberFormat_ReadFastAndLong_GiveTheSameShapesToTheBit(string type, int seed)
         {
             var wrong = new List<string>();
@@ -864,16 +1090,16 @@ namespace GeometryHelper.UnitTest.Dxf
                     items.AddRange(block.Items);
                 }
 
-                records += items.Count(i =>
-                    i.Type == "LINE" || i.Type == "ARC" || i.Type == "CIRCLE" || i.Type == "LWPOLYLINE"
-                );
+                records += items.Count(i => ReadFast(i.Type));
                 taken += Compare(file, items, wrong, item =>
                     Path.GetFileName(path) + " " + item.Type + " " + item.Handle
                 );
             }
 
             Assert.Empty(wrong.Take(3));
-            _output.WriteLine(records + " LINE, ARC, CIRCLE and LWPOLYLINE records, " + taken + " read fast");
+            _output.WriteLine(
+                records + " LINE, ARC, CIRCLE, LWPOLYLINE, TEXT and MTEXT records, " + taken + " read fast"
+            );
             Assert.True(taken > 0 || records == 0);
         }
 
@@ -904,8 +1130,7 @@ namespace GeometryHelper.UnitTest.Dxf
             string line = G(0, "LINE", 5, "A1", 10, "0", 20, "0", 30, "0") + "11\n" + written + "\n 21\n3\n 31\n0\n";
             DxfFile file = FileOf(line);
             DxfItem item = file.ModelSpace.Single();
-            DxfFile.Rec own = file.RecordAt(item, 0);
-            bool fast = DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out object made);
+            bool fast = file.TryFastShape(item, out object made);
 
             Assert.True(fast);
             Assert.Equal(Bits(file.ShapesReadLong(item)), Bits(file.ShapesOf(item)));
@@ -933,6 +1158,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [InlineData("CIRCLE")]
         [InlineData("ARC")]
         [InlineData("LWPOLYLINE")]
+        [InlineData("TEXT")]
+        [InlineData("MTEXT")]
         public void ARecordReadFast_IsReadTheSameOnceItsGroupsAreWrittenBack(string type)
         {
             var wrong = new List<string>();
@@ -954,11 +1181,43 @@ namespace GeometryHelper.UnitTest.Dxf
                     + G(0, "ENDSEC", 0, "EOF")
             );
             DxfItem item = file.ModelSpace.Single();
-            DxfFile.Rec own = file.RecordAt(item, 0);
 
-            Assert.False(DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out _));
+            Assert.False(file.TryFastShape(item, out _));
             Assert.Equal(Bits(file.ShapesReadLong(item)), Bits(file.ShapesOf(item)));
             Assert.Single(file.ShapesOf(item));
+        }
+
+        [Theory]
+        [InlineData("Steel")]
+        [InlineData("  Steel\t")]
+        [InlineData("STEEL")]
+        [InlineData("Ste\\U+00E9l")]
+        [InlineData("")]
+        [InlineData("0")]
+        [InlineData(null)]
+        public void TheLayerOfAnEntityOfTheDrawing_ReadFromItsBytes_SpellsThePlacedLayerAsTheReaderDoes(string layer)
+        {
+            string block =
+                G(0, "SECTION", 2, "BLOCKS", 0, "BLOCK", 8, "0", 2, "B", 70, 0, 10, 0, 20, 0, 30, 0, 3, "B")
+                + G(0, "LINE", 5, "B1", 8, "STEEL", 10, 0, 20, 0, 11, 5, 21, 5)
+                + G(0, "ENDBLK", 8, "0", 0, "ENDSEC");
+            string own =
+                layer == null
+                    ? G(0, "CIRCLE", 5, "A1", 10, 0, 20, 0, 40, 3)
+                    : G(0, "CIRCLE", 5, "A1", 999, "c", 8, layer, 8, "Other", 10, 0, 20, 0, 40, 3);
+            string text = DxfLines.File(
+                "AC1015",
+                4,
+                block,
+                own + G(0, "INSERT", 5, "A2", 8, "Notes", 2, "B", 10, 100, 20, 0, 30, 0)
+            );
+
+            DxfFile file = DxfFile.Parse(text);
+            var insert = (DxfInsert)file.ModelSpace.Last().Shape;
+            string[] read = DxfReader.Parse(text).Shapes.Select(s => s.Layer).ToArray();
+            string[] placed = insert.GetPlacedEntities().Select(s => s.Layer).ToArray();
+
+            Assert.Equal(read.Last(), Assert.Single(placed));
         }
 
         [Fact]
@@ -966,9 +1225,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfFile file = FileOf(G(0, "POINT", 5, "A4", 10, "1", 20, "2", 30, "0"));
             DxfItem item = file.ModelSpace.Single();
-            DxfFile.Rec own = file.RecordAt(item, 0);
 
-            Assert.False(DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out _));
+            Assert.False(file.TryFastShape(item, out _));
         }
 
         [Fact]
@@ -976,9 +1234,8 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             DxfFile file = FileOf(G(0, "ARC", 5, "A5", 10, "0", 20, "0", 40, "0.001", 50, "0", 51, "90"));
             DxfItem item = file.ModelSpace.Single();
-            DxfFile.Rec own = file.RecordAt(item, 0);
 
-            Assert.False(DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out _));
+            Assert.False(file.TryFastShape(item, out _));
             Assert.Empty(file.ShapesOf(item));
         }
 
@@ -994,9 +1251,8 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfFile file = FileOf(text.ToString());
             DxfItem item = file.ModelSpace.Single();
-            DxfFile.Rec own = file.RecordAt(item, 0);
 
-            Assert.True(DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tol, out object made));
+            Assert.True(file.TryFastShape(item, out object made));
             Assert.Equal(Bits(file.ShapesReadLong(item)), Bits(made));
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Numerics;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Export
 {
@@ -232,9 +233,40 @@ namespace GeometryHelper.Export
         /// the guess moved a step at a time, judged in integers, until the text rounds to it. Of a text of more than 800
         /// significant digits the rest count only as whether any is not nought. Spaces either side are allowed; a sign, digits
         /// with at most one point, and an exponent are read; anything else, NaN and the infinities among them, and a number too
-        /// large for a double, is not a number.
+        /// large for a double, is not a number. A text of up to 19 digits and an exponent of up to three is read from its
+        /// digits and the power of ten with no array made, by <see cref="DxfFastNumber"/>, which gives the double the long way
+        /// does or says it is not sure of it; the long way, <see cref="TryReadLong"/>, reads whatever it is not sure of.
         /// </remarks>
         internal static bool TryRead(string text, out double value)
+        {
+            value = 0.0;
+
+            if (text == null)
+            {
+                return false;
+            }
+
+            int at = 0;
+            int end = text.Length;
+
+            while (at < end && char.IsWhiteSpace(text[at]))
+            {
+                at++;
+            }
+
+            while (end > at && char.IsWhiteSpace(text[end - 1]))
+            {
+                end--;
+            }
+
+            return DxfFastNumber.TryText(text, at, end, out value) || TryReadLong(text, out value);
+        }
+
+        /// <summary>
+        /// Reads a number as <see cref="TryRead"/> does, always the long way: the digits kept in an array, and a number that
+        /// is not a double exactly nor a quick product judged in integers from a guess.
+        /// </summary>
+        internal static bool TryReadLong(string text, out double value)
         {
             value = 0.0;
 

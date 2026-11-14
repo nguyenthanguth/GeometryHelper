@@ -52,11 +52,32 @@ namespace GeometryHelper.UnitTest.Dxf
         {
             byte[] bytes = Encoding.ASCII.GetBytes(text);
             bool fast = DxfFastNumber.TryReal(bytes, 0, bytes.Length, out double got);
-            bool slow = Numbers.TryRead(text, out double expected);
+            bool slow = Numbers.TryReadLong(text, out double expected);
 
             if (fast != slow)
             {
                 return "'" + text + "' read " + fast + " by the fast reader, " + slow + " by the number reader";
+            }
+
+            // The reader's own entry, which takes the fast read of a string first, gives what the long way gives.
+            bool entry = Numbers.TryRead(text, out double entered);
+
+            if (
+                entry != slow
+                || (slow && BitConverter.DoubleToInt64Bits(entered) != BitConverter.DoubleToInt64Bits(expected))
+            )
+            {
+                return "'"
+                    + text
+                    + "' read "
+                    + entry
+                    + " as "
+                    + entered.ToString("R", Inv)
+                    + " by TryRead, "
+                    + slow
+                    + " as "
+                    + expected.ToString("R", Inv)
+                    + " by TryReadLong";
             }
 
             return fast && BitConverter.DoubleToInt64Bits(got) != BitConverter.DoubleToInt64Bits(expected)
@@ -333,6 +354,145 @@ namespace GeometryHelper.UnitTest.Dxf
             }
 
             Check(texts);
+        }
+
+        [Theory]
+        [InlineData("9007199254740993", true)]
+        [InlineData("9007199254740995", true)]
+        [InlineData("18014398509481986", true)]
+        [InlineData("18014398509481987", true)]
+        [InlineData("9007199254740993e5", true)]
+        [InlineData("1.8014398509481987e16", true)]
+        [InlineData("9223372036854775809", true)]
+        [InlineData("90071992547409930000", false)]
+        public void AnExactTieBetweenTwoDoubles_OfWholeDigitsTimesAPowerOfTen_IsSettledByTheFastReadAlone(
+            string text,
+            bool settled
+        )
+        {
+            // The power of ten is held whole by the 128 bits, so the product is exact and a tie goes to the even double: no
+            // second end of a range to disagree with the first, and nothing left to the long way. Of 20 digits there is no
+            // such product, and the long way reads it.
+            bool sure = DxfFastNumber.TryText(text, 0, text.Length, out double fast);
+            bool read = Numbers.TryReadLong(text, out double expected);
+
+            Assert.True(read);
+            Assert.Equal(settled, sure);
+
+            if (sure)
+            {
+                Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(fast));
+            }
+        }
+
+        /// <summary>The letters of these code points, written as numbers so that no editor or tool turns them into other letters.</summary>
+        private static string Beyond(params int[] codePoints) =>
+            string.Concat(Array.ConvertAll(codePoints, char.ConvertFromUtf32));
+
+        [Fact]
+        public void ATextWithLettersBeyondAscii_IsReadByTheNumberReaderAsTheLongWayReadsIt()
+        {
+            // No-break and em spaces, Arabic-Indic and full-width digits, a Kelvin sign, a vulgar fraction, a NUL.
+            string[] texts =
+            {
+                Beyond(0xA0) + "12.5",
+                "12.5" + Beyond(0x2003),
+                Beyond(0xA0, 0xA0) + " -3e2 " + Beyond(0xA0),
+                Beyond(0x661, 0x662),
+                Beyond(0xFF11, 0xFF12) + "." + Beyond(0xFF15),
+                "1" + Beyond(0xA0) + "2",
+                "12.5\0",
+                Beyond(0xA0),
+                "1e" + Beyond(0x661),
+                "1" + Beyond(0x212A),
+                Beyond(0xBD),
+            };
+
+            foreach (string text in texts)
+            {
+                bool entry = Numbers.TryRead(text, out double entered);
+                bool slow = Numbers.TryReadLong(text, out double expected);
+
+                Assert.Equal(slow, entry);
+                Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(entered));
+            }
+        }
+
+        [Fact]
+        public void EveryValueOfEveryGroupOfTheDrawingsOfAFolder_IsReadByTryReadAsTheLongWayReadsIt()
+        {
+            // GH_DXF_CORPUS names a folder of DXF files: the text of each group, a number or not, is read both ways.
+            string folder = Environment.GetEnvironmentVariable("GH_DXF_CORPUS");
+
+            if (string.IsNullOrEmpty(folder) || !System.IO.Directory.Exists(folder))
+            {
+                return;
+            }
+
+            var wrong = new List<string>();
+            int texts = 0;
+            int numbers = 0;
+
+            foreach (string path in System.IO.Directory.GetFiles(folder, "*.dxf"))
+            {
+                DxfFile file;
+
+                try
+                {
+                    file = DxfFile.Open(path);
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+
+                var items = new List<DxfItem>(file.ModelSpace);
+                items.AddRange(file.PaperSpace);
+
+                foreach (DxfFileBlock block in file.Blocks.Values)
+                {
+                    items.AddRange(block.Items);
+                }
+
+                foreach (DxfItem item in items)
+                {
+                    foreach (DxfTypedValue group in item.Groups)
+                    {
+                        string text = group.Value;
+
+                        if (text == null)
+                        {
+                            continue;
+                        }
+
+                        texts++;
+                        bool entry = Numbers.TryRead(text, out double entered);
+                        bool slow = Numbers.TryReadLong(text, out double expected);
+                        numbers += slow ? 1 : 0;
+
+                        if (
+                            (
+                                entry != slow
+                                || BitConverter.DoubleToInt64Bits(entered) != BitConverter.DoubleToInt64Bits(expected)
+                            )
+                            && wrong.Count < 5
+                        )
+                        {
+                            wrong.Add(System.IO.Path.GetFileName(path) + ": '" + text + "'");
+                        }
+                    }
+                }
+            }
+
+            Assert.Empty(wrong);
+            Assert.True(numbers > 0 || texts == 0);
+        }
+
+        [Fact]
+        public void ANullText_IsNotANumber()
+        {
+            Assert.False(Numbers.TryRead(null, out double value));
+            Assert.Equal(0.0, value);
         }
     }
 }

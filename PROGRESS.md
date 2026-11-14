@@ -344,7 +344,7 @@ User note 2026-11-12 evening (note.md 1-14):
       (the rest keep the exact volume where AutoCAD writes a 1E-5 approximation), R2010 SAT line for line, AUDIT 0;
       table data going down ~20 % faster, bytes identical. DECIDED: a SAB normal one bit off unit is normalised
       (matches AutoCAD after DxfIn)
-- [ ] DXF versions follow-ups 8: AutoCAD's read-time table building for tables made by our API (CELLSTYLEMAP
+- [ ] (dxfver8, running) DXF versions follow-ups 8: AutoCAD's read-time table building for tables made by our API (CELLSTYLEMAP
       generator, TABLECONTENT/TABLEGEOMETRY, the empty VALUE 93 7 -> 3; mapping in dxfver7's report and
       .claude/gk/dxfver7-notes); R2004/R2007 tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
@@ -708,7 +708,7 @@ the ones wanted.
 - [x] Tables follow-ups 2 (tables6): block cells placed by their extents, fitted at AutoCAD's scale, rows and columns
       grown for unfitted blocks (10x40 block: row 43); borders set on a merged anchor copied along its range; a row's
       height is the first cell's line floor or the tallest words
-- [ ] Tables follow-ups 3: dates in autofill (AutoCAD's GenerateSeries is erratic: UTC shift, weeks hold still);
+- [ ] (tables7, running) Tables follow-ups 3: dates in autofill (AutoCAD's GenerateSeries is erratic: UTC shift, weeks hold still);
       DxfTable.Value of a date and SetValue(DateTime); ATTDEF text in block extents (probe vs the BOLT table);
       MinimumColumnWidth with block widths; a block cell in column 0; SetGridLineWeight quadratic (25 ms a call on 2000
       cells); %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only filter (GUI) (S)
@@ -733,11 +733,14 @@ the ones wanted.
 - [x] Speed follow-ups 6 (speed7): LINE/ARC/CIRCLE/LWPOLYLINE shapes read straight from their record bytes,
       bit-identical (200 000-record fuzz per type, 121 792 AutoCAD corpus records, 27 million numbers), with a 128-bit
       number path; shapes of 78 000 in 100k entities 170 -> 86 ms (net8), cold display 10-15 % faster; shape cache kept
-- [ ] (speed8, running: fast numbers everywhere, TEXT/MTEXT and block entities) Speed follow-ups 7: TEXT/MTEXT and block entities through the fast read; DxfFastNumber.Wide inside
-      Numbers.TryRead for every record read; TryChain garbage; dropping the LINE/ARC/CIRCLE shape cache (55 MB at 1M,
-      needs the same-object contract relaxed); exact power-of-ten ties; the 48-byte "no contexts" tuple; DxfPolyline's 8
-      cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped
-      mid-way (S)
+- [x] Speed follow-ups 7 (speed8): the fast number scan inside Numbers.TryRead for every caller (17-digit numbers
+      145 -> 33 ns; DxfReader.Read of 100k 17-digit entities 414 -> 314 ms), TEXT/MTEXT shapes from bytes (1.67 -> 0.17
+      us), the first INSERT's layer scan from bytes (40 -> 6 ms), exact power-of-ten ties; 167 samples and 28 million
+      numbers bit-identical. The cold display is unchanged (its time is not in the reader)
+- [ ] Speed follow-ups 8: the display's own costs (LWPOLYLINE 4 us, 60 % the GeoPolygonArc3; INSERT 14.5 us; TEXT read
+      property by property: read once and cache until an edit, in DxfDBText); dropping the LINE/ARC/CIRCLE shape cache;
+      TryChain garbage; the 48-byte "no contexts" tuple; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra;
+      DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

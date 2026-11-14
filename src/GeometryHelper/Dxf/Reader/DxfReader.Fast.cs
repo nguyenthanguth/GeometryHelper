@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf
@@ -7,13 +8,14 @@ namespace GeometryHelper.Dxf
     public static partial class DxfReader
     {
         /// <summary>
-        /// The shape of a LINE, ARC, CIRCLE or LWPOLYLINE read straight from the bytes of its record, as
-        /// <see cref="ShapesOf(Record, Tolerance)"/> reads it, to the bit, with no group made a string and no reading object
-        /// made, for <see cref="DxfFile"/>. False where it is not sure of reading it as the reader does: another type, a number
+        /// The shape of a LINE, ARC, CIRCLE, LWPOLYLINE, TEXT or MTEXT read straight from the bytes of its record, as
+        /// <see cref="ShapesOf(Record, Tolerance)"/> reads it, to the bit, with no group made a string (but the words of a
+        /// text, which <paramref name="decoding"/> reads from their bytes as the file does) and no reading object made, for
+        /// <see cref="DxfFile"/>. False where it is not sure of reading it as the reader does: another type, a number
         /// that is not one or has a letter beyond ASCII (<see cref="DxfFastNumber"/> reads the rest, and leaves the odd one to
         /// the reader's own number reader), a group code that is not a number, a record that leaves out what places the entity,
-        /// one of no length, no radius or fewer than two distinct vertices, or any exception; the record is then read the long
-        /// way, which gives the shapes, or none, and the reasons.
+        /// one of no length, no radius, no height or fewer than two distinct vertices, or any exception; the record is then
+        /// read the long way, which gives the shapes, or none, and the reasons.
         /// </summary>
         internal static bool TryFastShape(
             byte[] bytes,
@@ -21,6 +23,7 @@ namespace GeometryHelper.Dxf
             int end,
             string type,
             Tolerance tolerance,
+            TextDecoding decoding,
             out object shape
         )
         {
@@ -41,6 +44,12 @@ namespace GeometryHelper.Dxf
                         break;
                     case "LWPOLYLINE":
                         read = Reading.FastLightweight(bytes, start, end, tolerance, out shape);
+                        break;
+                    case "TEXT":
+                        read = Reading.FastText(bytes, start, end, false, decoding, out shape);
+                        break;
+                    case "MTEXT":
+                        read = Reading.FastText(bytes, start, end, true, decoding, out shape);
                         break;
                     default:
                         shape = null;
@@ -387,6 +396,179 @@ namespace GeometryHelper.Dxf
                     out shape,
                     ref opened
                 );
+            }
+
+            /// <summary>
+            /// A TEXT or an MTEXT: where it stands, how tall, turned and wide, and its words, as <see cref="ReadText"/> reads it
+            /// from the groups. An MTEXT's own groups are those before an object embedded in it (the first 101), as there; the
+            /// groups after it are checked for a number and no more. The words are made of the bytes as the file's decoding
+            /// reads the text of a group, then taken through the reader's own functions.
+            /// </summary>
+            internal static bool FastText(
+                byte[] b,
+                int start,
+                int end,
+                bool multiline,
+                TextDecoding decoding,
+                out object shape
+            )
+            {
+                shape = null;
+                double x = 0.0,
+                    y = 0.0,
+                    z = 0.0,
+                    ax = 0.0,
+                    ay = 0.0,
+                    az = 0.0,
+                    height = 0.0,
+                    factor = 0.0,
+                    degrees = 0.0,
+                    nx = 0.0,
+                    ny = 0.0,
+                    nz = 0.0;
+                int have = 0;
+                int horizontal = 0;
+                int vertical = 0;
+                string first = null;
+                StringBuilder pieces = null;
+                bool embedded = false;
+                var groups = new Groups(b, start, end);
+
+                while (groups.Next(out int code, out int from, out int to))
+                {
+                    if (IsReal(code))
+                    {
+                        if (!DxfFastNumber.TryReal(b, from, to, out double v))
+                        {
+                            return false;
+                        }
+
+                        if (embedded)
+                        {
+                            continue;
+                        }
+
+                        switch (code)
+                        {
+                            case 10:
+                                First(ref have, 1, ref x, v);
+                                break;
+                            case 20:
+                                First(ref have, 2, ref y, v);
+                                break;
+                            case 30:
+                                First(ref have, 4, ref z, v);
+                                break;
+                            case 11:
+                                First(ref have, 8, ref ax, v);
+                                break;
+                            case 21:
+                                First(ref have, 16, ref ay, v);
+                                break;
+                            case 31:
+                                First(ref have, 32, ref az, v);
+                                break;
+                            case 40:
+                                First(ref have, 64, ref height, v);
+                                break;
+                            case 41:
+                                First(ref have, 128, ref factor, v);
+                                break;
+                            case 50:
+                                First(ref have, 256, ref degrees, v);
+                                break;
+                            case 210:
+                                First(ref have, 512, ref nx, v);
+                                break;
+                            case 220:
+                                First(ref have, 1024, ref ny, v);
+                                break;
+                            case 230:
+                                First(ref have, 2048, ref nz, v);
+                                break;
+                        }
+                    }
+                    else if (IsWhole(code))
+                    {
+                        if (!DxfFastNumber.TryWhole(b, from, to, out int n))
+                        {
+                            return false;
+                        }
+
+                        if (!embedded && code == 72 && (have & 4096) == 0)
+                        {
+                            have |= 4096;
+                            horizontal = n;
+                        }
+                        else if (!embedded && code == 73 && (have & 8192) == 0)
+                        {
+                            have |= 8192;
+                            vertical = n;
+                        }
+                    }
+                    else if (embedded)
+                    {
+                        continue;
+                    }
+                    else if (code == 101 && multiline)
+                    {
+                        embedded = true;
+                    }
+                    else if (code == 1 && first == null)
+                    {
+                        first = decoding.GetString(b, from, to - from);
+                    }
+                    else if (code == 3 && multiline)
+                    {
+                        pieces = pieces ?? new StringBuilder();
+                        pieces.Append(decoding.GetString(b, from, to - from));
+                    }
+                }
+
+                // The point, as the reader takes it, a part the file leaves out being nought, and the height, above nought.
+                if (groups.Failed || (have & 7) == 0 || (have & 64) == 0 || !(height > 0.0))
+                {
+                    return false;
+                }
+
+                var at = new GeoPoint3(x, y, z);
+                GeoVector3 normal = (have & 3584) == 0 ? new GeoVector3(0.0, 0.0, 1.0) : Extrusion(nx, ny, nz);
+                var ocs = new Ocs(normal);
+                double rotation;
+                double widthFactor = 1.0;
+                double width = 0.0;
+                string value;
+
+                if (multiline)
+                {
+                    var direction = new GeoVector3(ax, ay, az);
+                    rotation =
+                        (have & 56) != 0 && direction.Length > 0.0
+                            ? Math.Atan2(direction.DotProduct(ocs.V), direction.DotProduct(ocs.U))
+                            : degrees * Math.PI / 180.0;
+                    width = Math.Max(0.0, (have & 128) != 0 ? factor : 0.0);
+                    value = MText(
+                        pieces == null ? first ?? string.Empty : pieces.Append(first ?? string.Empty).ToString()
+                    );
+                }
+                else
+                {
+                    bool fromFirst = vertical == 0 && (horizontal == 0 || horizontal == 3 || horizontal == 5);
+
+                    if (!fromFirst && (have & 56) != 0)
+                    {
+                        at = new GeoPoint3(ax, ay, az);
+                    }
+
+                    at = ocs.World(at);
+                    rotation = degrees * Math.PI / 180.0;
+                    double given = (have & 128) != 0 ? factor : 1.0;
+                    widthFactor = given > 0.0 ? given : 1.0;
+                    value = OneLine(Signs(Decode(Carets(first ?? string.Empty)), false));
+                }
+
+                shape = DxfText.Read(at, normal, height, DxfText.Turn(rotation), value, multiline, widthFactor, width);
+                return true;
             }
 
             /// <summary>Takes a value for the first group of its code: <paramref name="seen"/> keeps which of them came.</summary>
