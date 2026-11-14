@@ -263,14 +263,19 @@ namespace GeometryHelper.Dxf.Viewer
                     run
                 );
             }
-            else if (run.Unfilled)
+            else
             {
-                // AutoCAD 2021 says so when the shapes drawn closed no area; a gradient is a fill too.
-                c.Write(
-                    settings.Type == CadHatchType.Solid || settings.Type == CadHatchType.Gradient
-                        ? "Unable to fill the boundary with solid."
-                        : "Unable to hatch the boundary."
-                );
+                if (run.Unfilled)
+                {
+                    // AutoCAD 2021 says so when the shapes drawn closed no area; a gradient is a fill too.
+                    c.Write(
+                        settings.Type == CadHatchType.Solid || settings.Type == CadHatchType.Gradient
+                            ? "Unable to fill the boundary with solid."
+                            : "Unable to hatch the boundary."
+                    );
+                }
+
+                KeepStrayPolylines(c, run);
             }
         }
 
@@ -538,25 +543,42 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (List<IReadOnlyList<CadBoundaryLoop>> group in groups)
                 {
                     List<CadBoundaryLoop> loops = KeptLoops(group, settings);
-                    DxfHatch hatch = AppendHatch(c, s, loops, settings, run.OriginOnce, out string made);
+
+                    // The polylines of the shapes drawn are made before the hatch, as AutoCAD makes them, so that it can follow them.
+                    Dictionary<CadBoundaryLoop, DxfPolyline> polylines = AppendDrawnPolylines(
+                        c,
+                        s,
+                        run,
+                        group.SelectMany(p => p)
+                    );
+                    DxfHatch hatch = AppendHatch(
+                        c,
+                        s,
+                        loops,
+                        settings,
+                        run.OriginOnce,
+                        run,
+                        polylines,
+                        out string made
+                    );
                     fault = fault ?? made;
 
-                    // The polylines of the loops derived are kept where asked, those drawn where draW boundary was asked to.
+                    // The polylines of the loops derived are kept where asked.
                     foreach (CadBoundaryLoop loop in loops)
                     {
-                        bool drawn = run.Drawn.Contains(loop);
-
                         // A loop of an ellipse or a spline has no corners to make a polyline of.
-                        if (loop.Vertices.Count > 0 && (drawn ? run.RetainDrawn : retain))
+                        if (retain && loop.Vertices.Count > 0 && !run.Drawn.Contains(loop))
                         {
                             DxfPolyline kept = Current(c, LoopPolyline(loop));
-                            kept.Closed = !run.Open.Contains(loop);
                             s.Append(c.Space, kept);
                         }
                     }
 
                     PlaceHatch(c, s, hatch, loops, order);
                 }
+
+                // The shapes drawn that no hatch took are kept as well.
+                AppendDrawnPolylines(c, s, run, run.Drawn);
             });
 
             if (fault != null)

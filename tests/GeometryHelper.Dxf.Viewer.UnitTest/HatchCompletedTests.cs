@@ -144,10 +144,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void DrawBoundary_UndoTakesTheLastPointBack_AndEnterEndsAnOpenShapeThatTheHatchClosesAcross()
+        public void DrawBoundary_UndoTakesTheLastPointBack_AndCloseClosesTheShapeAcross()
         {
             CadDocument document = Blank();
-            Start(document, "-HATCH", "W", "N", P(10, 10), P(60, 10), P(500, 500), "U", P(60, 60), Enter, Enter, Enter);
+            Start(document, "-HATCH", "W", "N", P(10, 10), P(60, 10), P(500, 500), "U", P(60, 60), "C", Enter, Enter);
 
             DxfHatch hatch = OnlyHatch(document);
             Assert.Equal(1, hatch.NumberOfLoops);

@@ -488,16 +488,26 @@ hatch's spacing alone in the library, so a user-defined hatch is left as it is t
 
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
 (`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
-each shape drawn, one inside another an island; Enter leaves a shape open and the hatch closes it across. The hatch is not
-associative, and associativity stays off afterwards, as AutoCAD leaves HPASSOC. Length goes on along the way the last segment left
+each shape drawn, in the order the shapes were drawn (an island drawn first is loop 0, as AutoCAD keeps them) and each as drawn (a
+square drawn clockwise stays so), one wholly inside another an island: a loop with none round it is flagged External, one inside
+one Outermost, deeper ones nothing (a square 50 across with one 10 across inside it and one 5 across inside that is flagged 1, 16
+and 0; two squares that overlap are each External, and a square that shares an edge with the outer one is inside it). Enter leaves
+a shape open: it is a loop that is not closed, kept as the edges drawn and flagged NotClosed (33, or 48 inside another loop; the
+line (60, 0) to (80, 0) beside a square is one line edge, and an open triangle of two edges stays two, not closed across), and
+only beside a closed shape: open shapes alone make no hatch and AutoCAD says `Unable to fill the boundary with solid.` (or
+`Unable to hatch the boundary.`), HPGAPTOL closing none of them. A shape left open on its first point is a closed loop of the
+corners before it. Retained, each shape is a polyline made before the hatch (an open shape stays an open polyline, a shape left
+open on its first point an open one with the first point again), even where no hatch is made; with associativity on the hatch
+follows those polylines (each loop its own, an open one too), and associativity stays on afterwards. Not retained, the hatch is
+not associative, and associativity stays off afterwards, as AutoCAD leaves HPASSOC. Length goes on along the way the last segment left
 its end (the tangent of an arc). Arc asks `Enter an arc boundary option [Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of
 arc] <Endpoint>:` (CLose from the second segment on) and draws the arc segments of PLINE: by its end point leaving along the way the shape
 came (east at the first point, or the way the last line was drawn), or by an included Angle, a CEnter, a Direction, a Radius or a
 Second pt; Line goes back to straight segments, CLose closes the shape with an arc leaving the way it came, Undo takes the last
 segment off and goes on in line mode (`All segments already undone.` at the first point), an end that makes no arc says
-`*Invalid*`, and Enter ends the shape. A line from (0, 0) to (100, 0), an arc to (100, 50) and a line to (0, 50) closed is
-5 981.75 square units, the half circle of radius 25 on the right included. A shape of two points is a loop when an arc gives
-it an area, and when Close closed it: a line and back, a hatch of no area, as AutoCAD makes it (two points of one place make none). A shape that closes no area says nothing as it ends and, where no hatch is made, `Unable to fill the boundary with solid.` (a solid or gradient) or `Unable to hatch the boundary.` as the hatch is asked for; one point and Enter goes back to the main prompt, keeping the shapes drawn. remove Boundaries asks `Select objects or [Add
+`*Invalid*`, and Enter ends the shape (open, as above; CLose or Close to close it). A line from (0, 0) to (100, 0), an arc to (100, 50) and a line to (0, 50) closed is
+5 981.75 square units, the half circle of radius 25 on the right included. A shape of two points is a loop when Close closed it
+(a line and back, a hatch of no area, as AutoCAD makes it), or left open (a one-edge loop beside a closed shape); two points of one place make none. A shape that closes no area says nothing as it ends and, where no hatch is made, `Unable to fill the boundary with solid.` (a solid or gradient) or `Unable to hatch the boundary.` as the hatch is asked for; one point and Enter goes back to the main prompt, keeping the shapes drawn. remove Boundaries asks `Select objects or [Add
 boundaries]:` and takes out the loops the objects selected make (an island by its circle, say; the outer loop going takes the
 area with it), asks `Select objects or [Add boundaries/Undo]:` again, Undo bringing the last removal back and Add boundaries
 going back to the point prompt. Origin asks `[Use current origin/Set new origin/Default to boundary extents] <Use current

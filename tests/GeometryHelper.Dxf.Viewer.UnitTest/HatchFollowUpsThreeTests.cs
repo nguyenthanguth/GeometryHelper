@@ -83,7 +83,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DrawBoundary_ArcFirst_LeavesEastAndIsAChordAndASegment()
         {
             CadDocument document = Blank();
-            Start(document, "-HATCH", "W", "N", P(0, 0), "A", P(50, 50), Enter, Enter, Enter);
+            Start(document, "-HATCH", "W", "N", P(0, 0), "A", P(50, 50), "L", "C", Enter, Enter);
 
             // Leaving along +X to (50, 50): the quarter circle about (0, 50), closed across by its chord.
             DxfHatch hatch = OnlyHatch(document);
@@ -106,7 +106,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             // Angle: 90 degrees counter-clockwise from (100, 0) to (150, 50) about (100, 50).
             CadDocument angle = Blank();
-            Start(angle, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "A", "90", P(150, 50), Enter, Enter, Enter);
+            Start(angle, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "A", "90", P(150, 50), "L", "C", Enter, Enter);
             double quarter = 2500.0 + Segment(50, Math.PI / 2.0);
             Assert.Equal(quarter, OnlyHatch(angle).Area, 3);
 
@@ -123,7 +123,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 "CE",
                 P(100, 50),
                 P(200, 50),
-                Enter,
+                "L",
+                "C",
                 Enter,
                 Enter
             );
@@ -131,19 +132,49 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // Direction 90 degrees, to (150, 50): clockwise about (150, 0), the other quarter of the two.
             CadDocument direction = Blank();
-            Start(direction, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "D", "90", P(150, 50), Enter, Enter, Enter);
+            Start(
+                direction,
+                "-HATCH",
+                "W",
+                "N",
+                P(0, 0),
+                P(100, 0),
+                "A",
+                "D",
+                "90",
+                P(150, 50),
+                "L",
+                "C",
+                Enter,
+                Enter
+            );
             Assert.Equal(2500.0 - Segment(50, Math.PI / 2.0), OnlyHatch(direction).Area, 3);
 
             // Radius 50 to (150, 50): the shorter arc counter-clockwise, about (100, 50).
             CadDocument radius = Blank();
-            Start(radius, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "R", "50", P(150, 50), Enter, Enter, Enter);
+            Start(radius, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "R", "50", P(150, 50), "L", "C", Enter, Enter);
             Assert.Equal(quarter, OnlyHatch(radius).Area, 3);
 
             // Second pt (150, 0)... a point (135.3553, 14.6447) on that arc, to (150, 50).
             CadDocument second = Blank();
             double on = 100.0 + 50.0 * Math.Sin(Math.PI / 4.0);
             double up = 50.0 - 50.0 * Math.Cos(Math.PI / 4.0);
-            Start(second, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", "S", P(on, up), P(150, 50), Enter, Enter, Enter);
+            Start(
+                second,
+                "-HATCH",
+                "W",
+                "N",
+                P(0, 0),
+                P(100, 0),
+                "A",
+                "S",
+                P(on, up),
+                P(150, 50),
+                "L",
+                "C",
+                Enter,
+                Enter
+            );
             Assert.Equal(quarter, OnlyHatch(second).Area, 3);
         }
 
@@ -196,22 +227,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DrawBoundary_Length_GoesOnAlongTheTangentOfTheArcLeftBehind()
         {
             CadDocument document = Blank();
-            Start(
-                document,
-                "-HATCH",
-                "W",
-                "N",
-                P(0, 0),
-                P(100, 0),
-                "A",
-                P(100, 50),
-                "L",
-                "L",
-                "30",
-                Enter,
-                Enter,
-                Enter
-            );
+            Start(document, "-HATCH", "W", "N", P(0, 0), P(100, 0), "A", P(100, 50), "L", "L", "30", "C", Enter, Enter);
 
             // The arc leaves (100, 50) towards -X: the line of 30 ends at (70, 50).
             // The corners (0, 0) (100, 0) (100, 50) (70, 50) close 3 250 square units, and the half circle adds its own.

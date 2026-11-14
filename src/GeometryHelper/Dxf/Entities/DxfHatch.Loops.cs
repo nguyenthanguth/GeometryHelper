@@ -84,7 +84,7 @@ namespace GeometryHelper.Dxf
         /// <param name="hatchLoop">The loop.</param>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the loop does not lie in the plane of the HATCH, or its edges do not
-        /// run end to end.</exception>
+        /// run end to end (the last of a loop flagged <see cref="DxfHatchLoopTypes.NotClosed"/> need not end where the first starts).</exception>
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
         public void AppendLoop(DxfHatchLoop hatchLoop) => InsertLoopAt(NumberOfLoops, hatchLoop);
 
@@ -177,7 +177,8 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is below nought or above the count.</exception>
         /// <exception cref="ArgumentException">Thrown when the loop does not lie in the plane of the HATCH, within
-        /// <see cref="Tolerance.Default"/>, or its edges do not run end to end.</exception>
+        /// <see cref="Tolerance.Default"/>, or its edges do not run end to end (the last of a loop flagged
+        /// <see cref="DxfHatchLoopTypes.NotClosed"/> need not end where the first starts).</exception>
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
         public void InsertLoopAt(int loopIndex, DxfHatchLoop hatchLoop)
         {
@@ -1221,9 +1222,12 @@ namespace GeometryHelper.Dxf
             return made;
         }
 
-        /// <summary>Refuses the groups of edges that do not run end to end, each starting within the tolerance of where the one before it ends.</summary>
+        /// <summary>
+        /// Refuses the groups of edges that do not run end to end, each starting within the tolerance of where the one before it
+        /// ends and, for a loop that is closed, the first where the last ends.
+        /// </summary>
         /// <exception cref="ArgumentException">Thrown when an edge starts away from the end of the one before it.</exception>
-        private static void Chained(List<KeyValuePair<int, string>> groups)
+        private static void Chained(List<KeyValuePair<int, string>> groups, bool closed)
         {
             var edges = new List<Edge>();
 
@@ -1246,7 +1250,7 @@ namespace GeometryHelper.Dxf
 
             double tolerance = Tolerance.Default.EqualPoint;
 
-            for (int i = 0; i < edges.Count; i++)
+            for (int i = 0; i < edges.Count - (closed ? 0 : 1); i++)
             {
                 edges[i].Ends(out GeoPoint2 _, out GeoPoint2 last);
                 edges[(i + 1) % edges.Count].Ends(out GeoPoint2 next, out GeoPoint2 _);
@@ -1403,7 +1407,7 @@ namespace GeometryHelper.Dxf
                 count += plane.Edges(curve, edges, fitCount);
             }
 
-            Chained(edges);
+            Chained(edges, (loop.LoopType & DxfHatchLoopTypes.NotClosed) == 0);
             var groups = new List<KeyValuePair<int, string>> { G(92, (int)loop.LoopType), G(93, count) };
             groups.AddRange(edges);
             groups.Add(G(97, "0"));
