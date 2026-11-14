@@ -82,7 +82,8 @@ namespace GeometryHelper.Dxf.Viewer
                             c.Session.Tolerance,
                             c.Session.WorkView?.VisibleBox,
                             among,
-                            settings.GapTolerance
+                            settings.GapTolerance,
+                            GapPixel(c)
                         );
                     IReadOnlyList<CadBoundaryLoop> loops;
 
@@ -260,6 +261,15 @@ namespace GeometryHelper.Dxf.Viewer
                     c.Remembered(HatchRetainKey, 0.0) != 0.0,
                     (int)c.Remembered(HatchOrderKey, 3.0),
                     run
+                );
+            }
+            else if (run.Unfilled)
+            {
+                // AutoCAD 2021 says so when the shapes drawn closed no area; a gradient is a fill too.
+                c.Write(
+                    settings.Type == CadHatchType.Solid || settings.Type == CadHatchType.Gradient
+                        ? "Unable to fill the boundary with solid."
+                        : "Unable to hatch the boundary."
                 );
             }
         }

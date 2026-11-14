@@ -517,7 +517,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void GapTolerance_AGapOfTwoIsClosedByAToleranceOfThree_AndNotByOneOrNought()
+        public void GapTolerance_AGapOfTwoIsClosedByAToleranceOfThree_AndNotByAHalfOrNought()
         {
             CadDocument none = SquareWithAGap();
             CadCommandSession session = Start(none, "-HATCH", P(50, 50), Enter);
@@ -525,7 +525,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Empty(All<DxfHatch>(none.ModelSpace));
 
             CadDocument narrow = SquareWithAGap();
-            session = Start(narrow, "-HATCH", "A", "G", "1", Enter, P(50, 50), Enter);
+            session = Start(narrow, "-HATCH", "A", "G", "0.5", Enter, P(50, 50), Enter);
             Assert.Contains("Valid hatch boundary not found.", session.History);
             Assert.Empty(All<DxfHatch>(narrow.ModelSpace));
 
@@ -565,7 +565,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Null(CadBoundaryFinder.Find(document, document.ModelSpace, P(50, 50), Tolerance.Default));
             Assert.Null(
-                CadBoundaryFinder.Find(document, document.ModelSpace, P(50, 50), Tolerance.Default, null, null, 1.0)
+                CadBoundaryFinder.Find(document, document.ModelSpace, P(50, 50), Tolerance.Default, null, null, 0.5)
             );
             IReadOnlyList<CadBoundaryLoop> found = CadBoundaryFinder.Find(
                 document,

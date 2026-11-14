@@ -45,7 +45,8 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Session.Tolerance,
                         c.Session.WorkView?.VisibleBox,
                         null,
-                        c.Document.HatchSettings.GapTolerance
+                        c.Document.HatchSettings.GapTolerance,
+                        GapPixel(c)
                     );
                 }
 
@@ -92,7 +93,8 @@ namespace GeometryHelper.Dxf.Viewer
                         c.Session.Tolerance,
                         c.Session.WorkView?.VisibleBox,
                         null,
-                        c.Document.HatchSettings.GapTolerance
+                        c.Document.HatchSettings.GapTolerance,
+                        GapPixel(c)
                     );
 
                     if (loops == null)
@@ -450,6 +452,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             return hatch;
         }
+
+        /// <summary>
+        /// The size of a pixel of the view in drawing units, which the gap tolerance is widened by as AutoCAD 2021 does; nought
+        /// where there is no view, as in a test.
+        /// </summary>
+        private static double GapPixel(CadCommandContext c) =>
+            c.Session.WorkView is CadView view && view.PixelsPerUnit > 0.0 ? 1.0 / view.PixelsPerUnit : 0.0;
 
         /// <summary>The closed polyline of a loop, its corners and the bulges of its edges, as BOUNDARY makes it.</summary>
         private static DxfPolyline LoopPolyline(CadBoundaryLoop loop)

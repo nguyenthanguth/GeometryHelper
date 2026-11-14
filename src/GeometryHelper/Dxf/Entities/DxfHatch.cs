@@ -865,14 +865,35 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets or sets how the colour of a gradient of one colour is tinted (group 462), as AutoCAD's <c>ShadeTintValue</c>: from
-        /// nought, dark, to 1, light; nought where the record gives none.
+        /// nought, dark, to 1, light; nought where the record gives none. Set on a gradient of two colours in one-colour mode
+        /// (<see cref="GradientOneColorMode"/>), it also makes the second colour the tint of the first, as AutoCAD 2021 does
+        /// each time it is set, the same value again too: red at 0 and green at 1, the tint set to 0.3, read back as red and
+        /// (153, 0, 0), a true colour at the value the second colour had. The colours of a gradient of two colours in
+        /// two-colour mode, and a gradient of one colour only, are not touched.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when another value is set on a HATCH with no gradient data, or one that is erased.</exception>
         public float ShadeTintValue
         {
             get => (float)Num(Gradient(Record())?.Text(462), 0.0);
-            set => SetGradientNumber(462, value, ShadeTintValue, "tint");
+            set
+            {
+                Guard.Finite(value, nameof(value), "The gradient's tint has to be a finite number.");
+                Parts record = Record();
+                GradientData gradient = Gradient(record);
+                List<DxfGradientColor> colours = gradient?.Colors();
+
+                if (colours == null || colours.Count != 2 || Whole(gradient.Text(452), 0) == 0)
+                {
+                    SetGradientNumber(462, value, ShadeTintValue, "tint");
+                    return;
+                }
+
+                gradient.Set(462, Real(value));
+                gradient.SetSecondColour(Tinted(colours[0].Color.ColorValue & 0xFFFFFF, value));
+                record.SetPart(Kind.Gradient, gradient.Groups);
+                Write(record);
+            }
         }
 
         /// <summary>
@@ -920,8 +941,8 @@ namespace GeometryHelper.Dxf
         /// <see cref="ShadeTintValue"/>, placed at the end of the gradient away from the colour (at 1, or at 0 where the colour
         /// stands past the middle): the colour's hue and saturation at the lightness the value is, so that red at 0.25 runs to
         /// (128, 0, 0) and (100, 150, 50) at 0.75 to (191, 223, 159); a grey of 128 goes to black at 0 and white at 1. A gradient
-        /// that holds two colours runs between them in either mode; AutoCAD makes the second colour of one of one colour itself
-        /// when the tint is set, which this property setter does not. The colours are read from the HATCH each time and nothing
+        /// that holds two colours runs between them in either mode; the second colour of one of one colour is made by setting
+        /// the tint (<see cref="ShadeTintValue"/>), as AutoCAD makes it. The colours are read from the HATCH each time and nothing
         /// is changed.
         /// </summary>
         /// <param name="value">Where along the gradient, from 0 at its start to 1 at its end.</param>
@@ -1701,6 +1722,31 @@ namespace GeometryHelper.Dxf
                 return true;
             }
 
+            /// <summary>Makes the second colour the true colour 0xRRGGBB, its value kept: its index (63) goes, its red, green and blue (421) are set.</summary>
+            internal void SetSecondColour(int rgb)
+            {
+                int at = -1;
+                int seen = 0;
+
+                for (int i = 0; i < Groups.Count && at < 0; i++)
+                {
+                    if (Groups[i].Key == 463 && ++seen == 2)
+                    {
+                        at = i;
+                    }
+                }
+
+                int end = at + 1;
+
+                while (end < Groups.Count && (Groups[end].Key == 63 || Groups[end].Key == 421))
+                {
+                    end++;
+                }
+
+                Groups.RemoveRange(at + 1, end - at - 1);
+                Groups.Insert(at + 1, G(421, rgb));
+            }
+
             private static bool SameColour(DxfGradientColor a, DxfGradientColor b) =>
                 a.Value == b.Value
                 && a.Color.ColorValue == b.Color.ColorValue
@@ -1767,7 +1813,9 @@ namespace GeometryHelper.Dxf
         /// colour and tint, and from the gradients it evaluated for 25 more): the colour's hue, in whole degrees, and saturation at
         /// the lightness the tint is, in hue, saturation and lightness, each channel rounded half up. Red (255, 0, 0) at 0.25
         /// gives (128, 0, 0); (100, 150, 50) at 0.9, (230, 242, 217); any grey at 0.4, a grey of 102; (255, 200, 200) at 0.5, a red
-        /// of 255, since its saturation is full.
+        /// of 255, since its saturation is full. The tint counts in whole hundredths, cut down: (100, 150, 50) at 0.336 and at
+        /// 0.333333 gives (84, 126, 42), that of 0.33, and at 0.994 (252, 254, 251), that of 0.99 (48 tints of 3 colours read
+        /// from AutoCAD 2021).
         /// </summary>
         internal static DxfColor TintedColour(DxfColor colour, double tint)
         {
@@ -1791,7 +1839,10 @@ namespace GeometryHelper.Dxf
             // The hue in whole degrees: (0, 128, 255), at 209.88, is worked from 210, which gives the 191 AutoCAD wrote at 0.75
             // where the hue itself gives 191.5 and a green of 192.
             double h = Math.Round(exact, MidpointRounding.AwayFromZero) % 360.0 / 360.0;
-            double l = Math.Max(0.0, Math.Min(1.0, tint));
+            // The tint is cut down to a whole number of hundredths, in single precision as AutoCAD holds it: 0.336 acts as 0.33,
+            // 0.57 as 0.57 (a double would give 0.56).
+            float clamped = (float)Math.Max(0.0, Math.Min(1.0, tint));
+            double l = (int)(float)(clamped * 100f) / 100.0;
 
             // The usual way from hue, saturation and lightness back: its sums come to a hair under a half where AutoCAD's do,
             // (200, 100, 50) at 0.25 giving a blue of 25.4999 and so 25, which a sum worked another way gives 26.
