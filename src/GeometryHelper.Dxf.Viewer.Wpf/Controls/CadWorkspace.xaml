@@ -2597,7 +2597,7 @@
                             />
                             <!--
                             The current multileader style (CMLEADERSTYLE), its last item the Multileader Style Manager; under it Align, as
-                            AutoCAD 2021's small Align beside Multileader (design RibbonBodies). Collect joins it once MLEADERCOLLECT is built.
+                            AutoCAD 2021's small Align and Collect beside Multileader (design RibbonBodies).
                             -->
                             <StackPanel
                                 Margin="2,2,0,0"
@@ -2613,15 +2613,26 @@
                                         ToolTip="Multileader style (MLEADERSTYLE)"
                                     />
                                 </StackPanel>
-                                <Button
-                                    Style="{StaticResource SmallButton}"
-                                    Tag="{StaticResource GhIconLeaderAlign}"
-                                    Content="Align"
-                                    IsEnabled="{Binding Model.HasDocument}"
-                                    Command="{Binding Model.StartCommandCommand}"
-                                    CommandParameter="MLEADERALIGN"
-                                    ToolTip="Align (MLEADERALIGN)"
-                                />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Style="{StaticResource SmallButton}"
+                                        Tag="{StaticResource GhIconLeaderAlign}"
+                                        Content="Align"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="MLEADERALIGN"
+                                        ToolTip="Align (MLEADERALIGN)"
+                                    />
+                                    <Button
+                                        Style="{StaticResource SmallButton}"
+                                        Tag="{StaticResource GhIconLeaderCollect}"
+                                        Content="Collect"
+                                        IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}"
+                                        CommandParameter="MLEADERCOLLECT"
+                                        ToolTip="Collect (MLEADERCOLLECT)"
+                                    />
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </local:RibbonPanel>

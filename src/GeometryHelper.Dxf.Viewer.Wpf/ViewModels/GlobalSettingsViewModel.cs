@@ -797,6 +797,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["MEASURE"] = "Points or blocks at a step along an object",
             ["MEASUREGEOM"] = "Measure distance, radius, angle or area",
             ["MLEADERALIGN"] = "Line up multileaders",
+            ["MLEADERCOLLECT"] = "Gather block multileaders into a row, a column or rows",
             ["MLEADEREDIT"] = "Add or remove leader lines",
             ["MLEADERSTYLE"] = "Multileader Style Manager",
             ["MLEDIT"] = "Edit multiline crosses, tees, corners and cuts",

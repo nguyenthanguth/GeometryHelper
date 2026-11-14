@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** MLEADERCOLLECT (MLC) in the presenter, as AutoCAD 2021's console runs it (probed through standard input, multileaders made by
+MLEADER in a style of a block), and the Collect button of the Annotate tab's Leaders panel. "Select multileaders:" then "Specify
+collected multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:": the multileaders stay as they are and each block moves, by
+its extents, so that the blocks stand in the order selected side by side, one under another or in rows, their boxes touching, their tops
+level in a row and the first one's left at the point, which is the top left of the group (three circles of radius 5 collected at
+(150, 150) have their middles at (155, 145), (165, 145) and (175, 145); a box 20 by 10, a square 8 by 8 and such a circle have their
+lefts at 150, 170 and 178 and their tops at 150). Wrap asks "Specify wrap width or [Number]: <0.000000>" and breaks the row where the
+next block would not stay short of the width (two blocks 10 wide stand in a row at 20.0001 and one to a row at 20), or under Number
+"Specify number per row <1>:" after that many; the next row is as far down as the tallest block above is high. Only one leader is kept:
+the leader lines of the last multileader selected go to the first block's left, or to the right of the last block of the first row
+where the arrowhead is nearer that landing (a circle row ending at 180: an arrowhead at x = 163 keeps the leader at 142, at 167 at 188,
+its dogleg turned against x), a column having both ends at its last block; a leader on each side of the last multileader keeps each at
+its end, and the leaders of every other multileader are taken away. Multileaders of words, other objects and those on a locked layer
+are left out (`2 were filtered out`, `1 was on a locked layer.`, asking again where none is left). The registry is of 264 commands.
+The point is the top left as typed; AutoCAD's console reads it shifted by the first multileader's arrowhead, which is taken out here.
+
 **NEW.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input). The
 presenter reads the metafile itself (the placeable header and the records of lines, polylines, polygons, rectangles, ellipses, arcs,
 pens, brushes, fonts and text; bitmaps, regions and clipping are read past) and makes block WMF0 of 2D polylines and TEXT, fitted with

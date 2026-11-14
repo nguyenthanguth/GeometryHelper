@@ -126,6 +126,7 @@ namespace GeometryHelper.Dxf.Viewer
                     ["MLE"] = "MLEADEREDIT",
                     ["TA"] = "TEXTALIGN",
                     ["MLA"] = "MLEADERALIGN",
+                    ["MLC"] = "MLEADERCOLLECT",
                     ["ATI"] = "ATTIPEDIT",
                     ["SP"] = "SPELL",
                     ["LEAD"] = "LEADER",
