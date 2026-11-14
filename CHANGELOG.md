@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
+some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).
+Words next to a ray (DIMJUST 1 and 2) stand a cube of the arrowhead and of the half of their box over 24 radii squared further along,
+as AutoCAD lays them by chords: the arc of 3 through 40 degrees from 10 put 2.4 out, DIMJUST 1, aligned words "2.0944" with the arc
+symbol before them, stand 0.00125 further along, the half of their box 0.63 and the arrowhead 0.18 (the arc of 3, DIMJUST 1 and 2, level
+and aligned, put 0.5 to 0.95 out: 76 of 216 pictures differed, now 18; of the 384 of both styles, symbols, text sizes and arrowheads
+280, now 4; 10 of 108 of the earlier probe, now 1). The arc symbol before words on a sweep of 100 to 165 degrees takes more room as the
+sweep widens, by the height of the words and the sine of the direction of the arc's middle (0.09 of the height at 100 degrees, 0.24 at 150,
+0.32 at 165): the arc of 1 through 150 degrees from 10 put 0.695 out has "2.6180" outside past its first end and at 0.70 between its
+rays, where they came in from 0.68 (arcs of 1 and 3, text 0.18 and 0.36 high: 257 of 8 440 differed, now 161; the arcs of 1 from 10 and
+100 degrees, 5 152: 158, now 151). Level words outside stand to the right or the left by where the arc stands a third of the way
+round, not where its first end points (the arc of 1 through 179.99 degrees put 0.45 out has them to the left from 170 degrees, where
+the end points up, and to the right from 350, where it points down: 94 of 252 differed, now 76, the 36 starts of the sweeps under 180
+degrees all as AutoCAD). The room both arrowheads need beside level words with the symbol is a window, not a power of the sine: 0.12
+more, 0.85 of their height, where the arc's middle points within 75 to 102 degrees of the horizontal (259 to 288 for the other
+half turn) for "1.0472" and its symbol, 64 to 114 for a single digit, and none elsewhere (arcs of 10 put 12 out, DIMASZ 0.36, chord
+2.24: both arrowheads between the rays from 66 and from 96 degrees, outside from 70 to 94; 4 598 of 4 598 pictures of the edges, 208
+differed, now 21; 1 573 of the other half turn, 31, now 2; DIMASZ 0.27 and 0.36 from 50 to 150 degrees, 7 308: 92, now 10; level words
+by DIMASZ 0.09 to 0.5, 8 840: 135, now 62; aligned, DIMASZ 0.09 to 1, 8 424: 46, now 29; the old probe of single digits 181, now 176).
+Not as AutoCAD yet: sweeps of 180 degrees and more put the words past the second end (the arc point a third of the way, never two
+thirds) and fit them between the rays in more cases, which this does not follow (100 of 5 152 pictures of the arcs from 10 degrees
+through 180 differ); level words under DIMJUST 1 on a sweep of 80 degrees have their arrowheads outside, where this keeps them in
+(12 of the 18 pictures left of 216); the distance both arrowheads first come in at DIMARCSYM 0 and 100 degrees, 0.05 later. Every
+other set of probes (angles of three points, radius, diameter, linear and DIMARC away from these cases: 80 sets) is as it was, to
+0.0003 in a text's place for the DIMJUST ones. The text of an arc length at a tie of the fifth decimal (an arc of 10 through 0.048005
+radians, 0.48005) is rounded either way by AutoCAD from the angles' last digits; the probes that showed it fed the presenter angles
+rounded to six decimals where AutoCAD had ten, so there was nothing to fix there.
+
 **CHANGED.** MLEDIT's tees (CT, OT, MT) work on the pair of segments AutoCAD 2021 takes, as the crosses do, and not on the ones the picks
 lie on: the stem is run on past the free end of its first or last segment, the second is met on one of its segments (the end of its
 last is not on it), the pair nearest the picks is taken, and the end of the stem kept is the side of the meeting its pick is on. The

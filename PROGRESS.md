@@ -496,9 +496,13 @@ the ones wanted.
       radial extension lines within 1E-6 rad of 90 degrees; level words off the arc (DIMTAD 2/3) by their box against
       the measured chord; the arc point after a scale from the new radius (tar14 38 -> 1, tar15 100 -> 4, tar18 216 -> 13,
       tar28b 60 -> 0, tar31s 30 -> 0); harness .claude/gk/assoc-harness7
-- [ ] (assoc8, running) Associative dimensions follow-ups 8: DIMARCSYM 0 radial words 1-5 steps later than AutoCAD at 100-165 degrees;
-      the real bothExtra rule (0 at DIMASZ 0.09, 0.15 from 0.3 up); tar13 k0.8 rows (0.0004 rad text turn); exact
-      180-degree sweeps' sign; arc-length text rounding in the fourth decimal (tar29s/30s/32s) (S)
+- [x] Associative dimensions follow-ups 8 (assoc8): arc-length words laid by chords (tar40s 280 -> 4, tar13 10 -> 1);
+      wide sweeps with the arc symbol (tar41s 208 -> 21, tar39s 92 -> 10); level words outside by sin(from + sweep/3);
+      bothExtra as a window on the arc middle's direction (tar42s 31 -> 2); the text-rounding cases were the probe's
+      six-decimal radians (tar30s 73 -> 1); harness .claude/gk/assoc-harness8
+- [ ] Associative dimensions follow-ups 9: sweeps of 180 degrees or more (tar38s 76 of 252, tar24s ~100); level words
+      with DIMJUST 1 at sweep 80 (arrowheads out in AutoCAD); DIMARCSYM 0 a10 100 degrees (0.05 later); the bothExtra
+      window rests on two widths; text 0.36 under-corrected by 0.02-0.04 (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
