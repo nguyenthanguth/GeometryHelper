@@ -180,10 +180,19 @@ the actions in the order of its own table, the DWG in ascending handles, and the
 gives them). A DWG that AutoCAD 2018 saves of the same drawings holds the actions (the networks, variables and groups) of
 version 2, which carry four numbers more, and names the way a dependency leans on an edge by a flag and a number of a short
 (1 for `AcDbAssocSingleEdgePersSubentId`, 3 for `AcDbAssocEdgePersSubentId`) where the DWG of AutoCAD 2010 gives the class
-as a text; both are read. The constraint group of version 2 is another layout (a table of the classes of its nodes, each
-node's class and identifier, then the data of the nodes with the count of references first) and is not read: a group that
-is not read takes the network that lists it, the variables and dependencies they own and the graph whose constraint
-parameter leans on one of them with it. The
+as a text; both are read. The constraint group of version 2 is another layout, and is read and written too: past the plane,
+the actions it owns and the next identifier it holds two numbers and a flag (0 in every sample), the table of the classes of
+its nodes (their count and their names, in the order of the first identifier that names each), the count of the nodes, a
+directory of every node (the number of its class in the table, from 1, and its identifier) and then the nodes by identifier,
+each with its identifier first, then the identifiers it names, its byte and what its class holds (the circles and the arcs hold
+a fourth real after their three, 0 in every sample). AutoCAD's DXF of a drawing of 2018 gives the same: the numbers and the
+flag, the directory as class name and identifier, and the nodes without their class. The 34 groups of AutoCAD's own R2018 files
+equal its DXF group for group but for the order of the actions they own (a hash order of its own: no rule of the handles or of
+the indexes of the dependencies gives it), and every one is written again from its DXF to the very bits of AutoCAD's object
+(its class number apart). A group of version 1, which a DWG of AutoCAD 2010 gives, is brought up to the version 2 when it is
+written to R2018, as AutoCAD does when it saves one: the action of version 2 with its four numbers 0, the nodes by
+identifier, the table and the directory, and a 0 for the fourth real of a circle or an arc. A group of the version 2 is not
+written to a DWG of R2010 or earlier (its network goes with it). The
 largest real number, which AutoCAD keeps for a value not yet set, is in its DXF `1.797693134862314E+99`, and so it is
 read: its digits as the runtime writes them rounded past the largest number and could not be read back, which stopped the
 whole DWG from being read.
@@ -247,17 +256,17 @@ call.
   entity of a class the list above does not name. No drawing on the machine the reader was checked on holds an OLE frame
   or a proxy (AutoCAD 2021's own 113 sample drawings do not), AutoCAD's console drops the data of an OLE frame, and so
   neither is read nor written until a drawing of AutoCAD's own shows how it lays them out.
-- Objects: the other objects of classes, and the data of a dynamic block with a group of 2D constraints
-  (ACDBASSOC2DCONSTRAINTGROUP). The group is read from a DWG of AutoCAD 2010 and not from one of AutoCAD 2018 (see above),
-  and it is not written to R2013 and later: written in the layout of 2010 into a DWG of R2018 it is erased by AutoCAD when
-  it opens the file, with the dependencies it owns, and the file is refused (`ErrorStatus` 53, a filer error) for the
-  network that lists it. A dynamic block whose evaluation graph names an expression that is left out is left out whole, the
-  graph and every expression it owns, and is an ordinary block in the DWG written: the graph of a block with a constraint
-  group is not half of a graph (AutoCAD drops the nodes whose expression it does not find). So is a network that names an
-  action left out (the variables and dependencies it owns), and a user or constraint parameter whose variable or
-  dependency is. 18 of the 90 graphs of the sample drawings are such, in the `Architectural`, `Civil`, `Electrical`,
-  `Mechanical` and `Structural` drawings: every one of them has a group in its network, even the two of a user parameter
-  with no constraint parameter.
+- Objects: the other objects of classes, and the data of a dynamic block with a group of a class of 2D constraint node outside
+  the 22 of the samples (ACDBASSOC2DCONSTRAINTGROUP). The group is read from a DWG of AutoCAD 2007 to 2010 (the layout of
+  version 1) and from one of AutoCAD 2013 and 2018 (version 2, see above), and written to R2018 in the layout of version 2
+  (written in the layout of 2010 into a DWG of R2018 it was erased by AutoCAD when it opened the file, with the dependencies it
+  owned, and the file was refused with `ErrorStatus` 53, a filer error, for the network that listed it). A dynamic block whose
+  evaluation graph names an expression that is left out is left out whole, the graph and every expression it owns, and is an
+  ordinary block in the DWG written: the graph of a block with a constraint group is not half of a graph (AutoCAD drops the
+  nodes whose expression it does not find). So is a network that names an action left out (the variables and dependencies it
+  owns), and a user or constraint parameter whose variable or dependency is. None of the 90 graphs of the sample drawings is
+  left out of an R2018 any more (18 were, in the `Architectural`, `Civil`, `Electrical`, `Mechanical` and `Structural`
+  drawings); a group of version 2 is left out of a DWG of R2010 and earlier, where the writer only has the first layout.
   A TABLECONTENT that holds the attributes of a block or a cell's cached geometry is left out too, with its ACAD_TABLE;
   no sample drawing has one. A table of fields and links is read: the cell of a field gives it in group 344 and the
   TABLECONTENT lists the fields the table owns (92 and 360), a cell linked to a data link gives the link, its rows and
@@ -370,7 +379,7 @@ drawing gives the same bytes every time.
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
 | Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, SHAPE given by its number (see below), DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE, REGION, 3DSOLID and BODY with their ACIS data (see below) |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, the properties table, the user parameter, the proxy node and the network of variables and dependencies, see above; not the groups of constraints), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, SPATIAL_FILTER (the clip of an INSERT, XCLIP), MATERIAL, VISUALSTYLE (of AutoCAD 2004 and later), the detail and section view styles, the manager of the persistent names of subentities, FIELD, FIELDLIST, SORTENTSTABLE and DATALINK, the data of a dynamic block (its graph and its parameters, grips and actions, the properties table, the user parameter, the proxy node and the network of variables and dependencies and the groups of constraints, see above), the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
@@ -461,8 +470,8 @@ dependencies are written in the layouts of the reader, so that a block of linear
 code keeps its graph, its table and its grip. A graph that names an expression the writer does not write (a constraint
 parameter whose dependency is not written, because the group that owns it is not) is left out with the expressions it owns,
 and so is a network that lists an action not written and what the network owns, counted with the types left out, so that
-no graph is half of one. Of the 90 graphs of the sample drawings 72 are written, as before: the other 18 lean on a constraint
-group. AutoCAD
+no graph is half of one. All 90 graphs of the sample drawings are written to R2018 (72 were before the constraint group of
+version 2 was written: the other 18 lean on one). AutoCAD
 takes the anonymous block of a dynamic block that no INSERT
 places (`*U6` of the sheet `A-01`, true name `Drawing Title`, three attribute definitions) for an unused one where it
 finds no graph, and drops it from the drawing it opens, with the six fields and the draw order table of the attribute
@@ -478,6 +487,24 @@ drawings open with `AUDIT` as the originals do (113 with 0 errors, 7 with the 24
 originals), and so do the 71 DWGs of the tests. A panel made in code for each kind of parameter and action (a visibility
 parameter, a flip, a rotation, an XY, a polar stretch, a move, a scale, an array, a lookup, an alignment and a base
 point with a point parameter) is written, opens with `AUDIT` 0 and comes back from AutoCAD's DXF as it was sent.
+
+The 18 graphs that lean on a constraint group are written as well, so that all 90 are. Each object of them, read from the
+R2018 DWG AutoCAD saves of the 13 `Dynamic Blocks` drawings and written again, has the very bits of the object AutoCAD saved
+(the 34 groups, their networks, variables, dependencies and dependency bodies, but for the class number and the order of the
+actions of a group), and two entities of the constraint blocks had to be written as AutoCAD writes them for the file to open with
+`AUDIT` as the original does. A 2D
+polyline keeps the id of each vertex (group 91, after its point; the constraints name the edges of the block by them): written
+without, the DWG of `Architectural - Metric` had 8 polylines AUDIT did not accept. A dimensional constraint has no block of its
+picture, and AutoCAD's DXF gives it with neither the block (2) nor a type (70) where that is 0 (a radius with its text moved
+has 132, not 164, which is 4 and 128 without the 32 every other dimension has): its flags have the bit of the block clear, and
+written with it set each of the 25 of that DWG was an error (34 with the polylines and one more). The 167 DWGs of AutoCAD's 96
+sample drawings and the tests, rewritten to R2018, open with `AUDIT` as their originals do (160 with 0 errors where the
+originals have 156, the other 7 the 24, 24, 2, 2, 32, 32 and 10 of theirs; the 4 `table` drawings of the tests had 6 each), and
+AutoCAD's DXF of each rewrite holds as many of every type of object of a dynamic block as the original's: 90 evaluation
+graphs of 90, 34 groups of 34, 330 value dependencies, 414 on geometry, 280 others, 302 variables, 42 networks, 180 bodies. The
+two exceptions are the anonymous blocks AutoCAD drops as unused (`Structural Base1` of `S-02` and one of `S-04`) that were
+dropped before. A DWG of AutoCAD 2013 is read the same way as one of 2018: the edge names of the dependencies (a flag and a
+number of a short) were read as texts there, and the 43 objects of its sample that lean on them were left out.
 
 A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
 50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of

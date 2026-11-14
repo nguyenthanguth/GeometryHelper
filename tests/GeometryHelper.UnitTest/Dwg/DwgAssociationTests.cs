@@ -55,6 +55,14 @@ namespace GeometryHelper.UnitTest.Dwg
                 && Math.Abs(x - y) < 1E-9
             );
 
+        /// <summary>The groups <c>code=value</c> between bars as the lines of a DXF file.</summary>
+        private static string Lines(string groups) =>
+            string.Concat(
+                groups
+                    .Split('|')
+                    .Select(g => g.Substring(0, g.IndexOf('=')) + "\n" + g.Substring(g.IndexOf('=') + 1) + "\n")
+            );
+
         /// <summary>One record of the OBJECTS section from its type, handle and owner and its groups, each <c>code=value</c> between bars.</summary>
         private static string Object(string type, string handle, string owner, string groups)
         {
@@ -285,37 +293,53 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(graph, DwgAnswerKey.Parse(back).Single(r => Handle(r) == "F102").Owner);
         }
 
+        /// <summary>A variable that two dependencies on an edge lean on, the second naming it by three numbers, and the network.</summary>
+        private static string Edges(string dictionary) =>
+            Dependency(
+                "F201",
+                "F203",
+                "0",
+                "100=AcDbAssocGeomDependency|90=0|290=1|1=AcDbAssocSingleEdgePersSubentId|290=0"
+            )
+            + Dependency(
+                "F202",
+                "F203",
+                "F204",
+                "100=AcDbAssocGeomDependency|90=0|290=1|1=AcDbAssocEdgePersSubentId|90=0|90=18|90=19|290=0"
+            )
+            + Object(
+                "ASSOCDIMDEPENDENCYBODY",
+                "F204",
+                "F202",
+                "100=AcDbAssocDependencyBody|90=1|100=AcDbImpAssocDimDependencyBodyBase|90=1|1=Head=7.18"
+                    + "|100=AcDbAssocDimDependencyBody|90=1"
+            )
+            + Variable("F203", "F200", "1", "40=2.5", "90=2|360=F201|90=0|360=F202|90=1")
+            + Network("F200", dictionary, "F203");
+
         [Fact]
         public void ADependencyOnAnEdge_IsKeptWhicheverWayItNamesTheEdge()
         {
-            string text = Drawing(
-                dictionary =>
-                    Dependency(
-                        "F201",
-                        "F203",
-                        "0",
-                        "100=AcDbAssocGeomDependency|90=0|290=1|1=AcDbAssocSingleEdgePersSubentId|290=0"
-                    )
-                    + Dependency(
-                        "F202",
-                        "F203",
-                        "F204",
-                        "100=AcDbAssocGeomDependency|90=0|290=1|1=AcDbAssocEdgePersSubentId|90=0|90=18|90=19|290=0"
-                    )
-                    + Object(
-                        "ASSOCDIMDEPENDENCYBODY",
-                        "F204",
-                        "F202",
-                        "100=AcDbAssocDependencyBody|90=1|100=AcDbImpAssocDimDependencyBodyBase|90=1|1=Head=7.18"
-                            + "|100=AcDbAssocDimDependencyBody|90=1"
-                    )
-                    + Variable("F203", "F200", "1", "40=2.5", "90=2|360=F201|90=0|360=F202|90=1")
-                    + Network("F200", dictionary, "F203"),
-                out _
-            );
+            string text = Drawing(Edges, out _);
             byte[] back = DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032"));
 
             Assert.Equal(5, Kept(text, back, "F200", "F201", "F202", "F203", "F204"));
+        }
+
+        [Fact]
+        public void ADependencyOnAnEdgeAndAGroupOfTheSecondVersion_AreKeptInADwgOfR2013_AsAutoCADHoldsThemThere()
+        {
+            // AutoCAD 2013 names an edge by a flag and a number of a short, and holds a group as AutoCAD 2018 does (its own DWG of
+            // R2013 read back to every object of its DXF); the writer of R2013, which AutoCAD does not open for other reasons,
+            // writes them so.
+            string text = Drawing(dictionary => Group2(dictionary) + Edges(dictionary), out _);
+            byte[] dwg = DwgFileWriter.Write(DwgDrawing.Parse(text, null), "AC1027", out DwgFileWriter writer);
+
+            Assert.DoesNotContain(writer.LeftOut.Keys, Dynamic);
+            Assert.Equal(
+                9,
+                Kept(text, DwgReader.ToDxf(dwg), "F200", "F201", "F202", "F203", "F204", "F300", "F301", "F302", "F303")
+            );
         }
 
         /// <summary>
@@ -342,22 +366,125 @@ namespace GeometryHelper.UnitTest.Dwg
             + Variable("F302", "F300", "1", "40=0.0625", "90=0")
             + Dependency("F303", "F301", "0", string.Empty);
 
+        /// <summary>
+        /// The group of <see cref="Group"/> in the layout of AutoCAD 2018's DXF: the action of the version 2 (four numbers more),
+        /// two numbers and a flag past the next identifier, a directory of the nodes (class and identifier), and each node with
+        /// its identifier and identifiers first and its byte after them.
+        /// </summary>
+        private static string Group2(string dictionary) =>
+            Network("F300", dictionary, "F301", "F302")
+            + Object(
+                "ACDBASSOC2DCONSTRAINTGROUP",
+                "F301",
+                "F300",
+                "100=AcDbAssocAction|90=2|90=0|330=F300|360=0|90=3|90=7|90=0|90=0|90=0|90=0|90=0"
+                    + "|90=2|70=0|10=0.0|20=0.0|30=0.0|10=1.0|20=0.0|30=0.0|10=0.0|20=1.0|30=0.0"
+                    + "|360=0|90=1|360=F303|90=8|90=0|90=0|290=0|90=5"
+                    + "|1=AcConstrainedBoundedLine|90=1|1=AcConstrainedImplicitPoint|90=2|1=AcPointCurveConstraint|90=3"
+                    + "|1=AcDistanceConstraint|90=4|1=AcFixedConstraint|90=5"
+                    + "|90=1|90=1|90=3|70=0|330=F303|90=0"
+                    + "|10=0.0|20=4.0|30=0.0|10=0.0|20=-1.0|30=0.0|290=0|10=0.0|20=4.0|30=0.0|11=36.0|21=4.0|31=0.0"
+                    + "|90=2|90=1|90=3|70=0|330=0|90=0|280=1|90=-1|90=1"
+                    + "|90=3|90=2|90=2|90=1|70=0|90=0|290=1|290=1"
+                    + "|90=4|90=2|90=2|90=2|70=4|90=0|290=0|290=1|340=F303|340=F303|280=1|10=1.0|20=0.0|30=0.0"
+                    + "|90=5|90=1|90=1|70=0|90=0|290=0|290=1"
+            )
+            + Variable("F302", "F300", "1", "40=0.0625", "90=0")
+            + Dependency("F303", "F301", "0", string.Empty);
+
         [Fact]
-        public void AConstraintGroupOfR2018_IsLeftOutWithTheNetworkAndWhatItOwns_NotWrittenAsAFileAutoCADRefuses()
+        public void AConstraintGroupOfTheFirstVersion_IsWrittenToR2018AsTheSecond_WithTheNetworkAndWhatItOwns()
         {
-            // AutoCAD erases a constraint group of the version the DWG of R2010 holds when it reads R2018 (its R2018 layout is
-            // another one), and then refuses the file for the network that lists it and the dependencies it owned. A group is
-            // not written to R2018, so its network and what the network and the group own go with it.
+            // AutoCAD erased a group written to R2018 in the layout of R2010 and then refused the file for the network that listed
+            // it. The group is written as AutoCAD 2018 writes it, brought up to the version 2: its DXF, read back, is that of the
+            // version 2 with every number of the first version in its place.
             string text = Drawing(Group, out _);
             byte[] dwg = DwgWriter.ToDwg(text, "AC1032", out IDictionary<string, int> leftOut);
-            List<DwgAnswerKey.Record> after = DwgAnswerKey.Parse(DwgReader.ToDxf(dwg));
+            byte[] back = DwgReader.ToDxf(dwg);
 
-            Assert.Contains("ACDBASSOC2DCONSTRAINTGROUP", leftOut.Keys);
-            Assert.Contains("ACDBASSOCNETWORK", leftOut.Keys);
-            Assert.Contains("ACDBASSOCVARIABLE", leftOut.Keys);
-            Assert.Contains("ACDBASSOCDEPENDENCY", leftOut.Keys);
-            Assert.DoesNotContain(after, r => r.Type.StartsWith("ACDBASSOC", StringComparison.Ordinal));
-            Assert.Contains(after, r => r.Type == "ACAD_EVALUATION_GRAPH");
+            Assert.DoesNotContain(leftOut.Keys, Dynamic);
+            Assert.Equal(1, Kept(Drawing(Group2, out _), back, "F301"));
+            Assert.Equal(3, Kept(text, back, "F300", "F302", "F303"));
+        }
+
+        [Fact]
+        public void AConstraintGroupOfTheSecondVersion_IsWrittenToR2018AndReadBackEqual()
+        {
+            string text = Drawing(Group2, out _);
+            byte[] dwg = DwgWriter.ToDwg(text, "AC1032", out IDictionary<string, int> leftOut);
+
+            Assert.DoesNotContain(leftOut.Keys, Dynamic);
+            Assert.Equal(4, Kept(text, DwgReader.ToDxf(dwg), "F300", "F301", "F302", "F303"));
+        }
+
+        [Fact]
+        public void TheNodesOfAGroupOfTheFirstVersion_AreWrittenByIdentifierWithTheClassesInTheOrderTheyAreFirstNamed()
+        {
+            // Two nodes given the wrong way round are written by identifier, and the table of classes holds each class once, in
+            // the order of the first identifier that names it.
+            string boundedLine = Lines(
+                "1=AcConstrainedBoundedLine|330=F301|90=1|70=0|90=1|90=3|330=F303|90=0"
+                    + "|10=0.0|20=4.0|30=0.0|10=0.0|20=-1.0|30=0.0|290=0|10=0.0|20=4.0|30=0.0|11=36.0|21=4.0|31=0.0"
+            );
+            string implicitPoint = Lines(
+                "1=AcConstrainedImplicitPoint|330=F301|90=2|70=0|90=1|90=3|330=0|90=0|280=1|90=-1|90=1"
+            );
+            string text = Drawing(Group, out _).Replace(boundedLine + implicitPoint, implicitPoint + boundedLine);
+            List<DwgAnswerKey.Record> after = DwgAnswerKey.Parse(
+                DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032", out IDictionary<string, int> leftOut))
+            );
+
+            Assert.NotEqual(Drawing(Group, out _), text);
+            Assert.DoesNotContain(leftOut.Keys, Dynamic);
+            Assert.Equal(1, Kept(Drawing(Group2, out _), DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032")), "F301"));
+            Assert.Equal(
+                new[]
+                {
+                    "AcConstrainedBoundedLine",
+                    "AcConstrainedImplicitPoint",
+                    "AcPointCurveConstraint",
+                    "AcDistanceConstraint",
+                    "AcFixedConstraint",
+                },
+                after.Single(r => Handle(r) == "F301").Groups.Where(g => g.Key == 1).Select(g => g.Value.Trim())
+            );
+        }
+
+        [Fact]
+        public void ACircleAndAnArcOfTheFirstVersion_GetTheFourthRealOfTheSecond()
+        {
+            // The circles and arcs of the version 2 hold a fourth real after their three, which is 0 in every one of AutoCAD's
+            // samples; the version 1 has no such real, and the node is written with a 0.
+            string text = Drawing(Group, out _)
+                .Replace(
+                    Lines(
+                        "1=AcConstrainedBoundedLine|330=F301|90=1|70=0|90=1|90=3|330=F303|90=0"
+                            + "|10=0.0|20=4.0|30=0.0|10=0.0|20=-1.0|30=0.0|290=0|10=0.0|20=4.0|30=0.0|11=36.0|21=4.0|31=0.0"
+                    ),
+                    Lines(
+                        "1=AcConstrainedCircle|330=F301|90=1|70=0|90=1|90=3|330=F303|90=0"
+                            + "|10=1.0|20=2.0|30=0.0|10=0.0|20=0.0|30=1.0|10=1.0|20=0.0|30=0.0|40=25.4|40=0.0|40=6.28"
+                    )
+                );
+            DwgAnswerKey.Record group = DwgAnswerKey
+                .Parse(DwgReader.ToDxf(DwgWriter.ToDwg(text, "AC1032")))
+                .Single(r => Handle(r) == "F301");
+            List<string> reals = group.Groups.Where(g => g.Key == 40).Select(g => g.Value.Trim()).ToList();
+
+            Assert.Contains(group.Groups, g => g.Key == 1 && g.Value.Trim() == "AcConstrainedCircle");
+            Assert.Equal(new[] { "25.4", "0.0", "6.28", "0.0" }, reals);
+        }
+
+        [Fact]
+        public void AConstraintGroupOfTheSecondVersion_IsLeftOutOfADwgOfR2010WithTheNetworkThatListsIt()
+        {
+            // The layouts of R2010 and R2018 differ; only the writer of R2018 knows the second, so a group of the version 2 is
+            // not written to R2010 in the layout of the first.
+            DwgDrawing drawing = DwgDrawing.Parse(Drawing(Group2, out _), null);
+            DwgFileWriter.Write(drawing, "AC1024", out DwgFileWriter writer);
+
+            Assert.Contains("ACDBASSOC2DCONSTRAINTGROUP", writer.LeftOut.Keys);
+            Assert.Contains("ACDBASSOCNETWORK", writer.LeftOut.Keys);
         }
 
         [Fact]

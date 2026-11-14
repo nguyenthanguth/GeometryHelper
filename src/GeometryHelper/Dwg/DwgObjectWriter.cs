@@ -144,7 +144,10 @@ namespace GeometryHelper.Dwg
             {
                 return
                     (type == "VISUALSTYLE" && !IsListedVisualStyle(record) && RoundTripOfVisualStyle(record) == null)
-                    || (type == "ACDBASSOC2DCONSTRAINTGROUP" && (R2013Plus || !NodesAreKnown(record)))
+                    || (
+                        type == "ACDBASSOC2DCONSTRAINTGROUP"
+                        && ((!R2013Plus && IsConstraintGroup2(record)) || !NodesAreKnown(record))
+                    )
                     ? -1
                     : number;
             }

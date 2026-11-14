@@ -25,10 +25,22 @@ groups of 2D constraints (`ACDBASSOC2DCONSTRAINTGROUP`, 22 classes of node) are 
 1 789 objects of its Dynamic Blocks and sheet samples equal its DXF group for group, and the actions of version 2 and the edge names
 of a DWG of AutoCAD 2018 read too. A block of two linear parameters with a properties table made in code keeps its graph, table
 and grip through a DWG (left out whole before).
-**CHANGED.** A dynamic block's graph, network, parameter and network objects are left out whole in a DWG of R2013 and later where
-a constraint group is not written (AutoCAD erases a group in the layout of R2010 when it opens an R2018 file and then refuses
-the file): the 18 graphs of AutoCAD's samples that lean on one stay left out, 72 of the 90 still written, and every sample and
-test DWG rewrites as before (the same AUDIT counts as the originals, 71 of 71 test DWGs at 0, none refused).
+**NEW.** The 2D constraint group of AutoCAD 2018 (version 2 of its layout: a table of the classes of its nodes, a directory of
+every node by class and identifier, then the nodes, the circles and arcs with a fourth real) is read from a DWG of R2018 and R2013
+and written to R2018, a group of version 1 (a DWG of AutoCAD 2010) brought up to the version 2 as AutoCAD does when it saves one.
+The 34 groups of AutoCAD's R2018 samples equal its DXF group for group (but for the order of the actions they own, a hash order of
+its own) and are written to the very bits of the object it saved. All 90 evaluation graphs of AutoCAD's samples, the 18 that lean on a
+group among them (left out of an R2018 before), are written, and the 167 sample and test DWGs rewrite to R2018 with the same `AUDIT`
+counts as their originals (160 at 0 where the originals have 156), none refused, and the same dynamic-block objects in AutoCAD's DXF
+(90 graphs of 90, 34 groups of 34, 1 024 dependencies of 1 024).
+**FIXED.** The DWG writer dropped the vertex ids of an `LWPOLYLINE` (group 91, which the constraints of a dynamic block name the edges
+of the block by) and wrote the dimensional constraints of a dynamic block with the flag of a block of their picture, which they do not
+have: AutoCAD's `AUDIT` counted 34 errors in the rewrite of `Architectural - Metric` (8 polylines and 25 dimensions, one more
+besides); the reader and writer keep the ids, and a dimensional constraint is read and written with neither a block (2) nor a type
+(70) where that is 0, as AutoCAD's DXF gives it.
+**FIXED.** A DWG of AutoCAD 2013 with a dynamic block read 43 of its objects as broken (a dependency on an edge names it by a flag and
+a number of a short there too, as in R2018, and the reader took it for a text): it reads with none broken, every object of its
+Dynamic Blocks sample equal to AutoCAD's DXF.
 **NEW.** -VIEW Restore shows a paper view in the layout it was saved in (a view saved in Sheet 2, restored from Layout1 or the Model
 tab, shows Sheet 2), and a view of model space restored in a layout asks `Restoring Model space view.` / `Select Viewport for view:`
 and shows the whole view through the viewport picked, which is then the one worked through (a view 600 by 400 into a viewport 200 by

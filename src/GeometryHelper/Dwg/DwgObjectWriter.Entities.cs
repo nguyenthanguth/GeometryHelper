@@ -781,8 +781,10 @@ namespace GeometryHelper.Dwg
             var points = new List<double[]>();
             var widths = new List<double[]>();
             var bulges = new List<double>();
+            var ids = new List<int>();
             bool anyWidth = false;
             bool anyBulge = false;
+            bool anyId = false;
 
             foreach (KeyValuePair<int, string> group in polyline.All)
             {
@@ -792,6 +794,11 @@ namespace GeometryHelper.Dwg
                         points.Add(new[] { DwgRecord.Double(group.Value), 0.0 });
                         widths.Add(new[] { 0.0, 0.0 });
                         bulges.Add(0.0);
+                        ids.Add(0);
+                        break;
+                    case 91 when points.Count > 0:
+                        ids[ids.Count - 1] = DwgRecord.Int(group.Value);
+                        anyId = true;
                         break;
                     case 20 when points.Count > 0:
                         points[points.Count - 1][1] = DwgRecord.Double(group.Value);
@@ -823,6 +830,7 @@ namespace GeometryHelper.Dwg
                 | (IsDefaultExtrusion(normal) ? 0 : 1)
                 | (anyBulge ? 0x10 : 0)
                 | (anyWidth ? 0x20 : 0)
+                | (anyId ? 0x400 : 0)
                 | ((dxf & 1) != 0 ? 0x200 : 0)
                 | ((dxf & 128) != 0 ? 0x100 : 0);
             _data.BitShort(flags);
@@ -854,6 +862,11 @@ namespace GeometryHelper.Dwg
                 _data.BitLong(points.Count);
             }
 
+            if (anyId)
+            {
+                _data.BitLong(points.Count);
+            }
+
             if (anyWidth)
             {
                 _data.BitLong(points.Count);
@@ -876,6 +889,14 @@ namespace GeometryHelper.Dwg
                 foreach (double bulge in bulges)
                 {
                     _data.BitDouble(bulge);
+                }
+            }
+
+            if (anyId)
+            {
+                foreach (int id in ids)
+                {
+                    _data.BitLong(id);
                 }
             }
 
@@ -911,8 +932,11 @@ namespace GeometryHelper.Dwg
             _data.Point3(dimension.Point(210, 0, 0, 1));
             _data.RawPoint2(middle);
             _data.BitDouble(middle[2]);
-            // Bit 1 where the text is where the dimension puts it; AutoCAD sets 2 and 8 besides in every dimension it wrote.
-            _data.RawChar(((flags & 128) != 0 ? 0 : 1) | 2 | 8);
+            // Bit 1 where the text is where the dimension puts it; AutoCAD sets 2 and 8 besides in every dimension it wrote, but
+            // for the dimensional constraints of a dynamic block, which have no block of their picture and which its DXF gives
+            // with no block (2) and a type (70) without the bit 32 every other dimension has.
+            bool constraint = !dimension.Has(2) && (flags & 32) == 0;
+            _data.RawChar(((flags & 128) != 0 ? 0 : 1) | (constraint ? 0 : 2) | 8);
             T(dimension.Text(1));
             _data.BitDouble(Radians(dimension.Double(53)));
             _data.BitDouble(Radians(dimension.Double(51)));

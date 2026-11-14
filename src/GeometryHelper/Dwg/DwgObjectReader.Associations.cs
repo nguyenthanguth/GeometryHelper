@@ -174,12 +174,12 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// The class of the way a dependency names an edge: its name as a text, and in R2018 a flag and a number of a short, 1
+        /// The class of the way a dependency names an edge: its name as a text, and from R2013 a flag and a number of a short, 1
         /// for <c>AcDbAssocSingleEdgePersSubentId</c> and 3 for <c>AcDbAssocEdgePersSubentId</c>.
         /// </summary>
         private byte[] EdgeName()
         {
-            if (!R2018Plus)
+            if (!R2013Plus)
             {
                 return T();
             }
@@ -236,15 +236,12 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// A group of 2D constraints (AcDbAssoc2dConstraintGroup): a number and a flag, the plane it lies in (an origin and two
         /// axes), the actions it owns, two numbers (the next identifier and the count of its nodes) and the nodes, the
-        /// geometry and constraints the solver keeps. A DWG keeps the nodes in an order of its own; DXF lists them by identifier.
+        /// geometry and constraints the solver keeps. A DWG of R2010 keeps the nodes in an order of its own, which DXF gives by
+        /// identifier; a group of the version 2 (AutoCAD 2018) is read by <see cref="ReadAssocConstraintGroup2"/>.
         /// </summary>
         private void ReadAssocConstraintGroup()
         {
-            if (ReadAssocAction() >= 2)
-            {
-                throw new FormatException("A constraint group of version 2 (AutoCAD 2018) is not read.");
-            }
-
+            int version = ReadAssocAction();
             _object.Add(90, _data.BitLong());
             _object.Add(70, _data.Bit() ? 1 : 0);
 
@@ -256,6 +253,13 @@ namespace GeometryHelper.Dwg
             _object.Add(360, H());
             int actions = Count(_data.BitLong());
             int next = _data.BitLong();
+
+            if (version >= 2)
+            {
+                ReadAssocConstraintGroup2(actions, next);
+                return;
+            }
+
             int nodes = Count(_data.BitLong());
             _object.Add(90, actions);
 
@@ -311,11 +315,20 @@ namespace GeometryHelper.Dwg
             int id = _data.BitLong();
             _object.Add(90, id);
             _object.Add(70, _data.RawChar());
+            ReadConstraintNumbers();
+            ReadConstraintFields(kind, false);
+            return id;
+        }
 
+        /// <summary>
+        /// What a node of a constraint group holds past its identifiers (and past its byte, in the layout of R2018), by its
+        /// class: the pointer, numbers and points of a piece of geometry, or the flags and pointers of a constraint.
+        /// </summary>
+        private void ReadConstraintFields(string kind, bool version2)
+        {
             switch (kind)
             {
                 case "AcConstrainedImplicitPoint":
-                    ReadConstraintNumbers();
                     _object.Add(330, H());
                     _object.Add(90, _data.BitLong());
                     _object.Add(280, _data.RawChar());
@@ -323,7 +336,6 @@ namespace GeometryHelper.Dwg
                     _object.Add(90, _data.BitLong());
                     break;
                 case "AcConstrainedBoundedLine":
-                    ReadConstraintNumbers();
                     _object.Add(330, H());
                     _object.Add(90, _data.BitLong());
                     _object.AddPoint(10, _data.Point3());
@@ -333,7 +345,6 @@ namespace GeometryHelper.Dwg
                     _object.AddPoint(11, _data.Point3());
                     break;
                 case "AcConstrainedArc":
-                    ReadConstraintNumbers();
                     _object.Add(330, H());
                     _object.Add(90, _data.BitLong());
 
@@ -342,7 +353,7 @@ namespace GeometryHelper.Dwg
                         _object.AddPoint(10, _data.Point3());
                     }
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < (version2 ? 4 : 3); i++)
                     {
                         _object.Add(40, _data.BitDouble());
                     }
@@ -351,7 +362,6 @@ namespace GeometryHelper.Dwg
                     _object.AddPoint(11, _data.Point3());
                     break;
                 case "AcConstrainedCircle":
-                    ReadConstraintNumbers();
                     _object.Add(330, H());
                     _object.Add(90, _data.BitLong());
 
@@ -360,7 +370,7 @@ namespace GeometryHelper.Dwg
                         _object.AddPoint(10, _data.Point3());
                     }
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < (version2 ? 4 : 3); i++)
                     {
                         _object.Add(40, _data.BitDouble());
                     }
@@ -368,7 +378,6 @@ namespace GeometryHelper.Dwg
                     break;
                 case "AcConstrainedDatumLine":
                 case "AcConstrained2PointsConstructionLine":
-                    ReadConstraintNumbers();
                     _object.Add(330, H());
                     _object.Add(90, _data.BitLong());
                     _object.AddPoint(10, _data.Point3());
@@ -390,7 +399,6 @@ namespace GeometryHelper.Dwg
                 case "AcAngleConstraint":
                 case "Ac3PointAngleConstraint":
                 case "AcRadiusDiameterConstraint":
-                    ReadConstraintNumbers();
                     _object.Add(90, _data.BitLong());
                     _object.Add(290, _data.Bit() ? 1 : 0);
                     _object.Add(290, _data.Bit() ? 1 : 0);
@@ -420,8 +428,88 @@ namespace GeometryHelper.Dwg
                 default:
                     throw new FormatException("A constraint group holds a node of a class the reader does not know.");
             }
+        }
 
-            return id;
+        /// <summary>
+        /// The rest of a group of the version 2 of AutoCAD 2018, past the next identifier: two numbers and a flag, then the
+        /// table of the classes of its nodes (a count and the names, in the order the nodes first name them), the count of the
+        /// nodes, a directory of every node (its class by the number of the table, from 1, and its identifier) and then the
+        /// nodes themselves, each with its identifier first, then its identifiers, a byte, and what its class adds. DXF gives
+        /// the same in that order: the numbers and the flag, the count, the directory as class name and identifier, and the
+        /// nodes without their class.
+        /// </summary>
+        private void ReadAssocConstraintGroup2(int actions, int next)
+        {
+            int first = _data.BitLong();
+            int second = _data.BitLong();
+
+            if (_data.Bit())
+            {
+                throw new FormatException(
+                    "A constraint group names the classes of its nodes in a way the reader does not know."
+                );
+            }
+
+            int classes = Count(_data.BitShort());
+            var names = new byte[classes][];
+
+            for (int i = 0; i < classes; i++)
+            {
+                names[i] = T();
+            }
+
+            int nodes = Count(_data.BitLong());
+            _object.Add(90, actions);
+
+            for (int i = 0; i < actions; i++)
+            {
+                _object.Add(360, H());
+            }
+
+            _object.Add(90, next);
+            _object.Add(90, first);
+            _object.Add(90, second);
+            _object.Add(290, 0);
+            _object.Add(90, nodes);
+            var ids = new int[nodes];
+            var kinds = new string[nodes];
+
+            for (int i = 0; i < nodes; i++)
+            {
+                if (_data.Bit())
+                {
+                    throw new FormatException(
+                        "A constraint group names the class of a node in a way the reader does not know."
+                    );
+                }
+
+                int number = _data.BitShort();
+
+                if (number < 1 || number > classes)
+                {
+                    throw new FormatException("A constraint group names a class its table does not hold.");
+                }
+
+                ids[i] = _data.BitLong();
+                kinds[i] = Encoding.ASCII.GetString(names[number - 1]);
+                _object.Add(1, names[number - 1]);
+                _object.Add(90, ids[i]);
+            }
+
+            for (int i = 0; i < nodes; i++)
+            {
+                int id = _data.BitLong();
+
+                if (id != ids[i])
+                {
+                    throw new FormatException("A constraint group holds a node that its directory does not name.");
+                }
+
+                _object.Add(90, id);
+                ReadConstraintNumbers();
+                _object.Add(70, _data.RawChar());
+                ReadConstraintFields(kinds[i], true);
+            }
         }
 
         /// <summary>The first of a constraint parameter's classes past its two points: the dependency it is tied to and its value set.</summary>
