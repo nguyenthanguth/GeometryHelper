@@ -137,6 +137,37 @@ namespace GeometryHelper.Dxf
             return pairs;
         }
 
+        /// <summary>The groups of a record as <see cref="PairsOf"/> finds them, one at a time, none kept: for a record of megabytes, of which a few groups are looked at.</summary>
+        private struct PairWalk
+        {
+            private readonly Rec _record;
+            private int _at;
+
+            internal PairWalk(Rec record)
+            {
+                _record = record;
+                _at = record.Start;
+            }
+
+            /// <summary>The next group; false where the record has no more.</summary>
+            internal bool Next(out Pair pair)
+            {
+                if (_at >= _record.End)
+                {
+                    pair = default;
+                    return false;
+                }
+
+                byte[] bytes = _record.Bytes;
+                int codeEnd = LineEnd(bytes, _at, _record.End, out int valueStart);
+                TryCode(bytes, _at, codeEnd, out int code);
+                int valueEnd = LineEnd(bytes, valueStart, _record.End, out int next);
+                pair = new Pair(code, _at, valueStart, valueEnd, next);
+                _at = next;
+                return true;
+            }
+        }
+
         private string Text(Rec record, Pair pair) => Text(record, pair.ValueStart, pair.ValueEnd);
 
         /// <summary>
@@ -2376,7 +2407,9 @@ namespace GeometryHelper.Dxf
 
                     // A handle something points at is taken too, though no record has it, so that nothing comes to point at a
                     // new entity by chance.
-                    foreach (Pair pair in PairsOf(record))
+                    var walk = new PairWalk(record);
+
+                    while (walk.Next(out Pair pair))
                     {
                         bool pointer =
                             (pair.Code >= 320 && pair.Code <= 369)

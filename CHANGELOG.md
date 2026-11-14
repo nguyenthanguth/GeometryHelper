@@ -61,6 +61,21 @@ short value once however often it stands, writes the codes it knows ready made a
 library writes go out without an array for each group. A drawing of 100 000 lines and 5 000 objects (10.5 MB) saved as R2013 takes
 556 ms and 370 MB in place of 957 ms and 510 MB on .NET Framework 4.8 (368 ms and 363 MB in place of 522 ms and 460 MB on .NET 10);
 the 5 tables above, 295 ms in place of 918 ms.
+**CHANGED.** Saving a drawing in an older version (`Save(path, version)`, `Save(stream, version)`) writes the converted file as bytes
+straight from the groups the converter holds, where it built a text (22 MB for a drawing of 11 MB), encoded it again as UTF-8 and read
+the bytes as a file to save them: the file is written the same to the byte, but for the cases below which are still made as before. A
+drawing of 100 000 lines and 5 000 objects (11.3 MB) saved as R2013 takes 182 ms and 90 MB in place of 262 ms and 142 MB on .NET
+Framework 4.8 (70 ms and 88 MB in place of 115 ms and 139 MB on .NET 10), the 5 tables of 100 rows by 20 columns (10 000 cells)
+266 ms and 228 MB as R2013 in place of 358 ms and 304 MB, and 322 ms and 257 MB as R2000 in place of 363 and 335 (best of 7). The file is
+still read again, as before, where the drawing has a face of a polyface mesh (whose marker AcDbVertex before its AcDbFaceRecord reading
+mends), is saved as R12, or has letters beyond ASCII and goes to R2004 or R2000, whose bytes are in the code page of the header.
+**CHANGED.** The extension dictionary of a table made in code (and of any record given one) is spliced into its record as bytes, not
+written group by group from a list of every group of the record: a table of 2 000 cells no longer allocates some 5 MB for it,
+and the greatest handle of a copy of the drawing is read without a list for each record. Saving the 10 000 cells as R2018
+allocates 127 MB in place of 157 MB on .NET Framework 4.8 and the time is the same (130 ms); 400 tables of 3 rows and 3 columns among
+4 600 objects 208 MB in place of 221 MB. Bytes saved the same in 72 174 saves of random drawings with tables, edited between saves, in
+six versions, CRLF and LF, padded and unpadded codes, on each runtime, and in 1 000 saves of the AutoCAD sample drawings to every version
+(but six saves to R2013 of drawings with ACIS bodies, which differ from one run to the next, as they did before).
 **FIXED.** A table made in code in a drawing of R2000 to R2007 had the version number `280 0` of R2010 and later in its record, which
 AutoCAD leaves out of those versions. An empty value in the TABLECONTENT of a table going from R2007 or later to R2004 or R2000 is
 written `90 0` and `91 0` as AutoCAD writes it (the `91` was missing), and read going up: a table saved down and up again with an

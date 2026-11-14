@@ -297,9 +297,18 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(path));
             }
 
-            DxfFile converted = Converted(version, out IReadOnlyList<string> said);
+            DxfFile converted = Converted(version, out IReadOnlyList<string> said, out byte[] raw, out int length);
 
-            if (converted == null)
+            if (raw != null)
+            {
+                using (var file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    file.Write(raw, 0, length);
+                }
+
+                _filename = Path.GetFullPath(path);
+            }
+            else if (converted == null)
             {
                 File.Save(path);
                 _filename = Path.GetFullPath(path);
@@ -329,14 +338,32 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            DxfFile converted = Converted(version, out IReadOnlyList<string> said);
-            (converted ?? File).Save(stream);
+            DxfFile converted = Converted(version, out IReadOnlyList<string> said, out byte[] raw, out int length);
+
+            if (raw != null)
+            {
+                stream.Write(raw, 0, length);
+            }
+            else
+            {
+                (converted ?? File).Save(stream);
+            }
+
             return said;
         }
 
-        /// <summary>The drawing in the version, as a file of its own; null where it is the drawing's own version, which is saved as it stands.</summary>
-        private DxfFile Converted(string version, out IReadOnlyList<string> said)
+        /// <summary>
+        /// The drawing in the version, as a file of its own; null where it is the drawing's own version, which is saved as it
+        /// stands. Where the bytes the converter writes are the file as it is saved (they are, but for a drawing with a polyface
+        /// mesh, which reading them again would mend, one saved as R12, and one with letters beyond ASCII in a version before R2007,
+        /// whose bytes are not those of its text) they are given as <paramref name="raw"/>
+        /// and no file is made of them.
+        /// </summary>
+        private DxfFile Converted(string version, out IReadOnlyList<string> said, out byte[] raw, out int length)
         {
+            raw = null;
+            length = 0;
+
             if (version == null)
             {
                 throw new ArgumentNullException(nameof(version));
@@ -363,7 +390,17 @@ namespace GeometryHelper.Dxf
             }
 
             var told = new List<string>();
-            string text = DxfVersionConverter.Convert((completed ?? File).ToText(), target, told, FontSearchPath);
+
+            // The converter writes the bytes the file keeps of its text where it can, not a text that is encoded again.
+            byte[] bytes = DxfVersionConverter.ConvertToBytes(
+                (completed ?? File).ToText(),
+                target,
+                told,
+                FontSearchPath,
+                out int bytesLength,
+                out string text,
+                out bool whole
+            );
             said = told.AsReadOnly();
             GeometryHelperLog.Info(
                 "DxfDatabase: saved as "
@@ -372,7 +409,15 @@ namespace GeometryHelper.Dxf
                     + (File.Version ?? "no version")
                     + (told.Count == 0 ? "." : ": " + string.Join(" ", told))
             );
-            return DxfFile.Parse(text);
+
+            if (bytes != null && whole)
+            {
+                raw = bytes;
+                length = bytesLength;
+                return null;
+            }
+
+            return bytes != null ? DxfFile.OpenText(bytes, bytesLength) : DxfFile.Parse(text);
         }
 
         /// <summary>

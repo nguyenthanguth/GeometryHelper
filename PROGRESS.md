@@ -359,11 +359,17 @@ User note 2026-11-12 evening (note.md 1-14):
       blocks; 10 000 cells save in 127 ms as R2018 (was 462), 295 as R2013 (918), 330 as R2000 (940) on net48; the
       version converter reads and writes faster for every drawing (10.5 MB to R2013: 957 -> 556 ms); a weak cache of the
       completed copy until the next edit; saved bytes identical (17 400 fuzz saves per runtime); 30 new tests
-- [ ] (dxfver10, running: Objects index, extension dictionary, converter bytes) DXF versions follow-ups 10: Objects() index cleared on every OBJECTS write (O(tables x objects)); SetExtensionDictionary
-      rewriting the whole record; the converter's Write building a 22 MB string (write bytes straight); real
-      TABLEGEOMETRY and row heights (needs font metrics); native R2000/R2004 table drawings; block-cell, field and link
-      content; tables with their own row-kind looks or an existing extension dictionary; hidden bottom/left lines in
-      R2000/R2004; R2004/R2007 tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
+- [x] DXF versions follow-ups 10 (dxfver10): saving in an older version writes the converted bytes straight (11.3 MB
+      to R2013: 262 -> 182 ms, 142 -> 90 MB on net48); the extension dictionary spliced into a table record as bytes;
+      KnowHandles without a pairs list; saved bytes identical in 72 174 fuzz saves per runtime. The OBJECTS index was not
+      the cost of saving (AddObject already updates it): the tables x objects cost is in cloning
+- [ ] DXF versions follow-ups 11: cloning's NamedPath/uncached Objects() on the origin per pointer (WblockCloneObjects
+      of 400 tables 500 vs 280 ms by the objects around them); building a table cell by cell is O(cells) per
+      SetTextString (0.4 ms a cell at 1 000 cells); the fixed cost of completing a drawing with one table (~130 ms on 11
+      MB); NormalizeEdges and ListForRecompose O(tables^2); DateTime.Now and Guid making the ACIS R2013 conversion
+      non-deterministic; real TABLEGEOMETRY and row heights (font metrics); native R2000/R2004 table drawings;
+      block-cell, field and link content; hidden bottom/left lines in R2000/R2004; tolerant sweep_sur; blend/network
+      surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip

@@ -218,27 +218,49 @@ namespace GeometryHelper.Dxf
             Editable(item);
             List<Rec> records = RecordsOf(item);
             Rec head = records[0];
-            List<Pair> pairs = PairsOf(head);
-            int data = DataAt(head, pairs);
-            int open = -1;
-            int close = -1;
 
-            for (int i = 1; i < data && close < 0; i++)
+            // The groups are walked where they stand and the record is cut and joined as bytes, none of them kept in a list or
+            // copied one at a time, as a table of 2 000 cells is a record of some 38 000 groups.
+            int open = -1;
+            int openStart = -1;
+            int close = -1;
+            int closeEnd = -1;
+            int data = -1;
+            int count = 0;
+            var walk = new PairWalk(head);
+
+            while (walk.Next(out Pair pair))
             {
-                if (pairs[i].Code != 102)
+                int i = count++;
+
+                if (i == 0)
                 {
                     continue;
                 }
 
-                string said = Text(head, pairs[i]).Trim();
+                if (pair.Code == 1001)
+                {
+                    data = i;
+                    break;
+                }
+
+                if (pair.Code != 102)
+                {
+                    continue;
+                }
+
+                string said = Text(head, pair).Trim();
 
                 if (said == "{ACAD_XDICTIONARY")
                 {
                     open = i;
+                    openStart = pair.Start;
                 }
                 else if (said == "}" && open >= 0)
                 {
                     close = i;
+                    closeEnd = pair.End;
+                    break;
                 }
             }
 
@@ -247,25 +269,36 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            var b = new Builder(this);
+            byte[] bytes;
 
             if (dictionary == null)
             {
-                for (int i = 0; i < pairs.Count; i++)
-                {
-                    if (i < open || i > close)
-                    {
-                        b.Raw(head, pairs[i]);
-                    }
-                }
+                // An unterminated group is not cut, the record written again as it is.
+                bytes = close < 0 ? Spliced(head, head.End, head.End, null) : Spliced(head, openStart, closeEnd, null);
             }
             else
             {
+                // The extended data begins at the first 1001, or the groups end first.
+                data = data < 0 ? count : data;
+                var lead = new List<Pair>(16);
+                var again = new PairWalk(head);
+
+                bool At(int index, out Pair found)
+                {
+                    while (lead.Count <= index && again.Next(out Pair next))
+                    {
+                        lead.Add(next);
+                    }
+
+                    found = index < lead.Count ? lead[index] : default;
+                    return index < lead.Count;
+                }
+
                 int put = 1;
 
-                for (int i = 1; i < data && pairs[i].Code != 330 && pairs[i].Code != 100; i++)
+                for (int i = 1; i < data && At(i, out Pair at) && at.Code != 330 && at.Code != 100; i++)
                 {
-                    if (pairs[i].Code == 5 || pairs[i].Code == 105)
+                    if (at.Code == 5 || at.Code == 105)
                     {
                         put = i + 1;
                     }
@@ -276,11 +309,15 @@ namespace GeometryHelper.Dxf
                 while (
                     !beforeReactors
                     && put < data
-                    && pairs[put].Code == 102
-                    && Text(head, pairs[put]).Trim().StartsWith("{", StringComparison.Ordinal)
+                    && At(put, out Pair braced)
+                    && braced.Code == 102
+                    && Text(head, braced).Trim().StartsWith("{", StringComparison.Ordinal)
                 )
                 {
-                    while (put < data && !(pairs[put].Code == 102 && Text(head, pairs[put]).Trim() == "}"))
+                    while (
+                        put < data
+                        && !(At(put, out Pair closing) && closing.Code == 102 && Text(head, closing).Trim() == "}")
+                    )
                     {
                         put++;
                     }
@@ -288,26 +325,41 @@ namespace GeometryHelper.Dxf
                     put++;
                 }
 
-                for (int i = 0; i <= pairs.Count; i++)
-                {
-                    if (i == put)
-                    {
-                        b.Group(102, "{ACAD_XDICTIONARY");
-                        b.Group(360, dictionary);
-                        b.Group(102, "}");
-                    }
+                var b = new Builder(this);
+                b.Group(102, "{ACAD_XDICTIONARY");
+                b.Group(360, dictionary);
+                b.Group(102, "}");
 
-                    if (i < pairs.Count)
-                    {
-                        b.Raw(head, pairs[i]);
-                    }
-                }
+                // Before the group at its place, or after the last where the place is the end of the record; where it is past it,
+                // as a list of reactors that never closes leaves it, the record is written again as it is.
+                bool inside = At(put, out Pair place);
+                bool atEnd = !inside && At(put - 1, out _);
+                bytes =
+                    inside || atEnd
+                        ? Spliced(head, inside ? place.Start : head.End, inside ? place.Start : head.End, b.ToArray())
+                        : Spliced(head, head.End, head.End, null);
             }
 
-            records[0] = b.Done(head.Type);
+            records[0] = new Rec(bytes, 0, bytes.Length, head.Type);
             SetRecords(item, records);
             item.Changed(head.Type);
             Edited();
+        }
+
+        /// <summary>The bytes of a record with those from one place to another taken out and bytes put in their place; the record's own where there are none.</summary>
+        private static byte[] Spliced(Rec record, int from, int to, byte[] put)
+        {
+            int added = put == null ? 0 : put.Length;
+            var bytes = new byte[from - record.Start + added + record.End - to];
+            Buffer.BlockCopy(record.Bytes, record.Start, bytes, 0, from - record.Start);
+
+            if (added > 0)
+            {
+                Buffer.BlockCopy(put, 0, bytes, from - record.Start, added);
+            }
+
+            Buffer.BlockCopy(record.Bytes, to, bytes, from - record.Start + added, record.End - to);
+            return bytes;
         }
 
         /// <summary>

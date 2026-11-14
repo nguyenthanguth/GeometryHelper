@@ -225,6 +225,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Opens a DXF file from the bytes <see cref="Parse(string)"/> keeps of a text that is all ASCII or of R2007 or later: its
+        /// UTF-8, which the file then holds as its own.
+        /// </summary>
+        /// <param name="bytes">The bytes, not to be changed after.</param>
+        /// <param name="length">How many of them the file has.</param>
+        /// <returns>The file.</returns>
+        internal static DxfFile OpenText(byte[] bytes, int length) => new DxfFile(bytes, length, "a text");
+
+        /// <summary>
         /// Saves the file to a path, replacing whatever is there.
         /// </summary>
         /// <param name="path">The path of the file.</param>
