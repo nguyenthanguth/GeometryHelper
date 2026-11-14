@@ -1339,12 +1339,13 @@ namespace GeometryHelper.Dxf.Viewer
                 bothExtra = 0.85 * height * alongChord * Math.Max(0.0, 1.0 - sweep / (Math.PI / 2.0));
             }
 
-            // From 90 degrees up, the symbol before the words takes more and more room as the sweep widens, by the square of
-            // the words' height and, for level words, the sine of the direction of the arc's middle: probed with arcs of 1 and
-            // 3 from 10 and 55 degrees, sweeps 100 to 165, text 0.18 and 0.36 high (the arcs of 1 put 0.3 to 2.3 out by 0.01),
-            // the distance that first took the words ran 0.01 to 0.03 later than the room gave it for text 0.18, 0.03 to 0.09
-            // for 0.36, the same distance for either radius, and the room it missed, over the square of the height and the sine,
-            // was 0.5 at 100 degrees, 0.7 at 120, 0.95 at 135, 1.3 at 150, 1.75 at 165 (the arc of 1 through 150 degrees put 0.7
+            // From 90 degrees up, the symbol before the words takes more and more room as the sweep widens, by the words' height
+            // and, for level words, the sine of the direction of the arc's middle: probed with arcs of 1, 3 and 10 from 10 and 55
+            // degrees, sweeps 100 to 165, text 0.18, 0.36 and 1.8 high (the arcs of 1 put 0.3 to 2.3 out by 0.01; 10 for the text
+            // 1.8, scaled with it), the distance that first took the words ran later than the room gave it, for text 0.36 by
+            // 0.03 at 100 degrees to 0.09 at 165, about ten times as much for 1.8 as for 0.18 and the same for any radius, and the
+            // room it missed, over the height and the sine, was 0.09 at 100 degrees, 0.13 at 120, 0.18 at 135, 0.24 at 150 and
+            // 0.32 at 165 for text 0.18 (half as much again for 0.36, which this leaves; the arc of 1 through 150 degrees put 0.7
             // out has "2.6180" in, as AutoCAD 2021 does, from 0.68 before).
             double symbolBend = 0.0;
 
@@ -1352,9 +1353,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 double tallest = before / 1.8;
                 double past = sweep - 100.0 * Math.PI / 180.0;
-                double missed = past >= 0.0 ? 0.5 + 0.3115 * past + 0.696 * past * past : 0.5 + 1.44 * past;
                 double sine = levelInside ? Math.Abs(Math.Sin(from + sweep / 2.0)) : 1.0;
-                symbolBend = Math.Max(0.0, missed) * sine * tallest * tallest;
+                symbolBend = Math.Max(0.0, 0.092 + 0.0602 * past + 0.124 * past * past) * sine * tallest;
             }
 
             double needFit = needText + symbolBend;

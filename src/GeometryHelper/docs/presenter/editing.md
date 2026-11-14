@@ -1134,7 +1134,7 @@ take (0.85 of their height; level words the same, but only where the arc's middl
 degrees or 259 to 288 for "1.0472" and its symbol, 64 to 114 for a single digit and its symbol, the symbol then lying along the
 chord: arcs of 10 put 12 out, DIMASZ 0.36, take words and both arrowheads from a chord of 2.35 from 70 degrees, 2.22 from 66 and
 from 96). On sweeps from 100 to 165 degrees the symbol takes more room as the sweep widens, by the
-square of the words' height and the sine of the direction of the arc's middle (the arc of 1 through 150 degrees from 10 keeps
+words' height (0.09 of it at 100 degrees, 0.24 at 150, 0.32 at 165, scaling with the text) and the sine of the direction of the arc's middle (the arc of 1 through 150 degrees from 10 keeps
 "2.6180" with the symbol between its rays from 0.70 out, not from 0.68). Level words outside stand past the first end of the arc
 (the second for DIMJUST 1), to the right where the arc, a third of the way round, stands above the horizontal and to the left where it
 stands below it, the room of the arc symbol between the landing and them whichever side (the arc of 1 through 179.99 degrees put 0.45
