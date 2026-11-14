@@ -6,6 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** A table style saved from R2007 or later as R2000 or R2004 keeps the formats of its rows beside it as AutoCAD 2021 does:
+the type of the value, its unit and its format string of the data, title and header rows (the groups 90, 91 and 1 after the fill of
+each row, which a style of R2004 and before has no place for) go into the XRECORD of the style's extension dictionary
+(`ACAD_XREC_ROUNDTRIP`, named after the dictionary's cell style map, made where the dictionary names none) as
+`ACAD_ROUNDTRIP_PRE2007_TABLESTYLE`, the three in one run (90, 91, 1, then 92, 93, 2, then 94, 95, 3): `90=512 91=0 1= 92=512 93=0 2=
+94=512 95=0 3=` for AutoCAD's Standard, `90=2 91=1 1=%lu2%pr2 92=512 93=0 2= 94=1 95=2 3=%lu1%pr0` for a style of a real of two places
+for its data (a distance) and an angle for its header. The styles of AutoCAD's table drawing (two tables, so two styles) and of 8 more
+styles of other types, units and formats, saved as R2000, R2004 and R2007, are AutoCAD's group for group, and AutoCAD's `AUDIT` finds
+in our files the errors it finds in its own (none in a plain table's R2000 and R2004, 3 in both of AutoCAD's table drawing).
+**FIXED.** A table style going up from R2000 or R2004 to R2007 or later lost the formats of its rows and kept the round trip of them:
+it now has the 90, 91 and 1 after the fill of each row from that round trip (any type, no unit and no format where there is none, as
+AutoCAD's own R2007 file), the XRECORD is taken out with its name in the dictionary, and a style going to R2010 or later has the 280 of
+nought AutoCAD writes first in it (a style and a table going to R2010 had none; a table that has a 280 of its own after its flags, which
+AutoCAD writes in R2000 too, was taken for one that had it).
+
 **NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
 a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8
 and the format `%x`, shown 1/1/2020; 12:30 a time of `%X`, shown 12:30:00 PM (on 30 December 1899, as AutoCAD keeps a time); 1/1/2020
