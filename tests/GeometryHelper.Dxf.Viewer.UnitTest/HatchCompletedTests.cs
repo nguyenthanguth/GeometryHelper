@@ -466,13 +466,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 "Enter an option [Boundary set/Retain boundary/Island detection/Style/Associativity/Gap tolerance/separate Hatches]:",
                 session.PromptText
             );
-            Run(session, Enter, P(10, 10));
-            Assert.Contains("Valid hatch boundary not found.", session.History);
-            Run(session, P(30, 30), Enter);
+            Run(session, Enter, P(30, 30), Enter);
 
             DxfHatch hatch = OnlyHatch(document);
             Assert.Equal(1, hatch.NumberOfLoops);
             Assert.Equal(3600.0, hatch.Area, 6);
+        }
+
+        [Fact]
+        public void BoundarySet_ASetThatHoldsNoAreaRoundThePoint_SaysSoAndThenLooksAmongEveryObject()
+        {
+            // AutoCAD 2021's console: the set of the inner square, a point between the two squares: "Valid hatch boundary not
+            // found." and then the hatch of the outer square with the inner one as its island.
+            CadDocument document = Squares(0, 0, 100, 20, 20, 60);
+            string[] inner = All<DxfLine>(document.ModelSpace).Skip(4).Select(l => l.Handle).ToArray();
+            CadCommandSession session = Start(document, "-HATCH", "A", "B", "N", inner, Enter, Enter, P(10, 10));
+            int said = session.History.ToList().IndexOf("Valid hatch boundary not found.");
+            Assert.True(said >= 0);
+            Assert.True(session.History.ToList().IndexOf("Analyzing internal islands...") > said);
+
+            Run(session, Enter);
+            Assert.Equal(2, OnlyHatch(document).NumberOfLoops);
         }
 
         [Fact]

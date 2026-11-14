@@ -24,8 +24,8 @@ written by its name with a count of no lines (78 of 0), which AutoCAD 2021 refus
 the lines of its pattern with them (`GetPatternDefinitionAt`), and a pattern made by the user (`_USER`, `PatternSpace`,
 `PatternDouble`) is given its lines as AutoCAD makes them. `SetGradient` fills it with one of AutoCAD's gradients from
 R2004, its colours [`DxfGradientColor`](xref:GeometryHelper.Dxf.DxfGradientColor)s, and `EvaluateGradientColorAt(0.5f)` is the colour halfway along it by the
-library's rules, red, green and blue mixed in proportion, not checked against AutoCAD: AutoCAD's new gradient, blue to a
-pale yellow, gives (128, 128, 204). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2)s in
+AutoCAD 2021's, red, green and blue mixed in proportion with each channel cut down to a whole number: AutoCAD's new gradient, blue to a
+pale yellow, gives (127, 127, 204), and a gradient of one colour runs to the colour's tint in hue, saturation and lightness (red at 0.25 to (128, 0, 0)). `GetHatchLinesData()` gives the lines `Explode()` draws, to the bit, as [`GeoLine2`](xref:GeometryHelper.Geometry.GeoLine2)s in
 the plane's own system, and `NumberOfHatchLines` and `GetHatchLineDataAt(i)` the same one by one, worked out once while
 the hatch is not changed: the square 30 by 20 of a pattern made by the user, lines at 45 degrees 3.175 apart, draws 11. A
 file older than R2000 has no HATCH and refuses one.

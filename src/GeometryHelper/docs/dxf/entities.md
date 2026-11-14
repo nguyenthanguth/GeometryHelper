@@ -202,7 +202,7 @@ do `ModifyPositionAndTangent` (70 1288, a closed spline 1289) and the pieces of 
 
 ### A spline's data whole
 
-A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree with the curve kept to the
+A spline gives and takes its `NurbsData` and `FitData` whole. `ElevateDegree` raises its degree, to 25 at most, with the curve kept to the
 rounding, `InsertControlPointAt` and `RemoveControlPointAt` put a control point in and take one out with a knot,
 `InsertFitPointAt`, `SetFitPointAt` and `RemoveFitPointAt` fit it anew through its points (its knots the lengths of the
 chords, so that a spline through (0, 0, 0), (30, 40, 0) and (60, 0, 0) runs from 0 to 100), `ModifyPositionAndTangent`

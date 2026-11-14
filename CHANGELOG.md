@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** -HATCH's draW boundary draws arcs (R2.2 follow-up, hatch3): Arc asks AutoCAD 2021's `Enter an arc boundary option
+[Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of arc] <Endpoint>:` (CLose from the second segment on) and takes the
+arc segments of PLINE: an end point leaving the way the shape came (east at the first point, or the way the last line was drawn), an
+included Angle, a CEnter, a Direction, a Radius, a Second pt; Line goes back to straight segments, CLose closes with an arc leaving
+that way, Undo takes the last segment off and goes on in line mode (`All segments already undone.` at the first point), and an end
+that makes no arc says `*Invalid*`. Length goes on along the tangent of an arc. A line from (0, 0) to (100, 0), an arc to (100, 50)
+and a line to (0, 50), closed, hatches 5 981.75 square units, and the arc closed with CLose from (100, 50) is the arc of radius 125
+about (100, -75), as AutoCAD drew it; a shape of two points is a loop where an arc gives it an area (a line and an arc, or an arc
+alone). A retained boundary keeps the bulges in its polyline.
+**NEW.** Gap tolerance (HPGAPTOL) closes a loose end as AutoCAD 2021 does: a line goes on along its own direction and closes where that
+reaches another line or arc (a line ending 2 off the middle of a longer one at HPGAPTOL 5 hatches the box and drops the 20 of the bottom
+that stands past it), or where it meets the way another loose end goes on (the ends (100, 0) and (103, 3) of two lines, 3.09 from their
+meeting at (103.09, 0), close at that corner where the straight piece between them is 4.24 long), or the other end; two ends not so met
+are joined directly, as before, the nearest bridge first. A line leaning in to (97, 3) goes on to (96.907, 0) on the bottom.
+**CHANGED.** Boundary set of -HATCH, as AutoCAD 2021's console runs it: a point whose area the candidate set does not hold says
+`Valid hatch boundary not found.` and the search goes on among every object, so that with the set of one square a point in another
+square hatches that one (AutoCAD did, with both words); a point in nothing says it once. A pick in no set no longer writes
+`Analyzing internal islands...` before `Valid hatch boundary not found.`, and a pick in a set writes only the words AutoCAD does.
+**CHANGED.** `DxfHatch.EvaluateGradientColorAt` gives AutoCAD 2021's colours: each channel is cut down to a whole number (blue (0, 0, 255)
+to a pale yellow (255, 255, 153) is (127, 127, 204) halfway, not (128, 128, 204); the drawn colour of such a gradient follows), and a
+gradient of one colour holding only that colour runs to its tint in hue, saturation and lightness, as the presenter's one-colour gradient
+already wrote it (red at 0.25 to (128, 0, 0), (100, 150, 50) at 0.75 to (191, 223, 159)), where it mixed red, green and blue towards black
+or white. 1 101 channels of 12 two-colour gradients and 25 pairs of colour and tint at 9 values were read from AutoCAD and agree.
+**CHANGED.** `DxfSpline.ElevateDegree` raises a spline to degree 25, the order of 26 AutoCAD's Elevate order takes, where it stopped at
+10: the 13, 26 and 23 control points AutoCAD 2021 gave for a cubic raised to 12 and 25 and a cubic with an inner knot to 12 are met to
+1E-7 and the curve is the same to 1E-9. `ToGeoSpline3` and the reader still take a degree of 10 at most, so a spline raised past 10
+has no shape to draw, and SPLINEDIT's Elevate order in the presenter stays at order 11.
+
 **CHANGED.** A table going across R2007 (`Save(path, "AC1018")` and back) stays a table where its cells carry more than plain text:
 alignment, text height, text style, colours, background, borders of every side, and a block cell. It was the INSERT of its block before.
 The cells are AutoCAD's group for group: of 4 tables of AutoCAD 2021 (one with a title, a cell 4 high, one aligned bottom left, red

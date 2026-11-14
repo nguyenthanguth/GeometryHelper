@@ -291,58 +291,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// and lightness, each channel rounded half up. Red (255, 0, 0) at 0.25 gives (128, 0, 0); (100, 150, 50) at 0.9, (230, 242, 217); any grey at
         /// 0.4, a grey of 102; (255, 200, 200) at 0.5, a red of 255, since its saturation is full.
         /// </summary>
-        internal static DxfColor Tinted(DxfColor colour, double tint)
-        {
-            // The channels stay whole numbers of 255 here, so that a saturation of full is exactly 1: (255, 200, 200) is 55 of 55.
-            double r = colour.Red;
-            double g = colour.Green;
-            double b = colour.Blue;
-            double max = Math.Max(r, Math.Max(g, b));
-            double min = Math.Min(r, Math.Min(g, b));
-            double span = max - min;
-            double saturation =
-                span <= 0.0 ? 0.0
-                : max + min <= 255.0 ? span / (max + min)
-                : span / (510.0 - max - min);
-            double exact =
-                span <= 0.0 ? 0.0
-                : max == r ? 60.0 * (((g - b) / span % 6.0 + 6.0) % 6.0)
-                : max == g ? 60.0 * ((b - r) / span + 2.0)
-                : 60.0 * ((r - g) / span + 4.0);
-
-            // The hue in whole degrees: (0, 128, 255), at 209.88, is worked from 210, which gives the 191 AutoCAD wrote at 0.75
-            // where the hue itself gives 191.5 and a green of 192.
-            double h = Math.Round(exact, MidpointRounding.AwayFromZero) % 360.0 / 360.0;
-            double l = Math.Max(0.0, Math.Min(1.0, tint));
-
-            // The usual way from hue, saturation and lightness back: its sums come to a hair under a half where AutoCAD's do,
-            // (200, 100, 50) at 0.25 giving a blue of 25.4999 and so 25, which a sum worked another way gives 26.
-            double q = l < 0.5 ? l * (1.0 + saturation) : l + saturation - l * saturation;
-            double p = 2.0 * l - q;
-            return DxfColor.FromRgb(
-                Channel(HueToChannel(p, q, h + 1.0 / 3.0)),
-                Channel(HueToChannel(p, q, h)),
-                Channel(HueToChannel(p, q, h - 1.0 / 3.0))
-            );
-        }
-
-        /// <summary>One channel of a colour of hue, saturation and lightness, from the two bounds the lightness and saturation make and the hue shifted for it.</summary>
-        private static double HueToChannel(double p, double q, double t)
-        {
-            t =
-                t < 0.0 ? t + 1.0
-                : t > 1.0 ? t - 1.0
-                : t;
-
-            return t < 1.0 / 6.0 ? p + (q - p) * 6.0 * t
-                : t < 0.5 ? q
-                : t < 2.0 / 3.0 ? p + (q - p) * (2.0 / 3.0 - t) * 6.0
-                : p;
-        }
-
-        /// <summary>A channel from 0 to 1 as a whole number of 255, rounded half up.</summary>
-        private static byte Channel(double value) =>
-            (byte)Math.Max(0.0, Math.Min(255.0, Math.Floor(value * 255.0 + 0.5)));
+        internal static DxfColor Tinted(DxfColor colour, double tint) => DxfHatch.TintedColour(colour, tint);
 
         /// <summary>The name a gradient of AutoCAD's dialog is written under in a DXF: GR_CYLIN as CYLINDER.</summary>
         internal static string DxfGradientName(string name)
