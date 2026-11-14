@@ -1231,14 +1231,22 @@ number 12 is the whole number 1. Thousands typed with commas, 1,500, are a numbe
 number 1500 of `%th[\,]` shown 1,500; 1,500.5 shown 1,500.5000; a comma before other than three figures, as 1,50, is a
 point), and a length in feet and inches, 12'6", 12'-6", 12'6-1/2" or 6 1/2", is a number of inches (12'6" the number 150
 shown 12'-6"; 6.5" and 12.5' a number of the engineering units, shown 0'-6.5000" and 12'-6.0000"), each set top right;
-a length with a space before its figures, 12ft and 12"6 are not read as lengths and stay text. Dates and times (1/1/2020,
-12:30) stay text, the library writing no date. The editor opens a number as AutoCAD 2021's
+a length with a space before its figures, 12ft and 12"6 are not read as lengths and stay text. A date or a time, in the
+order of the culture of the machine, is a date of the kind 8 (the 16 bytes of a SYSTEMTIME in the groups 92 and 310) of
+the format AutoCAD 2021 gives it: 1/1/2020 of `%x`, shown 1/1/2020; 12:30 of `%X`, shown 12:30:00 PM, a time of the day
+being on 30 December 1899; and 1/1/2020 12:30 of `%c`, shown 1/1/2020 12:30:00 PM. A month in words (Jan 1 2020, 1 January
+2020), a year of two figures (1/1/49 is 2049 and 1/1/50 is 1950), no year (the present one), 12:30 PM and 1:5 are read as
+well; a day or a time that does not exist (2/30/2020, 24:00), a fraction of a second (12:30:45.5), a weekday, a zone and
+a point as the mark (3.4.2020 in en-US) stay text. A date typed over a date keeps the cell's format and shows in it
+(`%d/%m/%Y` shows 3/7/2020 as 07/03/2020), and the editor opens a date as 1/1/2020, 12:30:00 PM or 1/1/2020 12:30:00 PM
+whatever the format. The editor opens a number as AutoCAD 2021's
 `GetTextString(FormatOption.ForEditing)` writes it ([`DxfTable.TextStringForEditing`](xref:GeometryHelper.Dxf.DxfTable.TextStringForEditing(System.Int32,System.Int32))),
 the number as it is to 16 figures with its zeros and the places of its units left off: a cell that shows 1.5000 opens as 1.5,
 a third as 0.333333333333333, 1e3 as 1.000000000000000E+03, 1/3 as 10923/32768, 12.5 in feet and inches as 1'-0 1/2" and a
 point as 1.5, 2.25, -0.1; the words that opened are kept when they are given back. A text typed over a cell of a number
 or a point is refused, the message "Cell C3 holds a number, and "abc" is not a number." and the cell left as it was, as
 AutoCAD 2021's SetValue of it throws eInvalidInput (12mm, 1/1/2020 and 12:30 too, and a number over a point or a point over a number);
+so is anything that is no date or time over a cell of a date ("Cell A3 holds a date, and "abc" is not a date.", a number too);
 empty words still clear the cell. In a cell that holds no number, b1 and 12mm stay text, as does a number in a cell made to
 hold text. Drawn anew,
 each row grows to
@@ -1246,7 +1254,13 @@ hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's w
 width, and need their actual height and the margins above and below, one line of four thirds of the text height at
 least; a row is as high as its tallest cell needs and is never made lower. In AutoCAD's Standard, "HEA300 S355 with end
 plates both sides" in ghsimplex in a column 30 wide takes six lines and makes its row 45.43 high, as AutoCAD 2021 laid it
-out, and the row keeps 45.43 when the words are made short again. A cell written in a table of 100 rows of 20 columns
+out, and the row keeps 45.43 when the words are made short again. Cells merged across rows grow the rows they span
+together: the rows are first as high as their own cells need, then each block, taken in the order of its top left cell,
+row by row, shares its need among its rows in proportion to the heights they stand at, as AutoCAD 2021's GenerateLayout
+did (12 lines in two rows of 9 need 90.43 and make 45.21 each, not 9 and 81.43; in rows of 12 and 20 they make 33.91 and
+56.51; a block over rows that already hold its words changes none). A row is laid out by the text height and the text style
+of the cell's own, else those its table keeps of its own for the kind of row, else its table style's: a table of its own
+data height of 8 makes an empty data row 13.67 high (8 times 4/3 and two margins of 1.5), where its style's 4.5 made it 9. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
 
 While cells are selected the table is framed by its column letters (A, B ... Z, AA) and row numbers, those of the

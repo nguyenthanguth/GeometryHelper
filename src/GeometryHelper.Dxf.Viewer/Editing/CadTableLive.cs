@@ -130,7 +130,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Lays the rows out for the words typed so far: the row of the cell is as high as the words need, and no lower than it
-        /// stood; a block of merged cells across rows gives its last row what the rows it spans lack, as writing the words does.
+        /// stood; a block of merged cells across rows grows the rows it spans in proportion to their heights, as writing the words does.
         /// Nothing is written to the drawing.
         /// </summary>
         /// <param name="words">The words with their MTEXT codes, as the editor would write them; empty for none.</param>

@@ -111,7 +111,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ABlockMergedAcrossRows_GrowsItsLastRow_AsWhenWritten()
+        public void ABlockMergedAcrossRows_GrowsItsRowsTogether_AsWhenWritten()
         {
             CadDocument document = Metric();
             string handle = Schedule(document);
@@ -126,7 +126,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(CadTableEditor.SetText(twin, twinHandle, 2, 0, words).Succeeded);
 
             DxfTable written = TableOf(twin, twinHandle);
-            Assert.True(written.RowHeight(3) > 9.0);
+            Assert.True(written.RowHeight(2) > 9.0);
+            Assert.Equal(written.RowHeight(2), written.RowHeight(3), Places);
 
             for (int r = 0; r < written.NumRows; r++)
             {

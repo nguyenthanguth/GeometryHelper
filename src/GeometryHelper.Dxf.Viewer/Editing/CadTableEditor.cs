@@ -189,7 +189,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// from it counts 2, 3, 4; 1.5 a number shown in the drawing's units, 1.5000 at LUPREC 4, 1e3 one shown 1.0000E+03 and
         /// 1/2 one shown 1/2, each standing top right where the cell has no alignment of its own; 1,5 the point (1, 5, 0)
         /// shown 1.0000, 5.0000, 0.0000; and a number typed in a cell of a number keeps the cell's kind and format, 12 over
-        /// 1.25 shown 12.0000. b1, 12mm and 1,500 stay text.
+        /// 1.25 shown 12.0000. A date or a time, in the order of the culture of the machine, is a date as AutoCAD 2021 reads it:
+        /// 1/2/2020 or 12:30 of a cell of no kind, shown 1/2/2020 or 12:30:00 PM (the formats <c>%x</c>, <c>%X</c> and <c>%c</c>
+        /// for a date, a time and both), and any other words over a cell of a date are refused. b1 and 12mm stay text.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The table's handle.</param>
@@ -231,7 +233,11 @@ namespace GeometryHelper.Dxf.Viewer
             // value. Empty words clear the cell, as Delete does.
             if (text.Length != 0 && table.RefusesText(row, column, text))
             {
-                string kind = table.DataType(row, column) == DxfDataType.Point3d ? "point" : "number";
+                DxfDataType held = table.DataType(row, column);
+                string kind =
+                    held == DxfDataType.Point3d ? "point"
+                    : held == DxfDataType.Date ? "date"
+                    : "number";
                 return CadEditResult.Refuse(
                     "Cell "
                         + CellName(row, column)
@@ -836,7 +842,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(table));
             }
 
-            var style = table.TableStyle as DxfTableStyle;
+            var style = new Looks(table);
             double tallest = 0.0;
 
             for (int r = 0; r < table.NumRows; r++)
@@ -853,7 +859,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static double[] RowNeeds(CadDocument document, DxfTable table)
         {
-            var style = table.TableStyle as DxfTableStyle;
+            var style = new Looks(table);
             double hMargin = table.HorizontalCellMargin;
             double vMargin = table.VerticalCellMargin;
             var needs = new double[table.NumRows];
@@ -994,8 +1000,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Grows each row of a table to hold its cells, as AutoCAD 2021's table lays itself out: a cell's text wraps at the
         /// cell's width less its margins, as an MTEXT of that width (<see cref="CadMTextLayout"/>), and needs its actual
         /// height, at least four thirds of its text height (one line), and the margin above and below; a row is as high as the
-        /// most any of its cells needs, and never lower than it was. A block of merged cells across rows grows its last row by
-        /// what the rows lack. In AutoCAD's Standard (text 4.5, margins 1.5) a row of nothing but one-line words is 9 high, and
+        /// most any of its cells needs, and never lower than it was. A block of merged cells across rows grows the rows it spans
+        /// in proportion to their heights until they hold it (<see cref="Wanted"/>). In AutoCAD's Standard (text 4.5, margins 1.5) a row of nothing but one-line words is 9 high, and
         /// "HEA300 S355 with end plates both sides" in a column 30 wide, wrapped to five lines of ghsimplex, makes its row
         /// 45.42857, as AutoCAD 2021 laid them out. Block cells are left as they are.
         /// </summary>
@@ -1003,7 +1009,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             int rows = table.NumRows;
             int columns = table.NumColumns;
-            var style = table.TableStyle as DxfTableStyle;
+            var style = new Looks(table);
             double hMargin = table.HorizontalCellMargin;
             double vMargin = table.VerticalCellMargin;
             var heights = new double[rows];
@@ -1066,7 +1072,7 @@ namespace GeometryHelper.Dxf.Viewer
             return CellNeeds(
                     document,
                     table,
-                    table.TableStyle as DxfTableStyle,
+                    new Looks(table),
                     row,
                     column,
                     table.GetMergeRange(row, column),
@@ -1078,8 +1084,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The height each row is wanted at, given the heights it stands at and the height each block of merged cells needs (its
-        /// margins in): a block of one row raises it to what the block needs; a block across rows gives its last row what the
-        /// rows it spans lack.
+        /// margins in): a block of one row raises it to what the block needs; a block across rows, taken in the order of its
+        /// top left cell, row by row, shares what it needs among the rows it spans in proportion to the heights they stand at
+        /// then (those of the cells of one row first), so that the rows come to the sum the block needs together, as AutoCAD
+        /// 2021's <c>GenerateLayout</c> does: a block of 12 lines over two rows of 9, which needs 90.42857, makes 45.21429 each,
+        /// and over rows of 12 and 20 makes 33.91071 and 56.51786.
         /// </summary>
         internal static double[] Wanted(double[] heights, List<KeyValuePair<DxfCellRange, double>> needs)
         {
@@ -1110,7 +1119,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (block.Value > spanned)
                 {
-                    wanted[block.Key.BottomRow] += block.Value - spanned;
+                    double grow = block.Value / spanned;
+
+                    for (int r = block.Key.TopRow; r <= block.Key.BottomRow; r++)
+                    {
+                        wanted[r] *= grow;
+                    }
                 }
             }
 
@@ -1121,7 +1135,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static double CellNeeds(
             CadDocument document,
             DxfTable table,
-            DxfTableStyle style,
+            Looks style,
             int row,
             int column,
             DxfCellRange block,
@@ -1151,7 +1165,7 @@ namespace GeometryHelper.Dxf.Viewer
                 TextHeight = height,
                 Width = Math.Max(0.0, width - 2.0 * hMargin),
             };
-            string styleName = table.TextStyle(row, column)?.Name ?? style?.TextStyleName(kind);
+            string styleName = table.TextStyle(row, column)?.Name ?? style.StyleName(kind);
 
             if (!string.IsNullOrEmpty(styleName))
             {
@@ -1161,15 +1175,41 @@ namespace GeometryHelper.Dxf.Viewer
             return Math.Max(oneLine, document.LayoutOf(text).ActualHeight);
         }
 
-        /// <summary>The text height of a cell of a row of a kind: its own, else its style's for the kind, else AutoCAD's Standard (6 for a title, else 4.5).</summary>
-        private static double TextHeightOf(DxfTable table, DxfTableStyle style, int row, int column, DxfRowType kind)
+        /// <summary>The text height of a cell of a row of a kind: its own, else its table's own for the kind, else its style's, else AutoCAD's Standard (6 for a title, else 4.5).</summary>
+        private static double TextHeightOf(DxfTable table, Looks style, int row, int column, DxfRowType kind)
         {
-            return table.TextHeight(row, column)
+            return table.TextHeight(row, column) ?? style.Height(kind);
+        }
+
+        /// <summary>The looks of a table that decide how its words lay out, read once for its rows: its own for the text height and style of each kind of row, then its style's.</summary>
+        private sealed class Looks
+        {
+            private readonly DxfTableStyle _style;
+            private readonly double?[] _heights;
+            private readonly string[] _styles;
+
+            internal Looks(DxfTable table)
+            {
+                _style = table.TableStyle as DxfTableStyle;
+                table.OwnTextLooks(out _heights, out _styles);
+            }
+
+            private static int Index(DxfRowType kind) =>
+                kind == DxfRowType.TitleRow ? 0
+                : kind == DxfRowType.HeaderRow ? 1
+                : 2;
+
+            /// <summary>The text height of a row of a kind: the table's own, else its style's, else AutoCAD's Standard (6 for a title, else 4.5).</summary>
+            internal double Height(DxfRowType kind) =>
+                _heights[Index(kind)]
                 ?? (
-                    style != null ? style.TextHeight(kind)
+                    _style != null ? _style.TextHeight(kind)
                     : kind == DxfRowType.TitleRow ? 6.0
                     : 4.5
                 );
+
+            /// <summary>The name of the text style of a row of a kind: the table's own, else its style's; null for none.</summary>
+            internal string StyleName(DxfRowType kind) => _styles[Index(kind)] ?? _style?.TextStyleName(kind);
         }
 
         /// <summary>The widths of the columns, or the heights of the rows, as they are.</summary>

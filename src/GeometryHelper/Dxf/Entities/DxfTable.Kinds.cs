@@ -717,6 +717,37 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The text height and the text style the table keeps of its own for the cells of each kind of row, the title's, the
+        /// header's and the data's in that order, as AutoCAD's <c>TextHeight(RowType)</c> and <c>TextStyle(RowType)</c> give
+        /// them over the table style's; null for a kind the table keeps none for. A cell's own, <see cref="TextHeight(int, int)"/>
+        /// and <see cref="TextStyle(int, int)"/>, comes before them.
+        /// </summary>
+        internal void OwnTextLooks(out double?[] heights, out string[] styles)
+        {
+            List<KeyValuePair<int, string>>[] own = OwnLooks(Read());
+            heights = new double?[3];
+            styles = new string[3];
+
+            for (int kind = 0; kind < 3; kind++)
+            {
+                int at = own[kind].FindIndex(g => g.Key == 140);
+
+                if (
+                    at >= 0
+                    && Numbers.TryRead(own[kind][at].Value, out double height)
+                    && Guard.IsFinite(height)
+                    && height > 0.0
+                )
+                {
+                    heights[kind] = height;
+                }
+
+                at = own[kind].FindIndex(g => g.Key == 7);
+                styles[kind] = at >= 0 ? DxfReader.NameOf(own[kind][at].Value).Trim() : null;
+            }
+        }
+
+        /// <summary>
         /// The looks a title (0) or a header (1) written as data takes as its own, as AutoCAD 2021 gave them: the table's own of
         /// that kind, and of the rest those its table style gives that kind that are not the ones it gives the data, the title
         /// of AutoCAD's Standard <c>170 5</c> and <c>140 6.0</c>, the header <c>170 5</c> (D28d r1, i1, d2, d4); in the order
