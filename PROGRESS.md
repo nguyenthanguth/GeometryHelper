@@ -134,10 +134,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 3 (mline4): cross-segment trims on a closed MLINE (1091 of 1111 probes equal, 20 float ties);
         CC/OC/MC run on only past open ends and refuse self-intersecting cases whole; MoveVertexAt on cut open MLINEs as
         AutoCAD (224 probed moves)
-  - [ ] (mline5, running) MLINE follow-ups 4: AutoCAD's inverted record where a cut starts exactly at a later segment's start (CA/CS,
-        crosses at y=20, {20}{20} at y=120); CJ refusals past a vertex (L vs U differ); the "L second" cross split (x<=35
-        vs >=40, data in .claude/gk/mline4-notes); closed-trim end stop ties on non-right corners; MoveVertexAt on closed cut
-        MLINEs (S)
+  - [x] MLINE follow-ups 4 (mline5): CC/OC/MC/CJ scan every segment pair and cross the usable one nearest the picks
+        (refusals by the end-segment rule; explains the CJ refusals and the "L second" split); MoveVertexAt on closed cut
+        MLINEs; AutoCAD's inverted break records not copied (its own Explode draws them wrong)
+  - [ ] MLINE follow-ups 5: tees CT/OT/MT with the pair scan; 25 staircase breaks within 20 of a corner; the triangle's
+        no-nought moves (20) and the six-sided staircase's (10); four closed-square refusals; two joinable corners
+        half-edited by AutoCAD; CJ picks on the meeting point; closed-trim end-stop ties (harness lost, re-probe) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -213,7 +215,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         "." clearing in the GUI; PDF links through VPCLIP-clipped and twisted viewports (untested); Find's "1 matches"
         plural; shots of the attribute dialogs (eattedit, battman, attdia) with a sample block (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
-  - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
+  - [ ] (r31, running: MLEADERALIGN, TEXTALIGN, DIMBREAK Auto via stdin) R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
         splinedit2 merge) (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
@@ -652,7 +654,7 @@ the ones wanted.
       record, %x/%X/%c, refusals over a date cell; 76 of 165 probed texts, culture of the machine); units formats under
       LUNITS 1-5 with %prN/%zs (3690 texts); a merged block shares its need among its rows by their heights; the table's
       own per-kind text looks in the row layout
-- [ ] Tables follow-ups 2: block cells not fitted grow their rows (10x40 block: row 43); DxfTable.Value as DateTime and
+- [ ] (tables6, running) Tables follow-ups 2: block cells not fitted grow their rows (10x40 block: row 43); DxfTable.Value as DateTime and
       SetValue(DateTime); a row mixing a cell's own text height with the table's own looks (AutoCAD takes the first);
       dates in autofill; %j %U %z %Z; band and size-field sides of up-flowing tables and the drag-only perpendicular
       filter (GUI) (S)

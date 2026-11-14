@@ -189,8 +189,6 @@ namespace GeometryHelper.Dxf.Viewer
             var b = new DxfMlineBuilder(second);
             GeoPoint3 pickFirst = P3(firstAt);
             GeoPoint3 pickSecond = P3(secondAt);
-            CadMlineEdit.Nearest(a, pickFirst, out int segmentA, out int _);
-            CadMlineEdit.Nearest(b, pickSecond, out int segmentB, out int _);
             CadMlineEdit.Joint joint =
                 option[0] == 'C' ? CadMlineEdit.Joint.Closed
                 : option[0] == 'O' ? CadMlineEdit.Joint.Open
@@ -199,17 +197,51 @@ namespace GeometryHelper.Dxf.Viewer
             bool selfIntersecting = false;
             bool ok;
 
-            if (option == "CC" || option == "OC" || option == "MC")
+            if (option == "CC" || option == "OC" || option == "MC" || option == "CJ")
             {
-                ok = CadMlineEdit.Cross(a, segmentA, b, segmentB, joint, out selfIntersecting);
-                changesSecond = joint != CadMlineEdit.Joint.Closed;
-            }
-            else if (option == "CJ")
-            {
-                ok = CadMlineEdit.Corner(a, segmentA, pickFirst, b, segmentB, pickSecond);
+                // The crosses and the corner joint work on the pair of segments nearest the picks, not on the ones picked.
+                CadMlineEdit.PairKind pair = CadMlineEdit.FindPair(
+                    a,
+                    pickFirst,
+                    b,
+                    pickSecond,
+                    out int pairA,
+                    out int pairB
+                );
+
+                if (pair == CadMlineEdit.PairKind.NoMeeting)
+                {
+                    return false;
+                }
+
+                if (pair == CadMlineEdit.PairKind.Refused && option != "CJ")
+                {
+                    c.Write("Invalid operation on a self intersecting multiline.");
+                    return true;
+                }
+
+                if (pair == CadMlineEdit.PairKind.Refused)
+                {
+                    // AutoCAD 2021 says nothing of a corner it cannot make and leaves the first multiline's start caps off.
+                    a.SuppressStartCaps = true;
+                    ok = true;
+                    changesSecond = false;
+                }
+                else if (option == "CJ")
+                {
+                    ok = CadMlineEdit.Corner(a, pairA, pickFirst, b, pairB, pickSecond);
+                }
+                else
+                {
+                    CadMlineEdit.Cross(a, pairA, b, pairB, joint, out selfIntersecting);
+                    ok = true;
+                    changesSecond = joint != CadMlineEdit.Joint.Closed;
+                }
             }
             else
             {
+                CadMlineEdit.Nearest(a, pickFirst, out int segmentA, out int _);
+                CadMlineEdit.Nearest(b, pickSecond, out int segmentB, out int _);
                 ok = CadMlineEdit.Tee(a, segmentA, pickFirst, b, segmentB, joint, out selfIntersecting);
                 changesSecond &= !selfIntersecting;
             }
