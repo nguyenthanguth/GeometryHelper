@@ -270,6 +270,28 @@ does, where the line went to the first leader: the words are measured in the fon
 fonts and the Fonts folder of Windows) while the leader is added, so that the new leader's dogleg runs against x and ends a gap past the
 right end of their ink, in every context of an annotative multileader: "HELLO" of arial.ttf 0.18 high landed from (150, 150) gets its
 landing at 234.6589 at 1:50 and 319.3179 at 1:100, as AutoCAD's. A font that is not read leaves the old landing on the first leader.
+**FIXED.** Turned words (DIMTEDIT Angle) put past an end of a slanting line in the presenter stand as AutoCAD 2021 draws them under
+DIMTMOVE 0: the words stay where they were put and the whole dimension line, its extension lines and its arrowheads move out along its
+normal, because AutoCAD lays the chord the line makes through the box of the words (3.3153 for "100" turned 20 on a line at 30 degrees)
+level, not along the line: the line moves by the chord times the sine of its slope towards the side the words lie (1.6577 at 30 degrees,
+2.0235 at 90, 1.117 at 200 for a line of 40 with the words put 8 past its end and 5 over it, the other way for a line leaning the other
+way and for words before the start) and ends the chord times the cosine short of the words' level; on a short line (7.2 at 30 degrees)
+the words stand 12.5711 along, an arrowhead and that share of the chord past its end, where the library put them 13.015. Under DIMTMOVE 1,
+words put past an end of a line steeper than a slope of a half have the line run on to the level of their point and a level landing back
+to a gap beyond them (an arrowhead long at least, the words moving out where it is shorter: an upright line of 40, words 8 past its end
+and 5 over it, a landing of 2.5 and the words 0.765 further out), where the library drew the leader from the middle of the line; and the
+line between the extension lines is drawn twice for turned words on the middle of a short slanting line that turn its arrowheads out, as
+AutoCAD draws it. Words kept level by DIMTOH or DIMTIH on a slanting line fit between the extension lines by the reach of their box, as
+turned ones do (not by the chord: "123456789" on a line of 9 at 30 degrees reaches 10.3 and goes out on a leader), and lose their leader
+under DIMTMOVE 1 where half the height of their box across the line reaches twice the leader's rise, as turned ones do. Of the probe
+sets of the round, tw17 58 differing of 324 now 6, tw18 (11 more slopes) 186 of 1 188 now 17, tw19 (level words on slanting lines, 1 024
+probes) 334 now 64, tw20 and tw22 (where AutoCAD goes back to the leader, 480 and 154 probes) 120 and 83 now 112 and 59, tw21 (the
+shortest landing by style, 80 probes) 80 now 0. Not done: the point at which AutoCAD goes back from the run-on line to the leader
+(it depends on the slope and on the length of the line, not on their ratio alone), words 8 past the end of an upright line of 7.2, and
+words on the middle of a short slanting line that do not fit even with the arrowheads out.
+**FIXED.** A multileader made in code (`new DxfMLeader()`) and given a leader by `AddLeader`, `AddLeaderLine` or the presenter's MLEADER
+has the groups 272 and 273 of its context data after its leaders (`... 303 }`, `272 9`, `273 9`, `301 }`), as AutoCAD 2021 writes
+them; they stood before the leaders, which AutoCAD read back with the same values but the dump showed out of order.
 
 **NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
 a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8

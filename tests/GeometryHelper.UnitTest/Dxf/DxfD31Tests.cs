@@ -310,6 +310,28 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void AMultileaderMadeInCodeAndGivenALeader_HasGroups272And273AfterItsLeaders_AsAutoCadWritesThem()
+        {
+            // AutoCAD 2021 writes the context data of a multileader as ... 302 LEADER{ ... 303 }, 272 9, 273 9, 301 }; the groups
+            // of one made in code stood before its leaders, and a leader added went in after them.
+            var mleader = new DxfMLeader();
+            mleader.MText = new DxfMText
+            {
+                Contents = "HELLO",
+                Location = P(150, 150),
+                TextHeight = 4.0,
+            };
+            mleader.AddLeaderLine(P(0, 0));
+            DxfDatabase db = Drawing();
+            db.ModelSpace.AppendEntity(mleader);
+
+            List<DxfTypedValue> tail = mleader.Item.File.TailOf(mleader.Item, 0);
+            int close = tail.FindIndex(g => g.TypeCode == 301);
+
+            Assert.Equal(new short[] { 303, 272, 273 }, tail.Skip(close - 3).Take(3).Select(g => g.TypeCode));
+        }
+
+        [Fact]
         public void ALeaderAddedOnTheLeft_IsLandedTheGapAndTheDoglegShortOfTheWords_FromAnyPointOnTheirLeft()
         {
             // AutoCAD 2021: (90, 48) from (0, 0) (d01) and from (50, 100) above the words (d11); with a gap of 5 and a dogleg of 15

@@ -429,5 +429,241 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(-3.4359, 30.4808, Words(dimension).Location);
             HasLine(dimension, -9.3708, 29.2308, -7.2058, 30.4808);
         }
+
+        /// <summary>
+        /// A DIMALIGNED of the given length from the origin along <paramref name="slope"/> degrees, its line 30 off, the words
+        /// put <paramref name="along"/> (of its length) and <paramref name="across"/> (past the line) from it and turned to
+        /// <paramref name="angle"/>. The first coordinate of the frame is along the line, the second square to it on its left.
+        /// </summary>
+        private static DxfDimension MovedAndTurnedOnASlope(
+            CadCommandSession session,
+            double slope,
+            double length,
+            double along,
+            double across,
+            double angle
+        )
+        {
+            GeoPoint2 at(double a, double n) => Frame(slope, a, n);
+            Run(session, "DAL", P(0, 0), at(length, 0), "Text", "100", at(length / 2.0, 30));
+            DxfDimension dimension = session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, at(length * along, 30 + across));
+            Run(
+                session,
+                "DIMTEDIT",
+                new[] { dimension.Handle },
+                "A",
+                angle.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            );
+            return dimension;
+        }
+
+        private static GeoPoint2 Frame(double slope, double a, double n)
+        {
+            double c = Math.Cos(slope * Math.PI / 180.0);
+            double s = Math.Sin(slope * Math.PI / 180.0);
+            return P(a * c - n * s, a * s + n * c);
+        }
+
+        private static void HasFramedLine(
+            DxfDimension dimension,
+            double slope,
+            double a1,
+            double n1,
+            double a2,
+            double n2
+        )
+        {
+            GeoPoint2 from = Frame(slope, a1, n1);
+            GeoPoint2 to = Frame(slope, a2, n2);
+            HasLine(dimension, from.X, from.Y, to.X, to.Y);
+        }
+
+        // ---- words put past the end of a slanting line under DIMTMOVE 0 and turned (tw17, tw18 of the annot6 round) ----
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfAnUprightLineOf40UnderDimtmove0_MoveTheLineOutByTheirChord()
+        {
+            // AutoCAD 2021: "100" turned 20 on a DIMALIGNED of 40 along 90 degrees, put 8 past its end and 5 over the line: the
+            // words stay at their point, but the whole dimension line moves 2.0235 further out, the chord the line takes through
+            // their box (the line took the chord along itself, then AutoCAD lays it level), and runs on to the level of the point.
+            CadCommandSession session = Probe(v => { });
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 90, 40, 1.2, 5, 20);
+
+            Near(-35, 48, Words(dimension).Location);
+            Assert.Equal(20.0 * Math.PI / 180.0, Words(dimension).Rotation, 3);
+            HasFramedLine(dimension, 90, 2.5, 37.0235, 37.5, 37.0235);
+            HasFramedLine(dimension, 90, 40, 37.0235, 48, 37.0235);
+            HasFramedLine(dimension, 90, 0, 0.625, 0, 38.2735);
+            HasFramedLine(dimension, 90, 40, 0.625, 40, 38.2735);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At30DegreesUnderDimtmove0_StopTheLineShortByTheLevelChord()
+        {
+            // AutoCAD 2021: the chord of 3.3153 is laid along x, not along the line: the line moves out by 3.3153 sin 30 = 1.6577
+            // and ends 3.3153 cos 30 = 2.8711 short of the words' level (45.1289 for words at 48).
+            CadCommandSession session = Probe(v => { });
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 40, 1.2, 5, 20);
+
+            Near(Frame(30, 48, 35).X, Frame(30, 48, 35).Y, Words(dimension).Location);
+            HasFramedLine(dimension, 30, 2.5, 36.6577, 37.5, 36.6577);
+            HasFramedLine(dimension, 30, 40, 36.6577, 45.1289, 36.6577);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf7At30DegreesUnderDimtmove0_StandAnArrowheadAndTheLevelChordOnFromTheLine()
+        {
+            // AutoCAD 2021: the words, put 1.44 past the end of a line of 7.2, are moved out to 2.5 and 3.3153 cos 30 past it
+            // (12.5711), the line moved out 1.6577 and run on 2.5 past its end.
+            CadCommandSession session = Probe(v => { });
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 7.2, 1.2, 5, 20);
+
+            Near(Frame(30, 12.5711, 35).X, Frame(30, 12.5711, 35).Y, Words(dimension).Location);
+            HasFramedLine(dimension, 30, 7.2, 36.6577, 9.7, 36.6577);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At120DegreesUnderDimtmove0_MoveTheLineTheOtherWayOut()
+        {
+            // AutoCAD 2021: the words lie to the left of the end of this line, so the level chord (1.9306, "100" turned 20 against
+            // a line at 120 degrees) takes the line the other way: 1.672 back in, ending 0.9653 short of the level of the words.
+            CadCommandSession session = Probe(v => { });
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 120, 40, 1.2, 5, 20);
+
+            Near(Frame(120, 48, 35).X, Frame(120, 48, 35).Y, Words(dimension).Location);
+            HasFramedLine(dimension, 120, 2.5, 33.328, 37.5, 33.328);
+            HasFramedLine(dimension, 120, 40, 33.328, 47.035, 33.328);
+        }
+
+        [Fact]
+        public void WordsTurned60_PutBeforeTheStartOfADownwardLineOf40UnderDimtmove0_MoveTheLineInByTheChord()
+        {
+            // AutoCAD 2021: a DIMALIGNED of 40 along 270 degrees, "100" turned 60 put 8 before its start: the line moves 3.77 the
+            // way the words lie (towards them on the left of the line) and runs on to their level.
+            CadCommandSession session = Probe(v => { });
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 270, 40, -0.2, 5, 60);
+
+            Near(Frame(270, -8, 35).X, Frame(270, -8, 35).Y, Words(dimension).Location);
+            HasFramedLine(dimension, 270, 2.5, 31.23, 37.5, 31.23);
+            HasFramedLine(dimension, 270, 0, 31.23, -8, 31.23);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfAnUprightLineOf40UnderDimtmove1_HaveTheLineRunOnToTheirLevelAndALandingOfAnArrowhead()
+        {
+            // AutoCAD 2021 (probes tw17, tw18, tw20, tw21): the line is run on past its end to the level of the point (8 on), a
+            // level landing runs back from there towards the words but is never shorter than an arrowhead (2.5), the words
+            // starting at its end: the box of "100" (3.2649 each side) would leave 1.7351 of the 5, so they move out by 0.765.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 90, 40, 1.2, 5, 20);
+
+            HasFramedLine(dimension, 90, 40, 30, 48, 30);
+            HasFramedLine(dimension, 90, 48, 30, 48, 32.5);
+            Near(Frame(90, 48, 35.765).X, Frame(90, 48, 35.765).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At30DegreesUnderDimtmove1_StandOnTheirPointAtTheEndOfTheLandingBack()
+        {
+            // AutoCAD 2021: the line run on 16.66 to the level of the point, the landing 6.735 back to a gap past the words (their
+            // half width, 3.2649, from their point), which stay on their point.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 30, 40, 1.2, 5, 20);
+
+            HasFramedLine(dimension, 30, 40, 30, 56.66, 30);
+            HasFramedLine(dimension, 30, 56.66, 30, 50.827, 33.368);
+            Near(Frame(30, 48, 35).X, Frame(30, 48, 35).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutBeforeTheStartOfALineOf40At315DegreesUnderDimtmove1_HaveTheLineRunOnBackwards()
+        {
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 315, 40, -0.2, 5, 20);
+
+            HasFramedLine(dimension, 315, 0, 30, -13, 30);
+            HasFramedLine(dimension, 315, -13, 30, -10.309, 32.691);
+            Near(Frame(315, -8, 35).X, Frame(315, -8, 35).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At20DegreesUnderDimtmove1_KeepTheLeaderFromTheMiddleOfTheLine()
+        {
+            // AutoCAD 2021: a line less than 26.6 degrees (a slope of a half) off level keeps the leader from its middle (the run-on
+            // begins at 28 degrees; probe tw20, 480 cases).
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, 20, 40, 1.2, 5, 20);
+
+            HasFramedLine(dimension, 20, 20, 30, 47.413, 35.214);
+            HasFramedLine(dimension, 20, 47.413, 35.214, 53.549, 32.98);
+            Near(Frame(20, 50.64, 35).X, Frame(20, 50.64, 35).Y, Words(dimension).Location);
+        }
+
+        /// <summary>A DIMALIGNED of the given length from the origin along <paramref name="slope"/> degrees, its line 30 off, under DIMTOH and DIMTIH, DIMTMOVE 1.</summary>
+        private static DxfDimension LevelWordsOnASlope(double slope, double length, string words)
+        {
+            CadCommandSession session = Probe(v =>
+            {
+                v["Dimtmove"] = 1;
+                v["Dimtoh"] = true;
+                v["Dimtih"] = true;
+            });
+            Run(session, "DAL", P(0, 0), Frame(slope, length, 0), "Text", words, Frame(slope, length / 2.0, 30));
+            return session.Document.ModelSpace.Block.OfType<DxfDimension>().Last();
+        }
+
+        [Fact]
+        public void LevelWords_TooHighForTheLine_StandCentredOnTheirStartWithNoLeader()
+        {
+            // AutoCAD 2021 (probe tw19): level "1234567890" (DIMTOH) on a DIMALIGNED of 9 at 45 degrees under DIMTMOVE 1: the
+            // half of their box across the line, (W / 2 + gap) sin t + (H / 2 + gap) cos t, reaches twice the leader's rise, so
+            // there is no leader and the words stand centred where they would start, as turned words do.
+            DxfDimension dimension = LevelWordsOnASlope(45, 9, "1234567890");
+
+            Near(Frame(45, 5.4032, 35.9041).X, Frame(45, 5.4032, 35.9041).Y, Words(dimension).Location);
+            GeoPoint2 from = Frame(45, 4.5, 30);
+            GeoPoint2 to = Frame(45, 4.5, 34.12);
+            Assert.DoesNotContain(Lines(dimension), l => Joins(l, from.X, from.Y, to.X, to.Y));
+        }
+
+        [Fact]
+        public void LevelWords_OnASlantingLineThatTheirBoxReachesAcross_GoOutByTheReachNotTheChord()
+        {
+            // AutoCAD 2021 (probe tw19): level "123456789" on a DIMALIGNED of 9 at 30 degrees reaches 10.3 along the line with
+            // its gaps (the chord the line takes through the box is only 3.8, which would have kept it in): the words go out
+            // on a leader square to the line from its middle, the landing level.
+            DxfDimension dimension = LevelWordsOnASlope(30, 9, "123456789");
+
+            HasFramedLine(dimension, 30, 4.5, 30, 4.5, 34.117);
+            HasFramedLine(dimension, 30, 4.5, 34.117, -11.2595, 43.2158);
+            Near(Frame(30, -2.4286, 40.3139).X, Frame(30, -2.4286, 40.3139).Y, Words(dimension).Location);
+        }
+
+        [Theory]
+        [InlineData(30, 20, 2)]
+        [InlineData(30, 90, 2)]
+        [InlineData(200, 60, 2)]
+        [InlineData(15, 20, 2)]
+        [InlineData(0, 20, 1)]
+        [InlineData(180, 90, 1)]
+        [InlineData(30, 60, 0)]
+        public void WordsTurnedOnTheMiddleOfALineOf7UnderDimtmove1_TurnTheArrowheadsOut_AndASlantingLineIsDrawnTwice(
+            double slope,
+            double angle,
+            int copies
+        )
+        {
+            // AutoCAD 2021: "100" turned on the middle of a DIMALIGNED of 7.2 under DIMTMOVE 1 turns the arrowheads out where its
+            // turned box reaches them, and then draws the line between the extension lines twice on top of itself, unless the
+            // line is level (probes tw17 and tw18: 29 cases of slanting lines, the level ones once); where the arrowheads stay in
+            // (30 degrees with "100" turned 60) the line is drawn between them and not whole.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = MovedAndTurnedOnASlope(session, slope, 7.2, 0.5, 0, angle);
+            GeoPoint2 from = Frame(slope, 0, 30);
+            GeoPoint2 to = Frame(slope, 7.2, 30);
+
+            Assert.Equal(copies, Lines(dimension).Count(l => Joins(l, from.X, from.Y, to.X, to.Y)));
+        }
     }
 }

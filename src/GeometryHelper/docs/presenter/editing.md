@@ -852,7 +852,24 @@ it; probed over styles of other sizes, gaps and DIMEXE: every one with a leader 
 DIMJUST 3 and 4 put them on the extension line, which is not run on. A DIMTVP that is not nought lifts them.
 A DIMLINEAR of 100 at DIMSCALE 100 (0.18 sizes) with its words turned 30 has them at (154.38, 30) outside the second line, the
 arrowheads in, and turned 20 at (171.185, 30). Turned words put by DIMTEDIT turn the arrowheads out where they reach within an
-arrowhead and half their chord of an extension line, whatever their height, unless they are wider than the line. Every dimension
+arrowhead and half their chord of an extension line, whatever their height, unless they are wider than the line.
+Turned words put past an end of a slanting line under DIMTMOVE 0 stay at their point, and the whole dimension line, its extension
+lines and arrowheads move out along its normal: AutoCAD 2021 takes the chord the line makes through the box of the words (3.3153 for
+"100" turned 20 on a line at 30 degrees) level, not along the line, so the line ends that chord short of the point along x and moves
+by its share across the line, the chord times the sine of the line's slope, to the side the words lie (1.6577 further out at 30
+degrees, 2.0235 at 90, 1.117 at 200 for a line of 40 with the words put 8 past its end and 5 over it; the other way for a line leaning
+the other way and for words before its start, where the sign follows which way the words lie in x). On a short line they stand an
+arrowhead and the cosine's share of the chord past the arrowhead's end (a line of 7.2 at 30 degrees: 12.5711 along). Under DIMTMOVE 1
+words put past an end of a line steeper than a slope of a half (between 26 and 28 degrees from level) have the line run on to the
+level of their point and a level landing back from there to a gap beyond them, an arrowhead long at least, the words moving out
+where it would be shorter: "100" put 8 past the end of an upright line of 40 and 5 over it has its line run on to 48 and a landing of
+2.5, the words 0.765 further out. Further from the line AutoCAD goes back to the leader from the middle, at a distance that depends on
+the slope and the length of the line (not modelled). Turned words on the middle of a short slanting line under DIMTMOVE 1 that turn
+its arrowheads out have the line between the extension lines drawn twice, as AutoCAD 2021 draws it (29 of 29 probed, none on a level
+line). Words kept level by DIMTOH or DIMTIH on a slanting line fit by the same reach of their box as turned ones ("123456789" on a line
+of 9 at 30 degrees reaches 10.3 and goes out on a leader square to the line), and, put out under DIMTMOVE 1, lose their leader as
+turned words do where half the height of their box across the line reaches twice the leader's rise ("1234567890" on a line of 9 at 45
+degrees, middle at (5.4032, 35.9041) along the line and across it). Every dimension
 made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block; words the
 fit puts past a leader under DIMTMOVE 1 are written by their start, level with their middle, as AutoCAD 2021 writes
 them: that "0.5000" of a continued dimension of 0.5, its middle at (100.8933, 20.4088), as (100.52, 20.4088).
