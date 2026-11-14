@@ -339,11 +339,14 @@ User note 2026-11-12 evening (note.md 1-14):
       formats restored going up, 280 of styles and tables going to R2010+. Invisible borders, merged-cell borders,
       block auto-scale and TABLE_ENTITY are fixes AutoCAD makes when it READS a table, in every version, not Save As
       rules: DECIDED (reversing the earlier line on evidence) to keep borders as AutoCAD's in-memory Save As does
-- [ ] (dxfver7, running) DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
-      along a merged range, auto-fit block scale min((W-2hm)/bw, (H-2vm)/bh)); TABLEGEOMETRY 93 = 3 vs 7 in one case;
-      table styles without an extension dictionary; tables without a style (342) given a TABLECONTENT; sweeps along
-      splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007); oblique extrusions
-      (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables 4.5 us per cell (M)
+- [x] DXF versions follow-ups 7 (dxfver7): sweeps, sum/rot/cyl spline surfaces, straight curves, reversed edges and
+      weight directions in SAB<->SAT; 65 AutoCAD bodies x 6 versions: 327 of 390 give AutoCAD's volume and area to 1E-9
+      (the rest keep the exact volume where AutoCAD writes a 1E-5 approximation), R2010 SAT line for line, AUDIT 0;
+      table data going down ~20 % faster, bytes identical. DECIDED: a SAB normal one bit off unit is normalised
+      (matches AutoCAD after DxfIn)
+- [ ] DXF versions follow-ups 8: AutoCAD's read-time table building for tables made by our API (CELLSTYLEMAP
+      generator, TABLECONTENT/TABLEGEOMETRY, the empty VALUE 93 7 -> 3; mapping in dxfver7's report and
+      .claude/gk/dxfver7-notes); R2004/R2007 tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip

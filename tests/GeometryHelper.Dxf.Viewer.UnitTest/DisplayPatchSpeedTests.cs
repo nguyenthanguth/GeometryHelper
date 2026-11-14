@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Runtime;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -116,10 +115,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             draw();
             double elapsed = watch.Elapsed.TotalMilliseconds;
 
-            if (GCSettings.LatencyMode == GCLatencyMode.NoGCRegion)
+            // A collection the drawing forced may leave the region open although the latency mode no longer says so
+            // (seen under .NET Framework 4.8 with other tests running beside this one), so it is ended in any case.
+            try
             {
                 GC.EndNoGCRegion();
             }
+            catch (InvalidOperationException) { }
 
             return elapsed;
         }

@@ -156,8 +156,8 @@ namespace GeometryHelper.Dxf
 
                 if (sab != null)
                 {
-                    // A body ACIS 4.00 cannot hold (a swept spline surface), or R2004 and R2007 (a lofted surface), goes as the text of
-                    // R2010, which AutoCAD reads there.
+                    // A body ACIS 4.00 cannot hold (a swept spline surface), or R2004 and R2007 (a lofted surface, a surface swept along a
+                    // spline), goes as the text of R2010, which AutoCAD reads there.
                     sat = DwgSat.ToSat(sab, text)
                         ?? (_target < 1024 ? DwgSat.ToSat(sab, AcisFormat.For("AC1024")) : null);
                 }
