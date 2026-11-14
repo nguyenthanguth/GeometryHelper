@@ -19,6 +19,18 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly string[] InsertKeywords = { "Basepoint", "Scale", "X", "Y", "Z", "Rotate" };
 
+        private static readonly string[] WmfInsertKeywords =
+        {
+            "Basepoint",
+            "Scale",
+            "X",
+            "Y",
+            "Z",
+            "Rotate",
+            "Explode",
+            "REpeat",
+        };
+
         private static readonly KeyValuePair<string, DxfAttachmentPoint>[] Justifications =
         {
             new KeyValuePair<string, DxfAttachmentPoint>("Left", DxfAttachmentPoint.BaseLeft),
@@ -719,6 +731,15 @@ namespace GeometryHelper.Dxf.Viewer
             public double Rotation { get; set; }
 
             public bool Placed { get; set; }
+
+            /// <summary>Whether it is the INSERT of WMFIN, which names its units "Unitless" and offers Explode and REpeat among the options of the insertion point.</summary>
+            public bool Wmf { get; set; }
+
+            /// <summary>Whether the block is to be exploded, as WMFIN's Explode option sets it.</summary>
+            public bool Explode { get; set; }
+
+            /// <summary>Whether the insertion is asked again once made, as WMFIN's REpeat option sets it.</summary>
+            public bool Repeat { get; set; }
         }
 
         /// <summary>
@@ -942,20 +963,48 @@ namespace GeometryHelper.Dxf.Viewer
                     unitFactor
                 );
 
-            c.Write("Units: " + UnitName(record.Units) + "   Conversion:   " + Length(UnitFactor(c.Database, record)));
+            // WMFIN writes the conversion in a field of ten, and calls the units of its block of inches "Unitless".
+            c.Write(
+                placing.Wmf
+                    ? "Units: Unitless   Conversion:" + Length(UnitFactor(c.Database, record)).PadLeft(10)
+                    : "Units: " + UnitName(record.Units) + "   Conversion:   " + Length(UnitFactor(c.Database, record))
+            );
 
             if (askPoint)
             {
                 while (true)
                 {
                     yield return CadPrompt
-                        .ForPoint("Specify insertion point", null, InsertKeywords)
+                        .ForPoint("Specify insertion point", null, placing.Wmf ? WmfInsertKeywords : InsertKeywords)
                         .Dragging(DragOf(CadBlockDragMode.Point));
 
                     if (c.Input.IsPoint)
                     {
                         placing.Point = P3(c.Input.Point);
                         break;
+                    }
+
+                    if (placing.Wmf && (c.Input.Is("Explode") || c.Input.Is("REpeat")))
+                    {
+                        bool exploding = c.Input.Is("Explode");
+                        yield return CadPrompt.ForKeyword(
+                            exploding ? "Explode block" : "Repeat insertion of block",
+                            new[] { "Yes", "No" },
+                            "Yes"
+                        );
+                        bool yes = !c.Input.Is("No");
+
+                        if (exploding)
+                        {
+                            explode = yes;
+                            placing.Explode = yes;
+                        }
+                        else
+                        {
+                            placing.Repeat = yes;
+                        }
+
+                        continue;
                     }
 
                     if (c.Input.Is("Basepoint"))

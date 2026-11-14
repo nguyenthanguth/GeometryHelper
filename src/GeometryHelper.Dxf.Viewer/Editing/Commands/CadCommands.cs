@@ -163,6 +163,7 @@ namespace GeometryHelper.Dxf.Viewer
             AddPlotTo(registry);
             AddImageOutTo(registry);
             AddOleTo(registry);
+            AddWmfTo(registry);
             AddExportTo(registry);
             AddSaveAsTo(registry);
             registry.Add(new CadCommand("QSELECT", QuickSelect));

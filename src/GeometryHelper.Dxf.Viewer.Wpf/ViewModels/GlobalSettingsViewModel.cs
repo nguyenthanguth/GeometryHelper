@@ -888,6 +888,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["VPORTS"] = "Split the model area into tiles",
             ["VPSCALE"] = "Scale of a viewport",
             ["WBLOCK"] = "Write objects or a block to a file",
+            ["WMFIN"] = "Bring a Windows Metafile in as a block",
             ["XATTACH"] = "Attach a drawing as an xref",
             ["XBIND"] = "Bind symbols of an xref",
             ["XCLIP"] = "Clip an xref or block to a boundary",

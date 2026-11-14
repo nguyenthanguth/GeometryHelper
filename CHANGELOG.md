@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input). The
+presenter reads the metafile itself (the placeable header and the records of lines, polylines, polygons, rectangles, ellipses, arcs,
+pens, brushes, fonts and text; bitmaps, regions and clipping are read past) and makes block WMF0 of 2D polylines and TEXT, fitted with
+its aspect kept into half the view with its top left at the block's origin and y down: a window of 1 000 by 1 000 with a line from
+(100, 100) to (900, 900) in a pen of 10 is a polyline from (0.5, -0.5) to (4.5, -4.5) of width 0.05, in a view 10 high. The block is of
+inches and its INSERT is placed as INSERT places one, scaled 25.4 in a drawing of millimetres, after `Units: Unitless   Conversion:
+25.4000`, the insertion point (Basepoint, Scale, X, Y, Z, Rotate, Explode and REpeat), the scales and the rotation. A pen's colour is
+the nearest index (7 for black), a closed shape takes its brush's, a text becomes a TEXT in a style `WMF-Arial0` of its face. The
+window's Open dialog is titled Import WMF; a name that is no file is `Cannot find the specified metafile`. The variables WMFBKGND and
+WMFFOREGND are kept, as AutoCAD's console keeps them and ignores them. IMPORT still refuses a .wmf, as AutoCAD 2021's does. The
+registry is of 263 commands.
+
 **FIXED.** EXPORTPDF's Include hyperlinks through a layout's viewports took the box of the model-space object turned as a box, and
 the box of the clip as the place the object shows. A viewport twisted 30 degrees showed a line (1 800, 1 200) to (2 200, 1 800) at 1:20 a
 link 32.3 wide where the line is drawn 2.3 wide, and a circle of radius 300 one 41 wide where it is 30; the link is now over the box of
