@@ -44,13 +44,16 @@ of 2 per cent of its larger side. Model space has no paper and its `PaperBounds`
 `GetDisplay(space)` gives the [`DisplayList2`](xref:GeometryHelper.Dxf.Viewer.DisplayList2) of a space, made the first time
 and kept. It holds [`DisplayItem2`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2) objects in drawing order, the first at the
 back, and the box that holds them all. Each item carries the handle of the entity it came from, its layer, and a
-[`DisplayStyle`](xref:GeometryHelper.Dxf.Viewer.DisplayStyle): colour, line weight and dashes, already worked out.
+[`DisplayStyle`](xref:GeometryHelper.Dxf.Viewer.DisplayStyle): colour, line weight and dashes, already worked out. The
+items of a drawing share the strings of its layer names and give back the room the list made by doubling left empty: a
+drawing of 100 000 entities (178 000 items, one in five a text) keeps 35.5 MB of display list where it kept 41.1 MB.
 
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
-asked for. The window calls it on a worker thread for a drawing it opens. A document is not safe to use from two threads
-at once, so nothing else may use it until it returns.
+asked for. The window calls it on a worker thread for a drawing it opens, after `CadDocument.Open(path, progress,
+cancellationToken)`, which is stopped the same way (see "Opening a drawing" in the app guide). A document is not safe to use
+from two threads at once, so nothing else may use it until it returns.
 
 | Item | What it is |
 |---|---|

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using GeometryHelper.Dwg;
 using GeometryHelper.Dxf;
 
@@ -91,15 +92,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
         /// <exception cref="FormatException">Thrown when the file is a DWG that cannot be read.</exception>
         /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read, R14 among them; the message names it.</exception>
-        public static DxfDatabase Open(string path, IProgress<double> progress)
+        public static DxfDatabase Open(string path, IProgress<double> progress) =>
+            Open(path, progress, CancellationToken.None);
+
+        /// <summary>
+        /// Reads a drawing file as <see cref="Open(string, IProgress{double})"/> does, a DXF given up when a token says so:
+        /// its walk over the records looks at the token every 4 096 records, so that a stop is answered within a few
+        /// milliseconds even for a file of a million entities. A DWG is read as before, the token looked at once before it.
+        /// </summary>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the file is read.</exception>
+        internal static DxfDatabase Open(string path, IProgress<double> progress, CancellationToken stop)
         {
             if (IsDwg(path))
             {
+                stop.ThrowIfCancellationRequested();
                 return DwgReader.Open(path, null, progress);
             }
 
             progress?.Report(0.0);
-            DxfDatabase database = DxfDatabase.Open(path);
+            DxfDatabase database = DxfDatabase.Open(path, stop);
             progress?.Report(1.0);
             return database;
         }

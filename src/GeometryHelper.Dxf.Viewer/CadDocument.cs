@@ -328,17 +328,46 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The document.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read; the message names it.</exception>
-        public static CadDocument Open(string path, IProgress<double> progress)
+        public static CadDocument Open(string path, IProgress<double> progress) =>
+            Open(path, progress, System.Threading.CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DWG or DXF file as <see cref="Open(string, IProgress{double})"/> does, giving it up when a token says so:
+        /// the window opens a drawing on a worker thread that Esc and Stop stop. A DXF is looked at every 4 096 records as its
+        /// text is walked, its handles scanned and its entities of model space listed (the listing the first display would
+        /// otherwise make, 0.3 s at 1 000 000 entities), so that a file of that size, 77 MB, is given up within a few
+        /// milliseconds of the stop and not at the end of its reading, which took 0.5 s; a DWG is looked at once, before it
+        /// is read.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="progress">What is told how far the reading has got, on the thread that opens; null for nothing.</param>
+        /// <param name="cancellationToken">What stops the opening.</param>
+        /// <returns>The document.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the file is a DWG of a version that is not read; the message names it.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when stopped before the file is read.</exception>
+        public static CadDocument Open(
+            string path,
+            IProgress<double> progress,
+            System.Threading.CancellationToken cancellationToken
+        )
         {
             if (path == null)
             {
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return new CadDocument(WithHandles(CadDrawingFile.Open(path, progress)), Path.GetFullPath(path))
+            DxfDatabase database = CadDrawingFile.Open(path, progress, cancellationToken);
+
+            // The two passes over the records that come next, the scan of the handles WithHandles asks for and the entities of
+            // model space the document lists, made here where they can be stopped.
+            if (!database.File.IsDetached)
             {
-                _hasPath = true,
-            };
+                database.File.KnowHandles(cancellationToken);
+                database.File.ReadDrawingAhead(cancellationToken);
+            }
+
+            return new CadDocument(WithHandles(database), Path.GetFullPath(path)) { _hasPath = true };
         }
 
         /// <summary>Opens a DXF from a stream.</summary>

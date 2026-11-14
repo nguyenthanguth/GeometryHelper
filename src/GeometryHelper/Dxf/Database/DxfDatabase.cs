@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 using GeometryHelper.Export;
 using GeometryHelper.Geometry;
 
@@ -135,9 +136,21 @@ namespace GeometryHelper.Dxf
         /// the line; or when its header names a code page that does not read each byte of ASCII as itself; as
         /// <see cref="DxfReader"/> refuses it.</exception>
         /// <exception cref="IOException">Thrown when the file cannot be read.</exception>
-        public static DxfDatabase Open(string path)
+        public static DxfDatabase Open(string path) => Open(path, CancellationToken.None);
+
+        /// <summary>
+        /// Opens a DXF file from a path as <see cref="Open(string)"/> does, giving it up when a token says so: the walk over
+        /// the records of the file looks at it every 4 096 records, 0.6 ms of the walk at a million entities, so that a file
+        /// of 77 MB, whose walk takes 170 ms, is given up within a few milliseconds of the token being stopped. For the
+        /// presenter, which opens a drawing on a worker thread that Esc stops.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <param name="stop">What stops the opening.</param>
+        /// <returns>The drawing, as <see cref="Open(string)"/> gives it.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the token is stopped before the walk is done.</exception>
+        internal static DxfDatabase Open(string path, CancellationToken stop)
         {
-            var database = new DxfDatabase(DxfFile.Open(path));
+            var database = new DxfDatabase(DxfFile.Open(path, stop));
             database._filename = database._originalFileName = Path.GetFullPath(path);
             return database;
         }

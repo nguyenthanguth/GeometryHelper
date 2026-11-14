@@ -470,7 +470,7 @@ the ones wanted.
   - [x] DWG follow-ups 8 (dwg14): the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP read and written (34 groups to AutoCAD's
         bits; all 90 evaluation graphs written, 18 newly); R2013 edge names; LWPOLYLINE vertex ids (group 91) kept;
         dimensional constraints without a block flag; 167 DWGs to R2018, AUDIT 160 at 0 (originals 156), none refused
-  - [ ] DWG follow-ups 9: the order of a group's actions (AutoCAD's hash order); 236 ARC objects one bit off in objcmp;
+  - [ ] (dwg15, running: ARC bit, actions v2, stretch order, R2000 colours) DWG follow-ups 9: the order of a group's actions (AutoCAD's hash order); 236 ARC objects one bit off in objcmp;
         network, variable and dependency actions from R2010 text written at version 1; whether the AC1027 writer is worth
         fixing (AutoCAD refuses it, ErrorStatus 53); the stretch entity order (3 of 115); dynamic data below R2007; sweep,
         revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
@@ -585,7 +585,12 @@ the ones wanted.
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [x] Speed: undo without reloading the whole drawing at 1 000 000 entities: read-ahead of the next undo and redo drawings (0.4 s where 2.2 s, once read ahead), states packed in 4 MB pieces; no core fork
 - [x] Speed follow-ups: edits stop read-aheads, the drawing left reused (1M: 47 to 35 GB allocated, redo 1.6 s to 0.3 s), first undo after BSAVE/discard read ahead, marker bytes compared
-- [ ] (speed3, running) Speed follow-ups 2: peak memory at 1M unchanged (each read-ahead side ~520 MB; slimmer core entity objects or no redo read-ahead after a live edit; DECIDED by recommendation 2026-11-12: keep the read-ahead, slim the core entity objects later as its own task); a stop check inside DxfFile Open's record walk; display items are 42 of 49 MB of layer on/off (S)
+- [x] Speed follow-ups 2 (speed3): Stop/Esc while a drawing opens stops inside the record walk, the handle scan and the
+      entity listings (worst 0.74 s -> 59 ms at 1M); display list 41.1 -> 35.5 MB at 100k (shared layer names, trimmed
+      lists), pixels identical; 1M memory breakdown in the merge (entity caches ~470 MB per displayed drawing)
+- [ ] Speed follow-ups 3: slimmer core entity objects and their cached reads (~470 MB per displayed drawing at 1M; the
+      read-ahead kept, DECIDED 2026-11-12); a stoppable walk for dropped read-aheads (DxfDatabase.Open(bytes, len)); a
+      DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
