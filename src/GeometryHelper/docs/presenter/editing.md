@@ -287,6 +287,32 @@ keeps the stop at the vertex, which AutoCAD leaves too: the square of 100 cut fr
 picks has its top element whole and its bottom one drawn only from 0 to 20 on the first segment, before the corner. A pick on a
 cut finds nothing there, as nothing is drawn.
 
+The tees work on a pair of segments as the crosses do, found a little differently (AutoCAD 2021's numbers at scale 20). The stem is
+run on past the free end of its first or last segment, and the second must be met on one of its segments (the end of its last
+is not on it): of the pairs that can be made, the one whose meeting is nearest the picks is taken, and the end of the stem kept
+is the one on the side of the meeting its pick is on (the stem (30, -60)-(30, -100)-(80, -100) picked on its second segment at
+(55, -100), onto (0, 0)-(100, 0), has its start moved to (30, 0) with both elements starting 20 along, at the second's near
+edge). Where none can be made, the nearest pair of all says what is said: the stem run on past its free end to a second that is
+met past a vertex of its own on an end segment, or a stem that is met past a vertex of its own while the second is met past its free end
+(the stem (130, -100)-(130, -60)-(180, -60) onto (0, 0)-(100, 0), whose line x = 130 meets the second past its end), is `Invalid
+operation on a self intersecting multiline.`, the stem's start caps put off and nothing else changed; every other miss, such as the
+stem (130, -60)-(130, -100)-(180, -100) run on to the same line, is `These multilines do not intersect.`. A pick on the very point
+the lines meet keeps the start of that multiline in a corner joint; the same multiline picked twice is nothing said for a cross or a
+tee (AutoCAD asks for the first again) and `These multilines do not intersect.` for a corner joint. A break across the second that
+reaches the end of its last segment leaves nothing beyond it, as a cross's does.
+
+A cross near a corner breaks each element on the segment of its own line the crossing is nearest the picks on, so that within the
+width of a multiline of a corner the elements of one crossing are broken on different segments: a break that runs past the end of
+an element over a corner is written from where it starts to the end of that segment, the next segment whole and the rest of the
+break as the start of the one after it, where each of the two lines of the other multiline meets the element's path once (the
+staircase (0, 0)-(100, 0)-(100, 100)-(200, 100) crossed by the vertical (82, -60)-(82, 60), picked at (20, 0) and (82, -30), holds
+`{0, 82}` and `{0, 82, 102}` on its first segment, nothing on its second and `{2}` on its third for the first element). A line that meets
+the element's path twice or not at all (the U (0, 0)-(100, 0)-(100, 100)-(0, 100) crossed by the same vertical; the L crossed at
+x = 85) is `Invalid operation on a self intersecting multiline.`, and the elements are broken one by one up to the one it is said
+of, the ones before it left broken (the staircase crossed by the horizontal (40, 82)-(160, 82) across its second segment breaks
+the first element and says it of the second). A cross that runs the second multiline on past its end (OC, MC), and a break that
+ends exactly on a vertex, are not copied.
+
 **Grips, STRETCH and the modify commands on a multiline.** A multiline has a grip at each vertex of its line, as AutoCAD
 2021's `GetGripPoints`; dragging one moves the vertex as `MoveVertexAt` does: a segment that keeps its way keeps its cuts where
 they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0)-(100, 100), the vertex moved to (100, -10),
@@ -295,7 +321,9 @@ element), a move that makes the segment before whole puts a nought in front of t
 (100, -10) holds 0 and 60) and leaves the end of the multiline with nothing past its last vertex; a segment that turns keeps such a
 list as it was, and no stretch goes below nought. A closed multiline is moved the same way, its first segment following its last (the
 square of 100 cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50 there for
-its first element where it held 50). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+its first element where it held 50), but for the first segment and the last, which join the end of the points to their start:
+AutoCAD puts no nought in front of their lists (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80),
+whose vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
 inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
 times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
 near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at
@@ -2762,9 +2790,18 @@ generate Polyline/New boundary] <New>:`. ON and OFF switch the clip of each refe
 along it; each says `No clip boundary found.` and asks again where none of the references has a clip. Clipdepth, with no
 clip, says `Xref must contain a clip boundary before specifying a clipdepth.`; else it asks `Specify front clip point or
 [Distance/Remove]:` and `Specify back clip point or [Distance/Remove]:`, a distance from the boundary (a point on the
-screen is on the boundary's plane, 0) or Remove, Enter keeping the plane, and a front plane behind the back one says `Front
-clipping plane behind back clipping plane.  Clipdepth not applied.`. The planes are written and kept, and the flat display
-leaves them out: a clip is drawn as its boundary alone.
+screen is on the plane of the current user coordinate system, so that it is 0 from a boundary made in that system and 15 from
+one made in the world's when the system stands 15 higher) or Remove, Enter keeping the plane, and a front plane that is not
+above the back one by more than a millionth (equal planes included) says `Front clipping plane behind back clipping plane.
+Clipdepth not applied.`, as AutoCAD 2021 does (front 10 with back 9.999999 refused, with 9.999998 taken). The planes are
+written and kept, and they cut what the block holds in height, in the units of the clip system whatever the reference's scale:
+the block is shown from the back plane to the front plane, planes included, and an entity that lies wholly above or below
+is left out. A block of a line rising from (0, 0, 0) to (100, 0, 100) and flat lines at heights -30, 10 and 30, with front 20
+and back -10, shows the rising line from x 0 to 20 and the flat line at 10 (AutoCAD 2021's PNGOUT of it draws the same). A
+line that crosses a plane is cut at it; any other entity that crosses one is drawn whole, since the display keeps no height to
+cut it by. The planes are measured from the plane of the boundary, which goes with the block as the boundary does: the same
+block standing 15 high when it is clipped in the world's plane shows the rising line from x 0 to 5. A clip that is off shows
+the whole block. The planes of an external reference are written and not applied.
 
 New boundary asks `Delete old boundary(s)? [Yes/No] <Yes>:` where a reference has a boundary (No ends the command and
 changes nothing), writes `Outside mode - Objects outside boundary will be hidden.`, and asks `Specify clipping boundary or
@@ -2789,8 +2826,12 @@ in, and the canvas clips to it. Of a clipped reference a pick, a window and a cr
 line of the block outside the boundary picks nothing, and a window round the boundary alone takes the reference. Each cell of
 a MINSERT is clipped by its own place, and the attributes of the reference are clipped too. The frame of the boundary is drawn
 over the reference in its colour while XCLIPFRAME (kept in the drawing, 0 to 2: AutoCAD's drawings write 2, a header that gives none reads 1) is not 0; at 2 it
-is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. A tilted
-UCS's boundary is drawn as its projection on the plane of the drawing.
+is not plotted. It is picked as the reference. [`CadXClips`](xref:GeometryHelper.Dxf.Viewer.CadXClips) gives `WorldToClip`, `AsRectangle`, `Inverted` and `TryUninvert`. The
+boundary of a clip made in a system tilted out of the plan (the presenter makes none, AutoCAD does) is drawn as its projection
+on the plan, where it stands in AutoCAD's own plan view, while the block is shown where the boundary's prism, its lines along
+the boundary's normal, cuts the plane of the block: a block at height 0 clipped to the rectangle (10, 10) to (90, 60) of a
+system at (100, 50, 20) turned 30 degrees about X shows from y 73.09 to 130.83 (AutoCAD 2021's PNGOUT of a grid of it), the
+frame from y 58.66 to 101.96. A clip whose plane is parallel to the block's is shown as before, however far apart the two are.
 
 EXPLODE of a clipped reference breaks the whole block, as AutoCAD 2021's does (probed on a rectangle, a polygon, a clip
 turned inside out and a clip switched off): a block of a square 100 by 100 and a circle, clipped to a rectangle 40 by 50, gives
@@ -2803,13 +2844,21 @@ order. A corner dragged takes the two sides it is on and keeps the opposite corn
 corner (1020, 520) of the rectangle (1020, 520) to (1080, 570) dragged to (1010, 510) leaves (1010, 510) to (1080, 570); one
 dragged past the opposite corner leaves the rectangle in order; one dragged onto a side of it, "Boundaries with zero area are
 not acceptable."); a vertex of a polygon moves alone. The grip's point is put into the boundary's own system through the
-matrices the clip keeps, so that a reference moved, turned or scaled after the clip is dragged where the cursor is. A clip
+matrices the clip keeps, so that a reference moved, turned or scaled after the clip is dragged where the cursor is. In a clip
+made in a system tilted out of the plan the cursor is taken on the level plane through the grip, and the vertex moves by the
+parts of that offset along the boundary's own X and Y axes, as AutoCAD 2021's `MoveGripPointsAt` moves it (the corner (10, 10)
+of such a boundary dragged by (5, 3, 0) is (15, 10 + 3 cos 30); a reference scaled by 2, turned 30 degrees, lifted and then
+moved gives the same steps). A clip
 turned inside out is dragged the same way, its keyhole made anew about the box that holds the reference. Each drag is one
 undo step, GRIP, and any of the grip modes works on a corner. The arrow, a blue triangle across the first side, points to
 what the clip hides (down on the bottom side of a rectangle in Outside mode, up in Inside mode); a click on it turns the clip
 inside out, or back, at once, one undo step, with no grip edit started: a rectangle of two corners becomes the eleven points
 of its keyhole and returns to two corners. [`CadGrips.ClickClipFlip`](xref:GeometryHelper.Dxf.Viewer.CadGrips) does it, and
-the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind).
+the grips are the kinds `ClipVertex` and `ClipFlip` of [`CadGripKind`](xref:GeometryHelper.Dxf.Viewer.CadGripKind). What
+the console shows of AutoCAD's own arrow (a plugin on `GetGripPoints`): the one grip of a clip with its gizmos off, no trigger
+grip, no tooltip, and `MoveGripPointsAt` on it, by 0 or by 15 across the side, changes nothing, so that the flip is made by the
+click and by nothing the console can send; how the click and the arrow look on screen is the one thing not checked in AutoCAD's
+window.
 
 ### Grip modes
 

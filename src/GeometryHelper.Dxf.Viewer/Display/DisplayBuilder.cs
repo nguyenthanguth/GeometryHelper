@@ -963,8 +963,16 @@ namespace GeometryHelper.Dxf.Viewer
                 return new DisplayStyle(rgb, weight, dashes);
             }
 
-            // A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
-            // entities holds a few hundred, not four million.
+            return PlainStyleOf(rgb, weight);
+        }
+
+        /// <summary>
+        /// A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
+        /// entities holds a few hundred, not four million. The styles the hatches and MTEXTs make of their own, a gradient's
+        /// middle colour, the lines of a pattern and the runs of an MTEXT in a colour, are the same objects.
+        /// </summary>
+        private DisplayStyle PlainStyleOf(int rgb, double weight)
+        {
             var key = new PlainStyle(rgb, weight);
 
             if (!_plainStyles.TryGetValue(key, out DisplayStyle style))
@@ -1547,6 +1555,13 @@ namespace GeometryHelper.Dxf.Viewer
             double cos = Math.Cos(rotation);
             double sin = Math.Sin(rotation);
             IReadOnlyList<GeoPoint2> clip = ClipOf(reference);
+            IReadOnlyList<GeoPoint2> section = clip;
+            DxfSpatialFilter.Slab slab = null;
+
+            if (clip != null)
+            {
+                reference.GetClipView(reference.DrawnFilter, clip, out section, out slab);
+            }
 
             for (int r = 0; r < rows; r++)
             {
@@ -1556,9 +1571,14 @@ namespace GeometryHelper.Dxf.Viewer
                     double dy = r * rowSpacing;
                     Affine2 placed = own.Then(Affine2.Translation(dx * cos - dy * sin, dx * sin + dy * cos));
 
-                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it.
+                    // The block clipped (XCLIP) shows inside its boundary alone, the frame of the boundary drawn over it. A clip
+                    // tilted out of the block's plane shows the block where its prism cuts the plane, and the frame stands over
+                    // the boundary itself.
                     DisplayClipRegion before = null;
-                    DisplayClip2 ring = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+                    DisplayClip2 frameRing = clip == null ? null : WorldRing(clip, placed.Then(frame.Matrix));
+                    DisplayClip2 ring = ReferenceEquals(section, clip)
+                        ? frameRing
+                        : WorldRing(section, placed.Then(frame.Matrix));
 
                     if (ring != null)
                     {
@@ -1567,14 +1587,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style);
+                        DrawBlock(block, placed, reference, frame, list, handle, layerName, style, slab);
                     }
                     finally
                     {
                         if (ring != null)
                         {
                             list.PopClip(before);
-                            DrawClipFrame(ring, list, handle, layerName, style);
+                            DrawClipFrame(frameRing, list, handle, layerName, style);
                         }
                     }
                 }
@@ -1582,7 +1602,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (clip != null)
             {
-                DisplayClipRegion before = list.PushClip(WorldRing(clip, own.Then(frame.Matrix)));
+                DisplayClipRegion before = list.PushClip(WorldRing(section, own.Then(frame.Matrix)));
 
                 try
                 {
@@ -2039,7 +2059,8 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayList2 list,
             string handle,
             string layerName,
-            DisplayStyle style
+            DisplayStyle style,
+            DxfSpatialFilter.Slab slab = null
         )
         {
             if (block == null)
@@ -2074,7 +2095,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        Draw(entity, inner, list, null);
+                        DxfEntity drawn = entity;
+
+                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        {
+                            Draw(drawn, inner, list, null);
+                        }
                     }
                     catch (Exception)
                     {
@@ -2107,7 +2133,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (shown[i] >= 0)
                     {
-                        Draw(entity, inner, list, null, shown[i] > 0);
+                        DxfEntity drawn = entity;
+
+                        if (slab == null || TrySlice(slab, entity, out drawn))
+                        {
+                            Draw(drawn, inner, list, null, shown[i] > 0);
+                        }
                     }
                 }
                 catch (Exception)
@@ -2972,9 +3003,7 @@ namespace GeometryHelper.Dxf.Viewer
                     mid = style.Rgb;
                 }
 
-                list.Add(
-                    new DisplayFill2(rings, false, new DisplayStyle(mid, style.LineWeight, null), handle, layerName)
-                );
+                list.Add(new DisplayFill2(rings, false, PlainStyleOf(mid, style.LineWeight), handle, layerName));
                 return;
             }
 
@@ -2990,7 +3019,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // The pattern's own dashes are in its lines; the hatch's linetype is not laid over them, as AutoCAD lays none.
                 list.Add(
-                    new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName)
+                    new DisplaySegments2(lines, PlainStyleOf(style.Rgb, style.LineWeight), handle, layerName)
                     {
                         Rings = rings,
                     }

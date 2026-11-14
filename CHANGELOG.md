@@ -6,6 +6,83 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** MLEDIT's tees (CT, OT, MT) work on the pair of segments AutoCAD 2021 takes, as the crosses do, and not on the ones the picks
+lie on: the stem is run on past the free end of its first or last segment, the second is met on one of its segments (the end of its
+last is not on it), the pair nearest the picks is taken, and the end of the stem kept is the side of the meeting its pick is on. The
+stem (30, -60)-(30, -100)-(80, -100) picked on its second segment at (55, -100), onto (0, 0)-(100, 0), has its start moved to
+(30, 0) with its elements starting 20 along. Where no pair can be made, the nearest pair of all says whether it is `Invalid operation
+on a self intersecting multiline.` (the stem's start caps put off, nothing else changed: the stem (130, -100)-(130, -60)-(180, -60)
+onto the same line) or `These multilines do not intersect.` (the stem (130, -60)-(130, -100)-(180, -100)). 80 stems of an L against a
+straight multiline at 3 options, a random run of 600 tees (184 differences from AutoCAD before, 79 now) and 503 rows of the new
+tests agree; the tees onto a second of three segments are right in about two cases of three (a meeting within the width of a corner
+and the stem's other segments are left, parked). A break across the second that reaches the end of its last segment leaves nothing
+beyond it, as a cross's does.
+**CHANGED.** MLEDIT's crosses break each element on the segment of its own line the crossing is nearest the picks on, one element after
+another, as AutoCAD 2021 does, so that within the width of a multiline of a corner the elements of one crossing are broken on different
+segments, and a break that runs past the end of an element over a corner is written as AutoCAD writes it: from where it starts to the
+end of the segment, the next segment whole and the rest of the break as the start of the one after it, where each of the two lines
+of the other multiline meets the element's path once. The staircase (0, 0)-(100, 0)-(100, 100)-(200, 100) crossed by the vertical
+(82, -60)-(82, 60) holds `{0, 82}` and `{0, 82, 102}` on its first segment, nothing on its second and `{2}` on its third for the
+first element; a line that meets the path twice or not at all (the U, the L at x = 85) is still `Invalid operation on a self
+intersecting multiline.`, and the elements are now broken one by one up to the one it is said of, the ones before it left broken as
+AutoCAD leaves them. The 25 breaks within 20 of a corner of a staircase that were left out are equal, with 1 674 crosses of a U, a Z and
+two staircases (176 differences fewer, none more) and 615 of the staircase (114 fewer); a cross that runs the second multiline on
+past its end (OC, MC), and a break that ends exactly on a vertex, are left as they were.
+**CHANGED.** MLEDIT with the same multiline picked twice says nothing for a cross or a tee and asks for the first again, as AutoCAD 2021
+does (the corner joint still says `These multilines do not intersect.`), and a corner joint picked on the very point the lines meet keeps
+the start of that multiline. CS, CA and WA write a cut that runs to the end of an element without the stretch that would start there
+(a cut from 35 of an element 50 long is `{0, 35}`, not `{0, 35, 50}`).
+**CHANGED.** A grip or STRETCH that moves a vertex of a closed multiline cut across a vertex puts no nought in front of the list of the first
+segment or the last, as AutoCAD 2021 does (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80), whose
+vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)): the 20 moves of the triangle and 6 of the six-sided staircase that
+were left out are equal, 56 of the 687 probed moves fixed and none changed for the worse. Left out: 4 moves of the staircase's concave
+corner and 30 cuts AutoCAD writes inside out (parked).
+**NEW.** The front and back planes of XCLIP Clipdepth cut what a clipped block shows, as AutoCAD 2021 draws it (PNGOUT of a block
+of five lines at several heights, in plan and in an isometric view): the block is shown from the back plane to the front plane,
+planes included, in the units of the clip system whatever the reference's scale, and from the plane of the boundary, which goes with
+the block (a reference 15 high, clipped in the world's plane with front 20 and back -10, shows a line rising from (0, 0, 0) to
+(100, 0, 100) over its first 5 of x, the same block standing at 0 over its first 20). An entity wholly above the front plane or below the back one is
+left out, a line that crosses a plane is cut at it, and any other entity that crosses one is drawn whole, since the display keeps
+no height to cut it by (parked). A clip that is off shows the whole block, as AutoCAD does. The planes of an external reference are
+written and not applied (parked).
+**FIXED.** Clipdepth answered by a point took 0 whatever the plane: it is the point's distance from the boundary's plane along the
+boundary's normal, the point lying on the plane of the current user coordinate system, so that it is 15 from a boundary made in the
+world's plane when the system stands 15 higher and 0 from one made in that system (AutoCAD 2021 writes 15 and 0). A front plane
+equal to the back plane, or above it by a millionth or less, was taken; AutoCAD refuses it with the same message (front 10 with back
+9.999999 refused, with 9.999998 taken).
+**FIXED.** The clip boundary of a block made in a system tilted out of the plan (AutoCAD writes them; the presenter makes none): a
+vertex dragged is taken to the level plane through its grip and moves by the parts of the offset along the boundary's own X and Y
+axes, as AutoCAD 2021's `MoveGripPointsAt` moves it (corner (10, 10) of a boundary turned 30 degrees about X, dragged by (5, 3, 0),
+goes to (15, 10 + 3 cos 30); a reference scaled by 2, turned, lifted and moved gives the same steps), where it took the foot of the
+point on the block's plane and put the vertex 12.5 off in the example. The block is shown where the boundary's prism, its lines along
+the boundary's normal, cuts the plane of the block, and the frame is drawn where the boundary stands in the plan, as AutoCAD's own
+plan view shows them (a grid shows from y 73.09 to 130.83 for a boundary whose frame runs from y 58.66 to 101.96). A clip
+parallel to the block's plane draws as before.
+**CHANGED.** A LINE, an ARC, a CIRCLE and a LWPOLYLINE of a `DxfFile` (and so of every drawing the presenter opens) are read from the bytes of their
+records, where each group was made a string and a reader object made for the entity (3 KB of garbage and 1.1 to 1.6 µs for a LINE, an ARC
+or a CIRCLE, 6.6 KB and 4.0 µs for a polyline of four vertices with a bulge, 1.4 KB of each the reader object). The shapes are the same to
+the bit: the group order, padded codes, CRLF or LF, `+.5`, `1E-3`, `-0`, a tab round a value, the first group of a code, the checks the
+reader makes of every number and whole number of the record, and the extrusion, the elevation, the bulges and the closed flag are as the
+reader has them; a number of up to 19 digits is read from its digits and the power of ten (one multiplication or division where the digits
+are at most 2^53 and the power is within 1E22; otherwise, as for the 17 digits AutoCAD writes, a 192-bit product of the digits and a 128-bit
+power of ten, taken only where both ends of its range give the same double), the number the reader reads from the text, the double
+nearest it, on .NET Framework as on .NET 10; any number it cannot settle is read by the reader's own number reader, and any record it is
+not sure of (a letter beyond ASCII in a number, no radius, no length, a group code that is no number, an exception) is read the long way.
+A LINE, an ARC or a CIRCLE takes 0.2 to 0.5 µs and 64 to 88 bytes of garbage now, a polyline 2.0 µs and 3.0 KB (2.3 KB of it the closed
+polyline with an arc that it is), and a number of 17 digits 0.04 to 0.13 µs where it took 0.4 to 0.9. The shapes of the 78 000 of these
+in a drawing of 100 000 entities (lines, arcs, circles, polylines with a bulge and texts, one entity in fifty an INSERT) take 86 ms (.NET 8) and 123 (.NET Framework 4.8) where
+they took 170 and 270; its display, from the opened file, takes 350 ms where it took 400 (.NET 8; medians of 9 runs, three alternated
+rounds) and 550 ms where it took 650 (.NET Framework 4.8), and that of 1 000 000 entities 3.1 to 3.9 s where it took 3.5 to 4.0 and 5.0 to
+5.5 s where it took 6.1 to 7.0; opening the file, a layer switched on (1.0 s at 1 000 000) and the heap (650.9 MB, 658.8 MB) are as they
+were. The 4 377 LINEs, ARCs and polylines of an AutoCAD sample of 17-digit coordinates (070-PBBASE) are read in 14 ms where they took 37
+(.NET 8), 4 where 21 (.NET Framework). The display list of 160 drawings (the 100 000 entities and 159 AutoCAD samples read in place) is
+the same bit for bit under both runtimes. Checked against the long read on 200 000 generated records of each of the four types (groups in
+any order, omitted, repeated, padded, in 18 number formats, with extrusions, elevations, bulges, closed flags and comments; run under both
+runtimes), on the 121 792 LINEs, ARCs, CIRCLEs and LWPOLYLINEs of the 167 AutoCAD sample drawings, and on 27 million numbers against the
+reader's number reader (random digits, the shortest text of doubles of any bits, the ties between two doubles, powers of ten). The shapes
+are still kept: with the faster read, the polylines' shapes read afresh would still make a layer switched on at 1 000 000 entities take
+1.3 to 1.5 s in place of 1.0 s, for 578 MB of heap in place of 651.
+
 **NEW.** MLEADERCOLLECT (MLC) in the presenter, as AutoCAD 2021's console runs it (probed through standard input, multileaders made by
 MLEADER in a style of a block), and the Collect button of the Annotate tab's Leaders panel. "Select multileaders:" then "Specify
 collected multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:": the multileaders stay as they are and each block moves, by
@@ -21,7 +98,40 @@ its dogleg turned against x), a column having both ends at its last block; a lea
 its end, and the leaders of every other multileader are taken away. Multileaders of words, other objects and those on a locked layer
 are left out (`2 were filtered out`, `1 was on a locked layer.`, asking again where none is left). The registry is of 264 commands.
 The point is the top left as typed; AutoCAD's console reads it shifted by the first multileader's arrowhead, which is taken out here.
+**CHANGED.** The styles a hatch or an MTEXT makes of its own, the lines of a pattern, the middle colour of a gradient and the runs of an
+MTEXT in a colour, are one object for each colour and weight in a display list, as the style of a LINE is, where each hatch and each MTEXT
+made a style of its own with its look (100 bytes). A drawing of 100 000 entities, half of them hatches and half MTEXTs (250 000 texts among
+the items), held 75 000 styles and holds three: the display list is 135.0 MB where it was 142.4, and the heap grows by 343.6 MB once the
+drawing is opened, displayed and its pick index made, where it grew by 351.0 MB (356.7 MB where it was 364.2 under .NET Framework 4.8). A
+drawing of lines, arcs, circles, polylines and texts has none to share, and its 650.9 MB at 1 000 000 entities is the same, as are its
+display, frame, layer-on and layer-off times (medians of five, .NET 8 and .NET Framework 4.8, within the noise of a machine other work was
+running on). The display list of 19 drawings (4 of our own and 15 AutoCAD samples) and the pixels of each at 5 views, plain, selected,
+highlighted and hovered, the saved bytes and the list after a layer off, on and a REGEN are the same bit for bit under both. What else a
+displayed drawing keeps was weighed and stays: the shapes an entity has read (128 MB at 1 000 000 entities) take 2 to 10 µs and 3 to 6 KB
+of garbage to read again, and a layer switched on at 1 000 000 entities took 2.4 s without them where it takes 1.1 s; the strings of a
+hatch's loops, a seventh of the hatch and MTEXT drawing, take 10 µs a hatch to read again, and a layer switched on in it took 20 per cent
+longer without them. The handle strings (31 MB) are the one string each entity, its display items and its run share, and an arc's box
+(25 MB) is asked for at each arc a frame shows as a dot.
 
+**FIXED.** The DWG writer gave a TEXT, ATTRIB or ATTDEF whose alignment point is (0, 0) the point as two bit doubles, where
+AutoCAD's own DWG has none (bit 0x02 of the data flags set; the reader gives (0, 0) back): 40 TEXT and ATTDEF objects of the 13
+`Dynamic Blocks` drawings of AutoCAD 2021 came back one bit off its bytes, 132 bits longer, and are its bytes now. The 63 ARC
+objects that remain one bit off are radians no double of degrees divides to (8.9 percent of random radians; none is reached from a
+neighbouring double of degrees), which a DXF in degrees cannot carry; AutoCAD itself copies the radians of a DWG it saves as a DWG.
+**FIXED.** The `RTMaterial` extended data of a DWG of AutoCAD 2000 or 2004 (the material of an entity, which those formats have no
+place for) was passed on to the R2018 file as extended data and the entity left at the material ByLayer. AutoCAD takes it into
+the entity's material when it reads the file and writes no extended data: the LINE of the `matvis` drawing with material 78, and the
+BLOCK and ENDBLK entities of `xclip` with material 0 (none), are AutoCAD's own bytes now, and AutoCAD's DXF of the rewrite has the
+material (347) and no `RTMaterial`. A DWG of R2000 or R2004 rewritten has `AUDIT` as before.
+**FIXED.** A dynamic block with a lookup table (`BLOCKLOOKUPACTION`) in a DWG of AutoCAD 2000 or 2004 was left out as broken, and with
+it the lookup parameter and grip, the linear parameter, the stretch and the evaluation graph that lean on it: the reader looked for the
+table's texts in a string stream that those versions do not have. The 26 R2000 and R2004 files AutoCAD 2021 saves of the 13
+`Dynamic Blocks` drawings now read as many objects of each type as AutoCAD's DXF of them (Architectural - Metric had 21 of 391 left out, a panel
+made in code with one lookup 14 of its objects).
+**FIXED.** The internal writer of R2013 (AC1027; `DwgWriter` writes R2018 alone) made files AutoCAD 2021 refused with `ErrorStatus` 53,
+even a drawing of a few lines. AutoCAD's own R2013 file has a long of 0 after the size of its header and of its classes and names the
+maintenance release 125; the writer gave neither. With them the 36 drawings of the tests and the samples, written as R2013, open with
+`AUDIT` finding 0 errors in 29 and, in the others, the 24, 24, 2, 2, 32, 32 and 10 of their originals. R2010 and R2018 files are unchanged.
 **NEW.** WMFIN brings a Windows Metafile in as a block, as AutoCAD 2021's console runs it (probed through standard input). The
 presenter reads the metafile itself (the placeable header and the records of lines, polylines, polygons, rectangles, ellipses, arcs,
 pens, brushes, fonts and text; bitmaps, regions and clipping are read past) and makes block WMF0 of 2D polylines and TEXT, fitted with

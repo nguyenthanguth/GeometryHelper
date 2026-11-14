@@ -112,7 +112,7 @@ namespace GeometryHelper.Dxf.Viewer
             double ox = m.X(at.X, at.Y);
             double oy = m.Y(at.X, at.Y);
             double flip = backward ? -scale : scale;
-            var plain = new DisplayStyle(style.Rgb, style.LineWeight, null);
+            DisplayStyle plain = PlainStyleOf(style.Rgb, style.LineWeight);
 
             if (text.BackgroundFill || text.ShowBorders)
             {
@@ -145,7 +145,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     DisplayStyle mask = text.UseBackgroundColor
                         ? plain
-                        : new DisplayStyle(SafeRgb(text.BackgroundFillColor), style.LineWeight, null);
+                        : PlainStyleOf(SafeRgb(text.BackgroundFillColor), style.LineWeight);
                     parts.Add(new DisplayFill2(new[] { ring }, text.UseBackgroundColor, mask, handle, layerName));
                 }
 
@@ -167,7 +167,7 @@ namespace GeometryHelper.Dxf.Viewer
                         layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue
                             ? layerRgb.Value
                             : RgbOf(last, style, layerName);
-                    lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
+                    lastStyle = rgb == style.Rgb ? plain : PlainStyleOf(rgb, style.LineWeight);
                 }
 
                 double x = piece.X * flip;
@@ -238,7 +238,7 @@ namespace GeometryHelper.Dxf.Viewer
                         layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue
                             ? layerRgb.Value
                             : RgbOf(last, style, layerName);
-                    lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
+                    lastStyle = rgb == style.Rgb ? plain : PlainStyleOf(rgb, style.LineWeight);
                 }
 
                 double x0 = stroke.X0 * flip;

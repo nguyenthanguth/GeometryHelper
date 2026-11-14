@@ -228,7 +228,9 @@ namespace GeometryHelper.Dxf
         /// start, and the end of the multiline is left with nothing past its last vertex; a segment that turns keeps such a
         /// list as it was. A closed multiline is moved the same way, its first segment following its last: the square of 100
         /// closed, cut from (100, 50) to (50, 100) across (100, 100), whose vertex (100, 100) goes to (90, 90), holds 0 and 50
-        /// there for its first element where it held 50.
+        /// there for its first element where it held 50. The lists of the first segment and the last of a closed multiline,
+        /// which join the end of its points to their start, get no nought: the triangle (0, 0), (100, 0), (50, 80) cut across
+        /// (50, 80), whose vertex (100, 0) goes to (90, 0), still holds 47.1699 there for its first element.
         /// </summary>
         /// <param name="index">The index of the point, from nought.</param>
         /// <param name="point">Where it goes.</param>
@@ -379,7 +381,11 @@ namespace GeometryHelper.Dxf
 
                     int before = IsClosed ? (i + places - 1) % places : i - 1;
 
-                    if (goesOn && before >= 0 && nowDrawn[before][e] && !endsDrawn[before][e])
+                    // On a closed multiline AutoCAD puts no nought in front of the list of the first segment or the last, the
+                    // segments that join the end of the points to their start.
+                    bool noughtAllowed = !IsClosed || (i >= 1 && i <= segments - 2);
+
+                    if (noughtAllowed && goesOn && before >= 0 && nowDrawn[before][e] && !endsDrawn[before][e])
                     {
                         tail.Insert(0, 0.0);
                         readAgain[e] = true;

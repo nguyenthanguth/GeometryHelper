@@ -641,10 +641,12 @@ namespace GeometryHelper.Dxf
                     return new GeoVector3(0.0, 0.0, 1.0);
                 }
 
-                double x = given.X;
-                double y = given.Y;
-                double z = given.Z;
+                return Extrusion(given.X, given.Y, given.Z);
+            }
 
+            /// <summary>The extrusion the groups 210, 220 and 230 give, at least one of them there, as <see cref="Extrusion(Record)"/> works it out.</summary>
+            private static GeoVector3 Extrusion(double x, double y, double z)
+            {
                 double length = Math.Sqrt(x * x + y * y + z * z);
 
                 if (!(length > 0.0) || double.IsInfinity(length))
@@ -971,6 +973,19 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
+                Add(r, SpaceArc(centre, radius, startDegrees, endDegrees, ocs));
+            }
+
+            /// <summary>The arc of space of an ARC whose centre, radius (above the tolerance) and angles in degrees the file gives, in the system of its extrusion.</summary>
+            private static GeoArc3 SpaceArc(
+                GeoPoint3 centre,
+                double radius,
+                double startDegrees,
+                double endDegrees,
+                Ocs ocs
+            )
+            {
+                double start = startDegrees * Math.PI / 180.0;
                 double sweepDegrees = (endDegrees - startDegrees) % 360.0;
 
                 if (sweepDegrees <= 0.0)
@@ -983,10 +998,7 @@ namespace GeometryHelper.Dxf
                     centre.Y + radius * Math.Sin(start),
                     centre.Z
                 );
-                Add(
-                    r,
-                    GeoArc3.FromCircle(ocs.World(centre), ocs.Normal, radius, first, sweepDegrees * Math.PI / 180.0)
-                );
+                return GeoArc3.FromCircle(ocs.World(centre), ocs.Normal, radius, first, sweepDegrees * Math.PI / 180.0);
             }
 
             /// <summary>
@@ -1737,13 +1749,53 @@ namespace GeometryHelper.Dxf
                 GeoVector3 normal
             )
             {
-                closed |= LoopAsked == true;
+                if (
+                    !TryChain(
+                        _tolerance,
+                        LoopAsked,
+                        ArcsAsked,
+                        points,
+                        bulges,
+                        closed,
+                        flat,
+                        normal,
+                        out object shape,
+                        ref _openedLoops
+                    )
+                )
+                {
+                    Skip(r.Type, "with fewer than two distinct vertices");
+                    return;
+                }
+
+                Add(r, shape);
+            }
+
+            /// <summary>
+            /// The shape <see cref="Chain"/> makes of the vertices, the tolerance and what a typed conversion asks for given;
+            /// false where fewer than two of the vertices are distinct; <paramref name="opened"/> counts up the loops made an open chain, as they are made.
+            /// </summary>
+            private static bool TryChain(
+                Tolerance tolerance,
+                bool? loopAsked,
+                bool arcsAsked,
+                List<GeoPoint3> points,
+                List<double> bulges,
+                bool closed,
+                bool flat,
+                GeoVector3 normal,
+                out object shape,
+                ref int opened
+            )
+            {
+                shape = null;
+                closed |= loopAsked == true;
                 var kept = new List<GeoPoint3>(points.Count);
                 var keptBulges = new List<double>(points.Count);
 
                 for (int i = 0; i < points.Count; i++)
                 {
-                    if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(points[i], _tolerance))
+                    if (kept.Count > 0 && kept[kept.Count - 1].IsEqualTo(points[i], tolerance))
                     {
                         keptBulges[keptBulges.Count - 1] = bulges[i];
                         continue;
@@ -1755,7 +1807,7 @@ namespace GeometryHelper.Dxf
 
                 if (closed)
                 {
-                    while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], _tolerance))
+                    while (kept.Count > 1 && kept[kept.Count - 1].IsEqualTo(kept[0], tolerance))
                     {
                         kept.RemoveAt(kept.Count - 1);
                         keptBulges.RemoveAt(keptBulges.Count - 1);
@@ -1764,8 +1816,7 @@ namespace GeometryHelper.Dxf
 
                 if (kept.Count < 2)
                 {
-                    Skip(r.Type, "with fewer than two distinct vertices");
-                    return;
+                    return false;
                 }
 
                 if (!closed)
@@ -1781,12 +1832,12 @@ namespace GeometryHelper.Dxf
 
                     if (arc < 0)
                     {
-                        OpenLoop(kept, keptBulges);
+                        OpenLoop(kept, keptBulges, ref opened);
                         closed = false;
                     }
                     else
                     {
-                        Halve(kept, keptBulges, arc, flat, normal);
+                        Halve(tolerance, kept, keptBulges, arc, flat, normal);
                     }
                 }
 
@@ -1795,28 +1846,32 @@ namespace GeometryHelper.Dxf
                     b != 0.0 ? (flat ? new GeoVector3(0.0, 0.0, 1.0) : normal) : default(GeoVector3)
                 );
 
-                if (closed && LoopAsked != false && TryLoop(kept, keptBulges, normals, flat, arcs, out object loop))
+                if (
+                    closed
+                    && loopAsked != false
+                    && TryLoop(tolerance, kept, keptBulges, normals, flat, arcs, out object loop)
+                )
                 {
                     // A loop with no arc asked for with arcs is the same loop, judged as one by the rule of its straight edges.
-                    if (ArcsAsked && !arcs)
+                    if (arcsAsked && !arcs)
                     {
                         loop = flat
                             ? (object)
                                 GeoPolygonArc2.FromValidated(kept.ConvertAll(Plan).ToArray(), keptBulges.ToArray())
-                            : new GeoPolygonArc3(kept, keptBulges, normals, _tolerance);
+                            : new GeoPolygonArc3(kept, keptBulges, normals, tolerance);
                     }
 
-                    Add(r, loop);
-                    return;
+                    shape = loop;
+                    return true;
                 }
 
                 if (closed)
                 {
-                    OpenLoop(kept, keptBulges);
+                    OpenLoop(kept, keptBulges, ref opened);
                     normals.Add(default(GeoVector3));
                 }
 
-                arcs |= ArcsAsked;
+                arcs |= arcsAsked;
 
                 if (flat)
                 {
@@ -1824,8 +1879,8 @@ namespace GeometryHelper.Dxf
 
                     if (!arcs)
                     {
-                        Add(r, new GeoPolyline2(plan, plan.Length));
-                        return;
+                        shape = new GeoPolyline2(plan, plan.Length);
+                        return true;
                     }
 
                     var edges = new GeoEdge2[plan.Length - 1];
@@ -1835,16 +1890,14 @@ namespace GeometryHelper.Dxf
                         edges[i] = new GeoEdge2(plan[i], plan[i + 1], keptBulges[i]);
                     }
 
-                    Add(r, GeoPolylineArc2.FromEdges(edges, _tolerance));
-                    return;
+                    shape = GeoPolylineArc2.FromEdges(edges, tolerance);
+                    return true;
                 }
 
-                Add(
-                    r,
-                    arcs
-                        ? (object)new GeoPolylineArc3(kept, keptBulges, normals, _tolerance)
-                        : new GeoPolyline3(kept.ToArray(), true)
-                );
+                shape = arcs
+                    ? (object)new GeoPolylineArc3(kept, keptBulges, normals, tolerance)
+                    : new GeoPolyline3(kept.ToArray(), true);
+                return true;
             }
 
             /// <summary>
@@ -1852,7 +1905,8 @@ namespace GeometryHelper.Dxf
             /// lie in one plane within the planar tolerance, as <see cref="GeoPolygon3"/> takes them; a loop with arcs whose
             /// area is above the vector tolerance read as an area, as a polygon's is.
             /// </summary>
-            private bool TryLoop(
+            private static bool TryLoop(
+                Tolerance tolerance,
                 List<GeoPoint3> kept,
                 List<double> keptBulges,
                 List<GeoVector3> normals,
@@ -1871,14 +1925,14 @@ namespace GeometryHelper.Dxf
 
                         if (!arcs)
                         {
-                            _ = new GeoPolygon3(kept, _tolerance);
+                            _ = new GeoPolygon3(kept, tolerance);
                             loop = new GeoPolygon2(plan, plan.Length);
                             return true;
                         }
 
                         GeoPolygonArc2 round = GeoPolygonArc2.FromValidated(plan, keptBulges.ToArray());
 
-                        if (round.Area > _tolerance.EqualVector)
+                        if (round.Area > tolerance.EqualVector)
                         {
                             loop = round;
                             return true;
@@ -1889,13 +1943,13 @@ namespace GeometryHelper.Dxf
 
                     if (!arcs)
                     {
-                        loop = new GeoPolygon3(kept, _tolerance);
+                        loop = new GeoPolygon3(kept, tolerance);
                         return true;
                     }
 
-                    var space = new GeoPolygonArc3(kept, keptBulges, normals, _tolerance);
+                    var space = new GeoPolygonArc3(kept, keptBulges, normals, tolerance);
 
-                    if (space.Area > _tolerance.EqualVector)
+                    if (space.Area > tolerance.EqualVector)
                     {
                         loop = space;
                         return true;
@@ -1913,7 +1967,14 @@ namespace GeometryHelper.Dxf
             /// Cuts an arc edge of a loop of two vertices at its middle: the middle is a vertex, and each half has the bulge
             /// of half the angle, b / (1 + root(1 + b^2)) of the bulge b.
             /// </summary>
-            private void Halve(List<GeoPoint3> kept, List<double> keptBulges, int edge, bool flat, GeoVector3 normal)
+            private static void Halve(
+                Tolerance tolerance,
+                List<GeoPoint3> kept,
+                List<double> keptBulges,
+                int edge,
+                bool flat,
+                GeoVector3 normal
+            )
             {
                 GeoPoint3 start = kept[edge];
                 GeoPoint3 end = kept[(edge + 1) % 2];
@@ -1927,7 +1988,7 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    middle = new GeoEdge3(start, end, bulge, normal, _tolerance).MidPoint;
+                    middle = new GeoEdge3(start, end, bulge, normal, tolerance).MidPoint;
                 }
 
                 double half = bulge / (1.0 + Math.Sqrt(1.0 + bulge * bulge));
@@ -1937,9 +1998,9 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>A loop made an open chain that ends on its first vertex, the closing edge keeping its bulge.</summary>
-            private void OpenLoop(List<GeoPoint3> kept, List<double> keptBulges)
+            private static void OpenLoop(List<GeoPoint3> kept, List<double> keptBulges, ref int opened)
             {
-                _openedLoops++;
+                opened++;
                 kept.Add(kept[0]);
                 keptBulges.Add(0.0);
             }

@@ -109,6 +109,20 @@ A chain or loop with arcs that lies flat at one height can carry a normal a hair
 fits its plane; the writer writes that extrusion, and such a chain comes back to the rounding of that plane, within
 1E-12 of its largest coordinate.
 
+A drawing opened to be edited or shown (`DxfFile`, and the presenter over it) reads a LINE, an ARC, a CIRCLE and a LWPOLYLINE from the
+bytes of its record, with no string made of a group and no reader made for the entity, and gives the shapes `DxfReader` gives, to the
+bit, whatever order the groups come in, however the codes are padded, the lines end and the numbers are written (`+.5`, `1E-3`, `-0`,
+17 digits, a tab round the value); the first group of a code is the one read. A number of up to 19 digits is read from its digits and
+the power of ten: by one multiplication or division where the digits are at most 2^53 and the power is within 1E22, and otherwise (a
+coordinate AutoCAD writes with 17 digits, 1234.5678901234567, or a value such as 1.4210854715202004E-14) by the product of the digits
+and a 128-bit approximation of the power of ten, taken only where both ends of its range, one part in 2^128 wide, give the same
+double, which every number does but the ties between two doubles and about one in 10^22 others; any other number is read by the
+reader's own number reader. A record the fast read is not sure of is left to the reader whole: one with a letter beyond ASCII in a
+number, a group the reader checks for a number or a whole number that is none, a group code that is no number, a record that leaves out
+what places the entity, a LINE of no length, a radius no more than the tolerance, a polyline of fewer than two distinct vertices, and
+any exception. A LINE, an ARC or a CIRCLE is read in 0.2 to 0.5 µs where it took 1.1 to 1.6, a polyline of four vertices with a bulge
+in 2.0 µs where it took 4.0, and a number of 17 digits in 0.04 to 0.13 µs where it took 0.4 to 0.9.
+
 ### What is not read
 
 DIMENSION, HATCH, IMAGE, MESH, MLINE, REGION, 3DSOLID, BODY, ATTDEF, ATTRIB, VIEWPORT and any other type are

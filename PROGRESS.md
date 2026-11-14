@@ -143,9 +143,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 4 (mline5): CC/OC/MC/CJ scan every segment pair and cross the usable one nearest the picks
         (refusals by the end-segment rule; explains the CJ refusals and the "L second" split); MoveVertexAt on closed cut
         MLINEs; AutoCAD's inverted break records not copied (its own Explode draws them wrong)
-  - [ ] MLINE follow-ups 5: tees CT/OT/MT with the pair scan; 25 staircase breaks within 20 of a corner; the triangle's
-        no-nought moves (20) and the six-sided staircase's (10); four closed-square refusals; two joinable corners
-        half-edited by AutoCAD; CJ picks on the meeting point; closed-trim end-stop ties (harness lost, re-probe) (S)
+  - [x] MLINE follow-ups 5 (mline6): tees by AutoCAD's pair scan (600 held-out tees 184 -> 79 differing); crosses
+        broken per element near corners (1 674 crosses 662 -> 486, 25 staircase corner breaks equal); the same MLINE
+        picked twice; the CJ tie; closed MoveVertexAt with no nought on the end segments; harness .claude/gk/mline6-harness
+  - [ ] MLINE follow-ups 6: tees onto three-segment seconds (78 of 321); closed-square crosses past a corner (120 of 369);
+        CJ with two joinable corners (47 of 500); OC/MC stray pieces (not copied); six-sided staircase concave moves (4);
+        closed-trim end-stop ties (no tie data yet) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -336,14 +339,19 @@ User note 2026-11-12 evening (note.md 1-14):
       formats restored going up, 280 of styles and tables going to R2010+. Invisible borders, merged-cell borders,
       block auto-scale and TABLE_ENTITY are fixes AutoCAD makes when it READS a table, in every version, not Save As
       rules: DECIDED (reversing the earlier line on evidence) to keep borders as AutoCAD's in-memory Save As does
-- [ ] DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
+- [ ] (dxfver7, running) DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
       along a merged range, auto-fit block scale min((W-2hm)/bw, (H-2vm)/bh)); TABLEGEOMETRY 93 = 3 vs 7 in one case;
       table styles without an extension dictionary; tables without a style (342) given a TABLECONTENT; sweeps along
       splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007); oblique extrusions
       (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables 4.5 us per cell (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
-- [ ] XCLIP follow-ups 2: REFEDIT done (refedit, blocks; xrefs left: see REFEDIT follow-ups); Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)
+- [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
+      normal; lines cut at the planes), Clipdepth by a point and equal planes as AutoCAD; a clip tilted out of the plan
+      dragged by its own axes and shown by where its prism meets the block plane
+- [ ] XCLIP follow-ups 3: the flip arrow's click and direction (GUI); arcs, circles and polylines cut at the depth
+      planes (needs heights in display items); depth in external references; generate Polyline on a tilted clip; the
+      block plane at another absolute height; nested INSERTs in the slab (S)
 - [x] Remove what is left of Part B (the Tekla drawing) from Dxf.Viewer; it moves to the Tekla drawing app (partb-cleanup: new-document hook neutral, MODEL tags, Hidden-lines recolour, Layer Owner column, DXF export rows gone; owner contract and drawing-plugin finder kept as neutral hooks) (M)
 
 User note 2026-11-12 (basic features first, advanced later):
@@ -569,11 +577,15 @@ the ones wanted.
   - [x] DWG follow-ups 9 (dwg15): angles converted as AutoCAD (d / (180/pi); ARCs one bit off 236 -> 63); network and
         variable actions at version 2 from R2013; R2000 round-trip true colours and book names taken into the colours on
         R2004+ (layer XRECORD dropped as AutoCAD); 167 DWGs AUDIT unchanged (160 at 0), none refused
-  - [ ] (dwg16, running: TEXT/ATTDEF bit, RTMaterial, AC1027, dynamic data below R2007) DWG follow-ups 10: 63 ARCs and 40 TEXT/ATTDEF one bit off (28 of 300 whole degrees off AutoCAD's own quotient);
-        RTMaterial xdata from R2000/R2004 (AutoCAD drops it); the stretch and group action hash order (table size not in
-        the file; parked); whether the AC1027 writer is worth fixing (ErrorStatus 53); dynamic data below R2007; sweep,
-        revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
-        parity; TABLEGEOMETRY head bit; a rendered thumbnail (M)
+  - [x] DWG follow-ups 10 (dwg16): TEXT/ATTDEF alignment point (0,0) left out as AutoCAD (40 of 40 equal); RTMaterial
+        xdata taken into the entity's material; R2000/R2004 lookup actions read (26 AutoCAD saves: all dynamic objects
+        kept); R2013 (AC1027) files open in AutoCAD (36 of 36, AUDIT as the originals); the 63 ARC bits parked (AutoCAD
+        keeps radians DWG to DWG; ours go through degrees)
+  - [ ] DWG follow-ups 11: R2013 AuxHeader numbers (33/174 vs 31/125) and the detail/section view styles left out of
+        R2013; AutoCAD's R2018 conversion of old files adds VPORT/LAYER/VISUALSTYLE objects (43 and 41 differ in
+        matvis/xclip); RTMaterial on layers untested; the stretch and group action hash order; sweep, revolve and
+        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom parity;
+        TABLEGEOMETRY head bit; a rendered thumbnail (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
@@ -712,10 +724,17 @@ the ones wanted.
 - [x] Speed follow-ups 4 (speed5): display list of 1M entities 335 -> 237 MB (shared looks, two-point chains without an
       array, text extras on demand, packed runs and insertion points); heap growth 746 -> 650 MB; pixels and dumps
       identical on 15 drawings and a 200 000-item fuzz; 24 new tests
-- [ ] (speed6, running) Speed follow-ups 5: arc boxes (25 MB at 1M; computing them per ask made the frame 10 % slower); the entities'
-      shape caches left behind by the display (~11 MB per 100k polylines; 128 MB at 1M, layer-on 70 -> 170 ms if
-      dropped); display handle strings (31 MB at 1M); a hatch- and MTEXT-heavy drawing to measure; layer-off at 1M
-      re-timed on a quiet machine; read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 5 (speed6): hatches and MTEXTs share their display styles (75 003 styles -> 3 on a 100k
+      hatch/MTEXT drawing, display list 142 -> 135 MB); handle strings, shape caches, hatch loop strings and arc boxes
+      measured and declined (numbers in display.md); layer-off at 1M re-timed, no regression
+- [x] Speed follow-ups 6 (speed7): LINE/ARC/CIRCLE/LWPOLYLINE shapes read straight from their record bytes,
+      bit-identical (200 000-record fuzz per type, 121 792 AutoCAD corpus records, 27 million numbers), with a 128-bit
+      number path; shapes of 78 000 in 100k entities 170 -> 86 ms (net8), cold display 10-15 % faster; shape cache kept
+- [ ] (speed8, running: fast numbers everywhere, TEXT/MTEXT and block entities) Speed follow-ups 7: TEXT/MTEXT and block entities through the fast read; DxfFastNumber.Wide inside
+      Numbers.TryRead for every record read; TryChain garbage; dropping the LINE/ARC/CIRCLE shape cache (55 MB at 1M,
+      needs the same-object contract relaxed); exact power-of-ten ties; the 48-byte "no contexts" tuple; DxfPolyline's 8
+      cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped
+      mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

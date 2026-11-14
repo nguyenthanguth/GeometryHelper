@@ -731,6 +731,20 @@ namespace GeometryHelper.Dwg
                 }
             }
 
+            int material = R2007Plus ? RoundTripMaterialAt(groups) : -1;
+
+            if (material >= 0)
+            {
+                // The material went into the entity's own, as AutoCAD takes it when it reads an R2004 file.
+                groups = new List<KeyValuePair<int, string>>(groups);
+                groups.RemoveRange(material, 2);
+
+                if (material >= groups.Count || groups[material].Key == 1001)
+                {
+                    groups.RemoveAt(material - 1);
+                }
+            }
+
             int i = 0;
 
             while (i < groups.Count)
@@ -974,6 +988,13 @@ namespace GeometryHelper.Dwg
 
             _data.Bits2(linetypeKind);
             ulong material = all.Handle(347);
+
+            if (material == 0 && R2007Plus)
+            {
+                int at = RoundTripMaterialAt(_record.XData);
+                material = at < 0 ? 0 : DwgRecord.Hex(_record.XData[at + 1].Value);
+            }
+
             bool hasMaterial = material != 0 && _written.Contains(material);
 
             if (R2007Plus)
@@ -1176,6 +1197,30 @@ namespace GeometryHelper.Dwg
             public int At;
 
             public int Count;
+        }
+
+        /// <summary>
+        /// Where the material an AutoCAD 2004 file keeps as extended data starts in <paramref name="groups"/>: the index of
+        /// the text <c>RTMaterial</c>, with the handle of the material (group 1005, 0 for none) after it, in the application
+        /// ACAD; -1 for none.
+        /// </summary>
+        private static int RoundTripMaterialAt(List<KeyValuePair<int, string>> groups)
+        {
+            for (int i = 1; i + 1 < groups.Count; i++)
+            {
+                if (
+                    groups[i - 1].Key == 1001
+                    && groups[i - 1].Value.Trim() == "ACAD"
+                    && groups[i].Key == 1000
+                    && groups[i].Value.Trim() == "RTMaterial"
+                    && groups[i + 1].Key == 1005
+                )
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>

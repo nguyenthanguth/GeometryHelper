@@ -178,16 +178,17 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Clipdepth: "Specify front clip point or [Distance/Remove]:" then "Specify back clip point or [Distance/Remove]:", each a
-        /// distance from the boundary (a point on the screen is on the boundary's plane: 0), or Remove; Enter keeps the plane. The
-        /// front plane may not lie behind the back one: "Front clipping plane behind back clipping plane.  Clipdepth not
-        /// applied."
+        /// distance from the boundary, or Remove; Enter keeps the plane. A point is its distance from the boundary's plane along
+        /// the boundary's normal, the point taken on the plane of the current user coordinate system, which is 0 where that is the
+        /// plane the clip was made in. The front plane has to lie above the back one by more than a millionth: "Front clipping
+        /// plane behind back clipping plane.  Clipdepth not applied."
         /// </summary>
         private static IEnumerable<CadPrompt> XClipDepth(CadCommandContext c, IReadOnlyList<string> clipped)
         {
-            double? front = null;
-            double? back = null;
-            bool setFront = false;
-            bool setBack = false;
+            var distances = new double?[2];
+            var picked = new GeoPoint2?[2];
+            var set = new bool[2];
+            double height = c.Session.Ucs.Origin.Z;
 
             for (int plane = 0; plane < 2; plane++)
             {
@@ -197,12 +198,11 @@ namespace GeometryHelper.Dxf.Viewer
                     null,
                     new[] { "Distance", "Remove" }
                 );
-                double? value = null;
-                bool set = true;
+                set[plane] = true;
 
                 if (c.Input.IsPoint)
                 {
-                    value = 0.0;
+                    picked[plane] = c.Input.Point;
                 }
                 else if (c.Input.Is("Distance"))
                 {
@@ -213,38 +213,46 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    value = c.Input.Number;
+                    distances[plane] = c.Input.Number;
                 }
                 else if (!c.Input.Is("Remove"))
                 {
-                    set = false;
-                }
-
-                if (plane == 0)
-                {
-                    front = value;
-                    setFront = set;
-                }
-                else
-                {
-                    back = value;
-                    setBack = set;
+                    set[plane] = false;
                 }
             }
 
-            if (!setFront && !setBack)
+            if (!set[0] && !set[1])
             {
                 yield break;
             }
 
-            // Each reference's planes as they would stand: the front may not lie behind the back.
+            // A plane as a reference's filter would hold it: the answer, or the one it has where Enter kept it.
+            double? Plane(DxfSpatialFilter filter, int plane)
+            {
+                if (!set[plane])
+                {
+                    return plane == 0 ? filter.FrontClip : filter.BackClip;
+                }
+
+                if (!picked[plane].HasValue)
+                {
+                    return distances[plane];
+                }
+
+                GeoPoint2 at = picked[plane].Value;
+                GeoPoint3 origin = filter.Origin;
+                GeoVector3 normal = filter.Normal;
+                return (at.X - origin.X) * normal.X + (at.Y - origin.Y) * normal.Y + (height - origin.Z) * normal.Z;
+            }
+
+            // Each reference's planes as they would stand: the front has to be above the back by more than AutoCAD's millionth.
             foreach (string handle in clipped)
             {
                 DxfSpatialFilter filter = ((DxfBlockReference)c.Document.FindEntity(handle)).SpatialFilter;
-                double? f = setFront ? front : filter.FrontClip;
-                double? b = setBack ? back : filter.BackClip;
+                double? f = Plane(filter, 0);
+                double? b = Plane(filter, 1);
 
-                if (f.HasValue && b.HasValue && f.Value < b.Value)
+                if (f.HasValue && b.HasValue && f.Value - b.Value <= 1E-6 + 1E-10)
                 {
                     c.Write("Front clipping plane behind back clipping plane.  Clipdepth not applied.");
                     yield break;
@@ -256,15 +264,17 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (string handle in clipped)
                 {
                     DxfSpatialFilter filter = ((DxfBlockReference)s.Document.FindEntity(handle)).SpatialFilter;
+                    double? f = Plane(filter, 0);
+                    double? b = Plane(filter, 1);
 
-                    if (setFront)
+                    if (set[0])
                     {
-                        filter.FrontClip = front;
+                        filter.FrontClip = f;
                     }
 
-                    if (setBack)
+                    if (set[1])
                     {
-                        filter.BackClip = back;
+                        filter.BackClip = b;
                     }
                 }
             });

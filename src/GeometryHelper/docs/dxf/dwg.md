@@ -316,7 +316,10 @@ call.
   true colours and a colour of the book DIC, saved by it as R2000 and written to R2018 by the library, with `AUDIT` 0 and
   the 37 true colours and 3 names of its own R2018. A transparency is not in the round-trip data of R2000. In the same way an AutoCAD 2004 file keeps the material of an
   entity, which its format has no place for, as extended data of `ACAD` starting with `RTMaterial` and the handle of
-  the material; it is passed on as the file has it.
+  the material. Written to R2018 it is taken into the entity's material, as AutoCAD does reading the file and saving it as
+  R2018: the entity has the material and no extended data (the LINE of `matvis` with the handle 78 is AutoCAD's own bytes,
+  and so are the BLOCK and ENDBLK of `xclip` with the handle 0, which have none), and AutoCAD's DXF of the rewrite holds
+  no `RTMaterial`.
 - `$TDCREATE` and `$TDUPDATE` are not given: the file holds the two times as universal time, and they are given as
   `$TDUCREATE` and `$TDUUPDATE`.
 - The normal (210) of a planar SPLINE that is not drawn in the XY plane is worked out from its points, its sign by the
@@ -395,6 +398,25 @@ of the 236 ARC objects that were a bit off 63 still are. Those are radians that 
 is the coarser step there; they are one bit off in the last place, about 1E-16 radians. A degree text that AutoCAD turns
 into another bit than its quotient (28 of 300 whole degrees, 195 among them) cannot be reproduced by any plain formula
 tried (the product with `pi / 180`, a long double, the correctly rounded value).
+
+AutoCAD itself keeps the radians when it does not convert: saving a DWG as a DWG copies the doubles, and only a degree text
+is divided. The 63 ARC objects stay one bit off because the DXF between the reader and the writer holds degrees: of a million
+radians drawn at random 88 914 (8.9 percent) have no double of degrees that divides to them, and none of those is reached
+from a neighbour of the degrees the reader gives (the three doubles each way were tried). Only a DXF that carried the radians
+would keep them, and a DXF does not.
+
+A TEXT, ATTRIB or ATTDEF whose alignment point is (0, 0) has none in AutoCAD's DWG (bit 0x02 of its data flags is set, and the
+reader gives (0, 0) back), where the writer gave the point as two bit doubles of 132 bits. The 40 TEXT and ATTDEF objects of the 13
+`Dynamic Blocks` drawings that were one bit off AutoCAD's own are its bytes now (40 of 40; the ARC objects are the 63 above).
+
+The writer's internal form of R2013 (`DwgWriter` writes R2018 alone) made files AutoCAD 2021 refused at once, `ErrorStatus` 53,
+the simplest drawing of a few lines among them. AutoCAD's own R2013 file has a long of 0 after the size of its header and of its
+classes, which the writer left out (as it does for R2010, which AutoCAD opens without it), and names the maintenance release 125
+in its file header, where the writer named 0. Swapping the sections of an AutoCAD file for the writer's one at a time found the header
+and the classes the two that decided it (the objects, their map and the rest were opened as they were); with the long the
+drawing opens, whatever release the header names. The writer now gives both as AutoCAD does (the reader looks for the long where the
+release is past 3), and the 36 drawings of the tests and of the samples written as R2013 open, with `AUDIT` finding 0 errors in
+29 of them and in the others the 24, 24, 2, 2, 32, 32 and 10 of their originals.
 
 | Part | Written |
 |---|---|
@@ -527,6 +549,12 @@ graphs of 90, 34 groups of 34, 330 value dependencies, 414 on geometry, 280 othe
 two exceptions are the anonymous blocks AutoCAD drops as unused (`Structural Base1` of `S-02` and one of `S-04`) that were
 dropped before. A DWG of AutoCAD 2013 is read the same way as one of 2018: the edge names of the dependencies (a flag and a
 number of a short) were read as texts there, and the 43 objects of its sample that lean on them were left out.
+
+The dynamic block of a DWG of R2000 or R2004 is read the same way. The 26 files AutoCAD 2021 saves of the 13 `Dynamic Blocks`
+drawings as R2000 and R2004 read as many objects of every type as AutoCAD's DXF of each has; before, a lookup action was left
+out of them as broken, and with it the lookup parameter, the linear parameter, the grips, the stretch and the graph that lean on
+it (14 objects of a panel made in code with one lookup, and 21 of the 391 of Architectural - Metric), because the table's
+values, texts of the data before R2007, were looked for in a string stream that those versions have not.
 
 A 2D polyline of R2010 and later puts the id of a vertex (group 91) between its bulge and its tangent direction (group
 50). It was written after the tangent and not read, so a polyline AutoCAD had curve-fitted (a vertex with a tangent of

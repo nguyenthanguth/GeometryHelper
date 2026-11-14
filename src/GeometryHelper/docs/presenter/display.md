@@ -65,6 +65,33 @@ displayed, holds 364 MB in the objects of its database, 73 MB of them its bytes,
 share the object of each look, a polyline asked for its width keeps none of its vertices, and an entity as it was read from the file
 takes 104 bytes. Opened, displayed and its pick index made, the drawing grows the heap by 650 MB (the display list 237 MB of it).
 
+The styles a hatch or an MTEXT makes of its own, the lines of a pattern, the middle colour of a gradient and the runs of an MTEXT in a
+colour, are one object for each colour and weight, as the style of a LINE is. A drawing of 100 000 entities, half of them hatches (solid, or
+ANSI31 and AR-BRSTD) and half MTEXTs of three to four lines, 250 000 texts among the items, held 75 000 styles with their looks, one for
+each hatch and MTEXT, and holds three: 343.6 MB of heap where it held 351.0.
+
+What else a displayed drawing keeps is kept for the next time it is drawn, and was weighed before it was let go. The shapes an entity has
+read (128 bytes of each of 1 000 000 entities, 128 MB) take 2 to 5 µs and 3 KB of garbage to read again for a LINE, an ARC, a CIRCLE or a
+TEXT, and 10 µs and 6 KB for a polyline. A layer switched on at 1 000 000 entities, which draws its entities again, took 1.1 s with the
+shapes kept, 1.5 s with those of the polylines read afresh (578 MB of heap in place of 651) and 2.4 s with all of them (523 MB). The
+strings of a hatch's loops, 45 MB of the 351 MB of the hatch and MTEXT drawing above (900 bytes of a hatch of four vertices), cost 10 µs a
+hatch to read again: a layer switched on in that drawing took 590 ms with them and 710 ms without (300 MB of heap in place of 351). They
+stay. The handle of an entity is one string, shared by its database item, its display items and its run: 32 bytes of each entity, 31 MB at
+1 000 000. An arc's box is 32 bytes of the 104 of its item, 25 MB at 1 000 000 entities; the frame of a drawing shown whole asks for it at
+each arc it draws as a dot, so it is kept.
+
+The shapes of a LINE, an ARC, a CIRCLE and a LWPOLYLINE are read from the bytes of their records (see "Numbers" in the reader guide), with
+no string made of a group and no reader made for the entity: 0.2 to 0.5 µs and 64 to 88 bytes of garbage for the first three, where they
+took 1.1 to 1.6 µs and 3.2 KB, and 2.0 µs and 3.0 KB for a polyline of four vertices with a bulge, where it took 4.0 µs and 6.6 KB (1.4 µs
+and 2.3 KB of it the closed polyline with an arc that it is). The shapes of the 78 000 of them in a drawing of 100 000 entities take 86 ms (123 under .NET Framework 4.8)
+where they took 170 (270), and its cold display (open not counted) 350 ms where it took 400 under .NET 8 and 550 where it took 650
+under .NET Framework 4.8; a drawing of 1 000 000 entities displays in 3.1 to 3.9 s where it took 3.5 to 4.0 under .NET 8 and in 5.0 to 5.5 s
+where it took 6.1 to 7.0 under .NET Framework 4.8. The 4 377 of them in an AutoCAD sample whose coordinates have 17 digits (070-PBBASE) take
+14 ms where they took 37 under .NET 8, and 4 ms where they took 21 under .NET Framework. The display list, the heap (650.9 MB at 1 000 000
+entities) and a layer switched on (1.0 s) are as they were, since the shapes are kept. They are kept still, the faster read
+notwithstanding: a layer switched on at 1 000 000 entities with the polylines' shapes read afresh took 1.3 to 1.5 s where it takes 1.0 s, for
+578 MB of heap in place of 651, as it did before the faster read, since a polyline's own making is most of its cost.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
@@ -244,7 +271,10 @@ plot and the images written clip every item to its region. The frame of the boun
 (`IsClipFrame`, left out of a plot where XCLIPFRAME is 2, `IsNotPlotted`) that no clip touches. A [`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex)
 finds a clipped item only where its region does, a window takes the reference by the box of what is shown, and a crossing and
 the aperture of a snap meet only the part inside. Each cell of a MINSERT is clipped by its own place, and a clip that is
-switched off draws the block whole.
+switched off draws the block whole. A clip made in a system tilted out of the plan has the region where its prism cuts the plane
+of the block, and the frame where its boundary stands in the plan. The front and back planes of Clipdepth leave out the items
+of the block that lie wholly outside them, in height, and cut a line that crosses one; the display keeps no height, so any other
+entity that crosses a plane is drawn whole.
 
 ### Keeping the lists
 

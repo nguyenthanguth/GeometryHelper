@@ -275,8 +275,10 @@ namespace GeometryHelper.Dwg
             }
 
             double[] insertion = text.Point(10);
-            bool hasAlignment = text.Has(11);
             double[] alignment = text.Point(11);
+
+            // AutoCAD gives no alignment point where it is (0, 0), which the reader gives for none.
+            bool hasAlignment = text.Has(11) && (alignment[0] != 0.0 || alignment[1] != 0.0);
             double oblique = Radians(text.Double(51));
             double rotation = Radians(text.Double(50));
             double width = text.Double(41, 1.0);
