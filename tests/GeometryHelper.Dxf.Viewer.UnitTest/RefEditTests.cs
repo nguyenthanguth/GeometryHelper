@@ -69,10 +69,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal("Select reference:", session.PromptText);
             Run(session, P(1050, 0));
-            Assert.Equal("Enter object selection method [Automatic/Prompt/Settings] <Automatic>:", session.PromptText);
+            Assert.Equal("Enter object selection method [All/Nested] <All>:", session.PromptText);
             Run(session, Enter);
 
-            Assert.Contains("2 objects added to the working set.", session.History);
+            Assert.Contains("2 Added to working set", session.History);
             Assert.NotNull(document.RefEdit);
             Assert.Equal("BOX", document.RefEdit.Name);
             Assert.Equal(2, document.RefEdit.WorkingSet.Count);
@@ -134,11 +134,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(1050, 80, 0), Entity<DxfCircle>(document, circle).Center);
 
             Run(session, "REFCLOSE");
-            Assert.Equal("Enter option [Save/Discard] <Save>:", session.PromptText);
+            Assert.Equal("Enter option [Save/Discard reference changes] <Save>:", session.PromptText);
             Run(session, Enter);
 
             Assert.Null(document.RefEdit);
-            Assert.Contains("Reference edit saved: BOX (2 objects).", session.History);
+            Assert.Contains("2 block instances updated", session.History);
             DxfBlockTableRecord box = document.Database.BlockTable["BOX"];
             DxfCircle moved = Assert.Single(Alive(box).OfType<DxfCircle>());
             Near(new GeoPoint3(50, 80, 0), moved.Center);
@@ -182,7 +182,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "REFCLOSE", "D");
 
             Assert.Null(document.RefEdit);
-            Assert.Contains("Reference edit discarded: BOX.", session.History);
+            Assert.DoesNotContain(session.History, line => line.Contains("updated"));
             DxfBlockTableRecord box = document.Database.BlockTable["BOX"];
             Assert.Equal(2, Alive(box).Count());
             Assert.Single(Alive(box).OfType<DxfCircle>());
@@ -214,7 +214,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Enter an option [Add/Remove] <Add>:", session.PromptText);
             Run(session, Enter, new[] { drawn }, Enter);
 
-            Assert.Contains("1 object added to the working set.", session.History);
+            Assert.Contains("1 Added to working set", session.History);
             Assert.Equal(3, document.RefEdit.WorkingSet.Count);
 
             Run(session, "REFCLOSE", Enter);
@@ -238,7 +238,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Run(session, "REFSET", "R", new[] { circle }, Enter);
 
-            Assert.Contains("1 object removed from the working set.", session.History);
+            Assert.Contains("1 Removed from working set", session.History);
             Assert.Single(document.RefEdit.WorkingSet);
 
             // The circle is the drawing's now: it can be erased like any object drawn in the session.
@@ -277,7 +277,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             // The drawing's own line is locked, and REFSET takes it all the same.
             Run(session, "REFSET", Enter, new[] { own.Handle }, Enter);
-            Assert.Contains("1 object added to the working set.", session.History);
+            Assert.Contains("1 Added to working set", session.History);
             Assert.Equal(3, document.RefEdit.WorkingSet.Count);
 
             Run(session, "REFCLOSE", Enter);
@@ -302,7 +302,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(document.RefEdit.WorkingSet);
             Run(session, "REFSET", Enter, new[] { circle }, Enter);
 
-            Assert.Contains("1 object added to the working set.", session.History);
+            Assert.Contains("1 Added to working set", session.History);
             Assert.Equal(2, document.RefEdit.WorkingSet.Count);
 
             Run(session, "REFCLOSE", Enter);
@@ -322,7 +322,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(document.RefEdit.WorkingSet);
             Run(session, "REFCLOSE", Enter);
 
-            Assert.Contains("Reference edit saved: BOX (1 object).", session.History);
+            Assert.Contains("1 object removed from BOX", session.History);
+            Assert.Contains("2 block instances updated", session.History);
             Assert.Empty(Alive(document.Database.BlockTable["BOX"]).OfType<DxfCircle>());
             Assert.Single(Alive(document.Database.BlockTable["BOX"]).OfType<DxfLine>());
             Assert.Equal(1, Drawn(document, First(document)));
@@ -363,21 +364,143 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void TheSettingsKeyword_AsksForAttributeDefinitionsAndTheLock_AndKeepsTheAnswers()
+        public void ABlockWithAttributeDefinitions_AsksWhetherToDisplayThem_EnterIsNo()
         {
+            // AcRefEdRes.dll: "Display attribute definitions [Yes/No] <No>: ", asked of a block that holds some.
             CadDocument document = Boxes();
-            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "S");
+            document
+                .Database.BlockTable["BOX"]
+                .AppendEntity(new DxfAttributeDefinition(new GeoPoint3(0, -20, 0), "val", "T", "t", null));
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), Enter);
 
-            Assert.Equal("Display attribute definitions for editing? [Yes/No] <No>:", session.PromptText);
+            Assert.Equal("Display attribute definitions [Yes/No] <No>:", session.PromptText);
             Run(session, "Y");
-            Assert.Equal("Lock objects not in working set? [Yes/No] <Yes>:", session.PromptText);
-            Run(session, "N");
-            Assert.Equal("Enter object selection method [Automatic/Prompt/Settings] <Automatic>:", session.PromptText);
-            Run(session, Enter);
 
             Assert.True(document.RefEditAttributeDefinitions);
-            Assert.False(document.RefEditLocksObjects);
+            Assert.Equal(3, document.RefEdit.WorkingSet.Count);
+            Assert.True(document.RefEdit.ShowsAttributeDefinitions);
+
+            CadDocument plain = Boxes();
+            Start(plain, "REFEDIT", P(1050, 0), Enter);
+            Assert.Equal(2, plain.RefEdit.WorkingSet.Count);
+            Assert.False(plain.RefEditAttributeDefinitions);
+        }
+
+        [Fact]
+        public void TheLock_IsKeptWhereTheDocumentSetsIt_AndNoPromptAsksIt()
+        {
+            CadDocument document = Boxes();
+            document.RefEditLocksObjects = false;
+            Start(document, "REFEDIT", P(1050, 0), Enter);
+
             Assert.False(document.RefEdit.LocksObjects);
+        }
+
+        [Fact]
+        public void TheNestingLevel_Enter_TakesNext_AsTheResourceStringsDefaultIs()
+        {
+            CadDocument document = Nested();
+            CadCommandSession session = Start(document, "REFEDIT", P(1250, 1000));
+
+            Assert.Contains("Reference: A", session.History);
+            Run(session, Enter);
+
+            Assert.Contains("Reference: A > B", session.History);
+            Assert.Equal("Select nesting level [Ok/Next] <Next>:", session.PromptText);
+        }
+
+        [Fact]
+        public void TheSelectionMethod_NestedAsksForPoints_AndAllTakesEverything()
+        {
+            CadDocument document = Boxes();
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "N");
+
+            Assert.StartsWith("Select nested objects", session.PromptText, StringComparison.Ordinal);
+            Run(session, "A");
+
+            Assert.Equal(2, document.RefEdit.WorkingSet.Count);
+        }
+
+        [Fact]
+        public void Refset_SaysWhatItDoes_AsTheResourceStringsHaveIt()
+        {
+            CadDocument document = Boxes();
+            CadCommandSession session = Opened(document);
+            string circle = Assert.Single(All<DxfCircle>(document.ModelSpace)).Handle;
+
+            Run(session, "REFSET");
+            Assert.Contains("Transfer objects between the RefEdit working set and host drawing...", session.History);
+            Run(session, Enter, new[] { circle }, Enter);
+
+            Assert.Contains("** 1 selected object is already in the working set **", session.History);
+
+            Run(session, "REFSET", "R", new[] { circle }, Enter);
+            Assert.Contains("1 Removed from working set", session.History);
+
+            Run(session, "REFSET", "R", new[] { circle }, Enter);
+            Assert.Contains("** 1 selected object is not in the working set **", session.History);
+        }
+
+        [Fact]
+        public void ASave_SaysTheObjectsAddedToAndRemovedFromTheBlock_AndTheInstancesUpdated()
+        {
+            CadDocument document = Boxes();
+            CadCommandSession session = Opened(document);
+            Run(session, "LINE", P(1000, 300), P(1100, 300), Enter);
+            string drawn = All<DxfLine>(document.ModelSpace)[2].Handle;
+            string circle = Assert.Single(All<DxfCircle>(document.ModelSpace)).Handle;
+            Run(session, "REFSET", Enter, new[] { drawn }, Enter);
+            Run(session, "ERASE", new[] { circle }, Enter);
+            Run(session, "REFCLOSE");
+            Assert.Equal("Enter option [Save/Discard reference changes] <Save>:", session.PromptText);
+            Run(session, Enter);
+
+            Assert.Contains("1 object added to BOX", session.History);
+            Assert.Contains("1 object removed from BOX", session.History);
+            Assert.Equal("2 block instances updated", session.History.Last());
+        }
+
+        [Fact]
+        public void ABlockScaledUnequally_IsRefused_AsAutoCADRefusesIt()
+        {
+            CadDocument document = Boxes();
+            DxfBlockReference stretched = All<DxfBlockReference>(document.ModelSpace)[1];
+            stretched.ScaleFactors = new GeoVector3(2, 3, 1);
+
+            CadEditResult result = document.OpenRefEdit(new[] { stretched.Handle }, null);
+
+            Assert.True(result.Refused);
+            Assert.Equal("** Cannot REFEDIT a non-uniformly scaled block **", result.Message);
+            Assert.Null(document.RefEdit);
+
+            // A mirror is not an unequal scale.
+            stretched.ScaleFactors = new GeoVector3(-2, 2, 2);
+            Assert.True(document.OpenRefEdit(new[] { stretched.Handle }, null).Succeeded);
+        }
+
+        [Fact]
+        public void AnAnonymousBlock_IsRefused_InTheWordsOfAutoCAD()
+        {
+            DxfDatabase database = CadTemplate.CreateMetric();
+            var anonymous = new DxfBlockTableRecord { Name = "*U", Origin = new GeoPoint3(0, 0, 0) };
+            database.BlockTable.Add(anonymous);
+            anonymous.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
+            var dimension = new DxfBlockTableRecord { Name = "*D", Origin = new GeoPoint3(0, 0, 0) };
+            database.BlockTable.Add(dimension);
+            dimension.AppendEntity(new DxfLine(new GeoPoint3(0, 0, 0), new GeoPoint3(1, 0, 0)));
+            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(0, 0, 0), anonymous));
+            database.ModelSpace.AppendEntity(new DxfBlockReference(new GeoPoint3(5, 0, 0), dimension));
+            CadDocument document = CadDocument.From(database, "anonymous.dxf");
+            IReadOnlyList<DxfBlockReference> references = All<DxfBlockReference>(document.ModelSpace);
+
+            Assert.Equal(
+                "** Cannot REFEDIT anonymous block **",
+                document.OpenRefEdit(new[] { references[0].Handle }, null).Message
+            );
+            Assert.Equal(
+                "** Cannot REFEDIT dimension or table blocks **",
+                document.OpenRefEdit(new[] { references[1].Handle }, null).Message
+            );
         }
 
         [Fact]
@@ -419,7 +542,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void PromptingForNestedObjects_TakesTheOnesPickedAlone()
         {
             CadDocument document = Boxes();
-            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "P");
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "N");
 
             Assert.StartsWith("Select nested objects", session.PromptText, StringComparison.Ordinal);
 
@@ -428,7 +551,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Contains("1 found", session.History);
             Run(session, Enter);
 
-            Assert.Contains("1 object added to the working set.", session.History);
+            Assert.Contains("1 Added to working set", session.History);
             Assert.Single(All<DxfCircle>(document.ModelSpace));
             Assert.Single(All<DxfLine>(document.ModelSpace));
 
@@ -440,10 +563,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void PromptingForNestedObjects_NothingPicked_OpensNothing()
         {
             CadDocument document = Boxes();
-            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "P", P(5000, 5000), Enter);
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), "N", P(5000, 5000), Enter);
 
             Assert.Contains("0 found", session.History);
-            Assert.Contains("No objects selected.", session.History);
+            Assert.Contains(CadRefEdit.NoObjects, session.History);
             Assert.Null(document.RefEdit);
             Assert.False(document.CanUndo);
         }
@@ -474,8 +597,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "REFEDIT", P(1250, 1000));
 
             Assert.Contains("Reference: A", session.History);
-            Assert.Equal("Enter nested reference choice [Ok/Next] <Ok>:", session.PromptText);
-            Run(session, Enter, Enter);
+            Assert.Equal("Select nesting level [Ok/Next] <Next>:", session.PromptText);
+            Run(session, "O", Enter);
 
             Assert.Equal("A", document.RefEdit.Name);
             Assert.Single(document.RefEdit.Chain);
@@ -496,7 +619,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "REFEDIT", P(1250, 1000), "N");
 
             Assert.Contains("Reference: A > B", session.History);
-            Run(session, Enter, Enter);
+            Run(session, "O", Enter);
 
             Assert.Equal("B", document.RefEdit.Name);
             Assert.Equal(2, document.RefEdit.Chain.Count);
@@ -535,9 +658,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void TheAttributeDefinitionsOfTheBlock_StayInIt_AndTheAttributesOfTheReferenceAreNotTouched()
         {
             CadDocument document = Tagged();
-            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), Enter);
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), Enter, Enter);
 
-            Assert.Contains("1 object added to the working set.", session.History);
+            Assert.Contains("1 Added to working set", session.History);
             Assert.Empty(All<DxfAttributeDefinition>(document.ModelSpace));
             Assert.Single(All<DxfLine>(document.ModelSpace));
 
@@ -554,10 +677,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void WithTheDefinitionsDisplayed_TheyAreInTheWorkingSet_AndASaveWritesTheirChangeIntoTheBlock()
         {
             CadDocument document = Tagged();
-            document.RefEditAttributeDefinitions = true;
-            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), Enter);
+            CadCommandSession session = Start(document, "REFEDIT", P(1050, 0), Enter, "Y");
 
-            Assert.Contains("2 objects added to the working set.", session.History);
+            Assert.Contains("2 Added to working set", session.History);
             DxfAttributeDefinition shown = Assert.Single(All<DxfAttributeDefinition>(document.ModelSpace));
             Near(new GeoPoint3(1000, -20, 0), shown.Position);
 
@@ -581,15 +703,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Opened(document);
 
             Run(session, "BEDIT");
-            Assert.Equal(CadRefEdit.NotAllowed, session.History.Last());
+            Assert.Equal("** BEDIT command not allowed during reference editing **", session.History.Last());
             Assert.Null(document.BlockEditor);
 
             Run(session, "REFEDIT");
-            Assert.Equal(CadRefEdit.NotAllowed, session.History.Last());
+            Assert.Equal("** Command not allowed, BOX already checked out for editing **", session.History.Last());
             Assert.False(session.IsRunning);
 
             Run(session, "QSAVE");
-            Assert.Equal(CadRefEdit.NotAllowed, session.History.Last());
+            Assert.Equal("** Drawing save not allowed during reference editing **", session.History.Last());
         }
 
         [Fact]
@@ -612,9 +734,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         {
             CadDocument document = Boxes();
             CadCommandSession session = Start(document, "REFSET");
-            Assert.Equal("No reference is being edited.", session.History.Last());
+            Assert.Equal(CadRefEdit.NotEditing, session.History.Last());
             Run(session, "REFCLOSE");
-            Assert.Equal("No reference is being edited.", session.History.Last());
+            Assert.Equal(CadRefEdit.NotEditing, session.History.Last());
             Assert.False(document.CanUndo);
         }
 
@@ -624,7 +746,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = Boxes();
             CadCommandSession session = Start(document, "REFEDIT", P(100, 500));
 
-            Assert.Contains("Selected object is not a reference.", session.History);
+            Assert.Contains("Object is not a valid reference", session.History);
             Assert.Equal("Select reference:", session.PromptText);
             Run(session, Enter);
             Assert.False(session.IsRunning);
@@ -672,7 +794,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadEditResult result = document.OpenRefEdit(new[] { First(document).Handle }, null);
 
             Assert.True(result.Refused);
-            Assert.Equal("The reference has no objects to edit.", result.Message);
+            Assert.Equal("** At least one object must be selected to edit a reference **", result.Message);
             Assert.Null(document.RefEdit);
             Assert.False(document.CanUndo);
         }
@@ -738,13 +860,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Null(reopened.RefEdit);
             Assert.Equal(2, Alive(reopened.Database.BlockTable["BOX"]).Count());
             Assert.Equal(2, Drawn(reopened, First(reopened)));
-            Assert.Contains("Reference edit saved: BOX (2 objects).", session.History);
+            Assert.Contains("2 block instances updated", session.History);
         }
 
         [Fact]
-        public void ARefeditThatRefusesAnObject_SkipsIt_AndSaysHowMany()
+        public void ABlockStretchedAlongOneAxis_IsRefused_WhereItOnceSkippedItsCircle()
         {
-            // A circle under a scale unlike along its axes is not one a circle copy can hold: it is an ellipse there.
+            // A circle under a scale unlike along its axes is an ellipse there; AutoCAD 2021 refuses the whole reference
+            // (AcRefEdRes.dll: "Cannot REFEDIT a non-uniformly scaled block").
             DxfDatabase database = CadTemplate.CreateMetric();
             var box = new DxfBlockTableRecord { Name = "BOX", Origin = new GeoPoint3(0, 0, 0) };
             database.BlockTable.Add(box);
@@ -757,19 +880,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "REFEDIT", P(1100, 0), Enter);
 
-            Assert.Single(document.RefEdit.WorkingSet);
-            Assert.Equal(1, document.RefEdit.Skipped);
-            Assert.Contains("1 object added to the working set.", session.History);
-            Assert.Contains("1 object cannot be edited in place and stay in the block.", session.History);
-            Assert.Single(All<DxfLine>(document.ModelSpace));
-            Assert.Empty(All<DxfCircle>(document.ModelSpace));
-
-            // The circle stays in the block, which the reference still draws; a save keeps it there.
-            Assert.Equal(1, Drawn(document, First(document)));
-            Run(session, "REFCLOSE", Enter);
             Assert.Null(document.RefEdit);
-            Assert.Single(Alive(document.Database.BlockTable["BOX"]).OfType<DxfCircle>());
-            Assert.Single(Alive(document.Database.BlockTable["BOX"]).OfType<DxfLine>());
+            Assert.Contains("** Cannot REFEDIT a non-uniformly scaled block **", session.History);
+            Assert.False(document.CanUndo);
         }
     }
 }

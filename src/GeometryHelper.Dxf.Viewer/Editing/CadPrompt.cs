@@ -266,6 +266,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     text.Append(Kind == CadPromptKind.Keyword || _noOr ? " [" : " or [")
                         .Append(string.Join("/", Keywords))
+                        .Append(_note)
                         .Append(']');
                 }
 
@@ -276,6 +277,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 return _noColon ? text.ToString() : text.Append(':').ToString();
             }
+        }
+
+        // Words written after the last keyword inside the brackets, as AutoCAD writes REFCLOSE's "[Save/Discard reference changes]".
+        private string _note = string.Empty;
+
+        /// <summary>Writes words after the last keyword inside the brackets, as AutoCAD writes REFCLOSE's "[Save/Discard reference changes]".</summary>
+        internal CadPrompt WithKeywordNote(string note)
+        {
+            _note = note ?? string.Empty;
+            return this;
         }
 
         // Whether the keywords follow the message with no "or", as AutoCAD writes TEXTALIGN's "Select text objects to align [alIgnment/Options]:".

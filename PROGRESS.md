@@ -392,10 +392,14 @@ the ones wanted.
       PEDIT of splines (precision prompt, the 10 000-vertex question; AutoCAD's counts exact for CV splines); JOIN of
       objects picked at once gives an LWPOLYLINE under PLINETYPE 0. FOUND: accoreconsole fed by stdin runs commands a
       .scr runs in their old form (runner in .claude/gk/acon-stdin)
-- [ ] (stdin1, running: the re-probe part) PEDIT/REVCLOUD follow-ups 3: re-probe through stdin every item parked as "console has no command / runs the old
-      one" (REFEDIT, TABLEEXPORT, -BOUNDARY, ...); PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more);
-      REVCLOUD variance-1 sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc
-      length in layout viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles (S)
+- [x] Stdin re-probe (stdin1): REFEDIT's prompts and messages corrected from AutoCAD's own string table (the console has
+      no REFEDIT even through stdin); non-uniform references refused; VPMAX/VPMIN/-VPORTS Toggle on Model as AutoCAD
+      (four tiles, ids, *Multiple); HATCHSETORIGIN equal to AutoCAD; the stdin runner documented in .claude/gk/acon-stdin
+- [ ] PEDIT/REVCLOUD follow-ups 3: PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more); REVCLOUD variance-1
+      sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc length in layout
+      viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles. Still GUI-only: REFEDIT's line
+      order and kept handles, TABLEEXPORT's file, pre-selection, BOUNDARY, FILTER, SPELL; through stdin next:
+      MLEADERALIGN, TEXTALIGN, DIMBREAK Auto; -VPORTS after a Toggle overwriting *Multiple (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)

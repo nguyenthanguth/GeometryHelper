@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -11,7 +12,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// and the objects to edit, REFSET adds objects to the working set and takes them out, REFCLOSE saves them back or
     /// discards them. The Reference Edit dialog and the Refedit toolbar are not built: both commands ask on the command line,
     /// as -REFEDIT does. The work is the document's (<see cref="CadDocument.OpenRefEdit"/> and the rest); these ask the
-    /// questions. AutoCAD 2021's accoreconsole has none of the three commands, so the words are the presenter's own.
+    /// questions. AutoCAD 2021's accoreconsole has none of the three commands, fed by a script or by standard input (it says
+    /// <c>Unknown command</c>, and ARXLOAD of AcRefEd.arx fails there), so the prompts and messages are those of the string table
+    /// of AcRefEdRes.dll, the resource file of AutoCAD 2021's own REFEDIT, read as data; what order they come in is the presenter's guess.
     /// </summary>
     internal static partial class CadCommands
     {
@@ -96,7 +99,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    c.Write("Selected object is not a reference.");
+                    c.Write(CadRefEdit.NotAValidReference);
                 }
             }
 
@@ -104,7 +107,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (levels.Count == 0)
             {
-                c.Write("Selected object is not a reference.");
+                c.Write(CadRefEdit.NotAValidReference);
                 yield break;
             }
 
@@ -113,15 +116,15 @@ namespace GeometryHelper.Dxf.Viewer
             while (levels.Count > 1)
             {
                 c.Write("Reference: " + levels[level].Path);
-                yield return CadPrompt.ForKeyword("Enter nested reference choice", new[] { "Ok", "Next" }, "Ok");
+                yield return CadPrompt.ForKeyword("Select nesting level", new[] { "Ok", "Next" }, "Next");
 
-                if (c.Input.Is("Next"))
+                if (c.Input.Is("Next") || c.Input.IsNone)
                 {
                     level = (level + 1) % levels.Count;
                     continue;
                 }
 
-                if (c.Input.Is("Ok") || c.Input.IsNone)
+                if (c.Input.Is("Ok"))
                 {
                     break;
                 }
@@ -129,40 +132,20 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            bool prompting = false;
+            yield return CadPrompt.ForKeyword("Enter object selection method", new[] { "All", "Nested" }, "All");
 
-            while (true)
+            if (!(c.Input.Is("All") || c.Input.Is("Nested") || c.Input.IsNone))
             {
-                yield return CadPrompt.ForKeyword(
-                    "Enter object selection method",
-                    new[] { "Automatic", "Prompt", "Settings" },
-                    "Automatic"
-                );
+                yield break;
+            }
 
-                if (c.Input.Is("Settings"))
-                {
-                    yield return CadPrompt.ForKeyword(
-                        "Display attribute definitions for editing?",
-                        new[] { "Yes", "No" },
-                        document.RefEditAttributeDefinitions ? "Yes" : "No"
-                    );
-                    document.RefEditAttributeDefinitions = Chosen(c.Input, document.RefEditAttributeDefinitions);
-                    yield return CadPrompt.ForKeyword(
-                        "Lock objects not in working set?",
-                        new[] { "Yes", "No" },
-                        document.RefEditLocksObjects ? "Yes" : "No"
-                    );
-                    document.RefEditLocksObjects = Chosen(c.Input, document.RefEditLocksObjects);
-                    continue;
-                }
+            bool prompting = c.Input.Is("Nested");
 
-                if (!(c.Input.Is("Automatic") || c.Input.Is("Prompt") || c.Input.IsNone))
-                {
-                    yield break;
-                }
-
-                prompting = c.Input.Is("Prompt");
-                break;
+            // A block with attribute definitions asks whether they are edited too; Enter is No, as the prompt says.
+            if (document.RefEditBlockHasAttributeDefinitions(levels[level].Chain))
+            {
+                yield return CadPrompt.ForKeyword("Display attribute definitions", new[] { "Yes", "No" }, "No");
+                document.RefEditAttributeDefinitions = c.Input.Is("Yes");
             }
 
             List<string> objects = null;
@@ -202,7 +185,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (objects != null && objects.Count == 0)
                 {
-                    c.Write("No objects selected.");
+                    c.Write(CadRefEdit.NoObjects);
                     yield break;
                 }
             }
@@ -215,8 +198,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            int count = document.RefEdit.WorkingSet.Count;
-            c.Write(Objects(count) + " added to the working set.");
+            c.Write(document.RefEdit.WorkingSet.Count.ToString(CultureInfo.InvariantCulture) + " Added to working set");
 
             if (document.RefEdit.Skipped > 0)
             {
@@ -224,19 +206,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>The answer of a Yes/No prompt: Enter keeps the value the prompt offered.</summary>
-        private static bool Chosen(CadInput input, bool current) =>
-            input.Is("Yes") ? true
-            : input.Is("No") ? false
-            : current;
-
         /// <summary>"1 object", "2 objects".</summary>
-        private static string Objects(int count) =>
-            count.ToString(CultureInfo.InvariantCulture) + (count == 1 ? " object" : " objects");
+        private static string Objects(int count) => Counted(count, "object");
+
+        /// <summary>"1 block instance", "2 block instances".</summary>
+        private static string Counted(int count, string noun) =>
+            count.ToString(CultureInfo.InvariantCulture) + " " + noun + (count == 1 ? string.Empty : "s");
 
         /// <summary>
-        /// REFSET: "Enter an option [Add/Remove] &lt;Add&gt;:" and "Select objects:", the objects selected before taken instead; Add
-        /// puts objects of the drawing into the working set, Remove takes objects out of it and leaves them in the drawing.
+        /// REFSET: "Transfer objects between the RefEdit working set and host drawing..." and "Enter an option [Add/Remove]
+        /// &lt;Add&gt;:", then "Select objects:", the objects selected before taken instead; Add puts objects of the drawing into
+        /// the working set, Remove takes objects out of it and leaves them in the drawing. It says "** 2 selected objects are
+        /// already in the working set **" (or "are not in") for those it has nothing to do with and "3 Added to working set" (or
+        /// "Removed from") for the others.
         /// </summary>
         private static IEnumerable<CadPrompt> RefSet(CadCommandContext c)
         {
@@ -249,6 +231,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            c.Write("Transfer objects between the RefEdit working set and host drawing...");
             yield return CadPrompt.ForKeyword("Enter an option", new[] { "Add", "Remove" }, "Add");
             bool remove = c.Input.Is("Remove");
             IReadOnlyList<string> handles;
@@ -266,7 +249,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.ClearsSelection = true;
-            int before = edit.WorkingSet.Count;
+            var inSet = new HashSet<string>(edit.WorkingSet, StringComparer.OrdinalIgnoreCase);
+            int before = inSet.Count;
+            int unchanged = handles.Distinct(StringComparer.OrdinalIgnoreCase).Count(h => inSet.Contains(h) == !remove);
             CadEditResult result = remove ? document.RemoveFromRefEdit(handles) : document.AddToRefEdit(handles);
 
             if (!result.Succeeded)
@@ -275,15 +260,38 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // AutoCAD counts the objects it has nothing to do with first; the others are the change in the set.
+            if (unchanged > 0)
+            {
+                c.Write(
+                    "** "
+                        + Counted(unchanged, "selected object")
+                        + (
+                            remove
+                                ? (unchanged == 1 ? " is not" : " are not")
+                                : (unchanged == 1 ? " is already" : " are already")
+                        )
+                        + " in the working set **"
+                );
+            }
+
             int changed = Math.Abs(edit.WorkingSet.Count - before);
-            c.Write(
-                changed == 0
-                    ? "No objects " + (remove ? "removed from" : "added to") + " the working set."
-                    : Objects(changed) + (remove ? " removed from" : " added to") + " the working set."
-            );
+
+            if (changed > 0)
+            {
+                c.Write(
+                    changed.ToString(CultureInfo.InvariantCulture)
+                        + (remove ? " Removed from" : " Added to")
+                        + " working set"
+                );
+            }
         }
 
-        /// <summary>REFCLOSE: "Enter option [Save/Discard] &lt;Save&gt;:", the changes written back into the block or thrown away.</summary>
+        /// <summary>
+        /// REFCLOSE: "Enter option [Save/Discard reference changes] &lt;Save&gt;:", the changes written back into the block or
+        /// thrown away. Saved, it says "2 objects added to BOX" and "1 object removed from BOX" (each only where there is one) and
+        /// "3 block instances updated" for the references of the block drawn anew; discarded, it says nothing.
+        /// </summary>
         private static IEnumerable<CadPrompt> RefClose(CadCommandContext c)
         {
             CadRefEdit edit = c.Document.RefEdit;
@@ -294,10 +302,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForKeyword("Enter option", new[] { "Save", "Discard" }, "Save");
+            yield return CadPrompt
+                .ForKeyword("Enter option", new[] { "Save", "Discard" }, "Save")
+                .WithKeywordNote(" reference changes");
             bool save = !c.Input.Is("Discard");
             string name = edit.Name;
-            int count = edit.WorkingSet.Count;
+            c.Document.RefEditSaveCounts(out int added, out int removed, out int updated);
             CadEditResult result = c.Document.CloseRefEdit(save);
 
             if (!result.Succeeded)
@@ -306,11 +316,22 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            c.Write(
-                save
-                    ? "Reference edit saved: " + name + " (" + Objects(count) + ")."
-                    : "Reference edit discarded: " + name + "."
-            );
+            if (!save)
+            {
+                yield break;
+            }
+
+            if (added > 0)
+            {
+                c.Write(Objects(added) + " added to " + name);
+            }
+
+            if (removed > 0)
+            {
+                c.Write(Objects(removed) + " removed from " + name);
+            }
+
+            c.Write(Counted(updated, "block instance") + " updated");
         }
     }
 }

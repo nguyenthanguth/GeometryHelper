@@ -37,7 +37,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(item.IsEnabled);
             Assert.Equal('i', item.AccessKey);
             item.Command.Execute(null);
-            Assert.Equal("Enter object selection method [Automatic/Prompt/Settings] <Automatic>:", model.Prompt);
+            Assert.Equal("Enter object selection method [All/Nested] <All>:", model.Prompt);
 
             model.Execute(string.Empty);
 

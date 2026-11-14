@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
+console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the
+documentation they were first built from did not give. REFEDIT asks `Select nesting level [Ok/Next] <Next>:` (Enter steps to
+the next level, it was `Enter nested reference choice [Ok/Next] <Ok>:`) and `Enter object selection method [All/Nested] <All>:`
+(it was `[Automatic/Prompt/Settings] <Automatic>`; the Settings answers are gone: a block with attribute definitions asks
+`Display attribute definitions [Yes/No] <No>:` and the lock is `CadDocument.RefEditLocksObjects` alone). It opens saying `2
+Added to working set`, says `Object is not a valid reference`, `** At least one object must be selected to edit a reference
+**`, `** Cannot REFEDIT anonymous block **` (`dimension or table blocks` for `*D` and `*T`) and refuses a reference
+whose scale factors differ in size as AutoCAD does, `** Cannot REFEDIT a non-uniformly scaled block **` (it took one and left
+its circle out). REFSET says `Transfer objects between the RefEdit working set and host drawing...`, `3 Added to working set`
+or `1 Removed from working set` and `** 2 selected objects are already in the working set **` (`are not in` for Remove);
+REFCLOSE asks `Enter option [Save/Discard reference changes] <Save>:` and says `1 object added to BOX`, `1 object removed
+from BOX` and `2 block instances updated`. The refusals of BEDIT, a second REFEDIT, QSAVE and SAVEAS, and of REFSET and
+REFCLOSE with no edit open, are AutoCAD's lines (`** BEDIT command not allowed during reference editing **` and the rest).
+`CadRefEdit.NotAllowed` is `CadRefEdit.NotAllowedFor(command)`, a command's own line, and `CadRefEdit.NotEditing` is AutoCAD's
+`** Command not allowed unless a reference is checked out with REFEDIT command **`. Not known: the order of these lines, and
+whether the handles of the objects saved back are kept (the presenter writes each as a new object); the console cannot run a long
+transaction, which REFEDIT is made on.
+**FIXED.** VPMAX, VPMIN and `-VPORTS Toggle` on the Model tab with one tile and none kept did nothing: AutoCAD 2021's console makes
+four equal tiles (numbered 2 to 5, the current one first) and keeps them as `*Multiple`, saying `Regenerating model.` four
+times; the tile left alone by Toggle or `-VPORTS SIngle` is numbered 3 where the current one was 2 and 2 where it was any other
+(CVPORT 3 after four tiles and SIngle, it kept 2), and the tiles brought back by Toggle give the first the number of the tile
+that was alone and the others the free ones in order. Probed through accoreconsole fed by standard input.
 **NEW.** A table style saved from R2007 or later as R2000 or R2004 keeps the formats of its rows beside it as AutoCAD 2021 does:
 the type of the value, its unit and its format string of the data, title and header rows (the groups 90, 91 and 1 after the fill of
 each row, which a style of R2004 and before has no place for) go into the XRECORD of the style's extension dictionary

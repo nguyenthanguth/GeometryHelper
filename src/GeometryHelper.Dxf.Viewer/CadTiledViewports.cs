@@ -410,7 +410,10 @@ namespace GeometryHelper.Dxf.Viewer
             return count == 0 ? null : Pieces(count, words[1] == "Equal" ? string.Empty : words[1]);
         }
 
-        private string Split(List<double[]> pieces, bool whole, IReadOnlyList<string> views)
+        private string Split(List<double[]> pieces, bool whole, IReadOnlyList<string> views) =>
+            Split(pieces, whole, views, false);
+
+        private string Split(List<double[]> pieces, bool whole, IReadOnlyList<string> views, bool keep)
         {
             ReadView?.Invoke(Current);
             int kept = whole ? 0 : _tiles.Count - 1;
@@ -449,6 +452,11 @@ namespace GeometryHelper.Dxf.Viewer
                 // The current tile first, then those there were, then the new ones, as AutoCAD lists them.
                 _tiles.AddRange(others);
                 _tiles.AddRange(made.Skip(1));
+
+                if (keep)
+                {
+                    _saved[ToggledName] = _tiles.Select(t => t.Copy()).ToList();
+                }
             });
             return null;
         }
@@ -469,7 +477,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Toggle of -VPORTS: the current tile alone, the others kept under <c>*Multiple</c>, where there are several; the
-        /// tiles kept brought back where it is alone and some are kept. One undo step.
+        /// tiles kept brought back where it is alone and some are kept, and where none are, four equal tiles (a drawing with
+        /// one viewport, toggled in AutoCAD 2021, shows the four it keeps as <c>*Multiple</c>). One undo step.
         /// </summary>
         /// <returns>Whether anything changed.</returns>
         public bool Toggle()
@@ -488,12 +497,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!_saved.ContainsKey(ToggledName))
             {
-                return false;
+                return Split(Pieces(4, string.Empty), true, null, true) == null;
             }
 
-            Change(() => Bring(_saved[ToggledName]));
+            Change(() => Bring(_saved[ToggledName], Current.Id));
             return true;
         }
+
+        /// <summary>
+        /// Gets whether <see cref="Toggle"/> would make the four tiles it keeps, which AutoCAD 2021 says by four regenerations: the
+        /// drawing shows one tile and none are kept under <c>*Multiple</c>.
+        /// </summary>
+        internal bool ToggleMakesFour => !IsTiled && !_saved.ContainsKey(ToggledName);
 
         /// <summary>Saves the tiles under a name, replacing a configuration of that name, as -VPORTS Save. One undo step.</summary>
         /// <param name="name">The name.</param>
@@ -877,20 +892,33 @@ namespace GeometryHelper.Dxf.Viewer
         private void KeepCurrentAlone()
         {
             CadTiledViewport current = Current;
-            CadTiledViewport alone = current.With(current.Id, 0.0, 0.0, 1.0, 1.0);
+            // AutoCAD 2021 numbers the tile left alone 3 when the current one was 2, and 2 for any other.
+            CadTiledViewport alone = current.With(current.Id == 2 ? 3 : 2, 0.0, 0.0, 1.0, 1.0);
             Fit(alone, current);
             _tiles.Clear();
             _tiles.Add(alone);
         }
 
-        private void Bring(IReadOnlyList<CadTiledViewport> saved)
+        private void Bring(IReadOnlyList<CadTiledViewport> saved) => Bring(saved, 0);
+
+        /// <summary>Puts saved tiles in place; with a number given (the tile alone), the first takes it and the others the free numbers in order.</summary>
+        private void Bring(IReadOnlyList<CadTiledViewport> saved, int firstId)
         {
             _tiles.Clear();
             var used = new HashSet<int>();
 
-            foreach (CadTiledViewport tile in saved)
+            if (firstId >= 2)
             {
-                int id = tile.Id >= 2 && used.Add(tile.Id) ? tile.Id : Free(used);
+                used.Add(firstId);
+            }
+
+            for (int i = 0; i < saved.Count; i++)
+            {
+                CadTiledViewport tile = saved[i];
+                int id =
+                    firstId >= 2 ? (i == 0 ? firstId : Free(used))
+                    : tile.Id >= 2 && used.Add(tile.Id) ? tile.Id
+                    : Free(used);
                 used.Add(id);
                 _tiles.Add(tile.With(id, tile.Left, tile.Bottom, tile.Right, tile.Top));
             }
