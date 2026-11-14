@@ -13,8 +13,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        /// <summary>The angle of sweep from which the extension lines of an arc length dimension run from the centre, not along the middle of the arc.</summary>
-        private const double RadialFrom = Math.PI / 2.0 - 1E-9;
+        /// <summary>
+        /// The angle of sweep from which the extension lines of an arc length dimension run from the centre, not along the middle
+        /// of the arc: 90 degrees less a millionth of a radian, as AutoCAD 2021 takes it (arcs from 0 to 1.570796 radians, which
+        /// are 0.3 millionths short of 90 degrees, and on down to 1.0 millionths short, run from the centre; 1.1 short does not).
+        /// </summary>
+        private const double RadialFrom = Math.PI / 2.0 - 1E-6;
 
         /// <summary>
         /// DIMARC: an arc or the arc segment of a polyline (picked on it), then where the dimension goes, with Mtext and Text for
@@ -538,6 +542,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// The arc an arc length dimension of the drawing measures and how far out it was put, from its points: the radius, the
         /// sweep from the first point to the second on the side of the arc point (else from the second to the first, as
         /// <paramref name="rest"/> says), and the distance its arc point was put at; false where the points give no arc.
+        /// <paramref name="radiusNow"/> is the radius the arc has come to where the dimension follows it: a dimension moved in
+        /// along the bisector has its distance worked out from the arc point it holds and that radius.
         /// </summary>
         private static bool ArcLengthSector(
             DxfArcDimension dimension,
@@ -545,7 +551,8 @@ namespace GeometryHelper.Dxf.Viewer
             out double start,
             out double sweep,
             out double distance,
-            out bool rest
+            out bool rest,
+            double? radiusNow = null
         )
         {
             GeoPoint2 center = P2(dimension.CenterPoint);
@@ -596,14 +603,18 @@ namespace GeometryHelper.Dxf.Viewer
             // The distance the dimension was put at: its arc's radius, or, for one moved in along the bisector, the arc's radius
             // and how far it was moved in.
             distance = (arcPoint - center).Length;
+            double arcNow = radiusNow ?? radius;
 
-            if (sweep < RadialFrom && distance < radius)
+            if (sweep < RadialFrom && distance < arcNow)
             {
+                // As AutoCAD 2021 reads it after a scale: the arc of 1 through 80 degrees from 10, put 0.8 out, scaled by 1.5 about
+                // its centre has its arc point 0.8264 from the centre (0.8346 worked out on the first radius), and scaled by 0.1
+                // 0.8067, the radius of the arc point it held, not 0.8.
                 GeoVector2 bisector = Heading(start + sweep / 2.0);
                 GeoVector2 d = arcPoint - center;
                 double along = Dot(d, bisector);
-                double disc = along * along - Dot(d, d) + radius * radius;
-                distance = radius + along - Math.Sqrt(Math.Max(0.0, disc));
+                double disc = along * along - Dot(d, d) + arcNow * arcNow;
+                distance = arcNow + along - Math.Sqrt(Math.Max(0.0, disc));
             }
 
             return true;
@@ -629,7 +640,10 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 c = P2(center);
             double radius = (P2(first) - c).Length;
 
-            if (!ArcLengthSector(dimension, out _, out _, out _, out double distance, out bool rest) || radius <= 1E-12)
+            if (
+                !ArcLengthSector(dimension, out _, out _, out _, out double distance, out bool rest, radius)
+                || radius <= 1E-12
+            )
             {
                 return dimension.ArcPoint;
             }

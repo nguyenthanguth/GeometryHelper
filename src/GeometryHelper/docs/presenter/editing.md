@@ -1016,6 +1016,18 @@ out, stand 3.0088 from the centre across and 1.9766 up for DIMJUST 1, to 0.001 a
 A dimension put on its arc has its extension lines run in from the ends where two arrowheads fit between them, out where they
 do not, and one scaled until its arc point is nearer the centre than the arc is, as AutoCAD 2021 keeps the arc moved in,
 is measured on that arc (the arc of 1 through 20 degrees put 1.2 out and scaled by 5 reads 1.7453, not the rest of the circle).
+A sweep counts as 90 degrees, and its extension lines run from the centre, from a millionth of a radian short of it (an arc of 1
+from 0 to 1.570796 radians, put 0.8 out, has its arc point at 30 degrees on the circle of 0.8, the point (0.6928, 0.4); one
+to 1.5707952268, a tenth of a millionth further short, moves its arc in along the middle and has it at (0.7246, 0.3586)).
+Level words off the arc (DIMTAD 2 and 3) fit by the same box without the gap at either end of the arc: their width, the symbol
+before them and two gaps times the sine of the direction of the arc's middle, plus their height, the symbol over them and two
+gaps times its cosine (an arc of 10 from 15 degrees put 12 out, DIMTAD 2, takes its words "0.6400" between its extension lines
+from a chord of 0.64, not 0.6); they stand with the symbol clear of the arc too, half the room of the symbol before them
+further out along the sine and half of what is over them along the cosine, 0.165 further out at 4 degrees for the symbol before
+them. An angle of three points fits them so too. A dimension moved in along the middle of its arc and followed through a scale
+reads its distance from the arc point it holds and the radius the arc has come to: the arc of 1 through 80 degrees from 10 put
+0.8 out has its arc point 0.8264 from the centre after a scale by 1.5 (0.8346 on the first radius) and 0.8067 after one by 0.1,
+the radius of the point it held, not 0.8.
 DIMORDINATE
 (DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
