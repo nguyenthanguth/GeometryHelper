@@ -255,7 +255,12 @@ its first side from 80 to 100). A stem whose element would meet the closed multi
 where another segment goes on (the stem 12 from the corner of that square, whose elements stand at 12, 7, -3 and -8 at scale 10),
 is `Invalid operation on a self intersecting multiline.` in AutoCAD 2021, and the presenter does as it does: the elements that
 meet are stopped, the others left running, the closed multiline left whole. AutoCAD says the same of a tee onto an open
-multiline past a vertex it turns at. CS, CA and
+multiline past a vertex it turns at. The crosses CC, OC and MC say it too, and change neither multiline, where an element would be
+broken past the end of an element that another segment goes on from: the L (0, 0)-(100, 0)-(100, 100) at scale 20 crossed by
+the vertical (85, -60)-(85, 60), whose second element stands at 105, is refused (a vertical at 80 is crossed; 85, 95 and 100 are refused), and so is a crossing
+of the second segment at y = 5, 10 or 15, where the break starts before the segment does. A cross meets a segment on its line, run
+on past the first segment's start or the last segment's end of an open multiline (a vertical at x = -10 crosses the L; one at
+x = 105 is `These multilines do not intersect.`). CJ near an open end runs the end on to where the lines meet. CS, CA and
 WA from one segment to another cut from the first pick to the end of its segment, the segments between whole and the next
 segment up to the second pick: CA from (50, 0) to (100, 50) on (0, 0)-(100, 0)-(100, 100) at scale 20 leaves the first segment
 drawn to 50 and the second from 50 (70 for the bottom element, which starts at the outer corner); round the first vertex of a
@@ -273,7 +278,10 @@ cut finds nothing there, as nothing is drawn.
 **Grips, STRETCH and the modify commands on a multiline.** A multiline has a grip at each vertex of its line, as AutoCAD
 2021's `GetGripPoints`; dragging one moves the vertex as `MoveVertexAt` does: a segment that keeps its way keeps its cuts where
 they were along it, one that turns is drawn whole again (cut 30 to 60 on (100, 0)-(100, 100), the vertex moved to (100, -10),
-the cut is 40 to 70 from it). STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
+the cut is 40 to 70 from it). Where a cut goes across a vertex (the L of 100 by 100 cut from (50, 0) to (100, 50), whose second segment holds 50 for its first
+element), a move that makes the segment before whole puts a nought in front of the next list (the vertex (100, 0) moved to
+(100, -10) holds 0 and 60) and leaves the end of the multiline with nothing past its last vertex; a segment that turns keeps such a
+list as it was, and no stretch goes below nought. STRETCH moves the vertices inside its window the same way, and the whole multiline where all are
 inside. TRIM and EXTEND work on a multiline as AutoCAD 2021 does: an edge counts only where it crosses every element as many
 times (one that meets some element more often than another leaves the multiline as it is), each element at its own hit, which
 near a corner can be on different segments: the edge (120, -30)-(95, 20) meets the top element of (0, 0)-(100, 0)-(100, 100) at
@@ -283,7 +291,10 @@ scale 20 at (100, 10) on its second segment and the bottom one at 115 on its fir
 stands on the multiline's line where the
 element that runs furthest still reaches the edge, each element stopping where it meets the edge (trimmed by the edge
 (40, -60)-(60, 60) and picked before it, (0, 0)-(100, 0) at scale 20 starts at 46.67, its top element at 50); a piece taken
-out between two edges leaves two multilines, and a closed one opens between the two cuts round the pick. EXTEND runs the
+out between two edges leaves two multilines, and a closed one opens between the two cuts round the pick. Near a corner of a closed multiline an edge meets the elements on different
+segments, and each element is then taken between its own two cuts of the pair the pick lies between, as the element nearest the
+pick says (the square of 100 cut by the edge (120, -30)-(95, 20) and the line x = 50, picked at (75, 0), leaves the top element from
+(100, 10) round to (50, 0) and the bottom one from (115, -20) round to (50, -20)). EXTEND runs the
 nearer end on to the nearest edge every element meets. A multiline is a cutting or boundary edge for other objects by its
 elements. OFFSET says `Cannot offset that object.`, FILLET `Fillet requires 2 lines, arcs, or circles.`, CHAMFER `Chamfer
 requires 2 lines.`, LENGTHEN `Cannot LENGTHEN this object.` and BREAK `Object can't be broken` and asks again, AutoCAD's words.

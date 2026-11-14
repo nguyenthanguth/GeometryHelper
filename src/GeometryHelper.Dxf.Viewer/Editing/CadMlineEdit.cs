@@ -144,18 +144,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfMlineBuilder.Run run in runs)
             {
-                if (run.To <= from || run.From >= to)
+                if (run.To <= from + Tiny || run.From >= to - Tiny)
                 {
                     left.Add(run);
                     continue;
                 }
 
-                if (run.From < from)
+                if (run.From < from - Tiny)
                 {
                     left.Add(new DxfMlineBuilder.Run(run.From, from));
                 }
 
-                if (run.To > to)
+                if (run.To > to + Tiny)
                 {
                     left.Add(new DxfMlineBuilder.Run(to, run.To));
                 }
@@ -169,15 +169,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// within both. Each element of the target named is broken from where it meets the one outer element of the other
         /// multiline to where it meets the other, as AutoCAD's closed, open and merged crosses break them.
         /// </summary>
-        /// <returns>False where the segments' lines do not cross within both.</returns>
+        /// <param name="first">The multiline whose elements are all broken.</param>
+        /// <param name="firstSegment">The segment of the first the pick was on.</param>
+        /// <param name="second">The multiline that crosses it.</param>
+        /// <param name="secondSegment">The segment of the second the pick was on.</param>
+        /// <param name="joint">Closed, open or merged.</param>
+        /// <param name="selfIntersecting">True where an element breaks past the end of an element where another segment goes on,
+        /// as AutoCAD 2021 refuses with "Invalid operation on a self intersecting multiline." leaving both multilines as they were.</param>
+        /// <returns>False where the segments' lines do not cross within both, the first or last segment of an open multiline
+        /// being run on past its end.</returns>
         internal static bool Cross(
             DxfMlineBuilder first,
             int firstSegment,
             DxfMlineBuilder second,
             int secondSegment,
-            Joint joint
+            Joint joint,
+            out bool selfIntersecting
         )
         {
+            selfIntersecting = false;
             GeoVector3 firstWay = first.SegmentDirection(firstSegment);
             GeoVector3 secondWay = second.SegmentDirection(secondSegment);
 
@@ -190,10 +200,8 @@ namespace GeometryHelper.Dxf.Viewer
                     out double onFirst,
                     out double onSecond
                 )
-                || onFirst < -Tiny
-                || onFirst > Length(first, firstSegment) + Tiny
-                || onSecond < -Tiny
-                || onSecond > Length(second, secondSegment) + Tiny
+                || !OnSegmentOrItsOpenEnd(first, firstSegment, onFirst)
+                || !OnSegmentOrItsOpenEnd(second, secondSegment, onSecond)
             )
             {
                 return false;
@@ -213,29 +221,52 @@ namespace GeometryHelper.Dxf.Viewer
                 // Each pair of elements broken across the pair of the other as deep in from its outside, as AutoCAD 2021's
                 // merged cross of four elements breaks the inner pair of each across the inner pair of the other; a middle
                 // element, or a pair the other has none as deep of, runs through.
-                BreakPairs(first, firstSegment, second, secondSegment);
-                BreakPairs(second, secondSegment, first, firstSegment);
+                BreakPairs(first, firstSegment, second, secondSegment, ref selfIntersecting);
+                BreakPairs(second, secondSegment, first, firstSegment, ref selfIntersecting);
                 return true;
             }
 
-            Break(first, firstSegment, all, second, secondSegment, secondLeast, secondMost);
+            Break(first, firstSegment, all, second, secondSegment, secondLeast, secondMost, ref selfIntersecting);
 
             if (joint != Joint.Closed)
             {
-                Break(second, secondSegment, secondOuter, first, firstSegment, firstLeast, firstMost);
+                Break(
+                    second,
+                    secondSegment,
+                    secondOuter,
+                    first,
+                    firstSegment,
+                    firstLeast,
+                    firstMost,
+                    ref selfIntersecting
+                );
             }
 
             return true;
         }
 
+        /// <summary>
+        /// Whether the meeting of the lines of two segments is on a segment of a multiline: from its start to its end, or past
+        /// the start of the first segment or the end of the last of an open multiline, which AutoCAD 2021 runs on.
+        /// </summary>
+        private static bool OnSegmentOrItsOpenEnd(DxfMlineBuilder mline, int segment, double along) =>
+            (along >= -Tiny || (!mline.IsClosed && segment == 0))
+            && (along <= Length(mline, segment) + Tiny || (!mline.IsClosed && segment == mline.SegmentCount - 1));
+
         /// <summary>Breaks each element of a multiline across the pair of elements of another as deep in from its outside, where it has one.</summary>
-        private static void BreakPairs(DxfMlineBuilder target, int segment, DxfMlineBuilder by, int bySegment)
+        private static void BreakPairs(
+            DxfMlineBuilder target,
+            int segment,
+            DxfMlineBuilder by,
+            int bySegment,
+            ref bool selfIntersecting
+        )
         {
             for (int e = 0; e < target.ElementCount; e++)
             {
                 if (Pair(by, Depth(target, e), out int least, out int most))
                 {
-                    Break(target, segment, new[] { e }, by, bySegment, least, most);
+                    Break(target, segment, new[] { e }, by, bySegment, least, most, ref selfIntersecting);
                 }
             }
         }
@@ -265,7 +296,8 @@ namespace GeometryHelper.Dxf.Viewer
             DxfMlineBuilder by,
             int bySegment,
             int least,
-            int most
+            int most,
+            ref bool selfIntersecting
         )
         {
             GeoVector3 way = target.SegmentDirection(segment);
@@ -276,14 +308,42 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint3 start = target.ElementPoint(segment, e);
 
                 if (
-                    !Meet(start, way, by.ElementPoint(bySegment, least), byWay, out double a, out double _)
-                    || !Meet(start, way, by.ElementPoint(bySegment, most), byWay, out double b, out double _)
+                    !Meet(start, way, by.ElementPoint(bySegment, least), byWay, out double a, out double onLeast)
+                    || !Meet(start, way, by.ElementPoint(bySegment, most), byWay, out double b, out double onMost)
                 )
                 {
                     continue;
                 }
 
-                target.SetRuns(segment, e, Without(target.RunsOf(segment, e), Math.Min(a, b), Math.Max(a, b)));
+                // Where the break lies before the start or past the end of this element, or of the elements it meets, and another
+                // segment goes on there, AutoCAD 2021 refuses it.
+                selfIntersecting |=
+                    !Within(target, segment, e, a)
+                    || !Within(target, segment, e, b)
+                    || !Within(by, bySegment, least, onLeast)
+                    || !Within(by, bySegment, most, onMost);
+
+                double lengthOfElement = start
+                    .GetVectorTo(target.ElementPoint(Next(target, segment), e))
+                    .DotProduct(way);
+                double from = Math.Min(a, b);
+                double to = Math.Max(a, b);
+                List<DxfMlineBuilder.Run> runs = Without(target.RunsOf(segment, e), from, to);
+
+                // A stretch that would start at the end of the element is nothing to draw, as AutoCAD writes it.
+                runs.RemoveAll(r => r.From >= lengthOfElement - Tiny);
+                target.SetRuns(segment, e, runs);
+
+                // A break that reaches the end of the last segment of an open multiline leaves nothing beyond it.
+                if (
+                    !target.IsClosed
+                    && segment == target.SegmentCount - 1
+                    && to >= lengthOfElement - Tiny
+                    && from < lengthOfElement - Tiny
+                )
+                {
+                    target.SetEndExtension(e, 0.0);
+                }
             }
         }
 

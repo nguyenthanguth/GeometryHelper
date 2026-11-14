@@ -220,7 +220,13 @@ namespace GeometryHelper.Dxf
         /// segment that keeps its way keeps the cuts of its elements where they were along it, and one that turns is drawn
         /// whole again. A multiline through (0, 0), (100, 0) and (100, 100) at scale 20, its second segment cut from 30 to 60,
         /// whose vertex (100, 0) goes to (100, -10), keeps that cut at 40 to 70 from the moved vertex, where it was; its first
-        /// segment, which turns, is whole. A stretch that starts at the vertex stays there.
+        /// segment, which turns, is whole. A stretch that starts at the vertex stays there, and none goes below nought.
+        /// A cut across a vertex leaves the next segment's list empty or starting after nought (a multiline of 100 by 100 cut
+        /// from (50, 0) to (100, 50) has (100, 0) hold 50 for its first element), which AutoCAD reads as going on from the
+        /// segment before. Where the segment before is made whole by the move and was not, the list gains a nought in front
+        /// (the vertex (100, 0) moved to (100, -10) holds 0 and 60), shifted by the way the vertex moved and not the element's
+        /// start, and the end of the multiline is left with nothing past its last vertex; a segment that turns keeps such a
+        /// list as it was.
         /// </summary>
         /// <param name="index">The index of the point, from nought.</param>
         /// <param name="point">Where it goes.</param>
@@ -270,10 +276,30 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            GeoPoint3[] oldPoints = _points.ToArray();
+
             foreach (KeyValuePair<int, GeoPoint3> move in moves)
             {
                 _points[move.Key] = move.Value;
             }
+
+            // Whether each element is drawn at the end of each segment: a stretch list of an odd length leaves it drawn.
+            var endsDrawn = new bool[places][];
+            var nowDrawn = new bool[places][];
+
+            for (int i = 0; i < places; i++)
+            {
+                endsDrawn[i] = new bool[count];
+
+                for (int e = 0; e < count; e++)
+                {
+                    endsDrawn[i][e] = kept[i][e].Count % 2 == 1;
+                }
+
+                nowDrawn[i] = (bool[])endsDrawn[i].Clone();
+            }
+
+            var readAgain = new bool[count];
 
             for (int i = 0; i < places; i++)
             {
@@ -295,36 +321,87 @@ namespace GeometryHelper.Dxf
                         + (way.Z - ways[i].Z) * (way.Z - ways[i].Z)
                 );
 
-                if (turned > Tolerance.Default.EqualVector)
-                {
-                    kept[i] = Whole(count);
-                    continue;
-                }
+                // Along its way, how far the start vertex of the segment has moved.
+                double moved =
+                    (_points[segment].X - oldPoints[segment].X) * way.X
+                    + (_points[segment].Y - oldPoints[segment].Y) * way.Y
+                    + (_points[segment].Z - oldPoints[segment].Z) * way.Z;
 
                 for (int e = 0; e < count; e++)
                 {
-                    GeoPoint3 now = ElementPoint(i, e);
-                    double shift =
-                        (now.X - starts[i][e].X) * way.X
-                        + (now.Y - starts[i][e].Y) * way.Y
-                        + (now.Z - starts[i][e].Z) * way.Z;
                     List<double> tail = kept[i][e];
 
-                    for (int k = 0; k < tail.Count; k++)
+                    // An open multiline's stretches follow AutoCAD 2021, which reads a list that is empty or starts after
+                    // nought as going on from the segment before (a cut across the vertex) and not as a stretch of its own. The
+                    // segment before drawn at its end where it was not puts a nought in front of the list (an empty list
+                    // becomes a nought), and the end of the multiline is left with nothing past its last vertex. A segment that
+                    // turns is drawn whole again but for those, which it keeps as they were; one that keeps its way shifts a
+                    // list that goes on by the way the vertex moved, not the element's start, and no stretch goes below nought.
+                    bool goesOn = !IsClosed && i < segments && (tail.Count == 0 || tail[0] > 0.0);
+
+                    if (turned > Tolerance.Default.EqualVector)
                     {
-                        // A stretch that starts at the element's start, or before it, stays where it starts.
-                        if (k == 0 && tail[0] <= 0.0)
+                        if (!goesOn)
                         {
-                            continue;
+                            kept[i][e] = new List<double> { 0.0 };
+                            tail = kept[i][e];
+                        }
+                    }
+                    else
+                    {
+                        GeoPoint3 now = ElementPoint(i, e);
+                        double shift = goesOn
+                            ? moved
+                            : (now.X - starts[i][e].X) * way.X
+                                + (now.Y - starts[i][e].Y) * way.Y
+                                + (now.Z - starts[i][e].Z) * way.Z;
+
+                        for (int k = 0; k < tail.Count; k++)
+                        {
+                            // A stretch that starts at the element's start, or before it, stays where it starts.
+                            if (k == 0 && tail[0] <= 0.0)
+                            {
+                                continue;
+                            }
+
+                            tail[k] = IsClosed ? tail[k] - shift : Math.Max(0.0, tail[k] - shift);
                         }
 
-                        tail[k] -= shift;
+                        if (IsClosed && i < segments)
+                        {
+                            SetRuns(i, e, RunsOf(i, e));
+                        }
                     }
 
-                    if (i < segments)
+                    if (goesOn && i > 0 && nowDrawn[i - 1][e] && !endsDrawn[i - 1][e])
                     {
-                        SetRuns(i, e, RunsOf(i, e));
+                        tail.Insert(0, 0.0);
+                        readAgain[e] = true;
                     }
+
+                    // A last start that now lies at or past the end of the element draws nothing, and AutoCAD leaves it out.
+                    if (!IsClosed && i < segments && tail.Count % 2 == 1 && tail[tail.Count - 1] > 0.0)
+                    {
+                        double lengthOfElement = ElementPoint(i, e)
+                            .GetVectorTo(ElementPoint((i + 1) % n, e))
+                            .DotProduct(way);
+
+                        if (tail[tail.Count - 1] >= lengthOfElement - Tolerance.Default.EqualPoint)
+                        {
+                            tail.RemoveAt(tail.Count - 1);
+                            readAgain[e] = true;
+                        }
+                    }
+
+                    nowDrawn[i][e] = tail.Count % 2 == 1;
+                }
+            }
+
+            for (int e = 0; e < count && !IsClosed; e++)
+            {
+                if (readAgain[e])
+                {
+                    kept[places - 1][e] = new List<double>();
                 }
             }
         }
