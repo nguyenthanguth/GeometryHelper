@@ -292,6 +292,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                         "DIMBREAK",
                         "MLEADER",
                         "MLEADERALIGN",
+                        "MLEADERCOLLECT",
                     },
                     annotate.Select(b => b.CommandParameter as string)
                 );

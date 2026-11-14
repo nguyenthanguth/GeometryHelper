@@ -272,6 +272,11 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!string.IsNullOrEmpty(Default))
                 {
+                    if (_defaultAfterColon)
+                    {
+                        return text.Append(": <").Append(Default).Append('>').ToString();
+                    }
+
                     text.Append(" <").Append(Default).Append('>');
                 }
 
@@ -306,6 +311,16 @@ namespace GeometryHelper.Dxf.Viewer
         internal CadPrompt WithoutColon()
         {
             _noColon = true;
+            return this;
+        }
+
+        // Whether the default follows the colon, ending the text with no colon of its own.
+        private bool _defaultAfterColon;
+
+        /// <summary>Puts the prompt's default after its colon, as AutoCAD writes MLEADERCOLLECT's "Specify wrap width or [Number]: &lt;0.000000&gt;".</summary>
+        internal CadPrompt WithDefaultAfterColon()
+        {
+            _defaultAfterColon = true;
             return this;
         }
 
@@ -609,6 +624,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal IReadOnlyList<Tuple<string, DisplayBox, bool>> Windows { get; set; } =
             Array.Empty<Tuple<string, DisplayBox, bool>>();
+
+        /// <summary>The handles of a selection in the order they were taken, which <see cref="Handles"/> (ordinal order) loses; empty for every other answer.</summary>
+        internal IReadOnlyList<string> PickOrder { get; set; } = Array.Empty<string>();
 
         /// <summary>Whether the one object of a selection was picked on the canvas, its <see cref="Point"/> the point it was picked at; false where it was given by its handle.</summary>
         internal bool IsPickedAt { get; set; }

@@ -512,6 +512,7 @@ namespace GeometryHelper.Dxf.Viewer
             foreach (string handle in step.Key)
             {
                 _gathered.Remove(handle);
+                _pickOrder.RemoveAll(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
                 _whole.Remove(handle);
                 _unwindowed.Remove(handle);
                 _clicks.RemoveAll(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase));
@@ -520,7 +521,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string handle in step.Value)
             {
-                _gathered.Add(handle);
+                if (_gathered.Add(handle))
+                {
+                    _pickOrder.Add(handle);
+                }
+
                 _whole.Add(handle);
                 _unwindowed.Add(handle);
             }

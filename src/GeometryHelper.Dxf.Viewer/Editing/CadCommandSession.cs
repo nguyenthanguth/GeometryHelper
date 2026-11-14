@@ -94,6 +94,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         private readonly List<string> _history = new List<string>();
         private CadPlotStamp _plotStamp = new CadPlotStamp();
+
+        // The handles gathered in the order they were taken, which the sorted set loses; MLEADERCOLLECT lays out by it.
+        private readonly List<string> _pickOrder = new List<string>();
         private readonly SortedSet<string> _gathered = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<KeyValuePair<string, GeoPoint2>> _clicks = new List<KeyValuePair<string, GeoPoint2>>();
         private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1079,6 +1082,7 @@ namespace GeometryHelper.Dxf.Viewer
         private void ClearGathering()
         {
             _gathered.Clear();
+            _pickOrder.Clear();
             _clicks.Clear();
             _whole.Clear();
             _windows.Clear();
@@ -1089,6 +1093,7 @@ namespace GeometryHelper.Dxf.Viewer
         private void EndSelection()
         {
             var handles = new List<string>(_gathered);
+            var pickOrder = new List<string>(_pickOrder);
             List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
             List<Tuple<string, DisplayBox, bool>> windows = _windows.FindAll(w =>
                 _gathered.Contains(w.Item1) && !_unwindowed.Contains(w.Item1)
@@ -1102,6 +1107,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     Clicks = clicks,
                     Windows = windows,
+                    PickOrder = pickOrder,
                 },
                 echo,
                 null
@@ -1123,6 +1129,15 @@ namespace GeometryHelper.Dxf.Viewer
                 if (remove ? _gathered.Remove(handle) : _gathered.Add(handle))
                 {
                     changed.Add(handle);
+
+                    if (remove)
+                    {
+                        _pickOrder.RemoveAll(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase));
+                    }
+                    else
+                    {
+                        _pickOrder.Add(handle);
+                    }
                 }
                 else if (!remove)
                 {

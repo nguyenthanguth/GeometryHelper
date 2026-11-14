@@ -310,7 +310,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             // 1, 2, 3, 5, 4b, 4a and 1b, MLINE, MLEDIT and MLSTYLE, IMAGEADJUST, -IMAGEADJUST, ATTEXT and -ATTEXT, INSERTOBJ, and
             // -OBJECTSCALE, AIOBJECTSCALEADD and AIOBJECTSCALEREMOVE, OBJECTSCALE, REFEDIT, -REFEDIT, REFSET and REFCLOSE, and
             // HATCHSETORIGIN, TABLEEXPORT, VPMAX, VPMIN and REVCLOUDPROPERTIES, CENTERMARK and CENTERLINE, and WMFIN.
-            Assert.Equal(263, registry.Commands.Count);
+            Assert.Equal(264, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

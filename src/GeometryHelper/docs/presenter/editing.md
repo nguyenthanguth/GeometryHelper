@@ -194,7 +194,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 263 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 264 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -209,7 +209,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple; a 3D polyline's Spline curve too; a spline made a polyline within a precision), REVCLOUDPROPERTIES (Arc length), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN, CHANGE (Properties: Color, Elev, LAyer, LType, ltScale, LWeight, Thickness, TRansparency, Material, Annotative) |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select; a block picked with no attribute definitions refused and another asked for, an INSERT of a dynamic block naming the dynamic block, not its anonymous *U block; a dynamic block synced bringing in line the INSERTs of its *U blocks too, against its own definitions, each keeping its dynamic properties and the places they give its attributes; an attribute made anew for a tag out of order keeps its extended data and extension dictionary, as one synced in place does), BATTMAN, ATTEXT, -ATTEXT (Cdf, Sdf, Dxf, Objects), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK, REFEDIT, -REFEDIT (Ok, Next; All, Nested), REFSET (Add, Remove), REFCLOSE (Save, Discard), and the variables REFEDITNAME and XFADECTL |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
-| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
+| annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), MLEADERCOLLECT (Vertical, Horizontal, Wrap), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER, CENTERMARK, CENTERLINE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
@@ -2091,7 +2091,27 @@ arrowhead past the middle of its box the leader is turned to meet it on the othe
 they are, as AutoCAD 2021 does: TWO from an arrowhead at (30, 0) aligned to a box starting at 10.36 is held at its top right
 at 10.99 (its ink from 10.45), its dogleg runs against x ending 0.09 past the words, its landing a dogleg further; one that
 lands to the left of an arrowhead before the middle of its box is held at its top left. Only a multileader of one leader line
-is turned. MLEADERCOLLECT, which joins block multileaders into one, is not built.
+is turned.
+
+MLEADERCOLLECT (MLC) takes "Select multileaders:" (multileaders of words, other objects and multileaders on a locked layer are
+not collected: `2 were filtered out`, `1 was on a locked layer.`; with none left it asks again) and then "Specify collected
+multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:", the point the top left of the group, the option the last
+chosen kept for the next run. The multileaders stay what they are, each block moved by its extents (attribute definitions not
+counted) so that the blocks stand in the order they were selected, left to right under Horizontal, top to bottom under Vertical
+with their lefts on the point, their boxes touching and, in a row, their tops level: three circles of radius 5 collected at
+(150, 150) have their middles at (155, 145), (165, 145) and (175, 145), a box 20 by 10, a square 8 by 8 and a circle of radius
+5 with their tops at 150 and their lefts at 150, 170 and 178. Wrap asks "Specify wrap width or [Number]: <0.000000>" and breaks
+the row where the next block would not stay short of the width (two blocks 10 wide stand in a row at a width of 20.0001, one to
+a row at 20, and a width of nought or less puts one to a row), or under Number "Specify number per row <1>:" (a whole number above
+nought) after that many; the next row's tops are as far down as the tallest block of the row above is high. Only one leader is
+kept, and every other taken away: the leader lines of the last multileader selected, each leader of it landed as AutoCAD lands
+a leader on a block, the dogleg's length from the first block's left edge, or from the right edge of the last block of the
+first row (under Vertical, of the last block, whichever side), as the arrowhead of the leader is nearer that landing or the other
+(the arrowhead of the last of three circles at x = 163 keeps the leader on the left at 142, at 167 on the right at 188 where the
+row ends at 180). A last multileader with a leader on each side keeps each at its end; the lines of one leader stay one leader.
+Typed in AutoCAD's console the point is read shifted by the first multileader's arrowhead; here it is the top left as typed. A
+block multileader of a different MLEADERSCALE stands by its scaled extents and lands by its scaled dogleg. The whole run is
+one undo step.
 
 ATTIPEDIT (ATI) asks "Select an attribute:" and edits the one clicked (that of the block drawn nearest the click, as -ATTEDIT
 takes it; the first of a block given by its handle) in place, in the box over it on the canvas, writing its value as one undo

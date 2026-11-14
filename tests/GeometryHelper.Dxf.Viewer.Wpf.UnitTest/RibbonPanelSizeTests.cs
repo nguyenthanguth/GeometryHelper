@@ -333,7 +333,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 {
                     ["Draw"] = new[] { "HATCH" },
                     ["Text"] = new[] { "SPELL", "TEXTALIGN" },
-                    ["Leaders"] = new[] { "MLEADERALIGN" },
+                    ["Leaders"] = new[] { "MLEADERALIGN", "MLEADERCOLLECT" },
                     ["Model Viewports"] = new[] { "VPORTS" },
                 };
 

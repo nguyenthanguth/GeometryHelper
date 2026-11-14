@@ -243,10 +243,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         held by their box's left middle, block extents, multi-line words; TEXTALIGN Set spacing and Distribute along a
         line (advance = min of across and up); DIMBREAK cut by turned words' chords and by block references' shapes
         (hatches are no cutters)
-  - [ ] (mlcollect, running: MLEADERCOLLECT) R3.1 follow-ups 2: MLEADERCOLLECT (Select multileaders / Vertical/Horizontal/Wrap; blocks side by side, tops
-        level, one leader kept; needs a composite anonymous block in the core); multileaders with several leader lines
-        turned; MLD's left landing by Below(right attachment); TEXTALIGNMODE's factory default (the console profile holds
-        8); breaks kept by object for ellipses, texts and blocks (S)
+  - [x] MLEADERCOLLECT (mlcollect): block multileaders stay separate, their blocks laid Horizontal/Vertical/Wrap from the
+        point in pick order, the last one's leaders kept on the first or last block as AutoCAD; Collect on the Leaders
+        panel (MLC); AutoCAD audits and reads our result
+  - [ ] R3.1 follow-ups 2: the Collect button into the Design artifact (added in XAML without a design pass); blocks
+        joined at the base point; several leaders on one side; a middle multileader's leaders; annotative contexts;
+        per-line overrides lost on collect; multileaders with several leader lines turned by MLEADERALIGN; MLD's left
+        landing by Below(right attachment); TEXTALIGNMODE's factory default (the console profile holds 8); breaks kept by
+        object for ellipses, texts and blocks; "filtered out" period in MLEADERALIGN (S)
   - [x] R3.2 (pgp-r32): OPEN typed (FILEDIA 0), DRAWINGRECOVERY over autosave copies, IMAGEADJUST/-IMAGEADJUST (typed),
         ATTEXT/-ATTEXT (CDF, SDF, DXX as AutoCAD writes them), CTABLESTYLE, QVDRAWING/QVLAYOUT and their CLOSE
   - [x] OLE frames drawn (fu-ole): the picture of a bmp/png OLE frame on the canvas and in plots (Monochrome by luminance),
@@ -562,7 +566,7 @@ the ones wanted.
   - [x] DWG follow-ups 9 (dwg15): angles converted as AutoCAD (d / (180/pi); ARCs one bit off 236 -> 63); network and
         variable actions at version 2 from R2013; R2000 round-trip true colours and book names taken into the colours on
         R2004+ (layer XRECORD dropped as AutoCAD); 167 DWGs AUDIT unchanged (160 at 0), none refused
-  - [ ] DWG follow-ups 10: 63 ARCs and 40 TEXT/ATTDEF one bit off (28 of 300 whole degrees off AutoCAD's own quotient);
+  - [ ] (dwg16, running: TEXT/ATTDEF bit, RTMaterial, AC1027, dynamic data below R2007) DWG follow-ups 10: 63 ARCs and 40 TEXT/ATTDEF one bit off (28 of 300 whole degrees off AutoCAD's own quotient);
         RTMaterial xdata from R2000/R2004 (AutoCAD drops it); the stretch and group action hash order (table size not in
         the file; parked); whether the AC1027 writer is worth fixing (ErrorStatus 53); dynamic data below R2007; sweep,
         revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
