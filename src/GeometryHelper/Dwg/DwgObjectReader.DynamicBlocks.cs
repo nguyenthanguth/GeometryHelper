@@ -661,10 +661,10 @@ namespace GeometryHelper.Dwg
             _object.Add(93, columns);
             _object.Add(301, new byte[0]);
 
-            // The values are texts of the string stream, each of at least one bit.
+            // The values are texts, each of at least one bit: of the string stream from R2007, of the data before.
             long cells = (long)rows * columns;
 
-            if (cells > (_strings == null ? 0 : _strings.Remaining))
+            if (cells > (R2007Plus ? (_strings == null ? 0 : _strings.Remaining) : _data.Remaining))
             {
                 throw new FormatException("The object names more values than it has room for.");
             }

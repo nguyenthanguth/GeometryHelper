@@ -574,11 +574,15 @@ the ones wanted.
   - [x] DWG follow-ups 9 (dwg15): angles converted as AutoCAD (d / (180/pi); ARCs one bit off 236 -> 63); network and
         variable actions at version 2 from R2013; R2000 round-trip true colours and book names taken into the colours on
         R2004+ (layer XRECORD dropped as AutoCAD); 167 DWGs AUDIT unchanged (160 at 0), none refused
-  - [ ] (dwg16, running: TEXT/ATTDEF bit, RTMaterial, AC1027, dynamic data below R2007) DWG follow-ups 10: 63 ARCs and 40 TEXT/ATTDEF one bit off (28 of 300 whole degrees off AutoCAD's own quotient);
-        RTMaterial xdata from R2000/R2004 (AutoCAD drops it); the stretch and group action hash order (table size not in
-        the file; parked); whether the AC1027 writer is worth fixing (ErrorStatus 53); dynamic data below R2007; sweep,
-        revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom
-        parity; TABLEGEOMETRY head bit; a rendered thumbnail (M)
+  - [x] DWG follow-ups 10 (dwg16): TEXT/ATTDEF alignment point (0,0) left out as AutoCAD (40 of 40 equal); RTMaterial
+        xdata taken into the entity's material; R2000/R2004 lookup actions read (26 AutoCAD saves: all dynamic objects
+        kept); R2013 (AC1027) files open in AutoCAD (36 of 36, AUDIT as the originals); the 63 ARC bits parked (AutoCAD
+        keeps radians DWG to DWG; ours go through degrees)
+  - [ ] DWG follow-ups 11: R2013 AuxHeader numbers (33/174 vs 31/125) and the detail/section view styles left out of
+        R2013; AutoCAD's R2018 conversion of old files adds VPORT/LAYER/VISUALSTYLE objects (43 and 41 differ in
+        matvis/xclip); RTMaterial on layers untested; the stretch and group action hash order; sweep, revolve and
+        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom parity;
+        TABLEGEOMETRY head bit; a rendered thumbnail (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
