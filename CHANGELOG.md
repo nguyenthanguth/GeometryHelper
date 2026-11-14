@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** MLEDIT's tees (CT, OT, MT) work on the pair of segments AutoCAD 2021 takes, as the crosses do, and not on the ones the picks
+lie on: the stem is run on past the free end of its first or last segment, the second is met on one of its segments (the end of its
+last is not on it), the pair nearest the picks is taken, and the end of the stem kept is the side of the meeting its pick is on. The
+stem (30, -60)-(30, -100)-(80, -100) picked on its second segment at (55, -100), onto (0, 0)-(100, 0), has its start moved to
+(30, 0) with its elements starting 20 along. Where no pair can be made, the nearest pair of all says whether it is `Invalid operation
+on a self intersecting multiline.` (the stem's start caps put off, nothing else changed: the stem (130, -100)-(130, -60)-(180, -60)
+onto the same line) or `These multilines do not intersect.` (the stem (130, -60)-(130, -100)-(180, -100)). 80 stems of an L against a
+straight multiline at 3 options, a random run of 600 tees (184 differences from AutoCAD before, 79 now) and 503 rows of the new
+tests agree; the tees onto a second of three segments are right in about two cases of three (a meeting within the width of a corner
+and the stem's other segments are left, parked). A break across the second that reaches the end of its last segment leaves nothing
+beyond it, as a cross's does.
+**CHANGED.** MLEDIT's crosses break each element on the segment of its own line the crossing is nearest the picks on, one element after
+another, as AutoCAD 2021 does, so that within the width of a multiline of a corner the elements of one crossing are broken on different
+segments, and a break that runs past the end of an element over a corner is written as AutoCAD writes it: from where it starts to the
+end of the segment, the next segment whole and the rest of the break as the start of the one after it, where each of the two lines
+of the other multiline meets the element's path once. The staircase (0, 0)-(100, 0)-(100, 100)-(200, 100) crossed by the vertical
+(82, -60)-(82, 60) holds `{0, 82}` and `{0, 82, 102}` on its first segment, nothing on its second and `{2}` on its third for the
+first element; a line that meets the path twice or not at all (the U, the L at x = 85) is still `Invalid operation on a self
+intersecting multiline.`, and the elements are now broken one by one up to the one it is said of, the ones before it left broken as
+AutoCAD leaves them. The 25 breaks within 20 of a corner of a staircase that were left out are equal, with 1 674 crosses of a U, a Z and
+two staircases (176 differences fewer, none more) and 615 of the staircase (114 fewer); a cross that runs the second multiline on
+past its end (OC, MC), and a break that ends exactly on a vertex, are left as they were.
+**CHANGED.** MLEDIT with the same multiline picked twice says nothing for a cross or a tee and asks for the first again, as AutoCAD 2021
+does (the corner joint still says `These multilines do not intersect.`), and a corner joint picked on the very point the lines meet keeps
+the start of that multiline. CS, CA and WA write a cut that runs to the end of an element without the stretch that would start there
+(a cut from 35 of an element 50 long is `{0, 35}`, not `{0, 35, 50}`).
+**CHANGED.** A grip or STRETCH that moves a vertex of a closed multiline cut across a vertex puts no nought in front of the list of the first
+segment or the last, as AutoCAD 2021 does (the triangle (0, 0)-(100, 0)-(50, 80) cut from (75, 40) to (25, 40) across (50, 80), whose
+vertex (100, 0) goes to (90, 0), still holds `{47.1699}` at (50, 80)): the 20 moves of the triangle and 6 of the six-sided staircase that
+were left out are equal, 56 of the 687 probed moves fixed and none changed for the worse. Left out: 4 moves of the staircase's concave
+corner and 30 cuts AutoCAD writes inside out (parked).
 **NEW.** The front and back planes of XCLIP Clipdepth cut what a clipped block shows, as AutoCAD 2021 draws it (PNGOUT of a block
 of five lines at several heights, in plan and in an isometric view): the block is shown from the back plane to the front plane,
 planes included, in the units of the clip system whatever the reference's scale, and from the plane of the boundary, which goes with

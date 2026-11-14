@@ -143,9 +143,12 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 4 (mline5): CC/OC/MC/CJ scan every segment pair and cross the usable one nearest the picks
         (refusals by the end-segment rule; explains the CJ refusals and the "L second" split); MoveVertexAt on closed cut
         MLINEs; AutoCAD's inverted break records not copied (its own Explode draws them wrong)
-  - [ ] (mline6, running) MLINE follow-ups 5: tees CT/OT/MT with the pair scan; 25 staircase breaks within 20 of a corner; the triangle's
-        no-nought moves (20) and the six-sided staircase's (10); four closed-square refusals; two joinable corners
-        half-edited by AutoCAD; CJ picks on the meeting point; closed-trim end-stop ties (harness lost, re-probe) (S)
+  - [x] MLINE follow-ups 5 (mline6): tees by AutoCAD's pair scan (600 held-out tees 184 -> 79 differing); crosses
+        broken per element near corners (1 674 crosses 662 -> 486, 25 staircase corner breaks equal); the same MLINE
+        picked twice; the CJ tie; closed MoveVertexAt with no nought on the end segments; harness .claude/gk/mline6-harness
+  - [ ] MLINE follow-ups 6: tees onto three-segment seconds (78 of 321); closed-square crosses past a corner (120 of 369);
+        CJ with two joinable corners (47 of 500); OC/MC stray pieces (not copied); six-sided staircase concave moves (4);
+        closed-trim end-stop ties (no tie data yet) (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
         set, Gap tolerance; Single color gradients (tint as AutoCAD, 45 pairs probed); plain HATCH behind its boundary
         (HPDRAWORDER 3); BOUNDARY refusing ellipse or spline areas; fixed an empty polyline kept by Retain boundary
@@ -727,7 +730,7 @@ the ones wanted.
 - [x] Speed follow-ups 6 (speed7): LINE/ARC/CIRCLE/LWPOLYLINE shapes read straight from their record bytes,
       bit-identical (200 000-record fuzz per type, 121 792 AutoCAD corpus records, 27 million numbers), with a 128-bit
       number path; shapes of 78 000 in 100k entities 170 -> 86 ms (net8), cold display 10-15 % faster; shape cache kept
-- [ ] Speed follow-ups 7: TEXT/MTEXT and block entities through the fast read; DxfFastNumber.Wide inside
+- [ ] (speed8, running: fast numbers everywhere, TEXT/MTEXT and block entities) Speed follow-ups 7: TEXT/MTEXT and block entities through the fast read; DxfFastNumber.Wide inside
       Numbers.TryRead for every record read; TryChain garbage; dropping the LINE/ARC/CIRCLE shape cache (55 MB at 1M,
       needs the same-object contract relaxed); exact power-of-ten ties; the 48-byte "no contexts" tuple; DxfPolyline's 8
       cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped

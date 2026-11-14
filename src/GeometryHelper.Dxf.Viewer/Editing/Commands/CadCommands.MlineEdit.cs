@@ -144,10 +144,15 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (joins)
                 {
-                    if (
-                        string.Equals(first.Handle, second.Handle, StringComparison.OrdinalIgnoreCase)
-                        || !MlineJoin(c, option, first, firstAt, second, secondAt, steps)
-                    )
+                    if (string.Equals(first.Handle, second.Handle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // The same multiline twice: AutoCAD 2021 says nothing and asks for the first again, but for a corner joint.
+                        if (option == "CJ")
+                        {
+                            c.Write("These multilines do not intersect.");
+                        }
+                    }
+                    else if (!MlineJoin(c, option, first, firstAt, second, secondAt, steps))
                     {
                         c.Write("These multilines do not intersect.");
                     }
@@ -233,16 +238,45 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    CadMlineEdit.Cross(a, pairA, b, pairB, joint, out selfIntersecting);
+                    CadMlineEdit.Cross(a, pairA, pickFirst, b, pairB, pickSecond, joint, out selfIntersecting);
                     ok = true;
                     changesSecond = joint != CadMlineEdit.Joint.Closed;
                 }
             }
             else
             {
-                CadMlineEdit.Nearest(a, pickFirst, out int segmentA, out int _);
-                CadMlineEdit.Nearest(b, pickSecond, out int segmentB, out int _);
-                ok = CadMlineEdit.Tee(a, segmentA, pickFirst, b, segmentB, joint, out selfIntersecting);
+                // A tee works on the pair of segments nearest the picks, as the crosses do, and not on the ones picked.
+                CadMlineEdit.PairKind pair = CadMlineEdit.FindTeePair(
+                    a,
+                    pickFirst,
+                    b,
+                    pickSecond,
+                    out int pairA,
+                    out int pairB
+                );
+
+                if (pair == CadMlineEdit.PairKind.NoMeeting)
+                {
+                    return false;
+                }
+
+                if (pair == CadMlineEdit.PairKind.Refused)
+                {
+                    // AutoCAD 2021 says the stem would run through itself and puts its start caps off, changing nothing else.
+                    a.SuppressStartCaps = true;
+                    c.Write("Invalid operation on a self intersecting multiline.");
+                    MlineWrite(
+                        c,
+                        new List<KeyValuePair<string, DxfMlineBuilder>>
+                        {
+                            new KeyValuePair<string, DxfMlineBuilder>(first.Handle, a),
+                        }
+                    );
+                    steps.Add(before.GetRange(0, 1));
+                    return true;
+                }
+
+                ok = CadMlineEdit.Tee(a, pairA, pickFirst, b, pairB, joint, out selfIntersecting);
                 changesSecond &= !selfIntersecting;
             }
 
@@ -253,7 +287,28 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (selfIntersecting && option != "CT" && option != "OT" && option != "MT")
             {
-                // AutoCAD 2021 refuses a cross whose break runs past a corner and changes neither multiline.
+                // AutoCAD 2021 breaks the elements one by one and stops with this at the one whose break runs past a corner,
+                // the elements before it left broken.
+                var broken = new List<KeyValuePair<string, DxfMlineBuilder>>();
+                var wasBroken = new List<KeyValuePair<string, DxfMlineBuilder>>();
+
+                for (int i = 0; i < 2; i++)
+                {
+                    DxfMlineBuilder now = i == 0 ? a : b;
+
+                    if (!SameRecord(now, before[i].Value))
+                    {
+                        broken.Add(new KeyValuePair<string, DxfMlineBuilder>(before[i].Key, now));
+                        wasBroken.Add(before[i]);
+                    }
+                }
+
+                if (broken.Count > 0)
+                {
+                    MlineWrite(c, broken);
+                    steps.Add(wasBroken);
+                }
+
                 c.Write("Invalid operation on a self intersecting multiline.");
                 return true;
             }
@@ -275,6 +330,28 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // AutoCAD 2021 stops the elements that meet in front of a corner and says so, leaving the other multiline whole.
                 c.Write("Invalid operation on a self intersecting multiline.");
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether two builders write the same record.</summary>
+        private static bool SameRecord(DxfMlineBuilder one, DxfMlineBuilder other)
+        {
+            IReadOnlyList<DxfTypedValue> x = one.Build().Groups;
+            IReadOnlyList<DxfTypedValue> y = other.Build().Groups;
+
+            if (x.Count != y.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < x.Count; i++)
+            {
+                if (x[i].TypeCode != y[i].TypeCode || x[i].Value != y[i].Value)
+                {
+                    return false;
+                }
             }
 
             return true;
