@@ -131,7 +131,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 2 (mline3): OT, MT and CT on a self-intersecting tee as AutoCAD (message, partial edit); trims
         across a corner cut each element at its own hit (open MLINEs); WA deletes cut entries between the picks as
         AutoCAD (inside-out partial welds matched); closed MLINE grips; start trims keep the last vertex tail
-  - [ ] MLINE follow-ups 3: MoveVertexAt on cut MLINEs (9 probes M0-M3, N1-N5 in agent notes: raw turned tails, a 0 put
+  - [ ] (mline4, running) MLINE follow-ups 3: MoveVertexAt on cut MLINEs (9 probes M0-M3, N1-N5 in agent notes: raw turned tails, a 0 put
         in front after a moved vertex); cross-segment trims on a closed MLINE; CC, OC, MC near corners and CJ near the
         open end (self-intersecting refusals?)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -164,7 +164,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
-  - [ ] R2.2 follow-ups 2: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
+  - [ ] (hatch4, running: all but the dialogs) R2.2 follow-ups 2: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
         DxfHatch.ShadeTintValue recomputing colour 2; Close with 2 points (AutoCAD makes a degenerate hatch); arc-ended
         loose ends along their tangent; gap bridging slower with many loose lines (8000: 144 -> 487 ms) (S)
   - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
@@ -172,9 +172,11 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
   - [x] R2.3 follow-ups (hatch3): core ElevateDegree up to 25 (AutoCAD's control points to 1E-7 at 11, 12, 15, 25); a
         DxfJoinTests case for the line knots
-  - [ ] (spl11, running: degree past 10) R2.3 follow-ups 2: toLerance refitting (moved inner points found, their direction and cap not; data in
-        .claude/gk/hatch3-notes); drawing splines past degree 10 (NurbsCurve.Check / Bernstein.Multiply index fault) so the
-        presenter can elevate past order 11 (S)
+  - [x] Splines past degree 10 (spl11): Bernstein's binomial table sized for degree 25 (rational products reach degree
+        122), GeoSpline2/3 and the DXF reader take degree 25, SPLINEDIT Elevate order to 26; exact checks against raised
+        cubics (points 4E-13, length 1.1E-13)
+  - [ ] R2.3 follow-ups 2: toLerance refitting (moved inner points found, their direction and cap not; data in
+        .claude/gk/hatch3-notes); DxfSpline.Rebuild and FitData still capped at degree 10 (check AutoCAD's limit) (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
   - [x] Dialogs 7 (dialogs7, design v143-v144): Annotation Object Scale (OBJECTSCALE) with Add Scales to Object; the Output
@@ -345,7 +347,7 @@ the ones wanted.
 - [x] Dimension follow-ups 12 (dims12): the angle leader band refitted as tables by the cosine (a7 101 -> 71, a5 49 -> 33,
       a4 13 -> 4, aq 194 -> 137); DIMTMOVE 2 radius arrowheads put out as AutoCAD (d3 and td3 to 0); AutoCAD pictures of
       set a (6-degree cases agree); harness dims-harness16
-- [ ] Dimension follow-ups 13: diameters put out (d2 156 of 924: lower bound = box reach along the line, no upper rule
+- [ ] (dims13, running) Dimension follow-ups 13: diameters put out (d2 156 of 924: lower bound = box reach along the line, no upper rule
       found); the band is a fit, not AutoCAD's rule (a7 71, taq 126 left); a2's one SHX probe (DIMASZ 4, DIMGAP 1.5, 30
       degrees); t6's D4-D12 windows; ties at two arrowheads; points exactly on an aligned extension line; lines at exactly
       15 degrees (S)

@@ -28,7 +28,12 @@ namespace GeometryHelper.Internal.Nurbs
         /// </summary>
         private const int MostIntervals = 4096;
 
-        private static readonly double[][] Pascal = BuildPascal(64);
+        /// <summary>
+        /// The binomial coefficients up to the degree of the largest product a spline asks for: the speed of a rational spline
+        /// of degree p, squared and then differentiated, is 4 p - 3, and it is multiplied by the weights of degree p, so 5 p - 3,
+        /// which is 122 at the most degree of 25. Rows past 56 hold a rounded sum, as the note on <see cref="Choose"/> says.
+        /// </summary>
+        private static readonly double[][] Pascal = BuildPascal(5 * NurbsCurve.MostDegree);
 
         [ThreadStatic]
         private static double[] _work;

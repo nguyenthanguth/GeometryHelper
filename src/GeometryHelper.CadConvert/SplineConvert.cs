@@ -36,7 +36,7 @@ namespace GeometryHelper.CadConvert
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="spline"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the spline is periodic, or its numbers do not make a clamped spline GeometryHelper takes.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 10 or a weight is not above nought.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 25 or a weight is not above nought.</exception>
         public static GeoSpline3 ToGeoSpline3(this Spline spline)
         {
             if (spline == null)
@@ -79,7 +79,7 @@ namespace GeometryHelper.CadConvert
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="spline"/> is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the spline is periodic, or its numbers do not make a clamped spline GeometryHelper takes.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 10 or a weight is not above nought.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when its degree is above 25 or a weight is not above nought.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline stands square to the XY plane, where in plan every control point lands on one point.</exception>
         public static GeoSpline2 ToGeoSpline2(this Spline spline) =>
             spline.ToGeoSpline3().ProjectToSpline2(GeoCoordinateSystem3.Global);

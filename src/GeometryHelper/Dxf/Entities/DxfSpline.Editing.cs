@@ -217,8 +217,8 @@ namespace GeometryHelper.Dxf
         /// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1. Raised to 25, the most (AutoCAD's order of 26), it has 26 points and is the same curve:
         /// the cubic from (0, 0) by (10, 20) and (30, 20) to (40, 0), raised to 12, has the 13 points that AutoCAD 2021 gave,
         /// the second (2.5, 5) and the third (5.4545, 9.0909), as it has at 11, 15 and 25. The spline's own measures
-        /// (<see cref="GetPointAtParameter"/>, <see cref="GetDistanceAtParameter"/>) work at any of these degrees, but
-        /// <see cref="ToGeoSpline3"/> and the reader take a degree of 10 at most, so a spline raised past 10 gives no shape.
+        /// (<see cref="GetPointAtParameter"/>, <see cref="GetDistanceAtParameter"/>) work at any of these degrees, and so
+        /// does <see cref="ToGeoSpline3"/>, whose spline of degree 25 has the length and the points of the cubic it was raised from.
         /// </summary>
         /// <param name="newDegree">The degree, above the spline's, at most 25; the spline's own changes nothing.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is below the spline's or above 25.</exception>

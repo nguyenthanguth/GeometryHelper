@@ -152,12 +152,12 @@ namespace GeometryHelper.UnitTest.Plane
         #region What it refuses
 
         [Fact]
-        public void ADegreeOutsideOneToTen_IsRefused()
+        public void ADegreeOutsideOneToTwentyFive_IsRefused()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(0, Arch, BezierKnots));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(11, Arch, BezierKnots));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline2(26, Arch, BezierKnots));
             Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.FromControlPoints(0, Arch));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.FromControlPoints(11, Arch));
+            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.FromControlPoints(26, Arch));
         }
 
         [Fact]
@@ -322,7 +322,7 @@ namespace GeometryHelper.UnitTest.Plane
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetPointAtKnot(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetPointAtKnot(double.PositiveInfinity));
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetDerivativeAtKnot(0.5, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetDerivativeAtKnot(0.5, 11));
+            Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetDerivativeAtKnot(0.5, 26));
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetTangentAtKnot(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetCurvatureAtKnot(double.NaN));
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.GetParameterAtDistance(double.NaN));
@@ -660,7 +660,7 @@ namespace GeometryHelper.UnitTest.Plane
             );
             Assert.Throws<ArgumentNullException>(() => GeoSpline2.Interpolate(null, 3, Tol));
             Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, 0, Tol));
-            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, 11, Tol));
+            Assert.Throws<ArgumentOutOfRangeException>(() => GeoSpline2.Interpolate(fit, 26, Tol));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 GeoSpline2.Interpolate(fit, new GeoVector2(1, 0), new GeoVector2(1, 0), 1, Tol)
             );
