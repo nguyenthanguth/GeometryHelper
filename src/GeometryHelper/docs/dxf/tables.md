@@ -122,10 +122,10 @@ a hidden line, where AutoCAD writes 1 and reads it back as drawn.
 
 Saving costs in proportion to what is written. Five tables of 100 rows by 20 columns (10 000 cells, 11.3 MB saved) take 127 ms
 to save as R2018 on .NET Framework 4.8, 295 ms as R2013 and 330 ms as R2000, with 189 MB allocated for the first; 1 000 cells take 11,
-27 and 35 ms, and 100 cells 2, 4 and 4. A drawing of many tables pays for each in its objects: 400 tables of 4 rows and 3 columns among
-5 000 objects take 244 ms as R2018, 0.6 ms a table. The completed copy of a drawing is kept, weakly, until the drawing changes, so that
-saving it again as it stands, in another version for one, makes the content once: a second save of those 10 000 cells as R2018 takes
-6 ms, until a garbage collection drops the copy.
+27 and 35 ms, and 100 cells 2, 4 and 4. A drawing of many tables pays for each table, not for the objects around it: 400 tables of 3 rows
+and 3 columns take 252 ms as R2018 among 4 600 other objects and 245 ms among 100 (0.6 ms a table). The completed copy of a drawing
+is kept, weakly, until the drawing changes, so that saving it again as it stands, in another version for one, makes the content once:
+a second save of those 10 000 cells as R2018 takes 6 ms, until a garbage collection drops the copy.
 
 ## Values and their kinds
 

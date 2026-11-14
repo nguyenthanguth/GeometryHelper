@@ -124,7 +124,39 @@ namespace GeometryHelper.Dxf
         /// <returns>The text, in the line ends and the padding of the codes of the text given.</returns>
         /// <exception cref="NotSupportedException">Thrown when the file is older than R2000, or names no version.</exception>
         /// <exception cref="FormatException">Thrown when the text is not groups of a code and a value.</exception>
-        internal static string Convert(string text, int target, IList<string> said, string fontSearchPath = null)
+        internal static string Convert(string text, int target, IList<string> said, string fontSearchPath = null) =>
+            Prepare(text, target, said, fontSearchPath).Write();
+
+        /// <summary>
+        /// Gives a DXF file in another version as the bytes <see cref="DxfFile.Parse(string)"/> would keep of the text
+        /// <see cref="Convert"/> gives, without that text: UTF-8, written straight from the groups, where the text is all ASCII
+        /// or the version is R2007 or later, which is every text but one with letters beyond ASCII for a version before R2007,
+        /// whose letters the code page of its header encodes (<see cref="DxfReader.TextDecoding.OfText"/>).
+        /// </summary>
+        /// <param name="text">The text of the file, of R2000 to R2018.</param>
+        /// <param name="target">The version, as 1015 for AC1015.</param>
+        /// <param name="said">Where what was left out or replaced is told, a sentence each; null for nowhere.</param>
+        /// <param name="fontSearchPath">The folders of the fonts an MTEXT broken into texts for R12 is laid out in; null for none.</param>
+        /// <param name="length">How many bytes of the array given are the file's.</param>
+        /// <param name="kept">The text where the bytes are not what is kept of it, as <see cref="Convert"/> gives it; null otherwise.</param>
+        /// <param name="whole">Whether the bytes are the file as it is saved: opening them as a file would change none, as it would one with
+        /// a face of a polyface mesh whose marker AcDbVertex stands before its AcDbFaceRecord, and as it would refuse one with no
+        /// ENTITIES section; false for R12, whose text is broken and read again first.</param>
+        /// <returns>The bytes, in an array that may be longer than the file; null where the text is given in <paramref name="kept"/>.</returns>
+        /// <exception cref="NotSupportedException">Thrown when the file is older than R2000, or names no version.</exception>
+        /// <exception cref="FormatException">Thrown when the text is not groups of a code and a value.</exception>
+        internal static byte[] ConvertToBytes(
+            string text,
+            int target,
+            IList<string> said,
+            string fontSearchPath,
+            out int length,
+            out string kept,
+            out bool whole
+        ) => Prepare(text, target, said, fontSearchPath).WriteBytes(out length, out kept, out whole);
+
+        /// <summary>The converter after it has read the text and given it the form of the version, ready to be written.</summary>
+        private static DxfVersionConverter Prepare(string text, int target, IList<string> said, string fontSearchPath)
         {
             var converter = new DxfVersionConverter(target);
 
@@ -141,7 +173,7 @@ namespace GeometryHelper.Dxf
                 converter.Say(said);
             }
 
-            return converter.Write();
+            return converter;
         }
 
         #region Reading and writing
@@ -400,6 +432,131 @@ namespace GeometryHelper.Dxf
             Append(text, 0, "EOF");
             return text.ToString();
         }
+
+        // The file as bytes, written by WriteBytes: its buffer, how much of it is written, and whether a letter beyond ASCII is in it.
+        private byte[] _out;
+        private int _count;
+        private bool _beyond;
+
+        /// <summary>
+        /// The sections as <see cref="Write"/> lays them out, written as the UTF-8 bytes of that text; where a letter beyond ASCII
+        /// is in a file of a version before R2007 the bytes are not what is kept of the text (it is encoded in the code page of
+        /// its header), so the text is given instead.
+        /// </summary>
+        private byte[] WriteBytes(out int length, out string kept, out bool whole)
+        {
+            // About as long as the text read: ASCII is a byte a letter, and a file is mostly ASCII.
+            _out = new byte[Math.Max(1 << 16, _length + _length / 8)];
+            _count = 0;
+            _beyond = false;
+
+            // What opening the bytes as a file would find: groups outside the sections, a polyface face as GeometryHelper 13.0.0
+            // wrote one, and no ENTITIES section.
+            bool plain = _target != DxfVersions.R12;
+            bool entities = false;
+
+            foreach (Group group in _prefix)
+            {
+                plain &= group.Code == 999;
+                Put(group.Code, group.Value);
+            }
+
+            foreach (Section section in _sections)
+            {
+                entities |= section.Name.Trim() == "ENTITIES";
+                Put(0, "SECTION");
+                Put(2, section.Name);
+
+                foreach (Record record in section.Records)
+                {
+                    if (record.Dropped)
+                    {
+                        continue;
+                    }
+
+                    if (plain && record.Groups.Count > 0 && record.Type.Trim() == "VERTEX")
+                    {
+                        foreach (Group group in record.Groups)
+                        {
+                            plain &=
+                                group.Code != 100
+                                || group.Value.IndexOf("AcDbFaceRecord", StringComparison.Ordinal) < 0;
+                        }
+                    }
+
+                    foreach (Group group in record.Groups)
+                    {
+                        Put(group.Code, group.Value);
+                    }
+                }
+
+                Put(0, "ENDSEC");
+            }
+
+            Put(0, "EOF");
+            whole = plain && entities;
+
+            if (_beyond && _target < 1021)
+            {
+                _out = null;
+                length = 0;
+                kept = Write();
+                whole = false;
+                return null;
+            }
+
+            byte[] bytes = _out;
+            length = _count;
+            kept = null;
+            _out = null;
+            return bytes;
+        }
+
+        /// <summary>Writes a group as <see cref="Append(StringBuilder, int, string)"/> does, as bytes.</summary>
+        private void Put(int code, string value)
+        {
+            Put(CodeLine(code));
+            Put(value);
+            Put(_lineEnd);
+        }
+
+        private void Put(string text)
+        {
+            if (_out.Length - _count < text.Length)
+            {
+                Array.Resize(ref _out, Math.Max(_out.Length * 2, _count + text.Length));
+            }
+
+            byte[] bytes = _out;
+            int at = _count;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+
+                if (c >= 0x80)
+                {
+                    // A letter beyond ASCII, a text as the file encodes it as a whole, so that a pair of surrogates stays one.
+                    byte[] letters = Utf8.GetBytes(text);
+
+                    if (_out.Length - _count < letters.Length)
+                    {
+                        Array.Resize(ref _out, Math.Max(_out.Length * 2, _count + letters.Length));
+                    }
+
+                    Buffer.BlockCopy(letters, 0, _out, _count, letters.Length);
+                    _count += letters.Length;
+                    _beyond = true;
+                    return;
+                }
+
+                bytes[at++] = (byte)c;
+            }
+
+            _count = at;
+        }
+
+        private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
 
         private void Append(StringBuilder text, Group group) => Append(text, group.Code, group.Value);
 

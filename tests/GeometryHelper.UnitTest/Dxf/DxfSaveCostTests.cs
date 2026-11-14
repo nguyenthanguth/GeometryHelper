@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using GeometryHelper.Dxf;
@@ -244,6 +245,309 @@ namespace GeometryHelper.UnitTest.Dxf
             );
 
             Assert.Equal("Line 5 is not a group code.", thrown.Message);
+        }
+
+        #endregion
+
+        #region The converter's bytes
+
+        [Theory]
+        [InlineData(1015)]
+        [InlineData(1018)]
+        [InlineData(1021)]
+        [InlineData(1024)]
+        [InlineData(1027)]
+        [InlineData(1032)]
+        [InlineData(1009)]
+        public void ADrawingAllAscii_IsConvertedToTheUtf8BytesOfItsConvertedText(int target)
+        {
+            string text = Lines(true);
+            string converted = DxfVersionConverter.Convert(text, target, new List<string>());
+
+            byte[] bytes = DxfVersionConverter.ConvertToBytes(
+                text,
+                target,
+                new List<string>(),
+                null,
+                out int length,
+                out string kept,
+                out bool whole
+            );
+
+            Assert.Null(kept);
+            Assert.Equal(new UTF8Encoding(false).GetBytes(converted), bytes.Take(length).ToArray());
+            Assert.True(length <= bytes.Length);
+        }
+
+        [Theory]
+        [InlineData(1021, true)]
+        [InlineData(1024, true)]
+        [InlineData(1027, true)]
+        [InlineData(1032, true)]
+        [InlineData(1015, false)]
+        [InlineData(1018, false)]
+        public void ALayerNamedWithAnAccent_IsKeptAsBytesFromR2007_AndAsTextBefore(int target, bool asBytes)
+        {
+            DxfDatabase db = Metric();
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "café Đ" });
+            string text = db.ToText();
+            string converted = DxfVersionConverter.Convert(text, target, new List<string>());
+
+            byte[] bytes = DxfVersionConverter.ConvertToBytes(
+                text,
+                target,
+                new List<string>(),
+                null,
+                out int length,
+                out string kept,
+                out bool whole
+            );
+
+            if (asBytes)
+            {
+                Assert.Null(kept);
+                Assert.Equal(new UTF8Encoding(false).GetBytes(converted), bytes.Take(length).ToArray());
+            }
+            else
+            {
+                Assert.Null(bytes);
+                Assert.Equal(converted, kept);
+            }
+        }
+
+        [Theory]
+        [InlineData(1015, true)]
+        [InlineData(1018, true)]
+        [InlineData(1021, true)]
+        [InlineData(1032, true)]
+        [InlineData(1009, false)]
+        public void TheBytesOfAConversion_AreTheWholeFile_ExceptForR12(int target, bool whole)
+        {
+            DxfVersionConverter.ConvertToBytes(
+                Lines(true),
+                target,
+                new List<string>(),
+                null,
+                out _,
+                out _,
+                out bool isWhole
+            );
+
+            Assert.Equal(whole, isWhole);
+        }
+
+        [Theory]
+        [InlineData("AcDbVertex\n100\nAcDbFaceRecord", false)]
+        [InlineData("AcDbFaceRecord", false)]
+        [InlineData("AcDbVertex", true)]
+        public void AFaceOfAPolyfaceMesh_IsAFileOpeningItAgainMends_AndTheBytesAreNotTheWholeFile(
+            string markers,
+            bool whole
+        )
+        {
+            string text = Lines(true)
+                .Replace("  2\nENTITIES\n", "  2\nENTITIES\n  0\nVERTEX\n100\nAcDbEntity\n100\n" + markers + "\n");
+
+            DxfVersionConverter.ConvertToBytes(text, 1027, new List<string>(), null, out _, out _, out bool isWhole);
+
+            Assert.Equal(whole, isWhole);
+        }
+
+        [Fact]
+        public void ADrawingSavedInAnOlderVersion_IsTheBytesItsConvertedTextIsKeptAs()
+        {
+            var db = new DxfDatabase("AC1032");
+            db.LayerTable.Add(new DxfLayerTableRecord { Name = "café Đ" });
+            db.ModelSpace.AppendEntity(new DxfLine(new GeoPoint3(0.0, 0.0, 0.0), new GeoPoint3(5.0, 5.0, 0.0)));
+
+            foreach (string version in new[] { "AC1027", "AC1024", "AC1021", "AC1018", "AC1015" })
+            {
+                string text = DxfVersionConverter.Convert(db.ToText(), DxfVersions.Number(version), new List<string>());
+
+                var kept = new MemoryStream();
+                DxfFile.Parse(text).Save(kept);
+
+                Assert.Equal(kept.ToArray(), Saved(db, version));
+            }
+        }
+
+        [Theory]
+        [InlineData("AC1027")]
+        [InlineData("AC1015")]
+        [InlineData("AC1009")]
+        public void ADrawingSavedToAPathInAnOlderVersion_IsTheBytesSavedToAStream(string version)
+        {
+            DxfDatabase db = Drawing("STEEL", "café", out _);
+            string path = Path.Combine(Path.GetTempPath(), "dxfver10-" + Guid.NewGuid().ToString("N") + ".dxf");
+
+            try
+            {
+                db.Save(path, version);
+
+                Assert.Equal(Saved(db, version), File.ReadAllBytes(path));
+                Assert.Equal(Path.GetFullPath(path), db.Filename);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+        #endregion
+
+        #region A record's extension dictionary spliced in and out
+
+        private static string Said(DxfFile file, DxfItem item)
+        {
+            var said = new List<string>();
+
+            foreach (DxfTypedValue group in file.GroupsOf(item))
+            {
+                said.Add(group.TypeCode + "=" + group.Value);
+            }
+
+            return string.Join("|", said);
+        }
+
+        private static DxfItem Made(DxfFile file, params object[] groups)
+        {
+            return file.AddObject("XRECORD", null, b =>
+            {
+                for (int i = 0; i < groups.Length; i += 2)
+                {
+                    b.Group((int)groups[i], (string)groups[i + 1]);
+                }
+            });
+        }
+
+        private static readonly object[] Reactors = { 102, "{ACAD_REACTORS", 330, "A1", 102, "}" };
+
+        private static object[] Join(params object[][] parts) => parts.SelectMany(p => p).ToArray();
+
+        [Theory]
+        [InlineData(true, "\n")]
+        [InlineData(false, "\n")]
+        [InlineData(true, "\r\n")]
+        [InlineData(false, "\r\n")]
+        public void AnExtensionDictionary_IsPutAfterTheReactorsAndTakenOut_AsTheRecordsOwnerIsKept(
+            bool padded,
+            string lineEnd
+        )
+        {
+            DxfFile file = DxfFile.Parse(Lines(padded).Replace("\n", lineEnd));
+            DxfItem item = Made(file, Join(Reactors, new object[] { 330, "OWN", 100, "AcDbXrecord", 1, "text" }));
+            string h = item.Handle;
+            string before = Said(file, item);
+
+            file.SetExtensionDictionary(item, "D1");
+
+            Assert.Equal(
+                "5="
+                    + h
+                    + "|102={ACAD_REACTORS|330=A1|102=}|102={ACAD_XDICTIONARY|360=D1|102=}|330=OWN|100=AcDbXrecord|1=text",
+                Said(file, item)
+            );
+
+            file.SetExtensionDictionary(item, "D1");
+            Assert.Contains("D1", Said(file, item));
+
+            file.SetExtensionDictionary(item, null);
+            Assert.Equal(before, Said(file, item));
+
+            file.SetExtensionDictionary(item, "D2", true);
+            Assert.Equal(
+                "5="
+                    + h
+                    + "|102={ACAD_XDICTIONARY|360=D2|102=}|102={ACAD_REACTORS|330=A1|102=}|330=OWN|100=AcDbXrecord|1=text",
+                Said(file, item)
+            );
+        }
+
+        [Fact]
+        public void ARecordWithNoReactors_IsGivenTheDictionaryRightAfterItsHandle()
+        {
+            DxfFile file = DxfFile.Parse(Lines(true));
+            DxfItem item = Made(file, 330, "OWN", 100, "AcDbXrecord");
+
+            file.SetExtensionDictionary(item, "D1");
+
+            Assert.Equal(
+                "5=" + item.Handle + "|102={ACAD_XDICTIONARY|360=D1|102=}|330=OWN|100=AcDbXrecord",
+                Said(file, item)
+            );
+        }
+
+        [Fact]
+        public void ARecordOfNothingBeyondItsHandle_IsGivenTheDictionaryAtItsEnd()
+        {
+            DxfFile file = DxfFile.Parse(Lines(true));
+            DxfItem item = Made(file);
+
+            file.SetExtensionDictionary(item, "D1");
+
+            Assert.Equal("5=" + item.Handle + "|102={ACAD_XDICTIONARY|360=D1|102=}", Said(file, item));
+        }
+
+        [Fact]
+        public void AGroupOfExtendedDataThatSaysXdictionary_IsNotTheRecordsOwn()
+        {
+            DxfFile file = DxfFile.Parse(Lines(true));
+            DxfItem item = Made(file, 330, "OWN", 1001, "APP", 102, "{ACAD_XDICTIONARY", 360, "DX", 102, "}");
+
+            file.SetExtensionDictionary(item, null);
+            Assert.Equal("5=" + item.Handle + "|330=OWN|1001=APP|102={ACAD_XDICTIONARY|360=DX|102=}", Said(file, item));
+
+            file.SetExtensionDictionary(item, "D1");
+            Assert.Equal(
+                "5="
+                    + item.Handle
+                    + "|102={ACAD_XDICTIONARY|360=D1|102=}|330=OWN|1001=APP|102={ACAD_XDICTIONARY|360=DX|102=}",
+                Said(file, item)
+            );
+        }
+
+        [Fact]
+        public void AListOfReactorsThatNeverCloses_LeavesTheRecordAsItWas_AndOneOfTheDictionaryToo()
+        {
+            DxfFile file = DxfFile.Parse(Lines(true));
+            DxfItem open = Made(file, 102, "{ACAD_REACTORS", 330, "A1", 1, "text");
+            DxfItem never = Made(file, 330, "OWN", 102, "{ACAD_XDICTIONARY", 360, "DX", 1, "text");
+            string openSaid = Said(file, open);
+            string neverSaid = Said(file, never);
+            string text = file.ToText();
+
+            file.SetExtensionDictionary(open, "D1");
+            file.SetExtensionDictionary(never, "D1");
+            file.SetExtensionDictionary(never, null);
+
+            Assert.Equal(openSaid, Said(file, open));
+            Assert.Equal(neverSaid, Said(file, never));
+            Assert.Equal(text, file.ToText());
+        }
+
+        [Fact]
+        public void AnExtensionDictionaryAmongComments_IsPutStraightAfterTheHandle_TheCommentsKept()
+        {
+            DxfFile file = DxfFile.Parse(Lines(true).Replace("\n", "\r\n"));
+            DxfItem item = Made(file, 999, "note", 330, "OWN", 999, "again", 1, "text");
+
+            file.SetExtensionDictionary(item, "D1");
+
+            string text = file.ToText();
+            string at =
+                "\r\n  5\r\n"
+                + item.Handle
+                + "\r\n102\r\n{ACAD_XDICTIONARY\r\n360\r\nD1\r\n102\r\n}\r\n999\r\nnote\r\n";
+
+            Assert.Contains(at, text);
+            Assert.Contains("999\r\nagain\r\n", text);
+
+            file.SetExtensionDictionary(item, null);
+
+            Assert.DoesNotContain("D1", file.ToText());
+            Assert.Contains(
+                "  5\r\n" + item.Handle + "\r\n999\r\nnote\r\n330\r\nOWN\r\n999\r\nagain\r\n  1\r\ntext\r\n",
+                file.ToText()
+            );
         }
 
         #endregion
