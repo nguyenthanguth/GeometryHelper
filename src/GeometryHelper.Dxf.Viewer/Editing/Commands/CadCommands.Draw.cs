@@ -758,7 +758,8 @@ namespace GeometryHelper.Dxf.Viewer
                 // The words, at their scale, landed where the second point says, measured by the drawing's fonts.
                 if (words != null)
                 {
-                    CadMLeaderStyleEditor.LandWords(mleader, P3(arrow), P3(landing));
+                    CadMLeaderStyleEditor.LandWords(mleader, P3(arrow), P3(landing), s.Database);
+                    mleader.AsTheCommandMakesIt(found.Scale, annotation != null);
                 }
 
                 // A block's matrix holds the scale and the place it stands at, as AutoCAD 2021's MLEADER writes it.

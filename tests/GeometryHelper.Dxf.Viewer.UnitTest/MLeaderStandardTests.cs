@@ -139,6 +139,58 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void AMultileaderOfWords_IsWrittenAsTheMleaderCommandWritesIt()
+        {
+            // AutoCAD 2021 (annot5, MLEADER of "HELLO" in the style Standard and in Annotative): in the context data of the words
+            // 172 of 5 (the flow by the style), 91 of -1073741824, 141 of 0 and 295 of 0, where an MTEXT made by the library's
+            // template (ezdxf's) writes 1, -939524096, 1.5 and 1; the record overrides the content type (bit 10), bit 14 and the
+            // default words (18) alone (90 of 279552), its text colour (92) the style's BYBLOCK.
+            CadDocument document = BlankWithMLeaderStyle();
+
+            Run(Session(document), "MLD", P(0, 0), P(30, 20), "B-12");
+
+            string text = document.Database.ToText();
+            Assert.Matches(@"\n\s*171\n1\n\s*172\n5\n\s*91\n-1073741824\n\s*141\n0(\.0)?\n", text);
+            Assert.Matches(@"\n\s*294\n0\n\s*295\n0\n", text);
+            Assert.Matches(@"\n\s*340\n[0-9A-F]+\n\s*90\n279552\n", text);
+            Assert.Matches(@"\n\s*92\n-1056964608\n", text);
+            Assert.Matches(@"\n\s*273\n9\n\s*295\n0\n", text);
+            AssertReopens(document);
+        }
+
+        [Theory]
+        [InlineData("HELLO", 0.09153)]
+        [InlineData("B-12", 0.09)]
+        [InlineData("x", 0.09)]
+        [InlineData("100.0000", 0.09153)]
+        [InlineData("OOO", 0.09153)]
+        [InlineData("gjpqy", 0.11646)]
+        [InlineData("Default_Text", 0.11499)]
+        [InlineData("TEXT", 0.09)]
+        [InlineData("Hello", 0.09147)]
+        public void TheWordsOfAnArialMultileader_StandHalfTheirHeightAndTheDepthOfTheirInkAboveTheLanding(
+            string words,
+            double expected
+        )
+        {
+            // AutoCAD 2021 (annot5, MLEADER from (100, 100) to a landing of (150, 150) in the console's Standard, arial.ttf, 0.18
+            // high): the words are held 0.09153 above the landing for "HELLO", whose O hangs 0.00307 below the baseline, 0.09 for
+            // "B-12", "x" and "TEXT", whose letters sit on it, and 0.11646 for "gjpqy", half their height and the ink's depth.
+            CadDocument document = BlankWithMLeaderStyle();
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            CadMLeaderStyleEditor.Find(document.Database, "Standard").TextHeight = 0.18;
+
+            Run(Session(document), "MLD", P(0, 0), P(30, 20), words);
+
+            DxfMLeader mleader = Assert.Single(All<DxfMLeader>(document.ModelSpace));
+            double above = mleader.MText.Location.Y - 20.0;
+            Assert.True(
+                System.Math.Abs(above - expected) < 1E-4,
+                $"{words}: {above} above the landing, AutoCAD {expected}"
+            );
+        }
+
+        [Fact]
         public void AStyleOfNoContent_DrawsALeaderWithNothingAtItsLanding_AskingNoText()
         {
             CadDocument document = BlankWithMLeaderStyle();

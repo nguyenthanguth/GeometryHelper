@@ -76,6 +76,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The height of the lines from the top of the first to the ink below the last, of the tallest column, as AutoCAD's ActualHeight.</summary>
         internal double ActualHeight { get; private set; }
 
+        /// <summary>How far the ink of the first line hangs below its baseline.</summary>
+        internal double FirstLineDepth { get; private set; }
+
         /// <summary>The box of the ink of the lines: left, bottom, right, top.</summary>
         internal double[] Ink { get; private set; }
 
@@ -1556,6 +1559,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _layout.ColumnCount = count;
                 _layout.ActualWidth = widest;
                 _layout.ActualHeight = actualHigh;
+                _layout.FirstLineDepth = _lines.Count > 0 ? _lines[0].Depth : 0.0;
                 _layout.Ink = new[] { inkLeft, inkBottom, inkRight, inkTop };
                 _layout.TextBox = new[]
                 {

@@ -64,7 +64,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (adding)
                 {
-                    ChangeLeaderLines(c, handle, "Leader line added", point, m => m.AddLeaderLine(P3(point)));
+                    ChangeLeaderLines(c, handle, "Leader line added", point, m => m.AddLeaderLine(P3(point)), true);
                     continue;
                 }
 
@@ -86,13 +86,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Changes the leader lines of a multileader as one edit of the command, the point it was made at kept in the record.</summary>
+        /// <summary>
+        /// Changes the leader lines of a multileader as one edit of the command, the point it was made at kept in the record.
+        /// Where <paramref name="measured"/> the change is made with the words measured in the fonts the presenter reads (the
+        /// folders of <see cref="CadDocument.Fonts"/> and the Fonts folder of Windows), as AutoCAD measures them: an arrowhead
+        /// on the far side of one line of words then makes a leader of its own, landed against the right end of the ink.
+        /// </summary>
         private static void ChangeLeaderLines(
             CadCommandContext c,
             string handle,
             string property,
             GeoPoint2 point,
-            Action<DxfMLeader> change
+            Action<DxfMLeader> change,
+            bool measured = false
         )
         {
             var planned = new[]
@@ -106,7 +112,29 @@ namespace GeometryHelper.Dxf.Viewer
                     // An annotative multileader has the change made in the context of each scale as well as in its record, as
                     // AutoCAD 2021's MLEADEREDIT makes it.
                     var mleader = (DxfMLeader)s.Document.FindEntity(handle);
-                    mleader.EditMLeaderAtEachScale(() => change(mleader));
+                    string searched = s.Database.FontSearchPath;
+
+                    try
+                    {
+                        if (measured)
+                        {
+                            s.Database.FontSearchPath = string.Join(
+                                ";",
+                                s.Document.Fonts.Folders.Concat(
+                                    new[] { Environment.GetFolderPath(Environment.SpecialFolder.Fonts) }
+                                )
+                            );
+                        }
+
+                        mleader.EditMLeaderAtEachScale(() => change(mleader));
+                    }
+                    finally
+                    {
+                        if (measured)
+                        {
+                            s.Database.FontSearchPath = searched;
+                        }
+                    }
                 }
             });
 

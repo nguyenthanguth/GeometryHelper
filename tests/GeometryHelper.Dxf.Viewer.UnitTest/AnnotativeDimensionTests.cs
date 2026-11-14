@@ -116,6 +116,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ADimensionGivenASecondScale_HasAPictureOfItsOwn_LaidOutAtThatScale()
         {
             CadDocument document = Scaled();
+            // AutoCAD's probe measured the words in the Arial of its Standard; one no font measures stands on 0.7 of their
+            // height a letter (177.4), where Arial's "100.0000" 18 high is 100.94 wide and the words stand at 177.47.
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
             DxfDimension dimension = Linear(document);
             double first = Words(dimension.DimBlock).TextHeight;
             DxfBlockTableRecord defaultPicture = dimension.DimBlock;
@@ -146,6 +149,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(first * 2.0, Words(second).TextHeight, 6);
             Assert.Equal(new[] { 18.0, 82.0, 100.0, 118.0 }, Segments(second).OrderBy(x => x).ToArray());
             Assert.True(Words(second).Location.X > 118.0);
+            Assert.True(
+                Math.Abs(Words(second).Location.X - 177.47) < 5E-3,
+                $"the words at x {Words(second).Location.X}, AutoCAD 177.47"
+            );
             Assert.Equal(30.0, Words(second).Location.Y, 6);
             Assert.Equal(9.0, Words(defaultPicture).TextHeight, 6);
         }
@@ -221,6 +228,12 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(mleader.EnableAnnotationScale);
             Assert.Equal(new[] { "1:50" }, Names(mleader));
             Assert.Equal(50.0, mleader.Scale, 9);
+
+            // AutoCAD 2021 (annot5): the scale of an annotative multileader is in its context alone (40 of 50); the record keeps
+            // the style's scale (45 of 1) and its override of the scale (bit 24) clear, 90 of 279552 (bits 10, 14 and 18).
+            string written = document.Database.ToText();
+            Assert.Matches(@"\n\s*179\n1\n\s*45\n1(\.0)?\n\s*271\n", written);
+            Assert.Matches(@"\n\s*340\n[0-9A-F]+\n\s*90\n279552\n", written);
             double height = mleader.TextHeight;
 
             // AutoCAD 2021 (probe GHAQ, style Annotative at 1:50, an arrow at (100, 100), a landing at (150, 150)): the dogleg starts

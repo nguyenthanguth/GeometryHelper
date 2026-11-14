@@ -6,6 +6,37 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Turned words (DIMTEDIT Angle) that stand over the line under DIMTMOVE 1 have no leader when their box is high, as
+AutoCAD 2021 draws them: half the height of the turned box, (width / 2 + gap) sin t + (height / 2 + gap) cos t, reaching twice as far
+as the leader would rise (twice 4.1154 in the metric styles of the probes), the library drew a leader and a landing of 18.9 and put
+their middle past it, where AutoCAD draws neither and puts their middle on the point their start would have been: "1234567890" turned
+60 on a line of 5 stands at (3.125, 34.117) with no leader, 8 digits keep theirs; 13 digits turned 30 keep it (8.14 against 8.23) and
+14 lose it (8.62). The three probe sets of 2 896 dimensions (words of 1 to 16 digits, angles 30 to 120, lines of 5 to 30, and eight
+styles of other sizes, gaps and DIMEXE) had 298 differing and have none, the wide words of tw4 3 differing and now 2, and the other 90
+of the 94 probe sets of the harness are byte for byte as they were. Not done (tw17, 58 of 324, with numbers in the harness notes):
+words put beyond the end of a slanting line, where AutoCAD moves the dimension line out along its normal by a reach no model of the box
+fits (1.658 for "100" turned 20 on a line of 40 at 30 degrees) and on a short line pushes the point to an arrowhead past the end, and the
+7 cases of words on a short slanting line under DIMTMOVE 1 where it draws the line twice.
+**FIXED.** The words of a multileader the presenter's MLEADER draws stand where AutoCAD 2021 puts them: the middle of their first line is
+half their height and the depth of their ink below the baseline above the landing (it was half their height alone), measured in the
+font of their text style: "HELLO" of arial.ttf 0.18 high (its O hangs 0.00307 below the baseline) is held 0.09153 above the landing
+(154.5767 at 1:50, AutoCAD's 154.5767), "B-12", "x" and "TEXT" 0.09, "gjpqy" 0.11646 and "Default_Text" 0.11499 (9 words, each within
+1E-4 of AutoCAD's); a font the presenter does not read leaves half the height. The groups the command writes are AutoCAD's where the
+library's template (ezdxf's) wrote others: in the context data the flow of the words by the style (172 of 5, was 1), a background
+colour of -1073741824 (91, was -939524096), a background scale of 0 (141, was 1.5) and no automatic column height (295 of 0, was 1); in
+the record the overrides of the content type, of 14 and of 18 alone (90 of 279552, was 17072128, with the text colour and the scale in an annotative one), the
+colour of the words the style's (92 of -1056964608, was ByLayer) and 295 of 0; and in an annotative multileader the scale in its context
+alone (40 of 50 at 1:50) with the record's own scale the style's (45 of 1, was 50, its override of the scale clear). The context of an
+annotative multileader made at 1:50 and given 1:100 is group for group AutoCAD's (80 groups each; AutoCAD reads the file back and writes
+the same groups). The text width of an annotative dimension at 1:100 that stood at 177.4 for AutoCAD's 177.47 was the width of a font no
+one measures (0.7 of the height a letter): with the Arial of the console's Standard "100.0000" is 100.94 wide and the words stand at
+177.47, as the probe had them.
+**FIXED.** MLEADEREDIT in the presenter makes a leader of its own for an arrowhead on the far side of one line of words, as AutoCAD 2021
+does, where the line went to the first leader: the words are measured in the fonts the presenter reads (the folders of the document's
+fonts and the Fonts folder of Windows) while the leader is added, so that the new leader's dogleg runs against x and ends a gap past the
+right end of their ink, in every context of an annotative multileader: "HELLO" of arial.ttf 0.18 high landed from (150, 150) gets its
+landing at 234.6589 at 1:50 and 319.3179 at 1:100, as AutoCAD's. A font that is not read leaves the old landing on the first leader.
+
 **NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
 a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8
 and the format `%x`, shown 1/1/2020; 12:30 a time of `%X`, shown 12:30:00 PM (on 30 December 1899, as AutoCAD keeps a time); 1/1/2020

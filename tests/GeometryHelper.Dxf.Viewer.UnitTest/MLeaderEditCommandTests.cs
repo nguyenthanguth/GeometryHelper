@@ -68,6 +68,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void AnArrowheadOnTheFarSideOfArialWords_MakesALeaderOfItsOwn_LandedAgainstTheirRightEnd()
+        {
+            // AutoCAD 2021 (annot4's probe: an arrow far on the right of "HELLO" 9 high lands a leader of its own, its dogleg
+            // against x, the gap past the ink's right end): the words are measured by the fonts the presenter reads, so that
+            // arial.ttf's "B-12" 4 high, 11.1 wide (0.49948 for 0.18), has the new landing 2 + 8 past 33.2 + 11.1.
+            CadDocument document = BlankWithMLeaderStyle();
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, "Standard");
+            Run(Session(document), "MLD", P(0, 0), P(30, 20), "B-12");
+            string handle = Assert.Single(All<DxfMLeader>(document.ModelSpace)).Handle;
+            Assert.Equal(1, Entity<DxfMLeader>(document, handle).LeaderCount);
+
+            Run(Session(document), "MLE", new[] { handle }, P(200, 0), Enter);
+
+            DxfMLeader mleader = Entity<DxfMLeader>(document, handle);
+            Assert.Equal(2, mleader.LeaderCount);
+            int added = mleader.GetLeaderIndexes().Max();
+            Assert.Equal(new GeoVector3(-1, 0, 0), mleader.GetDogleg(added));
+            double width = 0.49948 / 0.18 * style.TextHeight;
+            double right = mleader.MText.Location.X + width;
+            int line = mleader.GetLeaderLineIndexes(added).Single();
+            Assert.True(
+                System.Math.Abs(mleader.GetLastVertex(line).X - (right + style.LandingGap + style.DoglegLength)) < 5E-3,
+                $"landing {mleader.GetLastVertex(line).X}, the words end at {right}"
+            );
+            AssertReopens(document);
+        }
+
+        [Fact]
         public void ALeaderLinePickedUnderRemoveLeaders_IsTakenAway_TheOthersKept()
         {
             CadDocument document = OneLeader(out string handle);
@@ -171,6 +200,54 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.True(document.Undo());
             Assert.Equal(3, Lines(document));
+        }
+
+        [Fact]
+        public void AnArrowheadOnTheFarSideOfAnAnnotativeMultileader_LandsAtTheEndOfTheWordsAtEachScale()
+        {
+            // AutoCAD 2021 (annot4's probe, "HELLO" 0.18 high of arial.ttf, dogleg 0.36, gap 0.09, arrow (100, 100), landing
+            // (150, 150), the arrowhead added far on the right): the landing 234.6589 at 1:50 and 319.3179 at 1:100, the right end
+            // of the words (0.79318 wide for 0.18) and the gap and the dogleg past it.
+            CadDocument document = BlankWithMLeaderStyle();
+            document.Database.TextStyleTable["Standard"].FileName = "arial.ttf";
+            DxfObjectContextCollection scales = document.Database.ObjectContextManager.GetContextCollection(
+                "ACDB_ANNOTATIONSCALES"
+            );
+
+            foreach (double d in new[] { 1.0, 50.0, 100.0 })
+            {
+                scales.AddContext(
+                    new DxfAnnotationScale
+                    {
+                        Name = "1:" + d.ToString("0"),
+                        PaperUnits = 1,
+                        DrawingUnits = d,
+                    }
+                );
+            }
+
+            DxfMLeaderStyle style = CadMLeaderStyleEditor.Find(document.Database, "Standard");
+            style.TextHeight = 0.18;
+            style.LandingGap = 0.09;
+            style.DoglegLength = 0.36;
+            style.Annotative = DxfAnnotativeStates.True;
+            document.Database.Cannoscale = "1:50";
+            Run(Session(document), "MLD", P(100, 100), P(150, 150), "HELLO");
+            string handle = Assert.Single(All<DxfMLeader>(document.ModelSpace)).Handle;
+            Run(Session(document), "-OBJECTSCALE", new[] { handle }, Enter, "A", "1:100", Enter);
+
+            Run(Session(document), "MLE", new[] { handle }, P(400, 100), Enter);
+
+            DxfMLeader mleader = Entity<DxfMLeader>(document, handle);
+            Assert.Equal(2, mleader.LeaderCount);
+            int added = mleader.GetLeaderIndexes().Max();
+            int line = mleader.GetLeaderLineIndexes(added).Single();
+            Assert.True(
+                System.Math.Abs(mleader.GetLastVertex(line).X - 234.6589) < 5E-3,
+                $"landing {mleader.GetLastVertex(line).X} at 1:50, AutoCAD 234.6589"
+            );
+            Assert.Matches(@"\n\s*10\n319\.3[0-2]\d*\n", document.Database.ToText());
+            AssertReopens(document);
         }
 
         [Fact]

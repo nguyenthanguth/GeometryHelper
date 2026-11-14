@@ -29,10 +29,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static readonly object Gate = new object();
         private static readonly CadFonts Off = new CadFonts(null, null, null);
-        private static readonly Dictionary<string, KeyValuePair<double, double>> Kept = new Dictionary<
-            string,
-            KeyValuePair<double, double>
-        >(StringComparer.Ordinal);
+        private static readonly Dictionary<string, Measurement> Kept = new Dictionary<string, Measurement>(
+            StringComparer.Ordinal
+        );
         private static CadFonts _fonts;
         private static string _fontFolder;
 
@@ -61,10 +60,25 @@ namespace GeometryHelper.Dxf.Viewer
             double height,
             out double width,
             out double tall
+        ) => TryMeasure(style, words, height, out width, out tall, out _);
+
+        /// <summary>
+        /// Measures words as <see cref="TryMeasure(DxfTextStyleTableRecord, string, double, out double, out double)"/> does, and
+        /// how far the ink of their first line hangs below its baseline too (<paramref name="depth"/>): 0.00307 for "HELLO" of
+        /// arial.ttf 0.18 high, whose O reaches below it, 0.0529 for "gjpqy", nought for "B-12".
+        /// </summary>
+        internal static bool TryMeasure(
+            DxfTextStyleTableRecord style,
+            string words,
+            double height,
+            out double width,
+            out double tall,
+            out double depth
         )
         {
             width = 0.0;
             tall = 0.0;
+            depth = 0.0;
 
             if (style == null || string.IsNullOrWhiteSpace(words) || !(height > 0.0))
             {
@@ -107,23 +121,41 @@ namespace GeometryHelper.Dxf.Viewer
 
             lock (Gate)
             {
-                if (Kept.TryGetValue(key, out KeyValuePair<double, double> known))
+                if (Kept.TryGetValue(key, out Measurement known))
                 {
-                    width = known.Key;
-                    tall = known.Value;
+                    width = known.Width;
+                    tall = known.Tall;
+                    depth = known.Depth;
                     return tall > 0.0;
                 }
 
-                Measure(file, bigFile, font.TypeFace, xscale, oblique, words, height, out width, out tall);
+                Measure(file, bigFile, font.TypeFace, xscale, oblique, words, height, out width, out tall, out depth);
 
                 if (Kept.Count >= MostKept)
                 {
                     Kept.Clear();
                 }
 
-                Kept[key] = new KeyValuePair<double, double>(width, tall);
+                Kept[key] = new Measurement(width, tall, depth);
                 return tall > 0.0;
             }
+        }
+
+        /// <summary>What was measured of some words: their width, their height and how high their first line reaches above its baseline.</summary>
+        private readonly struct Measurement
+        {
+            internal Measurement(double width, double tall, double depth)
+            {
+                Width = width;
+                Tall = tall;
+                Depth = depth;
+            }
+
+            internal double Width { get; }
+
+            internal double Tall { get; }
+
+            internal double Depth { get; }
         }
 
         private static void Measure(
@@ -135,11 +167,13 @@ namespace GeometryHelper.Dxf.Viewer
             string words,
             double height,
             out double width,
-            out double tall
+            out double tall,
+            out double depth
         )
         {
             width = 0.0;
             tall = 0.0;
+            depth = 0.0;
             CadFonts fonts = _fonts ?? Off;
             string folder = _fontFolder;
             double factor = xscale > 0.0 && !double.IsInfinity(xscale) ? xscale : 1.0;
@@ -192,6 +226,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     width = measured;
                     tall = high;
+                    depth = layout.FirstLineDepth;
                 }
             }
             catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
