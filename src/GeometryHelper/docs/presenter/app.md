@@ -545,8 +545,11 @@ entire drawing, started, so that the first word not known is shown) and `spell-s
 the annotative objects of the space shown); `insertlayout` and `templateoptions` (over a template written in the temporary
 folder, the second on the first layout); `saveaspdf`, `pdf-override` and `pdf-options`; `rename` (on Layers, one name changed and
 one typed); `lweight`; `boundary`; `viewports` (Three: Right, the second tile given the first named view) and `viewports-named`
-(two configurations saved, the first one's name in Rename); and `filter` (a layer and a kind of object listed). They need a
-drawing: with none, `--dialog rename: needs a drawing.` exits with 2. Where the drawing lacks what a dialog is made of (`imageadjust`
+(two configurations saved, the first one's name in Rename); `filter` (a layer and a kind of object listed); `find` (Find and
+Replace on "plate", its result listed); `attach` (Attach External Reference on the `grid.dxf` beside the drawing, or on the drawing
+itself where there is none); and `layerstate-new` (New Layer State to Save with a description). The picture is taken from the dialog's content with the window's
+resources, so a style the window sets for a kind of control (the dark scroll bar, a list's rows) is drawn as it is in the window.
+They need a drawing: with none, `--dialog rename: needs a drawing.` exits with 2. Where the drawing lacks what a dialog is made of (`imageadjust`
 with no picture, `objectscale` with no annotative object, `xbind` with no reference), the dialog says so, as `--dialog imageadjust:
 the space shown has no image (--run "-IMAGE;...").`, and exits with 2.
 

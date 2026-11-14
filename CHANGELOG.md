@@ -26,6 +26,21 @@ New: `CadFilterProperty.MultilineStyle`, `ShapePosition`, `ShapeName` and `Trans
 `MainViewModel.QuickPropertiesLocation`. The registry is unchanged (no new command).
 **CHANGED.** CAL's `rad` on a straight segment of a polyline says `Polyline arc segment must be picked.`, as AutoCAD 2021 does; it
 said `Improper type of object picked.`, which a line or any other object still gets.
+**NEW.** The screenshot mode also draws `find` (Find and Replace on "plate", its result listed), `attach` (Attach External Reference on
+the `grid.dxf` beside the drawing) and `layerstate-new` (New Layer State to Save); Drafting Settings was there as `dsettings[:Tab]`.
+**FIXED.** Find and Replace (FIND) did not open: its two group boxes took the style of a text block, so the window threw a
+`XamlParseException` ("'TextBlock' TargetType does not match type of element 'GroupBox'") when it was made. The groups are framed boxes
+with their titles on the frame now, and the results list was white-headed with a pale selected row under the dark theme: its header, its
+rows and the row picked are dark as the theme's.
+**FIXED.** The lists of the dialogs scrolled with the pale scroll bar of the system (Rename, Lineweight Settings, Viewports, View
+Manager, Load Linetypes, the compare list of Dimension Style Manager): the theme has its own scroll bar now, 12 wide with no arrows, a
+rounded thumb lighter under the mouse and blue while dragged, for every list, grid, text box and drop-down where the theme is used. A list
+switched off was a white box (the additional angles of Drafting Settings before Additional angles is ticked, the system paints a disabled
+list white); it is dimmed instead. A picture drawn by the screenshot mode took its content out of the window and so lost the styles the
+window sets for a kind of control; it keeps them now, so it shows what the window shows.
+**FIXED.** The name box of Named Viewports clipped a 16-character name ("Plan and sect" of "Plan and section"): the list column is 290
+wide instead of 250, the box 128 wide instead of 88 for its words. The description of New Layer State to Save was one line tall at the
+bottom of its room; it fills it now.
 **NEW.** The app's screenshot mode (`--screenshot out.png plan.dxf --dialog name`) draws the dialogs of rounds 5 to 9, each over the
 drawing open in a sample state of its own: `mlstyle`, `mlstyle-new`, `mlstyle-new-page`, `mlstyle-modify`, `mlstyle-load`, `mledit`,
 `plotstamp`, `plotstamp-advanced`, `plotstamp-fields`, `imageadjust`, `attext`, `xbind`, `insertobject`, `recovery`, `spell`,

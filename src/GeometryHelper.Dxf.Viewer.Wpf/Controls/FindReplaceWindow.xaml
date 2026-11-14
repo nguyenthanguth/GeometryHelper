@@ -20,6 +20,105 @@
             <Style x:Key="OptionCheck" TargetType="CheckBox" BasedOn="{StaticResource GhCheckBox}">
                 <Setter Property="Margin" Value="0,0,0,4" />
             </Style>
+
+            <!-- A group of options: framed, its title set in the frame's top line. -->
+            <Style x:Key="SearchGroup" TargetType="GroupBox">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupBox">
+                            <Grid>
+                                <Border
+                                    BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Margin="0,9,0,0"
+                                    Padding="8,10,8,6"
+                                >
+                                    <ContentPresenter />
+                                </Border>
+                                <Border
+                                    Background="{StaticResource GhPanel}"
+                                    Padding="4,0"
+                                    Margin="8,0,0,0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                >
+                                    <ContentPresenter
+                                        ContentSource="Header"
+                                        TextElement.FontSize="13"
+                                        TextElement.FontWeight="SemiBold"
+                                    />
+                                </Border>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A row of the results: no chrome, the mouse's row lighter and the row picked in the selection's blue. -->
+            <Style x:Key="ResultRow" TargetType="ListViewItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListViewItem">
+                            <Border x:Name="Row" Background="Transparent" Padding="0,3">
+                                <GridViewRowPresenter
+                                    Content="{TemplateBinding Content}"
+                                    Columns="{TemplateBinding GridView.ColumnCollection}"
+                                    Margin="6,0"
+                                />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter
+                                        TargetName="Row"
+                                        Property="Background"
+                                        Value="{StaticResource GhSelected}"
+                                    />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A column's title on the header's grey, with a line under it and one between columns; it is dragged wider at its edge. -->
+            <Style x:Key="ResultHeader" TargetType="GridViewColumnHeader">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GridViewColumnHeader">
+                            <Border
+                                Background="{StaticResource GhHeader}"
+                                BorderBrush="{StaticResource GhBorder}"
+                                BorderThickness="0,0,1,1"
+                                Padding="6,4"
+                            >
+                                <Grid>
+                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                                    <Thumb
+                                        x:Name="PART_HeaderGripper"
+                                        HorizontalAlignment="Right"
+                                        Width="6"
+                                        Margin="0,-4,-9,-4"
+                                        Cursor="SizeWE"
+                                        Background="Transparent"
+                                    >
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -146,7 +245,7 @@
                         <ColumnDefinition Width="10" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <GroupBox Header="Search Options" Style="{StaticResource StyleGroup}">
+                    <GroupBox Header="Search Options" Style="{StaticResource SearchGroup}">
                         <StackPanel Margin="4">
                             <CheckBox
                                 Style="{StaticResource OptionCheck}"
@@ -186,7 +285,7 @@
                             />
                         </StackPanel>
                     </GroupBox>
-                    <GroupBox Grid.Column="2" Header="Text Types" Style="{StaticResource StyleGroup}">
+                    <GroupBox Grid.Column="2" Header="Text Types" Style="{StaticResource SearchGroup}">
                         <StackPanel Margin="4">
                             <CheckBox
                                 Style="{StaticResource OptionCheck}"
@@ -255,11 +354,12 @@
                             Background="{StaticResource GhInput}"
                             BorderThickness="0"
                             Foreground="{StaticResource GhText}"
+                            ItemContainerStyle="{StaticResource ResultRow}"
                             MouseDoubleClick="OnZoom"
                             AutomationProperties.Name="Results"
                         >
                             <ListView.View>
-                                <GridView>
+                                <GridView ColumnHeaderContainerStyle="{StaticResource ResultHeader}">
                                     <GridViewColumn
                                         Header="Location"
                                         Width="90"

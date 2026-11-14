@@ -191,11 +191,14 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 9 follow-ups (shots): 29 dialogs of rounds 5-9 in the --dialog screenshot mode; PDF links on objects
         seen through viewports; theme fixes (GhCheckBox labels, editable GhComboBox, top-aligned multi-line boxes, two
         window heights)
-  - [ ] (dlg10, running: scrollbars, Rename box, old dialog shots, .pss codes) Dialogs 10 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
-        .pss location codes 1-3; Collect in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI;
-        PDF links through VPCLIP-clipped and twisted viewports (untested); pale default scrollbars in the Rename and
-        Lineweight lists; Named Viewports' Rename box clips 16 characters; screenshots of Find, Drafting Settings,
-        Attach Reference and New Layer State after the theme fix (S)
+  - [x] Dialogs 10 (dlg10): a dark scrollbar for every list; Named Viewports' name box fits 16 characters; Find and
+        Replace no longer crashes on open (StyleGroup on a GroupBox); Find's list, New Layer State's description and a
+        disabled list (Drafting Settings Polar Tracking) drawn dark; find, attach, layerstate-new in --dialog; all 103
+        dialogs redrawn and diffed
+  - [ ] Dialogs 11 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
+        .pss location codes 1-3 (needs the GUI's Save As); Collect in the Leaders panel; WMF import; multi-line stamp and
+        "." clearing in the GUI; PDF links through VPCLIP-clipped and twisted viewports (untested); Find's "1 matches"
+        plural; shots of the attribute dialogs (eattedit, battman, attdia) with a sample block (S)
 - Round 3, what is left of the gap list (`.claude/gk/leader/pgp-GAP.md`):
   - [ ] R3.1 MLEADERCOLLECT (needs a core composite-block builder), MLEADERALIGN Parallel and TEXTALIGN on an oblique line
         (both need the AutoCAD GUI: the console left Parallel unchanged and shifted typed points by the last text; see the
