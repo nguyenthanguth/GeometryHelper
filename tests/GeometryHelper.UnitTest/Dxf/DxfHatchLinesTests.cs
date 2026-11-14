@@ -288,9 +288,10 @@ namespace GeometryHelper.UnitTest.Dxf
         #region The colour of a gradient
 
         [Fact]
-        public void TheColourOfAGradient_IsItsColoursInProportion_RoundedHalfAwayFromNought_AndItsEndsBeyondThem()
+        public void TheColourOfAGradient_IsItsColoursInProportion_CutDownToWholeNumbers_AndItsEndsBeyondThem()
         {
-            // AutoCAD's new gradient runs from blue (0, 0, 255) to a pale yellow (255, 255, 153): halfway (127.5, 127.5, 204).
+            // AutoCAD's new gradient runs from blue (0, 0, 255) to a pale yellow (255, 255, 153): halfway (127.5, 127.5, 204), which
+            // AutoCAD 2021 gives as (127, 127, 204): it cuts each channel down.
             DxfDatabase db = DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018);
             DxfHatch hatch = ByHandle<DxfHatch>(db, "AC");
             hatch.SetGradient(DxfGradientPatternType.PreDefinedGradient, "LINEAR");
@@ -298,7 +299,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfColor half = hatch.EvaluateGradientColorAt(0.5f);
 
-            Assert.Equal(0x8080CC, half.ColorValue);
+            Assert.Equal(0x7F7FCC, half.ColorValue);
             Assert.Equal(DxfColorMethod.ByColor, half.ColorMethod);
             Assert.Equal(0x0000FF, hatch.EvaluateGradientColorAt(0f).ColorValue);
             Assert.Equal(0xFFFF99, hatch.EvaluateGradientColorAt(1f).ColorValue);
@@ -306,14 +307,15 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(0xFFFF99, hatch.EvaluateGradientColorAt(2f).ColorValue);
             Assert.Equal(before, db.ToText());
 
-            // The gradient of ezdxf, red to blue: a quarter along (191.25, 0, 63.75).
-            Assert.Equal(0xBF0040, ByHandle<DxfHatch>(db, "AF").EvaluateGradientColorAt(0.25f).ColorValue);
+            // The gradient of ezdxf, red to blue: a quarter along (191.25, 0, 63.75), cut down to (191, 0, 63).
+            Assert.Equal(0xBF003F, ByHandle<DxfHatch>(db, "AF").EvaluateGradientColorAt(0.25f).ColorValue);
         }
 
         [Fact]
         public void AColourOfTheIndex_IsTakenByItsRedGreenAndBlue_AndColoursGivenOutOfOrderBySortedValue()
         {
-            // Red of the index 1 at 1 and the true green (0, 128, 0) at 0, given in that order: a quarter along (63.75, 96, 0).
+            // Red of the index 1 at 1 and the true green (0, 128, 0) at 0, given in that order: a quarter along (63.75, 96, 0), cut
+            // down to (63, 96, 0).
             DxfHatch hatch = ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "AF");
             hatch.SetGradientColors(
                 new[]
@@ -323,7 +325,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
             );
 
-            Assert.Equal(0x406000, hatch.EvaluateGradientColorAt(0.25f).ColorValue);
+            Assert.Equal(0x3F6000, hatch.EvaluateGradientColorAt(0.25f).ColorValue);
             DxfColor end = hatch.EvaluateGradientColorAt(1f);
             Assert.Equal(0xFF0000, end.ColorValue);
             Assert.True(end.IsByColor);
@@ -332,8 +334,8 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AGradientOfOneColourHoldingThatColourAlone_RunsToItsShadeOrTint_AndOfTwoColoursBetweenThemInEitherMode()
         {
-            // Red alone at 0: tinted by 0.75 it runs to (255, 127.5, 127.5) at 1, halfway (255, 63.75, 63.75); shaded by 0.25 to
-            // (127.5, 0, 0); by 0.5 it is red throughout. Red alone at 1 runs from its tint at 0. Not of one colour, red alone is
+            // Red alone at 0: tinted by 0.75 it runs to (255, 128, 128) at 1, halfway (255, 64, 64); shaded by 0.25 to
+            // (128, 0, 0); by 0.5 it is red throughout. Red alone at 1 runs from its tint at 0. Not of one colour, red alone is
             // red throughout.
             DxfHatch hatch = ByHandle<DxfHatch>(DxfDatabase.Parse(DxfHatchLeaderDrawings.R2018), "AF");
             hatch.SetGradientColors(new[] { new DxfGradientColor(DxfColor.FromRgb(255, 0, 0), 0f) });

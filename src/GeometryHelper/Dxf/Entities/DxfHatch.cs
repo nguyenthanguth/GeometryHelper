@@ -911,19 +911,18 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the colour of the gradient at a value along it, the library's reading of AutoCAD's <c>EvaluateGradientColorAt</c>,
-        /// whose documentation says only that the colour is interpolated at the value: the red, green and blue of its colours
-        /// (<see cref="GetGradientColors"/>) taken in proportion between the two whose values the value lies between, each
-        /// rounded to the nearest whole number, half away from nought; before the first colour the first, past the last the last.
-        /// Blue (0, 0, 255) at 0 to a pale yellow (255, 255, 153) at 1, AutoCAD's new gradient, is (128, 128, 204) at 0.5. A
-        /// gradient of one colour that holds only that colour (<see cref="GradientOneColorMode"/>) runs from it to its shade or
-        /// tint by the <see cref="ShadeTintValue"/>, placed at the end of the gradient away from the colour (at 1, or at 0 where
-        /// the colour stands past the middle): black at 0, the colour itself at 0.5 and white at 1, each channel mixed in
-        /// proportion between. A gradient that holds two colours runs between them in either mode, as AutoCAD's
-        /// <c>SetShadeTintValueAndColor2</c> holds the second colour of a gradient of one colour. These are the library's rules:
-        /// whether AutoCAD mixes in red, green and blue or another space, how it rounds, and how its shade and tint are made
-        /// (its variable GFCLRLUM may be a lightness of hue, lightness and saturation) are not checked against AutoCAD. The
-        /// colours are read from the HATCH each time and nothing is changed.
+        /// Gets the colour of the gradient at a value along it, as AutoCAD 2021's <c>EvaluateGradientColorAt</c> gives it (1 101
+        /// channels of 12 gradients, in steps of 1/100 and 1/32, were read from it and agree): the red, green and blue of its
+        /// colours (<see cref="GetGradientColors"/>) taken in proportion between the two whose values the value lies between,
+        /// each cut down to a whole number (not rounded); before the first colour the first, past the last the last. Blue (0, 0,
+        /// 255) at 0 to a pale yellow (255, 255, 153) at 1, AutoCAD's new gradient, is (127, 127, 204) at 0.5. A gradient of one
+        /// colour that holds only that colour (<see cref="GradientOneColorMode"/>) runs from it to its shade or tint by the
+        /// <see cref="ShadeTintValue"/>, placed at the end of the gradient away from the colour (at 1, or at 0 where the colour
+        /// stands past the middle): the colour's hue and saturation at the lightness the value is, so that red at 0.25 runs to
+        /// (128, 0, 0) and (100, 150, 50) at 0.75 to (191, 223, 159); a grey of 128 goes to black at 0 and white at 1. A gradient
+        /// that holds two colours runs between them in either mode; AutoCAD makes the second colour of one of one colour itself
+        /// when the tint is set, which this property setter does not. The colours are read from the HATCH each time and nothing
+        /// is changed.
         /// </summary>
         /// <param name="value">Where along the gradient, from 0 at its start to 1 at its end.</param>
         /// <returns>The colour, a true colour (<see cref="DxfColor.IsByColor"/>), a colour of the index given as its red, green and blue.</returns>
@@ -1748,24 +1747,80 @@ namespace GeometryHelper.Dxf
         private static InvalidOperationException NoGradient() =>
             new InvalidOperationException("The HATCH has no gradient data: give it a gradient with SetGradient first.");
 
-        /// <summary>A channel of red, green or blue (the low byte of each) taken in proportion from one to another, rounded half away from nought.</summary>
+        /// <summary>A channel of red, green or blue (the low byte of each) taken in proportion from one to another, cut down to a whole number, as AutoCAD 2021 does.</summary>
         private static int Mix(int a, int b, double f)
         {
             a &= 0xFF;
             b &= 0xFF;
-            return (int)Math.Round(a + (b - a) * f, MidpointRounding.AwayFromZero);
+            return (int)(a + (b - a) * f);
         }
 
-        /// <summary>The shade or tint of 0xRRGGBB by a value from 0 to 1: black at 0, the colour at 0.5, white at 1, mixed in proportion between.</summary>
+        /// <summary>The shade or tint of 0xRRGGBB by a value from 0 to 1, as <see cref="TintedColour"/> works it out.</summary>
         private static int Tinted(int rgb, double tint)
         {
-            double t = Math.Max(0.0, Math.Min(1.0, tint));
-            int towards = t < 0.5 ? 0x000000 : 0xFFFFFF;
-            double f = t < 0.5 ? 1.0 - 2.0 * t : 2.0 * t - 1.0;
-            return (Mix(rgb >> 16, towards >> 16, f) << 16)
-                | (Mix(rgb >> 8, towards >> 8, f) << 8)
-                | Mix(rgb, towards, f);
+            DxfColor tinted = TintedColour(Rgb(rgb), tint);
+            return (tinted.Red << 16) | (tinted.Green << 8) | tinted.Blue;
         }
+
+        /// <summary>
+        /// The second end of a gradient of one colour as AutoCAD 2021 works it out (read from the colours it wrote for 45 pairs of
+        /// colour and tint, and from the gradients it evaluated for 25 more): the colour's hue, in whole degrees, and saturation at
+        /// the lightness the tint is, in hue, saturation and lightness, each channel rounded half up. Red (255, 0, 0) at 0.25
+        /// gives (128, 0, 0); (100, 150, 50) at 0.9, (230, 242, 217); any grey at 0.4, a grey of 102; (255, 200, 200) at 0.5, a red
+        /// of 255, since its saturation is full.
+        /// </summary>
+        internal static DxfColor TintedColour(DxfColor colour, double tint)
+        {
+            // The channels stay whole numbers of 255 here, so that a saturation of full is exactly 1: (255, 200, 200) is 55 of 55.
+            double r = colour.Red;
+            double g = colour.Green;
+            double b = colour.Blue;
+            double max = Math.Max(r, Math.Max(g, b));
+            double min = Math.Min(r, Math.Min(g, b));
+            double span = max - min;
+            double saturation =
+                span <= 0.0 ? 0.0
+                : max + min <= 255.0 ? span / (max + min)
+                : span / (510.0 - max - min);
+            double exact =
+                span <= 0.0 ? 0.0
+                : max == r ? 60.0 * (((g - b) / span % 6.0 + 6.0) % 6.0)
+                : max == g ? 60.0 * ((b - r) / span + 2.0)
+                : 60.0 * ((r - g) / span + 4.0);
+
+            // The hue in whole degrees: (0, 128, 255), at 209.88, is worked from 210, which gives the 191 AutoCAD wrote at 0.75
+            // where the hue itself gives 191.5 and a green of 192.
+            double h = Math.Round(exact, MidpointRounding.AwayFromZero) % 360.0 / 360.0;
+            double l = Math.Max(0.0, Math.Min(1.0, tint));
+
+            // The usual way from hue, saturation and lightness back: its sums come to a hair under a half where AutoCAD's do,
+            // (200, 100, 50) at 0.25 giving a blue of 25.4999 and so 25, which a sum worked another way gives 26.
+            double q = l < 0.5 ? l * (1.0 + saturation) : l + saturation - l * saturation;
+            double p = 2.0 * l - q;
+            return DxfColor.FromRgb(
+                Channel(HueToChannel(p, q, h + 1.0 / 3.0)),
+                Channel(HueToChannel(p, q, h)),
+                Channel(HueToChannel(p, q, h - 1.0 / 3.0))
+            );
+        }
+
+        /// <summary>One channel of a colour of hue, saturation and lightness, from the two bounds the lightness and saturation make and the hue shifted for it.</summary>
+        private static double HueToChannel(double p, double q, double t)
+        {
+            t =
+                t < 0.0 ? t + 1.0
+                : t > 1.0 ? t - 1.0
+                : t;
+
+            return t < 1.0 / 6.0 ? p + (q - p) * 6.0 * t
+                : t < 0.5 ? q
+                : t < 2.0 / 3.0 ? p + (q - p) * (2.0 / 3.0 - t) * 6.0
+                : p;
+        }
+
+        /// <summary>A channel from 0 to 1 as a whole number of 255, rounded half up.</summary>
+        private static byte Channel(double value) =>
+            (byte)Math.Max(0.0, Math.Min(255.0, Math.Floor(value * 255.0 + 0.5)));
 
         /// <summary>The true colour of 0xRRGGBB.</summary>
         private static DxfColor Rgb(int rgb) => DxfColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);

@@ -73,32 +73,60 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.IsPoint)
                 {
-                    c.Write("Selecting everything visible...");
-                    c.Write("Analyzing the selected data...");
-                    c.Write("Analyzing internal islands...");
-                    IReadOnlyList<CadBoundaryLoop> loops = CadBoundaryFinder.Find(
-                        c.Document,
-                        c.Space,
-                        c.Input.Point,
-                        c.Session.Tolerance,
-                        c.Session.WorkView?.VisibleBox,
-                        run.Candidates,
-                        settings.GapTolerance
-                    );
+                    GeoPoint2 inside = c.Input.Point;
+                    IReadOnlyList<CadBoundaryLoop> Looked(IReadOnlyCollection<string> among) =>
+                        CadBoundaryFinder.Find(
+                            c.Document,
+                            c.Space,
+                            inside,
+                            c.Session.Tolerance,
+                            c.Session.WorkView?.VisibleBox,
+                            among,
+                            settings.GapTolerance
+                        );
+                    IReadOnlyList<CadBoundaryLoop> loops;
 
-                    if (loops == null)
+                    if (run.Candidates == null)
                     {
-                        c.Write("Valid hatch boundary not found.");
-                    }
-                    else if (Specified(picks, loops[0], c.Session.Tolerance))
-                    {
-                        c.Write("This area has already been specified.");
+                        c.Write("Selecting everything visible...");
+                        c.Write("Analyzing the selected data...");
+                        loops = Looked(null);
+
+                        if (loops == null)
+                        {
+                            c.Write("Valid hatch boundary not found.");
+                        }
                     }
                     else
                     {
-                        picks.Add(
-                            c.Remembered(HatchIslandsKey, 1.0) != 0.0 ? loops : loops.Where(l => l.Depth == 0).ToList()
-                        );
+                        // A boundary set that holds no area round the point is said so, as AutoCAD 2021's console says it, and the
+                        // search goes on among every object: a point inside a square outside the set hatches the square all the
+                        // same (probed: a set of one rectangle, a point in another, both words and the hatch of the second).
+                        loops = Looked(run.Candidates);
+
+                        if (loops == null)
+                        {
+                            c.Write("Valid hatch boundary not found.");
+                            loops = Looked(null);
+                        }
+                    }
+
+                    if (loops != null)
+                    {
+                        c.Write("Analyzing internal islands...");
+
+                        if (Specified(picks, loops[0], c.Session.Tolerance))
+                        {
+                            c.Write("This area has already been specified.");
+                        }
+                        else
+                        {
+                            picks.Add(
+                                c.Remembered(HatchIslandsKey, 1.0) != 0.0
+                                    ? loops
+                                    : loops.Where(l => l.Depth == 0).ToList()
+                            );
+                        }
                     }
                 }
                 else if (c.Input.Is("Undo"))

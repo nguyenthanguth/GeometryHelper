@@ -11,8 +11,11 @@ namespace GeometryHelper.Dxf
     /// </content>
     public sealed partial class DxfSpline
     {
-        // The most degree the library reads a spline of.
+        // The most degree the library reads a spline of when it is fitted or rebuilt.
         private const int MostDegree = 10;
+
+        // The most degree Elevate order reaches: its order of 26, as AutoCAD's SPLINEDIT takes at most.
+        private const int MostElevatedDegree = 25;
 
         /// <summary>
         /// Gets or sets the NURBS data in one value, as AutoCAD's <c>NurbsData</c>: degree, flags, control points, knots,
@@ -211,10 +214,14 @@ namespace GeometryHelper.Dxf
         /// Raises the degree of the spline, as AutoCAD's <c>ElevateDegree</c>: the curve kept exactly, a knot standing as many
         /// times more as the degree is raised, so that the spline is as smooth everywhere as it was; its fit data taken out,
         /// as it is given by its control points from then on. A cubic of 4 points raised to 4 has 5 points, the knots
-        /// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1.
+        /// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1. Raised to 25, the most (AutoCAD's order of 26), it has 26 points and is the same curve:
+        /// the cubic from (0, 0) by (10, 20) and (30, 20) to (40, 0), raised to 12, has the 13 points that AutoCAD 2021 gave,
+        /// the second (2.5, 5) and the third (5.4545, 9.0909), as it has at 11, 15 and 25. The spline's own measures
+        /// (<see cref="GetPointAtParameter"/>, <see cref="GetDistanceAtParameter"/>) work at any of these degrees, but
+        /// <see cref="ToGeoSpline3"/> and the reader take a degree of 10 at most, so a spline raised past 10 gives no shape.
         /// </summary>
-        /// <param name="newDegree">The degree, above the spline's, at most 10; the spline's own changes nothing.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is below the spline's or above 10.</exception>
+        /// <param name="newDegree">The degree, above the spline's, at most 25; the spline's own changes nothing.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is below the spline's or above 25.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the spline has no data that make a spline, or is erased.</exception>
         public void ElevateDegree(int newDegree)
         {
@@ -225,14 +232,14 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
-            if (newDegree < p || newDegree > MostDegree)
+            if (newDegree < p || newDegree > MostElevatedDegree)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(newDegree),
                     newDegree,
                     "A spline's degree is raised from its own, "
                         + p.ToString(CultureInfo.InvariantCulture)
-                        + ", to 10 at most."
+                        + ", to 25 at most."
                 );
             }
 

@@ -93,7 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             DisplayFill2 fill = Assert.IsType<DisplayFill2>(Assert.Single(list.Items));
             Assert.Equal(hatch.EvaluateGradientColorAt(0.5f).ColorValue & 0xFFFFFF, fill.Style.Rgb);
-            Assert.Equal((128 << 16) | (128 << 8) | 204, fill.Style.Rgb);
+            Assert.Equal((127 << 16) | (127 << 8) | 204, fill.Style.Rgb);
         }
 
         [Fact]

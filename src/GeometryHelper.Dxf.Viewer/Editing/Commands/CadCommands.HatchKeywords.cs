@@ -51,7 +51,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// [Arc/Length/Undo]:" (Close from the third corner) until Enter or Close, and "Specify start point for new boundary or
         /// &lt;Accept&gt;:" for another shape. Each shape of three corners or more is a loop of the hatch, one inside another an
         /// island; the shapes are closed across where left open. The hatch is not associative, and AutoCAD leaves the setting
-        /// off after it, as the presenter does. Length goes on along the last segment; an Arc segment is not drawn here.
+        /// off after it, as the presenter does. Length goes on along the way the last segment left its end (the tangent of an arc).
+        /// Arc goes on as AutoCAD's "Enter an arc boundary option [Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of
+        /// arc] &lt;Endpoint&gt;:", with the options PLINE's arc mode has but widths: an arc leaves along the way the shape came (east
+        /// at the first point), CLose closes it with an arc leaving that way, Line goes back to straight segments, and Undo takes
+        /// the last segment off and goes on in line mode. A line from (0, 0) to (100, 0), an arc to (100, 50) and a line to (0, 50)
+        /// closed is a loop of 5 981.75 square units, the half circle of radius 25 on the right side included.
         /// </summary>
         private static IEnumerable<CadPrompt> HatchDrawBoundary(
             CadCommandContext c,
@@ -78,68 +83,202 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 var points = new List<GeoPoint2> { c.Input.Point };
+
+                // The bulge of the segment leaving each point, nought for a line; the last stays nought unless Close drew an arc.
+                var bulges = new List<double> { 0.0 };
+
+                // The way the shape leaves each point, which an arc segment drawn next starts along: east at the first point, or the
+                // way the line, arc or polyline drawn last left its end, as AutoCAD 2021 starts a first arc segment along it.
+                var tangents = new List<GeoVector2>
+                {
+                    c.Remembered("draw.last", 0.0) == 0.0
+                        ? new GeoVector2(1.0, 0.0)
+                        : new GeoVector2(c.Remembered("draw.last.dx", 1.0), c.Remembered("draw.last.dy", 0.0)),
+                };
                 bool closed = false;
+                bool arcs = false;
 
                 while (true)
                 {
                     GeoPoint2 last = points[points.Count - 1];
-                    yield return CadPrompt.ForPoint(
-                        "Specify next point",
-                        last,
-                        points.Count >= 2
-                            ? new[] { "Arc", "Close", "Length", "Undo" }
-                            : new[] { "Arc", "Length", "Undo" }
-                    );
+                    GeoVector2 along = tangents[tangents.Count - 1];
+                    int segments = points.Count - 1;
 
-                    if (c.Input.IsPoint)
+                    if (arcs)
                     {
-                        points.Add(c.Input.Point);
+                        yield return CadPrompt
+                            .ForPoint(
+                                "Enter an arc boundary option",
+                                last,
+                                segments >= 1
+                                    ? new[]
+                                    {
+                                        "Angle",
+                                        "CEnter",
+                                        "CLose",
+                                        "Direction",
+                                        "Line",
+                                        "Radius",
+                                        "Second pt",
+                                        "Undo",
+                                        "Endpoint of arc",
+                                    }
+                                    : new[]
+                                    {
+                                        "Angle",
+                                        "CEnter",
+                                        "Direction",
+                                        "Line",
+                                        "Radius",
+                                        "Second pt",
+                                        "Undo",
+                                        "Endpoint of arc",
+                                    },
+                                "Endpoint"
+                            )
+                            .WithoutOr();
                     }
-                    else if (c.Input.Is("Close"))
+                    else
                     {
-                        closed = true;
-                        break;
+                        yield return CadPrompt.ForPoint(
+                            "Specify next point",
+                            last,
+                            segments >= 1
+                                ? new[] { "Arc", "Close", "Length", "Undo" }
+                                : new[] { "Arc", "Length", "Undo" }
+                        );
                     }
-                    else if (c.Input.Is("Undo"))
+
+                    if (c.Input.Is("Arc"))
                     {
-                        if (points.Count > 1)
+                        arcs = true;
+                        continue;
+                    }
+
+                    if (c.Input.Is("Line"))
+                    {
+                        arcs = false;
+                        continue;
+                    }
+
+                    if (c.Input.Is("Undo"))
+                    {
+                        if (segments == 0)
                         {
-                            points.RemoveAt(points.Count - 1);
-                        }
-                    }
-                    else if (c.Input.Is("Length"))
-                    {
-                        if (points.Count < 2)
-                        {
-                            c.Write("A length goes on along a segment: draw one first.");
+                            c.Write("All segments already undone.");
                             continue;
                         }
 
-                        yield return CadPrompt.ForDistance("Specify length of line", last);
+                        // AutoCAD takes the last segment off and goes on in line mode, whichever it was in.
+                        points.RemoveAt(points.Count - 1);
+                        tangents.RemoveAt(tangents.Count - 1);
+                        bulges.RemoveAt(bulges.Count - 1);
+                        bulges[bulges.Count - 1] = 0.0;
+                        arcs = false;
+                        continue;
+                    }
 
-                        GeoVector2 way = last - points[points.Count - 2];
-                        double size = way.Length;
+                    // Enter at the arc prompt answers its default, which is no segment: the shape ends.
+                    if (c.Input.Is("Endpoint of arc"))
+                    {
+                        break;
+                    }
 
-                        if (c.Input.Kind == CadInputKind.Number && c.Input.Number > 0.0 && size > 0.0)
+                    bool close = c.Input.Is("Close") || c.Input.Is("CLose");
+                    GeoPoint2 next;
+                    double sweep = 0.0;
+
+                    if (close || c.Input.IsPoint)
+                    {
+                        next = close ? points[0] : c.Input.Point;
+
+                        // The arc that leaves along the way the shape came and ends at the point; Ctrl held takes the other way.
+                        if (arcs)
                         {
-                            points.Add(last + way * (c.Input.Number / size));
+                            sweep = SweepLeaving(c.Input.Control ? along * -1.0 : along, next - last);
                         }
                     }
-                    else if (c.Input.Is("Arc"))
+                    else if (!arcs && c.Input.Is("Length"))
                     {
-                        c.Write(
-                            "Arc segments are not drawn here: draw the shape with PLINE and pick it with Select objects."
-                        );
+                        yield return CadPrompt.ForDistance("Specify length of line", last);
+
+                        if (c.Input.Kind != CadInputKind.Number || c.Input.Number <= 0.0)
+                        {
+                            continue;
+                        }
+
+                        next = last + along * c.Input.Number;
+                    }
+                    else if (arcs && !c.Input.IsNone)
+                    {
+                        var end = new PlineArcEnd();
+
+                        foreach (CadPrompt prompt in PlineArc(c, c.Input.Text, last, along, end, new[] { 0.0, 0.0 }))
+                        {
+                            yield return prompt;
+                        }
+
+                        if (!end.Done)
+                        {
+                            continue;
+                        }
+
+                        next = end.End;
+                        sweep = end.Sweep;
                     }
                     else
                     {
                         break;
                     }
+
+                    GeoVector2 span = next - last;
+
+                    // An arc segment ending where the shape leaves its last point, or at it, is no arc: AutoCAD says "*Invalid*". A
+                    // line segment of no length is kept, as AutoCAD keeps it.
+                    if (
+                        span.Length <= c.Session.Tolerance.EqualPoint
+                        || (arcs && Math.Abs(sweep) <= c.Session.Tolerance.EqualAngleRad)
+                    )
+                    {
+                        if (arcs)
+                        {
+                            c.Write("*Invalid*");
+                        }
+                        else if (!close)
+                        {
+                            points.Add(next);
+                            bulges.Add(0.0);
+                            tangents.Add(along);
+                        }
+
+                        continue;
+                    }
+
+                    bulges[bulges.Count - 1] = Math.Tan(sweep / 4.0);
+
+                    if (close)
+                    {
+                        closed = true;
+                        break;
+                    }
+
+                    GeoVector2 leaving = span / span.Length;
+
+                    if (arcs)
+                    {
+                        double outAngle = Math.Atan2(span.Y, span.X) + sweep / 2.0;
+                        leaving = new GeoVector2(Math.Cos(outAngle), Math.Sin(outAngle));
+                    }
+
+                    points.Add(next);
+                    bulges.Add(0.0);
+                    tangents.Add(leaving);
                 }
 
-                if (points.Count >= 3)
+                // A shape of two points is a loop only where an arc gives it an area: a line and the arc leaving it.
+                if (points.Count >= 3 || (points.Count == 2 && (bulges[0] != 0.0 || bulges[1] != 0.0)))
                 {
-                    CadBoundaryLoop loop = DrawnLoop(points);
+                    CadBoundaryLoop loop = DrawnLoop(points, bulges);
                     loops.Add(loop);
 
                     if (!closed)
@@ -187,19 +326,26 @@ namespace GeometryHelper.Dxf.Viewer
             c.Document.HatchSettings = settings.Clone();
         }
 
-        /// <summary>The loop of the corners drawn, turned to run counter-clockwise, with no object it is made of.</summary>
-        private static CadBoundaryLoop DrawnLoop(List<GeoPoint2> points)
+        /// <summary>The loop of the corners drawn and the bulges of the segments leaving them, turned to run counter-clockwise, with no object it is made of.</summary>
+        private static CadBoundaryLoop DrawnLoop(List<GeoPoint2> points, List<double> bulges)
         {
-            var bulges = new double[points.Count];
-            List<GeoPoint2> corners = points;
-
-            if (CadBoundaryFinder.Signed(points, bulges) < 0.0)
+            if (CadBoundaryFinder.Signed(points, bulges) >= 0.0)
             {
-                corners = new List<GeoPoint2>(points);
-                corners.Reverse();
+                return CadBoundaryFinder.Corners(points, bulges, Array.Empty<string>());
             }
 
-            return CadBoundaryFinder.Corners(corners, bulges, Array.Empty<string>());
+            // Turned round, each segment runs the other way: the one that left corner i now arrives at it, with its bulge negated.
+            int n = points.Count;
+            var corners = new List<GeoPoint2>(n);
+            var turned = new double[n];
+
+            for (int k = 0; k < n; k++)
+            {
+                corners.Add(points[n - 1 - k]);
+                turned[k] = -bulges[(2 * n - 2 - k) % n];
+            }
+
+            return CadBoundaryFinder.Corners(corners, turned, Array.Empty<string>());
         }
 
         /// <summary>
@@ -588,7 +734,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Boundary set, of Advanced: "Specify candidate set for boundary [New/Everything] &lt;Everything&gt;:"; New asks "Select
-        /// objects:" and then looks for an area among those alone, Everything among every object of the space.
+        /// objects:" and then looks for an area among those alone, Everything among every object of the space. A point whose area
+        /// the set does not hold is told "Valid hatch boundary not found." and the search goes on among every object, as AutoCAD
+        /// 2021's console does: with the set of one square, a point in another square hatches that one all the same.
         /// </summary>
         private static IEnumerable<CadPrompt> HatchBoundarySet(CadCommandContext c, HatchRun run)
         {

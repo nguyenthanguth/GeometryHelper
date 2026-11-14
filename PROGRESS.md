@@ -158,15 +158,20 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         put beyond a slanting line's end (tw17 58); exact ties; MLEADEREDIT's far-side arrow making its own leader (needs
         measured fonts); words' y offset by the ink depth; context group differences (90, 172, 91, 141, 295, record 45);
         the text width gap 177.4 vs 177.47 (maybe AutoCAD's live picture against its redraw, as found here) (S)
-  - [ ] (hatch3, running) R2.2 follow-ups: draW boundary
-        Arc; the Hatch dialog and HATCHEDIT for single colour and the new settings (design first); core one-colour Tinted and
-        gradient truncation as AutoCAD (1/255); gap bridges from an end to the middle of a line; Boundary set as AutoCAD's
-        console showed it (S)
+  - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
+        loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
+        1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
+  - [ ] R2.2 follow-ups 2: the Hatch dialog and HATCHEDIT for single colour and the new settings (design first);
+        DxfHatch.ShadeTintValue recomputing colour 2; Close with 2 points (AutoCAD makes a degenerate hatch); arc-ended
+        loose ends along their tangent; gap bridging slower with many loose lines (8000: 144 -> 487 ms) (S)
   - [x] R2.3 SPLINEDIT completed (splinedit2): Fit data (Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance), Join,
         Refine (Add, Delete, Elevate order, Move, Weight), Close/Open of control-point splines, met to 1E-5 against AutoCAD;
         a line joined into a spline runs its knots on by 1 as AutoCAD (core DxfJoin)
-  - [ ] (hatch3, running) R2.3 follow-ups: toLerance refitting near the points as AutoCAD (tolerance 0.5 numbers in the merge); Elevate order
-        past 11 (core MostDegree 10, AutoCAD 26); a core DxfJoinTests case for the line knots (S)
+  - [x] R2.3 follow-ups (hatch3): core ElevateDegree up to 25 (AutoCAD's control points to 1E-7 at 11, 12, 15, 25); a
+        DxfJoinTests case for the line knots
+  - [ ] R2.3 follow-ups 2: toLerance refitting (moved inner points found, their direction and cap not; data in
+        .claude/gk/hatch3-notes); drawing splines past degree 10 (NurbsCurve.Check / Bernstein.Multiply index fault) so the
+        presenter can elevate past order 11 (S)
   - [x] R2.4 Dialogs (dialogs4, design v137-v138): Rename, Lineweight Settings (LWDEFAULT drawn, display scale), Check
         Spelling, Boundary Creation, and ribbon buttons in the slide-outs (Draw, Text, Leaders, Dimensions, Views)
   - [x] Dialogs 7 (dialogs7, design v143-v144): Annotation Object Scale (OBJECTSCALE) with Add Scales to Object; the Output
@@ -183,7 +188,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] Dialogs 9 follow-ups (shots): 29 dialogs of rounds 5-9 in the --dialog screenshot mode; PDF links on objects
         seen through viewports; theme fixes (GhCheckBox labels, editable GhComboBox, top-aligned multi-line boxes, two
         window heights)
-  - [ ] Dialogs 10 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
+  - [ ] (dlg10, running: scrollbars, Rename box, old dialog shots, .pss codes) Dialogs 10 follow-ups: raster image quality, PDF layer information and bookmarks (the SkiaSharp writer cannot);
         .pss location codes 1-3; Collect in the Leaders panel; WMF import; multi-line stamp and "." clearing in the GUI;
         PDF links through VPCLIP-clipped and twisted viewports (untested); pale default scrollbars in the Rename and
         Lineweight lists; Named Viewports' Rename box clips 16 characters; screenshots of Find, Drafting Settings,

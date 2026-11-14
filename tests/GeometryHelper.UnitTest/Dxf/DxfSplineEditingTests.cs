@@ -221,7 +221,7 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(9, spline.NumControlPoints);
             SameCurve(before, spline, Tight);
             Assert.Throws<ArgumentOutOfRangeException>(() => spline.ElevateDegree(4));
-            Assert.Throws<ArgumentOutOfRangeException>(() => spline.ElevateDegree(11));
+            Assert.Throws<ArgumentOutOfRangeException>(() => spline.ElevateDegree(26));
         }
 
         [Fact]

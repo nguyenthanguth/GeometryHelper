@@ -709,6 +709,66 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ALineJoinedIntoASpline_RunsItsKnotsOnByOne_AsAutoCad2021DidWhateverTheLinesLength()
+        {
+            // The cubic through (0, 0), (10, 10), (20, 0), (30, 10) and (40, 0) has the knots 0 to 56.5685; the line from (40, 0)
+            // to (60, 10), 22.36 long, joined to it by AutoCAD 2021's SPLINEDIT Join ends it at 57.5685 (not 78.93), the knots
+            // 57.5685 four times from its end, the points a third of the line apart: AutoCAD's records, met to 1E-9.
+            var db = new DxfDatabase("AC1027");
+            var spline = new DxfSpline();
+            db.ModelSpace.AppendEntity(spline);
+            spline.FitData = new DxfFitData(
+                new[]
+                {
+                    new GeoPoint3(0, 0, 0),
+                    new GeoPoint3(10, 10, 0),
+                    new GeoPoint3(20, 0, 0),
+                    new GeoPoint3(30, 10, 0),
+                    new GeoPoint3(40, 0, 0),
+                },
+                3,
+                0.0
+            );
+            var line = new DxfLine(new GeoPoint3(40, 0, 0), new GeoPoint3(60, 10, 0));
+            db.ModelSpace.AppendEntity(line);
+
+            spline.JoinEntity(line);
+
+            double[] knots =
+            {
+                0,
+                0,
+                0,
+                0,
+                14.14213562373095,
+                28.2842712474619,
+                42.42640687119285,
+                56.5685424949238,
+                56.5685424949238,
+                56.5685424949238,
+                57.56854249492381,
+                57.56854249492381,
+                57.56854249492381,
+                57.56854249492381,
+            };
+            Assert.Equal(knots.Length, spline.Knots.Count);
+
+            for (int i = 0; i < knots.Length; i++)
+            {
+                Assert.Equal(knots[i], spline.Knots[i], 9);
+            }
+
+            Assert.Equal(10, spline.NumControlPoints);
+            GeoPoint3 last = spline.GetControlPointAt(9);
+            Assert.Equal(60.0, last.X, 9);
+            Assert.Equal(10.0, last.Y, 9);
+            Assert.Equal(46.66666666666666, spline.GetControlPointAt(7).X, 9);
+            Assert.Equal(3.333333333333333, spline.GetControlPointAt(7).Y, 9);
+            Assert.Equal(53.33333333333332, spline.GetControlPointAt(8).X, 9);
+            Assert.Equal(6.666666666666666, spline.GetControlPointAt(8).Y, 9);
+        }
+
+        [Fact]
         public void ASplineBroughtBackToItsStart_IsClosed_AndAPlanarOneTakenOutOfItsPlaneIsNoLongerSaidToBePlanar()
         {
             var points = new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(5, 5, 0), new GeoPoint3(10, 0, 0) };

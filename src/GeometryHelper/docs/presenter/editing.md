@@ -455,8 +455,15 @@ either way, as -HATCH keeps it.
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
 (`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
 each shape drawn, one inside another an island; Enter leaves a shape open and the hatch closes it across. The hatch is not
-associative, and associativity stays off afterwards, as AutoCAD leaves HPASSOC. Length goes on along the last segment; an Arc
-segment is not drawn here (draw it with PLINE and use Select objects). remove Boundaries asks `Select objects or [Add
+associative, and associativity stays off afterwards, as AutoCAD leaves HPASSOC. Length goes on along the way the last segment left
+its end (the tangent of an arc). Arc asks `Enter an arc boundary option [Angle/CEnter/CLose/Direction/Line/Radius/Second pt/Undo/Endpoint of
+arc] <Endpoint>:` (CLose from the second segment on) and draws the arc segments of PLINE: by its end point leaving along the way the shape
+came (east at the first point, or the way the last line was drawn), or by an included Angle, a CEnter, a Direction, a Radius or a
+Second pt; Line goes back to straight segments, CLose closes the shape with an arc leaving the way it came, Undo takes the last
+segment off and goes on in line mode (`All segments already undone.` at the first point), an end that makes no arc says
+`*Invalid*`, and Enter ends the shape. A line from (0, 0) to (100, 0), an arc to (100, 50) and a line to (0, 50) closed is
+5 981.75 square units, the half circle of radius 25 on the right included. A shape of two points is a loop only when an arc gives
+it an area. remove Boundaries asks `Select objects or [Add
 boundaries]:` and takes out the loops the objects selected make (an island by its circle, say; the outer loop going takes the
 area with it), asks `Select objects or [Add boundaries/Undo]:` again, Undo bringing the last removal back and Add boundaries
 going back to the point prompt. Origin asks `[Use current origin/Set new origin/Default to boundary extents] <Use current
@@ -476,12 +483,16 @@ below).
 
 Advanced asks `Enter an option [Boundary set/Retain boundary/Island detection/Style/Associativity/Gap tolerance/separate
 Hatches]:` until Enter: Boundary set asks `Specify candidate set for boundary [New/Everything] <Everything>:`, New taking
-`Select objects:` and then finding an area among those objects alone (a point where they close none says `Valid hatch
-boundary not found.`), Everything all the objects of the space again; Retain boundary keeps polylines of the loops as well
+`Select objects:` and then finding an area among those objects alone; a point where they close none says `Valid hatch
+boundary not found.` and the search goes on among every object, as AutoCAD 2021's console does (with the set of one square, a point
+in another hatches that square all the same), Everything all the objects of the space again; Retain boundary keeps polylines of the loops as well
 (those of an ellipse or spline have no corners and are left out), Style is `[Ignore/Outer/Normal]`, Gap tolerance asks `Specify
 a boundary gap tolerance value <0>:` from 0 to 5000 (`Value must be between 0 and 5000.` outside), says `HPGAPTOL set to 3` and
-joins two loose ends no further apart than that with a straight edge of no object, so that a square 100 by 100 with a gap of 2
-in one side is hatched at 3 and not at 1 (a gap to the middle of another line is not closed; HATCH takes the same value),
+closes loose ends no further than that as AutoCAD does: a line is taken on along its own direction and closes where that reaches
+another line or arc (a line ending 2 off the middle of another is joined to it at the foot of its direction), or where it meets the
+way another loose end goes on (two lines whose ends are 3 apart across a corner meet at the corner), or the other end itself, and
+two ends that are not so met are joined by a straight edge of no object; a square 100 by 100 with a gap of 2 in one side is
+hatched at 3 and not at 1 (HATCH takes the same value),
 and separate Hatches makes one hatch of each pick. DRaw order asks `Enter draw order [do Not assign/send to Back/bring to
 Front/send beHind boundary/bring in front of bounDary] <send beHind boundary>:`, as AutoCAD starts (HPDRAWORDER 3): the hatch
 is put under the lowest object of its boundary, and -HATCH and HATCH share the choice. HATCH draws the hatch behind its
@@ -514,7 +525,8 @@ the knots 28.28 stand three times and the fourth 1E-8 past, as AutoCAD wrote the
 back to the top menu. Tangents asks `Specify start tangent or [System default]:` and `Specify end tangent or [System
 default]:`, a point each: the start tangent runs from the point to the first fit point and the end from the last fit point to
 the point, and System default at the end takes both away. toLerance asks `Enter fit tolerance <1.0000E-10>:` and writes it;
-AutoCAD fits a curve that passes near the points within it, the presenter keeps the curve through them. Join asks `Select
+AutoCAD fits a curve that passes near the points, through the points moved by up to the tolerance (0.5 for the five points above
+moves the three inner ones up by 0.5); the presenter keeps the curve through the points. Join asks `Select
 any open curves to join to source:` and takes what meets an end of the spline, as JOIN does (a line, an arc, a polyline, a
 spline), saying `1 object joined to source` and, for the curves it could not take, `, 1 object discarded from the operation`;
 the fit data go with it. Refine asks `Enter a vertex editing option [Add/Delete/Elevate order/Move/Weight/eXit] <eXit>:`: Add
@@ -523,7 +535,8 @@ Delete (`Specify control vertex to delete:`, `Not a control vertex.` for a pick 
 Elevate order (`Enter new order <4>:`) raises the degree to one less than the order, Move is Move vertex, and Weight says
 `Spline is not rational. Will make it so.` for a spline that is not and asks `Enter new weight (current = 1.0000) or
 [Next/Previous/Select point/eXit] <N>:` of each control vertex in turn. The fit data go with the first change of Refine, not
-before. Elevate order stops at order 11 (AutoCAD's 26).
+before. Elevate order stops at order 11 here (AutoCAD's 26): the library raises a spline to degree 25 with its control points as AutoCAD's
+(`DxfSpline.ElevateDegree`), but reads none of degree above 10 for drawing.
 CLASSICINSERT shows the same Insert palette as INSERT: AutoCAD's classic Insert dialog asks the same things (the block
 or file, insertion point, scale and rotation each given or specified on screen, explode) in another frame, so it is not
 built apart.

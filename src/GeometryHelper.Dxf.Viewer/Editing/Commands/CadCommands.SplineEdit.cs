@@ -760,7 +760,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        // The most order (the degree and one) the library raises a spline to; AutoCAD's own is 26.
+        // The most order (the degree and one) the presenter raises a spline to. AutoCAD takes 26 and the library's DxfSpline.ElevateDegree
+        // does too, the control points to 1E-7 of AutoCAD's, but a spline of a degree above 10 is read by no GeoSpline3 (its Bernstein
+        // products and speed breaks stop there), so the presenter would not draw it.
         private const int MostSplineOrder = 11;
 
         /// <summary>The index of the control vertex nearest a point within the pick aperture; -1 where there is none.</summary>
