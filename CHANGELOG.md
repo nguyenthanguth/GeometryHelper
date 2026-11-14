@@ -103,6 +103,35 @@ not for each INSERT of it. Nothing is kept: a text or a polyline edited after it
 MB of garbage where there were 277; texts alone 245 ms where 360, 100 000 INSERTs of a block of 20 entities 1 175 ms where 1 591, and the
 drawing of 1 000 000 entities 2.8 s where 3.4 (.NET 8) and 4.3 where 5.0 (.NET Framework). The shapes an entity keeps stay: the same
 objects each time they are asked for. No public signature changed.
+**FIXED.** Turned words (DIMTEDIT Angle) put near an end of a slanting line under DIMTMOVE 1 in the presenter go back from the line run
+on to the leader from the middle where AutoCAD 2021 does (probed on its console with some 20 000 more probes, the sets tw17 to tw31 of
+the round, differing pictures before and after). AutoCAD draws the shorter of two leaders: the line run on from its end to the level of
+the words' point and a level landing back from there (the run and the landing together), or the straight leader from the middle of the
+line to the point; where the level of the point is not beyond the level of either end of the line, or the leader from the middle is
+the shorter, it keeps that. An upright line of 40 with the words 8 past its end is run on up to 45 across and has the leader from the
+middle beyond (60 at 5 past the end, 36.67 at 12, 30 at 20); a line of 40 at 60 degrees up to 13.2708 across (30.987 of leader either
+way), at 30 degrees 5.5025, at 20 degrees 3.5664, and a line of 100 at 60 degrees 34.28; lines leaning back (120 and 135 degrees) are
+run on as long as the level of the point is beyond the end (13 across at 120 degrees for a line of 25, not 14). Neither DIMASZ, DIMTXT,
+DIMGAP, DIMEXE, the length of the words, their angle nor the distance of the line from its points change the cut-off, and the distance
+past the end hardly does (13.52 across at 5 past, 12.42 at 30, a line of 40 at 60 degrees). Words over the line by less than DIMGAP and
+an arrowhead (or half their height and DIMEXE, whichever is more: 3.125 for the style of the probes, 2.8, 3.7, 4.375 and 4.625 as they
+are varied) are run on whatever the length: a line of 10 at 20 degrees with the words 1 over it has the line run on 10.747 to their level,
+a landing of 2.5 and the words moved in to stand at its end. The run is made an arrowhead long where it would be shorter, the landing
+and the words moving with its end: a line of 40 at 140 degrees with the words 8 past and 5 over has 2.04 of run made 2.5 (the words
+0.459 further along and 0.295 higher), an upright line of 7.2 with the words 1.44 past its end and 5 over has the run made 2.5 and
+the words stand 1.06 higher, and words 4 along from the start of a long line leaning back run its line on backwards. On a line too
+short for its arrowheads they stand out on a line of their own and the run starts where that ends (two arrowheads at least), and the
+line between the extension lines is drawn twice where the leader goes from its middle and once where the line is run on (72 probes of
+lines of 3, 5 and 6 at six slopes). Words put past an end of a level line within the leader's reach are laid on the line, their point
+as high as it, and the line run on to a gap and half their width short of them (48 probes). Of the probe sets, the differing pictures
+before and after: tw17 6 of 324 now 0, tw18 17 of 1 188 now 2, tw20 112 of 480 now 0, tw22 59 of 154 now 1, tw23 (1 140 probes of
+slopes 20 to 80 and lengths 10 to 100 across the cut-off) 615 now 0, tw24 (past the end by 5 to 30) 366 now 0, tw26 (the line 5 to 60
+from its points) 336 now 0, tw25 (by style, words and angle, 2 200 probes) 1 422 now 0, tw28 (6 480 probes of the cut-off bisected to 0.0025 over slope, length and distance past)
+4 240 now 7 (exact ties of the landing's side), tw29 309 of 672 now 0, tw30 72 of 72 now 0, tw31 48 of 48 now 0; the other 73 sets of probes (tw1 to tw16, tw19, tw21, the m sets, tm3, ts1 and the 51 made by AutoCAD itself) are as they were, to the byte. Not as AutoCAD yet: words on the line a little
+inside an end (across 2.25 within 5 of it: AutoCAD turns the arrowheads out, draws the line twice and breaks it round the turned box
+off the foot of the point, 20 of 738), the words of an exact tie of the leader's side (a level line of 7.2 with the words below its
+middle at 180 degrees), and level words put out by the fit past a leader on a line of 5 or 9 (tw19: 64 of 1 024, where AutoCAD draws
+the line run on to the level of the leader's knee and the words on a landing).
 
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).

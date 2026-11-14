@@ -2055,39 +2055,91 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            // Turned words put past an end of a line steeper than a slope of a half (26.6 degrees; AutoCAD 2021 keeps the leader from the
-            // middle at 26 and runs the line on at 28), where the line, run on, reaches the level of their point: the line is run on to
-            // that level and a level landing runs back from there towards the words, an arrowhead long at least, the words standing at
-            // its end by half their width and a gap. "100" put 8 past the end of an upright line of 40 and 5 over it has its line run on
-            // to 48 and a landing of 2.5 (the words move out by 0.765); on a line at 30 degrees the landing is 6.735 and they stay.
-            if (
-                move == 1
-                && turnedHalf.HasValue
-                && (t > length || t < 0.0)
-                && Math.Abs(along.Y) > 0.5 * Math.Abs(along.X)
-                && (!zoned || (t > length ? t - half > length + arrow + NearZero : t + half < -arrow - NearZero))
-            )
-            {
-                GeoVector2 on = t > length ? along : -along;
-                GeoPoint2 end = t > length ? q2 : q1;
-                double run = (at.Y - end.Y) / on.Y;
+            // Turned words put near an end of the line, over it or past it, under DIMTMOVE 1: where the level of their point lies beyond
+            // the level of that end (the line, run on, reaches it), AutoCAD 2021 draws one of two leaders, the shorter: the line run on
+            // from its end to that level and a level landing back from there to the words (the run and the landing together), or the
+            // straight leader from the middle of the line to the point. Words within the leader's reach of the line (their point DIMGAP
+            // and an arrowhead or half their height and DIMEXE over it, the least a leader is drawn from) are run to whatever the
+            // length. Every size of the style leaves the choice as it is, and so does the distance of the line from its points: the
+            // slope, the length and where the point lies decide it. An upright line of 40 with the words 8 past its end is run on
+            // up to 45 across and has the leader from the middle beyond, 60 at 5 past and 36.67 at 12; a line of 40 at 30 degrees
+            // is run on up to 5.5 across with the words 8 past. The landing is never shorter than an arrowhead and neither is the
+            // run: a run of 2.04 on a line at 140 degrees is made 2.5, the landing and the words moving with its end. "100" put 8
+            // past the end of an upright line of 40 and 5 over it has its line run on to 48 and a landing of 2.5 (the words move
+            // out by 0.765); on a line at 30 degrees the landing is 6.735 and they stay.
+            bool beyondEnds = t > length - NearZero || t < -NearZero;
+            bool inReach = Math.Abs(across) < gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero;
 
-                if (run > NearZero)
+            if (move == 1 && turnedHalf.HasValue && inReach && beyondEnds && Math.Abs(along.Y) <= NearZero)
+            {
+                // A level line has no level of its own to run on to: the words put past an end within the leader's reach are laid on
+                // the line (their point as high as it, whatever its distance, as AutoCAD 2021 draws them: "100" turned 20, put 8 past
+                // the end of a line of 40 and 2 over it, is centred at (48, 30)) and the line is run on to a gap short of them.
+                GeoPoint2 end = t > length / 2.0 ? q2 : q1;
+                GeoVector2 on = t > length / 2.0 ? along : -along;
+                double reachTo = (at - end).X * on.X - (width / 2.0 + gap);
+
+                if (reachTo > NearZero)
                 {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(end, end + on * reachTo));
+                }
+
+                layout.At = new GeoPoint2(at.X, end.Y + offLine);
+                return;
+            }
+
+            if (move == 1 && turnedHalf.HasValue && (beyondEnds || !inReach))
+            {
+                for (int tip = 0; tip < 2; tip++)
+                {
+                    GeoVector2 on = tip == 0 ? along : -along;
+                    GeoPoint2 end = tip == 0 ? q2 : q1;
+                    double run = Math.Abs(on.Y) > NearZero ? (at.Y - end.Y) / on.Y : 0.0;
+
+                    if (run <= NearZero)
+                    {
+                        continue;
+                    }
+
                     GeoPoint2 bend = end + on * run;
+
+                    if (!inReach && run + Math.Abs(bend.X - at.X) >= (at - middle).Length - NearZero)
+                    {
+                        continue;
+                    }
+
                     double need = width / 2.0 + gap;
                     double side = bend.X >= at.X ? 1.0 : -1.0;
                     double landing = Math.Max(arrow, Math.Abs(bend.X - at.X) - need);
+                    // Arrowheads out of the line stand on a line of their own, and the run is at least that far: two arrowheads.
+                    bool standing = arrowheads && !layout.ArrowsInside;
+                    double least = standing ? 2.0 * arrow : arrow;
+                    GeoVector2 shift = on * Math.Max(0.0, least - run);
                     var stop = new GeoPoint2(bend.X - side * landing, bend.Y);
-                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(end, bend));
-                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, stop));
-                    layout.At = new GeoPoint2(stop.X - side * need, stop.Y + offLine);
+
+                    if (!standing || run > least + NearZero)
+                    {
+                        layout.Outside.Add(
+                            new KeyValuePair<GeoPoint2, GeoPoint2>(standing ? end + on * least : end, bend + shift)
+                        );
+                    }
+
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend + shift, stop + shift));
+                    layout.At = new GeoPoint2(stop.X - side * need, stop.Y + offLine) + shift;
                     return;
                 }
             }
 
             if (move == 1 && Math.Abs(across) >= gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero)
             {
+                // A line too short for its arrowheads (under 6.25 for arrowheads of 2.5) is drawn twice for turned words with the
+                // leader from its middle, as AutoCAD 2021 draws it on a slanting line (probe tw30: lines of 3, 5 and 6 at six slopes,
+                // 58 of 58 of those with the leader from the middle), where the line run on is drawn once.
+                if (turnedHalf.HasValue && arrowheads && !layout.ArrowsInside && Math.Abs(along.Y) > NearZero)
+                {
+                    layout.Doubled = true;
+                }
+
                 // Turned words are held on a level landing, running the way the point lies from the middle of the line.
                 GeoVector2 away =
                     turnedHalf.HasValue ? new GeoVector2((at - middle).X >= 0.0 ? 1.0 : -1.0, 0.0)

@@ -180,9 +180,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         line along its normal (tw17 58 -> 6, tw18 186 -> 17); level words fit by their reach and drop the leader at twice
         the rise (tw19 334 -> 64); the doubled line of DIMTMOVE 1; the run-on with a level landing on steep lines (tw21
         80 -> 0); 272/273 after the leaders in MLEADER context data; harness .claude/gk/annot-harness6
-  - [ ] (annot7, running) Annotative objects 5d: where AutoCAD goes back from the run-on to the leader (34 of tw22, by slope and length);
-        upright line of 7.2 with words 8 past under DIMTMOVE 1; words near the start of a long line at 135/150/315;
-        tw19's 64 (l5 and s30 l9); tw20 slopes 136-146; the ts1 generator (stale reflection) (S)
+  - [x] Annotative objects 5d (annot7): turned words near an end of a slanting line under DIMTMOVE 1 take the shorter of
+        the run-on with a level landing and the straight leader from the middle (0 wrong of 6 480 bisected probes; the
+        leader's reach floor exact); runs made an arrowhead long; the doubled line only with the middle leader; words on a
+        level line past an end; tw17/20/23-26/29-31 now 0, tw28 4240 -> 7 ties; harness .claude/gk/annot-harness7
+  - [ ] Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
+        has no rule); tw27's 20 (words over the line by 2.25: arrowheads out and the line twice, or a 6.63 break); exact
+        ties (tw18 2, tw22 1, tw28 7) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
@@ -509,7 +513,7 @@ the ones wanted.
       wide sweeps with the arc symbol (tar41s 208 -> 21, tar39s 92 -> 10); level words outside by sin(from + sweep/3);
       bothExtra as a window on the arc middle's direction (tar42s 31 -> 2); the text-rounding cases were the probe's
       six-decimal radians (tar30s 73 -> 1); harness .claude/gk/assoc-harness8
-- [ ] Associative dimensions follow-ups 9: sweeps of 180 degrees or more (tar38s 76 of 252, tar24s ~100); level words
+- [ ] (assoc9, running) Associative dimensions follow-ups 9: sweeps of 180 degrees or more (tar38s 76 of 252, tar24s ~100); level words
       with DIMJUST 1 at sweep 80 (arrowheads out in AutoCAD); DIMARCSYM 0 a10 100 degrees (0.05 later); the bothExtra
       window rests on two widths; text 0.36 under-corrected by 0.02-0.04 (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
@@ -763,7 +767,7 @@ the ones wanted.
       the display, handle-less blocks listed once: cold display of 100k mixed 330 -> 255 ms (net8) / 519 -> 431 (net48),
       1M 3.36 -> 2.79 s, INSERT-heavy 1591 -> 1175 ms, garbage 277 -> 154 MB at 100k; display lists and pixels identical
       on 172 drawings. DECIDED: no TEXT cache (the one-pass read is cheap; an edit is always seen)
-- [ ] Speed follow-ups 9: GeoPolygonArc3 construction (1.7 us, 2.9 KB per polyline); INSERT BlockTransform/Position in
+- [ ] (speed10, running) Speed follow-ups 9: GeoPolygonArc3 construction (1.7 us, 2.9 KB per polyline); INSERT BlockTransform/Position in
       one pass; the remaining ParsedOf users; dropping the LINE/ARC/CIRCLE shape cache (same-object contract); TryChain
       garbage; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a
       DWG read stopped mid-way (S)
