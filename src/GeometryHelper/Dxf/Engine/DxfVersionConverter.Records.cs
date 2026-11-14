@@ -39,9 +39,22 @@ namespace GeometryHelper.Dxf
                     DataTable(record);
                     break;
                 case "TABLESTYLE":
+                    if (_source >= 1021 && _target < 1021)
+                    {
+                        KeepStyle(record);
+                    }
+                    else if (_source < 1021 && _target >= 1021)
+                    {
+                        StyleUp(record);
+                    }
+
                     if (_target < 1024)
                     {
                         TableStyle(record);
+                    }
+                    else
+                    {
+                        StyleVersion(record);
                     }
 
                     break;
@@ -369,14 +382,14 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gives a table the group 280 R2010 and later write first in it, after its subclass marker (the version of its data, nought), where it has none.</summary>
+        /// <summary>Gives a table the group 280 R2010 and later write first in it, after its subclass marker (the version of its data, nought), where it has none there (a 280 after its flags is another group).</summary>
         private void TableVersion(Record record)
         {
             List<Group> groups = record.Groups;
 
             if (
                 Subclass(groups, "AcDbTable", out int start, out int end)
-                && groups.FindIndex(start, end - start, g => g.Code == 280) < 0
+                && !(start + 1 < end && groups[start + 1].Code == 280)
             )
             {
                 groups.Insert(start + 1, Whole(280, 0));

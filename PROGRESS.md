@@ -270,7 +270,7 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] R12 follow-ups 5 (r12f): stacks under/over/through letters (\L, \O, \K with strike LINEs), stacks in TrueType and
       beside a big font, tilted solid fills, arcs/bulges/ellipses in fills, multi-line attributes as Tag_001..., pattern
       line order as AutoCAD; 204 of 259 harness cases equal (was 42); harness in .claude/gk/r12-harness
-- [ ] R12 follow-ups 6: round holes, stars and hole notches in fills (AutoCAD's cut level beside a hole; donut 136+134
+- [ ] (r12g, running) R12 follow-ups 6: round holes, stars and hole notches in fills (AutoCAD's cut level beside a hole; donut 136+134
       vs ours 136+132, circle 10 in 30 142+142 vs 216+214); gradient band meshes (CYLINDER 152, SPHERICAL 332 SOLIDs on
       100x60; shape-dependent); dashes at 45/135 degrees one short; Palatino stack 0.2 off; big-font letters in a stack
       half; multi-line attributes not held top-left; hatch SOLIDs on normal (0,0,-1); MTEXT \C colour runs (62 on the
@@ -291,12 +291,15 @@ User note 2026-11-12 evening (note.md 1-14):
       AutoCAD's, override mask decoded), cell flags and long texts both ways; MTEXT background xdata of R2000 (18 of 18);
       lofts to R2004/R2007 through R2010 text (volume kept). DECIDED: transparency kept going up (AutoCAD drops it);
       the R2010 SAT fallback widened to every version below R2010; MTEXTBEGIN/BBRT stripped going up as before
-- [ ] (dxfver6, running: the table parts) DXF versions follow-ups 6: ACAD_ROUNDTRIP_PRE2007_TABLESTYLE in each table style going down; invisible-only
-      borders dropped to R2000 as AutoCAD (the dxfver4 test expects them kept: match AutoCAD); merged cells' borders
-      copied into continuation cells; auto-scaled block cells (3.94 vs 1.0); TABLE_ENTITY for a table without
-      TABLECONTENT; sweeps along splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007);
-      oblique extrusions (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables cost
-      4.5 us per cell going down (M)
+- [x] DXF versions follow-ups 6, table parts (dxfver6): ACAD_ROUNDTRIP_PRE2007_TABLESTYLE going down (row formats),
+      formats restored going up, 280 of styles and tables going to R2010+. Invisible borders, merged-cell borders,
+      block auto-scale and TABLE_ENTITY are fixes AutoCAD makes when it READS a table, in every version, not Save As
+      rules: DECIDED (reversing the earlier line on evidence) to keep borders as AutoCAD's in-memory Save As does
+- [ ] DXF versions follow-ups 7: AutoCAD's read-time table fixes for tables made by our DxfTable API (borders copied
+      along a merged range, auto-fit block scale min((W-2hm)/bw, (H-2vm)/bh)); TABLEGEOMETRY 93 = 3 vs 7 in one case;
+      table styles without an extension dictionary; tables without a style (342) given a TABLECONTENT; sweeps along
+      splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007); oblique extrusions
+      (sumsur) on other profiles; the widened SAT fallback checked on more bodies; data tables 4.5 us per cell (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [ ] XCLIP follow-ups 2: REFEDIT done (refedit, blocks; xrefs left: see REFEDIT follow-ups); Clipdepth planes in 3D views; the flip arrow's click and direction checked in the AutoCAD GUI; clip vertex drag in a tilted UCS (S)

@@ -1105,5 +1105,238 @@ namespace GeometryHelper.Dxf
         }
 
         #endregion
+
+        #region The formats of a table style, kept for the old releases
+
+        private const string StyleRoundTripName = "ACAD_ROUNDTRIP_PRE2007_TABLESTYLE";
+
+        /// <summary>
+        /// Finds what a table style keeps its round trip in: its extension dictionary, and the XRECORD that dictionary names as
+        /// <c>ACAD_XREC_ROUNDTRIP</c> (null where it names none). False where the style has no extension dictionary of its own.
+        /// </summary>
+        private bool StyleRoundTrip(Record style, out Record dictionary, out Record xrecord)
+        {
+            dictionary = null;
+            xrecord = null;
+            int at = style.Groups.FindIndex(g => g.Code == 102 && g.Value == "{ACAD_XDICTIONARY");
+
+            if (at < 0 || at + 1 >= style.Groups.Count || style.Groups[at + 1].Code != 360)
+            {
+                return false;
+            }
+
+            dictionary = ObjectAt(style.Groups[at + 1].Value);
+
+            if (dictionary == null || dictionary.Type != "DICTIONARY")
+            {
+                dictionary = null;
+                return false;
+            }
+
+            int entry = dictionary.Groups.FindIndex(g => g.Code == 3 && g.Value == "ACAD_XREC_ROUNDTRIP");
+
+            if (entry >= 0 && entry + 1 < dictionary.Groups.Count)
+            {
+                Record found = ObjectAt(dictionary.Groups[entry + 1].Value);
+                xrecord = found != null && found.Type == "XRECORD" ? found : null;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The formats of the three kinds of row of a table style, as AutoCAD keeps them in the round trip of the style
+        /// (<c>ACAD_ROUNDTRIP_PRE2007_TABLESTYLE</c>): for the data, title and header rows in that order, the type of the value (90,
+        /// 92, 94: 512 for any), its unit (91, 93, 95: 0 for none) and its format (1, 2, 3), which a style of R2007 and later holds
+        /// after the fill of each row (283) in the groups 90, 91 and 1 and one of R2004 and before has no place for. A row without
+        /// them is any value, no unit and no format.
+        /// </summary>
+        private List<Group> StyleFormats(Record style)
+        {
+            var made = new List<Group>(9);
+            List<Group> groups = style.Groups;
+            int row = 0;
+
+            if (Subclass(groups, "AcDbTableStyle", out int start, out int end))
+            {
+                for (int i = start; i < end && row < 3; i++)
+                {
+                    if (groups[i].Code != 283)
+                    {
+                        continue;
+                    }
+
+                    bool held =
+                        i + 3 < end && groups[i + 1].Code == 90 && groups[i + 2].Code == 91 && groups[i + 3].Code == 1;
+
+                    made.Add(Whole(90 + 2 * row, held ? Parse(groups[i + 1].Value) : 512));
+                    made.Add(Whole(91 + 2 * row, held ? Parse(groups[i + 2].Value) : 0));
+                    made.Add(new Group(1 + row, held ? groups[i + 3].Value : string.Empty));
+                    row++;
+                }
+            }
+
+            for (; row < 3; row++)
+            {
+                made.Add(Whole(90 + 2 * row, 512));
+                made.Add(Whole(91 + 2 * row, 0));
+                made.Add(new Group(1 + row, string.Empty));
+            }
+
+            return made;
+        }
+
+        /// <summary>A whole number written in a group, 0 where it is not one.</summary>
+        private static int Parse(string value) =>
+            int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : 0;
+
+        /// <summary>
+        /// Keeps the formats of a table style of R2007 or later that goes to R2004 or before, which the style has no place for, as
+        /// AutoCAD does: in its extension dictionary, the XRECORD <c>ACAD_XREC_ROUNDTRIP</c> (made where the dictionary names none)
+        /// holds <c>ACAD_ROUNDTRIP_PRE2007_TABLESTYLE</c> and the formats of its three kinds of row. A style with no extension
+        /// dictionary keeps none.
+        /// </summary>
+        private void KeepStyle(Record style)
+        {
+            if (!StyleRoundTrip(style, out Record dictionary, out Record xrecord))
+            {
+                return;
+            }
+
+            if (xrecord != null && xrecord.Groups.Exists(g => g.Code == 102 && g.Value == StyleRoundTripName))
+            {
+                return;
+            }
+
+            string owner = HandleOf(dictionary);
+
+            if (owner == null)
+            {
+                return;
+            }
+
+            if (xrecord == null)
+            {
+                string handle = NewHandle();
+
+                if (handle == null)
+                {
+                    return;
+                }
+
+                xrecord = new Record();
+                xrecord.Groups.AddRange(
+                    new[]
+                    {
+                        new Group(0, "XRECORD"),
+                        new Group(5, handle),
+                        new Group(102, "{ACAD_REACTORS"),
+                        new Group(330, owner),
+                        new Group(102, "}"),
+                        new Group(330, owner),
+                        new Group(100, "AcDbXrecord"),
+                        Whole(280, 1),
+                    }
+                );
+                _added.Add(xrecord);
+                dictionary.Groups.Add(new Group(3, "ACAD_XREC_ROUNDTRIP"));
+                dictionary.Groups.Add(new Group(360, handle));
+            }
+
+            xrecord.Groups.Add(new Group(102, StyleRoundTripName));
+            xrecord.Groups.AddRange(StyleFormats(style));
+        }
+
+        /// <summary>
+        /// Gives a table style of R2004 or before that goes to R2007 or later the formats of its rows (90, 91 and 1 after the fill
+        /// of each, the groups R2007 added) from the round trip AutoCAD kept for them, or any value, no unit and no format where it
+        /// has none, and takes that part of the round trip out of the extension dictionary, as AutoCAD does.
+        /// </summary>
+        private void StyleUp(Record style)
+        {
+            StyleRoundTrip(style, out Record dictionary, out Record xrecord);
+            var formats = new List<Group>(0);
+            int part =
+                xrecord == null ? -1 : xrecord.Groups.FindIndex(g => g.Code == 102 && g.Value == StyleRoundTripName);
+
+            if (part >= 0 && part + 9 < xrecord.Groups.Count)
+            {
+                formats = xrecord.Groups.GetRange(part + 1, 9);
+            }
+
+            if (formats.Count != 9 || formats[0].Code != 90 || formats[8].Code != 3)
+            {
+                formats = new List<Group>(0);
+            }
+
+            List<Group> groups = style.Groups;
+
+            if (Subclass(groups, "AcDbTableStyle", out int start, out int end))
+            {
+                int row = 2;
+
+                for (int i = end - 1; i >= start && row >= 0; i--)
+                {
+                    if (groups[i].Code != 283)
+                    {
+                        continue;
+                    }
+
+                    if (i + 1 < end && groups[i + 1].Code == 90)
+                    {
+                        row--;
+                        continue;
+                    }
+
+                    groups.Insert(i + 1, new Group(1, formats.Count == 0 ? string.Empty : formats[3 * row + 2].Value));
+                    groups.Insert(
+                        i + 1,
+                        formats.Count == 0 ? Whole(91, 0) : Whole(91, Parse(formats[3 * row + 1].Value))
+                    );
+                    groups.Insert(
+                        i + 1,
+                        formats.Count == 0 ? Whole(90, 512) : Whole(90, Parse(formats[3 * row].Value))
+                    );
+                    row--;
+                }
+            }
+
+            if (part < 0)
+            {
+                return;
+            }
+
+            xrecord.Groups.RemoveRange(part, Math.Min(10, xrecord.Groups.Count - part));
+
+            // The XRECORD that held nothing else goes, and its name in the dictionary with it.
+            if (!xrecord.Groups.Exists(g => g.Code == 102 && g.Value.StartsWith("ACAD_", StringComparison.Ordinal)))
+            {
+                int entry = dictionary.Groups.FindIndex(g => g.Code == 3 && g.Value == "ACAD_XREC_ROUNDTRIP");
+
+                if (entry >= 0)
+                {
+                    dictionary.Groups.RemoveRange(entry, 2);
+                }
+
+                xrecord.Dropped = true;
+            }
+        }
+
+        /// <summary>Gives a table style the group 280 R2010 and later write first in it, after its subclass marker (the version of its data, nought), where it has none.</summary>
+        private void StyleVersion(Record style)
+        {
+            List<Group> groups = style.Groups;
+
+            if (
+                Subclass(groups, "AcDbTableStyle", out int start, out _)
+                && start + 1 < groups.Count
+                && groups[start + 1].Code != 280
+            )
+            {
+                groups.Insert(start + 1, Whole(280, 0));
+            }
+        }
+
+        #endregion
     }
 }
