@@ -3380,6 +3380,31 @@ namespace GeometryHelper.Dxf
                     entities[entity.Handle] = entity;
                 }
 
+                // An entity an action holds that the block no longer has, erased in the Block Editor, drops out of the action
+                // and the action goes on with the rest, as AutoCAD 2021's UpdateAnonymousBlocks worked a panel whose acted
+                // lines were erased (plugin GhAs1): every value kept, the erased entity gone from each anonymous block, an
+                // action left holding nothing doing nothing. An array that loses one is not worked out: AutoCAD 2021 drew no
+                // copies of the rest, and reset the width of a panel whose only action it was.
+                foreach (BlockAction action in block.Actions)
+                {
+                    bool Gone(string handle) =>
+                        handle != null && !entities.ContainsKey(handle) && file.ObjectItem(handle) == null;
+
+                    int gone =
+                        action.Entities.RemoveAll(Gone)
+                        + action.Turned.RemoveAll(Gone)
+                        + action.Held.RemoveAll(h => Gone(h.Key));
+
+                    if (gone > 0 && action.Kind == ActionKind.Array)
+                    {
+                        throw new NotSupportedException(
+                            "An array action of the block "
+                                + dynamic.Name
+                                + " works on an entity the block no longer has, which AutoCAD 2021 answered with no copies and, for a block of that one action, a reset value: the library does not work it out."
+                        );
+                    }
+                }
+
                 if (sheets.Count > 1)
                 {
                     throw new NotSupportedException(

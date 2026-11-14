@@ -398,7 +398,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 Enter
             );
             session = Start(document, "ATTSYNC", "N", "PLAIN");
-            Assert.Contains("This block has no attribute definitions.", session.History);
+            Assert.Contains("Block table contains no attributed block named PLAIN.", session.History);
         }
 
         [Fact]

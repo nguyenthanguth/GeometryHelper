@@ -6,6 +6,40 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The Block Editor's save works out the anonymous *U blocks of a dynamic block whose action holds a line that was erased,
+as AutoCAD 2021's `UpdateAnonymousBlocks` does (eleven panels of ten kinds of action probed through its console, four INSERTs each,
+a circle added, lines moved or erased in nine ways: 90 of the 99 edits alike, the 9 left below): the erased line drops
+out of the action, which goes on with the rest, every value of the INSERTs kept, and the line is gone from each *U block. A panel
+whose Width moves its right edge and bottom, the bottom erased, and its INSERTs set to Width 150 and 200, has them place *U
+blocks with the right edge at x 150 and 200 and no bottom; the library left the old *U blocks as they were, the bottom still in
+them, because the action named a handle the block no longer had. A stretch, scale, rotate, flip, polar stretch, lookup and XY move
+alike; an action left holding nothing does nothing. Not done: an array that loses a line (AutoCAD 2021 drew no copies of the
+rest, and for a panel of that one action reset its Width to 100, where a second parameter's value was kept), and a visibility
+state that loses one (AutoCAD hid every line of the states in the INSERTs set to a state, where the library shows them as the
+state says): both leave the *U blocks as they were.
+
+**FIXED.** A text that leans (an oblique angle), given by an INSERT or `TransformBy` a scale unlike along its two axes, keeps the
+shape the scale makes of it, as AutoCAD 2021 worked it (`SetAttributeFromBlock` and the INSERT command both, in its console): the
+attribute T8 3 high, 0.7 wide, leaning 15 degrees, of an INSERT scaled 2 along x, is 3 high, 1.4 wide and leans 28.2 degrees, where
+the library made it 2.644 high and 1.588 wide, of the right lean and the wrong size; of an INSERT turned 75 degrees and scaled 2 by
+0.5 it is 1.5 high, 2.8 wide, leaning 47 degrees, where it was 1.023 high and 4.104 wide. A text that does not lean, and every
+scale alike along both axes, is as it was to the last digit. Of 221 attributes (13 definitions of every justification, 17 INSERTs
+moved, turned, scaled, mirrored and given a normal, MIRRTEXT 1) 6 differed, now none; 7 more differ only in the second point
+AutoCAD reports for a text aligned left, which has none.
+
+**CHANGED.** ATTSYNC says what AutoCAD 2021's own table of strings (the resources of Battman.arx) says: "The selected entity is not
+a block." for a pick that is no block, "The selected block has no attributes." for a block with no definitions (both ask for another
+block), "Block table contains no attributed block named PLAIN." for a name that is no attributed block (and asks again),
+"Attributed blocks:" over the list of "?", "This drawing contains no attributed blocks." when there is none. They were the words of
+the help page, and "Block "PLAIN" not found.". A name typed may be a wildcard, as the usage in the same table has it, "a block
+name or wildcard": `ATTSYNC` `Name` `GB*` brings in line every attributed block it matches, as one undo step.
+Not probed: ATTSYNC itself cannot run in accoreconsole (its command lives in Battman.arx, which imports ACAD.exe and loads only in
+the full program, whether fed from a script or standard input, and nothing like it is in the managed API or in acdb24.dll);
+`SetAttributeFromBlock`, which Battman.arx imports, was probed in its place (13 definitions of every justification, 17 INSERTs
+moved, turned, scaled, mirrored and given a normal), and the INSERT command's own attributes: with MIRRTEXT 0 an INSERT mirrored
+in x gets attributes mirrored with it, as the library gives them, where `SetAttributeFromBlock` of the same transformation gave
+them readable, normal (0, 0, 1) and turned back; with MIRRTEXT 1 both mirror. Which of the two ATTSYNC takes is not known.
+
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).
 Words next to a ray (DIMJUST 1 and 2) stand a cube of the arrowhead and of the half of their box over 24 radii squared further along,

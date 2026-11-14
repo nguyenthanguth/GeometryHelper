@@ -28,6 +28,11 @@ db.ModelSpace.AppendEntity(text);   // Position (94.667, 50, 0): the ink of "ABC
   baseline. An aligned text takes its height from its two points, a fitted one its width factor: "ABC" of txt.shx aligned
   on two points 30 apart is 11.25 high. An annotative one is put so at every context. Its `GeometricExtents` are the ink of
   its words, the corners slanted by its oblique: "A" 4 high slanted 15 degrees reaches 3.738.
+- A text moved by `TransformBy` (an attribute `SetAttributeFromBlock` places by its INSERT's `BlockTransform` too) that is
+  scaled unlike along its two axes keeps the shape the scale makes of it, as AutoCAD 2021 gives it: its baseline's length over
+  its height gives the width factor, the area its two axes span over the new baseline its height, and the new lean is that of
+  its slanted upright. "ABC" 3 high, 0.7 wide and leaning 15 degrees, in a block scaled 2 along x, is 3 high, 1.4 wide and
+  leans 28.2 degrees (the tangent of 15 degrees doubled); the same text with no lean is 3 high and 1.4 wide as before.
 - An MTEXT gives the `ActualWidth` and `ActualHeight` of its words, plain letters and the codes `\W`, `\H`, `\T`, `\A`,
   `\L`, `\O`, `\K`, `\C` and `\~`: "ABC" of txt.shx 4 high is 10.667 wide and 4 high, "   ABC" 22.667 wide, its spaces
   before counted and those after left out, and "g" 5.333 high. Its paragraphs are laid out in lines, wrapped at its width,
