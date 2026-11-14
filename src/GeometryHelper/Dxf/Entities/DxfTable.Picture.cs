@@ -34,7 +34,9 @@ namespace GeometryHelper.Dxf
         /// entities erased and, from its cells, the fill of each filled cell (a SOLID), the lines of its grid (a LINE for each
         /// run of a line of one look along a row or column of cells, none inside a block of merged cells), the text of each cell
         /// (an MTEXT at the cell's attachment point, as wide as the cell less its margins) and the block of each block cell (an
-        /// INSERT), all on layer 0. Each look is the cell's own, else the table's own of its kind of row, else its table
+        /// INSERT, its extents, turned and scaled, aligned in the cell by its alignment, in from the cell's sides by the margins;
+        /// the scale of a cell fitted to its block, <see cref="SetAutoScale(int, int, bool)"/>, the one that fits those extents
+        /// into the cell less its margins: a block 10 by 40 in a cell 30 wide and 8 high is drawn at 0.125), all on layer 0. Each look is the cell's own, else the table's own of its kind of row, else its table
         /// style's (<see cref="DxfTableStyle"/>), else AutoCAD's Standard's. A table that names no block of the drawing, or one
         /// another entity names too, is given a block of its own. The table of rows 10, 8 and 8 high and columns 40 and 30 wide,
         /// its title merged across, is drawn with 6 lines and 4 texts.
@@ -451,9 +453,55 @@ namespace GeometryHelper.Dxf
                     if (block != null)
                     {
                         double scale = BlockScale(r0, c0);
-                        var insert = new DxfBlockReference(at, block)
+                        double angle = BlockRotation(r0, c0);
+                        GeoPoint3 place = at;
+
+                        // The block's extents, not its insertion point, are aligned in the cell, in from its sides by the
+                        // margins; a block fitted to its cell takes the scale that fits the box they fill, turned, in the cell
+                        // less its margins.
+                        if (TryBlockBox(block, out double[] box))
                         {
-                            Rotation = turn + BlockRotation(r0, c0),
+                            if (cell.Whole(174, 0) != 0)
+                            {
+                                scale = FittedScale(box, angle, right - left, bottom - top, hMargin, vMargin) ?? scale;
+                            }
+
+                            double[] seen = TurnedBox(box, scale, angle);
+                            double ix =
+                                across == 0 ? x - seen[0]
+                                : across == 1 ? x - (seen[0] + seen[2]) / 2.0
+                                : x - seen[2];
+                            double rise =
+                                upDown == 0 ? seen[3]
+                                : upDown == 1 ? (seen[1] + seen[3]) / 2.0
+                                : seen[1];
+
+                            // AutoCAD sets a block turned by exactly a quarter off that box by the block's own width and
+                            // height, as it measured 90, 180 and 270 degrees.
+                            double wide = scale * (box[2] - box[0]);
+                            double high = scale * (box[3] - box[1]);
+                            DxfRotationAngle quarter = Quarters(angle);
+
+                            if (quarter == DxfRotationAngle.Degrees090)
+                            {
+                                rise += wide;
+                            }
+                            else if (quarter == DxfRotationAngle.Degrees180)
+                            {
+                                ix += wide;
+                                rise += high;
+                            }
+                            else if (quarter == DxfRotationAngle.Degrees270)
+                            {
+                                ix += high;
+                            }
+
+                            place = At(ix, y + sign * rise);
+                        }
+
+                        var insert = new DxfBlockReference(place, block)
+                        {
+                            Rotation = turn + angle,
                             ScaleFactors = new GeoVector3(scale, scale, scale),
                         };
                         texts.Add(insert);
@@ -518,6 +566,150 @@ namespace GeometryHelper.Dxf
             parts.AddRange(GridLines(layout, rows, columns, xs, ys, owner, kinds, lines, At));
             parts.AddRange(texts);
             return parts;
+        }
+
+        /// <summary>
+        /// The box the entities of a block fill in its own system, from its base point, as AutoCAD lays a block cell out by:
+        /// the least x and y and the greatest x and y of the extents of its entities, an attribute definition left out. False
+        /// where it holds no entity with extents.
+        /// </summary>
+        private static bool TryBlockBox(DxfBlockTableRecord block, out double[] box)
+        {
+            box = null;
+
+            foreach (DxfEntity entity in block)
+            {
+                if (entity is DxfAttributeDefinition)
+                {
+                    continue;
+                }
+
+                GeoAabb3 extents;
+
+                try
+                {
+                    extents = entity.GeometricExtents;
+                }
+                catch (InvalidOperationException)
+                {
+                    continue;
+                }
+
+                if (box == null)
+                {
+                    box = new[] { extents.Min.X, extents.Min.Y, extents.Max.X, extents.Max.Y };
+                    continue;
+                }
+
+                box[0] = Math.Min(box[0], extents.Min.X);
+                box[1] = Math.Min(box[1], extents.Min.Y);
+                box[2] = Math.Max(box[2], extents.Max.X);
+                box[3] = Math.Max(box[3], extents.Max.Y);
+            }
+
+            if (box == null)
+            {
+                return false;
+            }
+
+            GeoPoint3 origin = block.Origin;
+            box[0] -= origin.X;
+            box[1] -= origin.Y;
+            box[2] -= origin.X;
+            box[3] -= origin.Y;
+            return true;
+        }
+
+        /// <summary>The box of a block's extents scaled and turned about its base point: the least x and y and the greatest x and y of their four corners.</summary>
+        private static double[] TurnedBox(double[] box, double scale, double angle)
+        {
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+            double[] turned = null;
+
+            for (int corner = 0; corner < 4; corner++)
+            {
+                double x = box[(corner & 1) == 0 ? 0 : 2];
+                double y = box[(corner & 2) == 0 ? 1 : 3];
+                double tx = scale * (x * cos - y * sin);
+                double ty = scale * (x * sin + y * cos);
+
+                if (turned == null)
+                {
+                    turned = new[] { tx, ty, tx, ty };
+                    continue;
+                }
+
+                turned[0] = Math.Min(turned[0], tx);
+                turned[1] = Math.Min(turned[1], ty);
+                turned[2] = Math.Max(turned[2], tx);
+                turned[3] = Math.Max(turned[3], ty);
+            }
+
+            return turned;
+        }
+
+        /// <summary>
+        /// The scale that fits a block's extents, turned, into a cell less its margins, as AutoCAD fits a block cell: the least of
+        /// the cell's width less its two margins over the box's width and its height less its two over the box's height;
+        /// null where the box has no size or the cell holds none within its margins.
+        /// </summary>
+        private static double? FittedScale(
+            double[] box,
+            double angle,
+            double width,
+            double height,
+            double hMargin,
+            double vMargin
+        )
+        {
+            double[] unit = TurnedBox(box, 1.0, angle);
+            double wide = unit[2] - unit[0];
+            double high = unit[3] - unit[1];
+            double slack = Tolerance.Default.EqualPoint;
+            double? fit = null;
+
+            if (wide > slack)
+            {
+                fit = (width - 2.0 * hMargin) / wide;
+            }
+
+            if (high > slack)
+            {
+                double other = (height - 2.0 * vMargin) / high;
+                fit = fit.HasValue ? Math.Min(fit.Value, other) : other;
+            }
+
+            return fit.HasValue && fit.Value > 0.0 && Guard.IsFinite(fit.Value) ? fit : null;
+        }
+
+        /// <summary>
+        /// The width and height a block cell's block asks of its cell without its margins, as AutoCAD grows its row and column
+        /// to hold it: the box its extents fill at the cell's scale and turn. False for a cell that holds no block, one fitted to
+        /// its cell, which asks nothing, and a block with no extents.
+        /// </summary>
+        internal bool TryBlockSize(int row, int column, out double width, out double height)
+        {
+            width = 0.0;
+            height = 0.0;
+            CellView cell = Cell(row, column);
+
+            if (cell.Whole(171, 1) != (int)DxfTableCellType.BlockCell || cell.Whole(174, 0) != 0)
+            {
+                return false;
+            }
+
+            DxfBlockTableRecord block = GetBlockTableRecord(row, column);
+
+            if (block == null || !TryBlockBox(block, out double[] box))
+            {
+                return false;
+            }
+
+            double[] seen = TurnedBox(box, BlockScale(row, column), BlockRotation(row, column));
+            width = seen[2] - seen[0];
+            height = seen[3] - seen[1];
+            return true;
         }
 
         /// <summary>

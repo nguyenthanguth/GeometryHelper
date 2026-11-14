@@ -6,6 +6,33 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A block cell of a table was drawn at its insertion point and its row left as it stood. As AutoCAD 2021 lays it out
+(`GenerateLayout` and `RecomputeTableBlock` in its console, margins 1.5): a block not fitted to its cell asks the box its extents
+fill (an attribute definition left out), at the cell's scale and turn, and the margins: a block 10 by 40 at scale 1 makes its row
+43, at scale 2 83, over two merged rows of 8 it makes 21.5 each (41.5 at scale 2), shared as the words of a merged block are; one
+wider than its column widens the column first (100 wide in a column 30 wide makes 103, a block turned 45 degrees 38.35534 in the
+row and the column), and a block fitted to its cell (`SetAutoScale`) asks nothing. `CadTableEditor` (the presenter's editing of
+cells, its Redraw, a typed cell and the least a row's line is dragged to) lays the rows and columns out so, and
+`DxfTable.RecomputeTableBlock` draws the INSERT of a block cell by its extents: they are aligned in the cell by its alignment,
+in from its sides by the margins (the block above, at the middle of a cell 30 wide and 8 high at x 40 and y -18, stands with its
+insertion point at (50, -42), where it stood at (55, -22) off the cell), and a fitted block takes the scale that fits the box its
+turned extents fill into the cell less its margins, min((W - 2 margins) / width, (H - 2 margins) / height): 0.125 for that block, 1.425
+in a cell 40 wide and 60 high, 0.925 turned 90 degrees, 1.29099 turned 30 (some 80 blocks placed and fitted in the 2 by 2 tables of AutoCAD's console). A block turned by exactly
+90, 180 or 270 degrees stands where AutoCAD puts it, off its aligned box by the block's own width and height. The scale in the
+cell (144) is not changed.
+**FIXED.** A line set on the top left cell of a block of merged cells of a table made in code (`SetGridColor`,
+`SetGridLineWeight`, `SetGridVisibility`) is given to the cells along the block's edges, as AutoCAD 2021 reads it from a DXF
+file: the title merged across 4 columns with a top of lineweight 50 has it on each of its four cells, a block of 2 rows and 2
+columns its top over its first row and its left down its first column (its right and bottom are the lines inside it, read as the
+left and top of the next cell), a block of one row its bottom along it and one of one column its right down it; a line another
+cell holds of its own is kept, whatever the order they were set in (8 tables of 4 rows and columns, every cell's four lines, equal
+to AutoCAD's reading of the same files).
+**CHANGED.** A row is laid out by the one line, four thirds of the text height, of its first cell alone, and the other cells ask for
+their words: a data row of a table whose data is 8 high holding a first cell given 6 is 11 high (6 times 4/3 and two margins of
+1.5), where the empty cells beside it at 8 made it 13.66667; a second cell of 12 holding one word makes it 15, its word and the
+margins, where it made 19; an empty cell beside the first adds nothing (32 rows of AutoCAD 2021's console). The presenter laid out
+every cell by one line at least.
+
 **CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
 console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the
 documentation they were first built from did not give. REFEDIT asks `Select nesting level [Ok/Next] <Next>:` (Enter steps to
