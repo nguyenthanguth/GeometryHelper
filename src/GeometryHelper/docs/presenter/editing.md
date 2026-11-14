@@ -924,11 +924,26 @@ by its share across the line, the chord times the sine of the line's slope, to t
 degrees, 2.0235 at 90, 1.117 at 200 for a line of 40 with the words put 8 past its end and 5 over it; the other way for a line leaning
 the other way and for words before its start, where the sign follows which way the words lie in x). On a short line they stand an
 arrowhead and the cosine's share of the chord past the arrowhead's end (a line of 7.2 at 30 degrees: 12.5711 along). Under DIMTMOVE 1
-words put past an end of a line steeper than a slope of a half (between 26 and 28 degrees from level) have the line run on to the
-level of their point and a level landing back from there to a gap beyond them, an arrowhead long at least, the words moving out
-where it would be shorter: "100" put 8 past the end of an upright line of 40 and 5 over it has its line run on to 48 and a landing of
-2.5, the words 0.765 further out. Further from the line AutoCAD goes back to the leader from the middle, at a distance that depends on
-the slope and the length of the line (not modelled). Turned words on the middle of a short slanting line under DIMTMOVE 1 that turn
+turned words put near an end of the line, over it or past it, where the level of their point lies beyond the level of that end,
+have the shorter of two leaders: the line run on from its end to that level and a level landing back from there to a gap beyond
+the words (an arrowhead long at least, the words moving out where it would be shorter), or the straight leader from the middle of
+the line to their point. "100" put 8 past the end of an upright line of 40 and 5 over it has its line run on to 48 and a landing of
+2.5, the words 0.765 further out; the run and the landing together (the run to the level of the point and the landing across it
+over the sine of the slope) are shorter than the straight leader up to 45 across for that line (60 at 5 past the end, 36.67 at 12),
+and at 13.2713 across for a line of 40 at 60 degrees with the words 8 past its end (30.987 each way), so 13 over it is run on and 14
+over has the leader from the middle; 5.5 across at 30 degrees, 8.85 at 45, 17.53 at 70. Every size of the style, the distance of
+the line from its points, the words' length and their angle leave the choice as it is, and the distance past the end hardly moves it.
+Words over the line by less than DIMGAP and an arrowhead (or half their height and DIMEXE, whichever is more) are run on to
+whatever the length of the line, on a line of 10 at 20 degrees too (the landing 2.5, the words moved in to stand at its end), so a
+line of 40 at 20 degrees is run on up to 3.566 over it, where 28 degrees and more had it up to 5. A line leaning back (120 and 135
+degrees) is run on as long as the level of the point is beyond its end (13 across but not 14 at 120 degrees for a line of 25).
+The run is never less than an arrowhead: the level of the words 2.04 on is made 2.5 on a line at 140 degrees, and the landing and
+the words move along with its end (0.459 along, 0.295 higher); the same for an upright line of 7.2 with the words 1.44 past its end,
+which stand 1.06 higher. Words over the start of a long line below its level are run on backwards. On a line too short for its arrowheads they stand out
+on a line of their own, and the run starts where that line ends (two arrowheads out at least); the line between the extension lines
+is then drawn twice where the leader goes from its middle and once where the line is run on (lines of 3, 5 and 6). On a level line
+the words put past an end within the leader's reach are laid on the line, which is run to a gap and half their width short of them
+("100" turned 20 put 8 past a line of 40 and 2 over it is centred at (48, 30), the line run on to 44.735). Turned words on the middle of a short slanting line under DIMTMOVE 1 that turn
 its arrowheads out have the line between the extension lines drawn twice, as AutoCAD 2021 draws it (29 of 29 probed, none on a level
 line). Words kept level by DIMTOH or DIMTIH on a slanting line fit by the same reach of their box as turned ones ("123456789" on a line
 of 9 at 30 degrees reaches 10.3 and goes out on a leader square to the line), and, put out under DIMTMOVE 1, lose their leader as

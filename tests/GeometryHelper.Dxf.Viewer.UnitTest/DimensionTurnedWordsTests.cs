@@ -479,6 +479,20 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasLine(dimension, from.X, from.Y, to.X, to.Y);
         }
 
+        private static void HasNoFramedLine(
+            DxfDimension dimension,
+            double slope,
+            double a1,
+            double n1,
+            double a2,
+            double n2
+        )
+        {
+            GeoPoint2 from = Frame(slope, a1, n1);
+            GeoPoint2 to = Frame(slope, a2, n2);
+            HasNoLine(dimension, from.X, from.Y, to.X, to.Y);
+        }
+
         // ---- words put past the end of a slanting line under DIMTMOVE 0 and turned (tw17, tw18 of the annot6 round) ----
 
         [Fact]
@@ -590,14 +604,234 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void WordsTurned20_PutPastTheEndOfALineOf40At20DegreesUnderDimtmove1_KeepTheLeaderFromTheMiddleOfTheLine()
         {
-            // AutoCAD 2021: a line less than 26.6 degrees (a slope of a half) off level keeps the leader from its middle (the run-on
-            // begins at 28 degrees; probe tw20, 480 cases).
+            // AutoCAD 2021: a line of 40 at 20 degrees with the words 5 over it keeps the leader from its middle, as the line run
+            // on is the longer leader from 3.566 across (28 degrees and more run it on up to 5 across; probe tw20, 480 cases).
             CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
             DxfDimension dimension = MovedAndTurnedOnASlope(session, 20, 40, 1.2, 5, 20);
 
             HasFramedLine(dimension, 20, 20, 30, 47.413, 35.214);
             HasFramedLine(dimension, 20, 47.413, 35.214, 53.549, 32.98);
             Near(Frame(20, 50.64, 35).X, Frame(20, 50.64, 35).Y, Words(dimension).Location);
+        }
+
+        // ---- where AutoCAD goes back from the line run on to the leader from the middle (probes tw20, tw22 to tw29 of the annot7 round) ----
+
+        /// <summary>A DIMALIGNED of the given length along <paramref name="slope"/>, "100" put <paramref name="past"/> past its end (before its start when negative) and <paramref name="across"/> over the line, turned 20, DIMTMOVE 1.</summary>
+        private static DxfDimension PutPast(double slope, double length, double past, double across)
+        {
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            return MovedAndTurnedOnASlope(session, slope, length, (length + past) / length, across, 20);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At60Degrees_AreRunOnTo13AcrossAndLedFromTheMiddleBeyond()
+        {
+            // AutoCAD 2021 (tw22, tw23 and tw28 down to 0.0025): the line run on to the level of the words (their point 8 past the
+            // end) is the shorter leader, the run and the landing together (15.662 + 15.325 = 30.987 at 13.2713 across), than the
+            // straight one from the middle (30.987), up to 13.2713 across; "100" 13 over is run on, 14 over has the leader.
+            DxfDimension run = PutPast(60, 40, 8, 13);
+
+            HasFramedLine(run, 60, 40, 30, 55.506, 30);
+            HasFramedLine(run, 60, 55.506, 30, 49.632, 40.173);
+            Near(Frame(60, 48, 43).X, Frame(60, 48, 43).Y, Words(run).Location);
+
+            DxfDimension led = PutPast(60, 40, 8, 14);
+
+            HasFramedLine(led, 60, 20, 30, 47.687, 44.541);
+            HasFramedLine(led, 60, 47.687, 44.541, 50.952, 38.886);
+            HasNoFramedLine(led, 60, 40, 30, 55.506, 30);
+            Near(Frame(60, 50.022, 42.303).X, Frame(60, 50.022, 42.303).Y, Words(led).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf25At45Degrees_AreRunOnTo5AcrossAndLedFromTheMiddleFrom6()
+        {
+            // AutoCAD 2021 (tw22): the shorter leader again, the least across 5.5 to 6 for a line of 25 at 45 degrees (40 long: 8 to 9).
+            DxfDimension run = PutPast(45, 25, 8, 5);
+
+            HasFramedLine(run, 45, 25, 30, 38, 30);
+            HasFramedLine(run, 45, 38, 30, 35.309, 32.691);
+            Near(Frame(45, 33, 35).X, Frame(45, 33, 35).Y, Words(run).Location);
+
+            DxfDimension led = PutPast(45, 25, 8, 6);
+
+            HasFramedLine(led, 45, 12.5, 30, 32.558, 36.442);
+            HasFramedLine(led, 45, 32.558, 36.442, 37.175, 31.825);
+            Near(Frame(45, 35.392, 34.884).X, Frame(45, 35.392, 34.884).Y, Words(led).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPast5OfALineOf40At60Degrees_AreRunOnToTheirLevelToo()
+        {
+            // AutoCAD 2021 (tw24, 5 to 30 past): the cut-off hardly moves with how far past the end the words are put (13.52 across
+            // at 5 past, 12.42 at 30); words within an arrowhead and their half chord of the end are run on as those further out.
+            DxfDimension dimension = PutPast(60, 40, 5, 13.5);
+
+            HasFramedLine(dimension, 60, 40, 30, 52.794, 30);
+            HasFramedLine(dimension, 60, 52.794, 30, 46.632, 40.673);
+            Near(Frame(60, 45, 43.5).X, Frame(60, 45, 43.5).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At20Degrees_AreRunOnWithinAGapAndAnArrowheadOfItAndLedFromTheMiddleBeyondTheLength()
+        {
+            // AutoCAD 2021 (tw23, tw29): over the line by less than DIMGAP and an arrowhead (3.125) the line is run on whatever its
+            // length; from there the shorter leader decides, and a line of 40 at 20 degrees is run on up to 3.566 across (3.5 yes,
+            // 4 no), where 28 degrees and more had it up to 5.
+            DxfDimension near = PutPast(20, 40, 8, 3);
+
+            HasFramedLine(near, 20, 40, 30, 56.242, 30);
+            HasFramedLine(near, 20, 56.242, 30, 51.068, 31.883);
+            Near(Frame(20, 48, 33).X, Frame(20, 48, 33).Y, Words(near).Location);
+
+            DxfDimension run = PutPast(20, 40, 8, 3.5);
+
+            HasFramedLine(run, 20, 40, 30, 57.616, 30);
+            HasFramedLine(run, 20, 57.616, 30, 51.068, 32.383);
+
+            DxfDimension led = PutPast(20, 40, 8, 4);
+
+            HasFramedLine(led, 20, 20, 30, 47.413, 34.214);
+            HasFramedLine(led, 20, 47.413, 34.214, 53.549, 31.98);
+            Near(Frame(20, 50.64, 34).X, Frame(20, 50.64, 34).Y, Words(led).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_OverAShortLineAt20Degrees_AreRunOnToTheirLevelAndALandingOfAnArrowhead()
+        {
+            // AutoCAD 2021 (tw23): "100" 1 over a line of 10 at 20 degrees, 8 past its end: the line run on 10.747 to their level,
+            // the landing the least of 2.5 (the box would leave 2.92 - 3.265), the words moved in to stand at its end.
+            DxfDimension dimension = PutPast(20, 10, 8, 1);
+
+            HasFramedLine(dimension, 20, 10, 30, 20.747, 30);
+            HasFramedLine(dimension, 20, 20.747, 30, 18.398, 30.855);
+            Near(Frame(20, 15.33, 31.972).X, Frame(20, 15.33, 31.972).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf40At140Degrees_HaveTheRunMadeAnArrowheadLongAndTheWordsMoveWithIt()
+        {
+            // AutoCAD 2021 (tw20, slopes 136 to 146): the run to the level of the words is 2.04, less than an arrowhead; the line is
+            // run on 2.5, and the landing (4.514) and the words move with its end, 0.459 further along, the words 0.295 higher.
+            DxfDimension dimension = PutPast(140, 40, 8, 5);
+
+            HasFramedLine(dimension, 140, 40, 30, 42.5, 30);
+            HasFramedLine(dimension, 140, 42.5, 30, 45.958, 32.901);
+            Near(Frame(140, 48.459, 35).X, Frame(140, 48.459, 35).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfAnUprightLineOf7UnderDimtmove1_HaveTheLineRunOnAnArrowheadAndALandingOfOne()
+        {
+            // AutoCAD 2021 (tw17, tw18): 1.44 past the end of an upright line of 7.2 and 5 over it, the level of the words is 1.44 on
+            // but the line is run on 2.5, a landing of 2.5 from there, and the words stand 1.06 higher than where they were put.
+            DxfDimension dimension = PutPast(90, 7.2, 1.44, 5);
+
+            HasFramedLine(dimension, 90, 7.2, 30, 9.7, 30);
+            HasFramedLine(dimension, 90, 9.7, 30, 9.7, 32.5);
+            Near(Frame(90, 9.7, 35.765).X, Frame(90, 9.7, 35.765).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutOverTheStartOfALineOf40At135Degrees_RunTheLineOnBackwardsToTheirLevel()
+        {
+            // AutoCAD 2021 (tw18): the words 4 along from the start of the line and 5 over it at 135 degrees lie below the level of
+            // its start, so the line is run on backwards from there (2.5, the run of 1 made an arrowhead long) and a level
+            // landing runs back to the words, which move 1.5 along.
+            DxfDimension dimension = PutPast(135, 40, -36, 5);
+
+            HasFramedLine(dimension, 135, 0, 30, -2.5, 30);
+            HasFramedLine(dimension, 135, -2.5, 30, 0.191, 32.691);
+            Near(Frame(135, 2.5, 35).X, Frame(135, 2.5, 35).Y, Words(dimension).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutOverALevelLineWithinTheLeadersReach_StandOnTheLineWithItRunOnToAGapShortOfThem()
+        {
+            // AutoCAD 2021 (tw29, tw31: 54 of 54): a level line has no level to run on to, so the words put past an end and 2 over
+            // the line of 40 are laid on the line (centred at (48, 30), not (48, 32)) and the line is run on 4.735 to a gap and half
+            // their width (3.265) short of them; the same before the start and on a line at 180 degrees.
+            DxfDimension dimension = PutPast(0, 40, 8, 2);
+
+            HasFramedLine(dimension, 0, 40, 30, 44.735, 30);
+            Near(48, 30, Words(dimension).Location);
+
+            DxfDimension before = PutPast(0, 40, -48, 2);
+
+            HasFramedLine(before, 0, -4.735, 30, 0, 30);
+            Near(-8, 30, Words(before).Location);
+
+            DxfDimension back = PutPast(180, 7.2, 8, 2);
+
+            HasFramedLine(back, 180, 7.2, 30, 11.935, 30);
+            Near(Frame(180, 15.2, 30).X, Frame(180, 15.2, 30).Y, Words(back).Location);
+        }
+
+        [Fact]
+        public void WordsTurned20_PutPastTheEndOfALineOf5UnderDimtmove1_RunTheLineOnAtLeastTwoArrowheadsAndStartItAtTheEndOfTheirLine()
+        {
+            // AutoCAD 2021 (tw30, 72 probes of lines of 3, 5 and 6): the arrowheads of a line of 5 stand out on a line of their own, an
+            // arrowhead long and past one, so the run on to the level of the words (5.113 at 120 degrees with the words 8 past and 5
+            // over) starts where that line ends, and a run shorter than two arrowheads is made that long (150 degrees, 3.5 over:
+            // the landing and the words move out 2.5 with its end, the run being 2.5 short of it).
+            DxfDimension run = PutPast(120, 5, 8, 5);
+
+            HasFramedLine(run, 120, 10, 30, 10.113, 30);
+            HasFramedLine(run, 120, 10.113, 30, 11.368, 32.173);
+            HasNoFramedLine(run, 120, 5, 30, 10.113, 30);
+            Near(Frame(120, 13, 35).X, Frame(120, 13, 35).Y, Words(run).Location);
+
+            DxfDimension shifted = PutPast(150, 5, 8, 3.5);
+
+            HasFramedLine(shifted, 150, 10, 30, 13.235, 31.868);
+            Near(Frame(150, 16.062, 33.5).X, Frame(150, 16.062, 33.5).Y, Words(shifted).Location);
+        }
+
+        [Theory]
+        [InlineData(45, 5, 2)]
+        [InlineData(120, 5, 1)]
+        [InlineData(150, 3.5, 1)]
+        [InlineData(90, 3.5, 1)]
+        public void WordsTurned20_PutPastTheEndOfALineOf6UnderDimtmove1_DrawItTwiceOnlyWithTheLeaderFromTheMiddle(
+            double slope,
+            double across,
+            int copies
+        )
+        {
+            // AutoCAD 2021 (tw30): the line between the extension lines of a short slanting line (arrowheads out) is drawn twice where
+            // the leader goes from its middle (58 of 72 probes) and once where it is run on to the words (14 of 72).
+            DxfDimension dimension = PutPast(slope, 6, 8, across);
+            GeoPoint2 from = Frame(slope, 0, 30);
+            GeoPoint2 to = Frame(slope, 6, 30);
+
+            Assert.Equal(copies, Lines(dimension).Count(l => Joins(l, from.X, from.Y, to.X, to.Y)));
+        }
+
+        [Theory]
+        [InlineData(120, 13, true)]
+        [InlineData(120, 14, false)]
+        [InlineData(135, 7, true)]
+        [InlineData(135, 8, false)]
+        public void WordsTurned20_PutPastTheEndOfALineOf25PastAnUprightOne_AreRunOnWhileTheirLevelIsBeyondTheEnd(
+            double slope,
+            double across,
+            bool runOn
+        )
+        {
+            // AutoCAD 2021 (tw22): on a line leaning back (120 and 135 degrees) the run to the level of the words is the shorter
+            // leader as long as it is more than nothing (0.49 and 1 at 13 and 7 across, 0 at 14 and 8 across): nothing beyond that.
+            DxfDimension dimension = PutPast(slope, 25, 8, across);
+            GeoPoint2 middle = Frame(slope, 12.5, 30);
+
+            // The leader from the middle is there where the line is not run on, and only then.
+            Assert.Equal(
+                !runOn,
+                Lines(dimension)
+                    .Any(l =>
+                        (Math.Abs(l.StartPoint.X - middle.X) < 1E-3 && Math.Abs(l.StartPoint.Y - middle.Y) < 1E-3)
+                        || (Math.Abs(l.EndPoint.X - middle.X) < 1E-3 && Math.Abs(l.EndPoint.Y - middle.Y) < 1E-3)
+                    )
+            );
         }
 
         /// <summary>A DIMALIGNED of the given length from the origin along <paramref name="slope"/> degrees, its line 30 off, under DIMTOH and DIMTIH, DIMTMOVE 1.</summary>
