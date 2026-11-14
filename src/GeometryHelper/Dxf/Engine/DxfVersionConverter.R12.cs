@@ -477,11 +477,13 @@ namespace GeometryHelper.Dxf
             bool anonymousBlock = false;
             bool own = false;
             var flags = new List<string>(2);
-            bool plainNormal = HasPlainNormal(record);
+            string handleOf = HandleOf(record);
+
+            // The extrusion (0, 0, 1) is left out, but for the SOLIDs of a fill on the normal (0, 0, -1).
+            bool plainNormal = HasPlainNormal(record) && !(handleOf != null && _plan.KeptNormal.Contains(handleOf));
 
             // A line of an attribute that was of several lines is a text left on its baseline in the style Standard, as AutoCAD
             // writes it: what the MTEXT it was made of gave it of those is left out.
-            string handleOf = HandleOf(record);
             bool line = (type == "ATTDEF" || type == "ATTRIB") && handleOf != null && _plan.Lines.Contains(handleOf);
 
             for (int i = 1; i < record.Groups.Count; i++)

@@ -126,7 +126,10 @@ An MTEXT of several lines is laid out as AutoCAD 2021 lays it out (check F4), in
   at (10, 20) gives A at (10, 12), B 8 high at (14, 12), C at (22, 12) and DEF at (10, 4). Letters held at the middle or
   top of a line of taller ones (`\A1;`, `\A2;`) stand up by half the difference or all of it, a line under, over or
   through them is written `%%U`, `%%O` or `%%K`, and a run of spaces between runs is a TEXT of its own; a colour within the
-  words splits the runs but is not given to the TEXTs. A drawing of R12 is given the same TEXTs.
+  words splits the runs but `Explode` does not give it to the TEXTs. A drawing of R12 is given the same TEXTs, and saved as R12
+  each TEXT, and the LINEs of a stack's bar and of letters struck through, has the colour of its run as its group 62, as AutoCAD 2021
+  writes it: `\C3;` the index 3, `\c16711680;` (the number read with its lowest byte the red, here blue) the index nearest it, 5, `\C0;`
+  BYBLOCK, a colour twice in a row one run, and the letters after a closing brace those of the MTEXT's own colour.
 - A line under letters (`\L`) reaches a fifth of their height below the baseline and one over them (`\O`) a fifth above
   their height: "\LABC\l DEF" 4 high is 4.8 high. A spread (`\T1.5;`) lengthens each move of the pen after a letter; a
   TrueType font's spread is not measured, AutoCAD spreading it otherwise than its advances say.

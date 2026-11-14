@@ -44,7 +44,8 @@ namespace GeometryHelper.Dxf
         /// The LINEs of the pattern as AutoCAD 2021 writes them when it saves R12: those <see cref="Explode"/> gives, but the lines of the
         /// last pattern line first and those of the first last, and the parts of each line of a pattern from its last to its first
         /// (ANSI37, two pattern lines, writes the lines at 135 degrees before those at 45; a line broken in two by a hole writes
-        /// its second piece first; probed in its console).
+        /// its second piece first; a dot that falls on the far end of a stretch is left out, as the dots at x = 60 on the right edge of a
+        /// rectangle 60 by 30 filled with DOTS are; probed in its console).
         /// </summary>
         /// <exception cref="NotSupportedException">Thrown as <see cref="Explode"/> says.</exception>
         /// <exception cref="InvalidOperationException">Thrown as <see cref="Explode"/> says.</exception>
@@ -786,7 +787,7 @@ namespace GeometryHelper.Dxf
                 {
                     for (int s = 0; s < _from.Count; s++)
                     {
-                        LayStretch(s, part);
+                        LayStretch(s, part, false);
                     }
 
                     return;
@@ -801,7 +802,7 @@ namespace GeometryHelper.Dxf
                         EmitBackwards(line, part);
                     }
 
-                    LayStretch(s, (a, b) => line.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(a, b)));
+                    LayStretch(s, (a, b) => line.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(a, b)), true);
                 }
 
                 EmitBackwards(line, part);
@@ -820,7 +821,7 @@ namespace GeometryHelper.Dxf
                 line.Clear();
             }
 
-            private void LayStretch(int s, Action<GeoPoint2, GeoPoint2> part)
+            private void LayStretch(int s, Action<GeoPoint2, GeoPoint2> part, bool r12 = false)
             {
                 long k = _lines[s];
                 double ox = _bx + k * _ox;
@@ -840,7 +841,7 @@ namespace GeometryHelper.Dxf
 
                 for (long m = first; m <= (long)end; m++)
                 {
-                    Period(m, from, to, (a, b) => part(Along(a), Along(b)));
+                    Period(m, from, to, (a, b) => part(Along(a), Along(b)), r12);
                 }
             }
 
@@ -862,7 +863,7 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>The dashes and dots of one length of the pattern, the m-th from the line's base point, within a stretch: how many, each given where asked from its start to its end along the line.</summary>
-            private long Period(double m, double from, double to, Action<double, double> part)
+            private long Period(double m, double from, double to, Action<double, double> part, bool r12 = false)
             {
                 long count = 0;
                 double at = m * _length;
@@ -880,7 +881,7 @@ namespace GeometryHelper.Dxf
                             part?.Invoke(a, b);
                         }
                     }
-                    else if (dash == 0.0 && at >= from && at <= to)
+                    else if (dash == 0.0 && at >= from && (r12 ? at < to - Same(to) : at <= to))
                     {
                         count++;
                         part?.Invoke(at, at);
@@ -891,6 +892,9 @@ namespace GeometryHelper.Dxf
 
                 return count;
             }
+
+            /// <summary>How near two places along a line are the same one.</summary>
+            private static double Same(double at) => 1E-9 * Math.Max(1.0, Math.Abs(at));
 
             /// <summary>The index of the line through a point, from the base point by the offset: a whole number on a line.</summary>
             private double Index(GeoPoint2 p) => (_dx * (p.Y - _by) - _dy * (p.X - _bx)) / _apart;

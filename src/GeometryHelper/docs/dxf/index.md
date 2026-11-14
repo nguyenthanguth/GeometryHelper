@@ -178,7 +178,7 @@ kind that come to one are told apart as AutoCAD tells them: the one that cleanin
 is `A_1_0` beside `A_1_`. A TOLERANCE, a
 WIPEOUT, an IMAGE, an underlay, an OLE frame and the layouts beyond the first are left out and said. A hatch filled solid is
 the SOLIDs of horizontal strips, as AutoCAD writes it: the area (the loops, the holes taken out) is cut at the height of each
-corner of any loop into trapezoids, one running on over a level only while the same two upright edges bound it, each trapezoid
+corner of any loop into trapezoids, one running on over a level while the same two edges bound it, unless both of them are upright or no convex tip of the outline stands at the level (a slanted piece is cut where a tip elsewhere, a foot of an arch, stands), each trapezoid
 two triangles in the plane flipped (the extrusion (0, 0, -1), x and the height negated, the third corner written again as the
 fourth), the strips from the top down, at a level the piece on the right before the one on the left, and after the SOLIDs the
 LINEs of the sides of the trapezoids that are not horizontal (of a triangle the right side before the left), a slanted side that
@@ -193,11 +193,16 @@ the share of 33 its sweep is of a turn at the least (17 for a bulge of 0.5 over 
 circle of its major radius, at equal steps of its parameter (50 for 50 by 25); 19 probes of arcs, bulges and ellipses alone in a
 fill equal AutoCAD's own R12 record for record. A fill in a plane other than that of the drawing is the SOLIDs and LINEs of the
 strips of its plane, the SOLIDs' corners as the plane of the opposite normal reads the world points of the strips, the LINEs in the
-world with no extrusion (3 of 4 probes equal; a plane of the normal (0, 0, -1) has the extrusion written on its SOLIDs, which
-is not). A round hole in a fill, and a star, are not yet cut as AutoCAD cuts them: a circle of 25 in one of 50 gives 136 SOLIDs and
-132 LINEs where AutoCAD writes 136 and 134, a hole of 10 in a circle of 30 gives 216 and 214 where it writes 142 and 142, a star two
-LINEs short, for AutoCAD joins the pieces beside a hole only where its corners allow and cuts them at the level of the corner next to
-the highest, and draws the sides at the lowest. The
+world with no extrusion (4 of 4 probes equal; a plane of the normal (0, 0, -1) has the extrusion (0, 0, 1) written on its SOLIDs, as
+AutoCAD writes it). A piece beside a hole is cut at the corners of its own two sides only, so that a hole's two chains of corners,
+at other heights, cut the piece on their side and not the other: a circle of 25 in one of 50 is 136 SOLIDs and 134 LINEs and one of
+10 in 30 142 and 142, as AutoCAD writes them, and a quadrilateral hole in a rectangle 12 or 14 SOLIDs. Which of a hole's corners the
+pieces are cut by across the hole, and whether the two sides that meet at its highest or lowest corner are drawn, depend, as AutoCAD
+writes it, on where the loop is walked from: where the side on the right of such a corner comes before the one on its left, the
+sides are left out and the level at which the shorter ends cuts the piece beyond the longer, where after, both are drawn and nothing
+is cut (the eight ways round a quadrilateral hole of 50, 35, 30 and 10 gave 12, 12, 14, 14, 14, 14, 16 and 16 SOLIDs, each equal). Two sides that meet at a corner of an outline, not of a hole, and reach as far
+are left out as before, though AutoCAD draws them from some starts of the loop (a star's notch, a W): 328 of 398 probes of fills, patterns and MTEXT runs
+equal AutoCAD's own R12 record for record. The
 words of a multileader whose style has a frame are followed by it, a POLYLINE of five corners (the first again) of the colour
 BYBLOCK round the ink of the words as the fonts lay them out, a landing gap off it, written after the arrowhead; words held at the
 middle or the right with no frame have their dogleg run on to the ink of their first line (words of 8 and 20 held at the middle

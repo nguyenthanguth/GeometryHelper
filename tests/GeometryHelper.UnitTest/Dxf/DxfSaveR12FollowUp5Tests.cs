@@ -688,5 +688,62 @@ namespace GeometryHelper.UnitTest.Dxf
             Line(lines[6], 61.82, 40.0, 41.82, 60.0, 6E-3);
             Line(lines[7], 100.0, 1.82, 70.0, 31.82, 6E-3);
         }
+
+        // ---- the colours of an MTEXT's runs ----------------------------------------------------------------------------------
+
+        [Fact]
+        public void AColourCodeInAnMText_GivesTheTextOfItsRunTheColourIndexAsTheGroup62()
+        {
+            InFolder(folder =>
+            {
+                DxfDatabase db = Drawing(folder);
+                DxfMText words = Words(db, "\\C1;AB\\C2;CD");
+
+                List<Record> pieces = PiecesOf(Sections(R12(db)), words.Handle);
+
+                // AutoCAD 2021: a TEXT for each run, each with the colour of its code as its group 62.
+                Assert.Equal(new[] { "AB", "CD" }, pieces.Select(p => p.First(1)));
+                Assert.Equal(new[] { "1", "2" }, pieces.Select(p => p.First(62).Trim()));
+            });
+        }
+
+        [Fact]
+        public void ATrueColourCode_GivesTheIndexNearestItsBlueGreenRed_AndTheSameColourTwiceIsOneRun()
+        {
+            InFolder(folder =>
+            {
+                DxfDatabase db = Drawing(folder);
+                DxfMText blue = Words(db, "\\c16711680;AB CD");
+                DxfMText twice = Words(db, "\\C3;AB\\C3;CD", null, 100.0);
+                DxfMText back = Words(db, "{\\C1;AB}CD", null, 200.0);
+
+                Dictionary<string, List<Record>> sections = Sections(R12(db));
+
+                // 16711680 is 0xFF0000 read with the red lowest: blue, the index 5; \C3 twice is one TEXT of 3; after the braces the
+                // letters keep the MTEXT's own colour, which R12 leaves out.
+                Assert.Equal("5", PiecesOf(sections, blue.Handle).Single().First(62).Trim());
+                Record green = PiecesOf(sections, twice.Handle).Single();
+                Assert.Equal("ABCD", green.First(1));
+                Assert.Equal("3", green.First(62).Trim());
+                List<Record> braced = PiecesOf(sections, back.Handle);
+                Assert.Equal("1", braced[0].First(62).Trim());
+                Assert.False(braced[1].Has(62));
+            });
+        }
+
+        [Fact]
+        public void ALineThroughStruckLetters_HasTheColourOfTheirRun()
+        {
+            InFolder(folder =>
+            {
+                DxfDatabase db = Drawing(folder);
+                DxfMText words = Words(db, "\\C3;\\KAB\\k CD");
+
+                Dictionary<string, List<Record>> sections = Sections(R12(db));
+
+                Assert.Equal("3", PiecesOf(sections, words.Handle).Single().First(62).Trim());
+                Assert.Equal("3", sections["ENTITIES"].Single(r => r.Type == "LINE").First(62).Trim());
+            });
+        }
     }
 }

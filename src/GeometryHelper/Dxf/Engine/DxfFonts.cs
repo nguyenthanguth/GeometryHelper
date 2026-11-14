@@ -807,9 +807,11 @@ namespace GeometryHelper.Dxf
                 int align = 0,
                 int marks = 0,
                 int tint = 0,
-                StackWords stack = null
+                StackWords stack = null,
+                int color = -1
             )
             {
+                Color = color;
                 Number = number;
                 Width = width;
                 Height = height;
@@ -843,6 +845,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Which colour of the words it is in, counted from nought for the MTEXT's own, one more at each <c>\C</c> or <c>\c</c>.</summary>
             internal int Tint { get; }
+
+            /// <summary>The colour index (0 to 256) a <c>\C</c> gives it, or the nearest to what a <c>\c</c> gives it (the number read with its lowest byte the red); -1 for the MTEXT's own.</summary>
+            internal int Color { get; }
 
             /// <summary>Whether it begins a new paragraph (<c>\P</c>).</summary>
             internal bool IsParagraph => Number == Paragraph;
@@ -981,6 +986,7 @@ namespace GeometryHelper.Dxf
             int marks = 0;
             int tint = 0;
             int tints = 0;
+            int color = -1;
             int i = 0;
 
             while (i < words.Length)
@@ -1005,7 +1011,7 @@ namespace GeometryHelper.Dxf
 
                 if (c == '{')
                 {
-                    kept.Push(new Letter(0, width, high, track, align, marks, tint));
+                    kept.Push(new Letter(0, width, high, track, align, marks, tint, null, color));
                     i++;
                     continue;
                 }
@@ -1021,6 +1027,7 @@ namespace GeometryHelper.Dxf
                         align = was.Align;
                         marks = was.Marks;
                         tint = was.Tint;
+                        color = was.Color;
                     }
 
                     i++;
@@ -1109,6 +1116,32 @@ namespace GeometryHelper.Dxf
                         }
 
                         tint = ++tints;
+
+                        // The colour index of a \C; of a \c the nearest index to the colour, the number read with its lowest byte the red
+                        // (16711680 is blue, index 5), as AutoCAD 2021 writes the TEXT of the run.
+                        color = -1;
+
+                        if (
+                            int.TryParse(
+                                words.Substring(i + 2, end - i - 2).Trim(),
+                                NumberStyles.Integer,
+                                CultureInfo.InvariantCulture,
+                                out int value
+                            )
+                        )
+                        {
+                            if (code == 'C')
+                            {
+                                color = value >= 0 && value <= 256 ? value : -1;
+                            }
+                            else if (value >= 0 && value <= 0xFFFFFF)
+                            {
+                                color = DxfColor
+                                    .FromRgb((byte)value, (byte)(value >> 8), (byte)(value >> 16))
+                                    .ColorIndex;
+                            }
+                        }
+
                         i = end + 1;
                         continue;
                     }
@@ -1125,7 +1158,7 @@ namespace GeometryHelper.Dxf
                     else if (code == 'S' && stacks)
                     {
                         StackWords stack = ReadStack(words, i + 2, out int stackEnd);
-                        letters.Add(new Letter(Stacked, width, high, track, align, marks, tint, stack));
+                        letters.Add(new Letter(Stacked, width, high, track, align, marks, tint, stack, color));
                         i = stackEnd;
                         continue;
                     }
@@ -1155,7 +1188,7 @@ namespace GeometryHelper.Dxf
                     number = NumberOf(font, words, ref i);
                 }
 
-                letters.Add(new Letter(number, width, high, track, align, marks, tint));
+                letters.Add(new Letter(number, width, high, track, align, marks, tint, null, color));
             }
 
             return letters;

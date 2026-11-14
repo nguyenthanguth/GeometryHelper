@@ -12,7 +12,10 @@ namespace GeometryHelper.Dxf
     /// <remarks>
     /// A level is the height of a corner of any loop. A strip between two levels is cut by the edges that cross it, paired off
     /// from the left; a trapezoid runs on over a level as long as the same two edges bound it, so a square 100 by 100 with a hole
-    /// 20 by 20 has trapezoids of different heights on its left and right. A trapezoid whose top or bottom is a point is a
+    /// 20 by 20 has trapezoids of different heights on its left and right, unless a convex tip of an outer loop stands at the
+    /// level (the foot of an arch cuts a slanted piece far from it), and unless the level is the end of the shorter of two
+    /// sides that meet at the highest or lowest corner of a hole that the loop is walked into by the right-hand side first: the
+    /// piece beyond the longer side is cut there too, as AutoCAD cuts it. A trapezoid whose top or bottom is a point is a
     /// triangle.
     /// </remarks>
     internal static class DxfHatchStrips
@@ -124,6 +127,8 @@ namespace GeometryHelper.Dxf
             double eps = tolerance.EqualPoint;
             var edges = new List<Edge>();
             var heights = new List<double>();
+            var tips = new List<double>();
+            var breaks = new List<KeyValuePair<Edge, double>>();
 
             for (int l = 0; l < loops.Count; l++)
             {
@@ -148,7 +153,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                MarkPointed(loop, orientation, eps, made);
+                MarkPointed(loop, orientation, eps, made, tips, breaks, l > 0);
                 edges.AddRange(made);
             }
 
@@ -206,8 +211,13 @@ namespace GeometryHelper.Dxf
                         if (
                             span.Left == was.Left
                             && span.Right == was.Right
-                            && was.Left.IsVertical(eps)
-                            && was.Right.IsVertical(eps)
+                            && (
+                                (was.Left.IsVertical(eps) && was.Right.IsVertical(eps))
+                                || !tips.Exists(tip => Math.Abs(tip - top) <= eps)
+                            )
+                            && !breaks.Exists(b =>
+                                (b.Key == was.Left || b.Key == was.Right) && Math.Abs(b.Value - top) <= eps
+                            )
                         )
                         {
                             same = span;
@@ -240,7 +250,15 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>Marks the edges that leave a corner where the area is pointed inwards: two edges that both go down, or both go up, from a corner the area wraps round.</summary>
-        private static void MarkPointed(IReadOnlyList<GeoPoint2> loop, double orientation, double eps, List<Edge> made)
+        private static void MarkPointed(
+            IReadOnlyList<GeoPoint2> loop,
+            double orientation,
+            double eps,
+            List<Edge> made,
+            List<double> tips,
+            List<KeyValuePair<Edge, double>> breaks,
+            bool hole
+        )
         {
             int n = loop.Count;
 
@@ -262,19 +280,63 @@ namespace GeometryHelper.Dxf
 
                 if (turn * orientation >= 0.0)
                 {
+                    // A tip: a convex corner that both its edges leave the same way.
+                    if (!hole)
+                    {
+                        tips.Add(corner.Y);
+                    }
+
                     continue;
                 }
 
+                var pair = new List<Edge>();
+
                 foreach (Edge edge in made)
                 {
-                    if (down && Near(edge.Top, corner, eps))
+                    if (down ? Near(edge.Top, corner, eps) : Near(edge.Bottom, corner, eps))
+                    {
+                        pair.Add(edge);
+                    }
+                }
+
+                if (pair.Count != 2)
+                {
+                    continue;
+                }
+
+                double reach0 = down ? pair[0].Bottom.Y : pair[0].Top.Y;
+                double reach1 = down ? pair[1].Bottom.Y : pair[1].Top.Y;
+                bool even = Math.Abs(reach0 - reach1) <= eps;
+
+                // Of two edges that reach as far, the corner of an outer loop is pointed. Of two that do not, or of a hole's, it
+                // depends on where the loop is walked from: if the edge on the right of the corner comes before the one on its left,
+                // the corner is pointed and, where the edges reach differently far, the level at which the shorter ends cuts the area
+                // beyond the longer one as well; if after, nothing is cut and both sides are drawn.
+                double far = down ? Math.Max(reach0, reach1) : Math.Min(reach0, reach1);
+                Edge left = pair[0].XAt(far) <= pair[1].XAt(far) ? pair[0] : pair[1];
+                Edge right = left == pair[0] ? pair[1] : pair[0];
+
+                if ((!even || hole) && right.Id > left.Id)
+                {
+                    continue;
+                }
+
+                foreach (Edge edge in pair)
+                {
+                    if (down)
                     {
                         edge.TopPointed = true;
                     }
-                    else if (up && Near(edge.Bottom, corner, eps))
+                    else
                     {
                         edge.BottomPointed = true;
                     }
+                }
+
+                if (!even)
+                {
+                    Edge longer = (down ? reach0 < reach1 : reach0 > reach1) ? pair[0] : pair[1];
+                    breaks.Add(new KeyValuePair<Edge, double>(longer, far));
                 }
             }
         }
