@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A LINE, an ARC, a CIRCLE and a LWPOLYLINE of a `DxfFile` (and so of every drawing the presenter opens) are read from the bytes of their
+records, where each group was made a string and a reader object made for the entity (3 KB of garbage and 1.1 to 1.6 µs for a LINE, an ARC
+or a CIRCLE, 6.6 KB and 4.0 µs for a polyline of four vertices with a bulge, 1.4 KB of each the reader object). The shapes are the same to
+the bit: the group order, padded codes, CRLF or LF, `+.5`, `1E-3`, `-0`, a tab round a value, the first group of a code, the checks the
+reader makes of every number and whole number of the record, and the extrusion, the elevation, the bulges and the closed flag are as the
+reader has them; a number of up to 19 digits is read from its digits and the power of ten (one multiplication or division where the digits
+are at most 2^53 and the power is within 1E22; otherwise, as for the 17 digits AutoCAD writes, a 192-bit product of the digits and a 128-bit
+power of ten, taken only where both ends of its range give the same double), the number the reader reads from the text, the double
+nearest it, on .NET Framework as on .NET 10; any number it cannot settle is read by the reader's own number reader, and any record it is
+not sure of (a letter beyond ASCII in a number, no radius, no length, a group code that is no number, an exception) is read the long way.
+A LINE, an ARC or a CIRCLE takes 0.2 to 0.5 µs and 64 to 88 bytes of garbage now, a polyline 2.0 µs and 3.0 KB (2.3 KB of it the closed
+polyline with an arc that it is), and a number of 17 digits 0.04 to 0.13 µs where it took 0.4 to 0.9. The shapes of the 78 000 of these
+in a drawing of 100 000 entities (lines, arcs, circles, polylines with a bulge and texts, one entity in fifty an INSERT) take 86 ms (.NET 8) and 123 (.NET Framework 4.8) where
+they took 170 and 270; its display, from the opened file, takes 350 ms where it took 400 (.NET 8; medians of 9 runs, three alternated
+rounds) and 550 ms where it took 650 (.NET Framework 4.8), and that of 1 000 000 entities 3.1 to 3.9 s where it took 3.5 to 4.0 and 5.0 to
+5.5 s where it took 6.1 to 7.0; opening the file, a layer switched on (1.0 s at 1 000 000) and the heap (650.9 MB, 658.8 MB) are as they
+were. The 4 377 LINEs, ARCs and polylines of an AutoCAD sample of 17-digit coordinates (070-PBBASE) are read in 14 ms where they took 37
+(.NET 8), 4 where 21 (.NET Framework). The display list of 160 drawings (the 100 000 entities and 159 AutoCAD samples read in place) is
+the same bit for bit under both runtimes. Checked against the long read on 200 000 generated records of each of the four types (groups in
+any order, omitted, repeated, padded, in 18 number formats, with extrusions, elevations, bulges, closed flags and comments; run under both
+runtimes), on the 121 792 LINEs, ARCs, CIRCLEs and LWPOLYLINEs of the 167 AutoCAD sample drawings, and on 27 million numbers against the
+reader's number reader (random digits, the shortest text of doubles of any bits, the ties between two doubles, powers of ten). The shapes
+are still kept: with the faster read, the polylines' shapes read afresh would still make a layer switched on at 1 000 000 entities take
+1.3 to 1.5 s in place of 1.0 s, for 578 MB of heap in place of 651.
+
 **NEW.** MLEADERCOLLECT (MLC) in the presenter, as AutoCAD 2021's console runs it (probed through standard input, multileaders made by
 MLEADER in a style of a block), and the Collect button of the Annotate tab's Leaders panel. "Select multileaders:" then "Specify
 collected multileader location or [Vertical/Horizontal/Wrap] <Horizontal>:": the multileaders stay as they are and each block moves, by

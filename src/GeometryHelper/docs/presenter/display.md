@@ -80,6 +80,18 @@ stay. The handle of an entity is one string, shared by its database item, its di
 1 000 000. An arc's box is 32 bytes of the 104 of its item, 25 MB at 1 000 000 entities; the frame of a drawing shown whole asks for it at
 each arc it draws as a dot, so it is kept.
 
+The shapes of a LINE, an ARC, a CIRCLE and a LWPOLYLINE are read from the bytes of their records (see "Numbers" in the reader guide), with
+no string made of a group and no reader made for the entity: 0.2 to 0.5 µs and 64 to 88 bytes of garbage for the first three, where they
+took 1.1 to 1.6 µs and 3.2 KB, and 2.0 µs and 3.0 KB for a polyline of four vertices with a bulge, where it took 4.0 µs and 6.6 KB (1.4 µs
+and 2.3 KB of it the closed polyline with an arc that it is). The shapes of the 78 000 of them in a drawing of 100 000 entities take 86 ms (123 under .NET Framework 4.8)
+where they took 170 (270), and its cold display (open not counted) 350 ms where it took 400 under .NET 8 and 550 where it took 650
+under .NET Framework 4.8; a drawing of 1 000 000 entities displays in 3.1 to 3.9 s where it took 3.5 to 4.0 under .NET 8 and in 5.0 to 5.5 s
+where it took 6.1 to 7.0 under .NET Framework 4.8. The 4 377 of them in an AutoCAD sample whose coordinates have 17 digits (070-PBBASE) take
+14 ms where they took 37 under .NET 8, and 4 ms where they took 21 under .NET Framework. The display list, the heap (650.9 MB at 1 000 000
+entities) and a layer switched on (1.0 s) are as they were, since the shapes are kept. They are kept still, the faster read
+notwithstanding: a layer switched on at 1 000 000 entities with the polylines' shapes read afresh took 1.3 to 1.5 s where it takes 1.0 s, for
+578 MB of heap in place of 651, as it did before the faster read, since a polyline's own making is most of its cost.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

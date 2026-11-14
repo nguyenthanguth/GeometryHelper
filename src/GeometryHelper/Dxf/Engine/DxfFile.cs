@@ -716,8 +716,27 @@ namespace GeometryHelper.Dxf
                 return insert == null ? new List<object>() : new List<object> { insert };
             }
 
-            return DxfReader.ShapesOf(Records(item), Tolerance.Default);
+            return TryFastShape(item, out object fast)
+                ? new List<object>(1) { fast }
+                : DxfReader.ShapesOf(Records(item), Tolerance.Default);
         }
+
+        /// <summary>
+        /// The one shape of a LINE, ARC, CIRCLE or LWPOLYLINE read straight from the bytes of its record, as the reader reads
+        /// it from the groups made strings, to the bit; false for any other entity, and where the fast read is not sure of
+        /// following the reader, which <see cref="ShapesOf(DxfItem)"/> then asks.
+        /// </summary>
+        internal bool TryFastShape(DxfItem item, out object shape)
+        {
+            Rec own = HeadOf(item);
+            return DxfReader.TryFastShape(own.Bytes, own.Start, own.End, own.Type, Tolerance.Default, out shape);
+        }
+
+        /// <summary>
+        /// The shapes of an entity other than an INSERT read the long way, from the groups made strings, as
+        /// <see cref="ShapesOf(DxfItem)"/> reads those it has no fast read for: what that is checked against.
+        /// </summary>
+        internal List<object> ShapesReadLong(DxfItem item) => DxfReader.ShapesOf(Records(item), Tolerance.Default);
 
         /// <summary>
         /// The shapes of an entity other than an INSERT as a typed conversion of <see cref="DxfEntity"/> reads them: at a
