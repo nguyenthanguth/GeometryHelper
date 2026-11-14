@@ -496,9 +496,16 @@ namespace GeometryHelper.Dxf
         {
             get
             {
-                double constant = GetDouble(43, 0.0);
                 DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-                List<List<KeyValuePair<int, string>>> vertices = Kept(record) ?? Parse(record, false);
+                List<List<KeyValuePair<int, string>>> vertices = Kept(record);
+
+                // Asked of a polyline whose vertices are not read, the groups are walked where they stand.
+                if (vertices == null)
+                {
+                    return Item.File.HasWidthOf(Item);
+                }
+
+                double constant = GetDouble(43, 0.0);
 
                 if (vertices.Count == 0)
                 {
@@ -1609,7 +1616,7 @@ namespace GeometryHelper.Dxf
         private List<List<KeyValuePair<int, string>>> Read()
         {
             DxfFile.Rec record = Item.File.RecordAt(Item, 0);
-            return Kept(record) ?? Parse(record, true);
+            return Kept(record) ?? Parse(record);
         }
 
         /// <summary>The vertices <see cref="Read"/> kept, while the record is the one they were read from; null where none are.</summary>
@@ -1623,10 +1630,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Reads the vertices from the record; kept, with where they begin, where they are counted and the count, for the next
-        /// <see cref="Read"/> where <paramref name="keep"/> is set, else only given: a look that asks a question of them and
-        /// goes on, as every polyline of a drawing asked for its width as it is drawn, leaves nothing of them in memory.
+        /// <see cref="Read"/>.
         /// </summary>
-        private List<List<KeyValuePair<int, string>>> Parse(DxfFile.Rec record, bool keep)
+        private List<List<KeyValuePair<int, string>>> Parse(DxfFile.Rec record)
         {
             var vertices = new List<List<KeyValuePair<int, string>>>();
             var starts = new List<int>();
@@ -1680,11 +1686,6 @@ namespace GeometryHelper.Dxf
                         ? value
                         : 0;
                 }
-            }
-
-            if (!keep)
-            {
-                return vertices;
             }
 
             _count = count;

@@ -655,55 +655,69 @@ namespace GeometryHelper.Dxf
 
         internal Look LookOf(DxfItem item, out string handle)
         {
-            var values = new Dictionary<int, string>();
+            // Each of these groups the first of its code in the record, kept as it stands; null where the record has none.
+            string handleValue = null,
+                dimStyleHandle = null,
+                layer = null,
+                linetype = null,
+                thickness = null,
+                colour = null,
+                lineweight = null,
+                trueColour = null;
             Rec record = HeadOf(item);
             var walk = new GroupWalk(record);
 
             while (walk.Next(out int code, out int start, out int end))
             {
-                if (
-                    (
-                        code == 5
-                        || code == 105
-                        || code == 8
-                        || code == 6
-                        || code == 39
-                        || code == 62
-                        || code == 370
-                        || code == 420
-                    ) && !values.ContainsKey(code)
-                )
+                switch (code)
                 {
-                    values.Add(code, Text(record, start, end));
+                    case 5:
+                        handleValue = handleValue ?? Text(record, start, end);
+                        break;
+                    case 105:
+                        dimStyleHandle = dimStyleHandle ?? Text(record, start, end);
+                        break;
+                    case 8:
+                        layer = layer ?? Text(record, start, end);
+                        break;
+                    case 6:
+                        linetype = linetype ?? Text(record, start, end);
+                        break;
+                    case 39:
+                        thickness = thickness ?? Text(record, start, end);
+                        break;
+                    case 62:
+                        colour = colour ?? Text(record, start, end);
+                        break;
+                    case 370:
+                        lineweight = lineweight ?? Text(record, start, end);
+                        break;
+                    case 420:
+                        trueColour = trueColour ?? Text(record, start, end);
+                        break;
                 }
             }
 
-            string Value(int code) => values.TryGetValue(code, out string value) ? value : null;
-
-            int? Whole(int code) =>
-                values.TryGetValue(code, out string value)
+            int? Whole(string value) =>
+                value != null
                 && int.TryParse(value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)
                     ? number
                     : (int?)null;
 
             // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
-            string text = (record.Type == "DIMSTYLE" ? Value(105) : Value(5))?.Trim();
+            string text = (record.Type == "DIMSTYLE" ? dimStyleHandle : handleValue)?.Trim();
             handle = string.IsNullOrEmpty(text) ? null : text;
-            double thickness =
-                values.TryGetValue(39, out string raised)
-                && Numbers.TryRead(raised, out double read)
-                && Guard.IsFinite(read)
-                    ? read
-                    : 0.0;
+            double raised =
+                thickness != null && Numbers.TryRead(thickness, out double read) && Guard.IsFinite(read) ? read : 0.0;
 
             return new Look
             {
-                Layer = Value(8),
-                Colour = Whole(62),
-                TrueColour = Whole(420),
-                Linetype = Value(6),
-                Lineweight = Whole(370),
-                Thickness = thickness,
+                Layer = layer,
+                Colour = Whole(colour),
+                TrueColour = Whole(trueColour),
+                Linetype = linetype,
+                Lineweight = Whole(lineweight),
+                Thickness = raised,
             };
         }
 

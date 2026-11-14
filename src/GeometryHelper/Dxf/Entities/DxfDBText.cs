@@ -2423,6 +2423,12 @@ namespace GeometryHelper.Dxf
         private GeoVector3 TextNormal()
         {
             bool any = TryNumber(210, out double x) | TryNumber(220, out double y) | TryNumber(230, out double z);
+            return NormalOf(any, x, y, z);
+        }
+
+        /// <summary>The normal of a text from the numbers of its groups 210, 220 and 230 (nought where it has none), (0, 0, 1) where it has none of them or they have no length.</summary>
+        private static GeoVector3 NormalOf(bool any, double x, double y, double z)
+        {
             double length = Math.Sqrt(x * x + y * y + z * z);
 
             if (!any || !(length > 0.0) || double.IsInfinity(length))

@@ -685,7 +685,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private BlockContent ContentOf(DxfBlockTableRecord block)
         {
-            string handle = block.Handle;
+            // A block of a file with no table of block records, one of R12 or written by hand, has no handle: it is kept by its
+            // name, which no other block of a drawing has, and not listed again for each INSERT of it.
+            string handle = block.Handle ?? NameKeyOf(block);
 
             if (handle != null && _orders.TryGetValue(handle, out BlockContent known))
             {
@@ -741,6 +743,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return content;
+        }
+
+        /// <summary>The key a block with no handle is kept by in <see cref="_orders"/>: its name after a character no handle has; null where the block has none.</summary>
+        private static string NameKeyOf(DxfBlockTableRecord block)
+        {
+            try
+            {
+                string name = block.Name;
+                return name == null ? null : "\u0001" + name;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>Whether a block is anonymous (*D1, *T2, *U3): flagged so, or named with a star.</summary>
@@ -2265,18 +2281,19 @@ namespace GeometryHelper.Dxf.Viewer
         {
             // The spaces before and after the words kept: AutoCAD justifies the words by them (mirror-insert GHMI1), "ABC " on the
             // right of its baseline a space further left than "ABC".
-            string value = TextMarks(CleanText(text.TextString, false).Trim('\n'), out byte[] marks);
+            // Its properties read in one pass of its groups, where each read alone looks for its own through them.
+            DxfDBText.DisplayRead read = text.ReadForDisplay();
+            string value = TextMarks(CleanText(read.TextString, false).Trim('\n'), out byte[] marks);
 
-            if (value.Trim().Length == 0 || text.Height <= 0.0)
+            if (value.Trim().Length == 0 || read.Height <= 0.0)
             {
                 return;
             }
 
-            bool simple = text.IsDefaultAlignment;
-            GeoPoint3 at = simple ? text.Position : text.AlignmentPoint;
+            GeoPoint3 at = read.At;
             int horizontal;
 
-            switch (text.HorizontalMode)
+            switch (read.HorizontalMode)
             {
                 case DxfTextHorizontalMode.TextCenter:
                 case DxfTextHorizontalMode.TextMid:
@@ -2292,7 +2309,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             int vertical;
 
-            switch (text.VerticalMode)
+            switch (read.VerticalMode)
             {
                 case DxfTextVerticalMode.TextBottom:
                     vertical = 1;
@@ -2309,22 +2326,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Affine2 m = frame.Matrix;
-            double turn = Orient(m, text.Rotation, text.IsMirroredInX, text.IsMirroredInY, out bool backward);
+            double turn = Orient(m, read.Rotation, read.IsMirroredInX, read.IsMirroredInY, out bool backward);
             list.Add(
                 Text(
-                    FaceOf(text.TextStyleName),
+                    FaceOf(read.TextStyleName),
                     value,
                     m.X(at.X, at.Y),
                     m.Y(at.X, at.Y),
-                    text.Height * heightFactor * m.Scale,
+                    read.Height * heightFactor * m.Scale,
                     turn,
-                    text.WidthFactor,
+                    read.WidthFactor,
                     horizontal,
                     vertical,
                     style,
                     handle,
                     layerName,
-                    text.Oblique,
+                    read.Oblique,
                     backward,
                     marks
                 )

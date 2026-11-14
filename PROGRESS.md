@@ -759,10 +759,14 @@ the ones wanted.
       145 -> 33 ns; DxfReader.Read of 100k 17-digit entities 414 -> 314 ms), TEXT/MTEXT shapes from bytes (1.67 -> 0.17
       us), the first INSERT's layer scan from bytes (40 -> 6 ms), exact power-of-ten ties; 167 samples and 28 million
       numbers bit-identical. The cold display is unchanged (its time is not in the reader)
-- [ ] (speed9, running) Speed follow-ups 8: the display's own costs (LWPOLYLINE 4 us, 60 % the GeoPolygonArc3; INSERT 14.5 us; TEXT read
-      property by property: read once and cache until an edit, in DxfDBText); dropping the LINE/ARC/CIRCLE shape cache;
-      TryChain garbage; the 48-byte "no contexts" tuple; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra;
-      DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 8 (speed9): polyline widths, visibility and looks read by byte walks, TEXT read in one pass for
+      the display, handle-less blocks listed once: cold display of 100k mixed 330 -> 255 ms (net8) / 519 -> 431 (net48),
+      1M 3.36 -> 2.79 s, INSERT-heavy 1591 -> 1175 ms, garbage 277 -> 154 MB at 100k; display lists and pixels identical
+      on 172 drawings. DECIDED: no TEXT cache (the one-pass read is cheap; an edit is always seen)
+- [ ] Speed follow-ups 9: GeoPolygonArc3 construction (1.7 us, 2.9 KB per polyline); INSERT BlockTransform/Position in
+      one pass; the remaining ParsedOf users; dropping the LINE/ARC/CIRCLE shape cache (same-object contract); TryChain
+      garbage; DxfPolyline's 8 cache fields; DisplayText2's two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a
+      DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
