@@ -557,6 +557,21 @@ and DIMEXE. In AutoCAD 2021's pictures of an angle of 60 degrees the leader pres
 from -60 to 180 from 34 of 3 492 to none; at 240 out the rule is 142 wrong of 24 056 probes over eight styles of DIMASZ, DIMTXT,
 DIMGAP, DIMADEC, DIMEXE and DIMSCALE. On the nearer arcs it is up to 1.5 off on the side of the arc away from the middle (45 out: 121
 differing by the fit, 138 by the rule; 30 out: 65 of 5 832 by the fit, 234 by the rule), so those keep the fit.
+**FIXED.** The rule behind the leader band of an angle's words has the curve of the arc in it, and reads arcs of 5.5 landings out or
+more, not 8 (31 out for "60°" of 2.5-high Arial, a landing of 5.58). It was up to 1.5 off on the side of the arc away from the middle,
+scaling as one over the radius (0.25 at 240, 0.5 at 90, 1.5 at 30), because it took the straight distance from a corner of the box
+to a point of the circle: AutoCAD 2021 takes the corner's distance from the circle (its distance from the vertex less the radius)
+and the chord at the radius between their directions, as if the circle were unrolled, and draws the diagonal of the box flatter by
+0.7 of the sagitta of a landing (the landing squared over the radius); its band of "60°" is centred out of the circle by about half
+that sagitta where the words stand above the vertex (0.6 out at 30 out, 0.37 at 45, 0.2 at 90). Leader presence differing in
+AutoCAD's pictures of an angle of 60 degrees, the five exact directions left out: 94 of 6 499 at an arc of 38 out and 66 now, 165 of
+6 984 at 45 (12 styles) and 92 (Arial 162 and 75), 164 and 69 at 60, 73 and 28 at 90, 28 and 8 at 240 (12 styles 47 and 18; Arial 16
+and 6, and 43 and 10), and 2 probes of the 3 492 along the arc of 240 out that had none wrong; at 30 out the sets that reach the rule
+through their smaller styles went from 33 to 30 (a5), 137 to 132 (aq) and 126 to 111 (the same in Arial), and the other sets of
+pictures that reach an angle's words (a, a2, a4, a6, a7 and their Arial twins, d1, tar16, tar22, tar23, tar25, tar26, tw14 to tw17, m to m6) are byte
+for byte what they were (a3, ta3, e2 and te1, which have no pictures of AutoCAD's, changed with it). At 30 out the rule, its curve fitted to those arcs alone, is still worse than the fit (142 wrong of 6 984, 104 of 5 670 and
+183 of 6 860 against 106, 58 and 135), so the nearer arcs keep the fit. The sum is held to 0.04 less than twice the half width and
+DIMEXE, where AutoCAD's edges lay between probes 0.25 apart (568 wrong of 77 000 probes before, 474 after).
 
 **CHANGED.** REFEDIT, REFSET and REFCLOSE use the words of AutoCAD 2021's own string table (AcRefEdRes.dll, read as data: its
 console has none of the three commands, by script or by standard input, where `Unknown command` is all it says), which the

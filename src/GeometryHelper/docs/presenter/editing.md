@@ -1027,12 +1027,23 @@ out (6.0 with 2.5), DIMEXE 2.5 7.5 (88 of 1 552 probes differing before, 30 now)
 where the curve is nearly straight: the words stay on the arc where some point of the circle has the sum of its distances to two
 opposite corners of the box of the words and their landing (half the words, a gap and an arrowhead each side of the point, half
 their height up and down; the diagonal that rises to the right where the point lies right of and above the arc's middle, or left
-of and below it, else the one that falls) no more than twice that half width and DIMEXE. It reads arcs of 8 landings out or more (48
-for "60°" of 2.5-high Arial with a gap of 0.625 and arrowheads of 2.5): 175 of 6 984 probes differing at an arc of 60 out by the
-fit and 103 by the rule, 212 and 76 at 90, 264 and 30 at 240 (Arial: 272 and 20), the band along an arc of 240 at heights from -60
-to 180 3 492 probes and none wrong; over the eight styles at 240 out 142 of 24 056. On the nearer arcs the rule is up to 1.5 off
-on the side of the arc away from the middle, as much as 1 over the arc's radius times the landing squared (45 out: 121 by the fit
-and 138 by the rule; 30: 65 of 5 832 and 234), so those keep the fit, as do the words of an arc length dimension.
+of and below it, else the one that falls) no more than twice that half width and DIMEXE. The curve of the arc is in it as AutoCAD
+2021 draws it: a corner is as far from a point of the circle as its distance from the circle (its distance from the vertex less the
+radius) and the chord at the radius between their directions make it, as if the circle were unrolled (the straight distance
+between them is what the first form of the rule took, and it is up to 1.5 off on the side of the arc away from the middle at 30 out,
+as much as 1 over the radius times the landing squared), and the diagonal is flatter by 0.7 of the sagitta of a landing, the
+landing squared over the radius, up or down. AutoCAD 2021's band of "60°" is centred out of the circle by about half that sagitta
+(0.6 out at 30 out, 0.37 at 45, 0.2 at 90) where the words stand above the vertex, and on it where they stand beside it, which the
+straight distances had centred on it all round. The rule reads arcs of 5.5 landings out or more (31 for "60°" of 2.5-high Arial
+with a gap of 0.625 and arrowheads of 2.5, a landing of 5.58); the probes where the leader presence differed, at an angle of 60
+degrees with its words put every 0.25 round it at 5 degrees' steps, the five exact directions 30, 90, 150, 270 and 330 degrees
+left out: 94 of 6 499 at an arc of 38 out by the fit or the straight rule and 66 now, 165 of 6 984 at 45 (12 styles of DIMASZ, DIMTXT,
+DIMGAP, DIMADEC, DIMEXE, DIMEXO and DIMSCALE) and 92 now (Arial 162 and 75), 164 and 69 at 60, 73 and 28 at 90, 28 and 8 at 240
+(12 styles 47 and 18; Arial 16 and 6, 12 styles 43 and 10); along the arc of 240 at heights from -60 to 180 the straight rule had
+none wrong of 3 492 and this has 2. Nearer arcs keep the fit, as do the words of an arc length dimension: fitted to the probes at
+30 out alone the rule is worse than the fit (142 wrong of 6 984, 104 of 5 670 and 183 of 6 860 in three sets of probes against 106,
+58 and 135), and arrowheads and words that make the landing long (DIMSCALE 2 reaches 4 landings at 45 out) are worse by it too.
+The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between probes 0.25 apart.
 A radius or a diameter put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over a
 radius's centre or over the rim, from inside or out (a diameter's from the back of its arrowhead in), put the arrowheads
 outside, pointing in, each on a line an arrowhead long, and DIMTOFL runs the line whole from the centre, or the far rim,

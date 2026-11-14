@@ -1030,7 +1030,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static readonly double[] ExeReachLeft = { 1.65, 1.594, 1.429, 1.295, 1.149, 1.098, 1.134, 1.0 };
 
         // An arc this many landings out or more has the leader of its words read by WordsStayOnTheArc, a nearer one by the fit.
-        private const double BigArc = 8.0;
+        private const double BigArc = 5.5;
 
         /// <summary>
         /// Whether the words of an angle put at <paramref name="at"/> get no leader on a large arc: AutoCAD 2021 keeps them on it
@@ -1042,8 +1042,22 @@ namespace GeometryHelper.Dxf.Viewer
         /// below it, else down to the right.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Probed with "60°" put every 0.25 round an angle of 60 degrees at 240 out (24 056 probes of eight styles): 142 wrong,
         /// where the fit of the nearer arcs was 3.8 per cent off.
+        /// </para>
+        /// <para>
+        /// The curve of the arc enters as AutoCAD 2021 draws it: the distance from a corner to a point of the circle is the
+        /// corner's distance from the circle (its distance from the vertex less the radius) and the chord at the radius between
+        /// their directions, as if the circle were unrolled, not the straight distance between them; and the diagonal of the box
+        /// is flatter by 0.7 of the sagitta <c>room * room / radius</c> of a landing, up or down. AutoCAD 2021's band of the
+        /// words "60°" is centred out of the circle by about half that sagitta (0.6 out at 30 out, 0.37 at 45, 0.2 at 90,
+        /// where the words stand above the vertex, none where they stand beside it), where the sum of straight distances had it
+        /// centred on the circle. Of AutoCAD 2021's pictures of an angle of 60 degrees, the probes where the leader presence
+        /// differed (the exact directions 30, 90, 150, 270 and 330 degrees left out): 38 out 94 of 6 499 before, 66 now; 45 out
+        /// 165 of 6 984 (12 styles) before, 92 now (Arial 162 and 75); 60 out 164 and 69; 90 out 73 and 28; 240 out 28 and 8
+        /// (12 styles 47 and 18; Arial 16 and 6, 43 and 10), and 2 more of the 3 492 along 240 out, where there were none.
+        /// </para>
         /// </remarks>
         private static bool WordsStayOnTheArc(
             GeoPoint2 vertex,
@@ -1055,16 +1069,21 @@ namespace GeometryHelper.Dxf.Viewer
             double beyond
         )
         {
-            double lift = ((at.X > middle.X) == (at.Y > middle.Y) ? 1.0 : -1.0) * height / 2.0;
+            double lift =
+                ((at.X > middle.X) == (at.Y > middle.Y) ? 1.0 : -1.0) * (height / 2.0 - 0.7 * room * room / radius);
+            double firstX = at.X - room - vertex.X;
+            double firstY = at.Y - lift - vertex.Y;
+            double secondX = at.X + room - vertex.X;
+            double secondY = at.Y + lift - vertex.Y;
+            double firstOut = Math.Sqrt(firstX * firstX + firstY * firstY) - radius;
+            double secondOut = Math.Sqrt(secondX * secondX + secondY * secondY) - radius;
+            double firstAround = Math.Atan2(firstY, firstX);
+            double secondAround = Math.Atan2(secondY, secondX);
             double Sum(double angle)
             {
-                double x = vertex.X + radius * Math.Cos(angle);
-                double y = vertex.Y + radius * Math.Sin(angle);
-                double a = x - (at.X - room);
-                double b = y - (at.Y - lift);
-                double c = x - (at.X + room);
-                double d = y - (at.Y + lift);
-                return Math.Sqrt(a * a + b * b) + Math.Sqrt(c * c + d * d);
+                double a = 2.0 * radius * Math.Sin((angle - firstAround) / 2.0);
+                double b = 2.0 * radius * Math.Sin((angle - secondAround) / 2.0);
+                return Math.Sqrt(firstOut * firstOut + a * a) + Math.Sqrt(secondOut * secondOut + b * b);
             }
 
             // Only the circle within twice the ellipse's half length and the height of the point can reach it: sampled there.
@@ -1105,7 +1124,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) + 1E-9;
+            // The sum is held to 0.04 less than twice the half width and DIMEXE, which is where AutoCAD's edges lay between the
+            // probes (0.25 apart) of 12 sets: the 0.04 took 568 wrong probes of 77 000 to 474.
+            return Math.Min(best, Sum((low + high) / 2.0)) <= 2.0 * (room + beyond) - 0.04 + 1E-9;
         }
 
         /// <summary>
@@ -1506,8 +1527,10 @@ namespace GeometryHelper.Dxf.Viewer
                     // the arc, rays or arrowheads followed both edges): a5 49 differing of 2 938 to 33, a7 101 of 5 832 to 71, and
                     // the styles above by a quarter. Probed at arcs of 240 out, where the circle is nearly straight, the rule
                     // is the sum of a circle point's distances to two opposite corners of the words' box grown by the landing
-                    // staying within twice that half width and DIMEXE (WordsStayOnTheArc, read from 8 landings out); nearer it
-                    // differs by up to 1.5 on the side away from the arc's middle, so those arcs keep the fit.
+                    // staying within twice that half width and DIMEXE, with the curve of the arc in it as WordsStayOnTheArc
+                    // has it; it is read from 5.5 landings out. Nearer, even with the curve fitted to those arcs alone (30 out:
+                    // 142 wrong of 6 984, 104 of 5 670 and 183 of 6 860 in three sets of probes) it is worse than this fit (106,
+                    // 58 and 135), so those arcs keep the fit.
                     double distance = (at - vertex).Length;
                     double offArc = distance - radius;
                     double leans = distance > 1E-12 ? Math.Abs(at.X - vertex.X) / distance : 1.0;
