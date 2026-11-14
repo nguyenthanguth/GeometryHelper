@@ -15,5 +15,6 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.UnitTest" />
+        <InternalsVisibleTo Include="GeometryHelper.Dxf.Viewer.Wpf" />
     </ItemGroup>
 </Project>

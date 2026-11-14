@@ -492,10 +492,11 @@ namespace GeometryHelper.Dxf.Viewer
                         // The entities stand in the older list's order but where an edit added or erased one, so its runs
                         // are walked along with them, and looked up by handle only once the two part.
                         int found = -1;
+                        DisplayRun run = default;
 
                         if (
                             next < runs.Count
-                            && string.Equals(runs[next].Handle, handle, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals((run = runs[next]).Handle, handle, StringComparison.OrdinalIgnoreCase)
                         )
                         {
                             found = next;
@@ -514,12 +515,15 @@ namespace GeometryHelper.Dxf.Viewer
                             {
                                 found = -1;
                             }
+                            else
+                            {
+                                run = runs[found];
+                            }
                         }
 
                         if (found >= 0)
                         {
                             next = found + 1;
-                            DisplayRun run = runs[found];
 
                             if (
                                 (run.Layers & layers) == 0
@@ -589,9 +593,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < runs.Count; i++)
             {
-                if (runs[i].Reads != null && !string.IsNullOrEmpty(runs[i].Handle) && handles.Contains(runs[i].Handle))
+                DisplayRun run = runs[i];
+
+                if (run.Reads != null && !string.IsNullOrEmpty(run.Handle) && handles.Contains(run.Handle))
                 {
-                    keys.UnionWith(runs[i].Reads);
+                    keys.UnionWith(run.Reads);
                 }
             }
 

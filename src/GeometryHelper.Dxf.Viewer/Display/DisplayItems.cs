@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace GeometryHelper.Dxf.Viewer
@@ -25,6 +26,92 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the dash pattern in drawing units, or null for a continuous line.</summary>
         public double[] Dashes { get; }
+
+        // The looks of this style, by layer: the last asked for, which is the layer of the item before it as often as not, and
+        // the rest once a second layer is asked for. A style is shared by a layer's items and by the items of its likes.
+        private DisplayLook _last;
+        private ConcurrentDictionary<string, DisplayLook> _looks;
+
+        /// <summary>The look of an item of this style on a layer: the one all of them share.</summary>
+        internal DisplayLook LookFor(string layer)
+        {
+            DisplayLook last = _last;
+
+            if (last != null && ReferenceEquals(last.Layer, layer))
+            {
+                return last;
+            }
+
+            if (layer == null)
+            {
+                return new DisplayLook(this, null);
+            }
+
+            ConcurrentDictionary<string, DisplayLook> looks = _looks;
+
+            if (looks != null && looks.TryGetValue(layer, out DisplayLook found))
+            {
+                _last = found;
+                return found;
+            }
+
+            // The first layer a style is used on, and the first look of any other: a style on one layer never makes the table.
+            lock (this)
+            {
+                DisplayLook current = _last;
+
+                if (_looks == null)
+                {
+                    if (current == null)
+                    {
+                        return _last = new DisplayLook(this, layer);
+                    }
+
+                    _looks = new ConcurrentDictionary<string, DisplayLook>();
+                    _looks[current.Layer] = current;
+                }
+
+                DisplayLook look = _looks.GetOrAdd(layer, key => new DisplayLook(this, key));
+                _last = look;
+                return look;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The style and the layer of the items that have them, with the few things an item may have besides: the clip of a block
+    /// and flags. A look shared by items is never changed; an item that sets one of the few makes a look of its own.
+    /// </summary>
+    internal sealed class DisplayLook
+    {
+        public DisplayLook(DisplayStyle style, string layer)
+        {
+            Style = style;
+            Layer = layer;
+        }
+
+        public DisplayStyle Style { get; }
+
+        public string Layer { get; }
+
+        /// <summary>Whether one item holds the look alone, so that it may be changed.</summary>
+        public bool IsOwned { get; private set; }
+
+        public DisplayClipRegion BlockClip;
+        public bool IsFrameInside;
+        public bool IsClipFrame;
+        public bool IsNotPlotted;
+
+        /// <summary>A look of the same style and layer, and the same state, that one item may change.</summary>
+        public DisplayLook Owned() =>
+            new DisplayLook(Style, Layer)
+            {
+                IsOwned = true,
+                BlockClip = BlockClip,
+                IsFrameInside = IsFrameInside,
+                IsClipFrame = IsClipFrame,
+                IsNotPlotted = IsNotPlotted,
+            };
     }
 
     /// <summary>One thing the canvas draws: a chain of segments, an arc, a fill, or a piece of text, in drawing coordinates, with the entity it came from.</summary>
@@ -36,19 +123,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="layer">The layer it is drawn on.</param>
         protected DisplayItem2(DisplayStyle style, string handle, string layer)
         {
-            Style = style;
+            _look = style != null ? style.LookFor(layer) : new DisplayLook(null, layer);
             Handle = handle;
-            Layer = layer;
         }
 
+        // The style and the layer of the item, and what few items have: the clip of a block and the flags below. The look is
+        // one object that all the items of a style and a layer share, so that an item holds one reference where it held two
+        // and the clip and three flags: 16 bytes on each of the 1 780 000 items of a drawing of 1 000 000 entities. An item
+        // that sets one of the few gets a look of its own.
+        private DisplayLook _look;
+
+        private DisplayLook Owned() => _look.IsOwned ? _look : (_look = _look.Owned());
+
         /// <summary>Gets how the item is drawn.</summary>
-        public DisplayStyle Style { get; }
+        public DisplayStyle Style => _look.Style;
 
         /// <summary>Gets the handle of the entity the item came from; an entity inside a block gives the handle of the outermost INSERT.</summary>
         public string Handle { get; }
 
         /// <summary>Gets the layer the item is drawn on.</summary>
-        public string Layer { get; }
+        public string Layer => _look.Layer;
 
         /// <summary>Gets the box that holds the item.</summary>
         public abstract DisplayBox Bounds { get; }
@@ -57,7 +151,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets the part of the plane the item is shown in where the block reference it came from is clipped (XCLIP), or one it
         /// stands in is; null for an item that is shown whole. The canvas draws only what is inside it.
         /// </summary>
-        public DisplayClipRegion BlockClip { get; internal set; }
+        public DisplayClipRegion BlockClip
+        {
+            get => _look.BlockClip;
+            internal set
+            {
+                if (value != null || _look.IsOwned)
+                {
+                    Owned().BlockClip = value;
+                }
+            }
+        }
 
         /// <summary>The box that holds what is shown of the item: its <see cref="Bounds"/>, within the box of its <see cref="BlockClip"/> where it has one.</summary>
         internal DisplayBox VisibleBounds
@@ -88,13 +192,43 @@ namespace GeometryHelper.Dxf.Viewer
         /// Mid, Center, Quadrant, Nearest or Perpendicular: AutoCAD 2021 gives a frame's End, Mid, Nearest and Perpendicular on
         /// the rectangles of its rows alone (probes GHTQ2 and GHTH2).
         /// </summary>
-        internal bool IsFrameInside { get; set; }
+        internal bool IsFrameInside
+        {
+            get => _look.IsFrameInside;
+            set
+            {
+                if (value || _look.IsOwned)
+                {
+                    Owned().IsFrameInside = value;
+                }
+            }
+        }
 
         /// <summary>Gets whether the item is the frame of a clip boundary (XCLIP), which is drawn over what the reference shows and not clipped by it.</summary>
-        public bool IsClipFrame { get; internal set; }
+        public bool IsClipFrame
+        {
+            get => _look.IsClipFrame;
+            internal set
+            {
+                if (value || _look.IsOwned)
+                {
+                    Owned().IsClipFrame = value;
+                }
+            }
+        }
 
         /// <summary>Gets whether the frame of a clip boundary is left out of a plot, as XCLIPFRAME 2 leaves it.</summary>
-        public bool IsNotPlotted { get; internal set; }
+        public bool IsNotPlotted
+        {
+            get => _look.IsNotPlotted;
+            internal set
+            {
+                if (value || _look.IsOwned)
+                {
+                    Owned().IsNotPlotted = value;
+                }
+            }
+        }
 
         /// <summary>
         /// A copy of the item moved along X and Y, as the entity it came from would be drawn moved so; null for an item that
@@ -210,8 +344,18 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A chain of straight segments, open or closed: a LINE, a polyline, a flattened spline or ellipse.</summary>
     public sealed class DisplayPolyline2 : DisplayItem2
     {
+        // The box of the chain, always. The vertices as X and Y in turn are _xy, but for a chain of two, which is kept as its
+        // box and two flags saying which corner each end is at, with no array (_xy is null): a LINE would otherwise be an
+        // object of 96 bytes and an array of 56. The box stays at hand, as a view asks it of every item it culls.
         private readonly double[] _xy;
-        private readonly DisplayBox _bounds;
+        private readonly double _a;
+        private readonly double _b;
+        private readonly double _c;
+        private readonly double _d;
+        private readonly bool _closed;
+        private readonly bool _flipX;
+        private readonly bool _flipY;
+        private bool _sampled;
 
         /// <summary>Makes a chain.</summary>
         /// <param name="xy">The vertices as X and Y in turn; at least two.</param>
@@ -222,8 +366,12 @@ namespace GeometryHelper.Dxf.Viewer
         public DisplayPolyline2(double[] xy, bool closed, DisplayStyle style, string handle, string layer)
             : base(style, handle, layer)
         {
-            _xy = xy ?? throw new ArgumentNullException(nameof(xy));
-            Closed = closed;
+            if (xy == null)
+            {
+                throw new ArgumentNullException(nameof(xy));
+            }
+
+            _closed = closed;
             DisplayBox box = DisplayBox.Empty;
 
             for (int i = 0; i + 1 < xy.Length; i += 2)
@@ -231,33 +379,76 @@ namespace GeometryHelper.Dxf.Viewer
                 box = box.Add(xy[i], xy[i + 1]);
             }
 
-            _bounds = box;
+            _a = box.MinX;
+            _b = box.MinY;
+            _c = box.MaxX;
+            _d = box.MaxY;
+
+            // Two vertices are the box and two flags where they come back from them bit for bit; a NaN among them does not.
+            if (
+                xy.Length == 4
+                && Flipped(xy[0], xy[2], _a, _c, out _flipX)
+                && Flipped(xy[1], xy[3], _b, _d, out _flipY)
+            )
+            {
+                return;
+            }
+
+            _flipX = false;
+            _flipY = false;
+            _xy = xy;
         }
 
-        /// <summary>Gets the vertices as X and Y in turn.</summary>
-        public IReadOnlyList<double> Xy => _xy;
+        /// <summary>Whether two numbers are a box's least and greatest, in that order or turned round, bit for bit; false for neither.</summary>
+        private static bool Flipped(double first, double second, double min, double max, out bool turned)
+        {
+            long f = BitConverter.DoubleToInt64Bits(first);
+            long s = BitConverter.DoubleToInt64Bits(second);
+            long lo = BitConverter.DoubleToInt64Bits(min);
+            long hi = BitConverter.DoubleToInt64Bits(max);
+            turned = f == hi && s == lo && f != lo;
+            return turned || (f == lo && s == hi);
+        }
+
+        /// <summary>Gets the vertices as X and Y in turn. A chain of two keeps no list of them, so each ask makes one: ask once and read it.</summary>
+        public IReadOnlyList<double> Xy => _xy ?? new[] { VertexX(0), VertexY(0), VertexX(1), VertexY(1) };
 
         /// <summary>Gets the number of vertices.</summary>
-        public int Count => _xy.Length / 2;
+        public int Count => _xy == null ? 2 : _xy.Length / 2;
+
+        /// <summary>The X of a vertex.</summary>
+        internal double VertexX(int index) => _xy != null ? _xy[2 * index] : ((index == 0) != _flipX ? _a : _c);
+
+        /// <summary>The Y of a vertex.</summary>
+        internal double VertexY(int index) => _xy != null ? _xy[2 * index + 1] : ((index == 0) != _flipY ? _b : _d);
 
         /// <summary>Gets whether the last vertex joins the first.</summary>
-        public bool Closed { get; }
+        public bool Closed => _closed;
 
         /// <summary>
         /// Gets whether the vertices are samples along a curve (an ellipse, a spline, an arc drawn under a skew) rather than
         /// corners of the entity, so that object snaps take only the chain's two ends as endpoints and none of its midpoints.
         /// </summary>
-        public bool IsSampled { get; internal set; }
+        public bool IsSampled
+        {
+            get => _sampled;
+            internal set => _sampled = value;
+        }
 
         /// <inheritdoc/>
-        public override DisplayBox Bounds => _bounds;
+        public override DisplayBox Bounds => new DisplayBox(_a, _b, _c, _d);
 
         internal override DisplayItem2 Moved(double dx, double dy) =>
-            new DisplayPolyline2(Moved(_xy, dx, dy), Closed, Style, Handle, Layer) { IsSampled = IsSampled };
+            new DisplayPolyline2(Moved(Xy, dx, dy), Closed, Style, Handle, Layer) { IsSampled = IsSampled };
 
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)
         {
+            if (_xy == null)
+            {
+                return SegmentDistance(x, y, VertexX(0), VertexY(0), VertexX(1), VertexY(1));
+            }
+
             double best = double.PositiveInfinity;
             int n = Count;
 
@@ -285,9 +476,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override bool Touches(DisplayBox box)
         {
-            if (!box.Intersects(_bounds))
+            if (!box.Intersects(Bounds))
             {
                 return false;
+            }
+
+            if (_xy == null)
+            {
+                return SegmentTouchesBox(VertexX(0), VertexY(0), VertexX(1), VertexY(1), box);
             }
 
             int n = Count;
@@ -850,9 +1046,39 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A piece of text, placed by the point its alignment names; the canvas measures and draws it in a font.</summary>
     public sealed class DisplayText2 : DisplayItem2
     {
+        private static readonly long OneBits = BitConverter.DoubleToInt64Bits(1.0);
+
         private DisplayBox _bounds;
-        private double _width = double.NaN;
-        private double _descent;
+
+        // The alignment, 0 to 2 along and 0 to 3 up as documented: four bytes of the object where two integers take eight.
+        private readonly short _horizontal;
+        private readonly short _vertical;
+        private readonly bool _backward;
+
+        // What few texts have, in one object made when one is set: an SHX text's strokes, a MTEXT's parts, a measured width and
+        // depth, a slant, a width factor other than 1 and the bold and italic of a run. A plain text holds one reference
+        // where these took 64 bytes.
+        private Extra _extra;
+
+        private sealed class Extra
+        {
+            public IReadOnlyList<double[]> Strokes;
+            public IReadOnlyList<DisplayItem2> Parts;
+            public double Width = double.NaN;
+            public double Descent;
+            public double Oblique;
+            public double WidthFactor = 1.0;
+            public bool IsBold;
+            public bool IsItalic;
+
+            public Extra Copy() => (Extra)MemberwiseClone();
+        }
+
+        private Extra MakeExtra() => _extra ?? (_extra = new Extra());
+
+        private double MeasuredWidth => _extra == null ? double.NaN : _extra.Width;
+
+        private double Descent => _extra == null ? 0.0 : _extra.Descent;
 
         /// <summary>Makes a piece of text.</summary>
         /// <param name="text">The text, one or more lines separated by line feeds, with the format codes of an MTEXT already taken out.</param>
@@ -935,17 +1161,28 @@ namespace GeometryHelper.Dxf.Viewer
         )
             : base(style, handle, layer)
         {
-            IsBackward = backward;
+            _backward = backward;
             FontName = string.IsNullOrEmpty(fontName) ? null : fontName;
-            Oblique = oblique;
+
+            if (BitConverter.DoubleToInt64Bits(oblique) != 0L)
+            {
+                MakeExtra().Oblique = oblique;
+            }
+
             Text = text ?? string.Empty;
             X = x;
             Y = y;
             Height = height;
             Rotation = rotation;
-            WidthFactor = widthFactor <= 0.0 ? 1.0 : widthFactor;
-            Horizontal = horizontal;
-            Vertical = vertical;
+            double factor = widthFactor <= 0.0 ? 1.0 : widthFactor;
+
+            if (BitConverter.DoubleToInt64Bits(factor) != OneBits)
+            {
+                MakeExtra().WidthFactor = factor;
+            }
+
+            _horizontal = (short)horizontal;
+            _vertical = (short)vertical;
             _bounds = ComputeBounds();
         }
 
@@ -986,9 +1223,10 @@ namespace GeometryHelper.Dxf.Viewer
                 backward
             )
         {
-            Strokes = strokes;
-            _width = width;
-            _descent = descent;
+            Extra extra = MakeExtra();
+            extra.Strokes = strokes;
+            extra.Width = width;
+            extra.Descent = descent;
             DisplayBox box = ComputeBounds();
 
             foreach (double[] stroke in strokes)
@@ -1008,7 +1246,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// then the lines a TEXT's <c>%%U</c>, <c>%%K</c> and <c>%%O</c> draw under, through and over its letters, one
         /// segment each; null where the canvas draws the text in <see cref="FontName"/>.
         /// </summary>
-        public IReadOnlyList<double[]> Strokes { get; }
+        public IReadOnlyList<double[]> Strokes => _extra?.Strokes;
 
         /// <summary>Gets the text.</summary>
         public string Text { get; }
@@ -1026,19 +1264,19 @@ namespace GeometryHelper.Dxf.Viewer
         public double Rotation { get; }
 
         /// <summary>Gets the width factor.</summary>
-        public double WidthFactor { get; }
+        public double WidthFactor => _extra == null ? 1.0 : _extra.WidthFactor;
 
         /// <summary>Gets where the point lies along the text: 0 left, 1 centre, 2 right.</summary>
-        public int Horizontal { get; }
+        public int Horizontal => _horizontal;
 
         /// <summary>Gets where the point lies up the text: 0 baseline, 1 bottom, 2 middle, 3 top.</summary>
-        public int Vertical { get; }
+        public int Vertical => _vertical;
 
         /// <summary>Gets the font of the text's style, a typeface or a font file; null for the canvas's own.</summary>
         public string FontName { get; }
 
         /// <summary>Gets how far the letters lean, in radians clockwise from upright.</summary>
-        public double Oblique { get; }
+        public double Oblique => _extra == null ? 0.0 : _extra.Oblique;
 
         /// <summary>
         /// Gets what an MTEXT is drawn as, in place of <see cref="Text"/> drawn whole: its mask (a <see cref="DisplayFill2"/>)
@@ -1049,13 +1287,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// as AB in the MTEXT's colour and CD in red after it; "II II II" 20 wide in letters 10 high as "II II" and, 16.67
         /// below it, "II".
         /// </summary>
-        public IReadOnlyList<DisplayItem2> Parts { get; private set; }
+        public IReadOnlyList<DisplayItem2> Parts => _extra?.Parts;
 
         /// <summary>Gets whether the canvas draws the letters in the bold face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|b1</c> is drawn.</summary>
-        public bool IsBold { get; internal set; }
+        public bool IsBold
+        {
+            get => _extra != null && _extra.IsBold;
+            internal set
+            {
+                if (value || _extra != null)
+                {
+                    MakeExtra().IsBold = value;
+                }
+            }
+        }
 
         /// <summary>Gets whether the canvas draws the letters in the italic face of <see cref="FontName"/>, as a run of an MTEXT coded <c>|i1</c> is drawn.</summary>
-        public bool IsItalic { get; internal set; }
+        public bool IsItalic
+        {
+            get => _extra != null && _extra.IsItalic;
+            internal set
+            {
+                if (value || _extra != null)
+                {
+                    MakeExtra().IsItalic = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets whether the text is drawn backwards: laid out and drawn as always in its own frame (along <see cref="Rotation"/>
@@ -1063,7 +1321,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// and read as in a mirror. A text in a block inserted mirrored, written backwards or upside down is drawn so; a canvas
         /// draws it by scaling its frame by -1 along the baseline after turning it.
         /// </summary>
-        public bool IsBackward { get; }
+        public bool IsBackward => _backward;
 
         /// <summary>Gets the number of lines of the text.</summary>
         public int LineCount
@@ -1093,9 +1351,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             get
             {
-                if (!double.IsNaN(_width))
+                double measured = MeasuredWidth;
+
+                if (!double.IsNaN(measured))
                 {
-                    return _width;
+                    return measured;
                 }
 
                 int longest = 0;
@@ -1151,24 +1411,23 @@ namespace GeometryHelper.Dxf.Viewer
         )
             : base(from.Style, from.Handle, from.Layer)
         {
-            IsBackward = from.IsBackward;
+            _backward = from._backward;
             FontName = from.FontName;
-            Oblique = from.Oblique;
             Text = from.Text;
             X = from.X + dx;
             Y = from.Y + dy;
             Height = from.Height;
             Rotation = from.Rotation;
-            WidthFactor = from.WidthFactor;
-            Horizontal = from.Horizontal;
-            Vertical = from.Vertical;
-            Strokes = strokes;
-            Parts = parts;
-            IsBold = from.IsBold;
-            IsItalic = from.IsItalic;
+            _horizontal = from._horizontal;
+            _vertical = from._vertical;
+            if (from._extra != null || strokes != null || parts != null)
+            {
+                Extra extra = from._extra == null ? new Extra() : from._extra.Copy();
+                extra.Strokes = strokes;
+                extra.Parts = parts;
+                _extra = extra;
+            }
             IsFrameInside = from.IsFrameInside;
-            _width = from._width;
-            _descent = from._descent;
             DisplayBox box = from._bounds;
             _bounds = new DisplayBox(box.MinX + dx, box.MinY + dy, box.MaxX + dx, box.MaxY + dy);
         }
@@ -1176,7 +1435,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gives the text the parts it is drawn as (<see cref="Parts"/>), its box that of the parts; its own where none has a box.</summary>
         internal void SetParts(IReadOnlyList<DisplayItem2> parts)
         {
-            Parts = parts;
+            MakeExtra().Parts = parts;
             DisplayBox all = DisplayBox.Empty;
             bool any = false;
 
@@ -1200,8 +1459,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gives a text the canvas draws its measured width and its depth below the baseline, for picking and extents, where the letters of its font's file were measured.</summary>
         internal void SetMeasure(double width, double descent)
         {
-            _width = width;
-            _descent = descent;
+            Extra extra = MakeExtra();
+            extra.Width = width;
+            extra.Descent = descent;
             _bounds = ComputeBounds();
         }
 
@@ -1250,14 +1510,15 @@ namespace GeometryHelper.Dxf.Viewer
             // The block of lines in its own frame: the first line's capitals reach up to Height, the last baseline is
             // (lines - 1) line steps below the first, and an SHX font's letters down to its depth below that; the vertical mode
             // then says which of its levels is at nought, the bottom that depth.
+            double descent = Descent;
             double top = Height;
             double bottom = -(LineCount - 1) * 1.25 * Height;
             double shift =
                 Vertical == 0 ? 0.0
-                : Vertical == 1 ? -(bottom - _descent)
+                : Vertical == 1 ? -(bottom - descent)
                 : Vertical == 2 ? -(top + bottom) / 2.0
                 : -top;
-            y0 = bottom - _descent + shift;
+            y0 = bottom - descent + shift;
             y1 = top + shift;
         }
 
