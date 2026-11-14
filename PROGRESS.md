@@ -173,9 +173,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         is twice the rise (tw9 58 -> 0, tw10 78 -> 0, tw11 162 -> 0); MLEADER words held by half their ink height and
         depth; MLEADER context and record groups as the command writes them; MLEADEREDIT's far-side arrow makes its own
         leader with measured fonts; 177.47 confirmed; harness .claude/gk/annot-harness5
-  - [ ] (annot6, running) Annotative objects 5c: words put beyond a slanting line's end under DIMTMOVE 0 (tw17 58: AutoCAD moves the
-        dimension line out along its normal, no model yet); AutoCAD's doubled dimension line in 7 DIMTMOVE 1 cases;
-        272/273 order in MLEADER context data; the turned-words rule for unturned DIMTOH words (S)
+  - [x] Annotative objects 5c (annot6): turned words past a slanting line's end under DIMTMOVE 0 slide the dimension
+        line along its normal (tw17 58 -> 6, tw18 186 -> 17); level words fit by their reach and drop the leader at twice
+        the rise (tw19 334 -> 64); the doubled line of DIMTMOVE 1; the run-on with a level landing on steep lines (tw21
+        80 -> 0); 272/273 after the leaders in MLEADER context data; harness .claude/gk/annot-harness6
+  - [ ] Annotative objects 5d: where AutoCAD goes back from the run-on to the leader (34 of tw22, by slope and length);
+        upright line of 7.2 with words 8 past under DIMTMOVE 1; words near the start of a long line at 135/150/315;
+        tw19's 64 (l5 and s30 l9); tw20 slopes 136-146; the ts1 generator (stale reflection) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)
@@ -239,7 +243,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         held by their box's left middle, block extents, multi-line words; TEXTALIGN Set spacing and Distribute along a
         line (advance = min of across and up); DIMBREAK cut by turned words' chords and by block references' shapes
         (hatches are no cutters)
-  - [ ] R3.1 follow-ups 2: MLEADERCOLLECT (Select multileaders / Vertical/Horizontal/Wrap; blocks side by side, tops
+  - [ ] (mlcollect, running: MLEADERCOLLECT) R3.1 follow-ups 2: MLEADERCOLLECT (Select multileaders / Vertical/Horizontal/Wrap; blocks side by side, tops
         level, one leader kept; needs a composite anonymous block in the core); multileaders with several leader lines
         turned; MLD's left landing by Below(right attachment); TEXTALIGNMODE's factory default (the console profile holds
         8); breaks kept by object for ellipses, texts and blocks (S)
@@ -701,7 +705,7 @@ the ones wanted.
 - [x] Speed follow-ups 4 (speed5): display list of 1M entities 335 -> 237 MB (shared looks, two-point chains without an
       array, text extras on demand, packed runs and insertion points); heap growth 746 -> 650 MB; pixels and dumps
       identical on 15 drawings and a 200 000-item fuzz; 24 new tests
-- [ ] Speed follow-ups 5: arc boxes (25 MB at 1M; computing them per ask made the frame 10 % slower); the entities'
+- [ ] (speed6, running) Speed follow-ups 5: arc boxes (25 MB at 1M; computing them per ask made the frame 10 % slower); the entities'
       shape caches left behind by the display (~11 MB per 100k polylines; 128 MB at 1M, layer-on 70 -> 170 ms if
       dropped); display handle strings (31 MB at 1M); a hatch- and MTEXT-heavy drawing to measure; layer-off at 1M
       re-timed on a quiet machine; read-ahead wrappers; a DWG read stopped mid-way (S)

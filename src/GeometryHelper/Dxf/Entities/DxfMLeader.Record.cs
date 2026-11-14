@@ -280,7 +280,9 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    (ctx.Leaders.Count == 0 ? ctx.Head : ctx.Tail).Add(group);
+                    // 272 and 273 stand after the leaders, as AutoCAD writes them, where there are none yet too (a multileader made in
+                    // code), so that a leader added goes in before them.
+                    (ctx.Leaders.Count == 0 && group.Key != 272 && group.Key != 273 ? ctx.Head : ctx.Tail).Add(group);
                 }
 
                 return ctx;

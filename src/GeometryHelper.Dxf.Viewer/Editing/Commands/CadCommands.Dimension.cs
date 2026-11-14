@@ -1265,6 +1265,25 @@ namespace GeometryHelper.Dxf.Viewer
                 placed,
                 turned
             );
+
+            if (layout.Slide != 0.0)
+            {
+                // Turned words put past an end under DIMTMOVE 0: the dimension line, its extension lines and what stands on it move
+                // out along its normal and the words stay (see PlaceMoved).
+                var slide = new GeoVector2(-along.Y, along.X) * layout.Slide;
+                q1 += slide;
+                q2 += slide;
+                layout.Middle += slide;
+
+                for (int i = 0; i < layout.Outside.Count; i++)
+                {
+                    layout.Outside[i] = new KeyValuePair<GeoPoint2, GeoPoint2>(
+                        layout.Outside[i].Key + slide,
+                        layout.Outside[i].Value + slide
+                    );
+                }
+            }
+
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
 
@@ -1313,6 +1332,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (layout.ArrowsInside || style.Dimtofl)
             {
                 DimensionLine(segments, style, q1, q2, along, scale, layout.ArrowsInside ? arrow : 0.0);
+
+                if (layout.Doubled)
+                {
+                    segments.AddRange(new List<KeyValuePair<GeoPoint2, GeoPoint2>>(segments));
+                }
             }
 
             if (layout.Break > 0.0)
@@ -1401,6 +1425,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             public double Break { get; set; }
 
+            /// <summary>Whether the line between the extension lines is drawn twice, as AutoCAD 2021 draws it for turned words (see PlaceMoved).</summary>
+            public bool Doubled { get; set; }
+
+            /// <summary>How far the dimension line and what stands on it are moved out along its normal, from where the words' point puts them.</summary>
+            public double Slide { get; set; }
+
             /// <summary>The extension line the words stand over (DIMJUST 3 or 4), 1 or 2; nought for none.</summary>
             public int OverExtension { get; set; }
 
@@ -1487,13 +1517,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Turned words alone fit between the extension lines by the reach of their box (grown by the gap) along the line, not by
             // the chord the line takes through it: "100" 5.28 wide and 2.55 high, DIMGAP 0.625, turned 30 needs 7.55, turned 60 6.56.
-            double needAlone = wordsAngle.HasValue ? Reach(width, height, gap, inside - angle) : needText;
+            double needAlone = wordsAngle.HasValue || !level ? Reach(width, height, gap, inside - angle) : needText;
             double needArrows = ticks ? 0.0 : 2.0 * (arrow + gap);
             double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * (arrow + gap)) : Math.Max(needText, needArrows);
 
             // Turned words and the arrowheads both fit where the words fit alone and the line through them leaves room for the arrowheads:
             // a long word turned 10 needs its reach and the arrowheads (25.8 for "12345.6789"), turned 60 only its reach (12.9).
-            if (wordsAngle.HasValue)
+            if (wordsAngle.HasValue || !level)
             {
                 needBoth = Math.Max(needBoth, needAlone);
             }
@@ -1673,10 +1703,11 @@ namespace GeometryHelper.Dxf.Viewer
                 // do turned words whose box is so high that half of it, (W/2 + gap) sin t + (H/2 + gap) cos t, reaches twice as far
                 // as the leader would rise: "1234567890" turned 60 on a line of 5 has 9.67 against 2 x 4.117, and AutoCAD 2021 draws
                 // no leader and puts their middle at (3.125, 34.117); 13 digits turned 30 (8.14) keep theirs, 14 (8.62) lose it.
+                double wordsTurn = wordsAngle ?? outward2;
                 bool tooHigh =
-                    wordsAngle.HasValue
-                    && (width / 2.0 + gap) * Math.Abs(Math.Sin(inside - angle))
-                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(inside - angle))
+                    levelled
+                    && (width / 2.0 + gap) * Math.Abs(Math.Sin(wordsTurn - angle))
+                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(wordsTurn - angle))
                         >= 2.0 * off;
 
                 if (off <= arrow + gap || tooHigh)
@@ -1927,6 +1958,14 @@ namespace GeometryHelper.Dxf.Viewer
             // length either side of the line) are laid again, as AutoCAD 2021 draws them.
             bool zoned = arrowheads && layout.ArrowsInside;
             double zone = arrow + half;
+
+            // Turned words put past an end under DIMTMOVE 0 are laid by AutoCAD 2021 with the chord the line takes through them taken
+            // level, not along the line: the line ends where the words' level, a chord (along x) short of their point, would put
+            // it, so only the part of the chord along the line (its cosine) shortens the line, and the rest of it moves the whole
+            // dimension line out sideways (Slide). "100" turned 20 on a line of 40 at 30 degrees, put 8 past its end: a chord of 3.3153
+            // makes the line 36.6577 off, 1.6577 further out than the point, ending 2.8711 short of the point's level.
+            double slant = turnedHalf.HasValue ? Math.Abs(along.X) : 1.0;
+            double edge = arrow + half * slant;
             // Words touching an arrowhead's length from the first extension line count as within it under 1, not under the others, and
             // not at the second, as AutoCAD 2021 draws them.
             double slack = move == 1 ? NearZero : -NearZero;
@@ -1936,13 +1975,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // Under 0 the point past an end and within the zone is moved out to the zone's edge on its side (the point on the
                 // first extension line itself to the second one's), the dimension line then running on under the words.
-                if (t < NearZero && t > -zone)
+                if (t < NearZero && t > -edge)
                 {
-                    t = t < -NearZero ? -zone : length + zone;
+                    t = t < -NearZero ? -edge : length + edge;
                 }
-                else if (t > length - NearZero && t < length + zone)
+                else if (t > length - NearZero && t < length + edge)
                 {
-                    t = length + zone;
+                    t = length + edge;
                 }
 
                 foot = q1 + along * t;
@@ -1972,6 +2011,11 @@ namespace GeometryHelper.Dxf.Viewer
                 if (Math.Abs(centre) < height / 2.0 + gap - NearZero)
                 {
                     turnedOut = true;
+
+                    // Turned words on the middle of a short slanting line under DIMTMOVE 1 that turn its arrowheads out: AutoCAD 2021
+                    // draws the line between the extension lines twice, on top of itself (a line of 7.2 at 30 degrees, "100" turned
+                    // 20 or 90), but not a level one.
+                    layout.Doubled = move == 1 && turnedHalf.HasValue && Math.Abs(along.Y) > NearZero;
                     layout.ArrowsInside = false;
                     layout.Outside.Add(
                         new KeyValuePair<GeoPoint2, GeoPoint2>(q1 - along * arrow, q1 - along * (2.0 * arrow))
@@ -1988,7 +2032,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (move == 0)
             {
                 layout.At = foot + above * offLine;
-                double reach = onLine ? -half : half;
+                double reach = (onLine ? -half : half) * slant;
 
                 if (onLine && !covers && !(zoned && Straddles(t, half, first, length - first)))
                 {
@@ -1997,16 +2041,49 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The line runs on to words past an end only where they stand clear of the arrowhead's length from it.
-                if (t > length && t + reach > length && (!zoned || t - half >= length + arrow - NearZero))
+                if (t > length && t + reach > length && (!zoned || t - half * slant >= length + arrow - NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q2, q1 + along * (t + reach)));
+                    layout.Slide = turnedHalf.HasValue ? Slide(along, along, half) : 0.0;
                 }
-                else if (t < 0.0 && t - reach < 0.0 && (!zoned || t + half <= -arrow + NearZero))
+                else if (t < 0.0 && t - reach < 0.0 && (!zoned || t + half * slant <= -arrow + NearZero))
                 {
                     layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1 + along * (t - reach), q1));
+                    layout.Slide = turnedHalf.HasValue ? Slide(-along, along, half) : 0.0;
                 }
 
                 return;
+            }
+
+            // Turned words put past an end of a line steeper than a slope of a half (26.6 degrees; AutoCAD 2021 keeps the leader from the
+            // middle at 26 and runs the line on at 28), where the line, run on, reaches the level of their point: the line is run on to
+            // that level and a level landing runs back from there towards the words, an arrowhead long at least, the words standing at
+            // its end by half their width and a gap. "100" put 8 past the end of an upright line of 40 and 5 over it has its line run on
+            // to 48 and a landing of 2.5 (the words move out by 0.765); on a line at 30 degrees the landing is 6.735 and they stay.
+            if (
+                move == 1
+                && turnedHalf.HasValue
+                && (t > length || t < 0.0)
+                && Math.Abs(along.Y) > 0.5 * Math.Abs(along.X)
+                && (!zoned || (t > length ? t - half > length + arrow + NearZero : t + half < -arrow - NearZero))
+            )
+            {
+                GeoVector2 on = t > length ? along : -along;
+                GeoPoint2 end = t > length ? q2 : q1;
+                double run = (at.Y - end.Y) / on.Y;
+
+                if (run > NearZero)
+                {
+                    GeoPoint2 bend = end + on * run;
+                    double need = width / 2.0 + gap;
+                    double side = bend.X >= at.X ? 1.0 : -1.0;
+                    double landing = Math.Max(arrow, Math.Abs(bend.X - at.X) - need);
+                    var stop = new GeoPoint2(bend.X - side * landing, bend.Y);
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(end, bend));
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(bend, stop));
+                    layout.At = new GeoPoint2(stop.X - side * need, stop.Y + offLine);
+                    return;
+                }
             }
 
             if (move == 1 && Math.Abs(across) >= gap + Math.Max(arrow, height / 2.0 + beyond) - NearZero)
@@ -2068,6 +2145,21 @@ namespace GeometryHelper.Dxf.Viewer
                 layout.Break = half;
             }
         }
+
+        /// <summary>
+        /// How far AutoCAD 2021 moves the dimension line out along its normal for turned words past its end, which lie the way
+        /// <paramref name="away"/> runs: the chord <paramref name="half"/> laid level, towards the right of the end (towards the
+        /// way the line runs up where it is upright), puts the line its sine to the line's slope off the point's level.
+        /// </summary>
+        private static double Slide(GeoVector2 away, GeoVector2 along, double half) =>
+            (
+                away.X < -1E-9 ? -1.0
+                : away.X > 1E-9 ? 1.0
+                : away.Y < 0.0 ? -1.0
+                : 1.0
+            )
+            * half
+            * along.Y;
 
         /// <summary>The distance below which words are on an extension line, as AutoCAD 2021 reads their point.</summary>
         private const double NearZero = 1E-9;
