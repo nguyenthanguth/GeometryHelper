@@ -1127,8 +1127,9 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The objects that break a dimension, sorted by handle: those picked, or every line, polyline, circle and arc of the
-        /// space but the dimension itself.
+        /// The objects that break a dimension, sorted by handle: those picked, or every line, polyline, circle, arc, ellipse,
+        /// spline, xline, ray, TEXT and MTEXT of the space but the dimension itself (AutoCAD 2021 breaks at all of them, probed
+        /// in its console: a TEXT 2.5 high across an extension line breaks it over its box and the break size either side).
         /// </summary>
         private static List<DxfEntity> Cutters(
             CadDocument document,
@@ -1147,7 +1148,18 @@ namespace GeometryHelper.Dxf.Viewer
                     entity != null
                     && !ReferenceEquals(entity, dimension)
                     && !entity.IsErased
-                    && (entity is DxfLine || entity is DxfPolyline || entity is DxfCircle || entity is DxfArc)
+                    && (
+                        entity is DxfLine
+                        || entity is DxfPolyline
+                        || entity is DxfCircle
+                        || entity is DxfArc
+                        || entity is DxfEllipse
+                        || entity is DxfSpline
+                        || entity is DxfXline
+                        || entity is DxfRay
+                        || entity is DxfDBText
+                        || entity is DxfMText
+                    )
                 )
                 {
                     cutters.Add(entity);
@@ -1233,6 +1245,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                 foreach (DxfEntity cutter in cutters)
                 {
+                    if (cutter is DxfDBText || cutter is DxfMText)
+                    {
+                        // Words are cut across their whole box, the break size beyond it each side.
+                        if (TextSpan(a, b, cutter, out double enter, out double leave))
+                        {
+                            if (!crossed.Contains(cutter))
+                            {
+                                crossed.Add(cutter);
+                            }
+
+                            gaps.Add(new KeyValuePair<double, double>(enter - size / 2.0, leave + size / 2.0));
+                        }
+
+                        continue;
+                    }
+
                     List<double> at = Crossings(a, b, new List<DxfEntity> { cutter });
 
                     if (at.Count > 0 && !crossed.Contains(cutter))
@@ -1359,11 +1387,146 @@ namespace GeometryHelper.Dxf.Viewer
                             found
                         );
                         break;
+                    case DxfEllipse _:
+                    case DxfSpline _:
+                        CurveCrossing(a, way, length, (DxfCurve)cutter, found);
+                        break;
+                    case DxfXline xline:
+                        RayCrossing(
+                            a,
+                            way,
+                            length,
+                            P2(xline.BasePoint),
+                            new GeoVector2(xline.UnitDir.X, xline.UnitDir.Y),
+                            double.NegativeInfinity,
+                            found
+                        );
+                        break;
+                    case DxfRay ray:
+                        RayCrossing(
+                            a,
+                            way,
+                            length,
+                            P2(ray.BasePoint),
+                            new GeoVector2(ray.UnitDir.X, ray.UnitDir.Y),
+                            0.0,
+                            found
+                        );
+                        break;
                 }
             }
 
             found.Sort();
             return found;
+        }
+
+        /// <summary>Where an ellipse or a spline, followed as 256 straight pieces, crosses a segment (AutoCAD 2021 follows them as pieces too: 15.0001 and 16.9999 for an ellipse crossed at 15 and 17).</summary>
+        private static void CurveCrossing(
+            GeoPoint2 a,
+            GeoVector2 way,
+            double length,
+            DxfCurve curve,
+            List<double> found
+        )
+        {
+            const int pieces = 256;
+            double from = curve.StartParam;
+            double step = (curve.EndParam - from) / pieces;
+            GeoPoint2 previous = P2(curve.GetPointAtParameter(from));
+
+            for (int i = 1; i <= pieces; i++)
+            {
+                GeoPoint2 next = P2(curve.GetPointAtParameter(i == pieces ? curve.EndParam : from + step * i));
+                SegmentCrossing(a, way, length, previous, next, found);
+                previous = next;
+            }
+        }
+
+        /// <summary>Where a line without ends (from <paramref name="least"/> along its direction, minus infinity for an xline, nought for a ray) crosses a segment.</summary>
+        private static void RayCrossing(
+            GeoPoint2 a,
+            GeoVector2 way,
+            double length,
+            GeoPoint2 origin,
+            GeoVector2 dir,
+            double least,
+            List<double> found
+        )
+        {
+            double across = Cross(way, dir);
+
+            if (Math.Abs(across) <= 1E-12 * Math.Max(1.0, dir.Length))
+            {
+                return;
+            }
+
+            double t = Cross(origin - a, dir) / across;
+            double u = Cross(origin - a, way) / across;
+
+            if (t >= 0.0 && t <= length && u >= least)
+            {
+                found.Add(t);
+            }
+        }
+
+        /// <summary>Where along a segment, from its start, it enters and leaves the box words are drawn in; false where it misses it.</summary>
+        private static bool TextSpan(GeoPoint2 a, GeoPoint2 b, DxfEntity words, out double enter, out double leave)
+        {
+            enter = 0.0;
+            leave = 0.0;
+            GeoAabb3 box;
+
+            try
+            {
+                box = words.GeometricExtents;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+
+            double length = (b - a).Length;
+
+            if (length <= 1E-12)
+            {
+                return false;
+            }
+
+            GeoVector2 way = (b - a) / length;
+            double low = 0.0;
+            double high = length;
+
+            for (int axis = 0; axis < 2; axis++)
+            {
+                double start = axis == 0 ? a.X : a.Y;
+                double step = axis == 0 ? way.X : way.Y;
+                double min = axis == 0 ? box.Min.X : box.Min.Y;
+                double max = axis == 0 ? box.Max.X : box.Max.Y;
+
+                if (Math.Abs(step) < 1E-12)
+                {
+                    if (start < min || start > max)
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                double t1 = (min - start) / step;
+                double t2 = (max - start) / step;
+                low = Math.Max(low, Math.Min(t1, t2));
+                high = Math.Min(high, Math.Max(t1, t2));
+            }
+
+            if (low > high)
+            {
+                return false;
+            }
+
+            enter = low;
+            leave = high;
+            return true;
         }
 
         private static void SegmentCrossing(
