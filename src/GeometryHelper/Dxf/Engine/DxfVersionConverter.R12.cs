@@ -550,7 +550,28 @@ namespace GeometryHelper.Dxf
                         continue;
                     }
 
-                    made.Groups.Add(group);
+                    // As AutoCAD writes them: an application's name in capitals, as the table has it, a layer's (1003) as the table of
+                    // layers does, and a point of 1011 to 1013 (a world position, displacement or direction) in five groups, its x, two
+                    // noughts for y and z, then y and z again.
+                    if (group.Code == 1001)
+                    {
+                        made.Groups.Add(new Group(1001, group.Value.ToUpperInvariant()));
+                    }
+                    else if (group.Code == 1003)
+                    {
+                        made.Groups.Add(new Group(1003, R12Name(group.Value, "LAYER")));
+                    }
+                    else
+                    {
+                        made.Groups.Add(group);
+
+                        if (group.Code >= 1011 && group.Code <= 1013)
+                        {
+                            made.Groups.Add(new Group(group.Code + 10, "0.0"));
+                            made.Groups.Add(new Group(group.Code + 20, "0.0"));
+                        }
+                    }
+
                     continue;
                 }
 
@@ -638,8 +659,9 @@ namespace GeometryHelper.Dxf
                 made.Groups.Add(new Group(group.Code, value));
             }
 
-            // An attribute keeps its version and whether its position is locked (the two 280 of R2010) as the extended data of AcDbAttr.
-            if ((type == "ATTRIB" || type == "ATTDEF") && flags.Count == 2)
+            // An attribute keeps its version and whether its position is locked (the two 280 of R2010) as the extended data of AcDbAttr,
+            // where either is not nought: AutoCAD 2021 writes none for an attribute of version 0 whose position is free.
+            if ((type == "ATTRIB" || type == "ATTDEF") && flags.Count == 2 && flags.Exists(f => !IsZero(f)))
             {
                 made.Groups.Add(new Group(1001, "AcDbAttr"));
                 _attributeApplication = true;
@@ -1018,6 +1040,7 @@ namespace GeometryHelper.Dxf
             bool skipping = false;
             bool paper = false;
             Record owner = null;
+            int widthsFrom = -1;
 
             foreach (Record record in section.Records)
             {
@@ -1120,6 +1143,7 @@ namespace GeometryHelper.Dxf
                     if (type == "POLYLINE")
                     {
                         owner = one;
+                        widthsFrom = handle != null && _plan.Lightweight.Contains(handle) ? made.Count : -1;
                     }
                     else if (owner != null && (type == "VERTEX" || type == "SEQEND"))
                     {
@@ -1127,6 +1151,12 @@ namespace GeometryHelper.Dxf
                     }
 
                     made.Add(one);
+
+                    if (type == "SEQEND" && widthsFrom >= 0)
+                    {
+                        DefaultWidths(made, widthsFrom);
+                        widthsFrom = -1;
+                    }
                 }
             }
 
@@ -1274,6 +1304,7 @@ namespace GeometryHelper.Dxf
             var parts = new List<Record>(content.Count);
             char sampled = '\0';
             Record owner = null;
+            int widthsFrom = -1;
 
             for (int index = 0; index < content.Count; index++)
             {
@@ -1321,15 +1352,94 @@ namespace GeometryHelper.Dxf
                     Inherit(owner, converted);
                 }
 
+                if (converted.Type == "POLYLINE")
+                {
+                    widthsFrom =
+                        HandleOf(part) is string lightweight && _plan.Lightweight.Contains(lightweight)
+                            ? parts.Count
+                            : -1;
+                }
+
                 if (converted.Type == "SEQEND")
                 {
                     sampled = '\0';
                 }
 
                 parts.Add(converted);
+
+                if (converted.Type == "SEQEND" && widthsFrom >= 0)
+                {
+                    DefaultWidths(parts, widthsFrom);
+                    widthsFrom = -1;
+                }
             }
 
             return parts;
+        }
+
+        /// <summary>
+        /// Writes the widths of a polyline made of a lightweight one as AutoCAD 2021 writes them into an R12 (its console, 12
+        /// polylines of constant widths, widths from vertex to vertex and bulges): the header holds the widths of the first
+        /// vertex as the defaults of the polyline (groups 40 and 41, each left out where it is nought), and a vertex holds a
+        /// width only where it differs from the default, a nought where the default is not. A polyline of constant width 2 is
+        /// its header 40 and 41 of 2 and vertices of none, where each vertex held the two.
+        /// </summary>
+        private static void DefaultWidths(List<Record> records, int polyline)
+        {
+            int first = polyline + 1;
+
+            if (first >= records.Count || records[first].Type != "VERTEX")
+            {
+                return;
+            }
+
+            Record head = records[polyline];
+            int at = head.Groups.FindLastIndex(g => g.Code == 70);
+            at = at >= 0 ? at + 1 : head.Groups.FindLastIndex(g => g.Code == 30) + 1;
+            var defaults = new[] { 0.0, 0.0 };
+            int[] codes = { 40, 41 };
+
+            for (int i = 0; i < codes.Length; i++)
+            {
+                Group width = records[first].Groups.FirstOrDefault(g => g.Code == codes[i]);
+
+                if (width.Value != null && !IsZero(width.Value))
+                {
+                    head.Groups.Insert(at++, width);
+                    defaults[i] = double.Parse(width.Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                }
+            }
+
+            for (int v = first; v < records.Count && records[v].Type == "VERTEX"; v++)
+            {
+                Record vertex = records[v];
+
+                for (int i = 0; i < codes.Length; i++)
+                {
+                    int found = vertex.Groups.FindIndex(g => g.Code == codes[i]);
+                    double own =
+                        found >= 0
+                        && double.TryParse(
+                            vertex.Groups[found].Value,
+                            NumberStyles.Float,
+                            CultureInfo.InvariantCulture,
+                            out double value
+                        )
+                            ? value
+                            : 0.0;
+                    bool same = Math.Abs(own - defaults[i]) < 1E-12;
+
+                    if (same && found >= 0)
+                    {
+                        vertex.Groups.RemoveAt(found);
+                    }
+                    else if (!same && found < 0)
+                    {
+                        int bulge = vertex.Groups.FindIndex(g => g.Code == 42);
+                        vertex.Groups.Insert(bulge >= 0 ? bulge : vertex.Groups.Count, new Group(codes[i], "0.0"));
+                    }
+                }
+            }
         }
 
         /// <summary>

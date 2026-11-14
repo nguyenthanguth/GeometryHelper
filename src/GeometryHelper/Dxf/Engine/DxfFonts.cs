@@ -771,7 +771,8 @@ namespace GeometryHelper.Dxf
                 double track = 1.0,
                 int align = 0,
                 int marks = 0,
-                int tint = 0
+                int tint = 0,
+                StackWords stack = null
             )
             {
                 Number = number;
@@ -781,7 +782,11 @@ namespace GeometryHelper.Dxf
                 Align = align;
                 Marks = marks;
                 Tint = tint;
+                Stack = stack;
             }
+
+            /// <summary>The words of a stack (<c>\S</c>) where the letter is <see cref="Stacked"/>; null for every other.</summary>
+            internal StackWords Stack { get; }
 
             /// <summary>The number of the letter in its font, <see cref="Paragraph"/> for a new paragraph.</summary>
             internal int Number { get; }
@@ -814,6 +819,81 @@ namespace GeometryHelper.Dxf
         /// <summary>The number <see cref="Letter"/> gives a new paragraph.</summary>
         internal const int Paragraph = -1;
 
+        /// <summary>The number <see cref="Letter"/> gives a stack (<c>\S1/2;</c>), whose words are its <see cref="Letter.Stack"/>.</summary>
+        internal const int Stacked = -2;
+
+        /// <summary>The words of a stack, <c>\S1/2;</c>: the numerator above, the denominator below, and the sign between them, <c>/</c> for a bar, <c>#</c> for a slash, <c>^</c> for none, nought where the stack has no sign.</summary>
+        internal sealed class StackWords
+        {
+            internal StackWords(string numerator, string denominator, char kind)
+            {
+                Numerator = numerator;
+                Denominator = denominator;
+                Kind = kind;
+            }
+
+            /// <summary>The words above.</summary>
+            internal string Numerator { get; }
+
+            /// <summary>The words below; none where the stack has no sign.</summary>
+            internal string Denominator { get; }
+
+            /// <summary>The sign between them: <c>/</c>, <c>#</c>, <c>^</c>, or nought.</summary>
+            internal char Kind { get; }
+        }
+
+        /// <summary>
+        /// The words of a stack read from a place up to its <c>;</c> (up to the end of the words where it has none): the words
+        /// before the first sign (<c>/</c>, <c>#</c> or <c>^</c>) are the numerator and those after it the denominator, a
+        /// backslash taking the letter after it as it is, so that <c>\S1\2;</c> is the numerator 12 and no denominator.
+        /// </summary>
+        private static StackWords ReadStack(string words, int from, out int end)
+        {
+            var numerator = new StringBuilder();
+            var denominator = new StringBuilder();
+            StringBuilder now = numerator;
+            char kind = '\0';
+            int k = from;
+
+            for (; k < words.Length && words[k] != ';'; k++)
+            {
+                char c = words[k];
+
+                if (c == '\\' && k + 1 < words.Length)
+                {
+                    now.Append(words[++k]);
+                }
+                else if (kind == '\0' && (c == '/' || c == '#' || c == '^'))
+                {
+                    kind = c;
+                    now = denominator;
+                }
+                else
+                {
+                    now.Append(c);
+                }
+            }
+
+            end = k < words.Length ? k + 1 : k;
+            return new StackWords(numerator.ToString(), denominator.ToString(), kind);
+        }
+
+        /// <summary>The words of one half of a stack measured as a line in a font at the stack's width, height and spread; null where a letter is not measured.</summary>
+        internal static DxfTextLine StackLine(DxfFont font, string words, Letter stack)
+        {
+            var line = new DxfTextLine(font);
+
+            for (int i = 0; i < words.Length; )
+            {
+                if (!line.Add(NumberOf(font, words, ref i), stack.Width, stack.Height, true, stack.Track))
+                {
+                    return null;
+                }
+            }
+
+            return line;
+        }
+
         /// <summary>
         /// The letters of an MTEXT's words, read as <see cref="MText"/> reads them, a new paragraph (<c>\P</c>) a letter of
         /// <see cref="Paragraph"/>, and the space of <c>\~</c>, which does not break a line, the font's U+00A0; and as AutoCAD
@@ -823,10 +903,18 @@ namespace GeometryHelper.Dxf
         /// <c>\c255;</c>), which changes no place. Null where they are not measured, as <see cref="MText"/> says, and for slanted
         /// letters (<c>\Q</c>), which AutoCAD 2021 boxes otherwise in an MTEXT than in a TEXT (check F4: txt "\Q12;A/B jig" and
         /// three lines more, 45 wide, 27.758 wide, not the 27.900 of letters slanted as a TEXT's), a font switch (<c>\f</c>,
-        /// <c>\F</c>), a stack (<c>\S</c>), a paragraph's indents and tabs (<c>\p</c>), a column break (<c>\N</c>) and any other
-        /// code.
+        /// <c>\F</c>), a stack (<c>\S</c>) unless <paramref name="stacks"/> asks for it, a paragraph's indents and tabs
+        /// (<c>\p</c>), a column break (<c>\N</c>) and any other code. Asked for, a stack is one letter of
+        /// <see cref="Stacked"/> that <see cref="DxfStackShape"/> lays out as AutoCAD 2021 explodes it, in a font of letters
+        /// (not a TrueType font, nor one beside a big font) and no line under, over or through it.
         /// </summary>
-        internal static List<Letter> MTextLetters(DxfFont font, Big big, string contents, double height)
+        internal static List<Letter> MTextLetters(
+            DxfFont font,
+            Big big,
+            string contents,
+            double height,
+            bool stacks = false
+        )
         {
             if (!ByUnicode(font))
             {
@@ -998,6 +1086,13 @@ namespace GeometryHelper.Dxf
                         i += 2;
                         continue;
                     }
+                    else if (code == 'S' && stacks && !drawn && marks == 0 && !(font is DxfTrueTypeFont))
+                    {
+                        StackWords stack = ReadStack(words, i + 2, out int stackEnd);
+                        letters.Add(new Letter(Stacked, width, high, track, align, marks, tint, stack));
+                        i = stackEnd;
+                        continue;
+                    }
                     else
                     {
                         return null;
@@ -1050,7 +1145,11 @@ namespace GeometryHelper.Dxf
                 {
                     Letter letter = letters[k];
 
-                    if (!line.Add(letter.Number, letter.Width, letter.Height, true, letter.Track, letter.Marks))
+                    if (
+                        letter.Stack != null
+                            ? !line.AddStack(letter)
+                            : !line.Add(letter.Number, letter.Width, letter.Height, true, letter.Track, letter.Marks)
+                    )
                     {
                         return null;
                     }

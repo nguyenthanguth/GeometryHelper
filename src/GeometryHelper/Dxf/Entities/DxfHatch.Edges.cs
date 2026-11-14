@@ -401,8 +401,25 @@ namespace GeometryHelper.Dxf
             /// <summary>An angle in degrees past a turn either way brought within one, the turns taken off; one within a turn as it is.</summary>
             private static double Within(double degrees) => Math.Abs(degrees) > 360.0 ? degrees % 360.0 : degrees;
 
-            /// <summary>Adds points the edge is drawn through, its start first and its end left to the next edge.</summary>
-            internal void Sample(List<GeoPoint2> points)
+            /// <summary>
+            /// How many chords AutoCAD 2021 cuts a circle into where a HATCH filled solid is written as R12 (its console, 62
+            /// circles of 5 to 200 units): the fewest for which a chord stands off the circle by 0.1 at most,
+            /// <c>ceil(pi / acos(1 - 0.1 / r))</c>, and 33 at the least: 33 for a radius up to 22, 36 for one of 25, 71 for one
+            /// of 100.
+            /// </summary>
+            private static int Chords(double radius)
+            {
+                double sag = 0.1 / radius;
+                int fine = sag < 2.0 ? (int)Math.Ceiling(Math.PI / Math.Acos(1.0 - sag)) : 0;
+                return Math.Max(33, fine);
+            }
+
+            /// <summary>
+            /// Adds points the edge is drawn through, its start first and its end left to the next edge; a whole circle, where
+            /// <paramref name="asFilled"/> says the points are those of a fill written as R12, cut into the chords of
+            /// <see cref="Chords"/>.
+            /// </summary>
+            internal void Sample(List<GeoPoint2> points, bool asFilled = false)
             {
                 switch (Type)
                 {
@@ -416,7 +433,10 @@ namespace GeometryHelper.Dxf
                         double cy = this[20];
                         double r = this[40];
                         Run(out double from, out double sweep);
-                        int steps = Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 16.0)));
+                        int steps =
+                            asFilled && Math.Abs(Math.Abs(sweep) - (2.0 * Math.PI)) < 1E-9
+                                ? Chords(r)
+                                : Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / (Math.PI / 16.0)));
 
                         for (int i = 0; i < steps; i++)
                         {

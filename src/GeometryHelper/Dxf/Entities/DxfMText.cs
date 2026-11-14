@@ -721,7 +721,7 @@ namespace GeometryHelper.Dxf
         private bool OneColumn() =>
             ColumnType == DxfColumnType.NoColumns || (ColumnType == DxfColumnType.DynamicColumns && ColumnCount <= 1);
 
-        private DxfMTextLayout Layout()
+        private DxfMTextLayout Layout(bool stacks = false)
         {
             // A copy in no drawing is laid out in the fonts of the drawing it was copied from, as a table's words are when it is exploded.
             DxfFonts fonts = MeasuredIn?.Fonts ?? (IsResident ? Item.File : Item.File.Origin)?.Database?.Fonts;
@@ -753,7 +753,8 @@ namespace GeometryHelper.Dxf
                     TextHeight,
                     Width,
                     LineSpacingFactor,
-                    LineSpacingStyle == DxfLineSpacingStyle.Exactly
+                    LineSpacingStyle == DxfLineSpacingStyle.Exactly,
+                    stacks
                 );
         }
 
@@ -2265,11 +2266,12 @@ namespace GeometryHelper.Dxf
         /// whole of them standing where its <see cref="Attachment"/> holds them, and each held at the left, the middle or the right
         /// of its baseline as the MTEXT is held; in its text style where that drawing has it, else in Standard (in its own, with
         /// no drawing given). A line with no words is left out, its place kept. Where the MTEXT's fonts measure its words, its
-        /// lines and their runs as <see cref="Explode"/> says (check F4).
+        /// lines and their runs as <see cref="Explode"/> says (check F4), and a stack as <see cref="DxfStackShape"/> lays it out:
+        /// the TEXT of its numerator, its LINE where it has a bar or a slash, the TEXT of its denominator.
         /// </summary>
         internal List<DxfEntity> R12Texts(DxfFile target)
         {
-            DxfMTextLayout layout = Layout();
+            DxfMTextLayout layout = Layout(true);
             List<string> lines = layout == null ? Paragraphs() : null;
             int count = layout == null ? lines.Count : layout.Lines.Count;
             double height = TextHeight;
@@ -2315,6 +2317,54 @@ namespace GeometryHelper.Dxf
             GeoPoint3 location = Location;
             var texts = new List<DxfEntity>();
 
+            // A TEXT of the MTEXT's look: the words at a place of its plane, so high, at a width factor, held at the left
+            // of its baseline or, as an MTEXT with no fonts is written, at the column it is held at.
+            DxfEntity TextAt(GeoPoint3 at, double size, string words, double stretch, bool held)
+            {
+                var own = new List<KeyValuePair<int, string>>
+                {
+                    G(100, "AcDbText"),
+                    G(10, Numbers.Exact(at.X + 0.0)),
+                    G(20, Numbers.Exact(at.Y + 0.0)),
+                    G(30, Numbers.Exact(at.Z + 0.0)),
+                    G(40, Numbers.Exact(size + 0.0)),
+                    G(1, words),
+                    G(50, Numbers.Exact(degrees + 0.0)),
+                };
+
+                if (stretch != 1.0)
+                {
+                    own.Add(G(41, Numbers.Exact(stretch + 0.0)));
+                }
+
+                if (style != null)
+                {
+                    own.Add(G(7, style));
+                }
+
+                if (held)
+                {
+                    own.Add(G(72, column.ToString(CultureInfo.InvariantCulture)));
+                    own.Add(G(11, Numbers.Exact(at.X + 0.0)));
+                    own.Add(G(21, Numbers.Exact(at.Y + 0.0)));
+                    own.Add(G(31, Numbers.Exact(at.Z + 0.0)));
+                }
+
+                own.Add(G(210, Numbers.Exact(normal.X + 0.0)));
+                own.Add(G(220, Numbers.Exact(normal.Y + 0.0)));
+                own.Add(G(230, Numbers.Exact(normal.Z + 0.0)));
+                own.Add(G(100, "AcDbText"));
+                return Of(Item.File.TextOf(Item, own));
+            }
+
+            // A point of the plane of the MTEXT, so far along its direction and so far up from where it is held.
+            GeoPoint3 Along(double across, double rise) =>
+                new GeoPoint3(
+                    location.X + (along.X * across) + (up.X * rise),
+                    location.Y + (along.Y * across) + (up.Y * rise),
+                    location.Z + (along.Z * across) + (up.Z * rise)
+                );
+
             for (int k = 0, part = 0; k < count; part++)
             {
                 // Each line of a layout breaks into its runs of one look, a TEXT each (check F4).
@@ -2329,6 +2379,53 @@ namespace GeometryHelper.Dxf
                 {
                     k++;
                     part = -1;
+                }
+
+                // A stack is the TEXT of its numerator, its LINE where it has one, and the TEXT of its denominator, even of no
+                // words, each at the place its shape gives from where the pen stands.
+                if (run?.Stack != null)
+                {
+                    DxfStackShape stack = run.Stack;
+                    DxfMTextLayout.Line placed = layout.Lines[line];
+                    double rise = top + placed.Baseline + run.Rise;
+                    double across = (-column * placed.Measure.ActualWidth / 2.0) - placed.Start + run.Pen;
+                    texts.Add(
+                        TextAt(
+                            WorldToOcs(normal, Along(across + stack.NumeratorX, rise + stack.NumeratorY)),
+                            run.Height,
+                            stack.Numerator,
+                            run.Width,
+                            false
+                        )
+                    );
+
+                    if (stack.HasLine)
+                    {
+                        GeoPoint3 from = Along(across + stack.LineX0, rise + stack.LineY0);
+                        GeoPoint3 to = Along(across + stack.LineX1, rise + stack.LineY1);
+                        var bar = new List<KeyValuePair<int, string>>
+                        {
+                            G(100, "AcDbLine"),
+                            G(10, Numbers.Exact(from.X + 0.0)),
+                            G(20, Numbers.Exact(from.Y + 0.0)),
+                            G(30, Numbers.Exact(from.Z + 0.0)),
+                            G(11, Numbers.Exact(to.X + 0.0)),
+                            G(21, Numbers.Exact(to.Y + 0.0)),
+                            G(31, Numbers.Exact(to.Z + 0.0)),
+                        };
+                        texts.Add(Of(Item.File.TextOf(Item, bar, "LINE")));
+                    }
+
+                    texts.Add(
+                        TextAt(
+                            WorldToOcs(normal, Along(across + stack.DenominatorX, rise)),
+                            run.Height,
+                            stack.Denominator,
+                            run.Width,
+                            false
+                        )
+                    );
+                    continue;
                 }
 
                 // A run of spaces between runs of words is a TEXT of its own, as AutoCAD 2021 explodes one (check F4).
@@ -2363,40 +2460,15 @@ namespace GeometryHelper.Dxf
                     );
                 }
 
-                var own = new List<KeyValuePair<int, string>>
-                {
-                    G(100, "AcDbText"),
-                    G(10, Numbers.Exact(at.X + 0.0)),
-                    G(20, Numbers.Exact(at.Y + 0.0)),
-                    G(30, Numbers.Exact(at.Z + 0.0)),
-                    G(40, Numbers.Exact((run == null ? height : run.Height) + 0.0)),
-                    G(1, words),
-                    G(50, Numbers.Exact(degrees + 0.0)),
-                };
-
-                if (run != null && run.Width != 1.0)
-                {
-                    own.Add(G(41, Numbers.Exact(run.Width + 0.0)));
-                }
-
-                if (style != null)
-                {
-                    own.Add(G(7, style));
-                }
-
-                if (column != 0 && layout == null)
-                {
-                    own.Add(G(72, column.ToString(CultureInfo.InvariantCulture)));
-                    own.Add(G(11, Numbers.Exact(at.X + 0.0)));
-                    own.Add(G(21, Numbers.Exact(at.Y + 0.0)));
-                    own.Add(G(31, Numbers.Exact(at.Z + 0.0)));
-                }
-
-                own.Add(G(210, Numbers.Exact(normal.X + 0.0)));
-                own.Add(G(220, Numbers.Exact(normal.Y + 0.0)));
-                own.Add(G(230, Numbers.Exact(normal.Z + 0.0)));
-                own.Add(G(100, "AcDbText"));
-                texts.Add(Of(Item.File.TextOf(Item, own)));
+                texts.Add(
+                    TextAt(
+                        at,
+                        run == null ? height : run.Height,
+                        words,
+                        run == null ? 1.0 : run.Width,
+                        column != 0 && layout == null
+                    )
+                );
             }
 
             return texts;
@@ -2612,7 +2684,12 @@ namespace GeometryHelper.Dxf
         /// place in the box (or centred on, or ending at, the <see cref="Location"/> for an MTEXT held at its centre or right),
         /// each its height and width factor, a line under, over or through it written <c>%%U</c>, <c>%%O</c> or <c>%%K</c>:
         /// "A\H2x;B\H0.5x;C\PDEF" of txt.shx 4 high held at the top left at (10, 20) comes out as A at (10, 12), B 8 high at
-        /// (14, 12), C at (22, 12) and DEF at (10, 4). A colour within the words is not given to its TEXT.
+        /// (14, 12), C at (22, 12) and DEF at (10, 4). A colour within the words is not given to its TEXT. A stack (the
+        /// words <c>1</c> over <c>2</c> in <c>A\S1/2;B</c>) is the TEXT of its numerator, a LINE for its bar or slash, and the TEXT
+        /// of its denominator, each as high as the letters of the stack, where the fonts measure the words (see
+        /// <see cref="DxfStackShape"/>): txt.shx 0.18 high held at the top left at (10, 10) gives A at (10, 9.58), the 1 at (10.21,
+        /// 9.82), the bar from (10.18, 9.79) to (10.3, 9.79), the 2 at (10.18, 9.58) and B at (10.36, 9.58); a stack with a line
+        /// under, over or through it, or in a TrueType font, is left as the TEXT of its words.
         /// </summary>
         /// <returns>The <see cref="DxfDBText"/> objects, in no file, to be added to a drawing by
         /// <see cref="DxfBlockTableRecord.AppendEntity(DxfEntity)"/>.</returns>

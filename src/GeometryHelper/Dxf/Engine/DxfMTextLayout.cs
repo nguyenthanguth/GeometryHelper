@@ -69,8 +69,9 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal sealed class Run
         {
-            internal Run(string words, double pen, double rise, double height, double width)
+            internal Run(string words, double pen, double rise, double height, double width, DxfStackShape stack = null)
             {
+                Stack = stack;
                 Words = words;
                 Pen = pen;
                 Rise = rise;
@@ -92,6 +93,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The width factor of the run's letters.</summary>
             internal double Width { get; }
+
+            /// <summary>The stack the run is, where it is one (<c>\S1/2;</c>), whose halves and LINE are the TEXTs and LINE AutoCAD 2021 explodes it to; null for letters.</summary>
+            internal DxfStackShape Stack { get; }
         }
 
         /// <summary>
@@ -115,6 +119,11 @@ namespace GeometryHelper.Dxf
         /// letters.</item>
         /// <item>An empty paragraph at the end is no line, but one more is; one before it is a line as high as the letters where
         /// it is.</item>
+        /// <item>A stack (<c>\S1/2;</c>), where <paramref name="stacks"/> asks for it and the words have none of the lines
+        /// under, over or through letters, is laid out by <see cref="DxfStackShape"/>: the line holding it is as high as the
+        /// stack, 0.42 for letters 0.18 high, with its baseline that of the stack's denominator, and the line after it stands
+        /// as far below it as the stack is high, not as the height of the letters and a third of it. txt.shx "A\S1/2;B" 0.18
+        /// high held at the top left has its A and its denominator 0.42 below the top and its numerator 0.24 above them.</item>
         /// </list>
         /// </summary>
         internal static DxfMTextLayout Of(
@@ -124,10 +133,11 @@ namespace GeometryHelper.Dxf
             double height,
             double width,
             double factor,
-            bool exactly
+            bool exactly,
+            bool stacks = false
         )
         {
-            List<DxfFonts.Letter> letters = DxfFonts.MTextLetters(font, big, contents, height);
+            List<DxfFonts.Letter> letters = DxfFonts.MTextLetters(font, big, contents, height, stacks);
 
             if (letters == null)
             {
@@ -178,6 +188,7 @@ namespace GeometryHelper.Dxf
             double top = 0.0;
             double lastTop = 0.0;
             double lastHigh = 0.0;
+            double lastStack = 0.0;
 
             for (int i = 0; i < spans.Count; i++)
             {
@@ -191,12 +202,17 @@ namespace GeometryHelper.Dxf
                 }
                 else
                 {
-                    top = i == 0 ? 0.0 : top - (factor * (lastTop + (lastHigh / 3.0) + (height / 3.0)));
+                    // A line with a stack in it reaches as far as the stack is high (the letters' height and a third of it at
+                    // least), where a line of letters reaches the top of the tallest and a third of its height.
+                    double reach =
+                        lastStack > 0.0 ? Math.Max(lastStack, lastHigh + (lastHigh / 3.0)) : lastTop + (lastHigh / 3.0);
+                    top = i == 0 ? 0.0 : top - (factor * (reach + (height / 3.0)));
                     baseline = top - lineTop;
                 }
 
                 lastTop = lineTop;
                 lastHigh = high;
+                lastStack = line.StackReach;
                 actualWidth = Math.Max(actualWidth, line.ActualWidth);
                 int from = spans[i].Key;
                 int to = spans[i].Value;
@@ -375,23 +391,38 @@ namespace GeometryHelper.Dxf
                     pen = before.Advance;
                 }
 
-                double rise =
-                    look.Align == 1 ? (lineHigh - look.Height) / 2.0
-                    : look.Align == 2 ? lineHigh - look.Height
-                    : 0.0;
-                var words = new StringBuilder((k - start) + 9);
-                words
-                    .Append((look.Marks & 1) != 0 ? "%%U" : string.Empty)
-                    .Append((look.Marks & 2) != 0 ? "%%O" : string.Empty)
-                    .Append((look.Marks & 4) != 0 ? "%%K" : string.Empty);
+                DxfStackShape stack = look.Stack == null ? null : DxfStackShape.Of(font, look);
 
-                for (int j = start; j < k; j++)
+                // Letters after a stack begin where the stack ends and the gap after it, as far from the pen as their own ink
+                // stands from it: romans 2.5 high "A\S1/2;B" has the B 0.476 before the end of the gap, where its ink begins.
+                if (start > from && stack == null && letters[start - 1].Stack != null)
                 {
-                    int c = letters[j].Number;
-                    words.Append(c == 0xA0 ? " " : char.ConvertFromUtf32(c));
+                    DxfTextLine own = DxfFonts.Measure(font, big, letters, start, k, height);
+                    pen -= own == null ? 0.0 : own.WordsStart;
                 }
 
-                runs.Add(new Run(words.ToString(), pen, rise, look.Height, look.Width));
+                double high = stack == null ? look.Height : stack.Top;
+                double rise =
+                    look.Align == 1 ? (lineHigh - high) / 2.0
+                    : look.Align == 2 ? lineHigh - high
+                    : 0.0;
+                var words = new StringBuilder((k - start) + 9);
+
+                if (stack == null)
+                {
+                    words
+                        .Append((look.Marks & 1) != 0 ? "%%U" : string.Empty)
+                        .Append((look.Marks & 2) != 0 ? "%%O" : string.Empty)
+                        .Append((look.Marks & 4) != 0 ? "%%K" : string.Empty);
+
+                    for (int j = start; j < k; j++)
+                    {
+                        int c = letters[j].Number;
+                        words.Append(c == 0xA0 ? " " : char.ConvertFromUtf32(c));
+                    }
+                }
+
+                runs.Add(new Run(words.ToString(), pen, rise, look.Height, look.Width, stack));
                 start = k;
             }
 
@@ -400,7 +431,9 @@ namespace GeometryHelper.Dxf
 
         /// <summary>Whether two letters are of one look: of one height, width, spread, hold, lines and colour.</summary>
         private static bool SameLook(DxfFonts.Letter a, DxfFonts.Letter b) =>
-            a.Height == b.Height
+            a.Stack == null
+            && b.Stack == null
+            && a.Height == b.Height
             && a.Width == b.Width
             && a.Track == b.Track
             && a.Align == b.Align

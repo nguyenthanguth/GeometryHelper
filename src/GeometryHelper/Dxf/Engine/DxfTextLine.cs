@@ -189,6 +189,49 @@ namespace GeometryHelper.Dxf
             Advance += track == 1.0 ? glyph.Advance * across : glyph.Advance * across * track;
         }
 
+        /// <summary>How high the tallest stack of the line reaches above its baseline; nought where the line holds none.</summary>
+        internal double StackReach { get; private set; }
+
+        /// <summary>
+        /// Adds a stack (<c>\S1/2;</c>) as <see cref="DxfStackShape"/> lays it out: its ink the box from the pen to the
+        /// width of its ink and from the baseline to <see cref="DxfStackShape.Top"/>, the pen moved by its width and a third
+        /// of its height. False where a letter of its halves is not measured.
+        /// </summary>
+        internal bool AddStack(DxfFonts.Letter letter)
+        {
+            DxfStackShape shape = DxfStackShape.Of(_font, letter);
+
+            if (shape == null)
+            {
+                return false;
+            }
+
+            Height = Count == 0 ? letter.Height : Math.Max(Height, letter.Height);
+            StartsWithSpace = Count != 0 && StartsWithSpace;
+            EndsWithSpace = false;
+            AllSpaces = false;
+            Count++;
+
+            if (Count == 1 || DxfMTextLayout.Breaks(_previous, DxfFonts.Stacked))
+            {
+                _fitPen = Advance;
+                _fitInked = false;
+            }
+
+            _previous = DxfFonts.Stacked;
+            Dot(Advance, 0.0);
+            Dot(Advance + shape.Ink, shape.Top);
+            _fitLeft = _fitInked ? Math.Min(_fitLeft, Advance) : Advance;
+            _fitRight = _fitInked ? Math.Max(_fitRight, Advance + shape.Ink) : Advance + shape.Ink;
+            _fitInked = true;
+            _wordsInked = true;
+            _wordsLeft = InkLeft;
+            _wordsRight = InkRight;
+            StackReach = Math.Max(StackReach, shape.Top);
+            Advance += shape.Advance;
+            return true;
+        }
+
         /// <summary>Marks the line drawn beside a big font, which <see cref="AlignmentBox"/> boxes as AutoCAD 2021 boxes one (check F3).</summary>
         internal void BesideBig() => _besideBig = true;
 
