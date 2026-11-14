@@ -291,7 +291,7 @@ User note 2026-11-12 evening (note.md 1-14):
       AutoCAD's, override mask decoded), cell flags and long texts both ways; MTEXT background xdata of R2000 (18 of 18);
       lofts to R2004/R2007 through R2010 text (volume kept). DECIDED: transparency kept going up (AutoCAD drops it);
       the R2010 SAT fallback widened to every version below R2010; MTEXTBEGIN/BBRT stripped going up as before
-- [ ] DXF versions follow-ups 6: ACAD_ROUNDTRIP_PRE2007_TABLESTYLE in each table style going down; invisible-only
+- [ ] (dxfver6, running: the table parts) DXF versions follow-ups 6: ACAD_ROUNDTRIP_PRE2007_TABLESTYLE in each table style going down; invisible-only
       borders dropped to R2000 as AutoCAD (the dxfver4 test expects them kept: match AutoCAD); merged cells' borders
       copied into continuation cells; auto-scaled block cells (3.94 vs 1.0); TABLE_ENTITY for a table without
       TABLECONTENT; sweeps along splines (sweep_sur, exact_int_cur, par_int_cur in R2010; tolerant records in R2004/2007);
@@ -424,9 +424,13 @@ the ones wanted.
       height times the cosine of the arc middle's direction (within 0.001 over 340 rows), DIMJUST 1/2 words beside a ray
       (tar17 262 of 408 to 0, tar20 108 of 144 to 0), the room between the arrowheads on wide sweeps, DIMARCSYM 1's height
       (tar16 4 to 0, tar25 64 to 20); 68 other sets byte-identical; harness .claude/gk/dims-harness15
-- [ ] (assoc7, running) Associative dimensions follow-ups 7: the group-10 coin flip of words in the middle (about 790 rows of tar24, 380 of
-      tar2); DIMARCSYM 0 radial over 120 degrees; the real rule behind the empirical 0.8-height "bothExtra"; tar13 k0.8 rows
-      0.001-0.002 off; level words not on the arc (DIMTAD 2/3) unprobed; AutoCAD's arc-point offset after a scale (S)
+- [x] Associative dimensions follow-ups 7 (assoc7): the group-10 coin flip is probe noise far from the origin (no rule);
+      radial extension lines within 1E-6 rad of 90 degrees; level words off the arc (DIMTAD 2/3) by their box against
+      the measured chord; the arc point after a scale from the new radius (tar14 38 -> 1, tar15 100 -> 4, tar18 216 -> 13,
+      tar28b 60 -> 0, tar31s 30 -> 0); harness .claude/gk/assoc-harness7
+- [ ] Associative dimensions follow-ups 8: DIMARCSYM 0 radial words 1-5 steps later than AutoCAD at 100-165 degrees;
+      the real bothExtra rule (0 at DIMASZ 0.09, 0.15 from 0.3 up); tar13 k0.8 rows (0.0004 rad text turn); exact
+      180-degree sweeps' sign; arc-length text rounding in the fourth decimal (tar29s/30s/32s) (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and

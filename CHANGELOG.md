@@ -536,6 +536,27 @@ arc symbol over the words (DIMARCSYM 1) takes 0.3 of their height, not 0.4, and 
 way). An angle of three points fits its level words so (rays 10 long, the arc 12 out: 4 of 432 differed, now none; wide sweeps
 of 90 to 165 degrees: 64 of 810, now 20). Every other picture (linear, angular of two lines, radius, diameter, jogged and
 ordinate dimensions, DIMARC away from these cases: 68 sets of probes) is as it was.
+**FIXED.** Arc length dimensions (DIMARC) and angles of three points in the presenter follow AutoCAD 2021 where the last round left them
+(measured on its console, some 24 000 more dimensions made by both). A sweep counts as 90 degrees, and its extension lines run from the
+centre, from a millionth of a radian short of it: the arc of 1 from 0 to 1.570796 radians (0.33 millionths short, as a console makes an
+arc of 90 degrees from angles rounded to six decimals) put 0.8 out has its arc point on the circle of 0.8, at 30 degrees, where it was
+taken for an arc under 90 (60 of 240 pictures differed, now none; the radial sets of arcs of 1 and 3, 216 of 1 428 and 358 of 1 632,
+now 13 and 64). Level words off the arc (DIMTAD 2
+and 3, arc length and angle) fit by their width, the symbol before them and two gaps times the sine of the direction of the arc's
+middle plus their height, the symbol over them and two gaps times its cosine, with none of the gap at either end of the arc that
+words on it keep (the old fit joined the two at 45 degrees and was 1 or 2 steps of 0.04 off; angles of three points 30 of 1 728
+differed, now none; arcs of 10 put 12 out 587 of 3 456, now 197, 291 of 1 296 with the symbol over the words, now 73, and the
+rest of both is the arc length text AutoCAD rounds in its fourth decimal), and they stand with the symbol clear of the arc too:
+half the room of the symbol before them further out along the sine, half of what is over them along the cosine (the symbol before
+words at 4 degrees stands them 0.165 further out). A dimension moved in along the middle of its arc and followed through a scale
+reads its distance from the arc point it holds and the radius the arc has come to, as AutoCAD does: the arc of 1 through 80
+degrees from 10 put 0.8 out has its arc point 0.8264 from the centre after a scale by 1.5 (it was 0.8346) and 0.8067 after one by
+0.1 (it was 0.8000), and its arc is drawn 0.8067 out (72 pictures of scales 38 differed, now 1; 288 of them, 100, now 4). The group-10
+"coin flip" of words in the middle is no rule of AutoCAD's: its pictures put the arc point of words exactly in the middle a third
+of the way round, and the 948 rows of the first set and 410 of the second that differed were drawn 40 000 to 154 000 from the
+origin, where AutoCAD's own float noise decides it (none of 556 rows within 40 000, a third of those 120 000 out); the same
+dimensions drawn 30 apart differ in 158 and 73. Every other set of probes (77: linear, aligned, angular, radius, diameter, jogged,
+ordinate, moved words, the other arc sets) is byte-identical.
 
 **NEW.** Dynamic blocks, the grip edits of a polar parameter worked out one after the other, as AutoCAD 2021 works them (probed in its
 console on side databases, grips through `MoveGripPointsAt`; about 1 000 random sequences on five kinds of pointer gave its lines to

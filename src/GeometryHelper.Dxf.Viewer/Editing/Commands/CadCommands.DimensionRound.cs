@@ -1184,8 +1184,11 @@ namespace GeometryHelper.Dxf.Viewer
                 // first took the words ran from 0.57 at 1.6 degrees to 1.43 at 92, within 0.01 of this (before, joined at 45
                 // degrees, 0.04), and from 0.375 to 2.35 as DIMGAP went from 0.045 to 0.4. The symbol over the words
                 // (DIMARCSYM 1) adds 0.3 of their height (over). An angle of three points was probed alike (rays 10 long, the
-                // arc 12 out, chords of 0.2 to 1.6: 4 of 432 differed, now none). Words not on the arc (DIMTAD 2 and 3) keep
-                // the older fit, joined at 45 degrees, nothing having been probed there.
+                // arc 12 out, chords of 0.2 to 1.6: 4 of 432 differed, now none). Words not on the arc (DIMTAD 2 and 3) take
+                // the same without the gap at either end of the arc: probed with arcs of 10 put 12 out (DIMTAD 2, DIMGAP 0.045
+                // to 0.4, text 0.18 and 0.36 high, words of 1 to 6 characters, arcs from 0 to 150 degrees: 8 600 pictures), the
+                // chord that first took them was linear in the width and gaps as the sine and the height and gaps as the
+                // cosine, within 0.02.
                 double toward = from + sweep / 2.0;
 
                 if (onInside)
@@ -1194,9 +1197,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    double along = needText * Math.Abs(Math.Sin(toward));
-                    double across = (height + over + 2.0 * gap) * Math.Abs(Math.Cos(toward));
-                    needText = Math.Sqrt(along * along + across * across + Math.Sqrt(2.0) * along * across);
+                    needText =
+                        needText * Math.Abs(Math.Sin(toward))
+                        + (height + over + 2.0 * gap) * Math.Abs(Math.Cos(toward));
                 }
 
                 needBoth = needText + needArrows;
@@ -1497,9 +1500,13 @@ namespace GeometryHelper.Dxf.Viewer
                 else if (levelInside)
                 {
                     textAngle = 0.0;
+
+                    // Words off the arc (DIMTAD 2 and 3) stand with the symbol clear of it too, so half of its room more along the
+                    // box: the symbol before words put at 4 degrees stands 0.165 further out, 0.013 at 94; over the words (half of
+                    // its 0.054) 0.027 at 94 degrees and 0.002 at 4 (probed).
                     double off =
-                        (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent))
-                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
+                        ((width + before) / 2.0 + gap) * Math.Abs(Math.Sin(tangent))
+                        + ((height + over) / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
                     at = onInside ? point : point + up * (upSide * off);
                 }
                 else
