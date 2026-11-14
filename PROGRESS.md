@@ -355,11 +355,15 @@ User note 2026-11-12 evening (note.md 1-14):
       TABLEGEOMETRY, extension dictionary and CELLSTYLEMAP AutoCAD builds (6 tables, 8 styles, 16 border/boundary tables
       equal group for group in R2007-R2018, AUDIT 0), built on a copy at save time; empty values 90 0 + 91 0 below R2007.
       DECIDED: accepted the save cost on edited tables (10 000 cells: 1 -> 469 ms at R2018); untouched drawings unchanged
-- [ ] (dxfver9, running: the save cost) DXF versions follow-ups 9: the table completion's save cost (build only what changed, or keep it in step with the
-      setters); real TABLEGEOMETRY and row heights (needs font metrics; AutoCAD re-lays tables out otherwise); native
-      R2000/R2004 table drawings; block-cell, field and link content; tables with their own row-kind looks or an
-      existing extension dictionary; hidden bottom/left lines in R2000/R2004; R2004/R2007 tolerant sweep_sur;
-      blend/network surfaces and helix sweeps (M)
+- [x] DXF versions follow-ups 9, save cost (dxfver9): table completion written straight as bytes with per-table cell
+      blocks; 10 000 cells save in 127 ms as R2018 (was 462), 295 as R2013 (918), 330 as R2000 (940) on net48; the
+      version converter reads and writes faster for every drawing (10.5 MB to R2013: 957 -> 556 ms); a weak cache of the
+      completed copy until the next edit; saved bytes identical (17 400 fuzz saves per runtime); 30 new tests
+- [ ] DXF versions follow-ups 10: Objects() index cleared on every OBJECTS write (O(tables x objects)); SetExtensionDictionary
+      rewriting the whole record; the converter's Write building a 22 MB string (write bytes straight); real
+      TABLEGEOMETRY and row heights (needs font metrics); native R2000/R2004 table drawings; block-cell, field and link
+      content; tables with their own row-kind looks or an existing extension dictionary; hidden bottom/left lines in
+      R2000/R2004; R2004/R2007 tolerant sweep_sur; blend/network surfaces and helix sweeps (M)
 - [x] Cursor drawn onto a grip when it comes within the grip's reach, as AutoCAD; XCLIP / XC checked and made as AutoCAD (grips-xclip) (M)
 - [x] XCLIP follow-ups: grips on the clip boundary (corners/vertices and the flip arrow, as AutoCAD's GetGripPoints); EXPLODE ignores the clip (probed, already so); the grip crosshair pull looked at in the running app
 - [x] XCLIP follow-ups 2 (xclip3; REFEDIT by refedit): Clipdepth cuts the block in the display (slab along the clip
@@ -441,7 +445,7 @@ the ones wanted.
 - [x] Dimension follow-ups 14 (dims14): the angle leader band by AutoCAD's rule on arcs 8 landings out or more (no
       leader where the arc's circle meets the ellipse of foci at the words' box corners, sum 2(K + DIMEXE)); DIMEXE and
       DIMSCALE now move the band (240 out: 264 -> 30, 90 out: 212 -> 76, DIMEXE 2.5: 80 -> 6); harness dims-harness18
-- [ ] Dimension follow-ups 15: the 1/R term on arcs near 30 out (the rule is up to 1.5 off there; dims12's table kept);
+- [ ] (dims15, running) Dimension follow-ups 15: the 1/R term on arcs near 30 out (the rule is up to 1.5 off there; dims12's table kept);
       a2's one SHX probe (band knot at cos 0.87); t9/t10/t11 short vs wide landing inside a circle (no clean law);
       d2's SHX R6/R7 ties; t6's diameter turned 6.9 degrees; words on an aligned extension line (15 of 972) (S)
 - [x] PEDIT: PEDITACCEPT and PLINETYPE through SETVAR; 3D polylines (options and vertex editing to 1E-8); Extend for arc

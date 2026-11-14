@@ -160,6 +160,14 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The handle of an object as its first record writes it, read from the groups at its start: what <see cref="DxfItem.Handle"/>
+        /// gives, without the reading of every group of the record that the entity's look takes, which a TABLECONTENT of 10 000
+        /// cells has a million of.
+        /// </summary>
+        internal string HandleOfObject(DxfItem item) =>
+            HandleOf(HeadOf(item), out ulong handle) ? handle.ToString("X", CultureInfo.InvariantCulture) : null;
+
+        /// <summary>
         /// Takes a record out of the file, an object or a record of a table: its handle not given again and what points at it
         /// seen to on saving, the objects it owns going with it; the item reads as it was, removed.
         /// </summary>

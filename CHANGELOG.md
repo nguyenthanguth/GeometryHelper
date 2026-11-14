@@ -49,9 +49,18 @@ gives a background colour filled (`283 0`). Left as they are, for AutoCAD to bui
 cell, a field, a link, or lines of its own for a kind of rows (`SetGridColor(color, borders, rows)`). AutoCAD lays a table with a
 TABLECONTENT out anew when it reads it (its TABLEGEOMETRY is zeros here, as it builds it, and the library measures no text): a title
 of 6 high in a row of 9 becomes 11, and the cells gain the margins and lines of the format it writes then. A line written hidden stays
-0, as AutoCAD reads it, where AutoCAD writes 1. Saving is slower in proportion to what is written: 5 tables of 100 rows by 20 columns,
-1.3 MB before and 11.3 MB now, take 470 ms in place of 1 ms as R2018 and 915 ms in place of 63 as R2013 on .NET Framework 4.8
-(308, 608 and 0, 30 ms on .NET 10).
+0, as AutoCAD reads it, where AutoCAD writes 1. Saving is slower in proportion to what is written, and writes it as bytes, not as
+lists of groups: 5 tables of 100 rows by 20 columns (10 000 cells), 1.3 MB before and 11.3 MB now, take 127 ms and 189 MB in place of
+1 ms as R2018 (462 ms and 522 MB when the content was built as lists of groups), 295 ms as R2013 and 330 ms as R2000 on .NET Framework 4.8
+(83, 179 and 222 ms on .NET 10); 1 000 cells take 11 ms as R2018, 27 as R2013 and 35 as R2000, 100 cells 2, 4 and 4. The completed
+copy of a drawing is kept, weakly, while the drawing is not changed, so that saving it again (in another version, say) does not make the
+content again: 6 ms in place of 127 ms as R2018 on .NET Framework 4.8, until a garbage collection drops the copy.
+**CHANGED.** Saving a drawing in an older version (`Save(path, version)`, `Save(stream, version)`) converts its text faster and with less
+memory, the file written the same to the byte: the converter reads a group's code from the text without a string of its own, keeps each
+short value once however often it stands, writes the codes it knows ready made and sizes its output to its input, and the records the
+library writes go out without an array for each group. A drawing of 100 000 lines and 5 000 objects (10.5 MB) saved as R2013 takes
+556 ms and 370 MB in place of 957 ms and 510 MB on .NET Framework 4.8 (368 ms and 363 MB in place of 522 ms and 460 MB on .NET 10);
+the 5 tables above, 295 ms in place of 918 ms.
 **FIXED.** A table made in code in a drawing of R2000 to R2007 had the version number `280 0` of R2010 and later in its record, which
 AutoCAD leaves out of those versions. An empty value in the TABLECONTENT of a table going from R2007 or later to R2004 or R2000 is
 written `90 0` and `91 0` as AutoCAD writes it (the `91` was missing), and read going up: a table saved down and up again with an

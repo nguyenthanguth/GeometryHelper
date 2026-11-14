@@ -327,7 +327,7 @@ namespace GeometryHelper.Dxf
             return Encoding.ASCII.GetBytes(escaped.ToString());
         }
 
-        /// <summary>How many bytes <see cref="Builder.Group"/> writes a group in: its code padded as the file pads one, its value, and the two line ends.</summary>
+        /// <summary>How many bytes <see cref="Builder.Group(int, string)"/> writes a group in: its code padded as the file pads one, its value, and the two line ends.</summary>
         internal int GroupLength(int code, string value)
         {
             Writing style = Style;
@@ -340,6 +340,18 @@ namespace GeometryHelper.Dxf
         {
             private readonly DxfFile _file;
             private readonly MemoryStream _bytes = new MemoryStream(256);
+
+            // Where a value all ASCII and the digits of a number are made into bytes before they are written: one for each thread, not
+            // one for each record written.
+            [ThreadStatic]
+            private static byte[] _scratchOfThread;
+
+            private static byte[] Scratch => _scratchOfThread ?? (_scratchOfThread = new byte[256]);
+
+            // The bytes of the codes below 1 000, as the file writes them, made as they are first written.
+            private const int Codes = 1000;
+            private static readonly byte[][] PaddedCodes = new byte[Codes][];
+            private static readonly byte[][] PlainCodes = new byte[Codes][];
 
             internal Builder(DxfFile file)
             {
@@ -355,6 +367,33 @@ namespace GeometryHelper.Dxf
             /// <summary>The bytes of a value, with no line end.</summary>
             internal void Value(string value)
             {
+                // A value all ASCII is the same bytes in every code page, and is written with no array of its own.
+                byte[] scratch = Scratch;
+
+                if (value.Length <= scratch.Length)
+                {
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        char c = value[i];
+
+                        if (c >= 0x80)
+                        {
+                            Encoded(value);
+                            return;
+                        }
+
+                        scratch[i] = (byte)c;
+                    }
+
+                    _bytes.Write(scratch, 0, value.Length);
+                    return;
+                }
+
+                Encoded(value);
+            }
+
+            private void Encoded(string value)
+            {
                 byte[] bytes = _file.Encoded(value);
                 _bytes.Write(bytes, 0, bytes.Length);
             }
@@ -363,13 +402,80 @@ namespace GeometryHelper.Dxf
             internal void Group(int code, string value)
             {
                 Writing style = _file.Style;
-                string number = code.ToString(CultureInfo.InvariantCulture);
-                byte[] line = Encoding.ASCII.GetBytes(style.Padded ? number.PadLeft(3) : number);
-                _bytes.Write(line, 0, line.Length);
-                _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
+                Code(code, style);
                 Value(value);
                 _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
             }
+
+            /// <summary>A group whose value is a whole number, written as <c>ToString</c> with the invariant culture writes it.</summary>
+            internal void Group(int code, int value)
+            {
+                Writing style = _file.Style;
+                Code(code, style);
+
+                if (value < 0)
+                {
+                    Value(value.ToString(CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    byte[] scratch = Scratch;
+                    int at = scratch.Length;
+                    int rest = value;
+
+                    do
+                    {
+                        scratch[--at] = (byte)('0' + rest % 10);
+                        rest /= 10;
+                    } while (rest > 0);
+
+                    _bytes.Write(scratch, at, scratch.Length - at);
+                }
+
+                _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
+            }
+
+            /// <summary>The code of a group and the line end after it, padded as the file pads one.</summary>
+            private void Code(int code, Writing style)
+            {
+                byte[] line;
+
+                if (code >= 0 && code < Codes)
+                {
+                    byte[][] known = style.Padded ? PaddedCodes : PlainCodes;
+                    line = known[code];
+
+                    if (line == null)
+                    {
+                        string number = code.ToString(CultureInfo.InvariantCulture);
+                        line = Encoding.ASCII.GetBytes(style.Padded ? number.PadLeft(3) : number);
+                        known[code] = line;
+                    }
+                }
+                else
+                {
+                    string number = code.ToString(CultureInfo.InvariantCulture);
+                    line = Encoding.ASCII.GetBytes(style.Padded ? number.PadLeft(3) : number);
+                }
+
+                _bytes.Write(line, 0, line.Length);
+                _bytes.Write(style.LineEnd, 0, style.LineEnd.Length);
+            }
+
+            /// <summary>Makes room for a record of about this many bytes, so that writing it grows the buffer once.</summary>
+            internal void Reserve(int length)
+            {
+                if (_bytes.Capacity < length)
+                {
+                    _bytes.Capacity = length;
+                }
+            }
+
+            /// <summary>Bytes already written as groups, such as a block of them written once, as they stand.</summary>
+            internal void Bytes(byte[] bytes) => _bytes.Write(bytes, 0, bytes.Length);
+
+            /// <summary>The bytes written so far, as a copy.</summary>
+            internal byte[] ToArray() => _bytes.ToArray();
 
             /// <summary>How many bytes are written so far.</summary>
             internal int Length => (int)_bytes.Length;
