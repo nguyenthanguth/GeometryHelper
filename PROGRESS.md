@@ -134,7 +134,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] MLINE follow-ups 3 (mline4): cross-segment trims on a closed MLINE (1091 of 1111 probes equal, 20 float ties);
         CC/OC/MC run on only past open ends and refuse self-intersecting cases whole; MoveVertexAt on cut open MLINEs as
         AutoCAD (224 probed moves)
-  - [ ] MLINE follow-ups 4: AutoCAD's inverted record where a cut starts exactly at a later segment's start (CA/CS,
+  - [ ] (mline5, running) MLINE follow-ups 4: AutoCAD's inverted record where a cut starts exactly at a later segment's start (CA/CS,
         crosses at y=20, {20}{20} at y=120); CJ refusals past a vertex (L vs U differ); the "L second" cross split (x<=35
         vs >=40, data in .claude/gk/mline4-notes); closed-trim end stop ties on non-right corners; MoveVertexAt on closed cut
         MLINEs (S)
@@ -161,10 +161,13 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         reported DIMSCALE 100 case at (154.381, 30)), with DIMTMOVE 1/2, DIMJUST 3/4, DIMTVP, DIMTXTDIRECTION, slanting lines
         and moved-then-turned arrowheads; 17 probe sets 6 404 differing of 15 735 down to 377; 66 older sets byte-identical;
         harness .claude/gk/dims-harness13
-  - [ ] (annot5, running) Annotative objects 5b: DIMTMOVE 1 with very wide turned words (no leader in AutoCAD; tw9-tw11 298 differ); words
-        put beyond a slanting line's end (tw17 58); exact ties; MLEADEREDIT's far-side arrow making its own leader (needs
-        measured fonts); words' y offset by the ink depth; context group differences (90, 172, 91, 141, 295, record 45);
-        the text width gap 177.4 vs 177.47 (maybe AutoCAD's live picture against its redraw, as found here) (S)
+  - [x] Annotative objects 5b (annot5): turned words over the line under DIMTMOVE 1 drop their leader when their reach
+        is twice the rise (tw9 58 -> 0, tw10 78 -> 0, tw11 162 -> 0); MLEADER words held by half their ink height and
+        depth; MLEADER context and record groups as the command writes them; MLEADEREDIT's far-side arrow makes its own
+        leader with measured fonts; 177.47 confirmed; harness .claude/gk/annot-harness5
+  - [ ] Annotative objects 5c: words put beyond a slanting line's end under DIMTMOVE 0 (tw17 58: AutoCAD moves the
+        dimension line out along its normal, no model yet); AutoCAD's doubled dimension line in 7 DIMTMOVE 1 cases;
+        272/273 order in MLEADER context data; the turned-words rule for unturned DIMTOH words (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
         loose end to a piece or another end's ray, Boundary set falling back as AutoCAD; gradient channels truncated (0 of
         1101 wrong), one-colour tint in the core (DxfHatch.TintedColour)

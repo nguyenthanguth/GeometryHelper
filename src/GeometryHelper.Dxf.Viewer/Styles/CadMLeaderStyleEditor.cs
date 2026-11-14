@@ -876,9 +876,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// their right for one on its left) with their first line's middle level with the landing, and the base of the content at
         /// the dogleg's end. Asked for an arrow at (100, 100) and a landing at (150, 150), a style of a dogleg of 0.36, a gap of
         /// 0.09 and words 0.18 high has the dogleg start at (150, 150), the base at (150.36, 150) and the words held at
-        /// (150.45, 150.09). The words' own height is taken, as the library does not measure their font here.
+        /// (150.45, 150.09). The middle of the first line is half the words' height and the depth of their ink below the baseline,
+        /// as AutoCAD 2021 holds them (probed over arial.ttf and txt.shx 0.18 high): "HELLO" of arial.ttf, whose O hangs 0.00307
+        /// below the baseline, are held 0.09153 above the landing, "B-12" 0.09, "gjpqy" 0.11646 and "Default_Text" 0.11499, and
+        /// of txt.shx "gjpqy" 0.12 and "Default_Text" 0.105; no font measuring the words leaves half their height.
         /// </summary>
-        internal static void LandWords(DxfMLeader mleader, GeoPoint3 arrow, GeoPoint3 landing)
+        internal static void LandWords(
+            DxfMLeader mleader,
+            GeoPoint3 arrow,
+            GeoPoint3 landing,
+            DxfDatabase database = null
+        )
         {
             DxfMText words = mleader.MText;
 
@@ -889,7 +897,26 @@ namespace GeometryHelper.Dxf.Viewer
 
             double side = landing.X >= arrow.X ? 1.0 : -1.0;
             double back = (mleader.LandingGap + mleader.DoglegLength) * mleader.Scale;
-            words.Location = new GeoPoint3(landing.X + side * back, landing.Y + words.TextHeight / 2.0, landing.Z);
+            double rise = words.TextHeight;
+            string font = string.IsNullOrEmpty(words.TextStyleName) ? "Standard" : words.TextStyleName;
+
+            if (
+                database != null
+                && database.TextStyleTable.Has(font)
+                && CadDimensionWords.TryMeasure(
+                    database.TextStyleTable[font],
+                    words.Contents,
+                    rise,
+                    out _,
+                    out _,
+                    out double depth
+                )
+            )
+            {
+                rise += depth;
+            }
+
+            words.Location = new GeoPoint3(landing.X + side * back, landing.Y + rise / 2.0, landing.Z);
             words.Attachment = side > 0.0 ? DxfAttachmentPoint.TopLeft : DxfAttachmentPoint.TopRight;
             mleader.MText = words;
             mleader.AddMadeLeader(arrow, landing, new GeoVector3(side, 0.0, 0.0));
@@ -1046,7 +1073,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (words != null)
                 {
-                    LandWords(mleader, new GeoPoint3(0, 0, 0), new GeoPoint3(6.0 * size, 4.0 * size, 0));
+                    LandWords(mleader, new GeoPoint3(0, 0, 0), new GeoPoint3(6.0 * size, 4.0 * size, 0), database);
                 }
 
                 if (shownBlock != null)

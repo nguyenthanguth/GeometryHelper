@@ -1669,8 +1669,17 @@ namespace GeometryHelper.Dxf.Viewer
                 bool onLanding = tad == 0;
                 double start2 = onLanding ? 3.0 * gap : gap;
 
-                // No further out than an arrowhead and a gap, the words stand centred where they would start, with no leader.
-                if (off <= arrow + gap)
+                // No further out than an arrowhead and a gap, the words stand centred where they would start, with no leader. So
+                // do turned words whose box is so high that half of it, (W/2 + gap) sin t + (H/2 + gap) cos t, reaches twice as far
+                // as the leader would rise: "1234567890" turned 60 on a line of 5 has 9.67 against 2 x 4.117, and AutoCAD 2021 draws
+                // no leader and puts their middle at (3.125, 34.117); 13 digits turned 30 (8.14) keep theirs, 14 (8.62) lose it.
+                bool tooHigh =
+                    wordsAngle.HasValue
+                    && (width / 2.0 + gap) * Math.Abs(Math.Sin(inside - angle))
+                        + (height / 2.0 + gap) * Math.Abs(Math.Cos(inside - angle))
+                        >= 2.0 * off;
+
+                if (off <= arrow + gap || tooHigh)
                 {
                     layout.At = knee + landing * start2 + upward * offLine;
                     return layout;

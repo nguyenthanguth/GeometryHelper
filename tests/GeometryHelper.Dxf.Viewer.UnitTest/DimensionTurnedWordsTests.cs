@@ -314,6 +314,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void VeryWideWordsTurned60_OnALineOf5_UnderDimtmove1_StandCentredOnTheirStartWithNoLeader()
+        {
+            // AutoCAD 2021 (annot5, probe tw10): "1234567890" (18.876 wide) turned 60 on a line of 5 under DIMTMOVE 1: half the
+            // height of their turned box, (9.438 + 0.625) sin 60 + (1.277 + 0.625) cos 60 = 9.67, is more than twice the 4.117
+            // the leader would rise (8.23), so AutoCAD draws no leader and no landing and centres the words on the point
+            // where their start would be (3.125, 34.117): a gap past the middle of the line.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = Turned(session, 5, 60, null, "1234567890");
+
+            Assert.True(Math.Abs(Words(dimension).Location.X - 3.125) < 2E-3, $"x {Words(dimension).Location.X}");
+            Assert.True(Math.Abs(Words(dimension).Location.Y - 34.117) < 2E-3, $"y {Words(dimension).Location.Y}");
+            Assert.DoesNotContain(Lines(dimension), l => Math.Abs(l.StartPoint.X - 2.5) < 1E-3 && l.StartPoint.Y > 31);
+            Assert.DoesNotContain(Lines(dimension), l => Math.Abs(l.EndPoint.X - 2.5) < 1E-3 && l.EndPoint.Y > 31);
+        }
+
+        [Fact]
+        public void WordsTurned60_OnALineOf5_UnderDimtmove1_JustNarrowerThanThatKeepTheirLeader()
+        {
+            // AutoCAD 2021 (annot5, probe tw10): "12345678" (15.005 wide) turned 60 has half its box 7.99 high, under the 8.23:
+            // the leader (2.5, 30) to (2.5, 34.117), the landing 16.255 long, the words (6.876, 40.615) held by their start.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = Turned(session, 5, 60, null, "12345678");
+
+            Assert.True(Math.Abs(Words(dimension).Location.X - 6.876) < 2E-3, $"x {Words(dimension).Location.X}");
+            Assert.True(Math.Abs(Words(dimension).Location.Y - 40.615) < 2E-3, $"y {Words(dimension).Location.Y}");
+            Assert.Contains(Lines(dimension), l => Joins(l, 2.5, 30, 2.5, 34.117));
+            Assert.Contains(Lines(dimension), l => Joins(l, 2.5, 34.117, 18.755, 34.117));
+        }
+
+        [Theory]
+        [InlineData(13, true)]
+        [InlineData(14, false)]
+        public void WordsTurned30_OnALineOf5_UnderDimtmove1_LoseTheirLeaderBetween13And14Digits(int digits, bool leader)
+        {
+            // AutoCAD 2021 (annot5, probe tw10): turned 30, half the box (13 digits 8.14, 14 digits 8.62) against 8.23.
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = Turned(session, 5, 30, null, "1234567890123456".Substring(0, digits));
+
+            Assert.Equal(leader, Lines(dimension).Any(l => Joins(l, 2.5, 30, 2.5, 34.117)));
+        }
+
+        [Fact]
+        public void WordsTurned120_OnALineOf5_UnderDimtmove1_NineDigitsStandCentredOnTheirStart()
+        {
+            // AutoCAD 2021 (annot5, probe tw10): the box is as high turned 120 as turned 60, and the words stand on (3.125, 34.117).
+            CadCommandSession session = Probe(v => v["Dimtmove"] = 1);
+            DxfDimension dimension = Turned(session, 5, 120, null, "123456789");
+
+            Assert.True(Math.Abs(Words(dimension).Location.X - 3.125) < 2E-3, $"x {Words(dimension).Location.X}");
+            Assert.True(Math.Abs(Words(dimension).Location.Y - 34.117) < 2E-3, $"y {Words(dimension).Location.Y}");
+        }
+
+        [Fact]
         public void WordsTurned30_UnderDimjust3_StandCentredOnTheExtensionLineAndItIsNotRunOn()
         {
             // AutoCAD 2021: over the first extension line the words stand on it, DIMEXE, a gap and half their width up

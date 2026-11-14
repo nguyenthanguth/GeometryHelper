@@ -821,7 +821,11 @@ line takes through them; with the arrowheads they need that reach or the chord a
 more ("12345.6789" turned 10 needs 25.8). Where they do not fit they stand outside, on the line, an arrowhead (two where the
 arrowheads are out) and half the chord past the end, level with its end on a slanting line; under DIMTMOVE 1 the leader runs
 square off the line to a level landing and they are turned about the middle of their start (DIMTMOVE 2 puts their middle
-4.1154 up), and DIMJUST 3 and 4 put them on the extension line, which is not run on. A DIMTVP that is not nought lifts them.
+4.1154 up), unless half the height of their turned box, (width / 2 + gap) sin t + (height / 2 + gap) cos t, reaches twice as far as
+the leader would rise (twice 4.1154 here): then AutoCAD draws no leader and no landing and their middle stands on that start ("1234567890"
+18.9 wide turned 60 on a line of 5 has 9.67 against 8.23, at (3.125, 34.117); 13 digits turned 30, 8.14, keep the leader and 14, 8.62, lose
+it; probed over styles of other sizes, gaps and DIMEXE: every one with a leader under 1.98 times and every one without over 2.01), and
+DIMJUST 3 and 4 put them on the extension line, which is not run on. A DIMTVP that is not nought lifts them.
 A DIMLINEAR of 100 at DIMSCALE 100 (0.18 sizes) with its words turned 30 has them at (154.38, 30) outside the second line, the
 arrowheads in, and turned 20 at (171.185, 30). Turned words put by DIMTEDIT turn the arrowheads out where they reach within an
 arrowhead and half their chord of an extension line, whatever their height, unless they are wider than the line. Every dimension
@@ -1384,8 +1388,15 @@ multileader of a style of words and arrows 4 high has words and arrows 4 high. T
 AutoCAD 2021: the leader line runs from the arrow to it, the dogleg goes on from it away from the arrow, and the words stand past the
 dogleg and the gap, held at their left for a landing on the right of the arrow and at their right for one on its left, their first
 line's middle level with the landing (an arrow at (100, 100), a landing at (150, 150), a dogleg of 0.36 and a gap of 0.09 give words
-0.18 high held at (150.45, 150.09); at 1:50 the dogleg is 18, the gap 4.5 and the words held at (172.5, 154.5)); the presenter does not
-measure the font, so the words' own height is taken where AutoCAD adds the depth of their ink. Each change is one undo step. In a drawing
+0.18 high held at (150.45, 150.09); at 1:50 the dogleg is 18, the gap 4.5 and the words held at (172.5, 154.5)); the first line's
+middle is half the words' height and the depth of their ink below the baseline, measured in the font of their text style where the
+presenter reads it, as AutoCAD 2021 holds them: "HELLO" of arial.ttf 0.18 high, whose O hangs 0.00307 below the baseline, is held
+0.09153 above the landing (154.5767 at 1:50), "B-12", "x" and "TEXT" 0.09, "gjpqy" 0.11646 and "Default_Text" 0.11499 (txt.shx 0.12
+and 0.105); a font that is not read leaves half the height. The groups are those of AutoCAD's command, where the library's
+template (ezdxf's) writes others: the flow of the words by the style (172 of 5), a background colour of -1073741824, a background scale
+of 0, no automatic column height (295 of 0), the overrides of the content type and of 14 and 18 alone (90 of 279552, no override of the
+text colour), and in an annotative multileader the scale in its context alone (40 of 50 at 1:50) with the record's own scale the
+style's (45 of 1, its override clear). Each change is one undo step. In a drawing
 of R2007 or later with no style to draw in, MLEADER first makes Standard current, metric as above, or in an imperial
 drawing (MEASUREMENT 0) AutoCAD 2021's own: text and arrows 0.18, a landing of 0.36, a gap of 0.09 and a break of 0.125,
 in the same undo step. A style of no content draws the leader alone, asking no text, its dogleg from the landing away from
@@ -1909,7 +1920,11 @@ adds a leader line whose arrowhead stands there (`DxfMLeader.AddLeaderLine`), En
 remove or [Add leaders]:" takes the leader line nearest the point within the pick aperture away (`No leader line there.` where
 none is), and the last line of a multileader is kept (`A multileader keeps at least one leader line.`). Each change is a step
 of the one undo step; on an annotative multileader the line is added or taken out in the context of every scale it is shown at, as
-AutoCAD 2021 does it, not in the record alone. MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
+AutoCAD 2021 does it, not in the record alone. An arrowhead on the far side of one line of words (right of them, where the leaders
+meet them on their left) makes a leader of its own, measured in the fonts the presenter reads: its dogleg runs against x and ends a
+gap past the right end of their ink, the landing a dogleg further on, 234.6589 at 1:50 and 319.3179 at 1:100 for "HELLO" of arial.ttf
+0.18 high with a landing of 150 (the words 0.79318 wide for 0.18); where the font is not read the line goes to the first leader.
+MLEADERALIGN (MLA) takes "Select multileaders:", writes "Current mode: Use current spacing" and asks
 "Select multileader to align to or [Options]:" and "Specify direction:": the content of each (its words' attachment point, or
 its block's position) moves with its landing onto the line through the content of the one picked along the direction, the
 arrowheads staying. Options asks "Enter an option [Distribute/make leader segments Parallel/specify Spacing/Use current
