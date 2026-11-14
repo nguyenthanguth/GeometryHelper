@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -353,6 +354,49 @@ namespace GeometryHelper.UnitTest.Dxf
 
             Assert.Equal(cubic.GetDistanceAtParameter(1.0), raised.GetDistanceAtParameter(1.0), 6);
             Assert.Equal(cubic.GetDistanceAtParameter(0.3), raised.GetDistanceAtParameter(0.3), 6);
+        }
+
+        [Theory]
+        [InlineData(11)]
+        [InlineData(18)]
+        [InlineData(25)]
+        public void ACubicRaisedPastTen_GivesTheShapeOfTheCubic_AndIsOffsetSplitAndFlattenedAsTheCubicIs(int degree)
+        {
+            DxfSpline cubic = CubicWithAKnot();
+            DxfSpline raised = CubicWithAKnot();
+            raised.ElevateDegree(degree);
+
+            GeoSpline3 shape = raised.ToGeoSpline3();
+            GeoSpline3 expected = cubic.ToGeoSpline3();
+            Assert.Equal(degree, shape.Degree);
+            Assert.Equal(expected.Length, shape.Length, 6);
+
+            for (int i = 0; i <= 40; i++)
+            {
+                Assert.True(
+                    expected.GetPointAtParameter(i / 40.0).IsEqualTo(shape.GetPointAtParameter(i / 40.0), Tight)
+                );
+            }
+
+            // Offset: each curve is a cubic fitted to points of the true offset within 1E-3, so the two meet within that.
+            var loose = new Tolerance(2E-3, 2E-3);
+            DxfCurve offset = cubic.GetOffsetCurves(3.0).Single();
+            DxfCurve offsetOfRaised = raised.GetOffsetCurves(3.0).Single();
+
+            for (int i = 0; i <= 40; i++)
+            {
+                double t = offset.StartParam + (offset.EndParam - offset.StartParam) * i / 40.0;
+                double u = offsetOfRaised.StartParam + (offsetOfRaised.EndParam - offsetOfRaised.StartParam) * i / 40.0;
+                Assert.True(offset.GetPointAtParameter(t).IsEqualTo(offsetOfRaised.GetPointAtParameter(u), loose));
+            }
+
+            // Split at the same place: the two halves are each the half of the cubic.
+            IReadOnlyList<DxfCurve> halves = raised.GetSplitCurves(new[] { 0.5 });
+            Assert.Equal(2, halves.Count);
+            Assert.Equal(cubic.GetDistanceAtParameter(0.5), halves[0].GetDistanceAtParameter(halves[0].EndParam), 6);
+            Assert.True(
+                halves[1].GetPointAtParameter(halves[1].EndParam).IsEqualTo(cubic.GetPointAtParameter(1.0), Tight)
+            );
         }
 
         [Fact]

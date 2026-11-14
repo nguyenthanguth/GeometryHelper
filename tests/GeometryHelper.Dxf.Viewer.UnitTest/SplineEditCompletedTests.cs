@@ -832,6 +832,38 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Refine_ElevateOrder_GoesToOrder26_AsAutoCadDoes_AndTheSplineOfDegree25IsDrawn()
+        {
+            CadDocument document = Blank();
+            DxfSpline spline = Probe(document);
+            GeoSpline3 before = spline.ToGeoSpline3();
+            CadCommandSession session = Start(document, "SPLINEDIT", new[] { spline.Handle }, "R", "E");
+            Run(session, "27");
+            Assert.Contains("Requires an integer between 4 and 26.", session.History);
+            Assert.Equal("Enter new order <4>:", session.PromptText);
+            Run(session, "26");
+
+            Assert.Equal(25, spline.Degree);
+
+            // The curve is the one it was, and is on the canvas: a chain of samples from (0, 0) to (40, 0) that lies on the cubic.
+            GeoSpline3 after = spline.ToGeoSpline3();
+            Assert.Equal(before.Length, after.Length, 6);
+            DisplayList2 list = new DisplayBuilder(document.Database).Build(document.Database.ModelSpace, true);
+            DisplayPolyline2 drawn = list.Items.OfType<DisplayPolyline2>().Single();
+            Assert.True(drawn.Count > 20);
+            Assert.Equal(0.0, drawn.Xy[0], 6);
+            Assert.Equal(0.0, drawn.Xy[1], 6);
+            Assert.Equal(40.0, drawn.Xy[2 * drawn.Count - 2], 6);
+            Assert.Equal(0.0, drawn.Xy[2 * drawn.Count - 1], 6);
+
+            for (int i = 0; i < drawn.Count; i++)
+            {
+                var sample = new GeoPoint3(drawn.Xy[2 * i], drawn.Xy[2 * i + 1], 0.0);
+                Assert.True(before.DistanceTo(sample, Tolerance.Default) < 1E-6, "sample " + i + " is off the curve");
+            }
+        }
+
+        [Fact]
         public void Refine_ElevateOrder_RaisesTheDegree_AsAutoCadDid_AndRefusesAnOrderBelowTheOwn()
         {
             CadDocument document = Blank();
@@ -839,7 +871,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Start(document, "SPLINEDIT", new[] { spline.Handle }, "R", "E");
             Assert.Equal("Enter new order <4>:", session.PromptText);
             Run(session, "3");
-            Assert.Contains("Requires an integer between 4 and 11.", session.History);
+            Assert.Contains("Requires an integer between 4 and 26.", session.History);
             Assert.Equal("Enter new order <4>:", session.PromptText);
             Run(session, "5");
 

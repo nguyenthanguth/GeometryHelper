@@ -535,8 +535,8 @@ Delete (`Specify control vertex to delete:`, `Not a control vertex.` for a pick 
 Elevate order (`Enter new order <4>:`) raises the degree to one less than the order, Move is Move vertex, and Weight says
 `Spline is not rational. Will make it so.` for a spline that is not and asks `Enter new weight (current = 1.0000) or
 [Next/Previous/Select point/eXit] <N>:` of each control vertex in turn. The fit data go with the first change of Refine, not
-before. Elevate order stops at order 11 here (AutoCAD's 26): the library raises a spline to degree 25 with its control points as AutoCAD's
-(`DxfSpline.ElevateDegree`), but reads none of degree above 10 for drawing.
+before. Elevate order goes to order 26 as AutoCAD's does (degree 25): the library raises a spline with its control points as AutoCAD's
+(`DxfSpline.ElevateDegree`) and draws it, a spline of degree 25 being a `GeoSpline3` like any other.
 CLASSICINSERT shows the same Insert palette as INSERT: AutoCAD's classic Insert dialog asks the same things (the block
 or file, insertion point, scale and rotation each given or specified on screen, explode) in another frame, so it is not
 built apart.

@@ -67,8 +67,18 @@ already wrote it (red at 0.25 to (128, 0, 0), (100, 150, 50) at 0.75 to (191, 22
 or white. 1 101 channels of 12 two-colour gradients and 25 pairs of colour and tint at 9 values were read from AutoCAD and agree.
 **CHANGED.** `DxfSpline.ElevateDegree` raises a spline to degree 25, the order of 26 AutoCAD's Elevate order takes, where it stopped at
 10: the 13, 26 and 23 control points AutoCAD 2021 gave for a cubic raised to 12 and 25 and a cubic with an inner knot to 12 are met to
-1E-7 and the curve is the same to 1E-9. `ToGeoSpline3` and the reader still take a degree of 10 at most, so a spline raised past 10
-has no shape to draw, and SPLINEDIT's Elevate order in the presenter stays at order 11.
+1E-7 and the curve is the same to 1E-9.
+**FIXED.** `GeoSpline2`, `GeoSpline3`, the DXF reader and `DxfSpline.ToGeoSpline3` take a degree up to 25, where they refused one past 10
+(`ArgumentOutOfRangeException`), and every query is right at those degrees. The cause: the products of Bernstein polynomials that the speed
+breaks, the nearest point and the crossings with a circle are made of read their binomial coefficients from a table of 64 rows, and a rational
+spline of degree 25 multiplies polynomials up to degree 122, so `Bernstein.Multiply` read past it (`IndexOutOfRangeException` in the nearest
+point of the rational spline, found on raising the cap); the table is now 125 rows, the rows to 64 the same to the bit. A cubic raised to degree
+11, 17 and 25, plain and rational, has the points of the cubic to 4E-13, its length (395.6538 and 399.5111) to 1.2E-13, and the same bounds,
+closest points, crossings with a plane, a line, a circle and another spline, derivatives to order 25 (the forward differences of a Bézier
+curve of degree 25, exact), offset and split; 20 random splines of degrees 11 to 25 in the plane have the closest points and crossings that a
+sample of 20 000 points shows. Splines of degree 10 and below are the same to the bit (benchmark signatures unchanged).
+**CHANGED.** SPLINEDIT's Elevate order in the presenter goes to order 26 as AutoCAD 2021's does (`Requires an integer between 4 and 26.`), and
+the spline of degree 25 is drawn on the canvas as the cubic it was raised from.
 
 **CHANGED.** A table going across R2007 (`Save(path, "AC1018")` and back) stays a table where its cells carry more than plain text:
 alignment, text height, text style, colours, background, borders of every side, and a block cell. It was the INSERT of its block before.

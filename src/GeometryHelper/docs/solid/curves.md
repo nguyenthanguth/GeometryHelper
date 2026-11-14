@@ -194,7 +194,7 @@ which `ToPolylineByChordTolerance` gives a chain that errs on the safe side.
 
 ## Splines in space
 
-[`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3) is the NURBS curve of [the plane half](../plane/splines.md) in space: a degree from 1 to 10, control points, knots kept as
+[`GeoSpline3`](xref:GeometryHelper.Geometry.GeoSpline3) is the NURBS curve of [the plane half](../plane/splines.md) in space: a degree from 1 to 25, control points, knots kept as
 they were given and, when it is rational, weights; clamped, so it starts at its first control point and ends at its last. It is made,
 read, cut and measured as the plane's is, by the same engine, so everything said there about its exactness holds here: the point at a
 parameter, derivatives, tangent, `Length`, `GetAabb` (a [`GeoAabb3`](xref:GeometryHelper.Geometry.GeoAabb3)), `Split`, `Reverse`, `Flatten(chordTolerance)` into a

@@ -5,7 +5,7 @@ against every other shape.
 
 [`GeoSpline2`](xref:GeometryHelper.Geometry.GeoSpline2) is a curve that is one smooth sweep and not a chain of pieces: a NURBS, a B-spline whose control points may pull
 on it with different strengths, which is what the SPLINE of AutoCAD and the B-spline curves of IFC hold. It is given by its
-degree (1 to 10), its control points, its knots and, when it is rational, its weights. The curve is clamped, so it starts at its
+degree (1 to 25), its control points, its knots and, when it is rational, its weights. The curve is clamped, so it starts at its
 first control point and ends at its last, and the control polygon through the points shows where it goes without touching it.
 
 ```csharp
@@ -68,7 +68,7 @@ a hundred degrees is two pieces of fifty.
 
 The point at a parameter is de Boor's scheme in homogeneous coordinates, a
 weighted mean of the control points of the span (11.7 units of rounding, of 2.2E-16 times the size of the spline, at the worst of
-400 random splines of degrees up to 10 in the plane, checked against exact fractions). Derivatives to the tenth, the tangent
+400 random splines of degrees up to 10 in the plane, checked against exact fractions). Derivatives to the twenty-fifth, the tangent
 and the curvature (signed in the plane, positive counter-clockwise; never negative in space) are those of the exact quotient,
 to 6E-14. `Length` integrates the speed by Gauss-Legendre of ten points over each Bézier span, the span cut in halves until the
 rule over the whole and over its halves agree to 1E-14 of the length of its control polygon, cut again at each place its speed is
@@ -81,6 +81,14 @@ place apart if rounding would join them; the mirrored knots are rounded to the l
 by the speed times that). `Translate`, `TransformBy` and `PlanarMap.ToSpline3`/`ProjectToSpline2` carry the control points, which
 is exact for every affine map: a circle scaled by 3 along X is the ellipse 300 by 100, all 400 points of it on it to 1E-12.
 A transformation that carries every control point to one point is refused.
+
+Degrees 11 to 25, which AutoCAD's SPLINEDIT Elevate order reaches, run the same code. The products of Bernstein polynomials that the speed breaks,
+the nearest point and the crossings of a circle are made of read their binomial coefficients from a table, which stopped at degree 64: a rational
+spline of degree 25 has products of degree up to 122 (the speed, squared, differentiated, and multiplied by the weights) and its nearest point failed with an index
+outside the array, so the degree was held at 10; the table now reaches 125. A cubic raised to degree 11, 17 and 25, plain and rational (weights 1, 2, 0.5, 1.5),
+is the cubic: its points agree to 4E-13, its length (395.6538 plain, 399.5111 rational) to 1.2E-13 and its distance from a point to 2E-13. 20 random splines of
+degree 11 to 25 in the plane, plain and rational, have the closest points and the crossings of a line that a sample of 20 000 points shows, and four of them
+the crossings of a circle and of another spline, every crossing on the curve to 1E-5. Results of degree 10 and below are the same to the bit as before.
 
 ### Nearest point and distance
 

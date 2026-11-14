@@ -22,7 +22,7 @@ namespace GeometryHelper.Internal.Nurbs
     internal sealed partial class NurbsCurve
     {
         /// <summary>The most any spline's degree can be.</summary>
-        internal const int MostDegree = 10;
+        internal const int MostDegree = 25;
 
         /// <summary>
         /// How far apart the largest and the smallest weight of a spline may be, as a ratio. The length is right to 1E-12 up to a ratio
@@ -219,7 +219,7 @@ namespace GeometryHelper.Internal.Nurbs
         /// <param name="dim">The number of coordinates of a point.</param>
         /// <param name="knots">The knots.</param>
         /// <param name="weights">The weights, or null for all one.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10, or a weight is not a positive number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 25, or a weight is not a positive number.</exception>
         /// <exception cref="ArgumentException">Thrown when the points, knots or weights are not as a clamped spline needs them.</exception>
         internal static void Check(int degree, double[] points, int dim, double[] knots, double[] weights)
         {

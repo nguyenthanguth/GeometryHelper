@@ -150,7 +150,7 @@ namespace GeometryHelper.UnitTest.Solid
         public void WhatTheConstructorRefuses_IsWhatThePlaneRefuses()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline3(0, Arch, BezierKnots));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline3(11, Arch, BezierKnots));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GeoSpline3(26, Arch, BezierKnots));
             Assert.Throws<ArgumentException>(() => GeoSpline3.FromControlPoints(4, Arch));
             Assert.Throws<ArgumentException>(() => new GeoSpline3(3, Arch, new double[] { 0, 0, 0, 0, 1, 1, 1 }));
             Assert.Throws<ArgumentException>(() => new GeoSpline3(3, Arch, new double[] { 0, 0, 0, 1, 1, 1, 1, 1 }));

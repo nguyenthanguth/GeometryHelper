@@ -44,7 +44,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Initializes a spline from its degree, control points and knots, and its weights if it is rational.
         /// </summary>
-        /// <param name="degree">The degree, from 1 to 10: 1 for straight pieces, 2 for the conics of an arc, 3 for the cubics that draughtsmen and AutoCAD use.</param>
+        /// <param name="degree">The degree, from 1 to 25: 1 for straight pieces, 2 for the conics of an arc, 3 for the cubics that draughtsmen and AutoCAD use.</param>
         /// <param name="controlPoints">The control points, at least degree + 1 and not all one point.</param>
         /// <param name="knots">The knots, controlPoints + degree + 1 of them, not decreasing; the first degree + 1 equal and the last degree + 1 equal and above them, and no inner knot repeated more than degree times.</param>
         /// <param name="weights">The weights, one for each control point and above nought, or null for all of them one, and no more than 1E12 to one apart (past that the length cannot be worked out right). All one is a plain B-spline, which <see cref="IsRational"/> says.</param>
@@ -54,7 +54,7 @@ namespace GeometryHelper.Geometry
         /// point it takes nine knots, such as 0, 0, 0, 0, 0.5, 1, 1, 1, 1.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the control points or the knots are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10, a weight is not a positive number, or the largest weight is more than 1E12 times the smallest.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 25, a weight is not a positive number, or the largest weight is more than 1E12 times the smallest.</exception>
         /// <exception cref="ArgumentException">Thrown when there are too few control points, a point or a knot is not a finite number, the knots are the wrong number or not clamped, or the control points are all one point.</exception>
         public GeoSpline2(
             int degree,
@@ -129,7 +129,7 @@ namespace GeometryHelper.Geometry
         /// Builds the clamped spline of a degree whose control points are given, with its knots as evenly spaced as they can
         /// be over [0, 1].
         /// </summary>
-        /// <param name="degree">The degree, from 1 to 10.</param>
+        /// <param name="degree">The degree, from 1 to 25.</param>
         /// <param name="controlPoints">The control points, at least degree + 1 and not all one point.</param>
         /// <returns>The spline, not rational.</returns>
         /// <remarks>
@@ -137,7 +137,7 @@ namespace GeometryHelper.Geometry
         /// curve take a quarter each of the parameter. With degree + 1 points it is the Bézier curve of the points.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the control points are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 25.</exception>
         /// <exception cref="ArgumentException">Thrown when there are too few control points, or they are all one point.</exception>
         public static GeoSpline2 FromControlPoints(int degree, IEnumerable<GeoPoint2> controlPoints)
         {
@@ -160,7 +160,7 @@ namespace GeometryHelper.Geometry
         /// left to settle its own direction at each end.
         /// </summary>
         /// <param name="fitPoints">The points to pass through, in order; at least degree + 1 once the ones that coincide are dropped.</param>
-        /// <param name="degree">The degree, from 1 to 10, and at most one less than the number of points; 3 if not given.</param>
+        /// <param name="degree">The degree, from 1 to 25, and at most one less than the number of points; 3 if not given.</param>
         /// <returns>The spline, not rational, over [0, 1].</returns>
         /// <remarks>
         /// <para>
@@ -178,7 +178,7 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 25.</exception>
         /// <exception cref="ArgumentException">Thrown when a point is not a finite point, or there are fewer than degree + 1 distinct points.</exception>
         public static GeoSpline2 Interpolate(IEnumerable<GeoPoint2> fitPoints, int degree = 3) =>
             Interpolate(fitPoints, degree, Tolerance.Global);
@@ -188,7 +188,7 @@ namespace GeometryHelper.Geometry
         /// points are one point.
         /// </summary>
         /// <param name="fitPoints">The points to pass through, in order; at least degree + 1 once the ones that coincide are dropped.</param>
-        /// <param name="degree">The degree, from 1 to 10, and at most one less than the number of points.</param>
+        /// <param name="degree">The degree, from 1 to 25, and at most one less than the number of points.</param>
         /// <param name="tolerance">The tolerance: a fit point within its point tolerance of the one kept before it is dropped.</param>
         /// <returns>The spline, not rational, over [0, 1].</returns>
         /// <remarks>
@@ -200,7 +200,7 @@ namespace GeometryHelper.Geometry
         /// asking, or give a tolerance that does.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 1 to 25.</exception>
         /// <exception cref="ArgumentException">Thrown when a point is not a finite point, or there are fewer than degree + 1 distinct points.</exception>
         public static GeoSpline2 Interpolate(IEnumerable<GeoPoint2> fitPoints, int degree, Tolerance tolerance)
         {
@@ -230,7 +230,7 @@ namespace GeometryHelper.Geometry
         /// <param name="fitPoints">The points to pass through, in order; at least two once the ones that coincide are dropped.</param>
         /// <param name="startTangent">The direction at the first point; its length does not matter, and it may not be nought.</param>
         /// <param name="endTangent">The direction at the last point; its length does not matter, and it may not be nought.</param>
-        /// <param name="degree">The degree, from 2 to 10, and at most one more than the number of points; 3 if not given.</param>
+        /// <param name="degree">The degree, from 2 to 25, and at most one more than the number of points; 3 if not given.</param>
         /// <returns>The spline, not rational, over [0, 1].</returns>
         /// <remarks>
         /// <para>
@@ -247,7 +247,7 @@ namespace GeometryHelper.Geometry
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 25.</exception>
         /// <exception cref="ArgumentException">Thrown when a point or a tangent is not finite, a tangent has no length, or there are too few distinct points for the degree.</exception>
         public static GeoSpline2 Interpolate(
             IEnumerable<GeoPoint2> fitPoints,
@@ -263,12 +263,12 @@ namespace GeometryHelper.Geometry
         /// <param name="fitPoints">The points to pass through, in order; at least two once the ones that coincide are dropped.</param>
         /// <param name="startTangent">The direction at the first point; its length does not matter, and it may not be nought.</param>
         /// <param name="endTangent">The direction at the last point; its length does not matter, and it may not be nought.</param>
-        /// <param name="degree">The degree, from 2 to 10, and at most one more than the number of points.</param>
+        /// <param name="degree">The degree, from 2 to 25, and at most one more than the number of points.</param>
         /// <param name="tolerance">The tolerance: a fit point within its point tolerance of the one kept before it is dropped.</param>
         /// <returns>The spline, not rational, over [0, 1].</returns>
         /// <remarks>See <see cref="Interpolate(IEnumerable{GeoPoint2}, GeoVector2, GeoVector2, int)"/> and, for fit points just above the tolerance, <see cref="Interpolate(IEnumerable{GeoPoint2}, int, Tolerance)"/>.</remarks>
         /// <exception cref="ArgumentNullException">Thrown when the points are null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the degree is outside 2 to 25.</exception>
         /// <exception cref="ArgumentException">Thrown when a point or a tangent is not finite, a tangent has no length, or there are too few distinct points for the degree.</exception>
         public static GeoSpline2 Interpolate(
             IEnumerable<GeoPoint2> fitPoints,
@@ -594,9 +594,9 @@ namespace GeometryHelper.Geometry
         /// Gets a derivative of the spline at a value of its knots, taken with respect to the knot value.
         /// </summary>
         /// <param name="knot">A value of the domain; one outside is taken as the nearer end. At a knot where the spline is not smooth the derivative after the knot is given, and at the end of the domain the one before it.</param>
-        /// <param name="order">Which derivative, from 1 (the velocity) to 10 (more than the degree gives nought for a spline that is not rational).</param>
+        /// <param name="order">Which derivative, from 1 (the velocity) to 25 (more than the degree gives nought for a spline that is not rational).</param>
         /// <returns>The derivative as a vector. Its length depends on the domain: the spline over [0, 2] runs half as fast as the same one over [0, 1].</returns>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when the knot value is not a finite number or the order is outside 1 to 10.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the knot value is not a finite number or the order is outside 1 to 25.</exception>
         public GeoVector2 GetDerivativeAtKnot(double knot, int order)
         {
             Guard.Finite(knot, nameof(knot), "A knot value has to be a finite number.");

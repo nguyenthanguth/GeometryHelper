@@ -622,8 +622,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// fit data go with the first change (a spline asked and left alone keeps them). Add asks "Specify a point on the
         /// spline &lt;exit&gt;:" and puts a knot in at the nearest point of the curve, the curve kept and a control point
         /// more; Delete asks "Specify control vertex to delete:" and takes the vertex picked out ("Not a control vertex." for
-        /// a pick that is none); Elevate order asks "Enter new order &lt;4&gt;:", the degree and one, up to 11 here (AutoCAD
-        /// takes 26); Move is Move vertex; Weight says "Spline is not rational. Will make it so." for one that is not and
+        /// a pick that is none); Elevate order asks "Enter new order &lt;4&gt;:", the degree and one, up to 26 as in AutoCAD;
+        /// Move is Move vertex; Weight says "Spline is not rational. Will make it so." for one that is not and
         /// asks "Enter new weight (current = 1.0000) or [Next/Previous/Select point/eXit] &lt;N&gt;:" of each vertex.
         /// </summary>
         private static IEnumerable<CadPrompt> SplineRefine(CadCommandContext c, string handle, List<CadGroupMark> marks)
@@ -760,10 +760,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        // The most order (the degree and one) the presenter raises a spline to. AutoCAD takes 26 and the library's DxfSpline.ElevateDegree
-        // does too, the control points to 1E-7 of AutoCAD's, but a spline of a degree above 10 is read by no GeoSpline3 (its Bernstein
-        // products and speed breaks stop there), so the presenter would not draw it.
-        private const int MostSplineOrder = 11;
+        // The most order (the degree and one) the presenter raises a spline to: AutoCAD's 26, as the library's DxfSpline.ElevateDegree
+        // does, the control points to 1E-7 of AutoCAD's; a spline of degree 25 is a GeoSpline3 like any other, so it is drawn.
+        private const int MostSplineOrder = 26;
 
         /// <summary>The index of the control vertex nearest a point within the pick aperture; -1 where there is none.</summary>
         private static int SplineNearestVertex(CadCommandContext c, DxfSpline spline, GeoPoint2 at)
