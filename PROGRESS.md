@@ -541,9 +541,13 @@ the ones wanted.
 - [x] Canvas menu follow-ups 2a (fu-misc): Remove Style Overrides (DIMOVERRIDE Clear), the spline items, Viewport Clip and
       Image Adjust wired; Recent Input in the drawing's units and "Selection set (N items)"; transparent 'SETVAR, 'OSNAP,
       'ORTHO, 'POLAR, 'GRID, 'SNAP
-- [ ] (cmds6, running: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, VPMAX; REFEDIT done by refedit) Canvas menu follow-ups 2b: Table Style apply, TABLEEXPORT, HATCHSETORIGIN, REFEDIT, VPMAX items (commands not built);
-      the right-click customization dialog and the Command/Edit menu boards (design first); Recent Input format checked in
-      the GUI (S)
+- [x] Canvas menu follow-ups 2b (cmds6): HATCHSETORIGIN, TABLEEXPORT (CSV), VPMAX and VPMIN as AutoCAD's console
+      shows them, wired into the canvas menus (REFEDIT by refedit)
+- [ ] Canvas menu follow-ups 2c: Table Style apply and "Save as New Table Style" / "Set As Table in Current Table Style"
+      (TableStyle.Template, not in DxfTableStyle; GUI); TABLEEXPORT's CSV layout checked against a file AutoCAD writes
+      (GUI dialog); HATCHSETORIGIN on user-defined hatches and with a pre-selection; VPMAX taken back on a layout change
+      or save, paper objects hidden while maximized, -VPORTS Toggle on Model; the right-click customization dialog and
+      the Command/Edit menu boards (design first); Recent Input format checked in the GUI (S)
 - [x] REFEDIT (refedit): REFEDIT/-REFEDIT with nested choice, Automatic/Prompt/Settings, REFSET Add/Remove, REFCLOSE
       Save/Discard, lock and XFADECTL fade, REFEDITNAME; the edit kept in a GH_REFEDIT XRECORD (undo, reopen); one undo
       step at close (accoreconsole lacks REFEDIT: prompts and messages from the documentation, not probed)
@@ -609,9 +613,9 @@ the ones wanted.
 - [x] Table editing follow-ups: Resize from the menu, snaps on table drags, row DYN field, up-flowing tables, TABLEINDICATOR on the machine, a typed whole number kept as a number
 - [x] Table editing follow-ups 2: decimals, 1e3, fractions and points typed as AutoCAD stores them, series in each source's format; AutoCAD offers a perpendicular back onto the base point (pinned)
 - [x] Table editing follow-ups 3: the in-place editor opening a value as AutoCAD's ForEditing text; RealText rounding through Fixed; thousands (%th) and feet-inches typed; text typed over a number refused
-- [ ] Table editing follow-ups 4: dates and times typed (needs a DXF sample with a date cell); RealText under LUNITS 3 %pr; band and size-field sides of up-flowing tables (needs a screenshot of AutoCAD); the table-drag-only perpendicular filter (S)
+- [ ] (tables5, running) Table editing follow-ups 4: dates and times typed (needs a DXF sample with a date cell); RealText under LUNITS 3 %pr; band and size-field sides of up-flowing tables (needs a screenshot of AutoCAD); the table-drag-only perpendicular filter (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
-- [ ] Tables follow-ups (the row growing live while a cell is typed: done 2026-11-12):
+- [ ] (tables5, running) Tables follow-ups (the row growing live while a cell is typed: done 2026-11-12):
       a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand

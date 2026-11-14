@@ -194,14 +194,14 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 255 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 259 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
-| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
+| view | ZOOM (Window, Extents, All, Previous, and a factor as `2` or `0.5x`; `nXP` through a viewport), PAN, -PAN, REGEN, PROPERTIES, OPTIONS, QSAVE, MSPACE, PSPACE, VPSCALE, VPCLIP (Polygonal, Delete), VPMAX, VPMIN, SCALELISTEDIT, -SCALELISTEDIT (?, Add, Delete, Reset, Exit), VIEW, -VIEW (?, Delete, Orthographic, Restore, Save, sEttings, Window), REDRAW, REDRAWALL, REGENALL, ISOLATEOBJECTS, HIDEOBJECTS, UNISOLATEOBJECTS, VPORTS, -VPORTS (Save, Restore, Delete, Join, SIngle, ?, 2, 3, 4, Toggle) |
 | edit | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR, EXPLODE, MATCHPROP, LAYER, UNDO, U, REDO |
 | draw | LINE, PLINE (Arc, Close, Halfwidth, Length, Undo, Width; arcs by Angle, CEnter, Direction, Radius, Second pt), CIRCLE (3P, 2P, Ttr, and Tan, Tan, Tan as 3P with `_tan` before each pick), ARC (three points; Start, Center, End, Angle or chord Length; Center first; Start, End, Angle, Direction or Radius; Enter to go on from the last line or arc; Ctrl held to draw the other way), RECTANG, ELLIPSE (Arc), POINT, XLINE, RAY, POLYGON, DONUT, TEXT (Justify, Style; Enter goes on below the last text), MTEXT and -MTEXT (Height, Justify, Line spacing, Rotation, Style, Width, Columns), REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style, Modify), MLEADER, MLEADERSTYLE, LEADER (Annotation: Tolerance, Copy, Block, None, Mtext; Format: Spline, STraight, Arrow, None; Undo), QLEADER, TOLERANCE, MVIEW, LAYOUT and -LAYOUT (Copy, Delete, New, Template, Rename, SAveas, Set, ?), DIVIDE (Block), MEASURE (Block) |
-| shapes and hatching | SOLID, REGION, HATCH, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
+| shapes and hatching | SOLID, REGION, HATCH, HATCHSETORIGIN, -HATCH (Properties, Select objects, draW boundary, remove Boundaries, Advanced: Boundary set, Retain boundary, Island detection, Style, Associativity, Gap tolerance, separate Hatches; DRaw order, Origin, ANnotative, hatch COlor, LAyer, Transparency, Undo), GRADIENT, HATCHEDIT, HATCHTOBACK, BOUNDARY, -BOUNDARY (Advanced options), SPLINEDIT (Fit data: Add, Close, Delete, Kink, Move, Purge, Tangents, toLerance; Close, Open, Join, Move vertex, Refine: Add, Delete, Elevate order, Move, Weight; rEverse, convert to Polyline, Undo), CLASSICINSERT |
 | multilines | MLINE (Justification, Scale, STyle; Close, Undo), MLEDIT (CC, OC, MC, CT, OT, MT, CJ, AV, DV, CS, CA, WA; Undo), MLSTYLE (?, Current, New, Modify, Rename, Delete, Load, Save), and the variables CMLJUST, CMLSCALE and CMLSTYLE (see [Multilines](#multilines)) |
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | -LAYER (Set, New, ON, OFF, TRansparency, Plot, Freeze, Thaw, LOck, Unlock, Description, stAte: ?, Save, Restore, Edit, Name, Delete, Import, EXport), LAYERSTATE, LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, LAYERP, LAYERPMODE, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
@@ -212,7 +212,7 @@ the left meets the block, the box from 150 to 180 at (150, 25).
 | annotation | DIMOVERRIDE (Clear overrides), TEXTALIGN (alIgnment, Options, Point), MLEADEREDIT (Remove leaders, Add leaders), MLEADERALIGN (Options), ATTIPEDIT, SPELL (All, Dictionary) (see [Annotation commands](#annotation-commands)) |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aliGn, Distribute, Layer, Undo), DIMLINEAR (Mtext, Text, Angle, Horizontal, Vertical, Rotated), DIMALIGNED (Mtext, Text, Angle), DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE, DIMCENTER |
-| tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
+| tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT, TABLEEXPORT |
 | selection | QSELECT, FILTER, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | OLE objects | INSERTOBJ (a bitmap or a PNG, as a static picture), and the variables OLEFRAME, OLEHIDE and OLEQUALITY (see OLE objects below) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), XOPEN, XBIND, -XBIND (Block, Dimstyle, LAyer, LType, Style), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), IMAGEADJUST, -IMAGEADJUST (Contrast, Fade, Brightness), XCLIP (ON, OFF, Clipdepth, Delete, generate Polyline, New boundary), TRANSPARENCY |
@@ -462,6 +462,15 @@ dialog again with the point as Origin X, Y and Specified origin on, Esc showing 
 `Value must be between 0 and 5000.`). A specified origin not stored
 as default lays the hatches of this HATCH alone, the current origin given back when it ends; a corner of the extents is kept
 either way, as -HATCH keeps it.
+
+HATCHSETORIGIN (Set Origin of a hatch's right-click menu) asks `Select hatch objects:` (hatches selected before it are
+taken, anything else picked is left out, and a hatch on a locked layer is passed over with `1 was on a locked layer.`), then
+`Select new hatch origin:`, and lays the pattern of every hatch from the point, one undo step, nothing said. A hatch keeps
+no origin of its own: it is in the base points of its pattern lines, so the command moves each line's base point by what
+the origin moves, found from the pattern the presenter holds (ANSI32 at 30 degrees and scale 2 set to (10, 5) and then to
+(20, 20) has its first line based at (20, 20), not at (30, 25)). A pattern the presenter does not have is taken to have been
+laid from (0, 0). A solid fill and a gradient have no lines and are left as they are; lines made by the user follow the
+hatch's spacing alone in the library, so a user-defined hatch is left as it is too, where AutoCAD moves its base point.
 
 draW boundary asks `Retain polyline boundary? [Yes/No] <N>:`, `Specify start point:`, `Specify next point or [Arc/Length/Undo]:`
 (`[Arc/Close/Length/Undo]` from the third point) and `Specify start point for new boundary or <Accept>:`, and makes a loop of
@@ -1248,6 +1257,18 @@ least; a row is as high as its tallest cell needs and is never made lower. In Au
 plates both sides" in ghsimplex in a column 30 wide takes six lines and makes its row 45.43 high, as AutoCAD 2021 laid it
 out, and the row keeps 45.43 when the words are made short again. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
+
+TABLEEXPORT (Export of a table's right-click menu) asks `Select a table:` (asked again, `Object selected is not a table.`,
+for any other object), then the file, by the window's Export Data dialog of Comma Delimited (*.csv) or, with FILEDIA 0 or
+no window, `Enter file name <file>:`, and writes the table as comma separated values: a line for each row ended by a
+carriage return and a line feed, a field for each column holding the text of the cell as it shows, its formatting codes
+taken off (`{\fArial|b1;Bold} plain` is `Bold plain`, `\S1/2;` is `1/2`), the fields of a block of merged cells but the
+first empty, a field with a comma, a double quote or a line break put in double quotes and its quotes doubled. A table of
+two rows holding `Name`, `Qty`, `Nut, M8` and `12` gives `Name,Qty` and `"Nut, M8",12`. The file is written in the
+system's code page, `.csv` added to a name with none; a file that cannot be written says `Can't  open file.` (two spaces,
+as AutoCAD 2021 spells it), and nothing is said when it is written. The drawing is not changed, so there is no undo step.
+The table menu's Table Style items stay grey: Save as New Table Style and Set As Table in Current Table Style keep a
+starting table in the style, which the library's table style does not hold.
 
 While cells are selected the table is framed by its column letters (A, B ... Z, AA) and row numbers, those of the
 selection on amber, as AutoCAD 2021 draws them with TABLEINDICATOR 1; TABLEINDICATOR 0 hides them, and the variable is
@@ -2351,6 +2372,23 @@ the twist (`ToView` and `FromView`, AutoCAD's TRANS from the world to the view),
 the paper, where AutoCAD's console puts it. Entered, the canvas's view in model units turns with it (`CadView.Twist`):
 picks, snaps and boxes (taken as turned polygons), the crosshair and the UCS icon follow the turn, PAN moves the view by
 the model distance given, and ZOOM Window fits the box as the view turns it.
+
+### Maximizing a viewport
+
+VPMAX and VPMIN, the Maximize Viewport of a viewport's right-click menu, work as AutoCAD 2021's console runs them. In a
+layout VPMAX asks `Select a viewport to maximize:` (anything but a viewport that can be worked through says `Invalid
+selection, please select a single viewport.` and asks again, Enter too), or asks nothing where a viewport is worked
+through, which is the one maximized; a second VPMAX says `A viewport is currently maximized.`. The viewport takes the
+canvas, ten pixels in from its edges, at the scale it had, and shows the part of model space it showed under the middle of
+that area; the other viewports of the layout that were on go off, and model space is worked through the viewport, so ZOOM
+and PAN change the view of the maximized one. A viewport 200 by 100 at 1:10 over a sheet shown 400 by 240 becomes about 392
+by 232 at 1:10. A viewport whose display is locked is maximized too. VPMIN puts the viewport back as it was, its frame and
+its view (a zoom or a pan made while it was maximized is given up, as in AutoCAD), turns the others on and goes back to the
+paper; with none maximized it says `No viewport is currently maximized.`. On the Model tab both are `-VPORTS Toggle`.
+Each is one undo step, and an undo of VPMAX puts the viewport back (`CadDocument.IsViewportMaximized` and
+`MaximizedViewportHandle` say whether one is maximized). The sheet's other objects stay drawn behind the viewport, and a
+drawing saved while a viewport is maximized is saved so; AutoCAD takes the maximizing back when the layout is changed,
+which the presenter does not.
 
 ### Clipping a viewport
 

@@ -89,7 +89,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         items.Add(OnSelection("Hatch Edit...", "HATCHEDIT"));
                     }
 
-                    items.Add(NotBuilt("Set Origin"));
+                    items.Add(OnSelection("Set Origin", "HATCHSETORIGIN"));
 
                     if (one)
                     {
@@ -318,12 +318,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The viewport menus: Display Viewport Objects and Display Locked set On and Display locked of the viewports selected,
         /// as Properties does; Remove Viewport Overrides for All Layers takes every layer's overrides out of them, as the Layer
-        /// manager does; Viewport Clip runs VPCLIP on the viewport selected; Maximize Viewport and Shade plot grey.
+        /// manager does; Viewport Clip runs VPCLIP and Maximize Viewport VPMAX on the viewport selected; Shade plot grey.
         /// </summary>
         private List<CadMenuItemViewModel> ViewportMenu(IReadOnlyList<string> handles) =>
             new List<CadMenuItemViewModel>
             {
-                NotBuilt("Maximize Viewport", 'M'),
+                OnSelection("Maximize Viewport", "VPMAX", 'M'),
                 OnSelection("Viewport Clip", "VPCLIP", 'V'),
                 Submenu(
                     "Display Viewport Objects",
@@ -364,7 +364,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The table menu of AutoCAD's table module, for a whole table selected: Table Style grey; Size Columns Equally and Size
         /// Rows Equally give every column or row the mean, one undo step; Remove All Property Overrides takes what every cell
-        /// holds over the table style away; Export grey; Table Indicator Color as TABLEINDICATOR's colour.
+        /// holds over the table style away; Export runs TABLEEXPORT on the table; Table Indicator Color as TABLEINDICATOR's colour.
         /// </summary>
         private List<CadMenuItemViewModel> TableMenu(string handle) =>
             new List<CadMenuItemViewModel>
@@ -378,7 +378,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new CadMenuItemViewModel("Remove All Property Overrides", () =>
                     TableEdit(d => CadTableEditor.RemoveOverrides(d, handle, WholeTable(d, handle)))
                 ),
-                NotBuilt("Export..."),
+                OnSelection("Export...", "TABLEEXPORT"),
                 new CadMenuItemViewModel("Table Indicator Color...", PickTableIndicatorColor),
             };
 
