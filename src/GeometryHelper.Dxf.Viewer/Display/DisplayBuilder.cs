@@ -963,8 +963,16 @@ namespace GeometryHelper.Dxf.Viewer
                 return new DisplayStyle(rgb, weight, dashes);
             }
 
-            // A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
-            // entities holds a few hundred, not four million.
+            return PlainStyleOf(rgb, weight);
+        }
+
+        /// <summary>
+        /// A style of no dashes is one object for each colour and weight, not one for each item: a drawing of a million
+        /// entities holds a few hundred, not four million. The styles the hatches and MTEXTs make of their own, a gradient's
+        /// middle colour, the lines of a pattern and the runs of an MTEXT in a colour, are the same objects.
+        /// </summary>
+        private DisplayStyle PlainStyleOf(int rgb, double weight)
+        {
             var key = new PlainStyle(rgb, weight);
 
             if (!_plainStyles.TryGetValue(key, out DisplayStyle style))
@@ -2972,9 +2980,7 @@ namespace GeometryHelper.Dxf.Viewer
                     mid = style.Rgb;
                 }
 
-                list.Add(
-                    new DisplayFill2(rings, false, new DisplayStyle(mid, style.LineWeight, null), handle, layerName)
-                );
+                list.Add(new DisplayFill2(rings, false, PlainStyleOf(mid, style.LineWeight), handle, layerName));
                 return;
             }
 
@@ -2990,7 +2996,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // The pattern's own dashes are in its lines; the hatch's linetype is not laid over them, as AutoCAD lays none.
                 list.Add(
-                    new DisplaySegments2(lines, new DisplayStyle(style.Rgb, style.LineWeight, null), handle, layerName)
+                    new DisplaySegments2(lines, PlainStyleOf(style.Rgb, style.LineWeight), handle, layerName)
                     {
                         Rings = rings,
                     }
