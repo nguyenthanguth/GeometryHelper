@@ -1530,7 +1530,21 @@ namespace GeometryHelper.Dxf
         /// <summary>The end of a line of bytes that stop at a point, as <see cref="LineEnd(int, out int)"/> finds it.</summary>
         private static int LineEnd(byte[] bytes, int at, int length, out int next)
         {
-            int feed = Array.IndexOf(bytes, (byte)'\n', at, length - at);
+            // A line of a record is a code, a number or a name, a few bytes: a plain loop over the first of them finds its end
+            // before the vectorised search is set up, which a long line (a text, a block of binary) is left to.
+            int feed = at;
+            int stop = length - at > 24 ? at + 24 : length;
+
+            while (feed < stop && bytes[feed] != (byte)'\n')
+            {
+                feed++;
+            }
+
+            if (feed == stop)
+            {
+                feed = stop == length ? -1 : Array.IndexOf(bytes, (byte)'\n', stop, length - stop);
+            }
+
             int end = feed < 0 ? length : feed;
             next = feed < 0 ? length : feed + 1;
             return end > at && bytes[end - 1] == '\r' ? end - 1 : end;

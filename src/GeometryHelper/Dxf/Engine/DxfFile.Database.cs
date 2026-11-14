@@ -4910,40 +4910,106 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Whether an INSERT is an array, a MINSERT: its first subclass marker other than AcDbEntity AcDbMInsertBlock, or its
-        /// columns (70) or rows (71) above 1, as <see cref="ValueOf(DxfItem, int)"/> reads them, its groups read once.
+        /// columns (70) or rows (71) above 1, as <see cref="ValueOf(DxfItem, int)"/> reads them: walked in the bytes of its record,
+        /// with no list of its groups made and no group made a string, where each INSERT a drawing makes was parsed whole to be told.
         /// </summary>
         internal bool IsArrayInsert(DxfItem item)
         {
-            Rec head = HeadOf(item);
-            Parsed parsed = ParsedOf(head);
-            List<Pair> pairs = parsed.Pairs;
-            int body = parsed.Body;
+            Rec record = HeadOf(item);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+            bool braced = false;
+            bool opened = false;
+            bool bodyFound = false;
 
-            if (body >= 0 && Text(head, pairs[body]).Trim() == "AcDbMInsertBlock")
+            // Where the first 70 and the first 71 of the own part stand, their value start and end, or -1: what was met before
+            // the marker of the own part is forgotten where the marker comes.
+            int columnsStart = -1;
+            int columnsEnd = -1;
+            int rowsStart = -1;
+            int rowsEnd = -1;
+
+            while (at < end)
             {
-                return true;
-            }
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
 
-            foreach (int code in new[] { 70, 71 })
-            {
-                int at = OwnIndexOf(head, pairs, parsed.Data, body, code);
-
-                if (
-                    at >= 0
-                    && int.TryParse(
-                        Text(head, pairs[at]).Trim(),
-                        NumberStyles.Integer,
-                        CultureInfo.InvariantCulture,
-                        out int count
-                    )
-                    && count > 1
-                )
+                // The group 0 that names the record is the first.
+                if (!opened)
                 {
-                    return true;
+                    opened = true;
+                    continue;
+                }
+
+                if (code == 1001)
+                {
+                    break;
+                }
+
+                if (code == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                if (code == 100)
+                {
+                    if (!bodyFound && !ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbEntity"))
+                    {
+                        if (ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbMInsertBlock"))
+                        {
+                            return true;
+                        }
+
+                        bodyFound = true;
+                        columnsStart = -1;
+                        rowsStart = -1;
+                    }
+                }
+                else if (code == 70 && columnsStart < 0)
+                {
+                    columnsStart = valueStart;
+                    columnsEnd = valueEnd;
+                }
+                else if (code == 71 && rowsStart < 0)
+                {
+                    rowsStart = valueStart;
+                    rowsEnd = valueEnd;
                 }
             }
 
-            return false;
+            return Counted(record, columnsStart, columnsEnd) > 1 || Counted(record, rowsStart, rowsEnd) > 1;
+        }
+
+        /// <summary>The whole number of a group as <c>int.TryParse</c> reads its trimmed text; nought where there is no group or it is not one.</summary>
+        private int Counted(Rec record, int start, int end)
+        {
+            if (start < 0)
+            {
+                return 0;
+            }
+
+            if (DxfFastNumber.TryWhole(record.Bytes, start, end, out int whole))
+            {
+                return whole;
+            }
+
+            return int.TryParse(
+                Text(record, start, end).Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out whole
+            )
+                ? whole
+                : 0;
         }
 
         /// <summary>
@@ -5636,6 +5702,196 @@ namespace GeometryHelper.Dxf
                 ? whole
                 : 0;
         }
+
+        /// <summary>
+        /// The groups of an INSERT a drawing is made from, each the first of its code in the own part of the record, as
+        /// <see cref="ValueOf(DxfItem, int)"/> finds it and the properties of <see cref="DxfBlockReference"/> read it: numbers as
+        /// <c>GetDouble</c> reads them (<see cref="Have"/> says which were read, one that is not a finite number being none), the
+        /// name of the block as written, and nought for what is not there.
+        /// </summary>
+        internal struct InsertGroups
+        {
+            internal const int HasX = 1;
+            internal const int HasY = 2;
+            internal const int HasZ = 4;
+            internal const int HasScaleX = 8;
+            internal const int HasScaleY = 16;
+            internal const int HasScaleZ = 32;
+            internal const int HasDegrees = 64;
+            internal const int HasNormalX = 128;
+            internal const int HasNormalY = 256;
+            internal const int HasNormalZ = 512;
+
+            internal int Have;
+            internal double X,
+                Y,
+                Z,
+                ScaleX,
+                ScaleY,
+                ScaleZ,
+                Degrees,
+                NormalX,
+                NormalY,
+                NormalZ;
+            internal string Name;
+        }
+
+        /// <summary>
+        /// Reads the groups an INSERT is drawn from (<see cref="InsertGroups"/>) in one pass over the bytes of its record, for an
+        /// INSERT in a drawing that has no extension dictionary anywhere in its record (which may hold annotative contexts that
+        /// put the block elsewhere or turn it) and is no copy that carries contexts or a name of its own: false, with none read,
+        /// for any other, which the properties of the INSERT read with their own care. The own part is walked as
+        /// <see cref="TryTextGroups"/> walks that of a TEXT; the groups of the extended data are left, but for the look for an
+        /// extension dictionary.
+        /// </summary>
+        internal bool TryInsertGroups(DxfItem item, out InsertGroups groups)
+        {
+            groups = default(InsertGroups);
+
+            if (_detached || item.CopiedContexts != null || item.OriginBlock != null)
+            {
+                return false;
+            }
+
+            Rec record = RecordAt(item, 0);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+            int[] slots = _insertSlots ?? (_insertSlots = new int[2 * InsertSlots]);
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                slots[i] = -1;
+            }
+
+            bool braced = false;
+            bool opened = false;
+            bool bodyFound = false;
+            bool inData = false;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
+
+                // The group 0 that names the record is the first.
+                if (!opened)
+                {
+                    opened = true;
+                    continue;
+                }
+
+                // An extension dictionary stands in the groups of an application, anywhere in the record.
+                if (code == 102 && ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "{ACAD_XDICTIONARY"))
+                {
+                    return false;
+                }
+
+                if (inData)
+                {
+                    continue;
+                }
+
+                if (code == 1001)
+                {
+                    inData = true;
+                    continue;
+                }
+
+                if (code == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced)
+                {
+                    continue;
+                }
+
+                int slot;
+
+                switch (code)
+                {
+                    case 2:
+                        slot = 0;
+                        break;
+                    case 10:
+                        slot = 1;
+                        break;
+                    case 20:
+                        slot = 2;
+                        break;
+                    case 30:
+                        slot = 3;
+                        break;
+                    case 41:
+                        slot = 4;
+                        break;
+                    case 42:
+                        slot = 5;
+                        break;
+                    case 43:
+                        slot = 6;
+                        break;
+                    case 50:
+                        slot = 7;
+                        break;
+                    case 210:
+                        slot = 8;
+                        break;
+                    case 220:
+                        slot = 9;
+                        break;
+                    case 230:
+                        slot = 10;
+                        break;
+                    case 100:
+                        if (!bodyFound && !ValueIs(record, new Pair(code, 0, valueStart, valueEnd, next), "AcDbEntity"))
+                        {
+                            bodyFound = true;
+
+                            for (int i = 0; i < slots.Length; i++)
+                            {
+                                slots[i] = -1;
+                            }
+                        }
+
+                        continue;
+                    default:
+                        continue;
+                }
+
+                if (slots[2 * slot] < 0)
+                {
+                    slots[2 * slot] = valueStart;
+                    slots[2 * slot + 1] = valueEnd;
+                }
+            }
+
+            InsertGroups read = default(InsertGroups);
+            read.Name = slots[0] < 0 ? null : Text(record, slots[0], slots[1]);
+            NumberAt(record, slots, 1, InsertGroups.HasX, ref read.Have, ref read.X);
+            NumberAt(record, slots, 2, InsertGroups.HasY, ref read.Have, ref read.Y);
+            NumberAt(record, slots, 3, InsertGroups.HasZ, ref read.Have, ref read.Z);
+            NumberAt(record, slots, 4, InsertGroups.HasScaleX, ref read.Have, ref read.ScaleX);
+            NumberAt(record, slots, 5, InsertGroups.HasScaleY, ref read.Have, ref read.ScaleY);
+            NumberAt(record, slots, 6, InsertGroups.HasScaleZ, ref read.Have, ref read.ScaleZ);
+            NumberAt(record, slots, 7, InsertGroups.HasDegrees, ref read.Have, ref read.Degrees);
+            NumberAt(record, slots, 8, InsertGroups.HasNormalX, ref read.Have, ref read.NormalX);
+            NumberAt(record, slots, 9, InsertGroups.HasNormalY, ref read.Have, ref read.NormalY);
+            NumberAt(record, slots, 10, InsertGroups.HasNormalZ, ref read.Have, ref read.NormalZ);
+            groups = read;
+            return true;
+        }
+
+        /// <summary>The number of groups <see cref="TryInsertGroups"/> keeps, in its slots: the name, the point, the scale factors, the angle and the normal.</summary>
+        private const int InsertSlots = 11;
+
+        [ThreadStatic]
+        private static int[] _insertSlots;
 
         /// <summary>
         /// Replaces every group of some codes in the own part of one record of an entity by the groups given, put where the

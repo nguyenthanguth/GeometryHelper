@@ -103,6 +103,28 @@ not for each INSERT of it. Nothing is kept: a text or a polyline edited after it
 MB of garbage where there were 277; texts alone 245 ms where 360, 100 000 INSERTs of a block of 20 entities 1 175 ms where 1 591, and the
 drawing of 1 000 000 entities 2.8 s where 3.4 (.NET 8) and 4.3 where 5.0 (.NET Framework). The shapes an entity keeps stay: the same
 objects each time they are asked for. No public signature changed.
+**CHANGED.** A large drawing displays faster again, in what the display asks of an INSERT and of a closed polyline with a bulge, with the display
+lists, the saved bytes and the pixels as they were (167 AutoCAD samples and nine generated drawings, item for item and field for field under
+.NET 8 and .NET Framework 4.8, the pixels of 171 of them in three views, plain, selected, highlighted and with a hover). An INSERT read its
+block (`BlockTableRecord`), its insertion point (`Position`) and its placing (`BlockTransform`) one property at a time, each looking again
+for the normal, the scale factors and the angle among the groups of its record, the placing making two 4 by 4 matrices: 1.7 µs and 2.5 KB an
+INSERT, 16 % of a drawing of INSERTs alone. They are read in one pass over the bytes of the record (`DxfBlockReference.TryReadForDisplay`),
+0.6 µs and the one string of the name of its block, for an INSERT whose record holds no extension dictionary, so no annotative context and no clip (those, a copy that
+carries contexts and an INSERT given its block in code are read property by property as before), with the arithmetic of the properties
+step for step, so that the point, the matrix and the block are the same to the bit; an INSERT with no ATTRIB after it no longer makes the
+frame its attributes are drawn in; whether an INSERT is an array (a MINSERT, asked of every INSERT when its object is made) is told by a
+walk of the bytes and not by the groups made a list; the block a run of INSERTs places, and the layer a run of entities is on, are found
+again by the very object asked for last, not by a dictionary each time. The loop a closed polyline with a bulge is made (`GeoPolygonArc3`)
+and its area are built with the arrays they keep and the one chain the plane is found from where they were made of lists, a chain and a
+copy (0.61 µs and 2.2 KB a loop with its area, 0.37 µs and 0.6 KB now, .NET 8), every vertex, bulge, normal and area the same to the bit,
+the same exceptions with the same words (300 000 generated loops, lists, arrays and sequences, vertices doubled, a last one on the first,
+bulges out of the plane or not numbers, against the long way, and the 34 results of the benchmark suite match their approved signatures); and
+the line end of a record is found by a short loop before the vectorised search is set up for a line of three bytes. Cold display of the
+drawing of 100 000 entities (open not counted) 217 ms where it took 247 under .NET 8, 345 where 449 under .NET Framework 4.8, a layer
+switched on 45 ms where 52 and 78 where 89, a REGEN 109 where 124 and 173 where 221, 121 MB of garbage where there were 155; 100 000 INSERTs
+of a block of 20 entities 858 ms where 1 115 (.NET 8) and 1 494 where 2 057 (.NET Framework), a layer switched on 316 where 441 and 550 where
+758, 424 MB of garbage where 640; the drawing of 1 000 000 entities 2.1 s where 2.3 under .NET 8 and 3.8 where 4.4 under .NET Framework,
+1 155 MB of garbage where 1 492 (a MOVE and its display, 250 ms, is as it was within the noise). No public signature changed.
 
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).

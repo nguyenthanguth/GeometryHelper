@@ -402,17 +402,21 @@ namespace GeometryHelper.Geometry
         /// do. The Z through (0, 0, 2), (10, 0, 2), (0, 10, 2), (10, 10, 2) lies in z = 2.
         /// </para>
         /// </remarks>
-        public bool TryGetPlane(out GeoPlane3 plane, Tolerance tolerance)
+        public bool TryGetPlane(out GeoPlane3 plane, Tolerance tolerance) =>
+            TryGetPlane(_vertices, out plane, tolerance);
+
+        /// <summary>The plane of some vertices as <see cref="TryGetPlane(out GeoPlane3, Tolerance)"/> reads it from those of a chain, for a loop that holds its vertices in an array and would otherwise make a chain of them to ask.</summary>
+        internal static bool TryGetPlane(GeoPoint3[] vertices, out GeoPlane3 plane, Tolerance tolerance)
         {
             plane = default;
 
-            GeoVector3 normal = Newell.GetAreaVector(_vertices);
+            GeoVector3 normal = Newell.GetAreaVector(vertices);
 
             if (normal.TryGetNormal(out GeoVector3 unitNormal, tolerance))
             {
-                GeoPlane3 candidate = new GeoPlane3(_vertices[0], unitNormal);
+                GeoPlane3 candidate = new GeoPlane3(vertices[0], unitNormal);
 
-                if (candidate.ContainsAll(_vertices, tolerance))
+                if (candidate.ContainsAll(vertices, tolerance))
                 {
                     plane = candidate;
                     return true;
@@ -421,7 +425,10 @@ namespace GeometryHelper.Geometry
 
             // A chain whose closing loop cancels its own area has no normal from it, and one that nearly cancels
             // has a poor one; the three vertices spanning the chain most widely give the plane then.
-            if (TryGetSpanningPlane(tolerance, out GeoPlane3 spanned) && spanned.ContainsAll(_vertices, tolerance))
+            if (
+                TryGetSpanningPlane(vertices, tolerance, out GeoPlane3 spanned)
+                && spanned.ContainsAll(vertices, tolerance)
+            )
             {
                 plane = spanned;
                 return true;
@@ -434,16 +441,16 @@ namespace GeometryHelper.Geometry
         /// The plane through the first vertex, the vertex farthest from it, and the vertex farthest from the line
         /// between those two; none when the vertices all lie within the point tolerance of one line.
         /// </summary>
-        private bool TryGetSpanningPlane(Tolerance tolerance, out GeoPlane3 plane)
+        private static bool TryGetSpanningPlane(GeoPoint3[] vertices, Tolerance tolerance, out GeoPlane3 plane)
         {
             plane = default;
-            GeoPoint3 first = _vertices[0];
+            GeoPoint3 first = vertices[0];
             int far = 0;
             double farthest = 0.0;
 
-            for (int i = 1; i < _vertices.Length; i++)
+            for (int i = 1; i < vertices.Length; i++)
             {
-                double distance = first.DistanceTo(_vertices[i]);
+                double distance = first.DistanceTo(vertices[i]);
 
                 if (distance > farthest)
                 {
@@ -457,13 +464,13 @@ namespace GeometryHelper.Geometry
                 return false;
             }
 
-            GeoVector3 along = first.GetVectorTo(_vertices[far]).Divide(farthest);
+            GeoVector3 along = first.GetVectorTo(vertices[far]).Divide(farthest);
             GeoVector3 across = GeoVector3.Zero;
             double widest = 0.0;
 
-            for (int i = 1; i < _vertices.Length; i++)
+            for (int i = 1; i < vertices.Length; i++)
             {
-                GeoVector3 offset = first.GetVectorTo(_vertices[i]);
+                GeoVector3 offset = first.GetVectorTo(vertices[i]);
                 GeoVector3 square = offset.Subtract(along.Multiply(offset.DotProduct(along)));
                 double width = square.Length;
 

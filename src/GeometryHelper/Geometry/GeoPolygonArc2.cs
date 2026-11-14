@@ -160,6 +160,28 @@ namespace GeometryHelper.Geometry
         internal static GeoPolygonArc2 FromValidated(GeoPoint2[] vertices, double[] bulges) =>
             new GeoPolygonArc2(vertices, bulges, trusted: true);
 
+        /// <summary>
+        /// Builds a loop from the start and bulge of each of its edges as <see cref="FromEdges"/> does, for starts held in
+        /// arrays: the arrays are kept where no start stands within the tolerance of the one before it, the last of the first,
+        /// which is where the constructor would keep every start and copy them all.
+        /// </summary>
+        internal static GeoPolygonArc2 FromEdgesOf(GeoPoint2[] starts, double[] bulges, Tolerance tolerance)
+        {
+            bool apart = starts.Length >= 3 && bulges.Length == starts.Length;
+
+            for (int i = 1; i < starts.Length && apart; i++)
+            {
+                apart = !starts[i - 1].IsEqualTo(starts[i], tolerance);
+            }
+
+            if (apart && !starts[starts.Length - 1].IsEqualTo(starts[0], tolerance))
+            {
+                return new GeoPolygonArc2(starts, bulges, trusted: true);
+            }
+
+            return FromEdges(starts, bulges, tolerance);
+        }
+
         private GeoPolygonArc2(GeoPoint2[] vertices, double[] bulges, bool trusted)
         {
             _vertices = vertices;
