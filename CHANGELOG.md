@@ -74,6 +74,23 @@ interactively does (four lines, a line and an arc, a POLYLINE and a line, two PO
 objects converted to 1 polyline` for a POLYLINE and a line), where it made a POLYLINE at PLINETYPE 0 on a guess. A line joined
 into a POLYLINE picked first still leaves a POLYLINE at 0. BOUNDARY at PLINETYPE 0 is still a guess: AutoCAD's console stops
 -BOUNDARY with no word.
+**FIXED.** A solid fill with a hole, a MTEXT with colours in it and a few other things were saved as R12 (`DxfDatabase.Save` with
+"AC1009") unlike AutoCAD 2021's own R12 (found by probing its console, `Database.DxfIn` of side databases then `DxfOut` at R12; 398
+code-built cases of fills, patterns and MTEXT runs, 328 of them equal AutoCAD's record for record where 270 did of the 398):
+a piece of a fill beside a hole is cut at the corners of its own two sides only, so that a circle of 25 in one of 50 is 136 SOLIDs
+and 134 LINEs and one of 10 in 30 142 and 142 (they were 136 and 132, and 216 and 214), a quadrilateral hole in a rectangle 12 or 14
+SOLIDs (16), a chevron-shaped hole 9 (13); which of the two sides that meet at a hole's highest or lowest corner are drawn, and
+whether the piece beyond the longer is cut at the level where the shorter ends, follows how AutoCAD walks the loop (the side on the
+right first leaves them out and cuts, the side on the left first draws them, the eight ways round one hole giving 12, 12, 14, 14,
+14, 14, 16 and 16 SOLIDs, each as AutoCAD's); a convex tip of an outer loop still cuts the slanted pieces at its level, and a tip
+inside a hole no longer does. A fill on the normal (0, 0, -1) has its SOLIDs written on the extrusion (0, 0, 1), as AutoCAD writes
+it. The dots of a pattern that fall on the far end of a line's stretch (DOTS on a rectangle 60 by 30: the dots at x = 60) are left
+out. A colour in an MTEXT (`\C3;`, `\c16711680;` read with its lowest byte the red, the index nearest it) gives the TEXT of its run
+the colour index as its group 62, as it does the LINEs of the run's stack bar and of letters struck through; the same colour twice in
+a row is one run. Still different from AutoCAD: the gradients' own display meshes (152 SOLIDs for a CYLINDER and 332 for a SPHERICAL
+one on a rectangle 100 by 60, which are the triangles of a mesh whose corners stand on a 24 by 24 grid of the rectangle and on the
+thirds between), the sides at the notch of a star or a W when the loop is walked from some of its corners, and the dashes of a
+pattern at 45 and 135 degrees that end exactly on an edge (AutoCAD writes a LINE of no length at some of them).
 
 **NEW.** A date or a time typed in a table's cell in the presenter (`CadTableEditor.SetText`, TABLEDIT and the editor of a cell) is
 a date as AutoCAD 2021 reads it, where it stayed text. In the order of the culture of the machine: 1/1/2020 is a date of the kind 8

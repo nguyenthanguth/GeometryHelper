@@ -2273,10 +2273,39 @@ namespace GeometryHelper.Dxf
         /// <param name="target">The drawing of R12 the TEXTs go to, or none.</param>
         /// <param name="strikes">
         /// Not null where the MTEXT is saved as R12: the letters struck through (<c>\K</c>) are then no <c>%%K</c> in the TEXTs, and
-        /// the LINEs AutoCAD 2021 draws through them, which it keeps outside the block of the TEXTs, are added to it.
+        /// the LINEs AutoCAD 2021 draws through them, which it keeps outside the block of the TEXTs, are added to it. The TEXT of a run
+        /// that a colour code gave a colour (<c>\C3;</c>, <c>\c255;</c>) then has the colour index nearest it as its group 62, as have the
+        /// LINEs of its stack's bar and of the letters struck through.
         /// </param>
         internal List<DxfEntity> R12Texts(DxfFile target, List<DxfEntity> strikes = null)
         {
+            // Saved as R12, the colour a run is given by a code (\C, \c) is the colour index of its TEXT and of the LINEs drawn with it.
+            DxfEntity Tinted(DxfEntity piece, int color)
+            {
+                if (strikes != null && color >= 0 && color < 256)
+                {
+                    piece.ColorIndex = color;
+                }
+
+                return piece;
+            }
+
+            // A line through struck letters is of the colour of the run it begins in.
+            int StrikeColor(DxfMTextLayout.Line placed, DxfMTextLayout.Strike strike)
+            {
+                int color = -1;
+
+                foreach (DxfMTextLayout.Run run in placed.Runs)
+                {
+                    if (run.Pen <= strike.Pen + 1E-9)
+                    {
+                        color = run.Color;
+                    }
+                }
+
+                return color;
+            }
+
             DxfMTextLayout layout = Layout(true, strikes != null);
             List<string> lines = layout == null ? Paragraphs() : null;
             int count = layout == null ? lines.Count : layout.Lines.Count;
@@ -2325,7 +2354,7 @@ namespace GeometryHelper.Dxf
 
             // A TEXT of the MTEXT's look: the words at a place of its plane, so high, at a width factor, held at the left
             // of its baseline or, as an MTEXT with no fonts is written, at the column it is held at.
-            DxfEntity TextAt(GeoPoint3 at, double size, string words, double stretch, bool held)
+            DxfEntity TextAt(GeoPoint3 at, double size, string words, double stretch, bool held, int color = -1)
             {
                 var own = new List<KeyValuePair<int, string>>
                 {
@@ -2360,7 +2389,7 @@ namespace GeometryHelper.Dxf
                 own.Add(G(220, Numbers.Exact(normal.Y + 0.0)));
                 own.Add(G(230, Numbers.Exact(normal.Z + 0.0)));
                 own.Add(G(100, "AcDbText"));
-                return Of(Item.File.TextOf(Item, own));
+                return Tinted(Of(Item.File.TextOf(Item, own)), color);
             }
 
             // A point of the plane of the MTEXT, so far along its direction and so far up from where it is held.
@@ -2401,7 +2430,8 @@ namespace GeometryHelper.Dxf
                             run.Height,
                             stack.Prefix + stack.Numerator,
                             run.Width,
-                            false
+                            false,
+                            run.Color
                         )
                     );
 
@@ -2419,7 +2449,7 @@ namespace GeometryHelper.Dxf
                             G(21, Numbers.Exact(to.Y + 0.0)),
                             G(31, Numbers.Exact(to.Z + 0.0)),
                         };
-                        texts.Add(Of(Item.File.TextOf(Item, bar, "LINE")));
+                        texts.Add(Tinted(Of(Item.File.TextOf(Item, bar, "LINE")), run.Color));
                     }
 
                     texts.Add(
@@ -2428,7 +2458,8 @@ namespace GeometryHelper.Dxf
                             run.Height,
                             stack.Prefix + stack.Denominator,
                             run.Width,
-                            false
+                            false,
+                            run.Color
                         )
                     );
                     continue;
@@ -2472,7 +2503,8 @@ namespace GeometryHelper.Dxf
                         run == null ? height : run.Height,
                         words,
                         run == null ? 1.0 : run.Width,
-                        column != 0 && layout == null
+                        column != 0 && layout == null,
+                        run == null ? -1 : run.Color
                     )
                 );
             }
@@ -2500,6 +2532,7 @@ namespace GeometryHelper.Dxf
                             G(31, Numbers.Exact(to.Z + 0.0)),
                         };
                         DxfEntity line = Of(Item.File.TextOf(Item, through, "LINE"));
+                        Tinted(line, StrikeColor(placed, strike));
                         line.Linetype = "CONTINUOUS";
                         strikes.Add(line);
                     }

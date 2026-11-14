@@ -270,11 +270,14 @@ User note 2026-11-12 evening (note.md 1-14):
 - [x] R12 follow-ups 5 (r12f): stacks under/over/through letters (\L, \O, \K with strike LINEs), stacks in TrueType and
       beside a big font, tilted solid fills, arcs/bulges/ellipses in fills, multi-line attributes as Tag_001..., pattern
       line order as AutoCAD; 204 of 259 harness cases equal (was 42); harness in .claude/gk/r12-harness
-- [ ] (r12g, running) R12 follow-ups 6: round holes, stars and hole notches in fills (AutoCAD's cut level beside a hole; donut 136+134
-      vs ours 136+132, circle 10 in 30 142+142 vs 216+214); gradient band meshes (CYLINDER 152, SPHERICAL 332 SOLIDs on
-      100x60; shape-dependent); dashes at 45/135 degrees one short; Palatino stack 0.2 off; big-font letters in a stack
-      half; multi-line attributes not held top-left; hatch SOLIDs on normal (0,0,-1); MTEXT \C colour runs (62 on the
-      TEXT); BODY, surfaces, spline-edge solids, annotative decomposition layers (S)
+- [x] R12 follow-ups 6 (r12g): fills with holes cut as AutoCAD's trapezoidal map (pointed corners by the order of a
+      hole's left and right edges; donut 10 in 30 216+214 -> 142+142, 25 in 50 equal), fills on normal -Z keep their
+      SOLID extrusion, DOTS at a stretch's far end left out, MTEXT \C/\c colour runs on the R12 TEXTs; harness 328 of 398
+      cases equal (was 270)
+- [ ] R12 follow-ups 7: gradient band meshes (adaptive triangulation on a 24x24-thirds grid; criterion and order not
+      found); star and W notch sides at some loop starts (~70 of 398 cases); dashes ending exactly on an edge at 45/135
+      degrees (AutoCAD's float noise); Palatino stack 0.2 off; big-font letters in a stack half; multi-line attributes
+      not held top-left; BODY, surfaces, spline-edge solids, annotative decomposition layers (S)
 - [x] DXF versions follow-ups 2 (dxfver2): 3DSOLID and surfaces converted SAB <-> SAT across versions (core DwgSat.ToSab;
       220 conversions of 11 solids equal AutoCAD's records, 253 files open with the same volume, AUDIT 0); tables across
       R2007; visual styles across R2007/R2010/R2013; MTEXT columns up to R2018; fixed: R2000/R2004 solids and SAT solids
@@ -386,7 +389,7 @@ the ones wanted.
       PEDIT of splines (precision prompt, the 10 000-vertex question; AutoCAD's counts exact for CV splines); JOIN of
       objects picked at once gives an LWPOLYLINE under PLINETYPE 0. FOUND: accoreconsole fed by stdin runs commands a
       .scr runs in their old form (runner in .claude/gk/acon-stdin)
-- [ ] PEDIT/REVCLOUD follow-ups 3: re-probe through stdin every item parked as "console has no command / runs the old
+- [ ] (stdin1, running: the re-probe part) PEDIT/REVCLOUD follow-ups 3: re-probe through stdin every item parked as "console has no command / runs the old
       one" (REFEDIT, TABLEEXPORT, -BOUNDARY, ...); PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more);
       REVCLOUD variance-1 sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc
       length in layout viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles (S)

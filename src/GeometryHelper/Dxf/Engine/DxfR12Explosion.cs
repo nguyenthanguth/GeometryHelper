@@ -103,6 +103,9 @@ namespace GeometryHelper.Dxf
             /// <summary>The LINEs made through letters struck through (<c>K</c>) of an MTEXT, by their handles, which AutoCAD writes after the INSERT of the TEXTs and not in its block.</summary>
             internal HashSet<string> Outside { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>The SOLIDs of a fill whose plane stands the other way up (the normal (0, 0, -1)), by their handles, which AutoCAD writes with the extrusion (0, 0, 1) that it leaves out of every other record.</summary>
+            internal HashSet<string> KeptNormal { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>The attributes and definitions that are a line of one of several lines, by their handles, written as a text left on its baseline.</summary>
             internal HashSet<string> Lines { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -255,6 +258,10 @@ namespace GeometryHelper.Dxf
                                 else if (kind == 'K')
                                 {
                                     plan.Outside.Add(piece.Handle);
+                                }
+                                else if (kind == 'N')
+                                {
+                                    plan.KeptNormal.Add(piece.Handle);
                                 }
                                 else
                                 {
@@ -564,6 +571,15 @@ namespace GeometryHelper.Dxf
                 {
                     // A hatch filled solid or with a gradient is SOLIDs, as AutoCAD writes one.
                     parts = fill.FillSolids();
+
+                    // A fill on the normal (0, 0, -1) has its SOLIDs on the extrusion (0, 0, 1), which AutoCAD writes there.
+                    if (fill.Normal.Z < 0.0 && Math.Abs(fill.Normal.X) <= 1E-9 && Math.Abs(fill.Normal.Y) <= 1E-9)
+                    {
+                        foreach (DxfEntity solid in parts.Where(p => p is DxfSolid))
+                        {
+                            sampling[solid] = 'N';
+                        }
+                    }
                 }
                 else if (type == "MESH")
                 {

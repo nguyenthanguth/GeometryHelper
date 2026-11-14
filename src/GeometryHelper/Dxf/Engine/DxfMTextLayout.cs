@@ -103,7 +103,15 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal sealed class Run
         {
-            internal Run(string words, double pen, double rise, double height, double width, DxfStackShape stack = null)
+            internal Run(
+                string words,
+                double pen,
+                double rise,
+                double height,
+                double width,
+                DxfStackShape stack = null,
+                int color = -1
+            )
             {
                 Stack = stack;
                 Words = words;
@@ -111,6 +119,7 @@ namespace GeometryHelper.Dxf
                 Rise = rise;
                 Height = height;
                 Width = width;
+                Color = color;
             }
 
             /// <summary>The run's words as a TEXT of it reads them: that of <c>\~</c> a space, the spaces at the end of the line left out, and <c>%%U</c>, <c>%%O</c> and <c>%%K</c> before it where it is lined under, over or through.</summary>
@@ -127,6 +136,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>The width factor of the run's letters.</summary>
             internal double Width { get; }
+
+            /// <summary>The colour index of the run's letters where a colour code gives them one (0 to 256); -1 where they keep the MTEXT's own.</summary>
+            internal int Color { get; }
 
             /// <summary>The stack the run is, where it is one (<c>\S1/2;</c>), whose halves and LINE are the TEXTs and LINE AutoCAD 2021 explodes it to; null for letters.</summary>
             internal DxfStackShape Stack { get; }
@@ -485,7 +497,7 @@ namespace GeometryHelper.Dxf
                     }
                 }
 
-                runs.Add(new Run(words.ToString(), pen, rise, look.Height, look.Width, stack));
+                runs.Add(new Run(words.ToString(), pen, rise, look.Height, look.Width, stack, look.Color));
                 start = k;
             }
 
@@ -662,6 +674,6 @@ namespace GeometryHelper.Dxf
             && a.Track == b.Track
             && a.Align == b.Align
             && (a.Marks & (strikes ? 3 : 7)) == (b.Marks & (strikes ? 3 : 7))
-            && a.Tint == b.Tint;
+            && a.Color == b.Color;
     }
 }
