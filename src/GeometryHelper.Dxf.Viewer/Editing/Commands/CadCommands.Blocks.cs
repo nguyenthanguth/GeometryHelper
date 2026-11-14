@@ -2733,16 +2733,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// &lt;Yes&gt;:", then every INSERT of it brought in line with its attribute definitions, as AutoCAD's: one attribute for
         /// each definition not constant, in the block's order, its value kept where the INSERT had the tag; those of tags the
         /// block no longer defines removed; each placed and styled from its definition as the INSERT places it. "?" lists the
-        /// blocks with attributes. An INSERT of a dynamic block picked names the dynamic block, not the anonymous *U block it
-        /// places; a dynamic block synced brings in line the INSERTs of its *U blocks too, against the dynamic block's
-        /// definitions, each keeping its dynamic properties. A block picked that has no attribute definitions is refused, "This
-        /// block has no attribute definitions.", and another asked for. One undo step.
+        /// blocks with attributes under "Attributed blocks:", or says the drawing has none. A name typed may be a wildcard, as
+        /// the usage of AutoCAD's own function is, "a block name or wildcard": every attributed block it matches is synced; one
+        /// that matches none is answered "Block table contains no attributed block named PLAIN." and asked again. An INSERT
+        /// of a dynamic block picked names the dynamic block, not the anonymous *U block it places; a dynamic block synced
+        /// brings in line the INSERTs of its *U blocks too, against the dynamic block's definitions, each keeping its dynamic
+        /// properties. What is picked that is no block is refused, "The selected entity is not a block.", and a block that has
+        /// no attribute definitions, "The selected block has no attributes.", another asked for each time, as the string table
+        /// of AutoCAD 2021's Battman.arx has the words. One undo step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeSync(CadCommandContext c)
         {
-            string name = null;
+            List<string> names = null;
 
-            while (name == null)
+            while (names == null)
             {
                 yield return CadPrompt.ForKeyword("Enter an option", new[] { "?", "Name", "Select" }, "Select");
 
@@ -2768,18 +2772,16 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         string typed = c.Input.Text.Trim();
+                        Regex pattern = Wildcard(typed);
+                        List<string> matched = AttributedBlocks(c.Database).Where(n => pattern.IsMatch(n)).ToList();
 
-                        if (
-                            !c.Database.BlockTable.Has(typed)
-                            || !NamedBlocks(c.Database)
-                                .Any(b => string.Equals(b.Name, typed, StringComparison.OrdinalIgnoreCase))
-                        )
+                        if (matched.Count == 0)
                         {
-                            c.Write("Block \"" + typed + "\" not found.");
+                            c.Write("Block table contains no attributed block named " + typed + ".");
                             continue;
                         }
 
-                        name = c.Database.BlockTable[typed].Name;
+                        names = matched;
                         break;
                     }
                 }
@@ -2803,22 +2805,22 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (block != null)
                         {
-                            // A block with no attribute definitions is refused and another asked for, as Autodesk's help
-                            // for Select has it, before the question of syncing.
+                            // A block with no attribute definitions is refused and another asked for, before the question of
+                            // syncing.
                             if (!block.OfType<DxfAttributeDefinition>().Any())
                             {
-                                c.Write("This block has no attribute definitions.");
+                                c.Write("The selected block has no attributes.");
                                 continue;
                             }
 
-                            name = block.Name;
+                            names = new List<string> { block.Name };
                             break;
                         }
 
-                        c.Write("That object is not a block.");
+                        c.Write("The selected entity is not a block.");
                     }
 
-                    yield return CadPrompt.ForKeyword("ATTSYNC block " + name + "?", new[] { "Yes", "No" }, "Yes");
+                    yield return CadPrompt.ForKeyword("ATTSYNC block " + names[0] + "?", new[] { "Yes", "No" }, "Yes");
 
                     if (c.Input.Is("No"))
                     {
@@ -2831,23 +2833,21 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (!c.Database.BlockTable[name].OfType<DxfAttributeDefinition>().Any())
-            {
-                c.Write("This block has no attribute definitions.");
-                yield break;
-            }
-
-            SyncAttributes(c, name);
+            SyncAttributes(c, names);
         }
 
         /// <summary>The names of the blocks with attribute definitions, as ATTSYNC's "?" lists them.</summary>
         private static void WriteAttributedBlocks(CadCommandContext c)
         {
-            List<string> names = NamedBlocks(c.Database)
-                .Where(b => b.OfType<DxfAttributeDefinition>().Any())
-                .Select(b => b.Name)
-                .ToList();
-            c.Write("Blocks with attributes:");
+            List<string> names = AttributedBlocks(c.Database);
+
+            if (names.Count == 0)
+            {
+                c.Write("This drawing contains no attributed blocks.");
+                return;
+            }
+
+            c.Write("Attributed blocks:");
             names.ForEach(c.Write);
         }
 
@@ -2855,57 +2855,70 @@ namespace GeometryHelper.Dxf.Viewer
         /// Brings every INSERT of a block in line with its attribute definitions, one edit: those of the layouts named as
         /// changed, those nested in other blocks with those blocks; in the order of the block table and of each block.
         /// </summary>
-        internal static void SyncAttributes(CadCommandContext c, string name)
+        internal static void SyncAttributes(CadCommandContext c, string name) =>
+            SyncAttributes(c, new List<string> { name });
+
+        /// <summary>
+        /// Brings every INSERT of each block named in line with its attribute definitions, as one edit, as
+        /// <see cref="SyncAttributes(CadCommandContext, string)"/> does for one.
+        /// </summary>
+        private static void SyncAttributes(CadCommandContext c, List<string> names)
         {
             var planned = new List<CadEditRecord>();
             int count = 0;
 
-            foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(c.Database, name))
+            foreach (string name in names)
             {
-                count++;
+                foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(c.Database, name))
+                {
+                    count++;
 
-                if (pair.Key.IsLayout && c.Document.FindEntity(pair.Value.Handle) != null)
-                {
-                    planned.Add(
-                        new CadEditRecord(
-                            CadEditRecordKind.PropertyChanged,
-                            pair.Value.Handle,
-                            "Attributes",
-                            null,
-                            name
+                    if (pair.Key.IsLayout && c.Document.FindEntity(pair.Value.Handle) != null)
+                    {
+                        planned.Add(
+                            new CadEditRecord(
+                                CadEditRecordKind.PropertyChanged,
+                                pair.Value.Handle,
+                                "Attributes",
+                                null,
+                                name
+                            )
+                        );
+                    }
+                    else if (
+                        !planned.Exists(r =>
+                            r.Kind == CadEditRecordKind.TableChanged
+                            && string.Equals(r.NewValue, pair.Key.Name, StringComparison.OrdinalIgnoreCase)
                         )
-                    );
-                }
-                else if (
-                    !planned.Exists(r =>
-                        r.Kind == CadEditRecordKind.TableChanged
-                        && string.Equals(r.NewValue, pair.Key.Name, StringComparison.OrdinalIgnoreCase)
                     )
-                )
-                {
-                    planned.Add(
-                        new CadEditRecord(
-                            CadEditRecordKind.TableChanged,
-                            null,
-                            "Attributes synchronized",
-                            null,
-                            pair.Key.Name
-                        )
-                    );
+                    {
+                        planned.Add(
+                            new CadEditRecord(
+                                CadEditRecordKind.TableChanged,
+                                null,
+                                "Attributes synchronized",
+                                null,
+                                pair.Key.Name
+                            )
+                        );
+                    }
                 }
             }
 
             CadEditResult result = c.Apply(planned, s =>
             {
-                List<DxfAttributeDefinition> definitions = Definitions(s.Database.BlockTable[name]);
-
-                foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(s.Database, name))
+                foreach (string name in names)
                 {
-                    Sync(pair.Value, definitions);
+                    List<DxfAttributeDefinition> definitions = Definitions(s.Database.BlockTable[name]);
 
-                    if (pair.Value.AnonymousBlockTableRecord != null)
+                    foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(s.Database, name))
                     {
-                        FollowActions(pair.Value);
+                        Sync(pair.Value, definitions);
+
+                        if (pair.Value.AnonymousBlockTableRecord != null)
+                        {
+                            FollowActions(pair.Value);
+                        }
                     }
                 }
             });
@@ -2917,7 +2930,7 @@ namespace GeometryHelper.Dxf.Viewer
                     "CadCommands: ATTSYNC brought "
                         + count.ToString(CultureInfo.InvariantCulture)
                         + " INSERTs of "
-                        + name
+                        + string.Join(", ", names)
                         + " in line with the block."
                 );
             }

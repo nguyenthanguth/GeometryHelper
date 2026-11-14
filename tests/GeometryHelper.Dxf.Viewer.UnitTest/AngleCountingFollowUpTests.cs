@@ -259,7 +259,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "ATTSYNC", Enter, P(160, 150));
 
-            Assert.Contains("This block has no attribute definitions.", session.History);
+            Assert.Contains("The selected block has no attributes.", session.History);
             Assert.DoesNotContain(session.History, l => l.StartsWith("ATTSYNC block", StringComparison.Ordinal));
             Assert.Equal("Select a block:", session.PromptText);
             Run(session, Esc);

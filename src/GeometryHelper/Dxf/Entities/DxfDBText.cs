@@ -2041,6 +2041,16 @@ namespace GeometryHelper.Dxf
                 GeoVector3 leaning = ocs.TransformDirection(FromDegrees(oldRotation + 90.0 - oblique));
                 oblique = newRotation + 90.0 - Math.Atan2(leaning.Y, leaning.X) * (180.0 / Math.PI);
                 yScale *= Math.Cos(oblique * (Math.PI / 180.0));
+
+                // A text that leans keeps the shape the scale makes of it, as AutoCAD 2021 worked it (plugin GhAs1): its height is
+                // the slanted upright's across the new baseline, the area its two axes span over the length of the baseline. The
+                // product above is that for a text that does not lean, and is left as it is.
+                if (TextDouble(51, 0.0) != 0.0)
+                {
+                    GeoVector3 along = ocs.TransformDirection(FromDegrees(oldRotation));
+                    GeoVector3 up = ocs.TransformDirection(FromDegrees(oldRotation + 90.0));
+                    yScale = Math.Abs(along.X * up.Y - along.Y * up.X) / xScale;
+                }
             }
 
             // Scaled alike along its two axes, as by a turn or a mirror, its width is left as it is, as AutoCAD 2021 leaves it,

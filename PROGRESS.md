@@ -348,7 +348,7 @@ User note 2026-11-12 evening (note.md 1-14):
       TABLEGEOMETRY, extension dictionary and CELLSTYLEMAP AutoCAD builds (6 tables, 8 styles, 16 border/boundary tables
       equal group for group in R2007-R2018, AUDIT 0), built on a copy at save time; empty values 90 0 + 91 0 below R2007.
       DECIDED: accepted the save cost on edited tables (10 000 cells: 1 -> 469 ms at R2018); untouched drawings unchanged
-- [ ] DXF versions follow-ups 9: the table completion's save cost (build only what changed, or keep it in step with the
+- [ ] (dxfver9, running: the save cost) DXF versions follow-ups 9: the table completion's save cost (build only what changed, or keep it in step with the
       setters); real TABLEGEOMETRY and row heights (needs font metrics; AutoCAD re-lays tables out otherwise); native
       R2000/R2004 table drawings; block-cell, field and link content; tables with their own row-kind looks or an
       existing extension dictionary; hidden bottom/left lines in R2000/R2004; R2004/R2007 tolerant sweep_sur;
@@ -539,9 +539,16 @@ the ones wanted.
 - [x] Dynamic block follow-ups 5 (dynblock5): GRIPLOC for point, rotation and XY corner grips (MoveEndPoint takes point
       and rotation parameters; public MoveCornerPoint); the history walked once per set (6% at 15 edits); 18 unchanged
       paths and 300 random sequences byte-identical; five outputs AUDIT 0
-- [ ] (attsync, running) Dynamic block follow-ups 6: ATTSYNC on a moved INSERT (not in the console or acdbmgd); a value-set tie AutoCAD breaks
-      by float noise; Block.Of cached per dynamic block (0.14 ms a set); the block-table grip menu and glyph (GUI); the
-      Design artifact's grip colour #19B5F0 to #00BFFF (S)
+- [x] Dynamic block follow-ups 6 and LIST/blocks follow-ups 2b (attsync): *U blocks updated when an action's member was
+      erased (90 of 99 probed edits already equal, the erased-member cases fixed); leaning attribute text under unlike
+      scales sized as AutoCAD (215 of 221 -> all but 7 elevation-only); ATTSYNC words from AutoCAD's own strings, Name
+      takes a wildcard. ATTSYNC itself cannot run in accoreconsole (Battman.arx needs acad.exe). DECIDED: a mirrored
+      INSERT under MIRRTEXT 0 keeps mirrored attributes, as -INSERT does
+- [ ] Dynamic block / blocks follow-ups 7: ATTSYNC's kept values, added/removed attributes and *U placement (needs the
+      GUI); an array or visibility state that loses a member (AutoCAD draws no copies / hides lines); a Block.Of cache
+      (needs a per-object revision stamp); Properties skipping an equal typed value (palette); a value-set tie broken by
+      float noise; the block-table grip menu and glyph (GUI); the Design artifact's grip colour #19B5F0 to #00BFFF;
+      parameters added or removed in the Block Editor (GUI) (S)
 
 ### To do
 
@@ -662,9 +669,6 @@ the ones wanted.
 - [x] LIST/blocks follow-ups 2a (fu-misc2): LUNITS 1-3 past 12 characters in scientific form (1.000500E+03); a linetype
       override naming no linetype as AutoCAD lists it; dimension setters writing overrides equal to the style, as AutoCAD;
       ATTRIBs of locked action-held ATTDEFs rebuilt under UpdateAnonymousBlocks
-- [ ] (attsync, running) LIST/blocks follow-ups 2b: ATTSYNC placement for *U (not in the console or the 2021 API); parameters added or removed
-      in the Block Editor (GUI); UpdateAnonymousBlocks probed for actions other than stretch; whether Properties skips a
-      typed value equal to the one shown (S)
 - [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
       2021 has none) (S)
 - [x] Command line follow-ups: collapsible content section, hatch thumbnail on hover (design v132)
