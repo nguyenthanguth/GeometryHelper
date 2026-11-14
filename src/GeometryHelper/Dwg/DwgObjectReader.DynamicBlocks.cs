@@ -689,6 +689,119 @@ namespace GeometryHelper.Dwg
             _object.Add(280, _data.Bit() ? 1 : 0);
         }
 
+        /// <summary>
+        /// The node of a graph that stands for the block's own properties (ACDB_DYNAMICBLOCKPROXYNODE): nothing past the start
+        /// of an expression.
+        /// </summary>
+        private void ReadDynamicBlockProxyNode() => ReadEvalExpression();
+
+        /// <summary>
+        /// A value a block properties table or a user parameter holds (an AcDbEvalVariant): the kind (-9999 none, 1 a text of
+        /// 300, 40 a real of 140), which DXF gives as 170 with the value after it.
+        /// </summary>
+        private void ReadVariant()
+        {
+            int kind = _data.BitShort();
+            _object.Add(170, kind);
+
+            switch (kind)
+            {
+                case -9999:
+                    break;
+                case 1:
+                    _object.Add(300, T());
+                    break;
+                case 40:
+                    _object.Add(140, _data.BitDouble());
+                    break;
+                default:
+                    throw new FormatException(
+                        "A block properties table holds a value of a kind the reader does not know."
+                    );
+            }
+        }
+
+        /// <summary>
+        /// A user parameter: a parameter of one point, a number, the variable of the constraint network that holds its value
+        /// (330), a label and its kind of value (170); the value it holds (309) is none in every sample, which DXF writes as
+        /// the text <c>AcDbEvalVariant NULL = -9999</c>.
+        /// </summary>
+        private void ReadBlockUserParameter()
+        {
+            ReadBlock1PtParameter();
+            _object.Add(100, "AcDbBlockUserParameter");
+            _object.Add(90, _data.BitLong());
+            _object.Add(330, H());
+            _object.Add(301, T());
+
+            if (_data.BitShort() != -9999)
+            {
+                throw new FormatException("A user parameter holds a value the reader does not know.");
+            }
+
+            _object.Add(309, "AcDbEvalVariant NULL = -9999");
+            _object.Add(170, _data.BitShort());
+        }
+
+        /// <summary>
+        /// A block properties table: a parameter of one point, its name and a number, the columns (each the parameter it reads
+        /// or sets, the names of its property and connection, the node it stands for, two values, five flags and a text; DXF
+        /// gives the parameter before them and a second pointer after) and the rows (a number and a value for each column),
+        /// and the row count again with three flags.
+        /// </summary>
+        private void ReadBlockPropertiesTable()
+        {
+            ReadBlock1PtParameter();
+            _object.Add(100, "AcDbBlockPropertiesTable");
+            _object.Add(90, _data.BitLong());
+            _object.Add(300, T());
+            _object.Add(301, T());
+            int columns = Count(_data.BitLong());
+            _object.Add(91, columns);
+
+            for (int i = 0; i < columns; i++)
+            {
+                _object.Add(340, H());
+                int first = _data.BitShort();
+                int second = _data.BitShort();
+                _object.Add(170, first);
+                _object.Add(171, second);
+                _object.Add(300, T());
+                _object.Add(301, T());
+                _object.Add(90, _data.BitLong());
+                ReadVariant();
+                ReadVariant();
+
+                for (int flag = 290; flag <= 294; flag++)
+                {
+                    _object.Add(flag, _data.Bit() ? 1 : 0);
+                }
+
+                _object.Add(302, T());
+                _object.Add(340, H());
+            }
+
+            int rows = Count(_data.BitLong());
+            _object.Add(92, rows);
+
+            for (int i = 0; i < rows; i++)
+            {
+                _object.Add(90, _data.BitLong());
+
+                for (int j = 0; j < columns; j++)
+                {
+                    ReadVariant();
+                }
+            }
+
+            _object.Add(93, _data.BitLong());
+
+            for (int flag = 290; flag <= 292; flag++)
+            {
+                _object.Add(flag, _data.Bit() ? 1 : 0);
+            }
+        }
+
         /// <summary>The representation data of a dynamic block, kept by each anonymous block made from it: a version and the block.</summary>
         private void ReadBlockRepresentationData()
         {

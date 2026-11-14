@@ -17,6 +17,18 @@ kept for the next EXPORTPDF until the app closes. The choices reach the command 
 (`CadPlotSettings.PdfHyperlinks`); a line linked to `https://example.com/B-12.pdf` is a `/URI` link of the page. Layer information,
 bookmarks, merge control and the vector and raster qualities are shown greyed, as the writer always or never does them.
 
+**NEW.** The DWG reader and writer take the block properties table with its grip, the user parameter, the proxy node of a
+dynamic block's graph and the associative network of variables, dependencies and their bodies (`ACDBASSOCNETWORK`,
+`ACDBASSOCVARIABLE`, `ACDBASSOCDEPENDENCY`, `ACDBASSOCGEOMDEPENDENCY`, `ACDBASSOCVALUEDEPENDENCY`,
+`ASSOCDIMDEPENDENCYBODY`, `BLOCKPARAMDEPENDENCYBODY`), and the horizontal, vertical and radial constraint parameters and the
+groups of 2D constraints (`ACDBASSOC2DCONSTRAINTGROUP`, 22 classes of node) are read: layouts read from AutoCAD 2021's own DWG bytes,
+1 789 objects of its Dynamic Blocks and sheet samples equal its DXF group for group, and the actions of version 2 and the edge names
+of a DWG of AutoCAD 2018 read too. A block of two linear parameters with a properties table made in code keeps its graph, table
+and grip through a DWG (left out whole before).
+**CHANGED.** A dynamic block's graph, network, parameter and network objects are left out whole in a DWG of R2013 and later where
+a constraint group is not written (AutoCAD erases a group in the layout of R2010 when it opens an R2018 file and then refuses
+the file): the 18 graphs of AutoCAD's samples that lean on one stay left out, 72 of the 90 still written, and every sample and
+test DWG rewrites as before (the same AUDIT counts as the originals, 71 of 71 test DWGs at 0, none refused).
 **NEW.** -VIEW Restore shows a paper view in the layout it was saved in (a view saved in Sheet 2, restored from Layout1 or the Model
 tab, shows Sheet 2), and a view of model space restored in a layout asks `Restoring Model space view.` / `Select Viewport for view:`
 and shows the whole view through the viewport picked, which is then the one worked through (a view 600 by 400 into a viewport 200 by

@@ -125,7 +125,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] R2.1 follow-ups 1 (fu-mline): MLINE grips and STRETCH (core DxfMlineBuilder.MoveVertexAt, cuts kept as AutoCAD),
         TRIM and EXTEND of and to an MLINE, AutoCAD's refusals of OFFSET, FILLET, CHAMFER, LENGTHEN, BREAK; MLEDIT's quiet miss,
         closed refusals, cuts across segments and 4-element merged tees and crosses; MLSTYLE Rename, Delete, Load, Save (.mln)
-  - [ ] R2.1 follow-ups 2 (the Multiline Styles and Multiline Edit Tools dialogs done by dialogs5): WA across the first vertex of
+  - [ ] (mline3, running) R2.1 follow-ups 2 (the Multiline Styles and Multiline Edit Tools dialogs done by dialogs5): WA across the first vertex of
         a closed MLINE (AutoCAD's result looks inverted, parked); OT and MT with a closed bar, EXTEND Edge=Extend on oblique
         edges, trims near a corner (S)
   - [x] R2.2 HATCH completed (hatch2): -HATCH draW boundary, remove Boundaries, Origin, COlor, LAyer, Transparency, Boundary
@@ -446,10 +446,16 @@ the ones wanted.
         lookup and alignment parameters and polar stretch, move, scale, rotate, flip, array and lookup actions read and
         written from R2007: 72 of the 90 graphs of AutoCAD's samples go through (12 before), 1 492 objects equal AutoCAD's
         DXF; fixed: the unset value 1.797693134862314E+99 written as AutoCAD's double.MaxValue
-  - [ ] (dwg13, running) DWG follow-ups 7: the other 18 graphs (constraint parameters on ACDBASSOC*, user parameters, properties tables,
-        proxy nodes, BLOCKPARAMDEPENDENCYBODY); the order of a stretch action's entity list (15 of 111 differ); dynamic data
-        below R2007; sweep, revolve and drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies;
-        surfaces; tcustom parity; TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
+  - [x] DWG follow-ups 7a (dwg13): all 18 remaining dynamic-block graphs READ (associations, 2D constraint groups of the
+        R2010 layout, constraint and user parameters, properties tables, proxy nodes; 1 789 objects equal AutoCAD's DXF);
+        written they stay left out whole, as their constraint group's R2018 layout is not decoded; a fixpoint rule leaves out
+        a graph or network missing any part (no rewrite refused); 135 of 142 AutoCAD files rewrite at AUDIT 0 (7 carry their
+        originals' errors)
+  - [ ] DWG follow-ups 8: the R2018 layout of ACDBASSOC2DCONSTRAINTGROUP (header, class table and node directory decoded;
+        node bodies not: the oracle is DxfIn of a modified DXF, SaveAs R2018, bit-diff), which unlocks the 18 graphs;
+        version-2 actions in R2013; the stretch entity order (3 of 115); dynamic data below R2007; sweep, revolve and
+        drafted/path/ruled lofts in ToSab; ACFD_FIELDTEXT_CHECKSUM; OLE2FRAME and proxies; surfaces; tcustom parity;
+        TABLEGEOMETRY head bit; a rendered thumbnail; R2000 round-trip colours (M)
   - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W2 follow-ups (palette and colour-book/multi-line attribute drawings done): spline normal sign off XY (8 of 10 match; parked) (S)
