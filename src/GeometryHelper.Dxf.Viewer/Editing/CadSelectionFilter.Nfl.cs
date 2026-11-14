@@ -199,6 +199,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 yield return "(-3 (\"" + Quote(line.Value) + "\"))";
             }
+            else if (property == CadFilterProperty.Transparency)
+            {
+                yield return "(440 . " + line.TransparencyValue.ToString(CultureInfo.InvariantCulture) + ")";
+            }
             else if (property == CadFilterProperty.Color)
             {
                 yield return "(62 . " + line.ColorIndex.ToString(CultureInfo.InvariantCulture) + ")";
@@ -304,6 +308,10 @@ namespace GeometryHelper.Dxf.Viewer
                 if (property == CadFilterProperty.Object)
                 {
                     value = tokens[tokens.Length - 1];
+                }
+                else if (property == CadFilterProperty.Transparency)
+                {
+                    value = CadFilterLine.TransparencyFromValue((int)element.Numbers[0]);
                 }
                 else if (CadFilterLine.IsPoint(property))
                 {

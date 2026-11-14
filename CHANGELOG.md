@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** CAL's `getvar`, `w2u`, `u2w`, `rot`, `xof`, `yof`, `zof`, `xyof`, `rxof`, `ryof` and `rzof` in the presenter, with the values and
+the words of AutoCAD 2021's accoreconsole: `getvar(textsize)` reads a system variable of the drawing (an angle in radians,
+`getvar(snapang)` 0.523598776 for 30 degrees; a switch 0 or 1; a point as `x,y,z`), `getvar(nosuchvar)` says `Unknown AutoCAD
+system variable NOSUCHVAR`, a text variable `Only real, integer or point AutoCAD system variables accepted`; `w2u` and `u2w`
+change a point between the world and the current user coordinate system (UCS Origin 10,20,0: `w2u([1,2,3])` -9,-18,3);
+`rot([1,0,0],[0,0,0],[0,1,0],90)` is 0,0,-1, the point on the axis `The point to be rotated lies on the axis of rotation`.
+`CadCalculator.Evaluate(expression, answers, session)` takes the drawing's command line; without one `getvar` knows no variable
+and the user system is the world one. FILTER's Select Filter list is now that of acfilterres.dll in full: MultiLine Style,
+Shape Position, Shape Name and Transparency (a per cent from 0 to 90, ByLayer or ByBlock, written `(440 . n)` in `filter.nfl`)
+are lines (`CadFilterProperty.MultilineStyle`, `ShapePosition`, `ShapeName`, `Transparency`), and Material, Position Marker and
+the surfaces Blend, Network, Patch, Fillet, Offset and Extend are kinds of object (the six surfaces are plain SURFACE objects
+in AutoCAD 2021, so each matches every plain SURFACE); Add Selected Object names an MLINE `MultiLine` and a shape `Shape`, with
+their style, name and position. `-XBIND Block` binds the dimension styles of the dimensions in the block as AutoCAD 2021 does:
+a dimension in MYDIM comes in `grid$0$MYDIM` of the same settings, whose text style comes as `grid$0$MYSTYLE`, a dimension in
+Standard in `grid$0$Standard` with `grid$0$Standard` for its text style, the drawing's own Standard left as it is. QPLOCATION
+is a system variable (0 or 1, `Requires 0 or 1 only.`), kept for the session; the panel is still placed by the cursor.
+New: `CadFilterProperty.MultilineStyle`, `ShapePosition`, `ShapeName` and `Transparency`, `CadSelectionFilter.TransparenciesIn`,
+`MainViewModel.QuickPropertiesLocation`. The registry is unchanged (no new command).
+**CHANGED.** CAL's `rad` on a straight segment of a polyline says `Polyline arc segment must be picked.`, as AutoCAD 2021 does; it
+said `Improper type of object picked.`, which a line or any other object still gets.
 **NEW.** The app's screenshot mode (`--screenshot out.png plan.dxf --dialog name`) draws the dialogs of rounds 5 to 9, each over the
 drawing open in a sample state of its own: `mlstyle`, `mlstyle-new`, `mlstyle-new-page`, `mlstyle-modify`, `mlstyle-load`, `mledit`,
 `plotstamp`, `plotstamp-advanced`, `plotstamp-fields`, `imageadjust`, `attext`, `xbind`, `insertobject`, `recovery`, `spell`,
@@ -843,8 +863,7 @@ expression picks, in order: the snap functions `end ins int mid cen nea nod qua 
 the command (`>>>> Expression:`) and types its value at the prompt once `Resuming LINE command.` is written. -VPORTS MOde asks
 `Apply viewport configuration to [Display/Current viewport] <Display>:` and then the options again; the answer is what the
 Viewports dialog's Apply to starts with (`CadTiledViewports.AppliesToCurrentViewport`), and 2, 3 and 4 split the current viewport
-in either mode, as AutoCAD's do (probed from one viewport to seven). Not built: Transparency, MultiLine Style and the shapes in
-FILTER, the redefine prompt of a name in use, CAL's `rad` of a polyline segment, `getvar` and the transformations.
+in either mode, as AutoCAD's do (probed from one viewport to seven). Not built: the redefine prompt of a name in use.
 **CHANGED.** CAL writes its value as AutoCAD 2021's command line writes it, whatever the units: `sqrt(16)+2` is 6 (it was 6.0),
 `1/3` 0.333333333 (it was 0.333333), `[100,50]+[20,30]` 120,80,0 (it was (120.0 80.0 0.0)), and `2^3^2` is 64 (it was 512: AutoCAD
 takes powers from the left); `tan` is the snap function, as AutoCAD's, and the tangent of an angle is `tang`; a word after a

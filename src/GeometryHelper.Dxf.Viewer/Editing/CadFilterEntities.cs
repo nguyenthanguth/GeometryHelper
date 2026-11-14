@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -20,10 +21,12 @@ namespace GeometryHelper.Dxf.Viewer
             { "DWF Underlay", new[] { "DWFUNDERLAY" } },
             { "Helix", new[] { "HELIX" } },
             { "Light", new[] { "LIGHT" } },
+            { "Material", new[] { "MATERIAL" } },
             { "Mesh", new[] { "MESH" } },
             { "MultiLine", new[] { "MLINE" } },
             { "Section Plane", new[] { "SECTION" } },
             { "Shape", new[] { "SHAPE" } },
+            { "Position Marker", new[] { "POSITIONMARKER" } },
             { "Tolerance", new[] { "TOLERANCE" } },
             { "Trace", new[] { "TRACE" } },
             { "Surface(Planar)", new[] { "PLANESURFACE" } },
@@ -32,6 +35,13 @@ namespace GeometryHelper.Dxf.Viewer
             { "Surface(Revolve)", new[] { "REVOLVEDSURFACE" } },
             { "Surface(Extrusion)", new[] { "EXTRUDEDSURFACE" } },
             { "Surface(Nurbs)", new[] { "NURBSURFACE" } },
+            // The six surfaces made by an operation (blend, network, patch, fillet, offset, extend) are plain SURFACE objects in AutoCAD 2021.
+            { "Surface(Blend)", new[] { "SURFACE" } },
+            { "Surface(Network)", new[] { "SURFACE" } },
+            { "Surface(Patch)", new[] { "SURFACE" } },
+            { "Surface(Fillet)", new[] { "SURFACE" } },
+            { "Surface(Offset)", new[] { "SURFACE" } },
+            { "Surface(Extend)", new[] { "SURFACE" } },
         };
 
         /// <summary>Whether an entity is of a kind: its name in the Properties panel (Line, MText, Block Reference) or in AutoCAD's filter list (Arc, Block, Polyline, Attribute).</summary>
@@ -61,6 +71,27 @@ namespace GeometryHelper.Dxf.Viewer
                         && Unknown.TryGetValue(value, out string[] names)
                         && Array.IndexOf(names, unknown.DxfName) >= 0;
             }
+        }
+
+        /// <summary>
+        /// The kind an Add Selected Object line names an entity: the filter list's word for an object held as an unknown entity
+        /// (MultiLine for an MLINE, Shape for a SHAPE), else its name in the Properties panel. The plain SURFACE, which six kinds
+        /// of the list share, keeps its panel name.
+        /// </summary>
+        internal static string KindName(DxfEntity entity)
+        {
+            if (entity is DxfUnknownEntity unknown && unknown.DxfName != "SURFACE")
+            {
+                foreach (KeyValuePair<string, string[]> pair in Unknown)
+                {
+                    if (Array.IndexOf(pair.Value, unknown.DxfName) >= 0)
+                    {
+                        return pair.Key;
+                    }
+                }
+            }
+
+            return CadProperties.KindOf(entity);
         }
 
         /// <summary>The DXF name written for an Object line in the file of named lists: ARC, INSERT, LWPOLYLINE.</summary>
@@ -185,12 +216,60 @@ namespace GeometryHelper.Dxf.Viewer
                         : entity is DxfPolyline poly && Set(poly.Thickness, out numbers);
                 case CadFilterProperty.ViewportCenter:
                     return entity is DxfViewport viewport && Set(viewport.CenterPoint, out numbers);
+                case CadFilterProperty.MultilineStyle:
+                    text = Group(entity, "MLINE", 2);
+                    return text != null;
+                case CadFilterProperty.ShapeName:
+                    text = Group(entity, "SHAPE", 2);
+                    return text != null;
+                case CadFilterProperty.ShapePosition:
+                    return Position(entity, "SHAPE", out numbers);
                 case CadFilterProperty.XdataId:
                     text = string.Empty;
                     return true;
                 default:
                     return false;
             }
+        }
+
+        // The first group of a code in an object held as an unknown entity of the DXF name, as text; null where it is not that or has none.
+        private static string Group(DxfEntity entity, string dxfName, int code)
+        {
+            if (!(entity is DxfUnknownEntity unknown) || unknown.DxfName != dxfName)
+            {
+                return null;
+            }
+
+            foreach (DxfTypedValue value in unknown.Groups)
+            {
+                if (value.TypeCode == code)
+                {
+                    return value.Value;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool Position(DxfEntity entity, string dxfName, out double[] numbers)
+        {
+            string x = Group(entity, dxfName, 10);
+            string y = Group(entity, dxfName, 20);
+            string z = Group(entity, dxfName, 30);
+            numbers = null;
+
+            if (
+                x == null
+                || !double.TryParse(x, NumberStyles.Float, CultureInfo.InvariantCulture, out double px)
+                || !double.TryParse(y, NumberStyles.Float, CultureInfo.InvariantCulture, out double py)
+            )
+            {
+                return false;
+            }
+
+            double.TryParse(z, NumberStyles.Float, CultureInfo.InvariantCulture, out double pz);
+            numbers = new[] { px, py, pz };
+            return true;
         }
 
         private static bool Normal(DxfEntity entity, out double[] numbers)

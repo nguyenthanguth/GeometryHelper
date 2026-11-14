@@ -130,6 +130,21 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The end of a NOT group.</summary>
         EndNot,
+
+        /// <summary>The name of the style of an MLINE (MultiLine Style), a name or a pattern.</summary>
+        MultilineStyle,
+
+        /// <summary>The insertion point of a shape (X, Y, Z).</summary>
+        ShapePosition,
+
+        /// <summary>The name of a shape, a name or a pattern.</summary>
+        ShapeName,
+
+        /// <summary>
+        /// How much the object lets show through it, as the Properties palette says it: a whole number of per cent from 0 to 90,
+        /// <c>ByLayer</c> or <c>ByBlock</c>; tested with =, !=, &lt;, &lt;=, &gt; and &gt;=, ByLayer below ByBlock below 0.
+        /// </summary>
+        Transparency,
     }
 
     /// <summary>
@@ -169,6 +184,7 @@ namespace GeometryHelper.Dxf.Viewer
             Object,
             Name,
             Color,
+            Transparency,
             Real,
             Angle,
             Vector,
@@ -241,6 +257,10 @@ namespace GeometryHelper.Dxf.Viewer
             { CadFilterProperty.EndXor, new Info("** End      XOR", Kind.Group, -4, "XOR>") },
             { CadFilterProperty.BeginNot, new Info("** Begin   NOT", Kind.Group, -4, "<NOT") },
             { CadFilterProperty.EndNot, new Info("** End      NOT", Kind.Group, -4, "NOT>") },
+            { CadFilterProperty.MultilineStyle, new Info("MultiLine Style", Kind.Name, 2) },
+            { CadFilterProperty.ShapePosition, new Info("Shape Position", Kind.Vector, 10) },
+            { CadFilterProperty.ShapeName, new Info("Shape Name", Kind.Name, 2) },
+            { CadFilterProperty.Transparency, new Info("Transparency", Kind.Transparency, 440) },
         };
 
         private readonly string[] _operators;
@@ -285,6 +305,11 @@ namespace GeometryHelper.Dxf.Viewer
                         ?? throw new ArgumentException("Invalid Color number.", nameof(value));
                     Value = ColorWords(ColorIndex);
                     _numbers = new double[] { ColorIndex };
+                    break;
+                case Kind.Transparency:
+                    int rank = ReadTransparency(Value) ?? throw new ArgumentException("Invalid Value.", nameof(value));
+                    Value = TransparencyWords(rank);
+                    _numbers = new double[] { rank };
                     break;
                 case Kind.Real:
                 case Kind.Angle:
@@ -389,6 +414,8 @@ namespace GeometryHelper.Dxf.Viewer
                     throw new InvalidOperationException("The begin or end of a group is no test.");
                 case Kind.Object:
                     return CadFilterEntities.IsKind(entity, Value);
+                case Kind.Transparency:
+                    return Compare(TransparencyRankOf(entity.Transparency), _numbers[0], _operators[0]);
                 case Kind.Color:
                     DxfColor color = entity.Color;
                     int index =
@@ -461,7 +488,11 @@ namespace GeometryHelper.Dxf.Viewer
         public static bool TakesOperators(CadFilterProperty property)
         {
             Kind kind = Infos[property].Kind;
-            return kind == Kind.Color || kind == Kind.Real || kind == Kind.Angle || kind == Kind.Vector;
+            return kind == Kind.Color
+                || kind == Kind.Transparency
+                || kind == Kind.Real
+                || kind == Kind.Angle
+                || kind == Kind.Vector;
         }
 
         /// <summary>Gets whether a property is a point, tested on X, Y and Z each with its own operator.</summary>
@@ -490,6 +521,55 @@ namespace GeometryHelper.Dxf.Viewer
         internal static string GroupToken(CadFilterProperty property) => Infos[property].Token;
 
         internal static int CodeOf(CadFilterProperty property) => Infos[property].Code;
+
+        // Transparency is held as a rank the tests compare: ByLayer -2, ByBlock -1, then the per cent from 0 to 90.
+        private const int TransparencyByLayer = -2;
+        private const int TransparencyByBlock = -1;
+
+        private static int? ReadTransparency(string text)
+        {
+            string word = text.Replace(" ", string.Empty).TrimEnd('%');
+
+            if (string.Equals(word, "ByLayer", StringComparison.OrdinalIgnoreCase))
+            {
+                return TransparencyByLayer;
+            }
+
+            if (string.Equals(word, "ByBlock", StringComparison.OrdinalIgnoreCase))
+            {
+                return TransparencyByBlock;
+            }
+
+            return int.TryParse(word, NumberStyles.None, CultureInfo.InvariantCulture, out int percent) && percent <= 90
+                ? percent
+                : (int?)null;
+        }
+
+        private static string TransparencyWords(int rank) =>
+            rank == TransparencyByLayer ? "ByLayer"
+            : rank == TransparencyByBlock ? "ByBlock"
+            : rank.ToString(CultureInfo.InvariantCulture);
+
+        internal static int TransparencyRankOf(DxfTransparency transparency) =>
+            transparency.IsByBlock ? TransparencyByBlock
+            : transparency.IsByAlpha
+                ? (int)Math.Round((255 - transparency.Alpha) * 100.0 / 255.0, MidpointRounding.AwayFromZero)
+            : TransparencyByLayer;
+
+        /// <summary>The transparency as group 440 holds it: 0 for ByLayer, 0x01000000 for ByBlock, 0x02000000 and the alpha otherwise.</summary>
+        internal int TransparencyValue =>
+            _numbers[0] == TransparencyByLayer ? 0
+            : _numbers[0] == TransparencyByBlock ? 0x01000000
+            : 0x02000000 | (int)Math.Round(255.0 * (100.0 - _numbers[0]) / 100.0, MidpointRounding.AwayFromZero);
+
+        /// <summary>The words of a transparency as group 440 holds it: ByLayer, ByBlock, or the per cent the alpha comes to.</summary>
+        internal static string TransparencyFromValue(int value) =>
+            (value & 0x03000000) == 0x01000000 ? "ByBlock"
+            : (value & 0x03000000) == 0x02000000
+                ? ((int)Math.Round((255 - (value & 0xFF)) * 100.0 / 255.0, MidpointRounding.AwayFromZero)).ToString(
+                    CultureInfo.InvariantCulture
+                )
+            : "ByLayer";
 
         internal static bool TryFind(string name, out CadFilterProperty property)
         {

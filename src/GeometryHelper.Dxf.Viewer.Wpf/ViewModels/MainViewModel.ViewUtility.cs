@@ -17,6 +17,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         // QPMODE as AutoCAD 2021 starts: -1, the panel off, 1 coming back with Ctrl+Shift+P.
         private int _quickPropertiesMode = -1;
+        private int _quickPropertiesLocation;
         private bool _quickPropertiesAsked;
         private bool _isQuickPropertiesShown;
         private IReadOnlyList<PropertyRowViewModel> _quickRows = Array.Empty<PropertyRowViewModel>();
@@ -115,6 +116,26 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : -mode;
             Say(QuickPropertiesMode > 0 ? "<Quick Properties panel on>" : "<Quick Properties panel off>");
         }
+
+        /// <summary>
+        /// Gets or sets QPLOCATION: 0, where AutoCAD 2021 starts, puts the Quick Properties panel by the cursor; 1 would keep it where it
+        /// was left. The value is kept and answered by SETVAR and CAL's getvar as AutoCAD's is; the panel is always placed by the cursor.
+        /// </summary>
+        public int QuickPropertiesLocation
+        {
+            get => _quickPropertiesLocation;
+            set => Set(ref _quickPropertiesLocation, Math.Max(0, Math.Min(1, value)));
+        }
+
+        /// <summary>QPLOCATION among the variables of the window.</summary>
+        private CadSystemVariable QuickPropertiesLocationVariable() =>
+            CadSystemVariable.Integer(
+                "QPLOCATION",
+                0,
+                1,
+                () => QuickPropertiesLocation,
+                v => QuickPropertiesLocation = v
+            );
 
         /// <summary>QPMODE among the variables of the window.</summary>
         private CadSystemVariable QuickPropertiesVariable() =>

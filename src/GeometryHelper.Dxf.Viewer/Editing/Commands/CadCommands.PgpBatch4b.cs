@@ -595,7 +595,7 @@ namespace GeometryHelper.Dxf.Viewer
             return result.Succeeded ? bound : 0;
         }
 
-        /// <summary>The names the layer, linetype and text style tables of a drawing hold.</summary>
+        /// <summary>The names the layer, linetype, text style and dimension style tables of a drawing hold.</summary>
         private sealed class SymbolNames
         {
             internal SymbolNames(DxfDatabase database)
@@ -603,6 +603,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Layers = Names(database.LayerTable.Cast<DxfSymbolTableRecord>());
                 Linetypes = Names(database.LinetypeTable.Cast<DxfSymbolTableRecord>());
                 Styles = Names(database.TextStyleTable.Cast<DxfSymbolTableRecord>());
+                DimStyles = Names(database.DimStyleTable.Cast<DxfSymbolTableRecord>());
             }
 
             internal HashSet<string> Layers { get; }
@@ -610,6 +611,8 @@ namespace GeometryHelper.Dxf.Viewer
             internal HashSet<string> Linetypes { get; }
 
             internal HashSet<string> Styles { get; }
+
+            internal HashSet<string> DimStyles { get; }
 
             private static HashSet<string> Names(IEnumerable<DxfSymbolTableRecord> records) =>
                 new HashSet<string>(records.Select(r => r.Name ?? string.Empty), StringComparer.OrdinalIgnoreCase);
@@ -702,10 +705,85 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // A dimension draws by the reference's style of its name, bound as XBIND binds it: made again from the reference's drawing
+            // as grid$0$MYDIM, its text style the one bound or made for the entities (grid$0$MYSTYLE), the dimension pointed at it.
+            var dimensionStyles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DxfDimension dimension in entities.OfType<DxfDimension>())
+            {
+                string plain = dimension.DimensionStyleName;
+
+                if (!dimensionStyles.TryGetValue(plain, out string bound))
+                {
+                    if (!source.DimStyleTable.Has(plain))
+                    {
+                        continue;
+                    }
+
+                    bound = CopyDimensionStyle(
+                        database,
+                        source,
+                        source.DimStyleTable[plain],
+                        prefix,
+                        styleNames,
+                        copied
+                    );
+                    dimensionStyles[plain] = bound;
+                }
+
+                dimension.DimensionStyleName = bound;
+            }
+
             // What the copy brought under the plain name is of no use now; one still in use stays.
             EraseUnused(database.LayerTable, arrived.Layers, had.Layers);
             EraseUnused(database.LinetypeTable, arrived.Linetypes, had.Linetypes);
+            EraseUnused(database.DimStyleTable, arrived.DimStyles, had.DimStyles);
             EraseUnused(database.TextStyleTable, arrived.Styles, had.Styles);
+        }
+
+        /// <summary>
+        /// A dimension style of the reference's drawing made again in this one under the name XBIND gives it,
+        /// <c>grid$0$MYDIM</c> (the number raised where taken), with every setting of it: the record is copied from a copy of the
+        /// reference's drawing in which it was renamed, then pointed at the text style the entities of the block use or, where the
+        /// block has none of that style, at one made again from the reference's drawing as <see cref="CopyStyle"/> makes it; its name.
+        /// </summary>
+        private static string CopyDimensionStyle(
+            DxfDatabase database,
+            DxfDatabase source,
+            DxfDimStyleTableRecord from,
+            string prefix,
+            Dictionary<string, string> styleNames,
+            Dictionary<string, string> copied
+        )
+        {
+            string name = null;
+
+            for (int i = 0; name == null; i++)
+            {
+                string candidate =
+                    prefix.Replace("|", "$" + i.ToString(CultureInfo.InvariantCulture) + "$") + from.Name;
+                name = database.DimStyleTable.Has(candidate) ? null : candidate;
+            }
+
+            DxfDatabase renamed = DxfDatabase.Parse(source.ToText());
+            renamed.DimStyleTable[from.Name].Name = name;
+            database.File.CopyTableRecords(renamed.File, "DIMSTYLE", new List<string> { name });
+            DxfTextStyleTableRecord used = from.Dimtxsty;
+
+            if (used != null && database.DimStyleTable.Has(name))
+            {
+                string text = used.Name;
+
+                if (!styleNames.TryGetValue(prefix + text, out string style) && !copied.TryGetValue(text, out style))
+                {
+                    style = CopyStyle(database, used, prefix);
+                    copied[text] = style;
+                }
+
+                database.DimStyleTable[name].Dimtxsty = database.TextStyleTable[style];
+            }
+
+            return name;
         }
 
         /// <summary>A text style of the reference's drawing made again in this one under the name XBIND gives it, <c>grid$0$MYSTYLE</c> (the number raised where taken); its name.</summary>

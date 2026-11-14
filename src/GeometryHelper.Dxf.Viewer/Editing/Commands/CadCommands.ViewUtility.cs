@@ -444,7 +444,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// drawing, in the order it meets it: <c>cur</c> "&gt;&gt; Enter a point:", a snap function such as <c>end</c> "&gt;&gt;
         /// Select entity for END snap:" (an object that has no such point is "Improper type of object picked.", a pick on
         /// nothing "No object picked.", and the prompt comes again), <c>rad</c> "&gt;&gt; Select circle, arc or polyline segment
-        /// for RAD function:". The value is written as AutoCAD 2021's CAL writes it (<c>120,80,0</c>), and given to the window
+        /// for RAD function:"; a straight segment of a polyline is "Polyline arc segment must be picked.". <c>getvar(name)</c> reads a
+        /// system variable of the session, <c>w2u</c> and <c>u2w</c> change points to and from the user coordinate system, and
+        /// <c>rot</c>, <c>xof</c>, <c>yof</c>, <c>zof</c>, <c>xyof</c>, <c>rxof</c>, <c>ryof</c> and <c>rzof</c> turn a point or take a vector
+        /// apart. The value is written as AutoCAD 2021's CAL writes it (<c>120,80,0</c>), and given to the window
         /// (QuickCalc takes it where it asked); a wrong expression writes "Error:" and why, and asks again. Typed as 'CAL at a
         /// prompt, the prompt is "&gt;&gt;&gt;&gt; Expression:", nothing is written for the value, and the value is typed at
         /// the prompt the command was waiting at once it resumes.
@@ -494,11 +497,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (input.Kind == CadCalcInputKind.Radius)
                         {
-                            double? radius = CadCalcSnap.Radius(c.Session, c.Input.Handles[0], c.Input.Point);
+                            double? radius = CadCalcSnap.Radius(
+                                c.Session,
+                                c.Input.Handles[0],
+                                c.Input.Point,
+                                out string refusal
+                            );
 
                             if (radius == null)
                             {
-                                c.Write("Improper type of object picked.");
+                                c.Write(refusal);
                                 continue;
                             }
 
@@ -525,7 +533,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    value = CadCalculator.Evaluate(expression, answers);
+                    value = CadCalculator.Evaluate(expression, answers, c.Session);
                 }
                 catch (CadCalcException e)
                 {
