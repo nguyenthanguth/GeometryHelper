@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The band round the arc in which words of an angle put by DIMTEDIT under DIMTMOVE 1 get no leader is refitted over 30 000
+probes of AutoCAD 2021 (SHX and Arial, DIMASZ 1.5 to 4, DIMTXT 1.8 to 4, DIMGAP 0.3 to 1.5, DIMADEC 0 and 4, 20 or 72 directions): the
+landing counts a unit for a unit level with the vertex and half a unit above it, and the inside edge there stays near 3 whatever the
+words. "60°" of Arial put 4 out of an arc of 30 at 85 degrees, 2.75 in, 7 out level with the vertex or 6 out at 45 degrees now
+draws the leader (or none) AutoCAD does; the probes of a7 (5 832) differing fall from 101 to 71, a5 (2 938) from 49 to 33, a6 21 to
+11, a4 13 to 4, and those of other sizes by about a quarter (6 860 probes of seven styles of other arrowheads, gaps, words and
+decimals, from 168 to 126 in Arial and 194 to 137 in SHX); the 30-degree probes of a2, ta2 and ta8 stay at 0 but for one SHX
+probe of DIMASZ 4 and DIMGAP 1.5. Still a fit, not AutoCAD's rule.
+**FIXED.** Level words of a radius put by hand under DIMTMOVE 2 push its arrowhead out where their box takes the line to the centre or
+past it, however far behind it they were put, and within two arrowheads of the centre off the line too: "R20" put 4 behind the centre
+on its line keeps the arrowhead in and the line whole (it went out), put 4 along and 3 across it pushes it out (it stayed in). d3 7 and
+td3 6 differing of 760 down to 0.
+
 **NEW.** -VIEW Restore shows a paper view in the layout it was saved in (a view saved in Sheet 2, restored from Layout1 or the Model
 tab, shows Sheet 2), and a view of model space restored in a layout asks `Restoring Model space view.` / `Select Viewport for view:`
 and shows the whole view through the viewport picked, which is then the one worked through (a view 600 by 400 into a viewport 200 by
