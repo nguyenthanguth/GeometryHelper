@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Saved as R12 (`DxfDatabase.Save` with "AC1009"), more of a drawing is as AutoCAD 2021's own R12 (found by probing its
+console, `Database.DxfIn` of side databases then `DxfOut` at R12; 398 code-built cases of fills, patterns and MTEXT runs, 350 of
+them equal AutoCAD's record for record where 328 did, none that was equal regressing, and a further 285 cases of notches, big-font
+stacks, attributes and bodies, 164 of them equal): the one corner of an outline where the area is pointed inwards (the top of an arch, the
+bottom of a star, a V cut from the top) has its two sides drawn or left out as AutoCAD walks the loop, which the start of the loop
+decides (an arch of 5 corners walked from its 5 corners forward and back gave 4, 4, 6, 6, 6 and 4, 6, 6, 4, 4 LINEs, a V cut
+from the top 4, 4, 6, 6, 4 and 6, 6, 6, 4, 4, 24 of 24 probes of a notch beside level sides as well; 21 of the 70 cases that differed
+now equal), a level side not counted as a side of the loop; a stack with a letter of a big font in one half (`A\S中/文;B` in txt.shx and gbcbig.shx) was left as one
+TEXT of its words and is now the TEXTs and the bar of a stack, each half as high as the ink of its letters (2.454 of 2.5 for 中),
+the denominator of a slash a third of the height beyond the ink of its numerator, and a letter of the font after a big one inked
+from where the big one began (14 of 15 probes equal, none before); an attribute of several lines held at the middle, bottom or the
+right or centre of a line is one attribute for each line as AutoCAD writes it, each line at the left of its ink where the fonts of
+the drawing measure its words (it was one attribute holding `\P`; 16 of 16 probes equal); a BODY and a SURFACE are the edges of
+their faces as a 3DSOLID is (24 LINEs for a box; they were left out). Still different from AutoCAD, with the numbers: the
+gradients' own display meshes (CYLINDER 152, SPHERICAL 332, CURVED 57, HEMISPHERICAL 56 SOLIDs on a rectangle 100 by 60, 164, 428,
+57 and 130 on 100 by 100, 82, 124, 115 and 30 on 200 by 60, 248, 332, 57 and 37 on 60 by 100, as a hierarchy of triangles on a grid
+of 72 by 72 of the rectangle whose depth follows the shape and the proportions of the rectangle, not found); the sides at the
+notches of a fill with several, a W or an M, from some starts of the loop (16 of 398 probes; AutoCAD's choice for one is not that
+of the same notch among several); the edges of a solid that are splines (AutoCAD writes 3D polylines of 32 vertices to each control
+point, 224 and 128 for the sample's 6 of 7 and 4, which are left out and said); the words of a Palatino stack (0.2 off, AutoCAD
+measuring the digits 1 and 2 as 1.04 times higher than the ink the font gives); a stack under a line with big letters in it; the
+first line of an attribute standing at y = 0 of its block exactly, which AutoCAD leaves out; the dashes of a pattern at 45 and 135
+degrees that end exactly on an edge.
 **NEW.** A table made in code and the table styles of a drawing are saved with what AutoCAD 2021 builds of them when it reads the file
 (`Save(path)`, `Save(stream)` and the forms with a version, R2007 to R2018 and going down to R2000 and R2004; `ToText()` and the drawing
 itself are left as they are): for each table of a drawing of R2007 or later that has none, the extension dictionary with the XRECORD of

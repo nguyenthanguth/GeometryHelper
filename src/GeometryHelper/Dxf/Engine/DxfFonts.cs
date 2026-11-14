@@ -537,7 +537,7 @@ namespace GeometryHelper.Dxf
                 // A stack is laid out by its own shape, from the font alone.
                 if (drawn != null && drawn[k].Stack != null)
                 {
-                    if (!line.AddStack(drawn[k]))
+                    if (!line.AddStack(drawn[k], big))
                     {
                         return false;
                     }
@@ -741,6 +741,39 @@ namespace GeometryHelper.Dxf
             return Pick(font, big, numbers, 0, out DxfFont from, out _, out _) && from == big.Font;
         }
 
+        /// <summary>Whether a letter of words is drawn from the big font beside a font, as <see cref="Pick"/> says.</summary>
+        internal static bool HasBigLetter(DxfFont font, Big big, string words)
+        {
+            if (big?.Font == null)
+            {
+                return false;
+            }
+
+            var numbers = new List<int>(words.Length);
+
+            for (int i = 0; i < words.Length; )
+            {
+                numbers.Add(CodePoint(words, ref i));
+            }
+
+            for (int k = 0; k < numbers.Count; )
+            {
+                if (!Pick(font, big, numbers, k, out DxfFont from, out _, out int taken))
+                {
+                    return false;
+                }
+
+                if (from == big.Font)
+                {
+                    return true;
+                }
+
+                k += Math.Max(taken, 1);
+            }
+
+            return false;
+        }
+
         /// <summary>The bytes of a letter in a code page, an ASCII letter its own; none where the page has it not, and null where it is no letter.</summary>
         private static byte[] BytesOf(Encoding page, int c)
         {
@@ -919,9 +952,24 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The words of one half of a stack measured as a line in a font at the stack's width, height and spread; null where a letter is not measured.</summary>
-        internal static DxfTextLine StackLine(DxfFont font, string words, Letter stack)
+        internal static DxfTextLine StackLine(DxfFont font, string words, Letter stack, Big big = null)
         {
             var line = new DxfTextLine(font);
+
+            // Beside a big font each letter is drawn from the font or the big font as a line of letters is.
+            if (big?.Font != null)
+            {
+                var letters = new List<Letter>(words.Length);
+
+                for (int i = 0; i < words.Length; )
+                {
+                    letters.Add(new Letter(CodePoint(words, ref i), stack.Width, stack.Height, stack.Track));
+                }
+
+                var numbers = new List<int>(letters.Count);
+                letters.ForEach(l => numbers.Add(l.Number));
+                return Drawn(line, font, big, numbers, letters, 1.0, stack.Height, true) ? line : null;
+            }
 
             for (int i = 0; i < words.Length; )
             {

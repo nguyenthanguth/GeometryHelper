@@ -133,8 +133,9 @@ namespace GeometryHelper.UnitTest.Dxf
         // A 1 as txt.shx draws it: up 6, along 2, lifted, down 6 and along 2.
         private static readonly byte[] One = { 1, 0x64, 0x20, 2, 0x6C, 0x20, 0 };
 
-        // A letter of a big font 8 above as gbcbig.shx's.
-        private static readonly byte[] Cell = { 2, 8, 1, 0, 1, 8, 6, 8, 2, 8, 1, 0xF8, 0 };
+        // A letter of a big font 8 above as gbcbig.shx's, its ink as high as the rise (8 fills it).
+        private static byte[] Cell(byte rise) =>
+            new byte[] { 2, 8, 1, 0, 1, 8, 6, rise, 2, 8, 1, (byte)(256 - rise), 0 };
 
         private static byte[] Unifont()
         {
@@ -175,11 +176,11 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         /// <summary>A Chinese big font as gbcbig.shx is made: a height above of nought and a depth of 4, bytes A1 to FE opening a letter of two; 中 (D6D0 in GBK) its letter.</summary>
-        private static byte[] Chinese()
+        private static byte[] Chinese(byte rise = 8)
         {
             byte[] name = Encoding.ASCII.GetBytes("GH BIG").Concat(new byte[] { 0, 0, 4, 2, 0 }).ToArray();
             byte[] letter = new byte[] { 0 }
-                .Concat(Cell)
+                .Concat(Cell(rise))
                 .ToArray();
             var bytes = new List<byte>(Encoding.ASCII.GetBytes("AutoCAD-86 bigfont 1.0\r\n\u001A"));
             bytes.AddRange(BitConverter.GetBytes((ushort)8));
@@ -217,7 +218,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 }
             );
 
-        private static void InFolder(Action<string> test, bool bigFont = false)
+        private static void InFolder(Action<string> test, bool bigFont = false, byte bigRise = 8)
         {
             string folder = Path.Combine(Path.GetTempPath(), "gh-r12f-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
@@ -229,7 +230,7 @@ namespace GeometryHelper.UnitTest.Dxf
 
                 if (bigFont)
                 {
-                    File.WriteAllBytes(Path.Combine(folder, "gbcbig.shx"), Chinese());
+                    File.WriteAllBytes(Path.Combine(folder, "gbcbig.shx"), Chinese(bigRise));
                 }
 
                 test(folder);
@@ -450,6 +451,99 @@ namespace GeometryHelper.UnitTest.Dxf
             );
         }
 
+        [Fact]
+        public void ALetterOfABigFontInTheNumerator_IsAsHighAsItsInk_NotAsTheHeightOfTheLetters()
+        {
+            // AutoCAD 2021, txt.shx and gbcbig.shx 2.5 high at the top left (10, 10), A\S中/文;B: the stack is laid out (it was one
+            // TEXT of its words), each half of letters of the big font as high as their ink: 2.454 of the 2.5 for 中 and 文 in
+            // gbcbig. A letter here has its ink 6 of the 8 high, 1.875 of the 2.5.
+            InFolder(
+                folder =>
+                {
+                    DxfDatabase db = Drawing(folder);
+                    DxfMText words = Words(db, "A\\S中/1;B", "BIG");
+
+                    List<Record> pieces = PiecesOf(Sections(R12(db)), words.Handle);
+
+                    Assert.Equal(new[] { "TEXT", "TEXT", "LINE", "TEXT", "TEXT" }, pieces.Select(p => p.Type));
+                    Text(pieces[0], "A", 10.0, 4.791666666666667);
+                    Text(pieces[1], "\\U+4E2D", 12.1875, 8.125);
+                    Line(pieces[2], 12.5, 7.708333333333333, 14.375, 7.708333333333333);
+                    Text(pieces[3], "1", 13.020833333333334, 4.791666666666667);
+                    Text(pieces[4], "B", 15.208333333333334, 4.791666666666667);
+                },
+                true,
+                6
+            );
+        }
+
+        [Fact]
+        public void ALetterOfABigFontInTheDenominator_IsAsHighAsItsInk_AndTheNumeratorStandsOnIt()
+        {
+            InFolder(
+                folder =>
+                {
+                    DxfDatabase db = Drawing(folder);
+                    DxfMText words = Words(db, "A\\S1/中;B", "BIG");
+
+                    List<Record> pieces = PiecesOf(Sections(R12(db)), words.Handle);
+
+                    Assert.Equal(new[] { "TEXT", "TEXT", "LINE", "TEXT", "TEXT" }, pieces.Select(p => p.Type));
+                    Text(pieces[0], "A", 10.0, 4.791666666666667);
+                    Text(pieces[1], "1", 13.020833333333334, 7.5);
+                    Line(pieces[2], 12.5, 7.083333333333333, 14.375, 7.083333333333333);
+                    Text(pieces[3], "\\U+4E2D", 12.1875, 4.791666666666667);
+                    Text(pieces[4], "B", 15.208333333333334, 4.791666666666667);
+                },
+                true,
+                6
+            );
+        }
+
+        [Fact]
+        public void AStackWithASlashAndABigLetterInItsNumerator_PutsTheDenominatorAThirdOfTheHeightBeyondTheInk()
+        {
+            // Letters of an SHX font put the denominator at the numerator's pen; a letter of a big font at the width of its ink and a
+            // third of the height (AutoCAD 2021, gbcbig, A\S中#文;B: 2.019 from the start of the stack where the pen is 1.820).
+            InFolder(
+                folder =>
+                {
+                    DxfDatabase db = Drawing(folder);
+                    DxfMText words = Words(db, "A\\S中#1;B", "BIG");
+
+                    List<Record> pieces = PiecesOf(Sections(R12(db)), words.Handle);
+
+                    Assert.Equal(new[] { "TEXT", "TEXT", "LINE", "TEXT", "TEXT" }, pieces.Select(p => p.Type));
+                    Text(pieces[1], "\\U+4E2D", 12.1875, 8.125);
+                    Text(pieces[3], "1", 15.208333333333334, 5.625);
+                    Text(pieces[4], "B", 16.875, 5.625);
+                },
+                true,
+                6
+            );
+        }
+
+        [Fact]
+        public void ALetterOfTheFontAfterABigLetterInAStackHalf_IsInkedWhereTheBigLetterBegan()
+        {
+            // AutoCAD 2021, gbcbig.shx, A\S1/中x;B: the ink of the denominator 中x begins at its pen, not at the 0.331 where 中's own
+            // begins, so that it stands at the start of the stack and the bar is as wide as the ink reaches from it.
+            InFolder(
+                folder =>
+                {
+                    DxfDatabase db = Drawing(folder);
+                    DxfMText words = Words(db, "A\\S1/中B;B", "BIG");
+
+                    List<Record> pieces = PiecesOf(Sections(R12(db)), words.Handle);
+
+                    Assert.Equal(new[] { "TEXT", "TEXT", "LINE", "TEXT", "TEXT" }, pieces.Select(p => p.Type));
+                    Text(pieces[3], "\\U+4E2DB", 12.5, pieces[0].Number(20));
+                },
+                true,
+                6
+            );
+        }
+
         // ---- a solid fill in a tilted plane -----------------------------------------------------------------------------------
 
         private static GeoPoint2[] Rectangle(double x0, double y0, double x1, double y1) =>
@@ -633,6 +727,62 @@ namespace GeometryHelper.UnitTest.Dxf
             Is(88.33333333333333, attributes[1].Number(20));
             Assert.False(attributes[0].Has(1001));
             Assert.Equal("AcDbAttr", attributes[1].First(1001));
+        }
+
+        [Theory]
+        [InlineData(DxfAttachmentPoint.TopCenter, -2.0833333333333335, -7.5, -0.83333333333333337, -11.666666666666666)]
+        [InlineData(DxfAttachmentPoint.MiddleLeft, 0.0, -4.1666666666666661, 0.0, -8.3333333333333339)]
+        [InlineData(
+            DxfAttachmentPoint.MiddleRight,
+            -4.166666666666667,
+            -4.1666666666666661,
+            -1.6666666666666667,
+            -8.3333333333333339
+        )]
+        [InlineData(
+            DxfAttachmentPoint.BottomCenter,
+            -2.0833333333333335,
+            -0.83333333333333337,
+            -0.83333333333333337,
+            -5.0
+        )]
+        public void AnAttributeOfTwoLinesHeldElsewhereThanAtItsTopLeft_IsOneAttributeForEachLine_AtTheBaselineOfItsLine(
+            DxfAttachmentPoint hold,
+            double firstX,
+            double firstY,
+            double secondX,
+            double secondY
+        )
+        {
+            // AutoCAD 2021 held MARK "AB\PA" at its middle, bottom or other point as it holds an MTEXT, each line a TEXT of its own
+            // at the left of its ink (no justification), so that a line held at the centre or the right begins that much left of
+            // the point; each line is 2.5 high and 4.1667 below the one before. Where fonts measure the words.
+            InFolder(folder =>
+            {
+                DxfDatabase database = Drawing(folder);
+                var block = new DxfBlockTableRecord { Name = "BOLT" };
+                database.BlockTable.Add(block);
+                var definition = new DxfAttributeDefinition(new GeoPoint3(0, -5, 0), "AB", "MARK", "Mark", null);
+                block.AppendEntity(definition);
+                definition.MTextAttributeDefinition = new DxfMText
+                {
+                    Contents = "AB\\PA",
+                    Location = new GeoPoint3(0, -5, 0),
+                    TextHeight = 2.5,
+                    Attachment = hold,
+                };
+
+                List<Record> definitions = Sections(R12(database))["BLOCKS"].Where(r => r.Type == "ATTDEF").ToList();
+
+                Assert.Equal(new[] { "MARK_001", "MARK_002" }, definitions.Select(r => r.First(2)));
+                Assert.Equal(new[] { "AB", "A" }, definitions.Select(r => r.First(1)));
+                Assert.False(definitions[0].Has(72));
+                Assert.False(definitions[0].Has(11));
+                Is(firstX, definitions[0].Number(10));
+                Is(secondX, definitions[1].Number(10));
+                Is(firstY, definitions[0].Number(20));
+                Is(secondY, definitions[1].Number(20));
+            });
         }
 
         // ---- the lines of a pattern ---------------------------------------------------------------------------------------------

@@ -280,6 +280,31 @@ namespace GeometryHelper.UnitTest.Dxf
             "point $-1 0 0 15",
         };
 
+        // ---- a BODY and a SURFACE ----------------------------------------------------------------------------------------------
+
+        [Theory]
+        [InlineData("BODY", "")]
+        [InlineData("SURFACE", "\n100\nAcDbSurface\n 71\n     0\n 72\n     0")]
+        public void ABodyOrASurfaceOfTheBox_IsTheSameTwentyFourLinesAsTheSolid(string type, string classes)
+        {
+            // AutoCAD 2021 writes a BODY and a SURFACE saved as R12 as it writes a 3DSOLID: the edges of its faces, 24 LINEs for a box.
+            DxfDatabase made = Drawing();
+            DxfUnknownEntity region = DxfUnknownEntity.CreateRegion(new DxfRegionShape(BoxBody()), made);
+            made.ModelSpace.AppendEntity(region);
+            string text = Regex.Replace(made.ToText(), @"(\r?\n\s*0\r?\n)REGION(\r?\n)", "${1}" + type + "${2}");
+            int entities = text.IndexOf("ENTITIES", StringComparison.Ordinal);
+            int end = entities + Regex.Match(text.Substring(entities), @"\r?\n\s*0\r?\nENDSEC").Index;
+            DxfDatabase database = DxfDatabase.Parse(text.Substring(0, end) + classes + text.Substring(end));
+
+            Dictionary<string, List<Record>> sections = Sections(R12(database, out IReadOnlyList<string> said));
+            List<Record> block = BlockOfInsert(sections, region.Handle);
+
+            Assert.DoesNotContain(sections["ENTITIES"], r => r.Type == type);
+            Assert.Equal(24, block.Count);
+            Assert.All(block, r => Assert.Equal("LINE", r.Type));
+            Assert.Contains(said, s => s.Contains(type));
+        }
+
         // ---- a 3DSOLID ---------------------------------------------------------------------------------------------------------
 
         [Fact]
