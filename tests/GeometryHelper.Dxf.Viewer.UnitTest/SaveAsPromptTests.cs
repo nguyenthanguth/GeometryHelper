@@ -107,16 +107,37 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Theory]
         [InlineData("R14", "AutoCAD R14(LT98/LT97) Drawing")]
         [InlineData("2000", "AutoCAD 2000(LT2000) Drawing")]
-        [InlineData("2013(LT2013)", "AutoCAD 2013(LT2013) Drawing")]
-        public void AFormatOfTheDwgBefore2018_IsRefused_AndNothingIsWritten(string typed, string name)
+        [InlineData("2007(LT2007)", "AutoCAD 2007(LT2007) Drawing")]
+        public void AFormatOfTheDwgTheWriterDoesNotWrite_IsRefused_AndNothingIsWritten(string typed, string name)
         {
             CadCommandSession session = NewDwg(out CadDocument document);
 
             Run(session, "SAVEAS", typed);
 
             Assert.False(session.IsRunning);
-            Assert.Contains(name + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018 (2018).", session.History);
+            Assert.Contains(
+                name
+                    + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004).",
+                session.History
+            );
             Assert.False(document.HasFile);
+        }
+
+        [Theory]
+        [InlineData("2013", "AC1027")]
+        [InlineData("lt2010", "AC1024")]
+        [InlineData("2004(LT2004)", "AC1018")]
+        public void AnOlderFormatOfTheDwg_ThenAName_SavesADwgOfThatVersion(string typed, string version)
+        {
+            CadCommandSession session = NewDwg(out CadDocument document);
+            string path = Path.Combine(_folder, "older" + version);
+
+            Run(session, "SAVEAS", typed);
+            Run(session, path);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(version, Magic(path + ".dwg"));
+            Assert.Equal(version, document.SaveVersion);
         }
 
         [Theory]

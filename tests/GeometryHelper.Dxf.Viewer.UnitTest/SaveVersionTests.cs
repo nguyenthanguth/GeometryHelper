@@ -122,20 +122,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AVersionForADwgName_IsRefusedAndTheFileIsNotTouched()
+        public void AVersionTheDwgWriterDoesNotWrite_ForADwgName_IsRefusedAndTheFileIsNotTouched()
         {
             CadDocument document = Plan();
             string path = Path.Combine(_folder, "plan.dwg");
             File.WriteAllText(path, "kept");
 
-            Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1024", null));
+            Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1015", null));
+            Assert.Throws<NotSupportedException>(() => document.SaveAs(path, "AC1021", null));
 
             Assert.Equal("kept", File.ReadAllText(path));
             Assert.Null(document.SaveVersion);
 
-            // The version of the DWG itself, AutoCAD 2018, is no other.
-            document.SaveAs(path, "AC1032", null);
-            Assert.Equal("AC1032", CadDrawingFile.Open(path).Version);
+            // AutoCAD 2018 and the three before it that the writer knows are written.
+            foreach (string version in new[] { "AC1032", "AC1027", "AC1024", "AC1018" })
+            {
+                document.SaveAs(path, version, null);
+                Assert.Equal(version, CadDrawingFile.Open(path).Version);
+                Assert.Equal(version, document.SaveVersion);
+            }
         }
 
         [Fact]

@@ -326,8 +326,9 @@ and an ellipse and of three shapes, a frame with an island, and agree to the six
 A drawing saved in another version (`DxfDatabase.Save(path, version)`) has the data of each region written for the
 version: a region of SAT text goes to the data store at R2013 and back, R2013 to R2018 and the texts of R2000, R2004, R2007
 and R2010 into one another, as AutoCAD 2021 gives it in each; a region whose body the library does not read is kept as it
-was going between texts and left out going below R2013, as any other body. A DWG is written for R2018 only, so a region in a
-DWG of R2000 to R2010 waits for the DWG writer to write those versions.
+was going between texts and left out going below R2013, as any other body. A DWG is written for R2018, R2013, R2010 and R2004, so a region in a DWG of those versions is written in their form (the SAT
+text of R2004 and R2010, the data store of R2013 and R2018); a DWG of R2000 or R2007 waits for the DWG writer to write
+them.
 
 ### What it costs
 

@@ -799,8 +799,10 @@ namespace GeometryHelper.Dwg
                         ids.Add(0);
                         break;
                     case 91 when points.Count > 0:
+                        // The vertex ids are a part of the object from R2010; a DXF of a later version given for an earlier one
+                        // may still hold them, and AutoCAD refuses a file of R2004 that has them.
                         ids[ids.Count - 1] = DwgRecord.Int(group.Value);
-                        anyId = true;
+                        anyId = R2010Plus;
                         break;
                     case 20 when points.Count > 0:
                         points[points.Count - 1][1] = DwgRecord.Double(group.Value);

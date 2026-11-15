@@ -22,8 +22,59 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The one type of IMPORT's file: a DWG or a DXF drawing, brought in as a block.</summary>
         public const string Drawing = "Drawing (*.dwg;*.dxf)";
 
-        /// <summary>The DWG type of Save As, the one the DWG writer writes, listed first as AutoCAD 2021 lists it.</summary>
+        /// <summary>The DWG type of Save As of AutoCAD 2018, the one a DWG is written as where no other is chosen, listed first as AutoCAD 2021 lists it.</summary>
         public const string Dwg = "AutoCAD 2018 Drawing (*.dwg)";
+
+        // The DWG types of Save As the DWG writer writes, as AutoCAD 2021 lists them, the newest first, each with its version.
+        private static readonly KeyValuePair<string, string>[] DwgTypes =
+        {
+            new KeyValuePair<string, string>(Dwg, "AC1032"),
+            new KeyValuePair<string, string>("AutoCAD 2013/LT2013 Drawing (*.dwg)", "AC1027"),
+            new KeyValuePair<string, string>("AutoCAD 2010/LT2010 Drawing (*.dwg)", "AC1024"),
+            new KeyValuePair<string, string>("AutoCAD 2004/LT2004 Drawing (*.dwg)", "AC1018"),
+        };
+
+        /// <summary>
+        /// Gets the DWG types of AutoCAD 2021's Save Drawing As that the DWG writer writes, the newest first, each a version
+        /// <see cref="GeometryHelper.Dwg.DwgWriter"/> writes: "AutoCAD 2018 Drawing (*.dwg)", then 2013/LT2013, 2010/LT2010 and
+        /// 2004/LT2004.
+        /// </summary>
+        public static IReadOnlyList<string> DwgSaveTypes { get; } =
+            Array.AsReadOnly(DwgTypes.Select(t => t.Key).ToArray());
+
+        /// <summary>Gets the DWG type of Save As that writes a version, as AutoCAD 2021 lists it: "AutoCAD 2013/LT2013 Drawing (*.dwg)" for AC1027.</summary>
+        /// <param name="version">The version as <c>$ACADVER</c> names it, letters of either case.</param>
+        /// <returns>The type; null for a version the DWG writer does not write.</returns>
+        public static string DwgTypeOfVersion(string version)
+        {
+            string named = (version ?? string.Empty).Trim();
+
+            foreach (KeyValuePair<string, string> type in DwgTypes)
+            {
+                if (string.Equals(type.Value, named, StringComparison.OrdinalIgnoreCase))
+                {
+                    return type.Key;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Gets the version a DWG type of Save As writes: AC1024 for "AutoCAD 2010/LT2010 Drawing (*.dwg)".</summary>
+        /// <param name="fileType">The type.</param>
+        /// <returns>The version; null for a DXF type and for any other.</returns>
+        public static string DwgVersionOfType(string fileType)
+        {
+            foreach (KeyValuePair<string, string> type in DwgTypes)
+            {
+                if (string.Equals(type.Key, fileType, StringComparison.Ordinal))
+                {
+                    return type.Value;
+                }
+            }
+
+            return null;
+        }
 
         // The DXF types of Save As, as AutoCAD 2021 lists them, the newest first, each with the version it writes.
         private static readonly KeyValuePair<string, string>[] DxfTypes =

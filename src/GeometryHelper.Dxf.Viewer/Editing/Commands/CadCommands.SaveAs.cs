@@ -26,8 +26,8 @@ namespace GeometryHelper.Dxf.Viewer
             new Format("AC1032", "2018(LT2018)", "2018", "LT2018", "2018(LT2018)"),
         };
 
-        // The formats of the DWG the prompt lists, as the version it stands for, how it is listed and how it is typed. R14 and
-        // the five before 2018 are listed as AutoCAD lists them and refused, since the DWG is written as AutoCAD 2018 only.
+        // The formats of the DWG the prompt lists, as the version it stands for, how it is listed and how it is typed. R14, 2000
+        // and 2007 are listed as AutoCAD lists them and refused, since the DWG writer writes 2004 and later only.
         private static readonly Format[] DwgChoices =
         {
             new Format("AutoCAD R14(LT98/LT97) Drawing", "R14(LT98&LT97)", "R14", "LT98", "LT97", "R14(LT98&LT97)"),
@@ -38,6 +38,16 @@ namespace GeometryHelper.Dxf.Viewer
             new Format("AutoCAD 2013(LT2013) Drawing", "2013(LT2013)", "2013", "LT2013", "2013(LT2013)"),
             new Format("AutoCAD 2018 Drawing", "2018(LT2018)", "2018", "LT2018", "2018(LT2018)"),
         };
+
+        /// <summary>The version of the DWG a format of <see cref="DwgChoices"/> is, by its label: AC1027 for 2013(LT2013); null for one the DWG writer does not write.</summary>
+        private static string DwgVersionOf(Format format)
+        {
+            string version = DxfChoices.FirstOrDefault(d => d.Label == format.Label)?.Key;
+            return CadDrawingFile.IsDwgVersion(version) ? version : null;
+        }
+
+        /// <summary>The version to hand to the document to save a DWG as: null for AutoCAD 2018, which is what a DWG is written as where none is given.</summary>
+        private static string DwgSaveVersion(string dwgVersion) => dwgVersion == "AC1032" ? null : dwgVersion;
 
         /// <summary>A format the prompts list: what it is known by, how the prompt lists it, and the words it is typed by, of any case.</summary>
         private sealed class Format
@@ -56,7 +66,7 @@ namespace GeometryHelper.Dxf.Viewer
             internal string[] Words { get; }
         }
 
-        /// <summary>What a typed SAVEAS or DXFOUT decided: the file, and the version of a DXF (null for a DWG).</summary>
+        /// <summary>What a typed SAVEAS or DXFOUT decided: the file, and the version of a DXF or of a DWG other than AutoCAD 2018 (null for AutoCAD 2018 DWG).</summary>
         private sealed class SaveChoice
         {
             internal string File { get; set; }
@@ -72,8 +82,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// SAVEAS: the window's Save Drawing As dialog; with FILEDIA 0 or no window, "Current file format" and "Enter file format
-        /// [R14(LT98&amp;LT97)/2000(LT2000)/.../2018(LT2018)/Dxf/Template/Standards] &lt;2018&gt;:", the DWG of AutoCAD 2018 and
-        /// Dxf the two it writes; Dxf asks its settings, the version among them, then the file, which is handed to the window to
+        /// [R14(LT98&amp;LT97)/2000(LT2000)/.../2018(LT2018)/Dxf/Template/Standards] &lt;2018&gt;:", the DWG of AutoCAD 2018, 2013, 2010 or 2004 and
+        /// Dxf the formats it writes; Dxf asks its settings, the version among them, then the file, which is handed to the window to
         /// save, or saved here with no window.
         /// </summary>
         private static IEnumerable<CadPrompt> SaveAs(CadCommandContext c)
@@ -94,7 +104,11 @@ namespace GeometryHelper.Dxf.Viewer
         {
             bool wasDwg = CadDrawingFile.IsDwgName(offered);
             string own = c.Document.SaveVersion ?? c.Document.Database.Version;
-            string current = wasDwg ? "AutoCAD 2018 Drawing" : "AutoCAD " + DxfShown(own) + " DXF Format";
+
+            // The version of a DWG: the one the drawing was last saved as where that is written, else AutoCAD 2018.
+            string dwgVersion = wasDwg && CadDrawingFile.IsDwgVersion(c.Document.SaveVersion) ? own : "AC1032";
+            Format dwgNow = DwgChoices.First(d => DwgVersionOf(d) == dwgVersion);
+            string current = wasDwg ? dwgNow.Key : "AutoCAD " + DxfShown(own) + " DXF Format";
             c.Write("Current file format: " + current);
             string list = string.Join("/", DwgChoices.Select(d => d.Label)) + "/Dxf/Template/Standards";
             bool dxf = false;
@@ -102,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForString("Enter file format [" + list + "]", wasDwg ? "2018" : "Dxf");
+                yield return CadPrompt.ForString("Enter file format [" + list + "]", wasDwg ? dwgNow.Words[0] : "Dxf");
                 string typed = c.Input.Kind == CadInputKind.Text ? c.Input.Text.Trim() : string.Empty;
 
                 if (typed.Length == 0)
@@ -139,12 +153,18 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (dwg[0].Label != "2018(LT2018)")
+                string chosen = DwgVersionOf(dwg[0]);
+
+                if (chosen == null)
                 {
-                    c.Write(dwg[0].Key + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018 (2018).");
+                    c.Write(
+                        dwg[0].Key
+                            + " (*.dwg) is not written: a DWG is saved as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004)."
+                    );
                     yield break;
                 }
 
+                dwgVersion = chosen;
                 break;
             }
 
@@ -168,6 +188,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
+                choice.Version = DwgSaveVersion(dwgVersion);
                 offered = wasDwg ? offered : Path.ChangeExtension(offered, ".dwg");
             }
 
@@ -195,15 +216,15 @@ namespace GeometryHelper.Dxf.Viewer
                 // The format was no more than the one offered: the name says what it is, as it did before the format was asked.
                 dxf = !dxf;
                 extension = other;
-                choice.Version = dxf ? (wasDwg ? "AC1032" : DxfDefault(own)) : null;
+                choice.Version = dxf ? (wasDwg ? "AC1032" : DxfDefault(own)) : DwgSaveVersion(dwgVersion);
             }
 
             choice.File = file.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? file : file + extension;
 
             var job = new CadExportJob(
                 "Save Drawing As",
-                new[] { CadExportJob.Dwg }.Concat(CadExportJob.DxfSaveTypes).ToList(),
-                dxf ? CadExportJob.DxfTypeOfVersion(choice.Version) : CadExportJob.Dwg,
+                CadExportJob.DwgSaveTypes.Concat(CadExportJob.DxfSaveTypes).ToList(),
+                dxf ? CadExportJob.DxfTypeOfVersion(choice.Version) : CadExportJob.DwgTypeOfVersion(dwgVersion),
                 choice.File
             );
 

@@ -290,9 +290,41 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// Gives each multileader and each multileader style of a drawing written before R2010 the extended data of the
+        /// application ACAD_MLEADERVER (the version 2) that AutoCAD keeps on it in such a file, and registers the application
+        /// as AutoCAD does; AutoCAD 2021 refuses the file ("ErrorStatus 53") where one lacks it. One that has it is left as it
+        /// is.
+        /// </summary>
+        private void GiveMLeadersTheirVersion()
+        {
+            foreach (DwgRecord style in _drawing.All.FindAll(r => r.Type == "MLEADERSTYLE" || r.Type == "MULTILEADER"))
+            {
+                if (style.XData.Exists(g => g.Key == 1001 && g.Value.Trim() == "ACAD_MLEADERVER"))
+                {
+                    continue;
+                }
+
+                if (_drawing.AddApplication("ACAD_MLEADERVER") == 0)
+                {
+                    return;
+                }
+
+                var data = new List<KeyValuePair<int, string>>(style.XData);
+                data.Add(new KeyValuePair<int, string>(1001, "ACAD_MLEADERVER"));
+                data.Add(new KeyValuePair<int, string>(1070, "2"));
+                style.XData = data;
+            }
+        }
+
         private byte[] Write(ProgressSteps progress)
         {
             ListClassesOfFields();
+
+            if (_number < 1024)
+            {
+                GiveMLeadersTheirVersion();
+            }
 
             foreach (DwgRecord one in _drawing.Classes)
             {
@@ -401,10 +433,13 @@ namespace GeometryHelper.Dwg
             ulong seed = DwgRecord.Hex(_drawing.HeaderText("HANDSEED", "0"));
             _handseed = Math.Max(_handseed + 1, seed);
             int codePage = CodePageNumber(_drawing.HeaderText("DWGCODEPAGE", "ANSI_1252").Trim());
-            // The maintenance release AutoCAD 2021 names in a file of R2013 and R2018; a file of R2010 is written with none, which it opens.
+            // The maintenance release AutoCAD 2021 names in a file of each version: 104 for R2004, 226 for R2010, 125 for R2013 and
+            // 174 for R2018. A file that names none is refused by AutoCAD where it holds an entity with proxy graphics.
             int maintenance =
                 _number >= 1032 ? 174
                 : _number == 1027 ? 125
+                : _number == 1024 ? 226
+                : _number == 1018 ? 104
                 : 0;
             _maintenance = maintenance;
             var container = new DwgContainerWriter(_version, maintenance, codePage);
@@ -491,9 +526,8 @@ namespace GeometryHelper.Dwg
         }
 
         /// <summary>
-        /// A section between two sentinels: the start sentinel, the size of the data, from R2010 a long of 0 more (from
-        /// R2018, or where the maintenance release is past 3), the data, the check sum of the size and the data, the end
-        /// sentinel.
+        /// A section between two sentinels: the start sentinel, the size of the data, from R2010 a long of 0 more, the data,
+        /// the check sum of the size and the data, the end sentinel.
         /// </summary>
         private byte[] Framed(byte[] start, byte[] data, byte[] end, bool trailer)
         {
@@ -502,7 +536,7 @@ namespace GeometryHelper.Dwg
             var sized = new MemoryStream();
             Long(sized, data.Length);
 
-            if (_number >= 1032 || _maintenance > 3)
+            if (_number >= 1024)
             {
                 Long(sized, 0);
             }

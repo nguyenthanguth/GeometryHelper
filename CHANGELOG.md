@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** `DwgWriter` writes AutoCAD 2013 (AC1027), 2010 (AC1024) and 2004 (AC1018) as well as 2018: `DwgWriter.Write(database, path, "AC1024")`.
+A drawing of a later version is made into the DXF of the version first, as `DxfDatabase.Save(path, version)` gives it, and what AutoCAD keeps
+in such a file in its own way is put in as AutoCAD puts it (see the fixes below). The presenter's Save As lists "AutoCAD 2013/LT2013 Drawing",
+"AutoCAD 2010/LT2010 Drawing" and "AutoCAD 2004/LT2004 Drawing" beside "AutoCAD 2018 Drawing" (`CadExportJob.DwgSaveTypes`), `SAVEAS` with
+FILEDIA 0 takes 2013, 2010 and 2004 (R14, 2000 and 2007 are refused, "AutoCAD 2007(LT2007) Drawing (*.dwg) is not written: a DWG is saved
+as AutoCAD 2018, 2013, 2010 or 2004 (2018, 2013, 2010, 2004)."), and Save (QSAVE) writes the DWG of the version last chosen again. The 167
+drawings of AutoCAD 2021's samples and of the tests, each written as AC1018, AC1024 and AC1027 and opened in AutoCAD 2021 with `AUDIT`: all
+167 open in every version; 160 of 167 at 0 errors in each (the originals: 156), the other 7 with the errors of their originals (126 of the
+150 the originals have in all), and the 4 tables that had 6 each have none. R2000 (AC1015) and R2007 (AC1021) are not written yet.
+**FIXED.** A DWG of R2010 that held a table, a multileader, a wipeout or an image made AutoCAD 2021's `accoreconsole` take all the memory it
+could get (66 GB and 86 GB within 240 s on two of the corpus files, the machine frozen) or refuse the file (`ErrorStatus` 53): the file named
+no maintenance release, where AutoCAD's own names 226 for R2010 (104 for R2004, 125 for R2013), and its header and classes lacked the long
+of 0 after their size that R2010 and later carry (R2004 has none). With them the 6 files that hung and the 13 that were refused open with
+`AUDIT` as their originals do.
+**FIXED.** Written as R2004, a drawing of a later version was refused by AutoCAD 2021 (`ErrorStatus` 53 or a hang) for five faults, each
+found against AutoCAD's own R2004 file of the same drawing: the proxy graphics of a table or a multileader held their texts in 16 bits
+(type 38) where R2004 holds them in 8 (type 11), made now as AutoCAD makes them (688 bytes of graphics for the multileader of the test
+drawing, the size AutoCAD writes); a multileader and a multileader style lacked the extended data `ACAD_MLEADERVER` (version 2) and its
+application in the APPID table; a field was written as R2007 lays it out (no format apart, a value with flags, unit and texts in 16 bits);
+the vertex ids of a polyline were written, which are of R2010 and later; and a string of extended data was written as a length of one byte
+and a code page of two, AutoCAD's being a length of two and a code page of one (the 18 INSERTs of `Map2Globe` and the ATTRIBs of
+`Electrical - Imperial` that AutoCAD found "XData format Problem" in). A letter beyond the code page of a DXF of R2004 or before
+(`\U+1EDB`) written as R2010 or later is the letter, not the escape AutoCAD finds "Un-normalized" in a layer's name.
 **NEW.** The INSERT of a block cell in a table's block (`DxfTable.RecomputeTableBlock`, and every redraw of the presenter) is followed by
 an ATTRIB for each attribute definition of its block that is not constant, as AutoCAD 2021's console draws them: filled and placed
 by the INSERT's transformation as the INSERT command fills one, in the order of the block, an invisible definition's invisible, its words

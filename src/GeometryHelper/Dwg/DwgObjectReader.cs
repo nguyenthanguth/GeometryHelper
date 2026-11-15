@@ -746,8 +746,9 @@ namespace GeometryHelper.Dwg
                                 break;
                             }
 
-                            int length = values.RawChar();
-                            values.RawShort();
+                            // A length of two bytes, then the code page, one byte.
+                            int length = values.RawShort();
+                            values.RawChar();
                             _object.XData.Add(new DwgGroup(1000, values.Bytes(length)));
                             break;
                         case 2:

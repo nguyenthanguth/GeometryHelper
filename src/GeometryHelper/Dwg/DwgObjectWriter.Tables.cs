@@ -569,9 +569,9 @@ namespace GeometryHelper.Dwg
                 }
             }
 
-            if (R2010Plus)
+            if (_version >= 1018)
             {
-                // A bit AutoCAD writes after the lineweights, which the specification does not name.
+                // A bit AutoCAD writes after the lineweights from R2004 on, which the specification does not name.
                 _data.Bit(false);
             }
 

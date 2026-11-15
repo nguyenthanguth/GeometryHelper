@@ -904,8 +904,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// SAVE: the window's Save Drawing As dialog; with FILEDIA 0 or no window, "Save drawing as &lt;file&gt;:" and, where the
         /// file is there already, "Do you want to replace it? &lt;N&gt;", as AutoCAD 2021 asks them. The drawing is known by
-        /// the new name afterwards, as after SAVEAS: a name ending in .dwg is saved as a DWG of AutoCAD 2018, any other as a DXF
-        /// of the drawing's own version.
+        /// the new name afterwards, as after SAVEAS: a name ending in .dwg is saved as a DWG of the version the drawing was last
+        /// saved as where that is one the DWG writer writes, else of AutoCAD 2018, any other as a DXF of the drawing's own version.
         /// </summary>
         private static IEnumerable<CadPrompt> Save(CadCommandContext c)
         {
@@ -945,11 +945,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string own = c.Document.SaveVersion ?? c.Document.Database.Version;
-            string version = dxf ? (wasDwg ? "AC1032" : DxfDefault(own)) : null;
+            string version =
+                dxf ? (wasDwg ? "AC1032" : DxfDefault(own))
+                : CadDrawingFile.IsDwgVersion(c.Document.SaveVersion) ? c.Document.SaveVersion
+                : null;
             var job = new CadExportJob(
                 "Save Drawing As",
-                new[] { CadExportJob.Dwg }.Concat(CadExportJob.DxfSaveTypes).ToList(),
-                dxf ? CadExportJob.DxfTypeOfVersion(version) : CadExportJob.Dwg,
+                CadExportJob.DwgSaveTypes.Concat(CadExportJob.DxfSaveTypes).ToList(),
+                dxf ? CadExportJob.DxfTypeOfVersion(version) : CadExportJob.DwgTypeOfVersion(version ?? "AC1032"),
                 file
             );
 

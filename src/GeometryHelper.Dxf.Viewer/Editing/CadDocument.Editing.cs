@@ -896,9 +896,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Saves the drawing to a file, which it is then known by: a DWG of AutoCAD 2018 where its name ends in .dwg, what the
-        /// DWG writer does not write yet left out and said in <see cref="LeftOutOfDwg"/>; else a DXF, in the version the drawing
-        /// was last saved as (<see cref="SaveVersion"/>), its own where it was not.
+        /// Saves the drawing to a file, which it is then known by: a DWG where its name ends in .dwg, of the version the drawing
+        /// was last saved as (<see cref="SaveVersion"/>) where the DWG writer writes it, else of AutoCAD 2018, what the DWG writer
+        /// does not write yet left out and said in <see cref="LeftOutOfDwg"/>; else a DXF, in the version the drawing was last
+        /// saved as, its own where it was not.
         /// </summary>
         /// <param name="path">The path of the file.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
@@ -915,22 +916,28 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
         public void SaveAs(string path, IProgress<double> progress) =>
-            SaveAs(path, CadDrawingFile.IsDwgName(path) ? null : SaveVersion, progress);
+            SaveAs(
+                path,
+                CadDrawingFile.IsDwgName(path) && !CadDrawingFile.IsDwgVersion(SaveVersion) ? null : SaveVersion,
+                progress
+            );
 
         /// <summary>
-        /// Saves the drawing to a file in a version of AutoCAD, as AutoCAD 2021's Save Drawing As does with the type chosen: a DXF
-        /// of R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007 (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as
-        /// <see cref="DxfDatabase.Save(string, string)"/> writes it; the version is kept in <see cref="SaveVersion"/>, so that
-        /// <see cref="Save"/> writes it again, as AutoCAD's QSAVE keeps the format of the last Save As. What the version could not
-        /// hold is said in <see cref="LeftOutOfDxf"/>.
+        /// Saves the drawing to a file in a version of AutoCAD, as AutoCAD 2021's Save Drawing As does with the type chosen: a DWG
+        /// of R2004 (AC1018), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032) where the name ends in .dwg, as
+        /// <see cref="GeometryHelper.Dwg.DwgWriter"/> writes it; else a DXF of R12 (AC1009), R2000 (AC1015), R2004 (AC1018), R2007
+        /// (AC1021), R2010 (AC1024), R2013 (AC1027) or R2018 (AC1032), as <see cref="DxfDatabase.Save(string, string)"/> writes it;
+        /// the version is kept in <see cref="SaveVersion"/>, so that <see cref="Save"/> writes it again, as AutoCAD's QSAVE keeps the
+        /// format of the last Save As. What a DXF of the version could not hold is said in <see cref="LeftOutOfDxf"/>, and what a
+        /// DWG of it does not write yet in <see cref="LeftOutOfDwg"/>.
         /// </summary>
         /// <param name="path">The path of the file.</param>
-        /// <param name="version">The version, as AC1024; null for the drawing's own, and for a DWG, which is written as AutoCAD 2018.</param>
+        /// <param name="version">The version, as AC1024; null for the drawing's own, and for a DWG, which is then written as AutoCAD 2018.</param>
         /// <param name="progress">What is told how far it has got, on this thread; null for nothing.</param>
         /// <exception cref="ArgumentNullException">Thrown when the path is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the version is none of those of a DXF.</exception>
         /// <exception cref="NotSupportedException">Thrown when the drawing is of R12 to R14 and the version is not its own, or a version
-        /// is given for a DWG.</exception>
+        /// is given for a DWG that the DWG writer does not write.</exception>
         /// <exception cref="InvalidOperationException">Thrown when a group of edits is open.</exception>
         public void SaveAs(string path, string version, IProgress<double> progress)
         {
@@ -1029,8 +1036,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the version the drawing was last saved as by <see cref="SaveAs(string, string, IProgress{double})"/> and is saved
-        /// as again: AC1032 for AutoCAD 2018, and so on; null where it was not saved so, its own version then, which a DWG always
-        /// is written as AutoCAD 2018 whatever it holds.
+        /// as again: AC1032 for AutoCAD 2018, and so on; null where it was not saved so, its own version then, which a DWG is
+        /// written as AutoCAD 2018 whatever it holds. For a DWG it is the version the DWG writer wrote: AC1027 for AutoCAD 2013.
         /// </summary>
         public string SaveVersion { get; private set; }
 

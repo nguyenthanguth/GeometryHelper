@@ -153,6 +153,12 @@ namespace GeometryHelper.Dwg
                 H(4, item);
             }
 
+            if (!R2007Plus)
+            {
+                // Before R2007 the format stands apart; a DXF of R2007 and later keeps it with the value.
+                T(format.Length > 0 || own.Format == null ? format : own.Format);
+            }
+
             _data.BitLong(evaluation);
             _data.BitLong(filing);
             _data.BitLong(state);
@@ -322,13 +328,21 @@ namespace GeometryHelper.Dwg
             return value;
         }
 
-        /// <summary>A value of a field (20.4.99): its flags, its type and, unless flag 1 says it holds nothing, the value; its unit, format and text.</summary>
+        /// <summary>
+        /// A value of a field (20.4.99): its flags, its type and, unless flag 1 says it holds nothing, the value; its unit,
+        /// format and text. Before R2007 the type and the value alone, a string in 8 bits with its closing zero; a value that
+        /// holds nothing is written as one of the type with nothing in it.
+        /// </summary>
         private void WriteFieldValue(DwgCellValue value)
         {
-            _data.BitLong(value.Flags);
+            if (R2007Plus)
+            {
+                _data.BitLong(value.Flags);
+            }
+
             _data.BitLong(value.Type);
 
-            if ((value.Flags & 1) == 0)
+            if (!R2007Plus || (value.Flags & 1) == 0)
             {
                 switch (value.Type)
                 {
@@ -340,21 +354,25 @@ namespace GeometryHelper.Dwg
                         _data.BitDouble(value.Double);
                         break;
                     case 8:
-                        _data.BitLong(value.Bytes.Length);
-                        _data.Bytes(value.Bytes);
+                        byte[] raw = value.Bytes ?? new byte[0];
+                        _data.BitLong(raw.Length);
+                        _data.Bytes(raw);
                         break;
                     default:
-                        // A string as UTF-16 with its closing zero, counted in bytes.
-                        byte[] bytes = Encoding.Unicode.GetBytes(value.Text + "\0");
+                        // A string as UTF-16 (before R2007 as UTF-8) with its closing zero, counted in bytes.
+                        byte[] bytes = (R2007Plus ? Encoding.Unicode : Encoding.UTF8).GetBytes(value.Text + "\0");
                         _data.BitLong(bytes.Length);
                         _data.Bytes(bytes);
                         break;
                 }
             }
 
-            _data.BitLong(value.Unit);
-            T(value.Format);
-            T(value.Shown);
+            if (R2007Plus)
+            {
+                _data.BitLong(value.Unit);
+                T(value.Format);
+                T(value.Shown);
+            }
         }
     }
 }

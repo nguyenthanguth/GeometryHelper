@@ -1260,7 +1260,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     }
                     else
                     {
-                        _current.Document.SaveAs(path, CadExportJob.DxfVersionOfType(fileType), meter);
+                        // The DWG of AutoCAD 2018 is the one a DWG is written as where no version is given, so it gives none; a
+                        // DXF type is for a DXF, and for a name ending in .dwg only the DXF of 2018 (the same DWG) is taken.
+                        string dwg = CadExportJob.DwgVersionOfType(fileType);
+                        string dxf = CadExportJob.DxfVersionOfType(fileType);
+
+                        if (dwg == null && dxf != "AC1032" && CadDrawingFile.IsDwgName(path))
+                        {
+                            throw new NotSupportedException(
+                                "A DWG is written as AutoCAD 2018 (AC1032), 2013 (AC1027), 2010 (AC1024) or 2004 (AC1018) only, not as a DXF of "
+                                    + dxf
+                                    + "."
+                            );
+                        }
+
+                        _current.Document.SaveAs(path, dwg == "AC1032" ? null : dwg ?? dxf, meter);
                     }
                 }
             }
@@ -1311,11 +1325,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the type
-        /// <see cref="CadExportJob.Dwg"/>, then a DXF of each version <see cref="DxfDatabase.Save(string, string)"/> writes, as
-        /// "AutoCAD 2013/LT2013 DXF (*.dxf)" for AC1027, the newest first; the type of the drawing's file chosen first: DWG for
-        /// a drawing opened from a DWG and for a new one (Drawing1.dwg), the DXF of the version it was last saved as, or of its own
-        /// version, for any other, and its name with that type's extension in its folder. A drawing of a version that is none of
+        /// Makes what the Save As dialog of the drawing shown offers, as AutoCAD 2021's Save Drawing As: the DWG types
+        /// <see cref="CadExportJob.DwgSaveTypes"/> (2018, 2013, 2010, 2004), then a DXF of each version
+        /// <see cref="DxfDatabase.Save(string, string)"/> writes, as "AutoCAD 2013/LT2013 DXF (*.dxf)" for AC1027, the newest
+        /// first; the type of the drawing's file chosen first: the DWG of the version it was last saved as where the DWG writer
+        /// writes it, else AutoCAD 2018, for a drawing opened from a DWG and for a new one (Drawing1.dwg), the DXF of the version
+        /// it was last saved as, or of its own version, for any other, and its name with that type's extension in its folder. A drawing of a version that is none of
         /// them, R14, is offered "DXF (*.dxf)" as well, its own. The window shows its dialog and hands the file and the type
         /// chosen to <see cref="SaveAs(string, string)"/>, which writes the version of the type, or a DWG where the name ends in
         /// .dwg. Null with no drawing.
@@ -1344,7 +1359,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 document.HasFile && System.IO.Path.IsPathRooted(document.FileName)
                     ? System.IO.Path.GetDirectoryName(document.FileName)
                     : null;
-            var types = new List<string> { CadExportJob.Dwg };
+            var types = new List<string>(CadExportJob.DwgSaveTypes);
             types.AddRange(CadExportJob.DxfSaveTypes);
 
             if (!types.Contains(dxf))
@@ -1355,7 +1370,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return new CadExportJob(
                 "Save Drawing As",
                 types,
-                dwg ? CadExportJob.Dwg : dxf,
+                dwg
+                    ? CadExportJob.DwgTypeOfVersion(
+                        CadDrawingFile.IsDwgVersion(document.SaveVersion) ? document.SaveVersion : "AC1032"
+                    )
+                    : dxf,
                 folder == null ? name : System.IO.Path.Combine(folder, name)
             );
         }
