@@ -203,11 +203,6 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void ContentMerged(DxfCellRange range, bool merged, bool empty = false)
         {
-            if (ContentMergedAlone(range, merged, empty))
-            {
-                return;
-            }
-
             EditContent(true, null, grid =>
             {
                 for (int r = range.TopRow; empty && r <= range.BottomRow && r < grid.Rows.Count; r++)
@@ -215,8 +210,7 @@ namespace GeometryHelper.Dxf
                     for (int c = range.LeftColumn; c <= range.RightColumn && c < grid.Rows[r].Cells.Count; c++)
                     {
                         grid.Changed |=
-                            (r != range.TopRow || c != range.LeftColumn)
-                            && EmptyContent(grid, grid.Rows[r].Cells[c].Groups);
+                            (r != range.TopRow || c != range.LeftColumn) && EmptyContent(grid, grid.Rows[r].Cells[c]);
                     }
                 }
 
@@ -250,7 +244,7 @@ namespace GeometryHelper.Dxf
             {
                 if (row < grid.Rows.Count && column < grid.Rows[row].Cells.Count)
                 {
-                    grid.Changed |= EmptyContent(grid, grid.Rows[row].Cells[column].Groups);
+                    grid.Changed |= EmptyContent(grid, grid.Rows[row].Cells[column]);
                 }
             });
         }
@@ -273,17 +267,30 @@ namespace GeometryHelper.Dxf
         )
         {
             DxfItem content = IsResident ? ContentItem() : null;
-            ContentGrid grid = content == null ? null : ContentGrid.Read(Item.File, content);
+
+            // A TABLECONTENT whose groups stand as the file writes them is read once and kept (ContentBytesOf), with where each of
+            // its cells stands in the bytes: an edit is written by copying the bytes of the cells it does not change, so that it
+            // costs the bytes of the record and not a reading and a writing of its 100 000 groups.
+            ContentBytes kept = content == null || _contentUnfit || IsErased ? null : ContentBytesOf(content);
+            ContentGrid grid =
+                kept != null ? kept.Grid
+                : content == null ? null
+                : ContentGrid.Read(Item.File, content);
 
             if (grid == null)
             {
                 return;
             }
 
+            // The grid kept is changed by the edit: not kept again until the record is written, and not if it is not.
+            _contentBytes = null;
+            grid.Changed = false;
+            grid.Dropped.Clear();
+
             // The links of the cells, with their places and ranges as they stand before the edit.
             var links = new List<KeyValuePair<ContentGridCell, int[]>>();
 
-            for (int r = 0; r < grid.Rows.Count; r++)
+            for (int r = 0; lines != null && r < grid.Rows.Count; r++)
             {
                 for (int c = 0; c < grid.Rows[r].Cells.Count; c++)
                 {
@@ -346,8 +353,12 @@ namespace GeometryHelper.Dxf
 
                     int first = rowsOf ? link.Value[0] : link.Value[1];
                     int[] span = lines(first, first + (rowsOf ? link.Value[2] : link.Value[3]) - 1);
-                    grid.Changed |=
-                        span != null && SetLinkCount(link.Key.Groups, rowsOf ? 93 : 94, span[1] - span[0] + 1);
+
+                    if (span != null && SetLinkCount(link.Key.Groups, rowsOf ? 93 : 94, span[1] - span[0] + 1))
+                    {
+                        link.Key.Dirty = true;
+                        grid.Changed = true;
+                    }
                 }
             }
 
@@ -364,11 +375,30 @@ namespace GeometryHelper.Dxf
 
             if (!grid.Changed)
             {
+                _contentBytes = kept;
                 return;
             }
 
             CheckEditable();
-            Item.File.ReplaceTail(content, grid.From, grid.Groups());
+
+            if (kept != null)
+            {
+                // The bytes before the groups and after them as they are, the cells not changed copied, the rest written.
+                int gridEnd = kept.GridEnd;
+                int gridAt = kept.GridAt;
+                kept.Record = Item.File.RewriteRecord(content, (b, old) =>
+                {
+                    b.Raw(old, old.Start, old.Start + gridAt);
+                    grid.WriteTo(b, old, gridEnd);
+                    kept.GridEnd = b.Length;
+                    b.Raw(old, old.Start + gridEnd, old.End);
+                });
+                _contentBytes = kept;
+            }
+            else
+            {
+                Item.File.ReplaceTail(content, grid.From, grid.Groups());
+            }
 
             foreach (string handle in dropped)
             {
@@ -407,8 +437,9 @@ namespace GeometryHelper.Dxf
         /// q1): no content (<c>95 0</c>), its checksum <c>140 0.0</c>, the fields it held let go; its format and lines kept.
         /// False where it holds none and its checksum is nought already, or it is not in the form AutoCAD writes.
         /// </summary>
-        private static bool EmptyContent(ContentGrid grid, List<KeyValuePair<int, string>> cell)
+        private static bool EmptyContent(ContentGrid grid, ContentGridCell content)
         {
+            List<KeyValuePair<int, string>> cell = content.Groups;
             int end = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "LINKEDTABLEDATACELL_END");
             int mapEnd = cell.FindIndex(g => g.Key == 309 && g.Value.Trim() == "DATAMAP_END");
             int count = mapEnd < 0 || end < 0 ? -1 : cell.FindIndex(mapEnd, end - mapEnd, g => g.Key == 95);
@@ -436,6 +467,7 @@ namespace GeometryHelper.Dxf
                 changed = true;
             }
 
+            content.Dirty |= changed;
             return changed;
         }
 
@@ -1239,6 +1271,14 @@ namespace GeometryHelper.Dxf
 
             internal bool Gone { get; set; }
 
+            /// <summary>Where the cell's bytes begin and end in the record the TABLECONTENT was read from (<see cref="DxfTable.ContentBytesOf"/>), counted from its start, and kept as the record is written; -1 for a cell made by an edit.</summary>
+            internal int Start { get; set; } = -1;
+
+            internal int End { get; set; }
+
+            /// <summary>Whether an edit changed the groups of the cell since the bytes at <see cref="Start"/> were written, so that they are not its own.</summary>
+            internal bool Dirty { get; set; }
+
             /// <summary>Where the cell's groups began and ended among those the TABLECONTENT was read from (from the count of its columns on); as read, not kept up with an edit.</summary>
             internal int GroupFrom { get; set; }
 
@@ -1263,11 +1303,28 @@ namespace GeometryHelper.Dxf
 
             internal List<KeyValuePair<int, string>> Head { get; }
 
-            internal KeyValuePair<int, string>? ReadCount { get; }
+            internal KeyValuePair<int, string>? ReadCount { get; set; }
 
             internal List<ContentGridCell> Cells { get; }
 
             internal List<KeyValuePair<int, string>> Tail { get; }
+
+            /// <summary>Where the row's groups began and ended among those the TABLECONTENT was read from (from the count of its columns on); as read.</summary>
+            internal int GroupFrom { get; set; }
+
+            internal int GroupTo { get; set; }
+
+            /// <summary>Where the row's bytes begin and end in the record the TABLECONTENT was read from, counted from its start, kept as the record is written; -1 for a row made by an edit.</summary>
+            internal int Start { get; set; } = -1;
+
+            internal int End { get; set; }
+
+            /// <summary>How many cells the row held when its bytes were written.</summary>
+            internal int CellsAtRead { get; set; }
+
+            /// <summary>Whether the row stands as its bytes do: made of the cells it held, none changed.</summary>
+            internal bool Clean =>
+                Start >= 0 && Cells.Count == CellsAtRead && Cells.TrueForAll(c => c.Start >= 0 && !c.Dirty);
 
             internal void AddTo(List<KeyValuePair<int, string>> groups)
             {
@@ -1297,6 +1354,31 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Where what follows the rows began among the groups read, counted from <see cref="From"/>.</summary>
             internal int TailAt { get; private set; }
+
+            /// <summary>Where what follows the rows, and the list of merged ranges in it, stand in the bytes of the record the TABLECONTENT was read from, counted from its start, kept as it is written; -1 where it was not read from bytes.</summary>
+            internal int TailStartByte { get; set; } = -1;
+
+            internal int MergesStartByte { get; set; } = -1;
+
+            internal int MergesEndByte { get; set; } = -1;
+
+            /// <summary>Where the columns and the count of rows begin and end in the bytes of the record, counted from its start, and how many columns and rows there were when they were written; -1 where not read from bytes.</summary>
+            internal int HeadStartByte { get; set; } = -1;
+
+            internal int HeadEndByte { get; set; }
+
+            internal int ColumnsAtRead { get; set; }
+
+            internal int RowsAtRead { get; set; }
+
+            // Whether the groups after the rows were changed since their bytes were written (the list of fields taken out of).
+            private bool _tailDirty;
+
+            /// <summary>Where the list of merged ranges began among the groups read (the count of the ranges), counted from <see cref="From"/>.</summary>
+            internal int MergesFrom => TailAt + _mergesFrom;
+
+            /// <summary>Where the list of merged ranges ended among the groups read, the place after its last group, counted from <see cref="From"/>.</summary>
+            internal int MergesTo => TailAt + _mergesTo;
 
             internal List<List<KeyValuePair<int, string>>> Columns { get; } =
                 new List<List<KeyValuePair<int, string>>>();
@@ -1346,6 +1428,7 @@ namespace GeometryHelper.Dxf
                 int shift = end - kept.Count;
                 _mergesFrom -= Merges == null ? 0 : shift;
                 _mergesTo -= Merges == null ? 0 : shift;
+                _tailDirty = true;
                 return true;
             }
 
@@ -1405,6 +1488,7 @@ namespace GeometryHelper.Dxf
                         return null;
                     }
 
+                    int rowStart = i;
                     var head = g.GetRange(i, 2);
                     KeyValuePair<int, string> count = g[i + 2];
                     var cells = new List<ContentGridCell>();
@@ -1435,13 +1519,22 @@ namespace GeometryHelper.Dxf
                         return null;
                     }
 
-                    grid.Rows.Add(new ContentRow(head, count, cells, g.GetRange(i, last + 1 - i)));
+                    grid.Rows.Add(
+                        new ContentRow(head, count, cells, g.GetRange(i, last + 1 - i))
+                        {
+                            GroupFrom = rowStart,
+                            GroupTo = last + 1,
+                            CellsAtRead = cells.Count,
+                        }
+                    );
                     i = last + 1;
                 }
 
                 grid._tail = g.GetRange(i, g.Count - i);
                 grid.TailAt = i;
                 grid.ReadMerges();
+                grid.ColumnsAtRead = grid.Columns.Count;
+                grid.RowsAtRead = grid.Rows.Count;
                 return grid;
             }
 
@@ -1562,6 +1655,149 @@ namespace GeometryHelper.Dxf
                 return groups;
             }
 
+            /// <summary>
+            /// Writes the groups <see cref="Groups"/> lists into a builder, a cell that was read from the bytes of <paramref name="old"/>
+            /// and not changed copied as those bytes, the others written as groups; the counts written are kept as the counts read,
+            /// and each cell is given the place it now stands in what is written. The groups stand as the file writes them (the
+            /// reading that kept the places checked it), so that the bytes are those of the whole writing.
+            /// </summary>
+            internal void WriteTo(DxfFile.Pieces b, DxfFile.Rec old, int gridEnd)
+            {
+                // The columns and the count of rows, as they stand where the rows and columns are those read.
+                int headAt = b.Length;
+
+                if (
+                    HeadStartByte >= 0
+                    && Columns.Count == ColumnsAtRead
+                    && Rows.Count == RowsAtRead
+                    && Rows.Count > 0
+                    && Rows[0].Start == HeadEndByte
+                )
+                {
+                    b.Raw(old, old.Start + HeadStartByte, old.Start + HeadEndByte);
+                }
+                else
+                {
+                    _columnCount = Put(b, Counted(_columnCount, 90, Columns.Count));
+                    Columns.ForEach(c => Put(b, c, 0, c.Count));
+                    _rowCount = Put(b, Counted(_rowCount, 91, Rows.Count));
+                }
+
+                HeadStartByte = headAt;
+                HeadEndByte = b.Length;
+                ColumnsAtRead = Columns.Count;
+                RowsAtRead = Rows.Count;
+
+                foreach (ContentRow row in Rows)
+                {
+                    int rowAt = b.Length;
+
+                    if (row.Clean)
+                    {
+                        // A row none of whose cells changed is copied whole, its cells moved on with it.
+                        b.Raw(old, old.Start + row.Start, old.Start + row.End);
+                        int shift = rowAt - row.Start;
+                        row.Cells.ForEach(c =>
+                        {
+                            c.Start += shift;
+                            c.End += shift;
+                        });
+                    }
+                    else
+                    {
+                        Put(b, row.Head, 0, row.Head.Count);
+                        row.ReadCount = Put(b, Counted(row.ReadCount, 90, row.Cells.Count));
+
+                        foreach (ContentGridCell cell in row.Cells)
+                        {
+                            int start = b.Length;
+
+                            if (cell.Start >= 0 && !cell.Dirty)
+                            {
+                                b.Raw(old, old.Start + cell.Start, old.Start + cell.End);
+                            }
+                            else
+                            {
+                                Put(b, cell.Groups, 0, cell.Groups.Count);
+                            }
+
+                            cell.Start = start;
+                            cell.End = b.Length;
+                            cell.Dirty = false;
+                        }
+
+                        Put(b, row.Tail, 0, row.Tail.Count);
+                    }
+
+                    row.Start = rowAt;
+                    row.End = b.Length;
+                    row.CellsAtRead = row.Cells.Count;
+                }
+
+                // What follows the rows is copied as its bytes stand, but the list of merged ranges, written anew, and the fields
+                // list at its head where fields were taken out of it.
+                int tailEnd = old.Start + gridEnd;
+                int tailAt = b.Length;
+                bool kept = TailStartByte >= 0 && !_tailDirty;
+
+                if (Merges == null)
+                {
+                    if (kept)
+                    {
+                        b.Raw(old, old.Start + TailStartByte, tailEnd);
+                    }
+                    else
+                    {
+                        Put(b, _tail, 0, _tail.Count);
+                    }
+
+                    TailStartByte = tailAt;
+                    _tailDirty = false;
+                    return;
+                }
+
+                if (kept)
+                {
+                    b.Raw(old, old.Start + TailStartByte, old.Start + MergesStartByte);
+                }
+                else
+                {
+                    Put(b, _tail, 0, _mergesFrom);
+                }
+
+                int mergesEnd = old.Start + MergesEndByte;
+                MergesStartByte = b.Length;
+                List<KeyValuePair<int, string>> merges = MergeGroups();
+                Put(b, merges, 0, merges.Count);
+                MergesEndByte = b.Length;
+
+                if (kept)
+                {
+                    b.Raw(old, mergesEnd, tailEnd);
+                }
+                else
+                {
+                    Put(b, _tail, _mergesTo, _tail.Count);
+                }
+
+                TailStartByte = tailAt;
+                _tailDirty = false;
+            }
+
+            private static KeyValuePair<int, string> Put(DxfFile.Pieces b, KeyValuePair<int, string> group)
+            {
+                b.Group(group.Key, group.Value);
+                return group;
+            }
+
+            private static void Put(DxfFile.Pieces b, List<KeyValuePair<int, string>> groups, int from, int to)
+            {
+                for (int k = from; k < to; k++)
+                {
+                    b.Group(groups[k].Key, groups[k].Value);
+                }
+            }
+
             /// <summary>The count of the merged ranges and the ranges (90, then 91 to 94 of each) as they stand; the list is read where <see cref="Merges"/> is not null.</summary>
             internal List<KeyValuePair<int, string>> MergeGroups()
             {
@@ -1570,12 +1806,6 @@ namespace GeometryHelper.Dxf
                 _mergeCount = groups[0];
                 return groups;
             }
-
-            /// <summary>Where the list of merged ranges began among the groups read (the count of the ranges), counted from <see cref="From"/>.</summary>
-            internal int MergesFrom => TailAt + _mergesFrom;
-
-            /// <summary>Where the list of merged ranges ended among the groups read, the place after its last group, counted from <see cref="From"/>.</summary>
-            internal int MergesTo => TailAt + _mergesTo;
 
             /// <summary>Adds merged ranges after their count: the count (90), then each range's 91 to 94.</summary>
             internal static void AddMerges(List<KeyValuePair<int, string>> groups, List<int[]> merges)

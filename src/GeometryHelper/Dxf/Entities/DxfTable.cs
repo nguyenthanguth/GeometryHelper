@@ -1745,7 +1745,15 @@ namespace GeometryHelper.Dxf
         [DxfType("ACAD_TABLE")]
         internal static DxfEntity Create(DxfItem item) => new DxfTable(item);
 
-        private DxfDimGroups Own() => new DxfDimGroups(Item);
+        /// <summary>
+        /// The table's own groups, to be changed and written: read from the record, or copied from the layout read last where
+        /// that is of the record as it stands (a record just written has its layout kept, <see cref="Rebuild"/>), which costs
+        /// a copy of its list and not a reading of every group.
+        /// </summary>
+        private DxfDimGroups Own() =>
+            _layout != null && HeldLayout(Item.File.RecordAt(Item, 0))
+                ? new DxfDimGroups(Item, _layout.Groups)
+                : new DxfDimGroups(Item);
 
         /// <summary>
         /// The table's layout, read once for the record as it stands: kept while the record's bytes are the same, as every

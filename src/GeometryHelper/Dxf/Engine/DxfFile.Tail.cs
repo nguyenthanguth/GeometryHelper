@@ -15,11 +15,12 @@ namespace GeometryHelper.Dxf
         /// </summary>
         internal sealed class TailMap
         {
-            internal TailMap(Rec record, List<DxfTypedValue> groups, int[] places)
+            internal TailMap(Rec record, List<DxfTypedValue> groups, int[] places, int dataEnd)
             {
                 Record = record;
                 Groups = groups;
                 Places = places;
+                DataEnd = dataEnd;
             }
 
             /// <summary>The record the places are of.</summary>
@@ -30,6 +31,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Where each group stands, two numbers a group, counted from the record's start.</summary>
             internal int[] Places { get; }
+
+            /// <summary>Where the groups end and the extended data begins (the record's end where it has none), counted from the record's start; a comment after the last group stands before it.</summary>
+            internal int DataEnd { get; }
         }
 
         /// <summary>
@@ -54,13 +58,14 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            return new TailMap(head, groups, places.ToArray());
+            int dataEnd = data < pairs.Count ? pairs[data].Start - head.Start : head.End - head.Start;
+            return new TailMap(head, groups, places.ToArray(), dataEnd);
         }
 
         /// <summary>
         /// Whether the groups of a map from the one given on stand in the record as the file writes a group, one after another
-        /// with nothing between them (no comment, no other spelling of a number), so that writing them anew gives the very bytes
-        /// they stand in: what a splice that leaves the bytes around its own as they are depends on.
+        /// with nothing between them or after the last (no comment, no other spelling of a number), so that writing them anew
+        /// gives the very bytes they stand in: what a splice that leaves the bytes around its own as they are depends on.
         /// </summary>
         internal bool TailStandsAsWritten(TailMap map, int from)
         {
@@ -82,7 +87,7 @@ namespace GeometryHelper.Dxf
             int start = map.Record.Start + map.Places[2 * from];
             int end = map.Record.Start + map.Places[2 * count - 1];
 
-            if (end - start != written.Length)
+            if (end - start != written.Length || map.Places[2 * count - 1] != map.DataEnd)
             {
                 return false;
             }
@@ -146,6 +151,136 @@ namespace GeometryHelper.Dxf
             item.Changed(head.Type);
             Edited();
             return records[0];
+        }
+
+        /// <summary>
+        /// The values, spaces taken off, of the groups of a code in the first record of an item between two places counted from
+        /// the record's start, in their order, the places those of a group's first byte and the end of another's: the handles
+        /// a table's cells hold, found by walking the bytes of the cells and not by reading their groups.
+        /// </summary>
+        internal List<string> ValuesBetween(DxfItem item, int from, int to, int code)
+        {
+            Rec head = RecordAt(item, 0);
+            var found = new List<string>();
+            int at = head.Start + from;
+            int end = Math.Min(head.Start + to, head.End);
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(head.Bytes, at, end, out int valueStart);
+                bool coded = TryCode(head.Bytes, at, codeEnd, out int read);
+                int valueEnd = LineEnd(head.Bytes, valueStart, end, out at);
+
+                if (coded && read == code)
+                {
+                    found.Add(Text(head, valueStart, valueEnd).Trim());
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// The bytes of a record made of stretches of another record, copied as they are, and of groups written new, in their
+        /// order: the stretches are not copied until the record is made (<see cref="Done"/>), in one array of its length, as
+        /// <see cref="SpliceBytes"/> makes one, where a builder grows a buffer and copies it again for its array.
+        /// </summary>
+        internal sealed class Pieces
+        {
+            private readonly DxfFile _file;
+            private readonly List<byte[]> _bytes = new List<byte[]>();
+            private readonly List<int> _from = new List<int>();
+            private readonly List<int> _to = new List<int>();
+            private Builder _written;
+
+            internal Pieces(DxfFile file)
+            {
+                _file = file;
+            }
+
+            /// <summary>How many bytes are in the pieces so far.</summary>
+            internal int Length { get; private set; }
+
+            /// <summary>Bytes of a record as they stand, from a place to another (the record's own, <c>Start</c> included); one stretch with the one before where they follow on from it.</summary>
+            internal void Raw(Rec record, int start, int end)
+            {
+                Flush();
+                int last = _bytes.Count - 1;
+
+                if (last >= 0 && ReferenceEquals(_bytes[last], record.Bytes) && _to[last] == start)
+                {
+                    _to[last] = end;
+                }
+                else
+                {
+                    _bytes.Add(record.Bytes);
+                    _from.Add(start);
+                    _to.Add(end);
+                }
+
+                Length += end - start;
+            }
+
+            /// <summary>A group as the file writes it.</summary>
+            internal void Group(int code, string value)
+            {
+                _written = _written ?? new Builder(_file);
+                int before = _written.Length;
+                _written.Group(code, value);
+                Length += _written.Length - before;
+            }
+
+            private void Flush()
+            {
+                if (_written == null)
+                {
+                    return;
+                }
+
+                byte[] bytes = _written.ToArray();
+                _bytes.Add(bytes);
+                _from.Add(0);
+                _to.Add(bytes.Length);
+                _written = null;
+            }
+
+            /// <summary>The record the pieces make.</summary>
+            internal Rec Done(string type)
+            {
+                Flush();
+                var all = new byte[Length];
+                int at = 0;
+
+                for (int k = 0; k < _bytes.Count; k++)
+                {
+                    Buffer.BlockCopy(_bytes[k], _from[k], all, at, _to[k] - _from[k]);
+                    at += _to[k] - _from[k];
+                }
+
+                return new Rec(all, 0, all.Length, type);
+            }
+        }
+
+        /// <summary>
+        /// Writes the first record of an item anew through pieces the caller fills, given the record as it stands (stretches of
+        /// its bytes copied into them with <see cref="Pieces.Raw(Rec, int, int)"/>, groups written with
+        /// <see cref="Pieces.Group(int, string)"/>), so that what stays as it is costs a copy of its bytes. The item is changed
+        /// as <see cref="SpliceBytes"/> changes it.
+        /// </summary>
+        /// <returns>The record as it stands now.</returns>
+        internal Rec RewriteRecord(DxfItem item, Action<Pieces, Rec> write)
+        {
+            Editable(item);
+            List<Rec> records = RecordsOf(item);
+            Rec head = records[0];
+            var pieces = new Pieces(this);
+            write(pieces, head);
+            Rec made = pieces.Done(head.Type);
+            records[0] = made;
+            SetRecords(item, records);
+            item.Changed(head.Type);
+            Edited();
+            return made;
         }
 
         #endregion

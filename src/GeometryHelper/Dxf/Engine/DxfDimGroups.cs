@@ -50,6 +50,30 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The own groups of a record as another list holds them, where that list was read from the record as it stands (or made
+        /// from what was written into it): a copy of its groups, to be changed and written back as the groups read from the
+        /// record would be, in place of a reading of every group of it.
+        /// </summary>
+        internal DxfDimGroups(DxfItem item, DxfDimGroups like)
+        {
+            _item = item;
+            List = new List<KeyValuePair<int, string>>(like.List);
+            _was.AddRange(List);
+            Marked = like.Marked;
+            Split = like.Split;
+            int last = -1;
+
+            foreach (KeyValuePair<int, string> group in List)
+            {
+                if (group.Key != last)
+                {
+                    _codes.Add(group.Key);
+                    last = group.Key;
+                }
+            }
+        }
+
+        /// <summary>
         /// Groups held apart, of no record, to be changed and put back by the caller: the groups of one cell of a table edited
         /// on their own, so that editing every cell of a table of 16 000 rows costs one copy of its list, not one each.
         /// </summary>

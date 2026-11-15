@@ -833,10 +833,14 @@ the ones wanted.
 - [x] Tables follow-ups 6 (tables7): MergeCells/UnmergeCells splice the range and edge cells and TABLECONTENT (192 merges
       1.57 s / 1.8 GB -> 68 ms / 53 MB; with TABLECONTENT 5.7 s / 6.8 GB -> 94 ms; bytes identical); a font read that
       failed by IO is retried, not cached for the process; a filled date's 93 flags kept (not readable via the API)
-- [ ] (tables8, running) Tables follow-ups 7: ContentEmptied/ContentDeleted and row/column Insert/Delete still read or rebuild the whole
-      TABLECONTENT/record; a merge emptying a field cell goes the whole way; the viewer's merge not timed; series dates in
-      a daylight-saving zone; a definition in a non-Standard style counting nothing in the console's minimum (GUI);
-      GUI-only sides (S)
+- [x] Tables follow-ups 7 (tables8): TABLECONTENT edits (empty, delete, insert, merge, a merge across a field) copy
+      untouched rows and write only what changed; 456 block-cell resets 12.1 s / 12.7 GB -> 0.1-0.3 s / 0.5 GB; rows and
+      columns in and out 26-40 -> 2.4-4.4 ms; the viewer's InsertRow 52 -> 16 ms; bytes identical (pinned hashes)
+- [ ] Tables follow-ups 8: rows and columns still write the whole ACAD_TABLE record (a lazy layout for Kinds,
+      ContentLooks, NewColumnLooks); DxfField.Erase scanning the whole file (3 ms a field merge); the viewer's
+      RecomputeTableBlock/FitRows dominate its edits and drop the spliced state; unmerge +0.06 ms; in-place vs read-anew
+      differences already in the old library (AC1021 seed 8, linked seed 11, InsertColumns after a title merge); series
+      dates in a daylight-saving zone; a non-Standard style in the console's minimum (GUI); GUI-only sides (S)
 - [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
