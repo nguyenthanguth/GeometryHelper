@@ -2428,6 +2428,15 @@ namespace GeometryHelper.Dxf
             {
                 CheckEditable();
                 g.Write(Order);
+
+                // The layout read is the list just written, as the record now holds it, in a list of its own: the next reading of
+                // the table does not parse the record again (as the lines of a row written one by one keep it, SetLines).
+                DxfFile.Rec record = Item.File.RecordAt(Item, 0);
+                _layout = new Layout(new DxfDimGroups(g, new List<KeyValuePair<int, string>>(g.List)));
+                _pending.Clear();
+                _layoutBytes = record.Bytes;
+                _layoutStart = record.Start;
+                _layoutEnd = record.End;
                 EraseFields(held);
                 EraseLinks(linked);
             }
@@ -2545,7 +2554,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 // A cell of the table that still holds it keeps it, read without reading the rest of the file.
-                held = held ?? new HashSet<string>(CellFields(Read()), StringComparer.OrdinalIgnoreCase);
+                held = held ?? new HashSet<string>(HeldFields(), StringComparer.OrdinalIgnoreCase);
                 DxfItem item = held.Contains(handle) ? null : file.ObjectItem(handle);
 
                 if (
@@ -2563,6 +2572,26 @@ namespace GeometryHelper.Dxf
             {
                 DxfField.Erase(file, fields);
             }
+        }
+
+        /// <summary>
+        /// The fields the cells of the table point at as the record stands, as <see cref="CellFields"/> lists them: found in the
+        /// bytes of the cells where their places are known (<see cref="AloneCells"/>), which costs a walk of the bytes where
+        /// the layout read anew costs every group of the record.
+        /// </summary>
+        private IEnumerable<string> HeldFields()
+        {
+            CellBytes cells = AloneCells(out _);
+
+            if (cells == null)
+            {
+                return CellFields(Read());
+            }
+
+            // The cells kept apart are put in the record first, which moves their places.
+            DxfFile file = Item.File;
+            file.RecordAt(Item, 0);
+            return file.ValuesBetween(Item, cells.From[0], cells.From[cells.From.Length - 1], 344);
         }
 
         private static KeyValuePair<int, string> Counted(KeyValuePair<int, string> group, int count) =>

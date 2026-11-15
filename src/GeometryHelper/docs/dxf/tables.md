@@ -179,8 +179,19 @@ and a table that holds a TABLECONTENT, as a table read from a file does, has it 
 emptied and of its list of merged ranges then put in their places and the rest copied: 192 merges of two cells in a table of 931 cells
 take 0.07 s and 53 MB on .NET Framework 4.8 (0.06 s on .NET 10) where they took 1.6 s and 1.8 GB, and 0.09 s and 235 MB for the table
 of a file with its TABLECONTENT, where they took 6 s and 6.8 GB. A TABLECONTENT whose groups do not stand as the file writes them
-(a comment among them), a cell that holds a field the merge lets go of, and a table with a cell not as a whole writing leaves it
-(a cell marked merged that no block holds) are written whole, as before. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+(a comment among them, or one after the last group) and a table with a cell not as a whole writing leaves it
+(a cell marked merged that no block holds) are written whole, as before. Every other edit of the TABLECONTENT is written the same way:
+the table keeps the TABLECONTENT it read, each row and cell with where it stands in the record's bytes, and `ResetValue` of a block cell (which takes
+the block's content out of it), `InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`, `DeleteColumns`, `SetSize`
+and a merge across a cell holding a field copy the rows they do not touch as they stand, write the cells and rows they make or change, and put the
+list of merged ranges and the fields listed after the rows in their places, so that an edit costs the bytes of the record (1.1 MB for 931 cells) and
+not the reading and the writing of its 100 000 groups. In a table of 49 rows by 19 columns read from a file, a reset of each of its 456 block cells
+takes 0.1 to 0.3 s and 0.5 GB on .NET Framework 4.8 (0.13 s on .NET 10) where it took 12.1 s and 12.7 GB (7.0 s); a row put in takes 2.4 ms (3.3 ms) where it took
+25.7 ms (15.2 ms), a row taken out 3.3 ms (3.7 ms) where it took 29.7 ms (18.1 ms), a column put in 4.0 ms (5.7 ms) where it took 40.4 ms (17.4 ms). The layout
+of the ACAD_TABLE is kept after such an edit, as the record's groups the edit wrote, so that the next does not read the record's groups again, and the
+fields a cell lets go of are looked for among the bytes of the cells where their places are known. The ACAD_TABLE of a table with rows and columns put in
+and taken out is still written whole by each edit (2.5 to 4.1 ms for 931 cells), and a merge across a field is dominated by the search the file is
+made for what else points at the field (3 ms). A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds

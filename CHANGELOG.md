@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The edits of a table that go into its TABLECONTENT are written into the bytes of the cells and rows they change, as `MergeCells` is, where each read
+and wrote its 100 000 groups (a table read from a file holds one, from R2007 on): `ResetValue` of a block cell, which takes the block's content out of it,
+`InsertRows`, `InsertRowsAndInherit`, `InsertColumns`, `InsertColumnsAndInherit`, `DeleteRows`, `DeleteColumns`, `SetSize`, and a `MergeCells` that empties a cell holding
+a field (the fields it lets go of are taken out of the list after the rows and erased, as the whole writing did). The TABLECONTENT is read once and kept, each of its rows
+and cells with where it stands in the record's bytes; an edit copies the rows it does not touch as they stand, writes the cells and rows it makes or changes, and puts the
+list of merged ranges and the rest after the rows in their places. The layout of the ACAD_TABLE is kept after rows or columns are put in or taken out (it was read again
+from the bytes just written), which spares the next edit of the table the reading of its 56 000 groups. In a table of 49 rows by 19 columns (931 cells) read from a file,
+on .NET Framework 4.8 (.NET 10 in brackets): a reset of each of its 456 block cells takes 0.1 to 0.3 s and 0.5 GB (0.13 s) where it took 12.1 s and 12.7 GB (7.0 s);
+twenty rows put in take 2.4 ms each (3.3 ms) where they took 25.7 ms (15.2 ms), twenty taken out 3.3 ms (3.7 ms) where they took 29.7 ms (18.1 ms), twenty put in
+that take the look of another 4.4 ms (4.8 ms) where they took 39.5 ms (23.8 ms), eight columns put in 4.0 ms (5.7 ms) where they took 40.4 ms (17.4 ms) and eight taken out
+4.0 ms (3.6 ms) where they took 36.2 ms (17.8 ms); a merge across a cell whose field the ACAD_TABLE holds, 3.0 ms (2.8 ms) where it took 4.9 ms (3.4 ms), the fields it lets go of looked
+for among the bytes of the cells and not in a layout read anew. The same rows and columns put in and taken out of the table a program built (no TABLECONTENT) take 2.5 to
+4.1 ms each (2.4 to 5.1 ms) where they took 5.5 to 11.3 ms (4.1 to 9.6 ms). `MergeCells`, `UnmergeCells`, `SetFormula`, `SetTextString` and `ResetValue` of a text cell take
+what they took, within the noise of a machine that other work shares, but for the unmerges of a file with its TABLECONTENT, which cost the copy of its rows now and take 0.075 s for 192 where they took 0.062 s (192 merges of two cells in a file take 0.13 s, as before). The saved bytes are the same: the hashes
+of 64 runs of 120 edits (rows and columns put in and taken out, with and without taking the look of another, merges, merges across a field, resets of a block cell, the setters
+of a cell; text cells and block cells, with and without a TABLECONTENT, four versions, four seeds) and of 32 runs of 60 edits of the table AutoCAD 2021 wrote linked to data,
+with and without a field in its linked cell, equal those of the library before; and the text of runs of the same edits made in place equals that of the same runs
+made on a record read anew before each edit (16 sets, 40 to 60 edits). A TABLECONTENT whose groups do not stand as the file writes them (a comment among them, found once, or
+one after the last group) is read and written whole, as before.
 **CHANGED.** `MergeCells` and `UnmergeCells` are written into the bytes of the cells they change and into those of the table's TABLECONTENT, as the setters
 of one cell are, where each call read every cell, rebuilt the whole record and read and wrote every group of the TABLECONTENT (a table read from a file
 holds one, from R2007 on). The blocks of merged cells are kept from one call to the next, for as long as every cell is as a whole writing leaves it (its
@@ -20,8 +39,7 @@ runs of 120 edits (text cells, text cells of a file with its TABLECONTENT, block
 among the setters of a cell, formulas, rows and columns put in and taken out) equal those of the library before, and so do 570 runs of 150 to 160 edits
 of the same kind made by a probe on tables of 7 by 5 to 20 by 7 cells (merges and unmerges in the greater part, with and without a TABLECONTENT), and the text
 of runs made in place equals that of the same runs made on a record read anew before each edit, which reads it whole (about 400 runs in 8 sets). A TABLECONTENT whose groups do not
-stand as the file writes them (a comment among them, found once, for the table), and a merge that empties a cell holding a field, which the whole writing erases,
-are written whole as before. The first call on a table whose record the library did not write whole yet writes it whole, and leaves it so that
+stand as the file writes them (a comment among them, found once, for the table) is written whole as before. The first call on a table whose record the library did not write whole yet writes it whole, and leaves it so that
 the next is in place.
 **FIXED.** The presenter measured every text after one failed read of a font file by the estimate it falls back on, for as long as the process lived: `CadTextInk` (the ink of
 a face) and `CadFontMetrics` (the metrics WMFIN takes) kept the failure of a read of a font file, a TrueType file held open by another program or read while the
