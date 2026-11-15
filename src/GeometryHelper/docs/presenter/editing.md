@@ -179,6 +179,15 @@ each of its contexts, each from its own factors and angle: its context of 1:2, s
 written -2 by 2 turned 180. A dynamic block's INSERT keeps the values its parameters are set to, under MIRROR as under COPY:
 a door flipped (Hand 1) is copied flipped, the same anonymous block placed, written -1 turned 180 across y = 100.
 
+COPY, MIRROR, ROTATE and SCALE with Copy and ARRAY copy what an application keeps in the entity's extension dictionary, as
+AutoCAD 2021's do (checked in its console on a LINE and a CIRCLE): the copy gets a dictionary of its own, owned by it, holding
+a new XRECORD for each XRECORD of the original's and a new dictionary for each dictionary of XRECORDs, under the same names and
+in the same order, each owned by the dictionary above it. What a copied XRECORD points at (330, 340, 350 and 360 among its
+data) among the objects copied, the original entity and the original's other entries, it points at the copies of; a pointer
+at any other object stays. An entity whose dictionary is empty is copied with an empty one; one whose dictionary holds
+only other kinds of object (its contexts, a clip, fields) is copied with what is written for those. The copy of an annotative
+hatch holds a view context (see "Annotative texts" in the guide to text).
+
 At MIRRTEXT 1 an MTEXT along x mirrored across a level line is of normal (0, 0, -1) and is written with no direction
 (group 11), as AutoCAD writes it: a record of no direction reads along the world's x axis put into its plane, here
 (1, 0, 0) turned 180 degrees. A multileader's sizes, the height of its words, its arrows and its landing gap, are kept to

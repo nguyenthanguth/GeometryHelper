@@ -14,6 +14,10 @@ namespace GeometryHelper.Dxf
         private const string MLeaderContextType = "ACDB_MLEADEROBJECTCONTEXTDATA_CLASS";
         private const string HatchContextMarker = "AcDbHatchObjectContextData";
 
+        // The dictionary of the manager that holds a hatch's view contexts, and the class of each.
+        private const string HatchViewCollection = "ACDB_ANNOTATIONSCALE_VIEW_COLLECTION";
+        private const string HatchViewContextType = "ACDB_HATCHVIEWCONTEXTDATA_CLASS";
+
         // The entities the library makes annotative, each by the context AutoCAD 2021 gives it.
         private static readonly HashSet<string> MadeAnnotative = new HashSet<string>(StringComparer.Ordinal)
         {

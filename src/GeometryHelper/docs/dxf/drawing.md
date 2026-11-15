@@ -322,7 +322,9 @@ db.NamedObjectsDictionary.SetAt("GH_PLATE", new DxfXrecord
 ### Extension dictionaries and extended data
 
 Every object can be given an extension dictionary, `CreateExtensionDictionary()`, an empty DICTIONARY owned by it and
-written as AutoCAD writes one, reached as its `ExtensionDictionary`: `SetAt("GH_DATA", new DxfDBDictionary())` adds an
+written as AutoCAD 2021 writes one for a line, a layer, a block, a table or a dictionary alike (checked in its console): the
+dictionary names the object as its owner (330) and has no `{ACAD_REACTORS` of its own, and the object's record gets the group
+`{ACAD_XDICTIONARY` straight after its handle, before its reactors. It is reached as its `ExtensionDictionary`: `SetAt("GH_DATA", new DxfDBDictionary())` adds an
 entry, `SetName` renames one, `Remove` takes one out with its object, and `ReleaseExtensionDictionary()` takes the
 dictionary out once it is empty. `SetBinaryDataForKey("GH_BIN", bytes)` keeps bytes there, in an XRECORD of groups 310 of
 127 bytes each, and `GetBinaryDataForKey` reads them back. `Remove` of an entry erases the dictionaries and records it owns at

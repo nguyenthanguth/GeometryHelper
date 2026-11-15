@@ -556,7 +556,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// taken off. A dimension drawn by an anonymous block of its own is copied as AutoCAD 2021's COPY copies one: its
         /// picture copied into a block of the copy's own, which moves with it, so that the copy is drawn where it stands and a
         /// move of the one leaves the other's picture where it is. A copy of a dynamic block's INSERT keeps the values its
-        /// parameters are set to, as AutoCAD 2021's COPY and MIRROR keep them: a door flipped is copied flipped.
+        /// parameters are set to, as AutoCAD 2021's COPY and MIRROR keep them: a door flipped is copied flipped. The data an
+        /// application keeps in the entity's extension dictionary (its XRECORDs) is copied with it
+        /// (<see cref="DxfDBObject"/> <c>KeepExtensionOf</c>).
         /// </summary>
         internal static DxfEntity AppendCopy(CadEditScope s, string handle, GeoTransform3 transform)
         {
@@ -581,12 +583,15 @@ namespace GeometryHelper.Dxf.Viewer
                     made.KeepClipOf(insert);
                 }
 
+                // What an application keeps in the extension dictionary is copied with the entity, as AutoCAD's COPY and MIRROR copy it.
+                added.KeepExtensionOf(entity);
                 return added;
             }
 
             var copy = (DxfDimension)entity.Clone();
             CadOwnerTag.Remove(copy);
             s.Append(space, copy);
+            copy.KeepExtensionOf(entity);
             var own = new DxfBlockTableRecord { Name = "*D" };
             s.Database.BlockTable.Add(own);
 
