@@ -83,7 +83,11 @@ vertices and its curve (a line's from its root along its direction, an ellipse's
 [-pi, pi), a full turn on for a closed edge, a spline's the first and last knot where its ends are the vertices, an edge with no
 curve 1 and 0), the convexity is `unknown`, and a vertex gets the number 2 from R2007 (the end of its edge is not known), as
 AutoCAD does when it reads R2000. A spline of an exact curve made from ACIS 4.00 is dated 20900 in R2010 and later, not 22600. From R2007 a 3DSOLID has its history (`AcDb3dSolid`, 350 of nought) and in R2013 a GUID
-(group 2) that names its record in the data store, the one AutoCAD's extended data `ACAD_OBJECT_CHANGE_GUID` holds before. A box
+(group 2) that names its record in the data store, the one AutoCAD's extended data `ACAD_OBJECT_CHANGE_GUID` holds before; a body that
+has none is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name), and the SAB
+the library writes of a SAT or a region carries the date of the SAT's head, which AutoCAD leaves empty, not the date of the clock, so
+that a drawing saved to R2013 twice is the same bytes (AutoCAD 2021 read 24 such files, AUDIT finding 0 errors, with the volume of
+each solid and the area of each region of the files they were made from). A box
 30 by 20 by 10, a sphere, a cylinder, a cone, a torus, a wedge, a pyramid, an extrusion of a polyline with an arc tapered 0.1, a
 revolution, a box with a hole and a loft, 11 solids, come out of each of R2004, R2007, R2010, R2013 and R2018 as the SAT or SAB
 AutoCAD 2021 writes of them in each of the others, record for record (220 conversions); AutoCAD opens the 275 files they make in

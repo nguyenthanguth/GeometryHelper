@@ -141,8 +141,9 @@ namespace GeometryHelper.Dxf
             if (to.Binary)
             {
                 // A SAT cannot stay: a file of R2013 or later whose entity holds text is read as no drawing.
-                string date = DxfUnknownEntity.CDate(DateTime.Now);
-                bytes = handle == null ? null : DwgSat.ToSab(lines, to, date);
+                // The date of the SAT's own head, as the SAT gives it (AutoCAD writes none in it): the save of a drawing is not
+                // dated by the clock, so that the same drawing saved twice is the same bytes.
+                bytes = handle == null ? null : DwgSat.ToSab(lines, to, null);
 
                 if (bytes == null)
                 {
@@ -177,7 +178,7 @@ namespace GeometryHelper.Dxf
 
             if (bytes != null)
             {
-                guid = GuidOf(record, end) ?? Guid.NewGuid().ToString("B");
+                guid = GuidOf(record, end) ?? GuidFrom(handle, bytes);
                 groups.Add(Whole(290, 1));
                 groups.Add(new Group(2, guid));
                 written.Add(new KeyValuePair<string, byte[]>(handle, bytes));
@@ -275,6 +276,28 @@ namespace GeometryHelper.Dxf
             }
 
             return new Guid((int)parts[0], (short)parts[1], (short)parts[2], tail).ToString("B");
+        }
+
+        /// <summary>
+        /// An identity for a body that has none: the first 16 bytes of the SHA-256 of its entity's handle and its SAB, made a
+        /// GUID of the kind a name makes (version 5), so that the same body gets the same identity each time the drawing is
+        /// saved and two bodies of one drawing, whatever their data, get two.
+        /// </summary>
+        private static string GuidFrom(string handle, byte[] sab)
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] name = Encoding.UTF8.GetBytes(handle ?? string.Empty);
+                var data = new byte[name.Length + 1 + sab.Length];
+                Buffer.BlockCopy(name, 0, data, 0, name.Length);
+                Buffer.BlockCopy(sab, 0, data, name.Length + 1, sab.Length);
+                byte[] hash = sha.ComputeHash(data);
+                var bytes = new byte[16];
+                Buffer.BlockCopy(hash, 0, bytes, 0, 16);
+                bytes[6] = (byte)((bytes[6] & 0x0F) | 0x50);
+                bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+                return new Guid(bytes).ToString("B");
+            }
         }
 
         /// <summary>Takes the extended data of the identity of a body out of a record: the SAB of R2013 names it in the data store instead.</summary>

@@ -69,6 +69,39 @@ Framework 4.8 (70 ms and 88 MB in place of 115 ms and 139 MB on .NET 10), the 5 
 266 ms and 228 MB as R2013 in place of 358 ms and 304 MB, and 322 ms and 257 MB as R2000 in place of 363 and 335 (best of 7). The file is
 still read again, as before, where the drawing has a face of a polyface mesh (whose marker AcDbVertex before its AcDbFaceRecord reading
 mends), is saved as R12, or has letters beyond ASCII and goes to R2004 or R2000, whose bytes are in the code page of the header.
+**CHANGED.** Building a table cell by cell costs in proportion to the cell. After the first edits of a table, which write its record
+whole, `SetTextString`, `SetValue` and the setters of a cell's look (`SetAlignment`, `SetTextHeight`, `SetTextStyle`,
+`SetContentColor`, `SetBackgroundColor`, `SetTextRotation`) read the groups of the cell's own bytes and write them back into their
+place, the rest of the record copied as it is, where each read and wrote every group of the table; the record's bytes are those of a
+writing of every group, to the byte (the last cell of a table, and the cells of a record whose groups stand other than the file
+writes them, are still written through the whole record). A table of 1 000 cells, each given its text, takes 36 ms and 195 MB in
+place of 5 343 ms and 8.7 GB on .NET Framework 4.8 (64 ms in place of 4 359 ms on .NET 10), 3 000 cells 354 ms in place of 48.5 s
+(370 ms in place of 31 s), and 10 000 cells 3.2 s (3.9 s on .NET 10) where the same loop had not ended after 15 minutes; what is left grows with the record,
+whose bytes are copied for each cell. Saved bytes equal before and after in 27 168 saves of random drawings with tables edited
+between saves, in every version from R2000 to R2018 and for a table read back from text in each line end and padding, on .NET
+Framework 4.8 (21 208 of them on .NET 10 too), and in the 1 169 saves of AutoCAD's 167 sample drawings.
+**CHANGED.** Adding tables to a drawing, copying them to another, and saving a drawing of many tables cost in proportion to the
+tables, not to their number times the drawing: a table is given a block of its own without counting the entities of the drawing that
+name it (the block made a moment ago can have no other), the name of the block a table is drawn by is read from the head of its
+record, a table style is read from its record once for the 54 looks a table drawn anew asks of it, the entities of a drawing are
+looked up by handle without making an object of each, the names under which the named object dictionary holds an object are found
+for every object in one walk of its dictionaries where each pointer of a copied table walked them all, and the completion of a drawing
+lists its tables in `ACDB_RECOMPOSE_DATA` once at its end, not by reading and writing the list for each. 400 tables of 3 rows and 4
+columns, each cell given its text, are added in 311 ms and 347 MB in place of 1 966 ms and 4.4 GB on .NET Framework 4.8 (160 ms in place
+of 1 023 ms on .NET 10), 1 600 of them in 1.3 s and 1.5 GB in place of 25 s and 59 GB (0.7 s in place of 13.5 s); saved as R2018 after an
+edit they take 90 ms in place of 179 ms (400) and 389 ms in place of 1 690 ms (1 600); copying 400 tables among 5 000 other objects takes
+80 ms in place of 981 ms, among 20 000 91 ms in place of 4 828 ms (the same, 54 ms in place of 3 488 ms, on .NET 10), whatever the
+objects around them. Saved bytes equal before and after in the same saves as above, and in the copies of 25 tables among 120 objects.
+Not changed: the completion of a drawing of 100 000 entities (10 MB) that holds a table still takes 158 ms to save after an edit (169
+ms before), nine tenths of it the reading of the copy it is made on.
+**CHANGED.** A body or a region saved to R2013 or later from ACIS text, or from the binary of another version of the modeler, is
+dated with the date of the SAT's own head (AutoCAD writes none there, so none) and not with the clock, and a body whose extended data
+gives no GUID is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name) and not at
+random, so that the same drawing saved twice is the same bytes where each save differed in its date and its GUID. AutoCAD 2021 read
+the 24 drawings made of 4 AutoCAD samples (with 3DSOLIDs and a REGION) by saving each as R2013, as R2010 and as R2000, those two again as R2013,
+and the R2000 one as R2018 too, in its console (`DxfIn`), `AUDIT` finding 0 errors, with the volume of each solid and the area of each region
+those of the sample; 1 163 of the 1 169 saves of the 167 samples are the same bytes as before, the 6 others being the R2013 saves of
+drawings with bodies.
 **CHANGED.** The extension dictionary of a table made in code (and of any record given one) is spliced into its record as bytes, not
 written group by group from a list of every group of the record: a table of 2 000 cells no longer allocates some 5 MB for it,
 and the greatest handle of a copy of the drawing is read without a list for each record. Saving the 10 000 cells as R2018

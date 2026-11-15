@@ -46,7 +46,15 @@ namespace GeometryHelper.Dxf
         /// table of 100 rows of 20 columns is drawn in some tens of milliseconds.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Thrown when the table is in no drawing, or is erased.</exception>
-        public void RecomputeTableBlock()
+        public void RecomputeTableBlock() => DrawPicture(null);
+
+        /// <summary>
+        /// Draws the table anew as <see cref="RecomputeTableBlock()"/> does, knowing the block <paramref name="fresh"/> names,
+        /// where it is one the table was given a moment ago, to be the table's alone: no entity of the drawing names a block
+        /// made just now, so that the drawing's entities are not walked to count those that do, which 1 600 tables added one
+        /// after another did once each.
+        /// </summary>
+        private void DrawPicture(string fresh)
         {
             CheckEditable();
 
@@ -58,7 +66,13 @@ namespace GeometryHelper.Dxf
             DxfDatabase database = Item.File.Database;
             DxfBlockTableRecord picture = BlockTableRecord;
 
-            if (picture == null || !PictureAlone(picture))
+            if (
+                picture == null
+                || !(
+                    (fresh != null && string.Equals(picture.Name, fresh, StringComparison.OrdinalIgnoreCase))
+                    || PictureAlone(picture)
+                )
+            )
             {
                 picture = new DxfBlockTableRecord { Name = "*T" };
                 database.BlockTable.Add(picture);
@@ -138,6 +152,7 @@ namespace GeometryHelper.Dxf
             }
 
             g.Write(Order);
+            _freshPicture = picture.Name;
             file.AddClass("ACAD_TABLE", "AcDbTable", 1025, entity: true);
             file.CountClass("ACAD_TABLE");
         }
@@ -155,7 +170,9 @@ namespace GeometryHelper.Dxf
                 MergeCells(new DxfCellRange(0, 0, 0, NumColumns - 1));
             }
 
-            RecomputeTableBlock();
+            string fresh = _freshPicture;
+            _freshPicture = null;
+            DrawPicture(fresh);
         }
 
         /// <summary>
@@ -173,8 +190,14 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                foreach (DxfEntity entity in owner)
+                foreach (DxfItem item in owner.AllItems())
                 {
+                    if (!DxfFile.NamesABlock(item.Type))
+                    {
+                        continue;
+                    }
+
+                    DxfEntity entity = DxfEntity.Of(item);
                     string named =
                         entity is DxfTable table ? table.PictureName
                         : entity is DxfBlockReference insert ? insert.Name

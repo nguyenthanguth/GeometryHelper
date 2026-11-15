@@ -986,7 +986,7 @@ namespace GeometryHelper.Dxf
                 throw new ArgumentException("A cell's text is written on one line: a new line is \\P.", nameof(value));
             }
 
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (cell.Whole(171, 1) == (int)DxfTableCellType.BlockCell)
             {
@@ -1749,6 +1749,12 @@ namespace GeometryHelper.Dxf
         {
             get
             {
+                // Read from the bytes up to the group, not from a list of every group of the record: of every table of a drawing.
+                if (Item.File.TryBaseTextOf(Item, 2, out string name))
+                {
+                    return DxfReader.NameOf(name ?? string.Empty);
+                }
+
                 DxfDimGroups g = Own();
                 return DxfReader.NameOf(g.Text(2, g.Base) ?? string.Empty);
             }
@@ -1771,8 +1777,14 @@ namespace GeometryHelper.Dxf
 
             foreach (DxfBlockTableRecord owner in database.BlockTable)
             {
-                foreach (DxfEntity entity in owner)
+                foreach (DxfItem item in owner.AllItems())
                 {
+                    if (!DxfFile.NamesABlock(item.Type))
+                    {
+                        continue;
+                    }
+
+                    DxfEntity entity = DxfEntity.Of(item);
                     string named =
                         entity is DxfTable table ? table.PictureName
                         : entity is DxfBlockReference insert ? insert.Name
