@@ -984,7 +984,18 @@ line of 40 at 20 degrees is run on up to 3.566 over it, where 28 degrees and mor
 degrees) is run on as long as the level of the point is beyond its end (13 across but not 14 at 120 degrees for a line of 25).
 The run is never less than an arrowhead: the level of the words 2.04 on is made 2.5 on a line at 140 degrees, and the landing and
 the words move along with its end (0.459 along, 0.295 higher); the same for an upright line of 7.2 with the words 1.44 past its end,
-which stand 1.06 higher. Words over the start of a long line below its level are run on backwards. On a line too short for its arrowheads they stand out
+which stand 1.06 higher. Words over the start of a long line below its level are run on backwards. The run is not for words
+past an end alone: turned words put between the extension lines are run on to their level in the same way where it lies beyond
+the nearer end ("100" turned 20, put 2 along a line of 40 at 30 degrees and 3 under it, has the line run on backwards 3.196
+and a landing of 2.735; put 1.5 along and 1 under it, 0.116 below the level of the start, the arrowheads turn out, the run is
+made the two arrowheads of their short line and the words move down 2.384 to its level, the line between the extension lines
+drawn once). Turned words put within the leader's reach of the line (3.125 or less over it or under it) and not run on stand
+where they were put and break the line by their chord (6.63 for "100" turned 20 on a line at 30 degrees), but centred on the
+middle of what the line takes of their box (half the width and a gap along them, half the height and a gap across), not on
+the foot of their point: 0.18 on for words 1 under it, 0.18 back for 1 over it, 1.69 on for 2 over and 2.37 for 2.25 over it,
+where the box only grazes it, and no break where the line meets the box past its end. Where that break would take part of an
+arrowhead (it starts less than 2.5 from the end) the arrowheads turn out and the line is whole, drawn twice: words 2.25 over a
+line of 40 at 30 degrees and 2 along it, the break from 3.05 and the arrowheads in at 4 along. On a line too short for its arrowheads they stand out
 on a line of their own, and the run starts where that line ends (two arrowheads out at least); the line between the extension lines
 is then drawn twice where the leader goes from its middle and once where the line is run on (lines of 3, 5 and 6). On a level line
 the words put past an end within the leader's reach are laid on the line, which is run to a gap and half their width short of them
@@ -993,7 +1004,22 @@ its arrowheads out have the line between the extension lines drawn twice, as Aut
 line). Words kept level by DIMTOH or DIMTIH on a slanting line fit by the same reach of their box as turned ones ("123456789" on a line
 of 9 at 30 degrees reaches 10.3 and goes out on a leader square to the line), and, put out under DIMTMOVE 1, lose their leader as
 turned words do where half the height of their box across the line reaches twice the leader's rise ("1234567890" on a line of 9 at 45
-degrees, middle at (5.4032, 35.9041) along the line and across it). Every dimension
+degrees, middle at (5.4032, 35.9041) along the line and across it). Where the line, run on, reaches the level of the leader's
+knee (4.117 over the middle of the line for the style of the probes: their height, DIMEXE and half a gap) the level words are put
+out to it instead of standing with no leader: the line reaches that level run = 4.117 cot s - l / 2 beyond the nearer end (4.63 for
+a line of 5 at 30 degrees, 1.62 at 45, 1.35 at 120, 2.63 for a line of 9 at 30), and where that is more than nothing the line is
+run on to it, an arrowhead at least (two where the arrowheads stand out on a short line of their own, so 5 for a line of 5 at 30
+degrees: no more is drawn to it, and 6.13 on a line of 2 starts the run where that short line ends), and a level landing
+leaves from the bend towards the side of the knee: under DIMTAD 1 as long as the words and their gaps and an arrowhead (30.394 for 14
+digits), under DIMTAD 0 an arrowhead (2.5), the words starting an arrowhead and a gap along it and level with the landing under
+DIMTAD 0, a gap and half their height over it under 1. The line between the extension lines is then drawn once. Where the line
+never reaches the level (run below nothing: 9 digits on a line of 5 at 60 degrees, 8 at 75) there is no run and no leader, the
+words stand centred where they would start, and the line between the extension lines is drawn twice where the arrowheads stand
+out (tw19: 64 pictures that differed; tw32, 1 152 more of lines of 2 to 12 at 20 to 65 degrees and their mirrors). Words put out
+by the fit and then turned (DIMTEDIT Angle) on a slanting line are laid the same way where their box reaches as high, with a landing
+an arrowhead long whatever DIMTAD says and their middle a gap and half their width past its end, level with it ("1234567890123456"
+turned 60 on a line of 5 at 30 degrees: a landing of 2.5 level with the end of the short line the arrowhead stands on, the
+words centred 15.9 past its end); words turned 90 on a line at 20 degrees are laid differently and not yet. Every dimension
 made writes the middle of its words (group 11) and its measurement (42), as AutoCAD writes them with its block; words the
 fit puts past a leader under DIMTMOVE 1 are written by their start, level with their middle, as AutoCAD 2021 writes
 them: that "0.5000" of a continued dimension of 0.5, its middle at (100.8933, 20.4088), as (100.52, 20.4088).

@@ -6,6 +6,35 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Words put out by the fit on a slanting line and kept level by DIMTOH, and turned words put between the extension lines, under
+DIMTMOVE 1 in the presenter, follow AutoCAD 2021 where they had no leader or the wrong break (probed on its console, sets tw19, tw27,
+tw32 to tw35 of the annotative round, differing pictures before and after). Level words so high that no leader goes with them (the
+half of their box across the line reaches twice the leader's rise) are put out to the level of the knee the leader would have had,
+where the line, run on, reaches it: the knee stands 4.117 over the middle of the line (the words' height, DIMEXE and half a gap) and the
+line reaches that level 4.117 cot s - l / 2 beyond the nearer end (4.63 for a line of 5 at 30 degrees, 1.62 at 45, 1.35 at 120 degrees,
+2.63 for a line of 9 at 30 degrees). Where that is more than nothing the line is run on to it, an arrowhead at least and two where the
+arrowheads stand out on a short line of their own (a line of 5 at 30 degrees: no run, the level landing leaves from the end of that
+short line; a line of 2 at 30 degrees with 24 digits: a run of 6.13 from where it ends; a line of 12: the run of 1.13 made 2.5), and a
+level landing leaves from the bend, an arrowhead and the words and their gaps long under DIMTAD 1 (30.394 for 14 digits) and an
+arrowhead long under DIMTAD 0, the words starting an arrowhead and a gap along it; the line between the extension lines is drawn once.
+Where the line never reaches that level (9 digits on a line of 5 at 60 degrees, 8 at 75) the words stand where they did, and the line
+between the extension lines is now drawn twice where the arrowheads stand out. tw19 64 -> 0 of 1 024 pictures that differed, and 590 -> 0
+of the 1 152 of tw32 (lines of 2 to 12 at 20 to 65 degrees and their mirrors, 12, 16 and 24 digits, DIMTAD 1 and 0). Words put out
+by the fit and then turned (DIMTEDIT Angle) on a slanting line do the same where their box is as high: the line run on to the knee's
+level, a landing an arrowhead long whatever DIMTAD says, their middle a gap and half their width past it and level with it (tw33,
+432 pictures of lines of 3, 5 and 9 at 20 to 150 degrees, 116 -> 6; what is left is words turned 90 on a line at 20 degrees, which
+AutoCAD lands to the other side and puts lower). Turned words put
+within the leader's reach of the line (3.125 or less over it or under it) break it by their chord (6.63 for "100" turned 20 on a line
+at 30 degrees) centred on the middle of what the line takes of their box (half the width and a gap along them, half the height and a
+gap across), not on the foot of their point: 0.18 on for words 1 under it, 0.18 back for 1 over it, 1.69 on for 2 over it and 2.37 for
+2.25 over it, where the box only grazes it; a box that meets the line past its end leaves it whole, and where the break would take
+part of an arrowhead (it starts less than 2.5 from the end) the arrowheads turn out and the line is whole, drawn twice (tw27 20 -> 1
+of 738). The run to the level of the point, which was for words past an end alone, is now made for turned words between the extension
+lines as well where that level lies beyond the nearer end ("100" turned 20 put 2 along a line of 40 at 30 degrees and 3 under it: the
+line run on backwards 3.196 and a landing of 2.735; 1 under it and 1.5 along, 0.116 below the level of the start: the arrowheads turn
+out, the run is made two arrowheads and the words move down 2.384 to its level, the line drawn once). Probes of turned words in the
+span: tw34 (3 510 pictures, slopes 30 to 135, angles 20, 45 and 90, across -3 to 4) 1 688 -> 288 differing, tw35 (2 028, near both ends)
+809 -> 106; what is left are words exactly on an extension line or on the line past an end.
 **CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
 colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
 16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76
