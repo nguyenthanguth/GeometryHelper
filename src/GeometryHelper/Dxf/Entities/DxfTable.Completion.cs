@@ -838,9 +838,10 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Gives an object the extension dictionary AutoCAD 2021 gives a table or a table style it builds the round trip of: an
         /// empty DICTIONARY owned hard by the object (280 of 1) that names it as its owner but not as its reactor, the group
-        /// <c>{ACAD_XDICTIONARY</c> in the object's record, first of a style, as AutoCAD writes them.
+        /// <c>{ACAD_XDICTIONARY</c> in the object's record, first of a style, as AutoCAD writes them. It is the one AutoCAD
+        /// gives a TEXT, an INSERT or a HATCH made annotative or copied, and the dictionary is given back.
         /// </summary>
-        internal static void MakeExtensionDictionary(DxfFile file, DxfItem owner, bool beforeReactors)
+        internal static DxfItem MakeExtensionDictionary(DxfFile file, DxfItem owner, bool beforeReactors)
         {
             DxfItem made = file.AddObject("DICTIONARY", null, b =>
             {
@@ -850,6 +851,7 @@ namespace GeometryHelper.Dxf
                 b.Group(281, "1");
             });
             file.SetExtensionDictionary(owner, made.Handle, beforeReactors);
+            return made;
         }
     }
 }

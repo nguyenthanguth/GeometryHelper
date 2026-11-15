@@ -506,5 +506,44 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(DxfAnnotativeStates.True, insert.Annotative);
             Assert.Throws<NotSupportedException>(() => block.Annotative = DxfAnnotativeStates.False);
         }
+
+        [Fact]
+        public void TheExtensionDictionaryOfATextMadeAnnotative_NamesItsOwnerButIsNoReactorOfIt_AsAutoCADWritesIt()
+        {
+            // AutoCAD 2021 (probe GHM3TEXT, GHM3INS, GHM3HATCH: the DXF of a TEXT, an INSERT and a HATCH made annotative) writes
+            // the extension dictionary with its owner (330) and no {ACAD_REACTORS; the dictionaries inside it have the one
+            // above as owner and reactor.
+            DxfDatabase db = Scaled();
+            db.Cannoscale = "1:1";
+            DxfDBText text = Text(db);
+            text.Annotative = DxfAnnotativeStates.True;
+
+            DxfDBDictionary extension = text.ExtensionDictionary;
+            Assert.Equal(text.Handle, extension.OwnerHandle);
+            Assert.Empty(extension.GetPersistentReactorIds());
+            var manager = (DxfDBDictionary)extension.GetAt("AcDbContextDataManager");
+            Assert.Equal(new[] { extension.Handle }, manager.GetPersistentReactorIds());
+        }
+
+        [Fact]
+        public void TheCopyOfAnAnnotativeText_GetsAnExtensionDictionaryNamingItsOwnerButIsNoReactorOfIt()
+        {
+            // AutoCAD 2021's MIRROR of an annotative TEXT, MTEXT, INSERT and HATCH writes the copy's extension dictionary with its
+            // owner and no {ACAD_REACTORS (probe GHM3TEXT: 22E, 233; GHM3INS; GHM3HATCH), where the library wrote one.
+            DxfDatabase db = Scaled();
+            db.Cannoscale = "1:1";
+            DxfDBText text = Text(db);
+            text.Annotative = DxfAnnotativeStates.True;
+            var copy = (DxfDBText)text.Clone();
+            db.ModelSpace.AppendEntity(copy);
+
+            DxfDBDictionary extension = copy.ExtensionDictionary;
+            Assert.NotEqual(text.ExtensionDictionary.Handle, extension.Handle);
+            Assert.Equal(copy.Handle, extension.OwnerHandle);
+            Assert.Empty(extension.GetPersistentReactorIds());
+            var manager = (DxfDBDictionary)extension.GetAt("AcDbContextDataManager");
+            Assert.Equal(new[] { extension.Handle }, manager.GetPersistentReactorIds());
+            Assert.Equal(new[] { "1:1" }, Names(copy));
+        }
     }
 }

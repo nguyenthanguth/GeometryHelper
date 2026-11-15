@@ -385,7 +385,7 @@ User note 2026-11-12 evening (note.md 1-14):
       SetTextString 3.6 s / 13.5 GB -> 0.44 s / 491 MB), one mechanism with tables8's last-cell splice; the completed
       copy opened from bytes and its tables found by handle (save after an edit of 100 000 lines + a table 157 -> 52 ms);
       NormalizeEdges' style by handle; saved bytes identical (71 000 fuzz saves, 167 samples)
-- [ ] DXF versions follow-ups 13: ResetValue and SetCellType still whole-record (931 resets 8-10 s; the last cell's end
+- [ ] (dxfver13, running: ResetValue/SetCellType, first-save index, open walk, SetGridColor, MTextLayout lock) DXF versions follow-ups 13: ResetValue and SetCellType still whole-record (931 resets 8-10 s; the last cell's end
       from a fresh parse of the tail would allow them); the first save's index of the original's entities (~55 ms at
       100 000); the copy's open walk (25-30 ms for 15 MB); the SetGridColor family copying the record per call;
       MTextLayoutTests' shared temp fonts file locked between parallel tests; real TABLEGEOMETRY and row heights (font
@@ -417,7 +417,13 @@ the ones wanted.
 - [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
 - [x] MIRROR: INSERT (41 = -1, turn of the mirrored y axis), ATTRIBs without 210, rotations within 0..360, TEXT spaces kept, 45-degree multileaders
 - [x] MIRROR follow-ups 2: MTEXT with no 11 read along world x, MINSERT, annotative INSERT, dynamic flip kept (and on COPY/ARRAY), MLEADER sizes exact, missing $AUPREC and $MIRRTEXT read as 0
-- [ ] (mirror3, running) MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none (S)
+- [x] MIRROR follow-ups 3 (mirror3): GeoTransform3/2.Mirror built from the normal over its greatest component (45-degree
+      reflections exact; 20 000 random planes: worst error 1.67E-11 -> 1.16E-11; axis planes bit-identical; benchmarks'
+      signatures unchanged); the extension dictionary of an annotative copy made without {ACAD_REACTORS as AutoCAD
+- [ ] MIRROR follow-ups 4: the public DxfDBObject.CreateExtensionDictionary also writes {ACAD_REACTORS (AutoCAD writes
+      none for a LINE; probe layers, blocks, tables before changing ~25 callers); MIRROR/COPY dropping a plain entity's
+      extension dictionary (AutoCAD copies it with its entries); a HATCH copy's ACDB_HATCHVIEWCONTEXTDATA_CLASS; the
+      MLeader 45-degree workaround maybe redundant now (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity

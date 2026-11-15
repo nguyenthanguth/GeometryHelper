@@ -34,6 +34,13 @@ together within the global tolerance of a thousandth and came back its four corn
 the line `Mirror` reflects across: the segment from (0, 0) to (0.000007, 0.000007) mirrors (1, 0) to (0, 1), where it
 had no direction within the global vector tolerance of 1E-5 and was refused.
 
+A mirror across a line or a plane at 45 degrees swaps two coordinates, and comes out as whole numbers: `GeoTransform2.Mirror`
+of the line from (0, 0) to (1, 1) takes (0, 10) to (10, 0), and `GeoTransform3.Mirror` of the plane y = x - 50 takes
+(0, 10, 0) to (60, -50, 0), where the matrix built from the unit normal came to 9.999999999999998 and 59.999999999999986.
+The matrix is built from the normal divided by its greatest component. Any other plane reflects a point within a last
+digit of where it did: on 20 000 random planes and points up to 20 000 out, the error against the exact reflection was 2.0E-12
+on average and 1.2E-11 at the worst, where it had been 2.5E-12 and 1.7E-11.
+
 A curved chain is copied, moved and turned edge for edge as well, by `Clone`, `Translate` and `RotateBy`: at a
 millionth, the chain (0, 0), (10, 0), (10, 10) filleted at 0.0005 keeps its arc 0.0007 across, where it was put back
 together within the global tolerance and came back turning at a corner. A straight polygon or chain is moved and turned
