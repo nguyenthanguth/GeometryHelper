@@ -97,6 +97,8 @@ namespace GeometryHelper.Dxf
             _starts = walk.Starts.ToArray();
             _types = walk.Types.ToArray();
             _sections = walk.Sections.ToArray();
+            _walkedHandle = walk.MostHandle;
+            _walkedPointed = walk.MostPointed;
             ReadHeader();
 
             _drawing = new Lazy<Drawing>(ReadDrawing);
@@ -654,58 +656,334 @@ namespace GeometryHelper.Dxf
         /// <summary>The look the file shares for this one: the same object for every entity of the same look, as long as the file has room for another.</summary>
         internal Look Shared(Look look)
         {
-            if (_looks.TryGetValue(look, out Look shared))
-            {
-                return shared;
-            }
-
-            return _looks.Count >= MostSharedLooks ? look : _looks.GetOrAdd(look, look);
+            TryShared(look, out Look shared);
+            return shared;
         }
 
-        internal Look LookOf(DxfItem item, out string handle)
+        /// <summary>The look the file shares for this one, and whether it is shared: false where the file had no room for another, and the look is the entity's own.</summary>
+        private bool TryShared(Look look, out Look shared)
         {
-            // Each of these groups the first of its code in the record, kept as it stands; null where the record has none.
-            string handleValue = null,
-                dimStyleHandle = null,
-                layer = null,
-                linetype = null,
-                thickness = null,
-                colour = null,
-                lineweight = null,
-                trueColour = null;
+            if (_looks.TryGetValue(look, out shared))
+            {
+                return true;
+            }
+
+            if (_looks.Count >= MostSharedLooks)
+            {
+                shared = look;
+                return false;
+            }
+
+            shared = _looks.GetOrAdd(look, look);
+            return true;
+        }
+
+        /// <summary>
+        /// The look of an entity as the file shares it, and its handle: found from the bytes of the groups that make a look
+        /// (layer, linetype, thickness, colour, lineweight, true colour, each the first of its code) among those of looks the
+        /// file shared before, so that an entity of a look met already makes no string of them and no <see cref="Look"/>, as
+        /// the million entities of a drawing with a few looks did. A look not among them is read from the record's groups
+        /// and shared as before; the handle is the one string made. The same walk over the record settles whether the entity is
+        /// hidden, as <see cref="IsHidden"/> reads it, which every entity drawn is asked, so that the record is walked once and
+        /// not twice.
+        /// </summary>
+        internal Look LookOf(DxfItem item, out string handle) => LookOf(item, out handle, out _);
+
+        /// <inheritdoc cref="LookOf(DxfItem, out string)"/>
+        internal Look LookOf(DxfItem item, out string handle, out bool hidden)
+        {
             Rec record = HeadOf(item);
+            var spans = new LookSpans(-1);
+            int handleStart = -1,
+                handleEnd = 0,
+                dimStart = -1,
+                dimEnd = 0;
             var walk = new GroupWalk(record);
+
+            // The visibility as IsHidden reads it: from the first group 60 of the part all entities have, outside the groups of
+            // the applications, before the first subclass marker other than AcDbEntity and the extended data; -1 while none of
+            // those is met, 1 for an entity that is shown and 0 for one that is hidden.
+            int shown = -1;
+            bool braced = false;
 
             while (walk.Next(out int code, out int start, out int end))
             {
+                if (shown < 0)
+                {
+                    if (code == 1001)
+                    {
+                        shown = 1;
+                    }
+                    else if (code == 102)
+                    {
+                        braced = StartsWithBrace(record, start, end);
+                    }
+                    else if (!braced)
+                    {
+                        if (code == 100 && !ValueIs(record, new Pair(code, 0, start, end, 0), "AcDbEntity"))
+                        {
+                            shown = 1;
+                        }
+                        else if (code == 60)
+                        {
+                            shown =
+                                (
+                                    DxfFastNumber.TryWhole(record.Bytes, start, end, out int off)
+                                    || int.TryParse(
+                                        Text(record, start, end).Trim(),
+                                        NumberStyles.Integer,
+                                        CultureInfo.InvariantCulture,
+                                        out off
+                                    )
+                                )
+                                && off == 1
+                                    ? 0
+                                    : 1;
+                        }
+                    }
+                }
+
                 switch (code)
                 {
                     case 5:
-                        handleValue = handleValue ?? Text(record, start, end);
+                        if (handleStart < 0)
+                        {
+                            handleStart = start;
+                            handleEnd = end;
+                        }
+
                         break;
                     case 105:
-                        dimStyleHandle = dimStyleHandle ?? Text(record, start, end);
+                        if (dimStart < 0)
+                        {
+                            dimStart = start;
+                            dimEnd = end;
+                        }
+
                         break;
                     case 8:
-                        layer = layer ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.Layer, start, end);
                         break;
                     case 6:
-                        linetype = linetype ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.Linetype, start, end);
                         break;
                     case 39:
-                        thickness = thickness ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.Thickness, start, end);
                         break;
                     case 62:
-                        colour = colour ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.Colour, start, end);
                         break;
                     case 370:
-                        lineweight = lineweight ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.Lineweight, start, end);
                         break;
                     case 420:
-                        trueColour = trueColour ?? Text(record, start, end);
+                        spans.SetFirst(ref spans.TrueColour, start, end);
                         break;
                 }
             }
+
+            // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
+            bool dimStyle = record.Type == "DIMSTYLE";
+            int from = dimStyle ? dimStart : handleStart;
+            string text = from < 0 ? null : Text(record, from, dimStyle ? dimEnd : handleEnd).Trim();
+            handle = string.IsNullOrEmpty(text) ? null : text;
+            hidden = shown == 0;
+            byte[] bytes = record.Bytes;
+            int hash = spans.Hash(bytes);
+            int slot = hash & (LookSlots - 1);
+            LookEntry entry = Volatile.Read(ref _lookEntries[slot]);
+
+            if (entry != null && entry.Hash == hash && spans.Matches(bytes, entry.Key))
+            {
+                return entry.Look;
+            }
+
+            Look look = LookFrom(record, spans);
+
+            if (!TryShared(look, out Look shared))
+            {
+                return look;
+            }
+
+            Volatile.Write(ref _lookEntries[slot], new LookEntry(hash, spans.KeyOf(bytes), shared));
+            return shared;
+        }
+
+        /// <summary>How many looks <see cref="LookOf(DxfItem, out string, out bool)"/> remembers by their bytes, found by the hash of them: a few more than the layers and colours of a usual drawing.</summary>
+        private const int LookSlots = 64;
+
+        private readonly LookEntry[] _lookEntries = new LookEntry[LookSlots];
+
+        /// <summary>A look shared by the file with the bytes of the groups it was read from, kept for the next entity whose groups are the same bytes.</summary>
+        private sealed class LookEntry
+        {
+            internal readonly int Hash;
+            internal readonly byte[] Key;
+            internal readonly Look Look;
+
+            internal LookEntry(int hash, byte[] key, Look look)
+            {
+                Hash = hash;
+                Key = key;
+                Look = look;
+            }
+        }
+
+        /// <summary>
+        /// Where in the bytes of a record the groups of a look stand: the start and end of each value, the start -1 where the
+        /// record has none, which is not an empty value.
+        /// </summary>
+        private struct LookSpans
+        {
+            internal Slice Layer,
+                Linetype,
+                Thickness,
+                Colour,
+                Lineweight,
+                TrueColour;
+
+            internal LookSpans(int none)
+            {
+                Layer = Linetype = Thickness = Colour = Lineweight = TrueColour = new Slice(none, 0);
+            }
+
+            internal struct Slice
+            {
+                internal int Start;
+                internal int End;
+
+                internal Slice(int start, int end)
+                {
+                    Start = start;
+                    End = end;
+                }
+
+                internal int Length => Start < 0 ? 0 : End - Start;
+            }
+
+            internal void SetFirst(ref Slice span, int start, int end)
+            {
+                if (span.Start < 0)
+                {
+                    span = new Slice(start, end);
+                }
+            }
+
+            private static int Mix(int hash, byte[] bytes, Slice span)
+            {
+                unchecked
+                {
+                    if (span.Start < 0)
+                    {
+                        return (hash ^ 0x5bd1e995) * 16777619;
+                    }
+
+                    hash = (hash ^ (span.End - span.Start)) * 16777619;
+
+                    for (int i = span.Start; i < span.End; i++)
+                    {
+                        hash = (hash ^ bytes[i]) * 16777619;
+                    }
+
+                    return hash;
+                }
+            }
+
+            internal int Hash(byte[] bytes)
+            {
+                unchecked
+                {
+                    int hash = (int)2166136261;
+                    hash = Mix(hash, bytes, Layer);
+                    hash = Mix(hash, bytes, Linetype);
+                    hash = Mix(hash, bytes, Thickness);
+                    hash = Mix(hash, bytes, Colour);
+                    hash = Mix(hash, bytes, Lineweight);
+                    return Mix(hash, bytes, TrueColour);
+                }
+            }
+
+            private static bool Same(byte[] bytes, Slice span, byte[] key, ref int at)
+            {
+                int length = key[at] | (key[at + 1] << 8) | (key[at + 2] << 16) | (key[at + 3] << 24);
+                at += 4;
+
+                if (span.Start < 0)
+                {
+                    return length == -1;
+                }
+
+                if (length != span.End - span.Start)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < length; i++)
+                {
+                    if (key[at + i] != bytes[span.Start + i])
+                    {
+                        return false;
+                    }
+                }
+
+                at += length;
+                return true;
+            }
+
+            internal bool Matches(byte[] bytes, byte[] key)
+            {
+                int at = 0;
+                return Same(bytes, Layer, key, ref at)
+                    && Same(bytes, Linetype, key, ref at)
+                    && Same(bytes, Thickness, key, ref at)
+                    && Same(bytes, Colour, key, ref at)
+                    && Same(bytes, Lineweight, key, ref at)
+                    && Same(bytes, TrueColour, key, ref at);
+            }
+
+            private static void Put(byte[] key, Slice span, byte[] bytes, ref int at)
+            {
+                int length = span.Start < 0 ? -1 : span.End - span.Start;
+                key[at] = (byte)length;
+                key[at + 1] = (byte)(length >> 8);
+                key[at + 2] = (byte)(length >> 16);
+                key[at + 3] = (byte)(length >> 24);
+                at += 4;
+
+                if (length > 0)
+                {
+                    Buffer.BlockCopy(bytes, span.Start, key, at, length);
+                    at += length;
+                }
+            }
+
+            internal byte[] KeyOf(byte[] bytes)
+            {
+                var key = new byte[
+                    24
+                        + Layer.Length
+                        + Linetype.Length
+                        + Thickness.Length
+                        + Colour.Length
+                        + Lineweight.Length
+                        + TrueColour.Length
+                ];
+                int at = 0;
+                Put(key, Layer, bytes, ref at);
+                Put(key, Linetype, bytes, ref at);
+                Put(key, Thickness, bytes, ref at);
+                Put(key, Colour, bytes, ref at);
+                Put(key, Lineweight, bytes, ref at);
+                Put(key, TrueColour, bytes, ref at);
+                return key;
+            }
+        }
+
+        /// <summary>The look of an entity made of the groups of its record that <see cref="LookOf(DxfItem, out string, out bool)"/> found, as strings, not yet shared.</summary>
+        private Look LookFrom(Rec record, LookSpans spans)
+        {
+            // Each group the first of its code in the record, kept as it stands; null where the record has none.
+            string TextOf(LookSpans.Slice slice) => slice.Start < 0 ? null : Text(record, slice.Start, slice.End);
 
             int? Whole(string value) =>
                 value != null
@@ -713,19 +991,17 @@ namespace GeometryHelper.Dxf
                     ? number
                     : (int?)null;
 
-            // A DIMSTYLE gives its handle as 105: its 5 is the name of its arrow block in a file of R12.
-            string text = (record.Type == "DIMSTYLE" ? dimStyleHandle : handleValue)?.Trim();
-            handle = string.IsNullOrEmpty(text) ? null : text;
+            string thickness = TextOf(spans.Thickness);
             double raised =
                 thickness != null && Numbers.TryRead(thickness, out double read) && Guard.IsFinite(read) ? read : 0.0;
 
             return new Look
             {
-                Layer = layer,
-                Colour = Whole(colour),
-                TrueColour = Whole(trueColour),
-                Linetype = linetype,
-                Lineweight = Whole(lineweight),
+                Layer = TextOf(spans.Layer),
+                Colour = Whole(TextOf(spans.Colour)),
+                TrueColour = Whole(TextOf(spans.TrueColour)),
+                Linetype = TextOf(spans.Linetype),
+                Lineweight = Whole(TextOf(spans.Lineweight)),
                 Thickness = raised,
             };
         }
@@ -1247,6 +1523,19 @@ namespace GeometryHelper.Dxf
             /// </summary>
             internal List<KeyValuePair<int, int>> Extra { get; } = new List<KeyValuePair<int, int>>();
 
+            /// <summary>
+            /// The greatest handle a record outside the HEADER has (its first group 5, or 105 for a DIMSTYLE, whose 5 is the name
+            /// of its arrow block in a file of R12), read as hexadecimal: found as the walk goes by the groups, where a pass of
+            /// its own over every group of every record took a quarter of the time a drawing of 1 000 000 entities takes to open.
+            /// </summary>
+            internal ulong MostHandle { get; private set; }
+
+            /// <summary>
+            /// The greatest handle a group of a pointer outside the HEADER points to (codes 320 to 369, 390 to 399, 480, 481 and
+            /// 1005), though no record has it, so that nothing comes to point at a new entity by chance.
+            /// </summary>
+            internal ulong MostPointed { get; private set; }
+
             private void Run()
             {
                 string section = null;
@@ -1257,11 +1546,42 @@ namespace GeometryHelper.Dxf
                 bool vertex = false;
                 int vertexMarker = -1;
                 int records = 0;
+                bool scanning = false;
+                bool handled = true;
+                int wanted = 5;
+                byte[] bytes = _file._bytes;
 
                 while (Next(out int code, out int codeStart, out int valueStart, out int valueEnd, out int line))
                 {
                     if (code != 0)
                     {
+                        if (scanning)
+                        {
+                            if (!handled && (code == wanted || (wanted == 5 && code == 105)))
+                            {
+                                handled = true;
+
+                                if (TryHex(bytes, valueStart, valueEnd, out ulong handle) && handle > MostHandle)
+                                {
+                                    MostHandle = handle;
+                                }
+                            }
+
+                            if (
+                                (code >= 320 && code <= 369)
+                                || (code >= 390 && code <= 399)
+                                || code == 480
+                                || code == 481
+                                || code == 1005
+                            )
+                            {
+                                if (TryHex(bytes, valueStart, valueEnd, out ulong pointed) && pointed > MostPointed)
+                                {
+                                    MostPointed = pointed;
+                                }
+                            }
+                        }
+
                         if (vertex && code == 100)
                         {
                             if (vertexMarker >= 0 && _file.IsWord(valueStart, valueEnd, "AcDbFaceRecord"))
@@ -1287,6 +1607,8 @@ namespace GeometryHelper.Dxf
                     string word = Word(valueStart, valueEnd);
                     vertex = word == "VERTEX";
                     vertexMarker = -1;
+                    handled = false;
+                    wanted = word == "DIMSTYLE" ? 105 : 5;
 
                     if (word == "EOF")
                     {
@@ -1343,6 +1665,7 @@ namespace GeometryHelper.Dxf
                         sectionLine = line;
                         sectionFirst = Starts.Count - 1;
                         entities |= section == "ENTITIES";
+                        scanning = section != "HEADER";
                         continue;
                     }
 
@@ -1360,6 +1683,7 @@ namespace GeometryHelper.Dxf
                         Add(codeStart, word);
                         Sections.Add(new Section(section, sectionFirst, Starts.Count - 1));
                         section = null;
+                        scanning = false;
                         continue;
                     }
 

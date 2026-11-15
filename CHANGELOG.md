@@ -304,6 +304,33 @@ of a block of 20 entities 858 ms where 1 115 (.NET 8) and 1 494 where 2 057 (.NE
 758, 424 MB of garbage where 640; the drawing of 1 000 000 entities 2.1 s where 2.3 under .NET 8 and 3.8 where 4.4 under .NET Framework,
 1 155 MB of garbage where 1 492 (a MOVE and its display, 250 ms, is as it was within the noise). No public signature changed.
 
+**CHANGED.** A large drawing opens and is edited faster again, and one with INSERTs of unlike scale factors displays nine times faster, the
+display lists, the saved bytes and the pixels as they were (167 AutoCAD samples and twelve generated drawings, item for item and field for field
+under .NET 8 and .NET Framework 4.8, and the pixels of 179 of them in three views, plain, selected, highlighted and with a hover). The note of
+the last round, that a MOVE and its display at 1 000 000 entities was no slower and not told from noise, was wrong: it was 60 ms slower,
+296 and 292 ms where 232 and 239 (the display alone, the move itself 10 ms, medians of eight moves with the undo read-aheads let finish
+between them). The display after an edit makes the list again from the older one and asked its table of insertion points for the handle
+of every one of the million entities it copied (a hash of a string ignoring case and a probe among 220 000 entries, 180 ms of the 300);
+a run now says whether its entity kept a point, so that only those are asked for, and the table is the older list's own until a patch has
+a point to take out or put in, then a copy of it: the display after a MOVE of one line is 165 ms where it was 295 (.NET 8) and 375 where
+540 (.NET Framework), the MOVE with its display 125 ms where 336 and 307 where 399. The look of an entity (layer, linetype, thickness, colour, lineweight,
+true colour) and whether it is hidden are found in one walk over its record, not two, and the look from the places of its groups among those
+of looks met before (64 are remembered), so that an entity of a look met makes no string of them and no `Look` (a REGEN of 100 000 entities
+makes 9 MB less garbage; a layer switched on 48 ms where 60 and a REGEN 153 where 171 at 100 000, 492 ms where 696 and 1.2 s where 2.0
+at 1 000 000, .NET 8); a group 102 is told from its bytes, a brace or not, as `Trim` reads it, and no longer made a string; the origin of
+a block is read once until the records of its file change, not for every INSERT; the style of the last colour and weight is answered as it
+was. The greatest handle of a file, which opening it asks for, is found as the records are walked, not by a pass of its own over every
+group of every record (a quarter of an opening): 1 000 000 entities open in 0.50 s where 0.90 under .NET 8, 100 000 in 45 ms where 86, and
+1.8 s where 3.1 under .NET Framework (on a loaded machine; 0.87 s where 1.30 on a quiet one); a new handle is the one it was, over
+generated files with pointers, seeds, a DIMSTYLE and the header's own 390. An INSERT whose scale factors are not alike draws the arcs and
+circles of its block as chains of points, each found by the shape's own arithmetic, 0.16 ms an INSERT of a block of 20 entities; the points
+of a shape of a block, before the INSERT's matrix, are now found once for all the INSERTs that place it, and each INSERT puts them through its
+own matrix into its array at once: 20 000 INSERTs display in 0.41 s where they took 3.5 s (.NET 8; 0.72 s where 4.5 s under .NET Framework),
+a layer switched on in them in 0.19 s where 1.2, with 451 MB of garbage where 1 479, every point the same to the bit. Not changed, with the
+reason: the cold display of 100 000 mixed entities (222 ms where 233, within the noise: what it does is the first touch of every
+record and its shapes, three walks over each, one of which is now gone) and the table of insertion points of a list made whole (a lookup and
+an insert for each entity that has one, 2.7 % of the display). No public signature changed.
+
 **FIXED.** Arc length dimensions (DIMARC) in the presenter follow AutoCAD 2021 where the last round left them (measured on its console,
 some 50 000 more dimensions made by both; the sets listed are differing pictures of those probed, before and after).
 Words next to a ray (DIMJUST 1 and 2) stand a cube of the arrowhead and of the half of their box over 24 radii squared further along,

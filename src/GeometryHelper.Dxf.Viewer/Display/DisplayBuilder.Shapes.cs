@@ -63,16 +63,16 @@ namespace GeometryHelper.Dxf.Viewer
                         arc.StartPoint,
                         arc.SweptAngle,
                         arc.Radius,
-                        arc,
                         m,
                         list,
                         style,
                         handle,
-                        layer
+                        layer,
+                        shape
                     );
                     return;
                 case GeoCircle3 circle:
-                    AddCircle(circle, m, list, style, handle, layer);
+                    AddCircle(circle, m, list, style, handle, layer, shape);
                     return;
                 case GeoPolylineArc3 chain:
                     AddArcChain(chain.Vertices, chain.Bulges, chain.Normals, false, m, list, style, handle, layer);
@@ -197,7 +197,8 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayList2 list,
             DisplayStyle style,
             string handle,
-            string layer
+            string layer,
+            object shape = null
         )
         {
             GeoPoint3 c = circle.Center;
@@ -211,9 +212,100 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            var xy = new List<double>();
-            FlattenInto(circle, m, xy);
-            list.Add(new DisplayPolyline2(xy.ToArray(), true, style, handle, layer) { IsSampled = true });
+            list.Add(
+                new DisplayPolyline2(Sampled(shape ?? circle, shape != null, m), true, style, handle, layer)
+                {
+                    IsSampled = true,
+                }
+            );
+        }
+
+        /// <summary>The most shapes <see cref="Sampled"/> keeps the samples of in a build: those of a block, which the INSERTs of it share.</summary>
+        private const int MostSampledShapes = 4096;
+
+        // The points of the arcs and circles of a block, before the INSERT's matrix, by the very shape (the object an entity's
+        // shapes hold); cleared with each build. The shape is a value that is never changed, so a sample is never out of date.
+        private readonly Dictionary<object, double[]> _sampled = new Dictionary<object, double[]>(
+            ReferenceComparer.Instance
+        );
+
+        // Whether the shape being added is one of an entity in a block, which its other INSERTs draw again.
+        private bool _inBlock;
+
+        private sealed class ReferenceComparer : IEqualityComparer<object>
+        {
+            internal static readonly ReferenceComparer Instance = new ReferenceComparer();
+
+            bool IEqualityComparer<object>.Equals(object x, object y) => ReferenceEquals(x, y);
+
+            int IEqualityComparer<object>.GetHashCode(object obj) =>
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        }
+
+        /// <summary>
+        /// The points of an arc or a circle sampled finely, under a matrix that does not keep it an arc or a circle: the
+        /// points as the shape gives them, each put through the matrix. A shape of a block is sampled once for all the INSERTs
+        /// that place it, which each sampled it again (160 µs an INSERT of a block of 20 entities with five circles and five
+        /// arcs, under scale factors that are not alike).
+        /// </summary>
+        private double[] Sampled(object curve, bool kept, Affine2 m)
+        {
+            double[] local;
+
+            if (!kept || !_inBlock)
+            {
+                local = SamplesOf(curve);
+            }
+            else if (!_sampled.TryGetValue(curve, out local))
+            {
+                local = SamplesOf(curve);
+
+                if (_sampled.Count < MostSampledShapes)
+                {
+                    _sampled[curve] = local;
+                }
+            }
+
+            var xy = new double[local.Length];
+
+            for (int i = 0; i < xy.Length; i += 2)
+            {
+                xy[i] = m.X(local[i], local[i + 1]);
+                xy[i + 1] = m.Y(local[i], local[i + 1]);
+            }
+
+            return xy;
+        }
+
+        /// <summary>The points of an arc or a circle as <see cref="FlattenInto"/> takes them, before a matrix: X and Y in turn.</summary>
+        private static double[] SamplesOf(object curve)
+        {
+            if (curve is GeoArc3 arc)
+            {
+                int steps = Math.Max(4, (int)Math.Ceiling(Math.Abs(arc.SweptAngle) / ArcStep));
+                var points = new double[2 * (steps + 1)];
+
+                for (int i = 0; i <= steps; i++)
+                {
+                    GeoPoint3 p = arc.GetPointAtParameter((double)i / steps);
+                    points[2 * i] = p.X;
+                    points[2 * i + 1] = p.Y;
+                }
+
+                return points;
+            }
+
+            var circle = (GeoCircle3)curve;
+            var around = new double[360];
+
+            for (int i = 0; i < 180; i++)
+            {
+                GeoPoint3 p = circle.GetPointAtParameter(i / 180.0);
+                around[2 * i] = p.X;
+                around[2 * i + 1] = p.Y;
+            }
+
+            return around;
         }
 
         private void AddArc(
@@ -222,12 +314,12 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 startPoint,
             double swept,
             double radius,
-            GeoArc3 arc,
             Affine2 m,
             DisplayList2 list,
             DisplayStyle style,
             string handle,
-            string layer
+            string layer,
+            object shape
         )
         {
             if (IsFlat(normal) && m.IsSimilarity)
@@ -248,9 +340,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            var xy = new List<double>();
-            FlattenInto(arc, m, xy);
-            list.Add(new DisplayPolyline2(xy.ToArray(), false, style, handle, layer) { IsSampled = true });
+            list.Add(new DisplayPolyline2(Sampled(shape, true, m), false, style, handle, layer) { IsSampled = true });
         }
 
         private static bool IsFlat(GeoVector3 normal) =>

@@ -188,7 +188,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
         the run-on with a level landing and the straight leader from the middle (0 wrong of 6 480 bisected probes; the
         leader's reach floor exact); runs made an arrowhead long; the doubled line only with the middle leader; words on a
         level line past an end; tw17/20/23-26/29-31 now 0, tw28 4240 -> 7 ties; harness .claude/gk/annot-harness7
-  - [ ] Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
+  - [ ] (annot8, running) Annotative objects 5e: tw19's 64 level words put out by the fit (run to the knee where run_k > 0; s120 l5 n15-16
         has no rule); tw27's 20 (words over the line by 2.25: arrowheads out and the line twice, or a 6.63 break); exact
         ties (tw18 2, tw22 1, tw28 7) (S)
   - [x] R2.2 follow-ups (hatch3): -HATCH draW boundary Arc (all AutoCAD's options and prompts), HPGAPTOL bridges along a
@@ -800,10 +800,13 @@ the ones wanted.
       ms (net8) / 2 057 -> 1 494 (net48), 100k mixed 247 -> 217 / 449 -> 345, garbage down a fifth to a third; display
       lists, saved bytes and pixels identical on 171 drawings; benchmarks' 34 signatures match
 - [ ] (flaky1, running) Wall-clock tests that fail under load (DisplayPatchSpeedTests, SelectObjectsOptionsTests' fence/polygon timing, Spline2TinyAndHugePartnersTests' petal curve, others): make them robust without losing what they guard (S)
-- [ ] (speed11, running) Speed follow-ups 10: MOVE + display at 1M possibly a few % slower after speed10 (recheck on a quiet machine);
-      BlockTableRecord.Origin cached by EditCount; LookOf (11 %) and IsHidden allocating strings; KnowHandles/PairsOf in
-      the open; unlike-scale INSERTs making arcs into ellipses (15x per INSERT); AddInsertionPoint and PlainStyleOf
-      lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
+- [x] Speed follow-ups 10 (speed11): the 1M MOVE slowdown was real (the patch looked up every handle's insertion point):
+      MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
+      found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once
+      per block shape (20k unlike INSERTs 3 511 -> 406 ms); display lists, saved bytes and pixels identical on 179 drawings
+- [ ] Speed follow-ups 11: the remaining ~165 ms of a 1M patch (re-lists 1M wrappers, copies 1.78M items: per-block
+      bounds and whole-range copies); merging the shape read and HasWidthOf walks into the look walk; AddInsertionPoint's
+      two lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
       two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
