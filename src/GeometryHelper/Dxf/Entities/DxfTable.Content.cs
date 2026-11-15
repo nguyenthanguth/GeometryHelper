@@ -203,6 +203,11 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void ContentMerged(DxfCellRange range, bool merged, bool empty = false)
         {
+            if (ContentMergedAlone(range, merged, empty))
+            {
+                return;
+            }
+
             EditContent(true, null, grid =>
             {
                 for (int r = range.TopRow; empty && r <= range.BottomRow && r < grid.Rows.Count; r++)
@@ -1233,6 +1238,11 @@ namespace GeometryHelper.Dxf
             internal List<KeyValuePair<int, string>> Groups { get; }
 
             internal bool Gone { get; set; }
+
+            /// <summary>Where the cell's groups began and ended among those the TABLECONTENT was read from (from the count of its columns on); as read, not kept up with an edit.</summary>
+            internal int GroupFrom { get; set; }
+
+            internal int GroupTo { get; set; }
         }
 
         /// <summary>A row of the TABLECONTENT: its 301 and its LINKEDTABLEDATAROW_BEGIN, its count of cells as read, its cells, and the rest to its TABLEROW_END.</summary>
@@ -1284,6 +1294,9 @@ namespace GeometryHelper.Dxf
             private int _mergesTo;
 
             internal int From { get; private set; }
+
+            /// <summary>Where what follows the rows began among the groups read, counted from <see cref="From"/>.</summary>
+            internal int TailAt { get; private set; }
 
             internal List<List<KeyValuePair<int, string>>> Columns { get; } =
                 new List<List<KeyValuePair<int, string>>>();
@@ -1337,9 +1350,11 @@ namespace GeometryHelper.Dxf
             }
 
             /// <summary>The TABLECONTENT read; null where it is not in the form AutoCAD writes.</summary>
-            internal static ContentGrid Read(DxfFile file, DxfItem content)
+            internal static ContentGrid Read(DxfFile file, DxfItem content) => Read(file.TailOf(content, 0));
+
+            /// <summary>The TABLECONTENT read from its groups as <see cref="DxfFile.TailOf"/> gives them; null where it is not in the form AutoCAD writes.</summary>
+            internal static ContentGrid Read(List<DxfTypedValue> all)
             {
-                List<DxfTypedValue> all = file.TailOf(content, 0);
                 int from = all.FindIndex(x => x.TypeCode == 100 && x.Value.Trim() == "AcDbLinkedTableData") + 1;
 
                 if (from <= 0 || from >= all.Count || all[from].TypeCode != 90)
@@ -1404,7 +1419,7 @@ namespace GeometryHelper.Dxf
                             return null;
                         }
 
-                        cells.Add(new ContentGridCell(g.GetRange(i, end - i)));
+                        cells.Add(new ContentGridCell(g.GetRange(i, end - i)) { GroupFrom = i, GroupTo = end });
                         i = end;
                     }
 
@@ -1425,6 +1440,7 @@ namespace GeometryHelper.Dxf
                 }
 
                 grid._tail = g.GetRange(i, g.Count - i);
+                grid.TailAt = i;
                 grid.ReadMerges();
                 return grid;
             }
@@ -1541,11 +1557,25 @@ namespace GeometryHelper.Dxf
                 }
 
                 groups.AddRange(_tail.GetRange(0, _mergesFrom));
-                groups.Add(Counted(_mergeCount, 90, Merges.Count));
-                AddRanges(groups, Merges);
+                groups.AddRange(MergeGroups());
                 groups.AddRange(_tail.GetRange(_mergesTo, _tail.Count - _mergesTo));
                 return groups;
             }
+
+            /// <summary>The count of the merged ranges and the ranges (90, then 91 to 94 of each) as they stand; the list is read where <see cref="Merges"/> is not null.</summary>
+            internal List<KeyValuePair<int, string>> MergeGroups()
+            {
+                var groups = new List<KeyValuePair<int, string>> { Counted(_mergeCount, 90, Merges.Count) };
+                AddRanges(groups, Merges);
+                _mergeCount = groups[0];
+                return groups;
+            }
+
+            /// <summary>Where the list of merged ranges began among the groups read (the count of the ranges), counted from <see cref="From"/>.</summary>
+            internal int MergesFrom => TailAt + _mergesFrom;
+
+            /// <summary>Where the list of merged ranges ended among the groups read, the place after its last group, counted from <see cref="From"/>.</summary>
+            internal int MergesTo => TailAt + _mergesTo;
 
             /// <summary>Adds merged ranges after their count: the count (90), then each range's 91 to 94.</summary>
             internal static void AddMerges(List<KeyValuePair<int, string>> groups, List<int[]> merges)

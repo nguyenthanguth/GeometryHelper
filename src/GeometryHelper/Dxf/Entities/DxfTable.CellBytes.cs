@@ -47,6 +47,13 @@ namespace GeometryHelper.Dxf
             /// <summary>The cells written and not yet put in the record (<see cref="DxfFile.PendingCells"/>), the places in <see cref="From"/> being those of the record before them; null where there are none.</summary>
             internal DxfFile.PendingCells Pending { get; set; }
 
+            /// <summary>
+            /// The blocks of merged cells of the table, kept between merges while every cell of the record is as a whole writing
+            /// leaves it (<see cref="DxfTable.AloneCellsToMerge"/>); null until a merge reads them, and again once a cell is edited
+            /// in its merging or its link.
+            /// </summary>
+            internal List<DxfCellRange> Blocks { get; set; }
+
             internal byte[] Bytes { get; private set; }
 
             internal int Start { get; private set; }
@@ -217,7 +224,16 @@ namespace GeometryHelper.Dxf
             CheckCell(row, col, cells.Rows, cells.Columns, cells.From.Length - 1);
             int index = row * cells.Columns + col;
             List<KeyValuePair<int, string>> groups = GroupsOfCell(cells, pending, index);
-            return new CellView(new DxfDimGroups(groups, made => SpliceCell(cells, index, made)), 0, groups.Count);
+            string signature = cells.Blocks == null ? null : MergeSignature(groups);
+            return new CellView(new DxfDimGroups(groups, made =>
+                {
+                    if (signature != null && MergeSignature(made) != signature)
+                    {
+                        cells.Blocks = null;
+                    }
+
+                    SpliceCell(cells, index, made);
+                }), 0, groups.Count);
         }
 
         /// <summary>Where the cells of the record stand, read from its layout and the places of its groups; null where the places are not known.</summary>

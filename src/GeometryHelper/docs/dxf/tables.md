@@ -171,7 +171,16 @@ showing setters beside it) write the groups of the table's head and of its own p
 cells as they stand, where each call read and wrote every group of the record: 108 calls on a table of 931 cells take 9 ms and 21 MB
 where they took 590 ms and 982 MB on .NET Framework 4.8 (14 ms where it took 420 on .NET 10). A table read from a file pays once, at
 its second edit, for the places of its cells (1.5 to 2.2 ms for 931 cells), and the first edit of a table not yet written whole by the
-library reads and writes its record whole, as before. The setters of a block cell, a formula and a merge still write the record whole. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
+library reads and writes its record whole, as before. `SetValueFromText`, the setters of a block cell (`SetAutoScale`, `SetBlockScale`, `SetBlockRotation`, `SetBlockAttributeValue`) and
+`SetFormula` write the bytes of their own cell as well, a text typed into each of the 466 text cells of a table of 931 taking 26 ms
+where it took 4 s. `MergeCells` and `UnmergeCells` write the cells they change and no others, those of the range and the cells along
+its edges (the blocks of merged cells are kept from one call to the next, for as long as every cell is as a whole writing leaves it),
+and a table that holds a TABLECONTENT, as a table read from a file does, has it read once for the first merge, the bytes of the cells it
+emptied and of its list of merged ranges then put in their places and the rest copied: 192 merges of two cells in a table of 931 cells
+take 0.07 s and 53 MB on .NET Framework 4.8 (0.06 s on .NET 10) where they took 1.6 s and 1.8 GB, and 0.09 s and 235 MB for the table
+of a file with its TABLECONTENT, where they took 6 s and 6.8 GB. A TABLECONTENT whose groups do not stand as the file writes them
+(a comment among them), a cell that holds a field the merge lets go of, and a table with a cell not as a whole writing leaves it
+(a cell marked merged that no block holds) are written whole, as before. A table of 1 000 cells, each given its text, takes 36 ms on .NET Framework 4.8 (it took
 5.3 s), 3 000 cells 0.35 s (48 s). Adding tables one after another costs the same for each: 400 tables of 3 rows and 4 columns, each cell given its text, take
 0.31 s, 1 600 take 1.3 s (25 s), and a table is not counted against the entities of the drawing, which the block it was given a moment
 ago cannot be named by. Copying them to another drawing (`WblockCloneObjects`) takes 80 ms for 400 tables whether the drawing holds
@@ -478,7 +487,7 @@ and 0. Each number is written in the format of the source cell its place repeats
 format giving way, as AutoCAD 2021 fills them: 1.5 of `%lu6` goes on to 2.5000 and 3.5000 at LUPREC 4, and 1/2 of `%lu5`
 over 1.5 of `%lu6` to 2 1/2, 3.5000, 4 1/2 and 5.5000; a source of no format still gives six places. Options of none of
 the three change nothing, and a fill range that holds a cell of the source is refused, as
-AutoCAD refuses it; a text is a number only before R2007, and a series of dates goes on as the dates above do (`Fill` with `GenerateSeries`: from the last date by the step between the last two, a day for one, in seconds as the C library's `mktime` counts them, the machine's zone taken off the date as shown and not put back, so that 1/1/2020 filled into three cells has the values 1/1/2020 17:00, 1/2/2020 17:00 and 1/3/2020 17:00 (shown 1/1/2020, 1/2/2020 and 1/3/2020) seven hours ahead of Greenwich; in reverse back from the first by the step between the first two; a date before the epoch counts as -1, and one the series cannot make is a date of 16 bytes of nought and no words; dates mixed with other values are copied).
+AutoCAD refuses it; a text is a number only before R2007, and a series of dates goes on as the dates above do (`Fill` with `GenerateSeries`: from the last date by the step between the last two, a day for one, in seconds as the C library's `mktime` counts them, the machine's zone taken off the date as shown and not put back, so that 1/1/2020 filled into three cells has the values 1/1/2020 17:00, 1/2/2020 17:00 and 1/3/2020 17:00 (shown 1/1/2020, 1/2/2020 and 1/3/2020) seven hours ahead of Greenwich; in reverse back from the first by the step between the first two; a date before the epoch counts as -1, and one the series cannot make is a date of 16 bytes of nought and no words; dates mixed with other values are copied). The value of each cell filled so is written with the flags 4 (`93 4`) that a filled number has: AutoCAD 2021's API, which is all its console gives of a cell, shows a filled date with the kind, format, text and state of a typed one, as it shows a filled number, and does not give the flags themselves.
 `SetFromStyle()` takes the table's and its cells' overrides away, as `ClearTableStyleOverrides(0)` does. What a file of
 these versions has no group for is not there: several contents in one cell, and a line's style, linetype and the spacing
 of a double line.
