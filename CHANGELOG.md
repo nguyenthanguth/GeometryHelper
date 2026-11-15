@@ -35,6 +35,29 @@ drawing by its handle to ask whether the table needs its content made: the table
 walk that reads the handle of no other entity (`TryGetObject` made the index, 55 ms of the first save for 100 000 lines). A drawing of
 100 000 lines (10 MB) with a table, opened, enumerated and saved after one edit, takes 9 ms and 40 MB for the first save in place of 57 ms and 52
 MB on .NET Framework 4.8 (9 ms in place of 60 on .NET 10); the file saved is the same to the byte (hash 939605231CB81D...).
+**CHANGED.** The lines of the rows of a kind (`SetGridColor(color, borders, rows)`, `SetGridLineWeight(lineWeight, borders, rows)` and
+`SetGridVisibility(visible, borders, rows)`) are written into the places of the table's own groups alone, as the lines of a cell are: the
+groups of its head and of its own part after its cells are read from their bytes, changed and put back, and the cells between are copied
+as they stand, where each call read and wrote every group of the record. 108 calls (the six lines of the three kinds of rows, colour,
+lineweight and showing, twice over) on a table of 49 rows by 19 columns (931 cells) take 9 ms and 21 MB in place of 590 ms and 982 MB on
+.NET Framework 4.8 (14 ms in place of 420 ms on .NET 10). A table read from a file and not yet edited is read and written whole by the
+first call, as before, and noted as written whole, so that the next call is the first kind. The cells kept apart from the record (those
+set one after another) are put in it before the lines are written. The saved bytes are the same: the hash of the 108 calls and two cell
+edits (D08C3490B8314F1A...), the 20 files of 120 random edits in `DxfSpeed14Tests`, 2 900 random drawings of 80 edits (the cell setters, the
+lines of cells and of the rows of a kind, a range of cells, 800 of them with extended data after the table's own groups) saved to the byte
+of what the library before gave on both runtimes, and 2 700 such runs equal, on .NET 10, to the same edits made on a record read anew
+before each, which reads it whole.
+**CHANGED.** The walk over the records of a file, which every opening makes, and the completion of a drawing's tables makes again on the
+copy it is made on, finds the word of a record's type again by its bytes among the last it saw, in place of making a string of it and
+looking it up for each record, and reads a group code line of the usual shape (spaces, up to nine digits, the line end) in one pass in place
+of two; any other line is read, and refused, as before. The walk of a drawing of 100 000 entities (10 MB) takes 23 ms in place of 33 on
+.NET Framework 4.8 (17 ms in place of 20 on .NET 10). The first save after an edit of such a drawing in which a table was added after it was
+opened takes 33 ms in place of 52 (32 in place of 34), and the first save of a drawing of 100 000 lines made in the session, with a table,
+45 ms in place of 66 (71 in place of 78); the files saved are the same to the byte (hashes 48E5F175BF7A8857... and 50371D00CCE4FD35...).
+Not changed: that save still opens its copy by a walk over all its records (29 to 33 ms of the 40 that were spent on it before, 22 to 25
+after), since the handles the copy gives to the content it makes are those a walk of its bytes finds the greatest of; and a table read from
+a file pays 1.5 to 2.2 ms for 931 cells, once, at its second edit, for the places of its cells (1.0 ms to read its 25 000 groups into the
+layout, 0.4 to place them), where each later edit costs 5 microseconds.
 **FIXED.** The rule behind the leader band of an angle's words reads every arc from 2.5 landings out (it was 5.5), where the fit it
 replaced was worse in 11 of the 12 styles probed at 30 out. What the rule had left at 30 out is the landing's sagitta (the landing squared
 over the radius) again, by the direction of the point and the side of the circle (a table at every 10 degrees: up to 0.35 of it wider than
