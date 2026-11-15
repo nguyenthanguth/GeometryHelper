@@ -4785,6 +4785,55 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The list of entities the block holds, for what keeps the place of each entity in it; null where the block is in no
+        /// file. Its <see cref="DxfSpace.Version"/> says whether entities were added or removed since.
+        /// </summary>
+        internal DxfSpace EntitySpace => Space;
+
+        /// <summary>
+        /// The record of every entity <see cref="GetEnumerator"/> walks, in the order it walks them, no entity made of them:
+        /// for the display, which makes the entity of a record only where it draws it. <paramref name="space"/> is the list they
+        /// are of and <paramref name="version"/> its version, taken with the records.
+        /// </summary>
+        internal DxfItem[] WalkedItems(out DxfSpace space, out int version, out bool hasColumns)
+        {
+            space = Space;
+            version = 0;
+            hasColumns = false;
+
+            if (space == null)
+            {
+                return Array.Empty<DxfItem>();
+            }
+
+            DxfItem[] items = space.Snapshot();
+            version = space.Version;
+            HashSet<string> columns = LinkedColumns(items);
+
+            if (columns == null)
+            {
+                return items;
+            }
+
+            hasColumns = true;
+            var walked = new List<DxfItem>(items.Length);
+
+            foreach (DxfItem item in items)
+            {
+                if (!item.IsRemoved && !IsColumn(item, columns))
+                {
+                    walked.Add(item);
+                }
+            }
+
+            return walked.ToArray();
+        }
+
+        /// <summary>Whether an entity is an MTEXT that lists linked columns, which the walk of its block leaves to it.</summary>
+        internal static bool ListsLinkedColumns(DxfItem item) =>
+            !item.IsRemoved && item.Type == "MTEXT" && LinkedColumns(new[] { item }) != null;
+
+        /// <summary>
         /// The handles of the linked columns the MTEXTs of entities list, letters of either case the same, found in one pass;
         /// null where none lists any.
         /// </summary>

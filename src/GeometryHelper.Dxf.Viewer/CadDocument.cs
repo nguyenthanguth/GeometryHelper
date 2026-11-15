@@ -621,6 +621,27 @@ namespace GeometryHelper.Dxf.Viewer
             return _byHandle.TryGetValue(handle, out DxfEntity found) ? found : null;
         }
 
+        /// <summary>
+        /// The entity of a handle as <see cref="FindKept"/> gives it, found only where the index of handles is made already:
+        /// false where it is not, which a patch of a display list does not make for itself (a million entities walked).
+        /// </summary>
+        internal bool TryPeekKept(string handle, out DxfEntity entity)
+        {
+            entity = null;
+
+            if (_byHandle == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(handle))
+            {
+                _byHandle.TryGetValue(handle, out entity);
+            }
+
+            return true;
+        }
+
         /// <summary>Gets the space an entity of a handle is in, or null where no space holds it.</summary>
         /// <param name="handle">The handle.</param>
         /// <returns>The space.</returns>

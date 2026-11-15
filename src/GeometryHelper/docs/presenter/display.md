@@ -206,6 +206,36 @@ scaled alike and unalike, mirrored, with a normal, tilted, in arrays; 100 000 mi
 item for item and field for field, the same bytes saved and after a MOVE and an added entity, and the same new handle, under .NET 8 and
 .NET Framework 4.8, and 179 of them the same pixels in three views, plain, selected, highlighted and with a hover.
 
+What was left of the display after a MOVE of one line at 1 000 000 entities, the walk over every entity and the copy of its 1 780 000
+items one by one, is gone. A display list keeps the list of entities it was drawn from, and its version, which the space of a drawing
+counts up for each entity added to it or erased from it (an entity added stands last), and its runs, its items and its box are arrays
+that a patch copies in stretches: where the entities are those the older list was made from, but for those erased and those added, the
+patch does not walk them. The entities an edit names are found by their places among the entities of the space (a few, up to twelve,
+by a walk of their records, and by the handle index the editing already keeps), the runs of those erased by one walk over the handles
+of the runs, the runs that read a layer the edit changed or something a named entity drew from their masks, and each is drawn again,
+or dropped; the runs between are copied by one `Array.Copy` of their items and one of their records, and the entities added are drawn
+last. Where that cannot be known (an undo or a redo, which read the drawing back as other records; more entities named than a walk
+finds by place; an entity added or erased that no handle names; an entity with no handle; a draw order, or the Block Editor hiding
+entities; an MTEXT that lists linked columns, which the walk of its block leaves out) the patch walks the entities as before, but by
+their records and not by an object made for each, finds the older run of each by the run that follows the last (and by one of the
+sixteen after it where an entity was erased), copies the runs it takes in stretches, and looks the runs up by handle only where an
+entity is many runs from its place. The box of the patched list is the older list's grown by the items drawn again where no item
+dropped or drawn has a side level with a side of the older box (the items kept then still reach every side, so it is the box a fold of
+every item gives, to the bit), and is found again from every item where one has, or more than 64 runs were dropped, as a layer switched
+drops them. At 1 000 000 entities (best of seven, alternated with the older build, .NET 8 and .NET Framework 4.8) the display after a
+MOVE of one line takes 18 ms where it took 93 and 22 where 198, after an ERASE of one 26 ms where 196 and 25 where 278, after a COPY of
+one 25 ms where 192 and 30 where 283, with 76 MB of garbage where 115 under .NET 8; at 100 000 entities 1.4 ms where 7.8 and 1.5 where
+17.5 for the MOVE, 1.9 where 13.8 and 1.5 where 24.8 for the ERASE, 2.3 where 13.7 and 2.2 where 23.7 for the COPY, 3.9 MB of garbage
+where 6.5 (.NET 8). The cold display, a layer switched on or off and a REGEN are as they were within the noise of the machine (the
+1 000 000 entities displayed in 2.4 s and regenerated in 0.76 s under .NET 8 as before), because they draw every entity or a third of
+them again, and the display list keeps its 627 MB. The shapes an entity keeps stay: not keeping those of a LINE, an ARC and a CIRCLE
+would take 55 MB off the heap (572 MB where 627) and put 27 per cent on a REGEN and on a layer switched on (1.6 s where 1.26, 0.73 s
+where 0.57), the shapes being read afresh for each. The display lists, the bytes a drawing saves and the pixels are those they were: 167
+samples of AutoCAD (cold, after a MOVE, an ERASE, a layer off and on, a REGEN and the layouts; the bytes saved but for the four with an
+ACIS body, whose bytes are not the same from one run to the next in any build) and a generated drawing of 20 000 entities after eight
+MOVEs and ERASEs, a COPY, a layer off and on and a REGEN, item for item and field for field, under .NET 8 and .NET Framework 4.8, and
+the pixels of the 167 samples and of a generated drawing of 100 000 entities in three views, plain, selected, highlighted and with a hover.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

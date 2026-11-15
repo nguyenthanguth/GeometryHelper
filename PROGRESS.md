@@ -845,10 +845,14 @@ the ones wanted.
       MOVE + display 295 -> 165 ms (net8) / 540 -> 375 (net48); the look and hidden read in one cached walk, handles
       found by the open's walk (1M open 896 -> 503 ms), block origins cached, unlike-scale arcs and circles sampled once
       per block shape (20k unlike INSERTs 3 511 -> 406 ms); display lists, saved bytes and pixels identical on 179 drawings
-- [ ] (speed12, running) Speed follow-ups 11: the remaining ~165 ms of a 1M patch (re-lists 1M wrappers, copies 1.78M items: per-block
-      bounds and whole-range copies); merging the shape read and HasWidthOf walks into the look walk; AddInsertionPoint's
-      two lookups; dropping the LINE/ARC/CIRCLE shape cache; TryChain garbage; DxfPolyline's 8 cache fields; DisplayText2's
-      two-tier Extra; DxfItem 104 -> 96 B; read-ahead wrappers; a DWG read stopped mid-way (S)
+- [x] Speed follow-ups 11 (speed12): the display patch finds the runs an edit touched from the space's version and the
+      named entities, copying the rest in whole stretches: display after a one-line MOVE at 1M 93 -> 18 ms (net8) /
+      198 -> 22 (net48), ERASE 196 -> 26, COPY 192 -> 25; display lists, bitmaps and saved bytes identical on 167
+      samples; the walk kept as the fallback
+- [ ] Speed follow-ups 12: layer off at 1M (~110 ms: runs of only the switched-off layer emitted without Draw); cold
+      display and REGEN at 1M (draw-bound, ~1.6 us an entity); the heap (627 MB at 1M: DxfItem 104 -> 96 B,
+      DisplayText2 Extra, DxfPolyline's cache fields); dropping the LINE/ARC/CIRCLE shape cache (heap -55 MB but REGEN
+      +27 %: declined); TryChain garbage; read-ahead wrappers; a DWG read stopped mid-way (S)
 - [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [x] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels. DECIDED (maintainer 2026-11-11): kept as is, exact pixels first
 - [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)

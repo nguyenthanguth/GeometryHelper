@@ -198,6 +198,28 @@ namespace GeometryHelper.Dxf
             return _items.ToArray();
         }
 
+        /// <summary>
+        /// A number that changes each time an entity is added to the space or removed from it: while it is the same, the
+        /// entities stand in the same order, whatever is written into their records.
+        /// </summary>
+        internal int Version => _version;
+
+        /// <summary>The place of an entity among the entities from <paramref name="start"/> to <paramref name="end"/> (not reached) of the space, in the order of the file; -1 where it is not among them.</summary>
+        internal int IndexOf(DxfItem item, int start, int end)
+        {
+            Compact();
+
+            for (int i = start; i < end && i < _items.Count; i++)
+            {
+                if (ReferenceEquals(_items[i], item))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         /// <summary>An entity added to the space, last.</summary>
         internal void Append(DxfItem item)
         {
