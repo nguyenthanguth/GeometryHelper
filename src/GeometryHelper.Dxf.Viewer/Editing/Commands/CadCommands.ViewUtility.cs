@@ -150,6 +150,15 @@ namespace GeometryHelper.Dxf.Viewer
                             break;
                         }
 
+                        // AutoCAD 2021 ends with nothing said and nothing changed at its own two names.
+                        if (
+                            string.Equals(name, CadTiledViewports.ToggledName, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(name, "*Active", StringComparison.OrdinalIgnoreCase)
+                        )
+                        {
+                            break;
+                        }
+
                         if (tiles.Restore(name))
                         {
                             c.Write("Regenerating model.");
@@ -273,6 +282,13 @@ namespace GeometryHelper.Dxf.Viewer
                 if (name == null)
                 {
                     yield break;
+                }
+
+                // A name that begins with * is AutoCAD's: refused, and asked for again.
+                if (name.StartsWith("*", StringComparison.Ordinal))
+                {
+                    c.Write("Invalid viewport configuration name.");
+                    continue;
                 }
 
                 if (tiles.Saved(name) != null)

@@ -540,12 +540,15 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        /// <summary>Deletes the configurations whose names match a pattern (wild cards and commas taken), as -VPORTS Delete. One undo step.</summary>
+        /// <summary>
+        /// Deletes the configurations whose names match a pattern (wild cards and commas taken), as -VPORTS Delete, <c>*Multiple</c>
+        /// among them (AutoCAD 2021's <c>*</c> deleted three of "Z", "A" and it). One undo step.
+        /// </summary>
         /// <param name="pattern">The pattern.</param>
         /// <returns>How many were deleted.</returns>
         public int Delete(string pattern)
         {
-            List<string> names = Names.Where(n => CadWildcard.IsMatch(n, pattern ?? string.Empty, true)).ToList();
+            List<string> names = _saved.Keys.Where(n => CadWildcard.IsMatch(n, pattern ?? string.Empty, true)).ToList();
 
             if (names.Count > 0)
             {
@@ -620,10 +623,20 @@ namespace GeometryHelper.Dxf.Viewer
                 lines.Add("   corners: " + tile.Corners);
             }
 
-            foreach (string name in Names.Where(n => CadWildcard.IsMatch(n, pattern ?? "*", true)))
+            // The configurations in the order of their names, AutoCAD's own *Multiple first of them, as AutoCAD 2021 lists
+            // them; "No matching viewport configurations found." where none matches.
+            bool any = false;
+
+            foreach (string name in _saved.Keys.Where(n => CadWildcard.IsMatch(n, pattern ?? "*", true)))
             {
+                any = true;
                 lines.Add("Configuration \"" + name + "\":");
                 lines.AddRange(_saved[name].Select(t => "    " + t.Corners));
+            }
+
+            if (!any)
+            {
+                lines.Add("No matching viewport configurations found.");
             }
 
             return lines;

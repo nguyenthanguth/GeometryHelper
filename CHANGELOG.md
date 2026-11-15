@@ -21,6 +21,37 @@ dimension styles, layouts, vertices, SEQEND, lines, circles, ellipses and spline
 AutoCAD 2021's samples and of the tests, each written as AC1015 and opened in AutoCAD 2021 with `AUDIT`: all 167 open, 160 at 0 errors, the other 7
 with the errors of their originals (126 of the 150 the originals have in all), and the 4 tables that had 6 each have none. Left: a text beyond the code
 page is written as its UTF-8 bytes in R2000 as it is in R2004, where AutoCAD keeps `\U+1EBF`.
+**FIXED.** REVCLOUD in the presenter draws the shapes shorter than its arcs as AutoCAD 2021's console does (run through standard
+input, 15 November). A path shorter than the longest arc is a cloud of two vertices, its start and the point halfway along it,
+bulging the positive way: a line 15 long at arcs of 20 is (0, 0) and (7.5, 0), a rectangle 10 by 10 (0, 0) and (10, 10), a circle of
+radius 3 (3, 0) and (-3, 0); a line 20 long still (0, 0) and (20, 0). Two vertices were refused as too small, and Object, which asks
+for another object after `Unable to convert object, object is too small for the cloud's arcs.`, ended there. Rectangular draws a
+cloud of two to five vertices and says `Invalid shape to create revision cloud.` all the same (25 by 25 at arcs of 20: five
+vertices and the message; 5 by 5, one vertex: the message and no cloud), and Polygonal draws nothing below six vertices (the square
+of 25 none, of 28 six), where the presenter drew from three. The first cloud drawn while REVCLOUDAPPROXARCLEN is nought sets it to
+the length it was drawn with, so that the next clouds keep it whatever the view shows. Modify erases the cloud picked and makes a
+new one, of a new handle, on the same layer and with the same `RevcloudProps`, as AutoCAD does; it changed the cloud in place. At
+REVCLOUDARCVARIANCE 1 AutoCAD's arcs vary at random from cloud to cloud (each between two thirds and four thirds of the length, evenly
+spread: 300 arcs of a line 6 000 long had a mean of 20.0000), where the presenter's are one fixed sequence of that kind; that
+cannot be matched and is left.
+**NEW.** REVCLOUDARCSTYLE, REVCLOUDGRIPS, REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH in the presenter, as AutoCAD 2021's:
+REVCLOUDARCSTYLE a text, "Normal" or "Calligraphy" as the Style option sets it, which SETVAR takes whatever it says (only exactly
+"Calligraphy" draws calligraphy); REVCLOUDGRIPS a switch, ON to begin with; REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH 0.5 to
+begin with and written by Arc length and by REVCLOUDPROPERTIES (30 gives 20 and 40, or 30 and 30 with REVCLOUDARCVARIANCE 0; 12 gives
+8 and 16), and by nothing else.
+**FIXED.** `-VPORTS ?` and Delete in the presenter treat `*Multiple`, the configuration Toggle writes and writes over, as AutoCAD 2021's
+console does: ? lists it in the order of the names, ahead of the named ones, and says `No matching viewport configurations found.`
+where none matches; `Delete` with `*` deletes it with the rest (`Deleted 3 viewport configurations.`); Restore of `*Multiple` or
+`*Active` ends with nothing said and nothing changed; Save refuses a name that begins with an asterisk with `Invalid viewport
+configuration name.` and asks again. Three tiles toggled, split into two and toggled again leave the two as `*Multiple`, as in
+AutoCAD. `CadTiledViewports.Delete` and `CadTiledViewports.List` now take `*Multiple` in; `CadTiledViewports.Names` still leaves it out.
+**CHANGED.** The count of vertices PEDIT makes of a spline within a precision was probed again, on 14 splines at 17 precisions (238
+counts, 186 right, 52 with 1 to 22 vertices more, one with one fewer): the fault is not that of fit points. AutoCAD gives the same
+counts for a spline of control points of the same knots and points, and PEDIT's equal `ToPolylineWithPrecision`'s in all 238. Its
+halving tolerance is c over (precision + 1) squared (the pieces halved and kept are separated to 0.03 per cent by one c for each
+spline), c one over the largest second derivative M where that stands at an end of the spline and 0.06 to 3.9 per cent above it
+where it stands at a knot inside; what AutoCAD takes M at there is not found (no grid of the parameter or the length, no second
+difference of the polyline, no point a fixed distance from the knot fitted all of 26 cases), so the library's counts stay.
 
 **FIXED.** A drawing saved as a DXF of R2000, R2004 or R2007 (`DxfDatabase.Save(path, version)`) lacked three things AutoCAD 2021 writes
 there, which the DWG writer had learned first. The 3 multileaders and the 2 multileader styles of a sample drawing of AutoCAD's, saved from

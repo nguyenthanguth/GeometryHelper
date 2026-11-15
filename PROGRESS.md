@@ -300,7 +300,7 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] DWG Save As R2000 (dwgver2): the 167-file corpus written as AC1015 opens in AutoCAD 2021, 160 at AUDIT 0 and the
         other 7 with the originals' counts; fixed entity links, MTEXT, DIMSTYLE and LAYOUT bits; R2004+ output unchanged
         (668 files byte-identical)
-  - [ ] R3.3 follow-ups 3: DWG R2007 (Reed-Solomon, LZ21); non-ASCII text in pre-2007 DWGs as \U+ escapes (AutoCAD's
+  - [ ] (dwgver3, running: R2007) R3.3 follow-ups 3: DWG R2007 (Reed-Solomon, LZ21); non-ASCII text in pre-2007 DWGs as \U+ escapes (AutoCAD's
         R2004 form; would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5; dictionaries
         naming left-out objects; -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the first picked
         region (selection is kept sorted); a region's grips and UNION's colour reset checked in the GUI; spline edges and
@@ -522,11 +522,15 @@ the ones wanted.
 - [x] Stdin re-probe (stdin1): REFEDIT's prompts and messages corrected from AutoCAD's own string table (the console has
       no REFEDIT even through stdin); non-uniform references refused; VPMAX/VPMIN/-VPORTS Toggle on Model as AutoCAD
       (four tiles, ids, *Multiple); HATCHSETORIGIN equal to AutoCAD; the stdin runner documented in .claude/gk/acon-stdin
-- [ ] (pedit4, running) PEDIT/REVCLOUD follow-ups 3: PEDIT fit-spline tolerance (23 of 119 counts 1-24 vertices more); REVCLOUD variance-1
-      sequence; tiny closed shapes (AutoCAD leaves a 2-vertex polyline); Freehand; the first arc length in layout
-      viewports; REVCLOUDARCSTYLE/GRIPS/MIN/MAX variables; Modify making new handles. Still GUI-only: REFEDIT's line
-      order and kept handles, TABLEEXPORT's file, pre-selection, BOUNDARY, FILTER, SPELL; through stdin next:
-      MLEADERALIGN, TEXTALIGN, DIMBREAK Auto; -VPORTS after a Toggle overwriting *Multiple (S)
+- [x] PEDIT/REVCLOUD follow-ups 3 (pedit4): REVCLOUD tiny shapes (2-vertex clouds, "Invalid shape" below 6), the four
+      REVCLOUD* variables, Arc length setting MIN/MAX, the first cloud setting APPROXARCLEN, Modify making a new handle;
+      -VPORTS ? and Delete with *Multiple, as AutoCAD; variance-1 arcs are random in AutoCAD (no match possible)
+- [ ] PEDIT/REVCLOUD follow-ups 4: PEDIT spline counts PARKED after 3 rounds (52 of 238 differ, ours 1-22 more; also for
+      control-point splines; AutoCAD's tolerance c/(p+1)^2 with c = 1/max|P''| when the maximum is at an end, 0.06-3.9 %
+      above at an inner knot; p=0 F gives 8 vs our 7); REVCLOUDGRIPS without effect yet; a tiny Modify path not probed;
+      GUI-only: Freehand spacing, first arc length in layout viewports, REFEDIT's line order and kept handles,
+      TABLEEXPORT's file, pre-selection, BOUNDARY, FILTER, SPELL; MLEADERALIGN/TEXTALIGN/DIMBREAK geometry (console hung
+      making TEXT+MLEADER+DIMLINEAR) (S)
 - [x] Layouts: twisted viewports drawn and entered as AutoCAD (two bugs: the turn's sense, group 12 in view coordinates);
       one undo step per wheel or pan gesture; ZOOM Previous per viewport (20 each); -SCALELISTEDIT; Isolate in the Layer
       manager; New VP Freeze on viewports made through the core's API (S)
