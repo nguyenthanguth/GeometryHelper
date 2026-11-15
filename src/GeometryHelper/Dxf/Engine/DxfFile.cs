@@ -921,6 +921,12 @@ namespace GeometryHelper.Dxf
 
         private int _wholeReadings;
 
+        /// <summary>
+        /// The handles of the tables and styles of a drawing being completed that wait to be listed in its ACDB_RECOMPOSE_DATA
+        /// (<see cref="DxfTable.EndRecompose"/>); null at any other time.
+        /// </summary>
+        internal List<string> RecomposeBatch { get; set; }
+
         private List<DxfReader.Record> LayerRecords()
         {
             var layers = new List<DxfReader.Record>();

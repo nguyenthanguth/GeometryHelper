@@ -4798,6 +4798,28 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// The record of every entity the block holds, in the order <see cref="AllEntities"/> gives them, no entity made of
+        /// them: for what looks the entities up by handle, which would make 100 000 of them to find one.
+        /// </summary>
+        internal IEnumerable<DxfItem> AllItems()
+        {
+            DxfSpace space = Space;
+
+            if (space == null)
+            {
+                yield break;
+            }
+
+            foreach (DxfItem item in space.Snapshot())
+            {
+                if (!item.IsRemoved)
+                {
+                    yield return item;
+                }
+            }
+        }
+
+        /// <summary>
         /// Every entity the block holds, in the order of the file, the linked columns of an MTEXT among them, which
         /// <see cref="GetEnumerator"/> leaves to their MTEXT: for what reaches the columns through their MTEXT.
         /// </summary>

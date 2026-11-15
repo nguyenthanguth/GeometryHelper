@@ -47,16 +47,14 @@ namespace GeometryHelper.UnitTest.Plane
             // 11 seconds under .NET Framework. The cells are sized by the number of edges now.
             GeoPolygon2 comb = Comb(40000);
 
-            var watch = Stopwatch.StartNew();
-            GeoPolygon2[] offset = Offset2.Offset(comb, -0.5, OffsetOptions.Default, Thousandth);
-            watch.Stop();
+            GeoPolygon2[] offset = null;
+            SpeedGuard.AssertWithin(6, () => offset = Offset2.Offset(comb, -0.5, OffsetOptions.Default, Thousandth));
 
             // Every side moves in by a half, and the corners give back a quarter for each of the four by which those standing
             // out outnumber those standing in.
             Assert.Single(offset);
             Assert.InRange(offset[0].Area, comb.Area - 0.5 * comb.Length + 0.5, comb.Area - 0.5 * comb.Length + 1.5);
             Assert.Equal(comb.Vertices.Count, offset[0].Vertices.Count);
-            Assert.True(watch.Elapsed.TotalSeconds < 6, watch.Elapsed.ToString());
         }
 
         [Fact]
@@ -124,15 +122,13 @@ namespace GeometryHelper.UnitTest.Plane
                 );
             }
 
-            var watch = Stopwatch.StartNew();
-            GeoFace2[] union = Boolean2.Union(squares, Thousandth);
-            watch.Stop();
+            GeoFace2[] union = null;
+            SpeedGuard.AssertWithin(3, () => union = Boolean2.Union(squares, Thousandth));
 
             // One strip 400 000 by 10, its four corners left.
             Assert.Single(union);
             Assert.Equal(4, union[0].Boundary.Vertices.Count);
             Assert.Equal(4.0E6, union[0].Area, 6);
-            Assert.True(watch.Elapsed.TotalSeconds < 3, watch.Elapsed.ToString());
         }
     }
 }

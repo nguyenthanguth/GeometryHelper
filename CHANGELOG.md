@@ -6,6 +6,34 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** WMFIN gives a pen's or brush's colour the index AutoCAD 2021's console gives it, where it gave the nearest index of the
+colours the indexes show on screen. AutoCAD's own palette for it, found by probing 72 000 colours through the console (a metafile of
+16 000 pens at a time; the header's object count must cover them all), has the 24 hues of ten indexes each at the levels 166, 128, 76
+and 38 of 255 (so 12 is (166, 0, 0), where the screen has (204, 0, 0)) and greys at 84, 118, 152, 187, 221 and 255 for 250 to 255,
+8 and 9 never chosen; the nearest of it by distance in red, green and blue gives AutoCAD's index for 99.7 per cent of the colours
+(the nearest of the screen's colours gave it for 33 per cent of 71 860, the darks and greys worst): dark green (0, 160, 0) is 92 and not 94, mid grey
+(128, 128, 128) is 251 and not 8, (1, 1, 1) and (10, 10, 10) are 7, (170, 85, 85) is 13. The 0.3 per cent left are colours within a
+unit or two of the line between two indexes.
+**FIXED.** WMFIN places a text as AutoCAD 2021 does. The reference point of a text is the top left of its font's cell, and AutoCAD
+puts the baseline the font's Windows ascent times the em below it (0.905 of the em for Arial, 0.8325 for Courier New, 1.0 for
+Tahoma; the guess was 0.9 for every font) and the height of the TEXT at 0.8 of that (0.724, 0.666 and 0.8 of the em; the guess was
+0.72), both in whole units of the file (an Arial of 80 is 72 and 57.6). A text turned a quarter reaches 0.0175 of the em further, one
+turned to any other angle by a measure of its face (0.1525 of the em for Arial, 0.205 for Courier New, 0.05 for Tahoma, 0.1 for a face
+not measured: Arial at 45 degrees is 0.84 of the em high and not 0.72), and one aligned to the bottom of the cell rests on the
+descent times the em times the ascent over the capitals' height. A text aligned to the centre or the right is left justified, as
+AutoCAD leaves it, and starts the width of its text (all of it or half) back from the point, the width being the advances of its
+letters times that same ascent over the capitals (1.26 for Arial): "Hello" in an Arial of 400 starts 1152 back where it was
+justified at the point. The look of a font is told by the face (letters of either case the same), bold at a weight of 700 and not
+600, italic, character set and pitch and family, so that a Russian Arial is `WMF-Arial1` beside the Western `WMF-Arial0` with its
+own character set kept in the style; the bytes of a text are Windows-1252 whatever the character set (80 is the euro sign and not
+a control character). The reader of the metafile now plays SaveDC and RestoreDC (the pen, brush, font, text colour, alignment and
+clip come back; RestoreDC of -1 or of a save's number) where it read them past, so a pen selected between the two no longer stays,
+and IntersectClipRect, which clips the lines as AutoCAD's console does (a line is cut where it crosses the clip, one across the clip
+along one axis and outside along the other is cut across the first only, one that misses the clip is left whole and one that
+runs along an axis and misses it is dropped; a polygon or rectangle is never cut). A window of a width or height below nought
+(the usual y-up metafile) turns the picture over as AutoCAD does: a window of 1 000 by -1 000 puts (100, 100) at (0.883, 0.883), one of
+-1 000 by 1 000 at (-0.5, -0.5), one of -1 000 by -1 000 draws upright with pens of no width. Probed through the console: 772 lines
+cut against one clip (769 of 772 as the rule above), 33 font looks, 610 texts in 24 faces and sizes from 1 to 800 units.
 **CHANGED.** MLEDIT's tees (CT, OT, MT) take the pair of segments AutoCAD 2021 takes where the second has three segments, or the
 meeting lies within the width of a corner: of every pair whose lines meet, the stem met on a segment or run on past the free end of
 its first or last, the second met on a segment or run on past its own free end, the one nearest the picks (the distances along the
@@ -133,6 +161,39 @@ Framework 4.8 (70 ms and 88 MB in place of 115 ms and 139 MB on .NET 10), the 5 
 266 ms and 228 MB as R2013 in place of 358 ms and 304 MB, and 322 ms and 257 MB as R2000 in place of 363 and 335 (best of 7). The file is
 still read again, as before, where the drawing has a face of a polyface mesh (whose marker AcDbVertex before its AcDbFaceRecord reading
 mends), is saved as R12, or has letters beyond ASCII and goes to R2004 or R2000, whose bytes are in the code page of the header.
+**CHANGED.** Building a table cell by cell costs in proportion to the cell. After the first edits of a table, which write its record
+whole, `SetTextString`, `SetValue` and the setters of a cell's look (`SetAlignment`, `SetTextHeight`, `SetTextStyle`,
+`SetContentColor`, `SetBackgroundColor`, `SetTextRotation`) read the groups of the cell's own bytes and write them back into their
+place, the rest of the record copied as it is, where each read and wrote every group of the table; the record's bytes are those of a
+writing of every group, to the byte (the last cell of a table, and the cells of a record whose groups stand other than the file
+writes them, are still written through the whole record). A table of 1 000 cells, each given its text, takes 36 ms and 195 MB in
+place of 5 343 ms and 8.7 GB on .NET Framework 4.8 (64 ms in place of 4 359 ms on .NET 10), 3 000 cells 354 ms in place of 48.5 s
+(370 ms in place of 31 s), and 10 000 cells 3.2 s (3.9 s on .NET 10) where the same loop had not ended after 15 minutes; what is left grows with the record,
+whose bytes are copied for each cell. Saved bytes equal before and after in 27 168 saves of random drawings with tables edited
+between saves, in every version from R2000 to R2018 and for a table read back from text in each line end and padding, on .NET
+Framework 4.8 (21 208 of them on .NET 10 too), and in the 1 169 saves of AutoCAD's 167 sample drawings.
+**CHANGED.** Adding tables to a drawing, copying them to another, and saving a drawing of many tables cost in proportion to the
+tables, not to their number times the drawing: a table is given a block of its own without counting the entities of the drawing that
+name it (the block made a moment ago can have no other), the name of the block a table is drawn by is read from the head of its
+record, a table style is read from its record once for the 54 looks a table drawn anew asks of it, the entities of a drawing are
+looked up by handle without making an object of each, the names under which the named object dictionary holds an object are found
+for every object in one walk of its dictionaries where each pointer of a copied table walked them all, and the completion of a drawing
+lists its tables in `ACDB_RECOMPOSE_DATA` once at its end, not by reading and writing the list for each. 400 tables of 3 rows and 4
+columns, each cell given its text, are added in 311 ms and 347 MB in place of 1 966 ms and 4.4 GB on .NET Framework 4.8 (160 ms in place
+of 1 023 ms on .NET 10), 1 600 of them in 1.3 s and 1.5 GB in place of 25 s and 59 GB (0.7 s in place of 13.5 s); saved as R2018 after an
+edit they take 90 ms in place of 179 ms (400) and 389 ms in place of 1 690 ms (1 600); copying 400 tables among 5 000 other objects takes
+80 ms in place of 981 ms, among 20 000 91 ms in place of 4 828 ms (the same, 54 ms in place of 3 488 ms, on .NET 10), whatever the
+objects around them. Saved bytes equal before and after in the same saves as above, and in the copies of 25 tables among 120 objects.
+Not changed: the completion of a drawing of 100 000 entities (10 MB) that holds a table still takes 158 ms to save after an edit (169
+ms before), nine tenths of it the reading of the copy it is made on.
+**CHANGED.** A body or a region saved to R2013 or later from ACIS text, or from the binary of another version of the modeler, is
+dated with the date of the SAT's own head (AutoCAD writes none there, so none) and not with the clock, and a body whose extended data
+gives no GUID is given one made of its handle and its data (the first 16 bytes of their SHA-256, as a GUID made of a name) and not at
+random, so that the same drawing saved twice is the same bytes where each save differed in its date and its GUID. AutoCAD 2021 read
+the 24 drawings made of 4 AutoCAD samples (with 3DSOLIDs and a REGION) by saving each as R2013, as R2010 and as R2000, those two again as R2013,
+and the R2000 one as R2018 too, in its console (`DxfIn`), `AUDIT` finding 0 errors, with the volume of each solid and the area of each region
+those of the sample; 1 163 of the 1 169 saves of the 167 samples are the same bytes as before, the 6 others being the R2013 saves of
+drawings with bodies.
 **CHANGED.** The extension dictionary of a table made in code (and of any record given one) is spliced into its record as bytes, not
 written group by group from a list of every group of the record: a table of 2 000 cells no longer allocates some 5 MB for it,
 and the greatest handle of a copy of the drawing is read without a list for each record. Saving the 10 000 cells as R2018

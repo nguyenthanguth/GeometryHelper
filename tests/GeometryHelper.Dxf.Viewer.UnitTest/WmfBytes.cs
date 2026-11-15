@@ -86,7 +86,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             return this;
         }
 
-        public WmfBytes Font(int height, int weight, bool italic, int escapement, string face)
+        public WmfBytes Font(
+            int height,
+            int weight,
+            bool italic,
+            int escapement,
+            string face,
+            int charset = 0,
+            int pitchAndFamily = 0
+        )
         {
             byte[] name = new byte[32];
             Encoding.ASCII.GetBytes(face).CopyTo(name, 0);
@@ -94,10 +102,43 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 0x02FB,
                 Join(
                     Words(height, 0, escapement, 0, weight),
-                    new byte[] { (byte)(italic ? 1 : 0), 0, 0, 0, 0, 0, 0, 0 },
+                    new byte[] { (byte)(italic ? 1 : 0), 0, 0, (byte)charset, 0, 0, 0, (byte)pitchAndFamily },
                     name
                 )
             );
+            return this;
+        }
+
+        public WmfBytes SaveDC()
+        {
+            Record(0x001E, Array.Empty<byte>());
+            return this;
+        }
+
+        /// <summary>Gives RestoreDC a number: below nought that many saves back, above it the save of that number.</summary>
+        public WmfBytes RestoreDC(int number)
+        {
+            Record(0x0127, Words(number));
+            return this;
+        }
+
+        public WmfBytes IntersectClipRect(int left, int top, int right, int bottom)
+        {
+            Record(0x0416, Words(bottom, right, top, left));
+            return this;
+        }
+
+        public WmfBytes ExcludeClipRect(int left, int top, int right, int bottom)
+        {
+            Record(0x0415, Words(bottom, right, top, left));
+            return this;
+        }
+
+        /// <summary>A TextOut of bytes as they are, for a text in a code page: the bytes of the text, not the letters.</summary>
+        public WmfBytes TextOutBytes(int x, int y, params byte[] text)
+        {
+            byte[] letters = text.Length % 2 == 0 ? text : Join(text, new byte[] { 0 });
+            Record(0x0521, Join(Words(text.Length), letters, Words(y, x)));
             return this;
         }
 

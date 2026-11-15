@@ -127,29 +127,35 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void APolylineOfThousandsOfVertices_IsFoundEmptyOrNot_InAMomentAndInItsOwnPlane()
         {
-            DxfDatabase db = NewDrawing();
             var tilted = new GeoVector3(0, 1, 1).Normalize();
-            var folded = new DxfPolyline { Normal = tilted, Elevation = 250 };
-            var open = new DxfPolyline { Normal = tilted, Elevation = 250 };
 
-            for (int i = 0; i < 8000; i++)
-            {
-                folded.AddVertexAt(i, new GeoPoint2(1234.5, -678.25), 0, 0, 0);
-                open.AddVertexAt(i, new GeoPoint2(1234.5 + i, -678.25), 0, 0, 0);
-            }
+            SpeedGuard.AssertWithin(
+                3,
+                () =>
+                {
+                    DxfDatabase db = NewDrawing();
+                    var folded = new DxfPolyline { Normal = tilted, Elevation = 250 };
+                    var open = new DxfPolyline { Normal = tilted, Elevation = 250 };
 
-            db.ModelSpace.AppendEntity(folded);
-            db.ModelSpace.AppendEntity(open);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+                    for (int i = 0; i < 8000; i++)
+                    {
+                        folded.AddVertexAt(i, new GeoPoint2(1234.5, -678.25), 0, 0, 0);
+                        open.AddVertexAt(i, new GeoPoint2(1234.5 + i, -678.25), 0, 0, 0);
+                    }
 
-            Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
-            Assert.Equal(1, db.EraseEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
-            Assert.True(
-                watch.ElapsedMilliseconds < 3000,
-                "Two polylines of 8 000 vertices took " + watch.ElapsedMilliseconds + " ms."
+                    db.ModelSpace.AppendEntity(folded);
+                    db.ModelSpace.AppendEntity(open);
+
+                    return (db, folded, open);
+                },
+                drawing =>
+                {
+                    Assert.Equal(1, drawing.db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
+                    Assert.Equal(1, drawing.db.EraseEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
+                    Assert.True(drawing.folded.IsErased);
+                    Assert.False(drawing.open.IsErased);
+                }
             );
-            Assert.True(folded.IsErased);
-            Assert.False(open.IsErased);
         }
 
         [Fact]
@@ -622,13 +628,7 @@ namespace GeometryHelper.UnitTest.Dxf
                 .ToList();
             var spline = new DxfSpline(3, false, false, false, points, knots, new double[0], 0.0, 0.0);
             db.ModelSpace.AppendEntity(spline);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve));
-            Assert.True(
-                watch.ElapsedMilliseconds < 3000,
-                "A spline of 8 000 points took " + watch.ElapsedMilliseconds + " ms."
-            );
+            SpeedGuard.AssertWithin(3, () => Assert.Equal(1, db.CountEmptyObjects((int)DxfEraseFlags.ZeroLengthCurve)));
         }
 
         [Fact]

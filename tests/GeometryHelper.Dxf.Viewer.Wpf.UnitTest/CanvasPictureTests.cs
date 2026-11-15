@@ -257,17 +257,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     view.ZoomTo(list.Bounds);
                     canvas.RenderNow();
                     int scenes = canvas.SceneRenders;
-                    var watch = Stopwatch.StartNew();
+                    double each = double.MaxValue;
 
-                    // Twenty INSERTs one after another under the cursor, each at the middle of its stripes.
-                    for (int k = 0; k < 20; k++)
+                    // Twenty INSERTs one after another under the cursor, each at the middle of its stripes, three times over (each
+                    // time at the INSERTs next to those before), the shortest of the three taken, so that a stall of a busy machine
+                    // does not fail the test: drawing the whole drawing again at each is slow in every one.
+                    for (int round = 0; round < 3; round++)
                     {
-                        int i = 37 + 241 * k;
-                        canvas.MoveCursorTo((i % 100) * 20.0 + 5.0, (i / 100) * 20.0 + 6.0);
-                        canvas.RenderNow();
-                    }
+                        var watch = Stopwatch.StartNew();
 
-                    double each = watch.Elapsed.TotalMilliseconds / 20.0;
+                        for (int k = 0; k < 20; k++)
+                        {
+                            int i = 37 + 241 * k + round;
+                            canvas.MoveCursorTo((i % 100) * 20.0 + 5.0, (i / 100) * 20.0 + 6.0);
+                            canvas.RenderNow();
+                        }
+
+                        each = Math.Min(each, watch.Elapsed.TotalMilliseconds / 20.0);
+                    }
 
                     Assert.Equal(scenes, canvas.SceneRenders);
                     Assert.True(

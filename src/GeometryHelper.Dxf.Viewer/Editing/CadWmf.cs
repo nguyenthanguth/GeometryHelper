@@ -34,11 +34,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The face of a text's font: Arial.</summary>
         public string Face { get; set; }
 
-        /// <summary>Whether the font is bold: a weight of 600 or more.</summary>
+        /// <summary>Whether the font is bold: a weight of 700 or more, as AutoCAD's style of it is (600 is regular there).</summary>
         public bool Bold { get; set; }
 
         /// <summary>Whether the font is italic.</summary>
         public bool Italic { get; set; }
+
+        /// <summary>The character set of the font (lfCharSet); AutoCAD keeps it in the style of the text but decodes every text the same way.</summary>
+        public int Charset { get; set; }
+
+        /// <summary>The pitch and family of the font (lfPitchAndFamily), kept in the style of the text.</summary>
+        public int Pitch { get; set; }
 
         /// <summary>The height of the font's em in logical units, above nought.</summary>
         public double Em { get; set; }
@@ -59,6 +65,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The height of the window, as a number above nought; 1 where the file sets none.</summary>
         public double ExtentY { get; set; } = 1.0;
 
+        /// <summary>Whether the file gave the width of the window below nought, which turns the picture over.</summary>
+        public bool NegativeX { get; set; }
+
+        /// <summary>Whether the file gave the height of the window below nought, which turns the picture over.</summary>
+        public bool NegativeY { get; set; }
+
         /// <summary>The shapes in the order the file draws them.</summary>
         public List<CadWmfShape> Shapes { get; } = new List<CadWmfShape>();
     }
@@ -66,12 +78,16 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// A reader of Windows Metafiles of its own, for WMFIN: the placeable header and the records of [MS-WMF] that draw lines,
     /// polygons, ellipses, arcs and text with the pens, brushes and fonts selected, which is what the metafiles of a drawing
-    /// program hold. Bitmaps, regions, clipping, hatch and pattern brushes, the mapping mode, the viewport and the device
-    /// context's save and restore are read past and not played.
+    /// program hold. The device context's save and restore are played (the pen, brush, font, text colour and alignment, and the
+    /// clip), and IntersectClipRect clips the lines. Bitmaps, regions, hatch and pattern brushes, the mapping mode and the
+    /// viewport are read past and not played.
     /// </summary>
     internal static class CadWmf
     {
         private const uint Placeable = 0x9AC6CDD7;
+
+        /// <summary>Windows-1252, which a host with no code pages registered (.NET Core) lacks: Latin-1 stands in for it there.</summary>
+        private static readonly Encoding Ansi = AnsiEncoding();
         private const int Segments = 100;
         private const int RoundSegments = 8;
 
@@ -94,6 +110,8 @@ namespace GeometryHelper.Dxf.Viewer
             public int Escapement;
             public bool Bold;
             public bool Italic;
+            public int Charset;
+            public int Pitch;
             public string Face;
         }
 
@@ -101,14 +119,27 @@ namespace GeometryHelper.Dxf.Viewer
         {
             public readonly CadWmfPicture Picture = new CadWmfPicture();
             public readonly List<object> Objects = new List<object>();
+            public readonly List<Saved> Saves = new List<Saved>();
             public Pen Pen = new Pen { Rgb = 0 };
             public Brush Brush = new Brush { Rgb = 0xFFFFFF };
             public Font Font;
             public int TextRgb;
             public int Align;
+            public double[] Clip;
             public double X;
             public double Y;
             public bool Sized;
+        }
+
+        /// <summary>What SaveDC keeps for RestoreDC: the objects selected, the text colour and alignment and the clip.</summary>
+        private sealed class Saved
+        {
+            public Pen Pen;
+            public Brush Brush;
+            public Font Font;
+            public int TextRgb;
+            public int Align;
+            public double[] Clip;
         }
 
         /// <summary>Reads the bytes of a metafile, placeable or not.</summary>
@@ -174,13 +205,34 @@ namespace GeometryHelper.Dxf.Viewer
                 case 0x020C: // SetWindowExt, y then x.
                     if (size >= 4 && !r.Sized)
                     {
-                        double y = Math.Abs(S16(b, start));
-                        double x = Math.Abs(S16(b, start + 2));
-                        r.Picture.ExtentX = x > 0.0 ? x : 1.0;
-                        r.Picture.ExtentY = y > 0.0 ? y : 1.0;
+                        double y = S16(b, start);
+                        double x = S16(b, start + 2);
+                        r.Picture.ExtentX = x != 0.0 ? Math.Abs(x) : 1.0;
+                        r.Picture.ExtentY = y != 0.0 ? Math.Abs(y) : 1.0;
+                        r.Picture.NegativeX = x < 0.0;
+                        r.Picture.NegativeY = y < 0.0;
                         r.Sized = true;
                     }
 
+                    break;
+                case 0x001E: // SaveDC
+                    r.Saves.Add(
+                        new Saved
+                        {
+                            Pen = r.Pen,
+                            Brush = r.Brush,
+                            Font = r.Font,
+                            TextRgb = r.TextRgb,
+                            Align = r.Align,
+                            Clip = r.Clip,
+                        }
+                    );
+                    break;
+                case 0x0127 when size >= 2: // RestoreDC: below nought that many saves back, else the save of that number
+                    Restore(r, S16(b, start));
+                    break;
+                case 0x0416 when size >= 8: // IntersectClipRect: bottom, right, top, left
+                    r.Clip = Intersect(r.Clip, S16(b, start + 6), S16(b, start + 4), S16(b, start + 2), S16(b, start));
                     break;
                 case 0x00F7: // CreatePalette
                 case 0x01F9: // CreatePatternBrush
@@ -209,8 +261,10 @@ namespace GeometryHelper.Dxf.Viewer
                         {
                             Height = Math.Abs((int)S16(b, start)),
                             Escapement = S16(b, start + 4),
-                            Bold = S16(b, start + 8) >= 600,
+                            Bold = S16(b, start + 8) >= 700,
                             Italic = b[start + 10] != 0,
+                            Charset = b[start + 13],
+                            Pitch = b[start + 17],
                             Face = Face(b, start + 18, end),
                         }
                     );
@@ -339,15 +393,115 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static void LineTo(Reader r, double x, double y)
         {
-            if (Visible(r.Pen))
+            if (Visible(r.Pen) && Clipped(r.Clip, r.X, r.Y, x, y, out double[] cut))
             {
                 CadWmfShape shape = Stroked(r, false);
-                shape.Points.Add(new[] { r.X, r.Y });
-                shape.Points.Add(new[] { x, y });
+                shape.Points.Add(new[] { cut[0], cut[1] });
+                shape.Points.Add(new[] { cut[2], cut[3] });
             }
 
             r.X = x;
             r.Y = y;
+        }
+
+        /// <summary>The clip of the rectangle given inside the one held (null for none): left, top, right, bottom.</summary>
+        private static double[] Intersect(double[] held, double left, double top, double right, double bottom)
+        {
+            double[] box =
+            {
+                Math.Min(left, right),
+                Math.Min(top, bottom),
+                Math.Max(left, right),
+                Math.Max(top, bottom),
+            };
+
+            return held == null
+                ? box
+                : new[]
+                {
+                    Math.Max(held[0], box[0]),
+                    Math.Max(held[1], box[1]),
+                    Math.Min(held[2], box[2]),
+                    Math.Min(held[3], box[3]),
+                };
+        }
+
+        /// <summary>
+        /// RestoreDC: a negative number goes back that many saves, a positive one to the save of that number; with no such save
+        /// it does nothing. The saves above the one restored are dropped with it.
+        /// </summary>
+        private static void Restore(Reader r, int number)
+        {
+            int at = number < 0 ? r.Saves.Count + number : number - 1;
+
+            if (at < 0 || at >= r.Saves.Count)
+            {
+                return;
+            }
+
+            Saved saved = r.Saves[at];
+            r.Pen = saved.Pen;
+            r.Brush = saved.Brush;
+            r.Font = saved.Font;
+            r.TextRgb = saved.TextRgb;
+            r.Align = saved.Align;
+            r.Clip = saved.Clip;
+            r.Saves.RemoveRange(at, r.Saves.Count - at);
+        }
+
+        /// <summary>
+        /// Cuts a line to the clip as AutoCAD 2021 does, measured through its console: a line is cut to the clip along each axis it
+        /// runs across, one that runs along an axis is cut across the other only, and one that misses the clip altogether is left
+        /// whole, unless it runs along an axis, when it is dropped. Gives whether a line is left and its ends.
+        /// </summary>
+        private static bool Clipped(double[] clip, double x0, double y0, double x1, double y1, out double[] cut)
+        {
+            cut = new[] { x0, y0, x1, y1 };
+
+            if (clip == null)
+            {
+                return true;
+            }
+
+            double dx = x1 - x0;
+            double dy = y1 - y0;
+            double from = 0.0;
+            double to = 1.0;
+
+            foreach (
+                double[] edge in new[]
+                {
+                    new[] { -dx, x0 - clip[0] },
+                    new[] { dx, clip[2] - x0 },
+                    new[] { -dy, y0 - clip[1] },
+                    new[] { dy, clip[3] - y0 },
+                }
+            )
+            {
+                if (edge[0] == 0.0)
+                {
+                    continue;
+                }
+
+                double at = edge[1] / edge[0];
+
+                if (edge[0] < 0.0)
+                {
+                    from = Math.Max(from, at);
+                }
+                else
+                {
+                    to = Math.Min(to, at);
+                }
+            }
+
+            if (from > to)
+            {
+                return dx != 0.0 && dy != 0.0;
+            }
+
+            cut = new[] { x0 + from * dx, y0 + from * dy, x0 + to * dx, y0 + to * dy };
+            return true;
         }
 
         private static void Poly(Reader r, byte[] b, int start, int end, bool closed)
@@ -569,18 +723,33 @@ namespace GeometryHelper.Dxf.Viewer
             r.Picture.Shapes.Add(
                 new CadWmfShape
                 {
-                    Text = Encoding.GetEncoding(28591).GetString(b, at, count),
+                    // AutoCAD 2021 reads the bytes of a text as Windows-1252 whatever the font's character set.
+                    Text = Ansi.GetString(b, at, count),
                     X = x,
                     Y = y,
                     Rgb = r.TextRgb,
                     Face = font != null && font.Face.Length > 0 ? font.Face : "Arial",
                     Bold = font != null && font.Bold,
                     Italic = font != null && font.Italic,
+                    Charset = font != null ? font.Charset : 0,
+                    Pitch = font != null ? font.Pitch : 0,
                     Em = em,
                     Turn = font == null ? 0.0 : font.Escapement / 10.0 * Math.PI / 180.0,
                     Align = r.Align,
                 }
             );
+        }
+
+        private static Encoding AnsiEncoding()
+        {
+            try
+            {
+                return Encoding.GetEncoding(1252);
+            }
+            catch (ArgumentException)
+            {
+                return Encoding.GetEncoding(28591);
+            }
         }
 
         private static string Face(byte[] b, int at, int end)

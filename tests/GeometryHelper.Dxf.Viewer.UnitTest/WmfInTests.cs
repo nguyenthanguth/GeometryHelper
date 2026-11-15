@@ -516,8 +516,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(1, text.Color.ColorIndex);
             Close(Math.PI / 2.0, text.Rotation);
 
-            // Turned a quarter, the baseline lies to the right of the reference point, by the same 0.36.
-            Close(2.5 + 0.36, text.Position.X);
+            // Turned a quarter, the baseline lies to the right of the reference point, by 74 units of 0.005 (the 72 of
+            // the ascent and the 2 that AutoCAD 2021 adds to a quarter turn at an em of 80).
+            Close(2.5 + 0.37, text.Position.X);
             Close(-2.5, text.Position.Y);
         }
 
@@ -555,7 +556,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ATextAlignedToTheCentreOrTheBaseline_IsJustifiedAtItsPoint()
+        public void ATextAlignedToTheCentreOnTheBaseline_StaysLeftJustifiedAndStartsHalfItsWidthBack()
         {
             CadDocument document = Millimetres();
             var file = new WmfBytes()
@@ -567,9 +568,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Imported(document, file);
 
+            // AutoCAD 2021 gives no justification: the text is moved back by the width of "Mid" in Arial (0.833 + 0.222 + 0.556 of
+            // the em of 80 units, times 1.264, the ascent over the capitals' height), half of it for the centre.
             DxfDBText text = Assert.Single(document.Database.BlockTable["WMF0"].OfType<DxfDBText>());
-            Assert.Equal(DxfAttachmentPoint.BaseCenter, text.Justify);
-            Near(new GeoPoint3(2.5, -2.5, 0), text.AlignmentPoint);
+            Assert.Equal(DxfAttachmentPoint.BaseLeft, text.Justify);
+            double width = (1706.0 + 455.0 + 1139.0) / 2048.0 * 80.0 * (0.9053 / 0.7163);
+            Assert.InRange(text.Position.X, 2.5 - (width / 2.0 + 0.5) * 0.005, 2.5 - (width / 2.0 - 0.5) * 0.005);
+            Close(-2.5, text.Position.Y);
         }
 
         [Fact]
@@ -750,6 +755,515 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             double half = Math.Min((seen.MaxX - seen.MinX) / 2.0, (seen.MaxY - seen.MinY) / 2.0);
             Close(half, Points(line)[1].X);
             Close(-half, Points(line)[1].Y);
+        }
+
+        // The colour between the primaries: the values below are the indexes AutoCAD 2021's console gave to pens of these colours.
+
+        [Theory]
+        [InlineData(0, 160, 0, 92)]
+        [InlineData(0, 90, 0, 96)]
+        [InlineData(0, 0, 200, 172)]
+        [InlineData(30, 0, 0, 18)]
+        [InlineData(80, 0, 0, 16)]
+        [InlineData(120, 0, 0, 14)]
+        [InlineData(180, 0, 0, 12)]
+        [InlineData(170, 85, 85, 13)]
+        [InlineData(30, 30, 0, 48)]
+        [InlineData(40, 40, 0, 58)]
+        [InlineData(60, 60, 0, 46)]
+        [InlineData(100, 100, 0, 44)]
+        [InlineData(130, 130, 0, 54)]
+        [InlineData(180, 180, 0, 52)]
+        [InlineData(210, 210, 0, 40)]
+        [InlineData(1, 1, 1, 7)]
+        [InlineData(10, 10, 10, 7)]
+        [InlineData(100, 100, 100, 250)]
+        [InlineData(128, 128, 128, 251)]
+        [InlineData(160, 160, 160, 252)]
+        [InlineData(190, 190, 190, 253)]
+        [InlineData(220, 220, 220, 254)]
+        [InlineData(240, 240, 240, 7)]
+        public void APenBetweenThePrimaries_TakesTheIndexAutoCadGivesIt(int red, int green, int blue, int expected)
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 0, (byte)red, (byte)green, (byte)blue)
+                .Select(0)
+                .MoveTo(0, 0)
+                .LineTo(100, 100);
+
+            Imported(document, file);
+
+            DxfPolyline2d line = Assert.Single(Polylines(document.Database.BlockTable["WMF0"]));
+            Assert.Equal(expected, line.Color.ColorIndex);
+        }
+
+        [Fact]
+        public void ABrushBetweenThePrimaries_TakesTheSameIndexAsAPenOfThatColour()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(5, 0, 0, 0, 0)
+                .Brush(0, 0, 160, 0)
+                .Select(0)
+                .Select(1)
+                .Rectangle(100, 100, 500, 500);
+
+            Imported(document, file);
+
+            DxfPolyline2d box = Assert.Single(Polylines(document.Database.BlockTable["WMF0"]));
+            Assert.Equal(92, box.Color.ColorIndex);
+        }
+
+        [Fact]
+        public void ManyPensInOneFile_EachKeepItsOwnColour()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes().WindowExt(1000, 1000);
+            const int count = 80;
+
+            for (int i = 0; i < count; i++)
+            {
+                file.Pen(0, 0, (byte)(i * 3), 0, 0);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                file.Select(i).MoveTo(0, i * 10).LineTo(100, i * 10);
+            }
+
+            Imported(document, file);
+
+            List<DxfPolyline2d> lines = Polylines(document.Database.BlockTable["WMF0"]);
+            Assert.Equal(count, lines.Count);
+            Assert.Equal(7, lines[0].Color.ColorIndex);
+            Assert.Equal(14, lines[40].Color.ColorIndex);
+            Assert.Equal(1, lines[count - 1].Color.ColorIndex);
+        }
+
+        // SaveDC and RestoreDC.
+
+        [Fact]
+        public void RestoreDC_GivesBackThePenAndTheBrushOfTheSave()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Pen(0, 10, 0, 255, 0)
+                .Brush(0, 0, 0, 255)
+                .Brush(0, 255, 255, 0)
+                .Select(0)
+                .MoveTo(0, 100)
+                .LineTo(500, 100)
+                .SaveDC()
+                .Select(1)
+                .MoveTo(0, 200)
+                .LineTo(500, 200)
+                .RestoreDC(-1)
+                .MoveTo(0, 300)
+                .LineTo(500, 300)
+                .SaveDC()
+                .Select(2)
+                .Rectangle(0, 400, 100, 450)
+                .RestoreDC(-1)
+                .Rectangle(200, 400, 300, 450);
+
+            Imported(document, file);
+
+            Assert.Equal(
+                new[] { 1, 3, 1, 5, 7 },
+                Polylines(document.Database.BlockTable["WMF0"]).Select(p => (int)p.Color.ColorIndex).ToArray()
+            );
+        }
+
+        [Fact]
+        public void RestoreDCWithANumberAbove0_GoesBackToThatSave_AndOneWithNoSaveDoesNothing()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Pen(0, 10, 0, 255, 0)
+                .Pen(0, 10, 0, 0, 255)
+                .Select(0)
+                .SaveDC()
+                .Select(1)
+                .SaveDC()
+                .Select(2)
+                .RestoreDC(1)
+                .MoveTo(0, 100)
+                .LineTo(500, 100)
+                .RestoreDC(-1)
+                .MoveTo(0, 200)
+                .LineTo(500, 200);
+
+            Imported(document, file);
+
+            // RestoreDC 1 goes back to the first save (red) and drops both; the second, with no save left, changes nothing.
+            Assert.Equal(
+                new[] { 1, 1 },
+                Polylines(document.Database.BlockTable["WMF0"]).Select(p => (int)p.Color.ColorIndex).ToArray()
+            );
+        }
+
+        // Clipping: IntersectClipRect clips the lines.
+
+        private static List<GeoPoint3> ClippedLine(CadDocument document, int index = 0) =>
+            Points(Polylines(document.Database.BlockTable["WMF0"])[index]);
+
+        [Fact]
+        public void IntersectClipRect_CutsALineThatCrossesItToTheClip()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Select(0)
+                .IntersectClipRect(200, 0, 600, 1000)
+                .MoveTo(0, 100)
+                .LineTo(1000, 100)
+                .MoveTo(0, 300)
+                .LineTo(1000, 500);
+
+            Imported(document, file);
+
+            Near(new GeoPoint3(1.0, -0.5, 0), ClippedLine(document)[0]);
+            Near(new GeoPoint3(3.0, -0.5, 0), ClippedLine(document)[1]);
+            Near(new GeoPoint3(1.0, -1.7, 0), ClippedLine(document, 1)[0]);
+            Near(new GeoPoint3(3.0, -2.1, 0), ClippedLine(document, 1)[1]);
+        }
+
+        [Fact]
+        public void TheClipIsTheIntersectionOfTheRectanglesGiven_AndRestoreDCGivesTheClipBack()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Select(0)
+                .SaveDC()
+                .IntersectClipRect(200, 0, 600, 1000)
+                .IntersectClipRect(300, 0, 400, 1000)
+                .MoveTo(0, 500)
+                .LineTo(1000, 500)
+                .RestoreDC(-1)
+                .MoveTo(0, 700)
+                .LineTo(1000, 700);
+
+            Imported(document, file);
+
+            Near(new GeoPoint3(1.5, -2.5, 0), ClippedLine(document)[0]);
+            Near(new GeoPoint3(2.0, -2.5, 0), ClippedLine(document)[1]);
+            Near(new GeoPoint3(0.0, -3.5, 0), ClippedLine(document, 1)[0]);
+            Near(new GeoPoint3(5.0, -3.5, 0), ClippedLine(document, 1)[1]);
+        }
+
+        [Fact]
+        public void ALineThatMissesTheClip_IsLeftWholeUnlessItRunsAlongAnAxis_WhenItIsDropped()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Select(0)
+                .IntersectClipRect(200, 200, 600, 600)
+                .MoveTo(0, 0)
+                .LineTo(150, 1000)
+                .MoveTo(0, 100)
+                .LineTo(150, 100)
+                .MoveTo(650, 100)
+                .LineTo(900, 100);
+
+            Imported(document, file);
+
+            // AutoCAD 2021 keeps the first, cut by nothing, and drops the other two.
+            DxfPolyline2d kept = Assert.Single(Polylines(document.Database.BlockTable["WMF0"]));
+            Near(new GeoPoint3(0.0, 0.0, 0), Points(kept)[0]);
+            Near(new GeoPoint3(0.75, -5.0, 0), Points(kept)[1]);
+        }
+
+        [Fact]
+        public void ALineAcrossOneAxisOfTheClipAndOutsideTheOther_IsCutAcrossTheFirstOnly()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Select(0)
+                .IntersectClipRect(200, 200, 600, 600)
+                .MoveTo(0, 100)
+                .LineTo(1000, 100)
+                .MoveTo(100, 0)
+                .LineTo(100, 1000);
+
+            Imported(document, file);
+
+            Near(new GeoPoint3(1.0, -0.5, 0), ClippedLine(document)[0]);
+            Near(new GeoPoint3(3.0, -0.5, 0), ClippedLine(document)[1]);
+            Near(new GeoPoint3(0.5, -1.0, 0), ClippedLine(document, 1)[0]);
+            Near(new GeoPoint3(0.5, -3.0, 0), ClippedLine(document, 1)[1]);
+        }
+
+        [Fact]
+        public void TheClipTouchesLinesAlone_AndExcludeClipRectIsIgnored()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Pen(0, 10, 255, 0, 0)
+                .Brush(0, 0, 0, 255)
+                .Select(0)
+                .Select(1)
+                .IntersectClipRect(200, 0, 600, 1000)
+                .Rectangle(100, 200, 700, 300)
+                .Polyline(0, 400, 400, 450, 800, 400)
+                .ExcludeClipRect(200, 0, 600, 1000)
+                .MoveTo(300, 600)
+                .LineTo(500, 600);
+
+            Imported(document, file);
+
+            List<DxfPolyline2d> shapes = Polylines(document.Database.BlockTable["WMF0"]);
+            Assert.Equal(3, shapes.Count);
+            Near(new GeoPoint3(0.5, -1.0, 0), Points(shapes[0])[0]);
+            Near(new GeoPoint3(3.5, -1.0, 0), Points(shapes[0])[1]);
+            Near(new GeoPoint3(4.0, -2.0, 0), Points(shapes[1])[2]);
+            Near(new GeoPoint3(1.5, -3.0, 0), Points(shapes[2])[0]);
+            Near(new GeoPoint3(2.5, -3.0, 0), Points(shapes[2])[1]);
+        }
+
+        // A window of a width or a height below nought.
+
+        [Theory]
+        [InlineData(-1000, 1000, -0.5, -0.5, 0.05)]
+        [InlineData(-2000, 1000, -0.5, -0.5, 0.05)]
+        [InlineData(-1000, 2000, -0.25, -0.25, 0.025)]
+        [InlineData(1000, -1000, 0.882739, 0.882739, 0.0882739)]
+        [InlineData(1000, -2000, 0.882739, 0.882739, 0.0882739)]
+        [InlineData(2000, -1000, 0.4413695, 0.4413695, 0.04413695)]
+        [InlineData(-1000, -1000, 0.882739, -0.882739, 0.0)]
+        [InlineData(-1000, -2000, 0.882739, -0.882739, 0.0)]
+        [InlineData(-2000, -1000, 0.5, -0.5, 0.0)]
+        public void AWindowOfANegativeExtent_TurnsThePictureOverAsAutoCadDoes(
+            int width,
+            int height,
+            double x,
+            double y,
+            double penWidth
+        )
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(width, height)
+                .Pen(0, 10, 255, 0, 0)
+                .Select(0)
+                .MoveTo(100, 100)
+                .LineTo(900, 300);
+
+            Imported(document, file);
+
+            DxfPolyline2d line = Assert.Single(Polylines(document.Database.BlockTable["WMF0"]));
+            Near(new GeoPoint3(x, y, 0), Points(line)[0]);
+            Near(new GeoPoint3(9.0 * x, 3.0 * y, 0), Points(line)[1]);
+            Close(penWidth, line.ConstantWidth);
+        }
+
+        // The look of a text: its ascent, its height and the style of its font.
+
+        private static DxfDBText TextOf(CadDocument document) =>
+            Assert.Single(document.Database.BlockTable["WMF0"].OfType<DxfDBText>());
+
+        [Theory]
+        [InlineData("Arial", 362.0)]
+        [InlineData("Courier New", 333.0)]
+        [InlineData("Tahoma", 400.0)]
+        public void ATextsBaselineLiesTheAscentOfItsFaceBelowThePoint_AndItsHeightIs0Point8OfIt(
+            string face,
+            double ascent
+        )
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 400, false, 0, face)
+                .Select(0)
+                .TextOut(500, 1000, "Hi");
+
+            Imported(document, file);
+
+            // An em of 400 units at 0.00125 to the unit; AutoCAD 2021 measured the ascent of Arial 362, Courier New 333, Tahoma 400.
+            DxfDBText text = TextOf(document);
+            Close(0.8 * ascent * 0.00125, text.Height);
+            Near(new GeoPoint3(0.625, -1.25 - ascent * 0.00125, 0), text.Position);
+        }
+
+        [Fact]
+        public void ABoldTextOfArialStillRestsOnArialsAscent()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 700, false, 0, "Arial")
+                .Select(0)
+                .TextOut(500, 1000, "Hi");
+
+            Imported(document, file);
+
+            DxfDBText text = TextOf(document);
+            Close(0.8 * 362.0 * 0.00125, text.Height);
+        }
+
+        [Fact]
+        public void ATextTurnedAQuarter_ReachesTwoPartsInAThousandAndSeventyFiveOfTheEmFurther()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 400, false, 900, "Arial")
+                .Select(0)
+                .TextOut(500, 1000, "Hi");
+
+            Imported(document, file);
+
+            // 362 and 7 (0.0175 of 400) as AutoCAD 2021 measured Arial at 90 degrees: 369.
+            DxfDBText text = TextOf(document);
+            Close(0.8 * 369.0 * 0.00125, text.Height);
+            Close(0.625 + 369.0 * 0.00125, text.Position.X);
+            Close(-1.25, text.Position.Y);
+        }
+
+        [Fact]
+        public void ATextTurnedToAnyOtherAngle_ReachesFurtherByTheMeasureOfItsFace()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 400, false, 450, "Arial")
+                .Select(0)
+                .TextOut(500, 1000, "Hi");
+
+            Imported(document, file);
+
+            // AutoCAD 2021 gives Arial 423 of the 400 at 45 degrees (and at 15, 30, 60 and 75): 362 and 0.1525 of the em.
+            DxfDBText text = TextOf(document);
+            Close(0.8 * 423.0 * 0.00125, text.Height);
+            double reach = 423.0 * 0.00125 * Math.Sqrt(0.5);
+            Close(0.625 + reach, text.Position.X);
+            Close(-1.25 - reach, text.Position.Y);
+        }
+
+        [Fact]
+        public void ATextAlignedToTheBottom_RestsOnTheBaselineTheDescentTimesTheRatioAboveThePoint()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 400, false, 0, "Arial")
+                .Select(0)
+                .SetTextAlign(8)
+                .TextOut(500, 1000, "Hi");
+
+            Imported(document, file);
+
+            // AutoCAD 2021 put the baseline of Arial of 400 107.2 units above the bottom: 0.2119 of the em times 1.264.
+            DxfDBText text = TextOf(document);
+            Assert.InRange(text.Position.Y, -1.25 + 106.5 * 0.00125, -1.25 + 108.0 * 0.00125);
+        }
+
+        [Theory]
+        [InlineData("Arial", 26, 1152.4)]
+        [InlineData("Arial", 30, 576.2)]
+        [InlineData("Courier New", 26, 1749.0)]
+        [InlineData("Courier New", 30, 874.5)]
+        [InlineData("Tahoma", 26, 1211.3)]
+        public void ATextAlignedToTheRightOrTheCentre_StartsItsWidthOrHalfBack_NotJustified(
+            string face,
+            int align,
+            double back
+        )
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(4000, 4000)
+                .Font(-400, 400, false, 0, face)
+                .Select(0)
+                .SetTextAlign(align)
+                .TextOut(2000, 1000, "Hello");
+
+            Imported(document, file);
+
+            // The width AutoCAD 2021 took off Arial "Hello" at 400 was 1152.4.
+            DxfDBText text = TextOf(document);
+            Assert.Equal(DxfAttachmentPoint.BaseLeft, text.Justify);
+            Assert.InRange(text.Position.X, 2.5 - (back + 1.5) * 0.00125, 2.5 - (back - 1.5) * 0.00125);
+            Close(-1.25, text.Position.Y);
+        }
+
+        [Fact]
+        public void TheLooksOfAFace_AreToldApartByBoldFrom700_ItalicTheCharacterSetAndThePitch_NotByUnderlineOrByTheCaseOfTheName()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Font(-80, 400, false, 0, "Arial")
+                .Font(-80, 600, false, 0, "arial")
+                .Font(-80, 700, false, 0, "Arial")
+                .Font(-80, 400, false, 0, "Arial", 204)
+                .Font(-80, 400, false, 0, "Arial", 0, 34)
+                .Font(-80, 400, true, 0, "Arial")
+                .Font(-80, 400, false, 0, "Arial", 204)
+                .Select(0)
+                .TextOut(100, 100, "a")
+                .Select(1)
+                .TextOut(100, 200, "b")
+                .Select(2)
+                .TextOut(100, 300, "c")
+                .Select(3)
+                .TextOut(100, 400, "d")
+                .Select(4)
+                .TextOut(100, 500, "e")
+                .Select(5)
+                .TextOut(100, 600, "f")
+                .Select(6)
+                .TextOut(100, 700, "g");
+
+            Imported(document, file);
+
+            Assert.Equal(
+                new[]
+                {
+                    "WMF-Arial0",
+                    "WMF-Arial0",
+                    "WMF-Arial1",
+                    "WMF-Arial2",
+                    "WMF-Arial3",
+                    "WMF-Arial4",
+                    "WMF-Arial2",
+                },
+                document.Database.BlockTable["WMF0"].OfType<DxfDBText>().Select(t => t.TextStyleName).ToArray()
+            );
+            DxfFontDescriptor russian = document.Database.TextStyleTable["WMF-Arial2"].Font;
+            Assert.Equal(204, russian.CharacterSet);
+            Assert.Equal(34, document.Database.TextStyleTable["WMF-Arial3"].Font.PitchAndFamily);
+            Assert.True(document.Database.TextStyleTable["WMF-Arial1"].Font.Bold);
+        }
+
+        [Fact]
+        public void TheBytesOfATextAreWindows1252_WhateverTheCharacterSetOfItsFont()
+        {
+            CadDocument document = Millimetres();
+            var file = new WmfBytes()
+                .WindowExt(1000, 1000)
+                .Font(-80, 400, false, 0, "Arial", 204)
+                .Select(0)
+                .TextOutBytes(100, 100, 0x48, 0xE9, 0x80, 0x99, 0xCF);
+
+            Imported(document, file);
+
+            Assert.Equal("Hé€™Ï", TextOf(document).TextString);
         }
     }
 }

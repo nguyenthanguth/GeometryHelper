@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
+using GeometryHelper.UnitTest;
 using Xunit;
 using Xunit.Abstractions;
 using static GeometryHelper.Dxf.Viewer.UnitTest.EditingDrawings;
@@ -278,16 +278,18 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             var fence = new List<GeoPoint2> { P(-1, 2.5), P(10001, 2.5), P(10001, 502.5), P(-1, 502.5) };
             var ring = new List<GeoPoint2> { P(-1, -1), P(10001, -1), P(10001, 1001), P(-1, 1001) };
 
+            int fenced = 0,
+                inside = 0,
+                touched = 0;
+
+            // Alone each takes under 100 ms. The limit of a second is wide for a busy machine, against a sweep gone quadratic, and
+            // each is asked up to three times, so that one stall of the machine does not fail the test.
             index.Fence(fence);
-            var watch = Stopwatch.StartNew();
-            int fenced = index.Fence(fence).Count;
-            long fenceMs = watch.ElapsedMilliseconds;
-            watch.Restart();
-            int inside = index.WindowPolygon(ring).Count;
-            long windowMs = watch.ElapsedMilliseconds;
-            watch.Restart();
-            int touched = index.CrossingPolygon(ring).Count;
-            long crossingMs = watch.ElapsedMilliseconds;
+            long fenceMs = (long)SpeedGuard.AssertWithin(1, () => fenced = index.Fence(fence).Count).TotalMilliseconds;
+            long windowMs = (long)
+                SpeedGuard.AssertWithin(1, () => inside = index.WindowPolygon(ring).Count).TotalMilliseconds;
+            long crossingMs = (long)
+                SpeedGuard.AssertWithin(1, () => touched = index.CrossingPolygon(ring).Count).TotalMilliseconds;
             _output.WriteLine(
                 "Fence: "
                     + fenceMs
@@ -308,11 +310,6 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2000, fenced);
             Assert.Equal(100000, inside);
             Assert.Equal(100000, touched);
-            // Alone each takes under 100 ms; the bound is wide for a run beside the other suites, against a sweep gone quadratic.
-            Assert.True(
-                fenceMs < 1000 && windowMs < 1000 && crossingMs < 1000,
-                "Too slow: " + fenceMs + ", " + windowMs + ", " + crossingMs + " ms."
-            );
         }
     }
 }

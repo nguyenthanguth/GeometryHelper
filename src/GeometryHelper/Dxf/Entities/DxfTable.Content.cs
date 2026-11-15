@@ -859,6 +859,44 @@ namespace GeometryHelper.Dxf
                 return;
             }
 
+            // While a drawing is completed, every table's handle waits to be listed with the rest at its end (EndRecompose): the
+            // list is read and written once, not once for each of 1 600 tables.
+            if (file.RecomposeBatch != null)
+            {
+                file.RecomposeBatch.AddRange(wanted);
+                return;
+            }
+
+            ListHandles(file, held, wanted);
+        }
+
+        /// <summary>
+        /// Lists the handles of the tables and styles the completion of a drawing left waiting
+        /// (<see cref="DxfFile.RecomposeBatch"/>) as <see cref="ListForRecompose"/> would have listed them one call after
+        /// another, and ends the waiting.
+        /// </summary>
+        internal static void EndRecompose(DxfFile file)
+        {
+            List<string> waiting = file.RecomposeBatch;
+            file.RecomposeBatch = null;
+            DxfDBDictionary root = file.Database.NamedObjectsDictionary;
+
+            if (waiting == null || waiting.Count == 0 || root == null || !root.Contains("ACDB_RECOMPOSE_DATA"))
+            {
+                return;
+            }
+
+            DxfDBObject held = root.GetAt("ACDB_RECOMPOSE_DATA");
+
+            if (held != null && held.Item.Type == "XRECORD")
+            {
+                ListHandles(file, held, waiting);
+            }
+        }
+
+        /// <summary>Adds the handles not listed already (letters of either case the same) to the 330s of the XRECORD of the drawing's ACDB_RECOMPOSE_DATA, the whole list in the order of the handles' numbers.</summary>
+        private static void ListHandles(DxfFile file, DxfDBObject held, List<string> wanted)
+        {
             IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(held.Item);
             int at = 0;
 
@@ -888,10 +926,11 @@ namespace GeometryHelper.Dxf
             }
 
             int before = listed.Count;
+            var have = new HashSet<string>(listed, StringComparer.OrdinalIgnoreCase);
 
             foreach (string handle in wanted)
             {
-                if (!listed.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase)))
+                if (have.Add(handle))
                 {
                     listed.Add(handle);
                 }

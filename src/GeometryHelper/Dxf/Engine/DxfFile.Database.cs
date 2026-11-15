@@ -1755,6 +1755,9 @@ namespace GeometryHelper.Dxf
 
             /// <summary>Its objects by handle; null until read.</summary>
             internal Dictionary<ulong, KeyValuePair<Rec, bool>> Objects { get; set; }
+
+            /// <summary>The dictionary and entry the named object dictionary holds each object under, by handle (<see cref="NamedPaths"/>); null until read.</summary>
+            internal Dictionary<ulong, KeyValuePair<string, string>> Paths { get; set; }
         }
 
         /// <summary>
@@ -3142,7 +3145,7 @@ namespace GeometryHelper.Dxf
             if (
                 !TryHex(handle, out ulong key)
                 || key == 0
-                || !origin.NamedPath(key, out string dictionary, out string entry)
+                || !NamedPathIn(origin, key, out string dictionary, out string entry)
                 || !string.Equals(dictionary, "ACAD_IMAGE_DICT", StringComparison.OrdinalIgnoreCase)
             )
             {
@@ -3925,7 +3928,7 @@ namespace GeometryHelper.Dxf
                     : null;
             }
 
-            if (!origin.NamedPath(handle, out string dictionary, out string entry))
+            if (!NamedPathIn(origin, handle, out string dictionary, out string entry))
             {
                 return null;
             }
@@ -3967,7 +3970,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The records of the TABLES and OBJECTS sections as they stand, by handle, each with whether it is a table's: read, nothing of the file written.</summary>
-        private Dictionary<ulong, KeyValuePair<Rec, bool>> ReadObjects()
+        internal Dictionary<ulong, KeyValuePair<Rec, bool>> ReadObjects()
         {
             var objects = new Dictionary<ulong, KeyValuePair<Rec, bool>>();
 
@@ -4099,7 +4102,7 @@ namespace GeometryHelper.Dxf
         /// The names under which the named object dictionary holds an object: its dictionary's and its entry's, the dictionary a
         /// DICTIONARY or one with a default (ACDBDICTIONARYWDFLT, as ACAD_PLOTSTYLENAME is); false where it holds none.
         /// </summary>
-        private bool NamedPath(ulong handle, out string dictionary, out string entry)
+        internal bool NamedPath(ulong handle, out string dictionary, out string entry)
         {
             dictionary = null;
             entry = null;
@@ -4166,6 +4169,111 @@ namespace GeometryHelper.Dxf
                 }
             }
 
+            return false;
+        }
+
+        /// <summary>
+        /// The names under which the named object dictionary holds each object, as <see cref="NamedPath"/> finds them one handle
+        /// at a time, found for every handle in one walk of the dictionaries given: a handle is the first, in the order of the
+        /// records, of the entries that hold it in a dictionary the named object dictionary holds, its dictionary's name and
+        /// its entry's. Empty where the file has no named object dictionary. For a copy that asks the paths of 400 tables'
+        /// pointers one after another, which walked every dictionary of the drawing each.
+        /// </summary>
+        internal Dictionary<ulong, KeyValuePair<string, string>> NamedPaths(
+            Dictionary<ulong, KeyValuePair<Rec, bool>> objects
+        )
+        {
+            var paths = new Dictionary<ulong, KeyValuePair<string, string>>();
+            Rec? root = RootDictionary();
+
+            if (root == null)
+            {
+                return paths;
+            }
+
+            // The name the named object dictionary holds each dictionary under, the first of the entries that hold it.
+            var names = new Dictionary<ulong, string>();
+            Rec rootRecord = root.Value;
+            string parent = null;
+
+            foreach (Pair rootPair in PairsOf(rootRecord))
+            {
+                if (rootPair.Code == 3)
+                {
+                    parent = Text(rootRecord, rootPair);
+                }
+                else if ((rootPair.Code == 350 || rootPair.Code == 360) && parent != null)
+                {
+                    if (TryHex(Text(rootRecord, rootPair).Trim(), out ulong rootValue) && !names.ContainsKey(rootValue))
+                    {
+                        names.Add(rootValue, parent.Trim());
+                    }
+
+                    parent = null;
+                }
+            }
+
+            foreach (KeyValuePair<Rec, bool> found in objects.Values)
+            {
+                Rec record = found.Key;
+
+                if (
+                    found.Value
+                    || (record.Type != "DICTIONARY" && record.Type != "ACDBDICTIONARYWDFLT")
+                    || !HandleOf(record, out ulong dictionaryHandle)
+                    || !names.TryGetValue(dictionaryHandle, out string dictionary)
+                )
+                {
+                    continue;
+                }
+
+                string last = null;
+
+                foreach (Pair pair in PairsOf(record))
+                {
+                    if (pair.Code == 3)
+                    {
+                        last = Text(record, pair);
+                    }
+                    else if ((pair.Code == 350 || pair.Code == 360) && last != null)
+                    {
+                        if (TryHex(Text(record, pair).Trim(), out ulong value) && !paths.ContainsKey(value))
+                        {
+                            paths.Add(value, new KeyValuePair<string, string>(dictionary, last.Trim()));
+                        }
+
+                        last = null;
+                    }
+                }
+            }
+
+            return paths;
+        }
+
+        /// <summary>
+        /// The names under which the named object dictionary of a drawing copied from holds an object, as
+        /// <see cref="NamedPath"/> finds them; where a call holds the records of the tables by name, from the paths of every
+        /// object of that drawing found once for the call, read again where it was written since.
+        /// </summary>
+        private bool NamedPathIn(DxfFile origin, ulong handle, out string dictionary, out string entry)
+        {
+            if (origin == this || _tableNames == null)
+            {
+                return origin.NamedPath(handle, out dictionary, out entry);
+            }
+
+            CopiedDrawing copied = CopiedFrom(origin);
+            copied.Paths = copied.Paths ?? origin.NamedPaths(ObjectsOf(origin));
+
+            if (copied.Paths.TryGetValue(handle, out KeyValuePair<string, string> found))
+            {
+                dictionary = found.Key;
+                entry = found.Value;
+                return true;
+            }
+
+            dictionary = null;
+            entry = null;
             return false;
         }
 
@@ -5125,10 +5233,13 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>An entity's records written anew: its look and shapes read again, the extents grown where asked.</summary>
-        private void Rewritten(DxfItem item, List<Rec> records, bool geometry)
+        /// <summary>
+        /// An entity's records written anew: its look and shapes read again, the extents grown where asked, the names its first
+        /// record gives to the INSERTs taken in unless <paramref name="namesKept"/> says they are kept already.
+        /// </summary>
+        private void Rewritten(DxfItem item, List<Rec> records, bool geometry, bool namesKept = false)
         {
-            SetRecords(item, records);
+            SetRecords(item, records, namesKept);
             item.Changed(records[0].Type);
 
             if (geometry && item.Parent != null)
@@ -5251,6 +5362,106 @@ namespace GeometryHelper.Dxf
             own = groups.AsReadOnly();
             parsed.Own = own;
             return own;
+        }
+
+        /// <summary>
+        /// The text of the first group of a code in the first subclass of an entity's own part, as
+        /// <c>DxfDimGroups.Text(code, DxfDimGroups.Base)</c> reads it from the groups <see cref="OwnGroupsOf(DxfItem, int)"/>
+        /// gives: between the first subclass marker other than AcDbEntity and the next marker, outside the groups of the
+        /// applications. Walked in the bytes up to that group, with no list of the record's groups made, as the name of the
+        /// block a table is drawn by is asked of every table of a drawing.
+        /// </summary>
+        /// <param name="item">The entity.</param>
+        /// <param name="code">The group code.</param>
+        /// <param name="text">The text; null where the subclass holds no such group.</param>
+        /// <returns>False where the record has no such marker, whose groups only a reading of the whole record places.</returns>
+        internal bool TryBaseTextOf(DxfItem item, int code, out string text)
+        {
+            text = null;
+            Rec record = RecordAt(item, 0);
+            byte[] bytes = record.Bytes;
+            int end = record.End;
+            int at = record.Start;
+            bool braced = false;
+            bool opened = false;
+            bool inside = false;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(bytes, at, end, out int valueStart);
+                TryCode(bytes, at, codeEnd, out int raw);
+                int valueEnd = LineEnd(bytes, valueStart, end, out int next);
+                at = next;
+
+                // The group 0 that names the record is the first.
+                if (!opened)
+                {
+                    opened = true;
+                    continue;
+                }
+
+                if (raw == 1001)
+                {
+                    break;
+                }
+
+                if (raw == 102)
+                {
+                    braced = Text(record, valueStart, valueEnd).Trim().StartsWith("{", StringComparison.Ordinal);
+                    continue;
+                }
+
+                if (braced || raw == 999)
+                {
+                    continue;
+                }
+
+                if (!inside)
+                {
+                    inside = raw == 100 && !ValueIs(record, new Pair(raw, 0, valueStart, valueEnd, next), "AcDbEntity");
+                    continue;
+                }
+
+                if (raw == 100)
+                {
+                    return true;
+                }
+
+                if (raw == code)
+                {
+                    text = Text(record, valueStart, valueEnd);
+                    return true;
+                }
+            }
+
+            return inside;
+        }
+
+        /// <summary>
+        /// The groups of one record of an entity between two places of its bytes, counted from the record's start as
+        /// <see cref="OwnGroupsOf(DxfItem, int, List{int})"/> places them, made as that makes its own groups: the groups of one
+        /// cell of a table, read without a reading of every group of the record. The places must be those of groups that follow
+        /// one another with no comment or group of an application between them, as that method's places are when the record's
+        /// groups are all its own.
+        /// </summary>
+        internal List<KeyValuePair<int, string>> GroupsBetween(DxfItem item, int index, int from, int to)
+        {
+            Rec record = RecordAt(item, index);
+            var groups = new List<KeyValuePair<int, string>>();
+            int at = record.Start + from;
+            int end = record.Start + to;
+
+            while (at < end)
+            {
+                int codeEnd = LineEnd(record.Bytes, at, end, out int valueStart);
+                TryCode(record.Bytes, at, codeEnd, out int code);
+                int valueEnd = LineEnd(record.Bytes, valueStart, end, out int next);
+                DxfTypedValue group = DxfTypedValue.Read(code, Text(record, valueStart, valueEnd));
+                groups.Add(new KeyValuePair<int, string>(group.TypeCode, group.Value));
+                at = next;
+            }
+
+            return groups;
         }
 
         /// <summary>
@@ -6026,7 +6237,7 @@ namespace GeometryHelper.Dxf
             Buffer.BlockCopy(record.Bytes, record.Start + to, bytes, from + middle.Length, after);
             records[index] = new Rec(bytes, 0, bytes.Length, record.Type);
             int written = middle.Length;
-            Rewritten(item, records, false);
+            Rewritten(item, records, false, index == 0 && item.Parent == null && SpliceNames(record, from, to, middle));
 
             if (geometry)
             {
@@ -6034,6 +6245,54 @@ namespace GeometryHelper.Dxf
             }
 
             return written;
+        }
+
+        /// <summary>
+        /// Takes the names a record gives to the INSERTs from the bytes written in the place of others, where the names the
+        /// file keeps hold those of every record it has already, so that the bytes before and after are not read again: of a
+        /// table of 10 000 cells, one cell written is not a reading of all its groups. The names kept never leave, so what is
+        /// written adds those of its groups 2; where the bytes replaced held a group 2 and the bytes written hold none, the
+        /// record may now name none at all, which only a reading of the whole record tells.
+        /// </summary>
+        /// <returns>Whether the names are taken: false where they are not kept, the record names no block, or it must be read whole.</returns>
+        private bool SpliceNames(Rec record, int from, int to, byte[] middle)
+        {
+            if (_insertNames == null || !NamesABlock(record.Type))
+            {
+                return false;
+            }
+
+            var replaced = new Rec(record.Bytes, record.Start + from, record.Start + to, record.Type);
+            bool held = false;
+
+            foreach (Pair pair in PairsOf(replaced))
+            {
+                held |= pair.Code == 2;
+            }
+
+            var written = new Rec(middle, 0, middle.Length, record.Type);
+            List<string> names = null;
+
+            foreach (Pair pair in PairsOf(written))
+            {
+                if (pair.Code == 2)
+                {
+                    names = names ?? new List<string>();
+                    names.Add(DxfReader.NameOf(Text(written, pair)));
+                }
+            }
+
+            if (held && names == null)
+            {
+                return false;
+            }
+
+            if (names != null)
+            {
+                names.ForEach(name => _insertNames.Add(name));
+            }
+
+            return true;
         }
 
         /// <summary>

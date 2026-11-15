@@ -406,7 +406,7 @@ namespace GeometryHelper.Dxf
         public void SetValue(int row, int col, object value)
         {
             Written written = ValueToWrite(value, nameof(value));
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
             CheckText(cell, row, col);
             string shown = written.Value is double real && cell.ValueFrom >= 0 ? RealText(real, null) : written.Text;
 
@@ -2298,7 +2298,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void SetOverride(int row, int col, int code, string text, Func<string, bool> same, Action check)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (same(cell.Override(code, Layout.CellOverrides[code])))
             {
@@ -2317,7 +2317,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private void SetHeadNumber(int row, int col, int code, double value, Func<double, bool> same, Action check)
         {
-            CellView cell = CellToWrite(row, col);
+            CellView cell = CellToEdit(row, col);
 
             if (same(Numbers.TryRead(cell.Head(code), out double now) && Guard.IsFinite(now) ? now : 0.0))
             {
