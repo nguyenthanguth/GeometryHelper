@@ -450,22 +450,32 @@ AutoCAD 2021 refused the first files with `ErrorStatus` 434 (an unsupported file
 named a rule the format does not state: it reads the header proper only where its data is compressed (the stored form, a negative
 length, is refused), reads the section map only where it is compressed, and wants the size a page names in the section map to be the
 size of its data (a size of the page of its section is refused, though AutoCAD's own files hold other numbers there). It also checks
-the parity of the application information and of its history against parity made from the bytes its own memory held after the
-data, which no other program can write: those two sections are left out, as is the summary information, and the preview is written
-only where the drawing has a picture (found by putting AutoCAD's own pages into the writer's container one section at a time, which
-opened, and the writer's own pages of those two, which did not). The objects are encoded as those of R2010 are, with the fields
-R2010 added left out, and a drawing of R2010 or later is made into the DXF of R2007 first, as for R2004. A 3DSOLID and a REGION are
-left out of a file of R2007 as of R2004 and R2010 (only R2013 and later write them). The free-space section is the 53 bytes AutoCAD
+the parity of the pages it keeps unpacked (coding 1: the application information, its history and the summary information) against
+parity made from the bytes its own memory held after the data, which no other program can write. The section map says how each
+section is coded, and AutoCAD reads the application information as well where it is coded 4 (compressed, in blocks of the code of
+251 laid one byte after the other, as the header is): AutoCAD's own application information put into the writer's container
+unpacked, with the writer's parity, was refused, and coded 4 it opens with `AUDIT` finding 0 errors, so the writer gives the
+application information that way, the bytes the later versions hold. The history of the applications and the summary information
+are left out: a file made here has no earlier application to list, and the summary information is written into no version yet.
+The preview is written only where the drawing has a picture. The objects are encoded as those of R2010 are, with the fields
+R2010 added left out, and a drawing of R2010 or later is made into the DXF of R2007 first, as for R2004. A 3DSOLID, a REGION and a
+BODY are written as in R2004 and R2010 (see the ACIS data below). The free-space section is the 53 bytes AutoCAD
 2021 writes into a file of R2007 (numbers of 32 bits), and the auxiliary header names the version of the file (27, 50) between two
 of the application (33, 174). The constraint groups of a dynamic block (ACDBASSOC2DCONSTRAINTGROUP, with the network, actions and
-dependencies that go with them) are left out of a file of R2007 made from a later version: AutoCAD keeps the identifiers of the
-vertices of a polyline there in an extended record (the XRECORD `VERTEXIDENTIFIER` in the dictionary `ACAD_XREC_ROUNDTRIP` in the
-extension dictionary of each LWPOLYLINE) and marks each dimension of a constraint invisible with a record `ISDYNAMIC`, which the DXF
-of R2007 does not give, and AUDIT finds an error in each group without them (34 for the 5 groups of Architectural - Imperial, 0
-once they are left out); a drawing that holds such a record, as AutoCAD's own files of R2007 do, keeps its groups. The 167 drawings
-of AutoCAD 2021's samples and of the tests, each written as R2007 and opened in AutoCAD 2021 with `AUDIT`: all 167 open, 160 with 0
-errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32 and 10), and the 4 tables that had 6 each have none;
-the files of the other versions are the same bytes as before.
+dependencies that go with them) need two extended records AutoCAD keeps, in the dictionary `ACAD_XREC_ROUNDTRIP` of the extension
+dictionary of an entity, what R2007 has no place for: the identifiers of the vertices of a LWPOLYLINE (the XRECORD
+`VERTEXIDENTIFIER`: the count of the whole numbers that follow, itself one, then each identifier, as bytes) and, on each dimension of a
+constraint (the layer `*ADSK_CONSTRAINTS`, an association among its reactors), the mark `ISDYNAMIC` with a 1, the dimension being made
+invisible and losing its text; AUDIT finds an error in each group without them (34 for the 5 groups of Architectural - Imperial, 0
+with the groups left out). The DXF saved as R2007 from a later version is given both records as AutoCAD gives them (the 8 polylines
+and 25 dimensions of Architectural - Metric, each record equal to AutoCAD's own R2007 file, and likewise the other 7 drawings of the
+samples with a dynamic block), and the writer keeps the groups where the drawing holds either record: in the first files the groups were
+left out where there was none, and with them the evaluation graph and the 60 dependencies of the Mechanical samples, which have no
+vertex identifiers but 56 and 12 dimensions of constraints. A drawing that holds neither, as the text of R2010 given to the writer
+as it is does, has its groups left out as before. The 167 drawings of AutoCAD 2021's samples and of the tests, each written as R2007
+and opened in AutoCAD 2021 with `AUDIT`: all 167 open, 160 with 0 errors, the other 7 with the errors of their originals (24, 24, 2,
+2, 32, 32 and 10), and the 4 tables that had 6 each have none; the files of R2000, R2013 and R2018 are the same bytes as before
+(501 of 501).
 
 The file of AutoCAD 2000 (AC1015) is not laid out in pages as the later versions are: a header of 0x61 bytes (the version, the
 maintenance release 15, the place of the preview, the code page, six locators of a section's number, place and size, a check sum
@@ -540,6 +550,22 @@ AutoCAD gives it from its own DWG of the drawing (the box 6 000 and 2 200, the s
 2000 is turned too (its records are those of R2004 less the asmheader, the history and the parameters of an edge: see the DXF
 versions in the index of this guide), as the box and the region of AutoCAD's own R2000 are; the solids whose splines are another
 curve in ACIS 4.00 (a loft through circles of different shapes, an extrusion of a closed spline) are left out.
+
+A REGION, 3DSOLID or BODY of a DWG of R2004, R2007 or R2010 is written the same SAB into the entity itself, as those versions keep it
+(no data store, which only R2013 and later have): the flag that says the data is not empty and another of 0, the version 2, the SAB
+byte by byte as bits, the wireframe of a new solid (no wires, no silhouettes), from R2007 the count of materials of faces, 0, and of
+a 3DSOLID the handle of its history. The SAB is that of the version (head 20800, 21200 or 21500; its data ends in `End-of-ACIS-data`,
+where R2013 and later end in `End-of-ASM-data`), made of the SAT the DXF of the version gives, which the entity keeps as it is,
+its extended data too. A box 30 by 20 by 10, a sphere, a cylinder and a region of a circle, as AutoCAD's own DWG of R2004, R2007
+and R2010 holds them, are encoded again to the bit, entity by entity, but for the date the SAB carries (24 bytes in AutoCAD's, left
+empty by the writer as it is in R2018); AutoCAD opens the files written so, `AUDIT` finds 0 errors, `MASSPROP` of the three solids
+gives the volume 9 087.1384 in each of R2004, R2007, R2010 and R2013 as it does of the original, and of the region the area 153.9380
+and the perimeter 43.9823. The spline solids of the tests (a closed spline extruded 7 up, and a solid lofted through a circle, an
+ellipse and a circle), from the DXF of each version into the three, are written where the grammars place them, and have the volume
+AutoCAD gives the original (1 654.1254, the two solids of R2004 and of R2007, and 1 654.1366 of R2010; the extrusion alone 588.1790
+where its loft has no form in the version): AutoCAD's own lofted solid of R2007 has a parametric curve that ends in one flag, where
+that of R2010 has two, and the flag is put in or taken out as the form changes (written alone, it was refused with a modeling error
+75004); a solid whose spline has no form in the other version is left out as it is in R2018.
 
 Two values of the SAB of a spline solid cannot be told from the SAT alone. The parameter curve of a face (`pcurve`) ends in
 two reals, which the SAT writes `0 0` or `1 0` and which were taken for two whole numbers; and the surface of a loft

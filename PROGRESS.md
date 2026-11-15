@@ -303,15 +303,16 @@ the next takes its place; the lead pauses only at session 95 % or week 98 % and 
   - [x] DWG Save As R2007 (dwgver3): our own Reed-Solomon (two codes, 2 746 AutoCAD blocks re-encoded to the byte) and
         LZ77-21 compressor; the 167-file corpus as AC1021 opens in AutoCAD 2021, 160 at AUDIT 0 and the other 7 with the
         originals' counts; every other version byte-identical (835 files)
-  - [ ] (dwgver4, running: R2007 constraint groups, R2004-R2010 solids) R3.3 follow-ups 4: R2007 keeps dynamic-block constraint groups only with VERTEXIDENTIFIER/ISDYNAMIC records
-        (write them; 6 samples lose their networks now); R2007 AppInfo/SummaryInfo left out (parity not matched) and a
-        picture preview's parity unchecked in AutoCAD's window; 3DSOLID/REGION in R2004-R2010; non-ASCII text in pre-2007
-        DWGs as \U+ escapes (would change R2004 bytes); R2000 VIEWPORT entity header handle and frozen-layer code 5;
-        dictionaries naming left-out objects; -BOUNDARY Region islands and its message (GUI); UNION/SUBTRACT taking the
-        first picked region; a region's grips and UNION's colour reset checked in the GUI; spline edges and non-planar
-        faces; orphan ACDSRECORDs; a parse cache for thousands of regions (M)
-- Round 4, the follow-ups listed below (Dimension, Grips, Dialogs, Xrefs, Layouts, Table editing, PLOT, DXF versions, R12,
-  VPCLIP, LAYERP), taken top to bottom, basics first.
+  - [x] R2007 dynamic blocks and older-version solids (dwgver4): R2007 keeps constraint groups through VERTEXIDENTIFIER
+        and ISDYNAMIC round-trip records (33 of 33 equal to AutoCAD's; 8 samples keep their groups); 3DSOLID/REGION/BODY
+        written in R2004, R2007, R2010 (bit-identical to AutoCAD's, MASSPROP equal); R2007 AppInfo written coded 4
+  - [ ] R3.3 follow-ups 5: constraint groups of the v2 layout (an R2018 AutoCAD file) into R2007/R2010; R2000 solids
+        (SAT v1 text); an unexplained ErrorStatus 76 seen once; spline solids not placed; R2007 AppInfoHistory and
+        SummaryInfo (no version writes SummaryInfo yet); the ISDYNAMIC dimension test is a heuristic (layer + reactor);
+        non-ASCII text in pre-2007 DWGs as \U+ escapes; R2000 VIEWPORT entity header handle and frozen-layer code 5;
+        dictionaries naming left-out objects; -BOUNDARY Region islands (GUI); UNION/SUBTRACT first picked region; region
+        grips and UNION colour reset in the GUI; spline edges and non-planar faces; orphan ACDSRECORDs; a parse cache for
+        thousands of regions (M)
   - [x] Dialogs 5 (dialogs5, design v139-v140): Multiline Style (with New/Modify page, Load), Multiline Edit Tools, the
         Hatch dialog's third column (one-colour gradient, colours, layer, transparency, origin, gap), Plot Stamp and PLOT's
         "Plot stamp on", Image Adjust, Attribute Extraction, Xbind
@@ -898,7 +899,7 @@ the ones wanted.
       bare, reader scratch lists reused: cold display at 1M 2.15 -> 1.74 s median (net8), REGEN 1.06 -> 0.73 s, layer off
       47 -> 30 ms, allocated 837 -> 532 MB; display lists, pixels and saved bytes identical on 167 samples; dropping the
       LWPOLYLINE shape cache declined (REGEN +39 %)
-- [ ] Speed follow-ups 14: GeoPolygonArc3 construction garbage (1.1 KB a polyline); three string-keyed layer lookups an
+- [ ] (speed15, running) Speed follow-ups 14: GeoPolygonArc3 construction garbage (1.1 KB a polyline); three string-keyed layer lookups an
       entity (a reference cache, ~4 %); Draw's type switch; REGEN's text group walk (~7 %); DrawText's CleanText garbage
       (35 MB per 200 000); layer off's BoundsOfItems (7 ms); DxfEntity wrappers kept (~50 MB, identity contract); a DWG
       read stopped mid-way (S)

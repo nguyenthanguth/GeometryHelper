@@ -75,21 +75,19 @@ FILEDIA 0 takes `2007`, `LT2007` and `2007(LT2007)` (only R14 is refused now: ".
 AutoCAD 2021 refused the first files with `ErrorStatus` 434 before it read a page. Putting its own pages into the writer's container, one
 section and one change at a time, found what it wants that the format does not say: the header proper only with its data compressed (the
 stored form is refused), the section map only compressed, the size a page names in the section map equal to the size of its data, and,
-of the application information and its history, parity made from the bytes its own memory held, which no other program can write; those
-two sections are left out, as is the summary information, and the preview is written only where the drawing has a picture. The
+of the pages it keeps unpacked (the application information, its history and the summary information), parity made from the bytes its own
+memory held, which no other program can write; the application information is written coded 4 (compressed, in blocks of the code of 251, as
+the header is), which AutoCAD reads as well and opens with `AUDIT` at 0 errors, the history and the summary information are left out, and
+the preview is written only where the drawing has a picture. The
 free-space section is the 53 bytes AutoCAD writes into R2007 and the auxiliary header names the version of the file (27, 50) between two of
 the application, and the classes carry the release it gives them there (33 and 174, the table cell styles 27 and 1), as its own files do. The 167 drawings of AutoCAD 2021's samples and of the tests, each written as AC1021 and opened in
 AutoCAD 2021 with `AUDIT`: all 167 open, 160 at 0 errors, the other 7 with the errors of their originals (24, 24, 2, 2, 32, 32, 10 = 126
 of the 150 the originals have in all), and the 4 table drawings that had 6 each have none; none refused, none beyond 4 GB or 120 s. They
-come to 18.8 MB, where AutoCAD's own SaveAs of the same drawings to R2007 come to 19.7 MB. The same 167 written as R2000, R2004, R2010,
-R2013 and R2018 are the same bytes as before (835 of 835 compared). A 3DSOLID and a REGION are left out of R2007 as of R2004 and R2010
-(only R2013 and later write them), and so are the constraint groups of a dynamic block (ACDBASSOC2DCONSTRAINTGROUP with their network,
-actions and dependencies) of a drawing made into R2007 from a later version: AutoCAD keeps the vertex identifiers of a polyline there in
-an extended record and marks each dimension of a constraint with another, which the DXF of R2007 does not give, and its `AUDIT` found 34
-errors in each Architectural drawing of the samples (5 groups), 22 more than the original in each Civil (4 groups) and 24 in each
-Structural (6 groups), none with them left out; a drawing that holds those records, as AutoCAD's own files of R2007 do, keeps its
-groups. Left: the preview of a drawing with a picture holds parity the writer makes from zeros, which AutoCAD 2021's console does not
-check, and its application window was not tried.
+come to 19.2 MB (the bodies, the dynamic blocks and the application information are in), where AutoCAD's own SaveAs of the same drawings to R2007 come to 19.7 MB. The same 167 written as R2000, R2004, R2010,
+R2013 and R2018 are the same bytes as before (835 of 835 compared). The 3DSOLID, REGION and BODY and the constraint groups of a dynamic
+block are written into R2007 as the next two entries say. Left: the preview of a drawing with a picture holds parity the writer makes from
+zeros, which AutoCAD 2021's console does not check, and its application window was not tried.
+
 **CHANGED.** The cold display of a drawing of 1 000 000 entities makes 532 MB of objects where it made 837 and is collected 31 times where 47,
 and takes 1.52 s where 1.82 (best of 15 runs alternated with the older build in three passes, .NET 8; median 1.74 s where 2.15); under .NET
 Framework 4.8 540 MB where 860, 82 collections of the youngest generation where 123, 2.80 s where 3.10, and under .NET 10 1.52 s where 2.43. A REGEN takes 0.58 s where 0.80
@@ -107,6 +105,35 @@ kept: the shapes of a LWPOLYLINE, whose drop takes 68 MB off the heap (526 MB wh
 boxes, runs and insertion points, the bytes saved and the pixels are the same: 167 AutoCAD samples (cold, after a MOVE, an ERASE, three layers
 off and on, a REGEN and the layouts) item for item under both runtimes, the saved bytes but for the one sample with an ACIS body, and the
 pixels in two views, plain, selected and hovered; drawings of 200 000 and 1 000 000 entities the same way. `DxfSpeed19Tests` (13) and `DisplaySpeed16Tests` (7).
+
+**NEW.** `DwgWriter` writes a 3DSOLID, a REGION and a BODY into a DWG of R2004, R2007 and R2010, which left them out (only R2013 and later wrote
+them). The entity holds its ACIS data itself in those versions, as SAB: the flag that says it is not empty and another of 0, the version 2,
+the bytes, the wireframe of a new solid, from R2007 the count of materials 0 and, of a solid, the handle of its history, and the file has no
+data store. The SAB is that of the version (head 20800, 21200 or 21500, ending in `End-of-ACIS-data`), made of the SAT the DXF of the version
+gives, which the entity keeps as it is. A box 30 by 20 by 10, a sphere, a cylinder and a region as AutoCAD 2021's own DWG of R2004, R2007 and
+R2010 hold them are encoded again to the bit, entity by entity, but for the date of the SAB (24 bytes in AutoCAD's, empty in the writer's, as
+in R2018). The 167 drawings of AutoCAD's samples and of the tests, written to R2004, R2007 and R2010: the 11 that hold bodies (5 of the acis
+drawings, 2 of solids and 4 of splines) come out with them, but for the solids whose spline records the grammars do not place (the 2 of
+the ACIS 4.00 splines of R2000, and one of two in some others), and the 33 files open with `AUDIT` at 0 errors, and `MASSPROP` gives the three solids of the box, sphere and cylinder the volume 9 087.1384 and the region the area 153.9380 and
+perimeter 43.9823 in R2004, R2007, R2010 and R2013, as of the original; the spline solids have the volumes of their originals (1 654.1254
+and 1 654.1366). The 157 other drawings written to R2004 and to R2010 and all 501 files of R2000, R2013 and R2018 are the same bytes as before. Two faults of the
+SAT turned into SAB came to light and are fixed: the end of the data of R2004 to R2010 names ACIS, not ASM, and the parametric curve of a
+lofted solid of R2007 ends with the flag of its surface alone, where R2010 and later hold a flag more (the flag is put in or taken out as the
+form crosses R2007 and R2010, and written alone AutoCAD 2021 refused such a solid with a modeling error, 75004).
+
+**FIXED.** A drawing with a dynamic block saved as R2007 from a later version keeps its constraint groups (ACDBASSOC2DCONSTRAINTGROUP with the
+network, the variables and the dependencies that go with them, and the evaluation graph of the block), which it lost because R2007 has no
+place for the vertex identifiers of a polyline nor for the mark of a dimension of a constraint, and AUDIT found 34 errors in each
+Architectural drawing of the samples, 22 more than the original in each Civil and 24 in each Structural where the groups were kept without
+them. The 8 dynamic-block drawings of the samples lost their groups, the 2 Mechanical ones, which hold no polyline with ids, their whole block as
+well (60 and 20 dependencies, 56 and 12 dimensions of constraints, the evaluation graph). `DxfVersionConverter` gives the DXF of R2007 the two records AutoCAD 2021 keeps for what R2007 has no place for, in
+the extension dictionary of the entity under `ACAD_XREC_ROUNDTRIP`: `VERTEXIDENTIFIER` on each LWPOLYLINE whose vertices have ids (the count
+of the whole numbers that follow, itself one, then the ids as bytes, in groups of 127) and `ISDYNAMIC` with a 1 on each dimension of the
+constraints (the layer `*ADSK_CONSTRAINTS` with an association among its reactors), which is also made invisible and loses its text, as
+AutoCAD does; the writer keeps the groups where the drawing holds either. The 8 polylines and 25 dimensions of Architectural - Metric come
+out each equal to AutoCAD's own R2007 file (33 records of 33), and the 8 drawings written as R2007 keep their groups and open with `AUDIT`
+finding the errors of their originals (2 in each Civil, 10 in Mechanical - Metric, none in the others). The DXF saved as R2007 holds the
+records too.
 
 **NEW.** `DwgWriter` writes AutoCAD 2000 (AC1015): `DwgWriter.Write(database, path, "AC1015")`. The file is the one AutoCAD 2000 has and not the pages of
 the later versions: a header of 0x61 bytes with six locators, the auxiliary header, the preview, the header variables, the classes, the objects, the

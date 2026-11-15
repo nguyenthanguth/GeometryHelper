@@ -187,7 +187,7 @@ namespace GeometryHelper.Dwg
                     return null;
                 }
 
-                var reader = new Reader(raw);
+                var reader = new Reader(raw, read.Version);
 
                 if (!reader.Record())
                 {
@@ -379,12 +379,14 @@ namespace GeometryHelper.Dwg
         private sealed class Reader
         {
             private readonly List<RawToken> _raw;
+            private readonly int _version;
             private int _at;
             private long _last;
 
-            public Reader(List<RawToken> raw)
+            public Reader(List<RawToken> raw, int version)
             {
                 _raw = raw;
+                _version = version;
                 Result = new List<Token>();
             }
 
@@ -628,8 +630,12 @@ namespace GeometryHelper.Dwg
                     case "oi":
                         return Peek == null || !IsWhole(Peek) || Whole('i');
                     case "ob":
-                        // A flag the SAB of R2013 and later holds and the text of R2010 does not: nought.
-                        Result.Add(new Token { Kind = 'b', Whole = 0 });
+                        // A flag the SAB of R2010 and later holds and the text does not: nought. The SAB of R2007 and before has none.
+                        if (_version >= 21500)
+                        {
+                            Result.Add(new Token { Kind = 'b', Whole = 0 });
+                        }
+
                         return true;
                     case "i1":
                         // The 1 the text of R2010 writes for the -1 of the SAB (the first of a swept surface's profile).
@@ -1511,6 +1517,28 @@ namespace GeometryHelper.Dwg
                     record.RemoveAt(i + 2);
                 }
 
+                if (name == "par_int_cur")
+                {
+                    // A parametric curve ends in a flag more from R2010 (its surface's side, then a nought) than in R2007.
+                    int end = Close(record, i);
+
+                    if (end < 2)
+                    {
+                        return false;
+                    }
+
+                    bool flagged = record[end - 1].Kind == 'b' && record[end - 2].Kind == 'b';
+
+                    if (put && !flagged)
+                    {
+                        record.Insert(end, new Token { Kind = 'b', Whole = 0 });
+                    }
+                    else if (!put && flagged)
+                    {
+                        record.RemoveAt(end - 1);
+                    }
+                }
+
                 if (name != "exact_int_cur")
                 {
                     continue;
@@ -1687,7 +1715,8 @@ namespace GeometryHelper.Dwg
                 bytes.Add(0x11);
             }
 
-            foreach (string part in new[] { "End", "of", "ASM", "data" })
+            // The data of R2004 to R2010 ends in the name of ACIS, that of R2013 and later in the name of ASM.
+            foreach (string part in new[] { "End", "of", form.Version >= 21800 ? "ASM" : "ACIS", "data" })
             {
                 bytes.Add(part == "data" ? (byte)0x0D : (byte)0x0E);
                 bytes.Add((byte)part.Length);
