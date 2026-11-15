@@ -573,7 +573,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "N");
 
             DxfPolyline cloud = Assert.Single(All<DxfPolyline>(document.ModelSpace));
-            Assert.Equal(handle, cloud.Handle);
+            // AutoCAD 2021 erases the cloud picked and makes a new one, of a handle of its own.
+            Assert.NotEqual(handle, cloud.Handle);
             Assert.True(cloud.Closed);
             List<GeoPoint2> points = Enumerable.Range(0, cloud.NumberOfVertices).Select(cloud.GetPoint2dAt).ToList();
             Assert.Contains(points, p => p.Y < -40);

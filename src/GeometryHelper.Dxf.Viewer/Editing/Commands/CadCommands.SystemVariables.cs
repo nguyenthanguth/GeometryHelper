@@ -414,6 +414,51 @@ namespace GeometryHelper.Dxf.Viewer
                 )
             );
 
+            // The style of its arcs (a text, "Normal" or "Calligraphy", which any text typed replaces), whether its grips show
+            // (ON), and the shortest and longest arc the last Arc length or REVCLOUDPROPERTIES gave (0.5 until then), kept by the
+            // session; the clouds themselves are drawn by REVCLOUDAPPROXARCLEN and REVCLOUDARCVARIANCE, as in AutoCAD 2021.
+            registry.AddVariable(
+                CadSystemVariable.Text(
+                    "REVCLOUDARCSTYLE",
+                    false,
+                    s => s.RevCloudArcStyle,
+                    (c, text) =>
+                    {
+                        c.Session.RevCloudArcStyle = text;
+                        return null;
+                    }
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Switch(
+                    "REVCLOUDGRIPS",
+                    false,
+                    s => Kept(s, "revcloud.grips", 1.0) != 0.0,
+                    (c, v) => c.Remember("revcloud.grips", v ? 1.0 : 0.0),
+                    null
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "REVCLOUDMINARCLENGTH",
+                    false,
+                    CadSystemVariable.RealBound.Finite,
+                    false,
+                    s => Kept(s, "revcloud.least", 0.5),
+                    (c, v) => c.Remember("revcloud.least", v)
+                )
+            );
+            registry.AddVariable(
+                CadSystemVariable.Number(
+                    "REVCLOUDMAXARCLENGTH",
+                    false,
+                    CadSystemVariable.RealBound.Finite,
+                    false,
+                    s => Kept(s, "revcloud.most", 0.5),
+                    (c, v) => c.Remember("revcloud.most", v)
+                )
+            );
+
             // What the drawing shows and how it sorts.
             registry.AddVariable(
                 Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE")

@@ -809,8 +809,12 @@ and, for a name in use, `Viewport configuration "A" already exists.  Replace it?
 configuration to restore or [?]:` and says `Cannot find viewport configuration "NOPE".` before asking again; Delete takes
 names and wild cards (`Deleted 2 viewport configurations.`, `Deleted one viewport configuration.`, `No matching viewport
 configurations found.`); ? writes `Current configuration:`, each `id# 2` with its `   corners: 0.5000,0.0000
-1.0000,1.0000`, and each configuration named; Toggle shows the current viewport alone and brings the others back the next
-time, as AutoCAD keeps them under `*Multiple`; Join asks `Select dominant viewport <current viewport>:` and `Select viewport to
+1.0000,1.0000`, and each configuration named, in the order of the names with `*Multiple` first (`No matching viewport
+configurations found.` where none matches the pattern); Toggle shows the current viewport alone and brings the others back the
+next time, as AutoCAD keeps them under `*Multiple`, written over by each Toggle of several tiles (three tiles toggled, split into
+two and toggled again leave the two as `*Multiple`); Delete with `*` deletes `*Multiple` with the rest, Restore of `*Multiple` or
+`*Active` ends at once with nothing said or changed, and Save refuses a name that begins with an asterisk with `Invalid viewport
+configuration name.`; Join asks `Select dominant viewport <current viewport>:` and `Select viewport to
 join:`, a viewport picked by a click in it, and refuses two that make no rectangle (`The selected viewports do not form a
 rectangle.`). Each change is one undo step. In a layout VPORTS and -VPORTS ask MVIEW's prompts, as AutoCAD's do. The tiles are
 [`CadDocument.TiledViewports`](xref:GeometryHelper.Dxf.Viewer.CadTiledViewports), read from the `*Active` records of the
@@ -1487,8 +1491,17 @@ value greater than 81 may cause performance problems.  Do you want to continue? 
 no more, and No asks the precision again with that one as the default. The counts of vertices are those of
 `DxfSpline.ToPolylineWithPrecision`, which AutoCAD's PEDIT gave exactly for every spline of control points probed (48 counts
 of four splines of degree 2 to 5, and the vertices of two of them) and for 96 of 119 counts of seven cubics through fit
-points; in the 23 others the presenter makes 1 to 24 vertices more than AutoCAD, up to 2.4 per cent, at precision 8 and over
-(a tolerance a little looser than the library's, 1 to 4 per cent, that no rule of the splines' bends was found for).
+points; in the 23 others the presenter makes 1 to 24 vertices more than AutoCAD, up to 2.4 per cent, at precision 8 and over.
+Probed again on 14 splines at 17 precisions (238 counts, 52 of them off, 1 to 22 more), the fault is not the fit points'
+(the same NURBS made of control points alone gives AutoCAD's own counts to the vertex, and PEDIT's equal
+`ToPolylineWithPrecision`'s in all 238): AutoCAD halves the parameter range to a tolerance c over (precision + 1) squared,
+where the vertices of each of its polylines separate the pieces halved from those kept to 0.03 per cent, and c is one over the
+largest second derivative M only where that is at an end of the spline (the cubics of one span, and the cubics
+of two spans whose largest is at an end, to 1E-4); where it stands at a knot inside, c is 0.06 to 3.9 per cent above 1/M (1.0102
+for a cubic of two spans of knots 0, 1, 2, 1.0385 for the zig-zag through (0, 0), (30, 40), (60, 0), (90, 40), (120, 0)), so that
+the library, which takes M at the knot, halves a little more. What AutoCAD takes M at there is not found: not a point of a
+grid of the parameter or of the length, not a second difference of the polyline, and not one point beside the knot (the
+distance differs from spline to spline).
 Both are kept by the session, PEDITACCEPT 0 and PLINETYPE 2 until set. Edit vertex marks the vertex with a cross,
 the first one the view shows (`No visible vertices` where it shows none); Next and Previous stop at the ends, Insert puts a
 vertex after the marked one as wide as its segment ends and marks it, Break between two vertices of a closed polyline
@@ -1528,6 +1541,26 @@ says so, `Minimum arc length: 4.0000   Maximum arc length: 8.0000` for 6; at 0 e
 were checked. REVCLOUDARCVARIANCE is an on-off switch, `Enter new value for REVCLOUDARCVARIANCE <ON>:`. REVCLOUDCREATEMODE
 sets the type it starts with. Calligraphy widens each arc from nought to a tenth of the longest arc.
 
+The shapes shorter than their arcs and the variables beside these were read from AutoCAD 2021's console, run through standard
+input (15 November). A path shorter than the longest arc (the approximate length at REVCLOUDARCVARIANCE 0, four thirds of it
+at 1) is a cloud of two vertices, its start and the point halfway along it, bulging the positive way whatever the shape: a
+line 15 long at arcs of 20 is (0, 0) and (7.5, 0), a rectangle 10 by 10 (0, 0) and (10, 10), a circle of radius 3 (3, 0) and
+(-3, 0); from one arc long on the vertices lie an arc length apart as before (a line 20 long is (0, 0) and (20, 0)). A
+shape that gives only one vertex is too small: Object says `Unable to convert object, object is too small for the cloud's
+arcs.` and asks again, Rectangular and Polygonal say `Invalid shape to create revision cloud.` and draw nothing (a rectangle
+5 by 5 at arcs of 20). Below six vertices Rectangular says it all the same and draws what it has (25 by 25, five vertices), and
+Polygonal draws nothing (the square of 25 gives none, the square of 28 six). The first cloud drawn while REVCLOUDAPPROXARCLEN
+is nought sets it to the length it was drawn with, and the next clouds keep that length whatever the view shows; a command
+ended before it drew anything, and Modify, leave it. REVCLOUDMINARCLENGTH and REVCLOUDMAXARCLENGTH (0.5 to begin with) are
+written by Arc length and by REVCLOUDPROPERTIES, to two thirds and four thirds of the length at REVCLOUDARCVARIANCE 1 and to the
+length itself at 0 (30 gives 20 and 40, or 30 and 30), and nothing else changes them; the command goes by the approximate
+length, not by them. REVCLOUDARCSTYLE is a text, "Normal" or "Calligraphy" as the Style option sets it, which SETVAR takes
+whatever it says; only exactly "Calligraphy" draws calligraphy. REVCLOUDGRIPS is a switch, ON to begin with. At REVCLOUDARCVARIANCE
+1 AutoCAD's arcs vary at random from one cloud to the next (three rectangles of the same corners gave three sequences, each arc
+between two thirds and four thirds of the length, evenly spread), where the presenter's are one fixed sequence of the same kind.
+A Freehand cloud typed point by point in the console takes every point typed as a vertex, so the rule of the arc length along
+the cursor's path is the window's alone and was not probed.
+
 AutoCAD 2021's console, run interactively (14 November, its commands read from standard input; a script file runs the older
 REVCLOUD), fixed these. The line `Minimum arc length: ...   Style: ...   Type: ...` is said when the command starts and when
 the type is changed, not after Arc length or Style. Rectangular's first prompt is `Specify first corner point`, Polygonal's
@@ -1554,7 +1587,8 @@ and the bottom between 50 and 80 picked, the 37 vertices are (80, 0), (80, -6), 
 (50, -20), (50, -10), (50, 0), (40, 0) and on round the old cloud to (90, 0). Picked at (45, 0) the path starts on the arc
 there, at (45, -2.6028), and the arcs cut at its ends keep their shape, bulges -0.24469844 and -0.11067678. Every arc of the
 result bulges the way those of the old cloud do, the other way where Reverse direction is Yes, even where that is into the
-shape the cloud now bounds. A cloud a path leaves is changed in place and keeps its handle (AutoCAD gives it another).
+shape the cloud now bounds. The cloud picked is erased and a new one takes its place, of a handle of its own, on the layer
+of the old and with its `RevcloudProps`, as AutoCAD 2021 does (the cloud of REVCLOUDPROPERTIES keeps its handle).
 
 REVCLOUDPROPERTIES asks `Select objects:` (only revision clouds, those with the data above, count), `Select property to
 change [Arc length]:` and `Specify approximate length of arc <10.0000>:`, the length the first cloud was drawn with, and sets
