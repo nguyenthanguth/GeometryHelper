@@ -352,42 +352,47 @@ namespace GeometryHelper.Geometry
         /// loop through the vertices, with the piece each arc adds beyond its chord counted in, positive
         /// where the arc bulges to the left of that chord and negative where it bulges to the right.
         /// </remarks>
-        public double SignedArea
+        public double SignedArea => SignedAreaOf(_vertices, _vertices.Length, _bulges);
+
+        /// <summary>
+        /// The signed area of the first <paramref name="count"/> vertices of an array and the bulge of the edge leaving each, as
+        /// <see cref="SignedArea"/> measures a loop, for a loop in space laid out in a scratch array, which has no loop of its own made to ask.
+        /// </summary>
+        internal static double SignedAreaOf(GeoPoint2[] vertices, int count, double[] bulges)
         {
-            get
+            // The straight loop measured from the first vertex, as GeoPolygon2 measures it, so that coordinates far out
+            // cost no precision.
+            double twice = 0.0;
+            GeoPoint2 reference = vertices[0];
+
+            for (int i = 1; i + 1 < count; i++)
             {
-                // The straight loop measured from the first vertex, as GeoPolygon2 measures it, so that coordinates far out
-                // cost no precision.
-                double twice = 0.0;
-                GeoPoint2 reference = _vertices[0];
+                GeoPoint2 current = vertices[i];
+                GeoPoint2 next = vertices[i + 1];
 
-                for (int i = 1; i + 1 < _vertices.Length; i++)
-                {
-                    GeoPoint2 current = _vertices[i];
-                    GeoPoint2 next = _vertices[i + 1];
-
-                    twice +=
-                        (current.X - reference.X) * (next.Y - reference.Y)
-                        - (next.X - reference.X) * (current.Y - reference.Y);
-                }
-
-                double area = twice * 0.5;
-
-                for (int i = 0; i < EdgeCount; i++)
-                {
-                    if (!GetEdgeAt(i).IsArc)
-                    {
-                        continue;
-                    }
-
-                    GeoArc2 arc = GetEdgeAt(i).ToArc();
-                    double swept = arc.SweptAngle;
-
-                    area += arc.Radius * arc.Radius * 0.5 * (swept - Math.Sin(swept));
-                }
-
-                return area;
+                twice +=
+                    (current.X - reference.X) * (next.Y - reference.Y)
+                    - (next.X - reference.X) * (current.Y - reference.Y);
             }
+
+            double area = twice * 0.5;
+
+            for (int i = 0; i < count; i++)
+            {
+                GeoEdge2 edge = new GeoEdge2(vertices[i], vertices[(i + 1) % count], bulges[i]);
+
+                if (!edge.IsArc)
+                {
+                    continue;
+                }
+
+                GeoArc2 arc = edge.ToArc();
+                double swept = arc.SweptAngle;
+
+                area += arc.Radius * arc.Radius * 0.5 * (swept - Math.Sin(swept));
+            }
+
+            return area;
         }
 
         /// <summary>

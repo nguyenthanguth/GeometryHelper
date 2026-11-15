@@ -313,6 +313,59 @@ and the layouts; the bytes saved but for the one with an ACIS body that differs 
 and field for field under .NET 8 and .NET Framework 4.8, and the pixels of the samples in two views, plain, selected and hovered, under
 .NET 8; and the generated drawings of 100 000, 200 000 and 1 000 000 entities the same way, the last two being those whose layer switched off is taken in pieces.
 
+What the profile of the cold display of 1 000 000 entities showed after that was the loop of a closed polyline with a bulge, the layers of the
+entities, the cases of `Draw` and the words of a TEXT. The loop (`GeoPolygonArc3`, which a closed LWPOLYLINE with an arc is read as) walked the vertices
+it was given as a sequence, which made an enumerator for a list, and `GeoPlane3.ContainsAll` made another for the array of the
+vertices when the loop asked whether they lie in one plane (88 bytes of the two). Both read by place now, a list or an array being what the shapes hold,
+and a sequence is copied once as the bulges and normals were; the loop takes 360 bytes where it took 448. Its `Area`, which the display asks for to tell a
+loop from a line, laid the loop out as a polygon of the plane, a `GeoPolygonArc2` of 40 bytes and two arrays of 130, 176 bytes of each call; it lays the
+edges out into two arrays of the thread's own (64 edges and fewer) and measures them there, by the same sum (`GeoPolygonArc2.SignedAreaOf`, which the
+polygon's own `SignedArea` calls too), and makes no garbage. The polygon laid out drops an edge whose ends land on one point, which only a point
+tolerance finer than the planar one lets a loop keep (two corners 0.005 apart along the normal under 1E-6 and 1E-2): that loop, and one of more
+than 64 edges, is laid out whole as before. Every vertex, bulge, normal, plane normal and area, and the words of every exception, are the same to the bit
+over 540 000 generated loops, built from a list, an array and a sequence, in every plane and turn, with arcs facing both ways, corners repeated and
+loops of up to 125 edges, under .NET 8 and .NET Framework 4.8. 200 000 polylines of four vertices with a bulge are displayed in 0.26 s where
+they took 0.34 and with 169 MB where 219 (.NET 8; 0.88 s where 1.03 and 170 MB where 221 under .NET Framework 4.8), the REGEN
+being as it was (the shapes are kept).
+
+The layer of an entity was asked of three tables for each entity drawn: its name made one shared string (`LayerOf`, a table by exact spelling),
+whether it is on and the colour, weight and linetype it gives (`LayerNamed`, a table that ignores case) and its bit in the masks of the runs
+(`DisplayList2.LayerBit`, the same), each with a cache of the last hit by the very string, which missed whenever two layers took turns, as the
+entities of a drawing do. `Draw` finds the three in one of eight slots (`LayerSlot`) by the string the entity's record gave for its layer, the one
+string the entities of one look share: the shared name, the layer's state and, for the list being built, its bit. A slot is written over, the
+oldest first, where a ninth layer takes a turn, and the slots are cleared with a build; a layer 0 in a block, which takes the layer of the INSERT, is
+a slot by that layer too. The bits are given in the order the layers are first drawn, as before. 200 000 lines on three layers in turn are redrawn in
+18 ms where they took 25, those on one layer in 17 where 20 (.NET 8; REGEN 80 ms where 103 under .NET Framework 4.8, on one layer 77 where 89), and the
+cold display of 1 000 000 entities takes 80 to 100 ms less (an ablation of the slots alone, .NET 8).
+
+The cases of `Draw`, a pattern switch of seventeen classes, were tried in turn for every entity: a LINE, an ARC and a CIRCLE meet them all, four of them
+unsealed classes (a block reference, a text, an image and the dimensions), whose cast walks the bases of the entity. A LINE, an ARC, a CIRCLE and a
+LWPOLYLINE (whose width is asked first, as the last case did, and which is drawn as a band where it has one) go to their shapes before the switch.
+It takes some 10 ns an entity: 18 ms where 20 for a REGEN of 200 000 lines, and no more than the noise of a machine at 1 000 000 entities
+(an ablation of the switch alone, .NET 8).
+
+The words of a TEXT, cleaned (the codes of a degree, a plus-minus and a diameter sign, the carriage returns) and trimmed, were made through a builder
+of the words' length (some 100 bytes), the words again from it, and for each `Trim` an array of the characters to
+cut (`Trim('\n')` in a library that targets netstandard2.0 makes one): 150 bytes of each text. The words are looked at once, and made again only where
+they hold a carriage return or one of the codes; the ends are cut by the same rule by a walk of the words, which makes a string only where it cuts; and
+a text of nothing but spaces is told by `IsNullOrWhiteSpace`. 200 000 texts are displayed with 65 MB of garbage where 95 and redrawn with 50 where 80,
+in 0.10 s where 0.11 and 0.085 where 0.10 (.NET 8; 0.29 s where 0.38 and 0.21 where 0.28 under .NET Framework 4.8). The words of the texts of the samples
+and of the generated drawings, with the codes in every case and place, are the same, as is every item.
+
+The REGEN of a drawing of texts still reads the groups of each text again (`DxfFile.TryTextGroups`: 28 per cent of a REGEN of 200 000 texts, 13 of them
+the walk over the groups): the cold display finds them in the same walk that finds the look, which a REGEN, the look being kept on the item, does not make.
+Reading the code line of each group in one pass (`TryPlainCode`, as the walk of the whole file reads it) gave a REGEN of 87 ms with and without it,
+and was not kept. The groups cannot be skipped but by keeping their places for each text, 144 bytes and 29 MB for 200 000, which the heap of a
+drawing does not take.
+
+At 1 000 000 entities (best of 15 runs alternated with the older build in three passes) the cold display takes 0.86 s where it took 1.04 under .NET 8
+(median 0.88 where 1.09), 0.75 where 0.90 under .NET 10 and 2.48 where 2.65 under .NET Framework 4.8, with 452 MB of objects where 533 (460 where 541
+under .NET Framework 4.8); a REGEN 0.39 s where 0.45, 0.36 where 0.41 and 1.08 where 1.24, with 276 MB where 306. Display lists, boxes, runs,
+insertion points, the bytes a drawing saves and the pixels are those they were: 167 samples of AutoCAD and three generated drawings (60 000 entities on twelve
+layers, one off, with INSERTs of blocks of layer 0 and of a layer of their own, and texts with codes; 100 000 and 1 000 000 mixed entities) item for item and
+field for field under .NET 8 and .NET Framework 4.8 (the 1 000 000 under .NET 8), the bytes saved of the 169, and the pixels of the 169 in two views, plain and
+selected, under both.
+
 `PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
 list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
 an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next

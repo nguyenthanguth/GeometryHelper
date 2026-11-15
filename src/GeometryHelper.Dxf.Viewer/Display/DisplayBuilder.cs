@@ -28,12 +28,47 @@ namespace GeometryHelper.Dxf.Viewer
             StringComparer.OrdinalIgnoreCase
         );
 
-        // The layer name <see cref="LayerNamed"/> and <see cref="LayerOf"/> answered last, with the answer, found again by the
-        // very string: the entities that follow one another on a layer share one, and each is asked for in turn. Cleared with a build.
+        // The layer name <see cref="LayerNamed"/> answered last, with the answer, found again by the very string: the entities
+        // that follow one another on a layer share one, and each is asked for in turn. Cleared with a build.
         private string _lastNamed;
         private LayerState _lastState;
-        private string _lastLayerName;
-        private string _lastLayerShared;
+
+        /// <summary>
+        /// What <see cref="Draw"/> learned of the layers of the last entities it drew, found again by the string their records
+        /// gave for the layer, which the entities of one look share: the entities of a drawing that alternate between three
+        /// layers find each in these few, where the name was looked up in three dictionaries (the shared spelling, the layer,
+        /// its bit in the list), some 20 ns an entity. The slots are filled one after the other and then written over in
+        /// turn; cleared with a build.
+        /// </summary>
+        private readonly LayerSlot[] _layerSlots = new LayerSlot[LayerSlotCount];
+
+        private int _layerSlotNext;
+
+        private const int LayerSlotCount = 8;
+
+        /// <summary>A layer as the entities of one record string of it are drawn: where they stand and what they read there.</summary>
+        private sealed class LayerSlot
+        {
+            /// <summary>The string the record gave for the layer, null where it gave none.</summary>
+            public string Raw;
+
+            /// <summary>Whether the layer is 0, which an entity of a block takes from the INSERT (<see cref="Block"/>).</summary>
+            public bool UsesBlock;
+
+            /// <summary>The layer the block's entities of layer 0 were drawn on when the slot was made.</summary>
+            public string Block;
+
+            /// <summary>The name as <see cref="LayerOf"/> gives it, one string for each spelling.</summary>
+            public string Shared;
+
+            /// <summary>The layer as it is drawn, null where the drawing has none by that name.</summary>
+            public LayerState State;
+
+            /// <summary>The bit of the layer in the list being built, where <see cref="HasBit"/>.</summary>
+            public ulong Bit;
+
+            public bool HasBit;
+        }
 
         // A layer of a drawing referenced as drawn: what the drawing showing it changed, the rest its own; made once, looked up only.
         private readonly Dictionary<string, LayerState> _merged = new Dictionary<string, LayerState>(
@@ -387,7 +422,7 @@ namespace GeometryHelper.Dxf.Viewer
             var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
             var root = new Frame(Affine2.Identity);
             string layerName = LayerOf(table, root);
-            DisplayStyle style = StyleOf(table, root, layerName);
+            DisplayStyle style = StyleOf(table, root, LayerNamed(layerName));
             GeoPoint3 at = table.Position;
             Frame inner = root.Child(Affine2.Translation(at.X, at.Y).Then(root.Matrix));
             inner.RootHandle = table.Handle;
@@ -486,8 +521,8 @@ namespace GeometryHelper.Dxf.Viewer
             _lastContent = null;
             _lastNamed = null;
             _lastState = null;
-            _lastLayerName = null;
-            _lastLayerShared = null;
+            Array.Clear(_layerSlots, 0, _layerSlots.Length);
+            _layerSlotNext = 0;
             _building = list;
 
             // The entities the Block Editor's visibility state hides are not drawn, nor picked; those it shows are, though the
@@ -1493,12 +1528,6 @@ namespace GeometryHelper.Dxf.Viewer
             string layer = entity.Layer ?? "0";
             string name = layer == "0" && frame.BlockLayer != null ? frame.BlockLayer : Prefixed(layer);
 
-            // The very string asked for last, as the entities that follow one another on a layer share one, is answered as it was.
-            if (ReferenceEquals(name, _lastLayerName))
-            {
-                return _lastLayerShared;
-            }
-
             // Read from the entity's groups, the name is a new string each time: kept once for each name, the items of a
             // drawing of 100 000 entities share four strings and not 100 000 (3.2 MB).
             if (!_layerNames.TryGetValue(name, out string shared))
@@ -1507,9 +1536,45 @@ namespace GeometryHelper.Dxf.Viewer
                 _layerNames.Add(name, name);
             }
 
-            _lastLayerName = name;
-            _lastLayerShared = shared;
             return shared;
+        }
+
+        /// <summary>
+        /// The layer of an entity as <see cref="LayerOf"/> names it and <see cref="LayerNamed"/> finds it, with its bit in the
+        /// list being built, from the slots of the layers drawn last where the string its record gave for the layer is one of them.
+        /// </summary>
+        private LayerSlot LayerSlotOf(DxfEntity entity, Frame frame)
+        {
+            string raw = entity.Item.Layer;
+            string block = frame.BlockLayer;
+            LayerSlot[] slots = _layerSlots;
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                LayerSlot found = slots[i];
+
+                if (found == null)
+                {
+                    break;
+                }
+
+                if (ReferenceEquals(found.Raw, raw) && (!found.UsesBlock || ReferenceEquals(found.Block, block)))
+                {
+                    return found;
+                }
+            }
+
+            // Not among them: found the long way, into an empty slot or over the one longest kept.
+            LayerSlot slot = slots[_layerSlotNext] ?? (slots[_layerSlotNext] = new LayerSlot());
+            _layerSlotNext = (_layerSlotNext + 1) % slots.Length;
+            slot.Raw = raw;
+            slot.UsesBlock = (entity.Layer ?? "0") == "0";
+            slot.Block = block;
+            slot.Shared = LayerOf(entity, frame);
+            slot.State = LayerNamed(slot.Shared);
+            slot.Bit = 0;
+            slot.HasBit = false;
+            return slot;
         }
 
         /// <summary>The layer names met by <see cref="LayerOf"/>, each once, by their letters as they are: layers of another case are other names.</summary>
@@ -1517,9 +1582,8 @@ namespace GeometryHelper.Dxf.Viewer
             StringComparer.Ordinal
         );
 
-        private DisplayStyle StyleOf(DxfEntity entity, Frame frame, string layerName)
+        private DisplayStyle StyleOf(DxfEntity entity, Frame frame, LayerState layer)
         {
-            LayerState layer = LayerNamed(layerName);
             DxfColor color = entity.Color;
             int rgb;
 
@@ -1798,11 +1862,18 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            string layerName = LayerOf(entity, frame);
+            LayerSlot slot = LayerSlotOf(entity, frame);
+            string layerName = slot.Shared;
 
             if (_building != null)
             {
-                _runLayers |= _building.LayerBit(layerName);
+                if (!slot.HasBit)
+                {
+                    slot.Bit = _building.LayerBit(layerName);
+                    slot.HasBit = true;
+                }
+
+                _runLayers |= slot.Bit;
             }
             else if (_host != null)
             {
@@ -1823,13 +1894,33 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The layer first: an entity's own visibility is read from its groups, near a microsecond each, which an entity on a layer
             // switched off or frozen never needs.
-            if (!IsLayerVisible(layerName) || (!shown && !entity.Visible))
+            LayerState layerState = slot.State;
+
+            if ((layerState != null && !layerState.Visible) || (!shown && !entity.Visible))
             {
                 return;
             }
 
             string handle = forcedHandle ?? frame.RootHandle ?? entity.Handle ?? string.Empty;
-            DisplayStyle style = StyleOf(entity, frame, layerName);
+            DisplayStyle style = StyleOf(entity, frame, layerState);
+
+            // The curves nearly every drawing is made of, which no case below is about, go to their shapes at once: the cases
+            // would test each against some seventeen classes, four of them unsealed, whose casts walk the bases of the entity.
+            if (entity is DxfLine || entity is DxfArc || entity is DxfCircle)
+            {
+                goto Shapes;
+            }
+
+            if (entity is DxfPolyline polyline)
+            {
+                // Only a polyline that has a width is drawn by its own code, as the last case below does.
+                if (polyline.HasWidth && AddWide(polyline, frame.Matrix, list, style, handle, layerName))
+                {
+                    return;
+                }
+
+                goto Shapes;
+            }
 
             switch (entity)
             {
@@ -2066,15 +2157,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfOle2Frame ole:
                     DrawOle(ole, frame, list, style, handle, layerName);
                     return;
-                case DxfPolyline wide when wide.HasWidth:
-                    if (AddWide(wide, frame.Matrix, list, style, handle, layerName))
-                    {
-                        return;
-                    }
-
-                    break;
             }
 
+            Shapes:
             IReadOnlyList<object> shapes = entity.GeometryOrOne(out object one);
             bool mask = entity is DxfWipeout;
             bool fill = entity is DxfSolid;
@@ -2925,9 +3010,9 @@ namespace GeometryHelper.Dxf.Viewer
             // right of its baseline a space further left than "ABC".
             // Its properties read in one pass of its groups, where each read alone looks for its own through them.
             DxfDBText.DisplayRead read = text.ReadForDisplay();
-            string value = TextMarks(CleanText(read.TextString, false).Trim('\n'), out byte[] marks);
+            string value = TextMarks(Trimmed(CleanText(read.TextString, false), '\n', '\n'), out byte[] marks);
 
-            if (value.Trim().Length == 0 || read.Height <= 0.0)
+            if (string.IsNullOrWhiteSpace(value) || read.Height <= 0.0)
             {
                 return;
             }
@@ -3859,6 +3944,63 @@ namespace GeometryHelper.Dxf.Viewer
                 return string.Empty;
             }
 
+            // Words with no code and no carriage return in them are the words as they stand: no builder, no second string.
+            string cleaned = NeedsCleaning(value) ? Cleaned(value) : value;
+            return trim ? Trimmed(cleaned, '\n', ' ') : cleaned;
+        }
+
+        /// <summary>Whether <see cref="Cleaned"/> would change the words: they have a carriage return, or a code for a degree, a plus-minus or a diameter sign.</summary>
+        private static bool NeedsCleaning(string value)
+        {
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+
+                if (c == '\r')
+                {
+                    return true;
+                }
+
+                if (c == '%' && i + 2 < value.Length && value[i + 1] == '%')
+                {
+                    char code = char.ToLowerInvariant(value[i + 2]);
+
+                    if (code == 'd' || code == 'p' || code == 'c')
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The words without the characters <paramref name="first"/> and <paramref name="second"/> at either end, as <c>Trim</c> of the two cuts them, but the characters are not put in an array of their own for each call.</summary>
+        private static string Trimmed(string value, char first, char second)
+        {
+            int start = 0;
+            int end = value.Length;
+
+            while (start < end && (value[start] == first || value[start] == second))
+            {
+                start++;
+            }
+
+            while (end > start && (value[end - 1] == first || value[end - 1] == second))
+            {
+                end--;
+            }
+
+            if (start == 0 && end == value.Length)
+            {
+                return value;
+            }
+
+            return start == end ? string.Empty : value.Substring(start, end - start);
+        }
+
+        private static string Cleaned(string value)
+        {
             var builder = new StringBuilder(value.Length);
 
             for (int i = 0; i < value.Length; i++)
@@ -3899,7 +4041,7 @@ namespace GeometryHelper.Dxf.Viewer
                 builder.Append(c);
             }
 
-            return trim ? builder.ToString().Trim('\n', ' ') : builder.ToString();
+            return builder.ToString();
         }
 
         private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
