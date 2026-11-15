@@ -441,9 +441,12 @@ the ones wanted.
       has one); COPY/MIRROR/ARRAY keep a plain entity's extension dictionary with its entries deep-copied and pointers
       translated, as AutoCAD; an annotative HATCH copy gets its ACDB_HATCHVIEWCONTEXTDATA_CLASS; the MLeader 45-degree
       tolerance is still needed (pinned by a test)
-- [ ] (mirror5, running) MIRROR follow-ups 5: a hatch copy's scale context moved with it (43 origin, 10/20/30 direction, 53 and 45/46 turned
-      or scaled, as AutoCAD); the view context on an annotative hatch moved in place by MOVE; outside 350/360 targets
-      cloned with the copy; dictionary entries sorted by name (S)
+- [x] MIRROR follow-ups 5 (mirror5): an annotative hatch's scale contexts move, turn and scale with it and its view
+      context is written on MOVE/COPY/ROTATE/SCALE/ARRAY as AutoCAD (84 of 84 oracle cases equal); 350/360 targets
+      outside a copy cloned; copied dictionary entries sorted by name; AUDIT 0 on our output
+- [ ] MIRROR follow-ups 6: hatch MIRROR keeps its normal and pattern in AutoCAD (TransformBy; ours turns the hatch over:
+      loops, arcs, bulges, ellipses, splines reflected in its plane; also MIRRHATCH); ROTATE -45 writes 53 as 360 (ours
+      0); -OBJECTSCALE Add writing the view on the original; AddDerived's 43/44 on a moved hatch (unprobed) (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
@@ -814,7 +817,7 @@ the ones wanted.
       cell (words in the style's font for the fit scale, in Arial for the room and the alignment; one pass, stored in
       144: scale and column equal AutoCAD to five places in 6 of 6 cases); SetFormat, SetDataType, SetBackgroundColorNone,
       SetOverrides and the last cell on the splice path (SetFormat over 1 000 cells 9.6 s -> 70 ms)
-- [ ] Tables follow-ups 5: a dimension test (DimensionTurnedWordsTests ...StandOnALevelLandingTurnedAboutTheMiddleOfTheirStart)
+- [ ] (tables6, running) Tables follow-ups 5: a dimension test (DimensionTurnedWordsTests ...StandOnALevelLandingTurnedAboutTheMiddleOfTheirStart)
       gave other coordinates once in a full run (shared font state between parallel tests?); a definition in a non-Standard
       style counting nothing in the console's minimum (GUI); AutoCAD's endless 1.8 % growth on repeated recomputes (we
       settle after one pass); SetValueFromText, SetCellType, SetAutoScale, SetBlock*, SetFormula and merges still write

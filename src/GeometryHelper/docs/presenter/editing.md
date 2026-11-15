@@ -181,12 +181,15 @@ a door flipped (Hand 1) is copied flipped, the same anonymous block placed, writ
 
 COPY, MIRROR, ROTATE and SCALE with Copy and ARRAY copy what an application keeps in the entity's extension dictionary, as
 AutoCAD 2021's do (checked in its console on a LINE and a CIRCLE): the copy gets a dictionary of its own, owned by it, holding
-a new XRECORD for each XRECORD of the original's and a new dictionary for each dictionary of XRECORDs, under the same names and
-in the same order, each owned by the dictionary above it. What a copied XRECORD points at (330, 340, 350 and 360 among its
-data) among the objects copied, the original entity and the original's other entries, it points at the copies of; a pointer
-at any other object stays. An entity whose dictionary is empty is copied with an empty one; one whose dictionary holds
-only other kinds of object (its contexts, a clip, fields) is copied with what is written for those. The copy of an annotative
-hatch holds a view context (see "Annotative texts" in the guide to text).
+a new XRECORD for each XRECORD of the original's and a new dictionary for each dictionary of XRECORDs, under the same names,
+ordered by name as AutoCAD keeps them (the names compared as lower-case letters: "10" before "9", "_a" before "a", "AcDbX" before
+"GH_Y"). What a copied XRECORD points at (330, 340, 350 and 360 among its data) among the objects copied, the original entity
+and the original's other entries, it points at the copies of; an ownership pointer (350, 360) at an XRECORD, or a dictionary of
+them, outside the objects copied names a clone of it, owned by the copied XRECORD and in no dictionary of the drawing, two
+pointers at one object sharing the clone; any other pointer, at an entity or by 330 or 340, stays. An entity whose dictionary is
+empty is copied with an empty one; one whose dictionary holds only other kinds of object (its contexts, a clip, fields) is
+copied with what is written for those. The copy of an annotative hatch holds a view context, its contexts move with it, and a
+hatch moved in place holds the view context of the place it stood (see "Annotative texts" in the guide to text).
 
 At MIRRTEXT 1 an MTEXT along x mirrored across a level line is of normal (0, 0, -1) and is written with no direction
 (group 11), as AutoCAD writes it: a record of no direction reads along the world's x axis put into its plane, here

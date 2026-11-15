@@ -185,9 +185,11 @@ namespace GeometryHelper.Dxf
         /// dictionaries, each a new object in its place with the same name, groups and order, owned by the dictionary above it.
         /// What a copied XRECORD points at (330, 340, 350 and 360 among its data) among the objects copied, the original
         /// included, it points at the copy of: a pointer at the original entity names the copy, one at the original's XRECORD
-        /// its copy. A pointer at any other object stays. An original with an empty dictionary gives its copy an empty one; one
-        /// whose dictionary holds only entries of another kind (contexts, a clip, a representation, fields), which other code
-        /// copies, gives none here. Entries the copy has already are left as they are.
+        /// its copy. An ownership pointer (350, 360) at an XRECORD, or a dictionary of them, outside the objects copied names a
+        /// clone of that object, owned by the copied XRECORD (mirror-5 GHM5GPTR); a pointer at any other object stays. The
+        /// entries stand in the copy's dictionary ordered by name, as AutoCAD keeps them. An original with an empty dictionary
+        /// gives its copy an empty one; one whose dictionary holds only entries of another kind (contexts, a clip, a
+        /// representation, fields), which other code copies, gives none here. Entries the copy has already are left as they are.
         /// </summary>
         /// <param name="source">The object copied, in the same drawing.</param>
         internal void KeepExtensionOf(DxfDBObject source)
@@ -217,7 +219,11 @@ namespace GeometryHelper.Dxf
 
             CreateExtensionDictionary();
             DxfDBDictionary extension = ExtensionDictionary;
-            var mapped = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [source.Handle] = Handle };
+            var mapped = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [source.Handle] = Handle,
+                [from.Handle] = extension.Handle,
+            };
             var made = new List<DxfItem>();
 
             foreach (DxfDBDictionaryEntry entry in entries)
@@ -228,11 +234,14 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            // Every copy has its handle now: the pointers of the XRECORDs go to the copies of what they pointed at.
+            // Every copy has its handle now: the pointers of the XRECORDs go to the copies of what they pointed at, and an object an
+            // ownership pointer (350, 360) names outside the copied set is cloned with them, which adds to the list as it goes.
             DxfFile file = Item.File;
 
-            foreach (DxfItem item in made)
+            for (int m = 0; m < made.Count; m++)
             {
+                DxfItem item = made[m];
+
                 if (item.Type != "XRECORD")
                 {
                     continue;
@@ -249,16 +258,103 @@ namespace GeometryHelper.Dxf
                     {
                         data = groups[i].Value.Trim() == "AcDbXrecord";
                     }
-                    else if (
-                        data
-                        && (code == 330 || code == 340 || code == 350 || code == 360)
-                        && mapped.TryGetValue(groups[i].Value.Trim(), out string copy)
-                    )
+                    else if (data && (code == 330 || code == 340 || code == 350 || code == 360))
                     {
-                        file.SetValueAt(item, i, copy);
+                        string pointed = groups[i].Value.Trim();
+
+                        if (
+                            mapped.TryGetValue(pointed, out string copy)
+                            || (
+                                (code == 350 || code == 360)
+                                && CloneOutside(file, pointed, item, mapped, made, out copy)
+                            )
+                        )
+                        {
+                            file.SetValueAt(item, i, copy);
+                        }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Clones the XRECORD, or the dictionary of them, that an ownership pointer (350 or 360) of a copied XRECORD names
+        /// outside the objects copied, as AutoCAD 2021's COPY clones it (probed, GHM5GPTR): a new object owned by the copied
+        /// XRECORD, in no dictionary, keeping the reactor its original had, the entries of a dictionary cloned below it; a pointer
+        /// at the same object again names the same clone. False, with nothing cloned, for any other object (an entity, a
+        /// dictionary of other kinds), which the pointer keeps naming.
+        /// </summary>
+        private static bool CloneOutside(
+            DxfFile file,
+            string handle,
+            DxfItem owner,
+            Dictionary<string, string> mapped,
+            List<DxfItem> made,
+            out string clone
+        )
+        {
+            clone = null;
+            DxfItem target = file.ObjectItem(handle);
+            DxfDBObject value = target == null ? null : OfObject(target);
+
+            if (!IsPlainData(value))
+            {
+                return false;
+            }
+
+            IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(target);
+            var dictionary = value as DxfDBDictionary;
+            int start = 0;
+            string reactor = null;
+
+            while (start < groups.Count && groups[start].TypeCode != 100)
+            {
+                if (groups[start].TypeCode == 330 && start > 0 && groups[start - 1].TypeCode == 102 && reactor == null)
+                {
+                    reactor = groups[start].Value;
+                }
+
+                start++;
+            }
+
+            DxfItem copy = file.AddObject(target.Type, owner.Handle, b =>
+            {
+                for (int i = start; i < groups.Count && !(dictionary != null && groups[i].TypeCode == 3); i++)
+                {
+                    b.Group(groups[i].TypeCode, groups[i].Value);
+                }
+            });
+
+            // AddObject names the owner as its reactor: the clone keeps the reactor of the object it is cloned from.
+            if (reactor != null)
+            {
+                IReadOnlyList<DxfTypedValue> cloned = file.GroupsOf(copy);
+
+                for (int i = 1; i < cloned.Count; i++)
+                {
+                    if (cloned[i].TypeCode == 330 && cloned[i - 1].TypeCode == 102)
+                    {
+                        file.SetValueAt(copy, i, reactor);
+                        break;
+                    }
+                }
+            }
+
+            mapped[handle] = copy.Handle;
+            made.Add(copy);
+            clone = copy.Handle;
+
+            if (dictionary != null)
+            {
+                var below = (DxfDBDictionary)OfObject(copy);
+
+                foreach (DxfDBDictionaryEntry entry in dictionary)
+                {
+                    CopyData(below, entry.Key, entry.Value, mapped, made);
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Whether an entry of an extension dictionary is user data: an XRECORD, or a dictionary every entry of which is.</summary>
@@ -308,7 +404,7 @@ namespace GeometryHelper.Dxf
                 start++;
             }
 
-            DxfItem copy = owner.Add(name, value.Item.Type, b =>
+            DxfItem copy = owner.AddSorted(name, value.Item.Type, b =>
             {
                 // A dictionary's entries are added after it, each copied.
                 for (int i = start; i < groups.Count && !(dictionary != null && groups[i].TypeCode == 3); i++)

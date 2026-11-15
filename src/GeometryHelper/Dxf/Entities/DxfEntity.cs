@@ -2595,6 +2595,7 @@ namespace GeometryHelper.Dxf
         private protected void ClearCopiedContexts()
         {
             Item.CopiedContexts = null;
+            CopiedView = null;
 
             foreach (DxfItem follower in Item.Followers ?? new List<DxfItem>())
             {

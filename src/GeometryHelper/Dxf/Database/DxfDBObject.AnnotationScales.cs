@@ -12,11 +12,22 @@ namespace GeometryHelper.Dxf
         // kinds are named where the entity is (DxfDBText, DxfMText, DxfBlockReference).
         private const string HatchContextType = "ACDB_HATCHSCALECONTEXTDATA_CLASS";
         private const string MLeaderContextType = "ACDB_MLEADEROBJECTCONTEXTDATA_CLASS";
-        private const string HatchContextMarker = "AcDbHatchObjectContextData";
+        private protected const string HatchContextMarker = "AcDbHatchObjectContextData";
 
         // The dictionary of the manager that holds a hatch's view contexts, and the class of each.
         private const string HatchViewCollection = "ACDB_ANNOTATIONSCALE_VIEW_COLLECTION";
         private const string HatchViewContextType = "ACDB_HATCHVIEWCONTEXTDATA_CLASS";
+
+        /// <summary>
+        /// The view context a copy of an annotative HATCH in no file carries until it is added to a drawing: its original's, or its
+        /// original's default context as it was before the copy was moved. Held by the HATCH itself, which stays the same object
+        /// when its record is written into the drawing; null for any other object, which holds none.
+        /// </summary>
+        internal virtual DxfCopiedView CopiedView
+        {
+            get => null;
+            set { }
+        }
 
         // The entities the library makes annotative, each by the context AutoCAD 2021 gives it.
         private static readonly HashSet<string> MadeAnnotative = new HashSet<string>(StringComparer.Ordinal)

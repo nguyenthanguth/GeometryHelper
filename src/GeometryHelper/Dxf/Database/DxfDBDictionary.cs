@@ -496,7 +496,20 @@ namespace GeometryHelper.Dxf
         /// Adds an object of a type, owned by the dictionary, under a name: its record written as <see cref="DxfFile.AddObject"/>
         /// writes one, then the entry, last, or in the place of the entry of the name, whose object is erased.
         /// </summary>
-        internal DxfItem Add(string searchKey, string type, Action<DxfFile.Builder> groups)
+        internal DxfItem Add(string searchKey, string type, Action<DxfFile.Builder> groups) =>
+            Add(searchKey, type, groups, false);
+
+        /// <summary>
+        /// <c>Add</c> with a new entry put where AutoCAD 2021 keeps it, among
+        /// the entries ordered by name (letters of either case the same, compared as the lower-case letters: "_a" before "a",
+        /// "10" before "9", "AcDbX" before "GH_Y", probed in its console on an extension dictionary of 18 names): before the first
+        /// entry whose name comes after it, last where none does. An entry of the name is replaced in its place, as <c>Add</c>
+        /// does.
+        /// </summary>
+        internal DxfItem AddSorted(string searchKey, string type, Action<DxfFile.Builder> groups) =>
+            Add(searchKey, type, groups, true);
+
+        private DxfItem Add(string searchKey, string type, Action<DxfFile.Builder> groups, bool sorted)
         {
             DxfFile file = Resident();
             Index index = Indexed();
@@ -534,9 +547,10 @@ namespace GeometryHelper.Dxf
             else
             {
                 string key = searchKey.Trim();
+                int place = sorted ? PlaceOf(index, key) : index.Nodes.Count;
 
                 // A name of letters beyond ASCII is written in the file's code page, and read back as the record reads it.
-                if (Spliceable(index) && Ascii(key))
+                if (place == index.Nodes.Count && Spliceable(index) && Ascii(key))
                 {
                     int code = index.Hard ? 360 : 350;
                     int end = index.Start + index.Length;
@@ -545,11 +559,27 @@ namespace GeometryHelper.Dxf
                 }
 
                 List<Entry> entries = index.Entries();
-                entries.Add(new Entry(key, made.Handle, 0));
+                entries.Insert(place, new Entry(key, made.Handle, 0));
                 Write(entries);
             }
 
             return made;
+        }
+
+        /// <summary>The place a new entry of a name takes among the entries ordered by name, as <see cref="AddSorted"/> puts it: that of the first whose name comes after it.</summary>
+        private static int PlaceOf(Index index, string key)
+        {
+            string folded = DxfReader.NameOf(key).ToLowerInvariant();
+
+            for (int i = 0; i < index.Nodes.Count; i++)
+            {
+                if (string.CompareOrdinal(index.Nodes[i].Name.ToLowerInvariant(), folded) > 0)
+                {
+                    return i;
+                }
+            }
+
+            return index.Nodes.Count;
         }
 
         /// <summary>

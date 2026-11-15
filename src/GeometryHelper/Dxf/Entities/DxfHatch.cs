@@ -113,6 +113,16 @@ namespace GeometryHelper.Dxf
         // drawing it is added to, as AutoCAD takes them at once from the working drawing's.
         private bool _fromFiles;
 
+        // The view context a copy carries to the drawing it is added to (see DxfDBObject.CopiedView).
+        private DxfCopiedView _copiedView;
+
+        /// <inheritdoc/>
+        internal override DxfCopiedView CopiedView
+        {
+            get => _copiedView;
+            set => _copiedView = value;
+        }
+
         /// <summary>
         /// Initializes a HATCH of no loops, filled solid, on the floor, as AutoCAD's <c>new Hatch()</c>, on layer 0 in no file;
         /// give it its pattern with <see cref="SetHatchPattern"/> and its loops with <see cref="AppendLoop(DxfHatchLoop)"/>.
@@ -1252,6 +1262,8 @@ namespace GeometryHelper.Dxf
         /// the old plane to the world, moved, and into the plane of the new normal, its arcs and ellipses turned with it; the
         /// elevation that of the old plane's origin there; the pattern's lines scaled, turned and their base points moved, its
         /// scale and angle with them; and, past ezdxf, the seed points moved and the gradient's angle turned, as AutoCAD moves them.
+        /// Of an annotative hatch the contexts of its scales move with it (<c>MoveContexts</c>) and its view context is
+        /// written first, replaced where it has one (<c>KeepHatchView</c>), a move by nought included.
         /// </summary>
         /// <param name="transform">The transformation.</param>
         /// <remarks>
@@ -1263,6 +1275,9 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the HATCH is erased.</exception>
         private protected override void TransformEntity(GeoTransform3 transform)
         {
+            // An annotative hatch takes its view context first, a move by nought too, as AutoCAD 2021's TransformBy writes it.
+            KeepHatchView();
+
             if (DxfOcsTransform.IsIdentity(transform))
             {
                 return;
@@ -1322,6 +1337,8 @@ namespace GeometryHelper.Dxf
                 record.SetPart(Kind.Pattern, LineGroups(lines));
             }
 
+            MoveContexts(ocs, elevation, factor, turn);
+
             if (record.Text(41) != null && !IsSolidFill)
             {
                 record.Set(41, Real(Num(record.Text(41), 1.0) * factor));
@@ -1358,6 +1375,115 @@ namespace GeometryHelper.Dxf
             }
 
             Write(record);
+        }
+
+        /// <summary>
+        /// Carries the contexts of an annotative hatch's scales along with the hatch, as AutoCAD 2021's <c>TransformBy</c> carries
+        /// them (probed in its console, GHM5, a hatch of ANSI31, HONEY, ANSI37, AR-B816 and a user pattern at one scale and two,
+        /// moved, turned, scaled and copied): the base point of each pattern line moved with the hatch (43 of 100 for a copy 100
+        /// along x), its angle (53) turned and its offset (45, 46) and dashes turned and scaled, as the lines of the record are, and
+        /// the direction of the pattern (10, 20) carried and made of unit length.
+        /// </summary>
+        private void MoveContexts(DxfOcsTransform ocs, double elevation, double factor, double turn)
+        {
+            foreach (DxfItem context in HatchContexts())
+            {
+                DxfFile file = context.File;
+                IReadOnlyList<DxfTypedValue> groups = file.GroupsOf(context);
+                var lines = new List<List<double>>();
+                var places = new List<List<int>>();
+                int i = 0;
+                bool inside = false;
+
+                for (; i < groups.Count; i++)
+                {
+                    if (groups[i].TypeCode == 100)
+                    {
+                        inside = groups[i].Value.Trim() == HatchContextMarker;
+                    }
+                    else if (inside && groups[i].TypeCode == 78)
+                    {
+                        i++;
+                        break;
+                    }
+                }
+
+                // The lines as the groups after the 78 give them, to the scale (40) that follows: 53, 43, 44, 45, 46, 79, the dashes.
+                for (; i < groups.Count && groups[i].TypeCode != 40; i++)
+                {
+                    int code = groups[i].TypeCode;
+
+                    if (code == 53)
+                    {
+                        lines.Add(new List<double> { Num(groups[i].Value, 0.0), 0.0, 0.0, 0.0, 0.0 });
+                        places.Add(new List<int> { i, -1, -1, -1, -1 });
+                    }
+                    else if (lines.Count > 0 && code >= 43 && code <= 46)
+                    {
+                        lines[lines.Count - 1][code - 42] = Num(groups[i].Value, 0.0);
+                        places[places.Count - 1][code - 42] = i;
+                    }
+                    else if (lines.Count > 0 && code == 49)
+                    {
+                        lines[lines.Count - 1].Add(Num(groups[i].Value, 0.0));
+                        places[places.Count - 1].Add(i);
+                    }
+                }
+
+                for (int n = 0; n < lines.Count; n++)
+                {
+                    double[] line = lines[n].ToArray();
+                    GeoPoint3 basePoint = ocs.TransformVertex(new GeoPoint3(line[1], line[2], elevation));
+                    Turn(line, factor, turn);
+                    line[1] = basePoint.X;
+                    line[2] = basePoint.Y;
+
+                    for (int k = 0; k < line.Length; k++)
+                    {
+                        if (places[n][k] >= 0 && !Same(line[k] + 0.0, lines[n][k] + 0.0))
+                        {
+                            file.SetValueAt(context, places[n][k], Real(line[k]));
+                        }
+                    }
+                }
+
+                // The direction of the pattern (10, 20) follows the scale: carried, of unit length, its z as it was.
+                int x = -1;
+                int y = -1;
+
+                for (int j = i + 1; j < groups.Count && groups[j].TypeCode != 90; j++)
+                {
+                    if (groups[j].TypeCode == 10 && x < 0)
+                    {
+                        x = j;
+                    }
+                    else if (groups[j].TypeCode == 20 && y < 0)
+                    {
+                        y = j;
+                    }
+                }
+
+                if (x >= 0 && y >= 0)
+                {
+                    double dx = Num(groups[x].Value, 0.0);
+                    double dy = Num(groups[y].Value, 0.0);
+                    GeoVector3 turned = ocs.TransformDirection(new GeoVector3(dx, dy, 0.0));
+                    double length = Math.Sqrt(turned.X * turned.X + turned.Y * turned.Y);
+
+                    if (length > 0.0)
+                    {
+                        if (!Same(turned.X / length + 0.0, dx + 0.0))
+                        {
+                            file.SetValueAt(context, x, Real(turned.X / length));
+                        }
+
+                        if (!Same(turned.Y / length + 0.0, dy + 0.0))
+                        {
+                            file.SetValueAt(context, y, Real(turned.Y / length));
+                        }
+                    }
+                }
+            }
         }
 
         #endregion
